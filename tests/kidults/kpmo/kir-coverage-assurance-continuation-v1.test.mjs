@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import {
   issueKirCoverageAssuranceContinuation,
   consumeKirCoverageAssuranceContinuation,
@@ -13,6 +14,10 @@ const runId = 34071423953;
 const runAttempt = 1;
 const artifactId = 10000596594;
 const artifactDigest = `sha256:${'c'.repeat(64)}`;
+const assuranceWorkflow = fs.readFileSync(
+  '.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+  'utf8',
+);
 const stable = (value) => Array.isArray(value)
   ? `[${value.map(stable).join(',')}]`
   : value && typeof value === 'object'
@@ -90,6 +95,13 @@ test('exact manual Coverage fallback issues and consumes a continuation', () => 
   const consumed = consumeKirCoverageAssuranceContinuation(input);
   assert.equal(consumed.coverage_event, 'workflow_dispatch');
   assert.equal(consumed.state, 'CONSUMED_VERIFIED');
+});
+
+test('audit restores the exact consumption receipt schema version', () => {
+  assert.match(assuranceWorkflow,
+    /\.id=="kidults-kir-coverage-assurance-consumption-v1" and \.version=="1\.2\.0" and \.state=="CONSUMED_VERIFIED"/);
+  assert.doesNotMatch(assuranceWorkflow,
+    /\.id=="kidults-kir-coverage-assurance-consumption-v1" and \.version=="1\.0\.0"/);
 });
 
 const mutations = [
