@@ -85,8 +85,6 @@ on:
       - 'KIDULTS ASI P1 Source Preflight v1'
     branches: [main]
     types: [completed]
-  schedule:
-    - cron: '57 * * * *'
 
 permissions:
   contents: read
@@ -135,7 +133,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-registry-v1.mjs
 
   classify-p1-generation:
-    if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     runs-on: ubuntu-24.04
@@ -160,12 +158,7 @@ jobs:
           set -euo pipefail
           CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')
           test "$CURRENT_MAIN_SHA" = "$GITHUB_SHA"
-          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
-            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-p1-source-preflight-v1.yml/runs?branch=main&event=schedule&status=success&per_page=20" > /tmp/p1-scheduled-runs.json
-            INPUT_P1_RUN_ID=$(jq -er --arg sha "$GITHUB_SHA" '[.workflow_runs[] | select(.head_sha==$sha and .head_branch=="main" and .conclusion=="success")] | sort_by(.created_at) | last | .id' /tmp/p1-scheduled-runs.json)
-            export INPUT_P1_RUN_ID
-          fi
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ] || [ "$GITHUB_EVENT_NAME" = schedule ]; then
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
             [[ "$INPUT_P1_RUN_ID" =~ ^[1-9][0-9]*$ ]]
             gh api -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/actions/runs/${INPUT_P1_RUN_ID}" \
@@ -174,14 +167,14 @@ jobs:
               '.id==$run and .repository.full_name==$repo and .head_repository.full_name==$repo
                and .name=="KIDULTS ASI P1 Source Preflight v1"
                and .path==".github/workflows/kidults-asi-p1-source-preflight-v1.yml"
-               and (.event=="workflow_dispatch" or .event=="schedule") and .head_branch=="main" and .head_sha==$sha
+               and .event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha
                and .status=="completed" and .conclusion=="success"' \
               /tmp/arl-direct-p1-run.json >/dev/null
             jq -n --arg sha "$GITHUB_SHA" --argjson run "$INPUT_P1_RUN_ID" \
-              '{classification:"CURRENT_MAIN_EXACT",reason:"CURRENT_MAIN_PRODUCER_BOUND",current_main_sha:$sha,upstream_run_id:$run,upstream_event:(if env.GITHUB_EVENT_NAME=="schedule" then "schedule" else "workflow_dispatch" end),promotion_authority:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
+              '{classification:"CURRENT_MAIN_EXACT",reason:"EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED",current_main_sha:$sha,upstream_run_id:$run,upstream_event:"workflow_dispatch",promotion_authority:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
               > /tmp/arl-p1-generation-classification-v1.json
           else
-            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json             "${{ github.event.workflow_run.event }}"
           fi
           echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
