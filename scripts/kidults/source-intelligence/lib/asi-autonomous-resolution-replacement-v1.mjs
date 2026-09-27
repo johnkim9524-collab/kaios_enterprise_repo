@@ -39,9 +39,8 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
 
   const bindingMissionIds = bindings.bindings.map((binding) => binding.mission_id);
   const uniqueBindingMissionIds = uniq(bindingMissionIds);
-  if (uniqueBindingMissionIds.length !== bindings.mission_count || bindings.bindings.length !== bindings.mission_count) {
-    throw new Error('REPLACEMENT_BINDING_MISSION_CARDINALITY_INVALID');
-  }
+  if (bindings.bindings.length !== bindings.mission_count) throw new Error('REPLACEMENT_BINDING_COUNT_MISMATCH');
+  if (uniqueBindingMissionIds.length !== bindings.mission_count) throw new Error('REPLACEMENT_BINDING_DUPLICATE_MISSION_ID');
   const missionById = new Map(bindings.bindings.map((binding) => [binding.mission_id, binding]));
   const gateMissionIds = new Set(uniq(gate1.decisions.map((decision) => decision.mission_id)));
   for (const missionId of gateMissionIds) if (!missionById.has(missionId)) throw new Error(`REPLACEMENT_GATE_MISSION_BINDING_MISSING:${missionId}`);
