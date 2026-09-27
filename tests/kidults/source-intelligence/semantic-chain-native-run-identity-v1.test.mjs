@@ -208,10 +208,15 @@ for (const conclusion of [null, 'bogus', '', 0]) test(`malformed terminal conclu
  const r = classification({event:'schedule', conclusion});
  assert.equal(r.state, 'VERIFIED_FAIL'); assert.equal(r.reason, 'PRODUCER_LIFECYCLE_INVALID');
 });
-test('natural scheduled producer authority is explicit and manual widening remains forbidden', () => {
- const scheduled=classification({event:'schedule'}, {expectedProducerEvent:'schedule'});
- assert.equal(scheduled.state,'VERIFIED_PASS'); assert.equal(scheduled.reason,'CURRENT_MAIN_PRODUCER_BOUND');
- assert.equal(classification({event:'workflow_dispatch'}, {expectedProducerEvent:'workflow_dispatch'}).reason, 'EXPECTED_PRODUCER_EVENT_INVALID');
+test('expected event cannot widen canonical producer authority', () => {
+ assert.equal(classification({event:'schedule'}, {expectedProducerEvent:'schedule'}).reason, 'EXPECTED_PRODUCER_EVENT_INVALID');
+});
+test('expected nonauthority terminates cleanly without granting consumer authority', () => {
+ const text=fs.readFileSync('.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml','utf8');
+ assert.ok(text.includes("state: ${{ steps.classify.outputs.state }}"));
+ assert.ok(text.includes("if [ \"${{ steps.classify.outputs.state }}\" = 'VERIFIED_SKIP' ]; then"));
+ assert.ok(text.includes("steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'"));
+ assert.ok(text.includes("needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'"));
 });
 test('KIR regression includes the real semantic-chain regression without dropping existing tests', () => {
  const text = fs.readFileSync('.github/workflows/kidults-kir-runtime-contract-v1.yml', 'utf8');
