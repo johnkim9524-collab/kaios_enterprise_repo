@@ -120,6 +120,7 @@ jobs:
       special_exact_artifact_class: ${{ steps.classify.outputs.special_exact_artifact_class }}
       ephemeral_actions_alias_eligible: ${{ steps.classify.outputs.ephemeral_actions_alias_eligible }}
       runtime_dedupe_state: ${{ steps.classify.outputs.runtime_dedupe_state }}
+      coverage_execute_full_audit: ${{ steps.coverage-authority.outputs.execute_full_audit }}
     env:
       KPMO_CLASSIFIER_PACKET: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -138,8 +139,10 @@ jobs:
           node --check scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
           node --check scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
           node --check scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs
+          node --check scripts/kidults/kpmo/classify-requirement-coverage-observation-v1.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
           node --test tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs
+          node --test tests/kidults/kpmo/requirement-coverage-observation-v1.test.mjs
       - name: Reject partial forwarded Coverage continuation inputs
         if: github.event_name == 'workflow_dispatch'
         env:
@@ -253,7 +256,7 @@ jobs:
       - name: Classify exact trigger into canonical identity
         id: classify
         env:
-          KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event_name }}
+          KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}
           KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
           KPMO_SCHEDULE_EXPRESSION: ${{ github.event.schedule || '' }}
           KPMO_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
@@ -268,12 +271,41 @@ jobs:
         run: >-
           node scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
           --output "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/canonical-identity-receipt.json"
+      - name: Resolve exact Coverage artifact authority
+        id: coverage-authority
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN_ID: ${{ github.event.workflow_run.id }}
+          COVERAGE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}" > /tmp/coverage-observation-run.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}/artifacts?per_page=100" > /tmp/coverage-observation-artifacts.json
+          FULL_COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false)] | length' /tmp/coverage-observation-artifacts.json)
+          if [ "$FULL_COUNT" -eq 0 ]; then
+            ADMISSION_NAME="kidults-asi-requirement-coverage-admission-v1-${COVERAGE_RUN_ID}-${COVERAGE_RUN_ATTEMPT}"
+            jq -e --arg name "$ADMISSION_NAME" '[.artifacts[] | select(.name==$name and .expired==false)] | length==1' /tmp/coverage-observation-artifacts.json >/dev/null
+            ADMISSION_ID=$(jq -r --arg name "$ADMISSION_NAME" '.artifacts[] | select(.name==$name and .expired==false) | .id' /tmp/coverage-observation-artifacts.json)
+            ADMISSION_DIGEST=$(jq -r --arg name "$ADMISSION_NAME" '.artifacts[] | select(.name==$name and .expired==false) | .digest' /tmp/coverage-observation-artifacts.json)
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ADMISSION_ID}/zip" > /tmp/coverage-admission.zip
+            python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py --archive /tmp/coverage-admission.zip --expected-digest "$ADMISSION_DIGEST" --receipt /tmp/coverage-admission-archive.json --max-compressed-bytes 1048576 --max-entries 1 --max-entry-uncompressed-bytes 1048576 --max-total-uncompressed-bytes 1048576 --max-compression-ratio 100 --required-basename coverage-admission-v1.json
+            mkdir /tmp/coverage-admission
+            unzip -q /tmp/coverage-admission.zip -d /tmp/coverage-admission
+            mapfile -t ADMISSIONS < <(find /tmp/coverage-admission -type f -name coverage-admission-v1.json -print)
+            test "${#ADMISSIONS[@]}" -eq 1
+            ADMISSION_PATH="${ADMISSIONS[0]}"
+          else
+            echo '{}' > /tmp/coverage-admission-not-applicable.json
+            ADMISSION_PATH=/tmp/coverage-admission-not-applicable.json
+          fi
+          node scripts/kidults/kpmo/classify-requirement-coverage-observation-v1.mjs /tmp/coverage-observation-run.json /tmp/coverage-observation-artifacts.json "$ADMISSION_PATH" "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/coverage-observation-receipt.json"
       - name: Upload exact-run canonical classification receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/${{ env.KPMO_CLASSIFIER_PACKET }}/canonical-identity-receipt.json
+          path: ${{ runner.temp }}/${{ env.KPMO_CLASSIFIER_PACKET }}/
           if-no-files-found: error
           retention-days: 90
       - name: Retain one-time Coverage continuation consumption receipt
@@ -292,6 +324,7 @@ jobs:
     needs: classify-canonical-identity
     if: >-
       needs.classify-canonical-identity.result == 'success' &&
+      needs.classify-canonical-identity.outputs.coverage_execute_full_audit != 'false' &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main')) &&

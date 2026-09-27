@@ -158,7 +158,9 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(covSource.includes('/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches'));
  assert.ok(covSource.includes('kir-core-four-terminal-reserve-dispatch-v1.json'));
  assert.ok(assurance.includes("inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || ''"));
- assert.ok(assurance.includes("KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event_name }}"));
+ assert.ok(assurance.includes("KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}"));
+ assert.ok(assurance.includes("needs.classify-canonical-identity.outputs.coverage_execute_full_audit != 'false'"));
+ assert.ok(assurance.includes('Resolve exact Coverage artifact authority'));
  assert.ok(assurance.includes("inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id)"));
  assert.ok(assurance.includes('.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name'));
  assert.ok(assurance.includes('and (.event=="workflow_run" or .event=="workflow_dispatch")'));
