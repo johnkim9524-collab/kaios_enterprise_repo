@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {ARL_ROOT,P1_ROOT,ROOTS,REPOSITORY,classifyHealthReceipt,ensureRoot,selectRootGeneration,waitForSuccessfulRoot} from '../../../scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs';
+import {ARL_ROOT,P1_ROOT,ROOTS,REPOSITORY,classifyHealthReceipt,ensureRoot,producerHealthFailureCode,selectRootGeneration,waitForSuccessfulRoot} from '../../../scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs';
 
 const sha='a'.repeat(40);
 const root=ROOTS[0];
@@ -45,6 +45,23 @@ test('health receipt preserves HOLD boundary and separates wait, fail and pass',
   assert.equal(classifyHealthReceipt(health({state:'VERIFIED_HOLD',waiting_producers:['RESERVE']}),sha).state,'WAIT');
   assert.deepEqual(classifyHealthReceipt(health({state:'VERIFIED_FAIL',failed_producers:['SHADOW']}),sha).failed,['SHADOW']);
   assert.throws(()=>classifyHealthReceipt(health({production:'PASS'}),sha),/HEALTH_RECEIPT_BOUNDARY_INVALID/);
+});
+
+test('terminal producer-health failure preserves the originating sentinel class',()=>{
+  const classified=classifyHealthReceipt(health({
+    state:'VERIFIED_FAIL',
+    failed_producers:['REQUIREMENT'],
+    producers:[{id:'REQUIREMENT',failure_class:'LATEST_APPLICABLE_FAILURE'}],
+  }),sha);
+  assert.deepEqual(classified.failure_classes,['LATEST_APPLICABLE_FAILURE']);
+  assert.equal(producerHealthFailureCode(classified),'PRODUCER_HEALTH_FAILED_REQUIREMENT__LATEST_APPLICABLE_FAILURE');
+
+  const race=classifyHealthReceipt(health({
+    state:'VERIFIED_FAIL',
+    failed_producers:[],
+    failure_class:'SENTINEL_GENERATION_CHANGED_DURING_READ',
+  }),sha);
+  assert.equal(producerHealthFailureCode(race),'PRODUCER_HEALTH_FAILED_UNKNOWN__SENTINEL_GENERATION_CHANGED_DURING_READ');
 });
 
 test('workflow starts roots on protected-main push and retains terminal HOLD boundary',()=>{

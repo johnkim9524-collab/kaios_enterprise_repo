@@ -339,6 +339,13 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     runAttempt: landingRunAttempt,
     expectedRunName,
   });
+  if (receipt.matching_run_count !== oneUse.matching_run_count
+    || receipt.bounded_attempt_ordinal !== oneUse.bounded_attempt_ordinal
+    || receipt.prior_non_success_attempt_count !== oneUse.prior_non_success_attempt_count
+    || receipt.landing_workflow_run_id !== oneUse.matching_run_id
+    || receipt.landing_workflow_run_attempt !== oneUse.matching_run_attempt) {
+    throw new Error('ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT');
+  }
   return {oneUse, receipt, currentRun};
 };
 

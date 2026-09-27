@@ -198,6 +198,8 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     landing_workflow_run_id: runId,
     landing_workflow_run_attempt: 1,
     matching_run_count: 1,
+    bounded_attempt_ordinal: 1,
+    prior_non_success_attempt_count: 0,
     dispatch_actor: repositoryOwner,
     triggering_actor: repositoryOwner,
     authorization_id_sha256: crypto.createHash('sha256').update(authorizationId).digest('hex'),
@@ -243,6 +245,17 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     runAttempt: 1,
     expectedRunName,
   }), 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
+  code(() => assertAtomicLandingConsumptionReceipt({...receipt, bounded_attempt_ordinal: 2}, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha,
+    baseSha,
+    authorizationId,
+    runId,
+    runAttempt: 1,
+    expectedRunName,
+  }), 'ATOMIC_CONSUMPTION_PRIOR_ATTEMPT_COUNT_INVALID');
   code(() => assertAtomicLandingConsumptionReceipt({...receipt, triggering_actor: 'automation-bot'}, {
     repository,
     repositoryOwner,
@@ -278,6 +291,7 @@ test('runner rechecks one-use consumption and lifecycle-only Ready boundary imme
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
   assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha, repositoryOwner\)/);
+  assert.match(runner, /ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT/);
   assert.match(gates, /PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED/);
   assert.match(oneUse, /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
   assert.doesNotMatch(oneUse, /&& run\?\.head_sha === protectedMainShaAtDispatch\n    && run\?\.display_title === expectedRunName/);

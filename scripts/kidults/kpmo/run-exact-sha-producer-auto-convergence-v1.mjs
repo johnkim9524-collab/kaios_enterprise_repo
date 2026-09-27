@@ -47,11 +47,26 @@ export function classifyHealthReceipt(receipt,sourceSha){
   if(receipt?.receipt_id!=='kpmo-continuous-assurance-sentinel-health-v1'||receipt?.source_sha!==sourceSha||
     receipt?.public!=='HOLD'||receipt?.production!=='HOLD'||receipt?.g5!=='HOLD'||
     receipt?.promotion_eligible!==false)fail('HEALTH_RECEIPT_BOUNDARY_INVALID');
-  if(receipt.state==='VERIFIED_PASS')return {state:'PASS',failed:[],waiting:[]};
-  if(receipt.state==='VERIFIED_HOLD')return {state:'WAIT',failed:[],waiting:receipt.waiting_producers??[]};
-  if(receipt.state==='VERIFIED_FAIL'&&TRANSIENT_FAILURES.has(receipt.failure_class))return {state:'WAIT',failed:[],waiting:['CANONICAL_TRUTH']};
-  if(receipt.state==='VERIFIED_FAIL')return {state:'FAIL',failed:receipt.failed_producers??[],waiting:receipt.waiting_producers??[]};
+  if(receipt.state==='VERIFIED_PASS')return {state:'PASS',failed:[],waiting:[],failure_classes:[]};
+  if(receipt.state==='VERIFIED_HOLD')return {state:'WAIT',failed:[],waiting:receipt.waiting_producers??[],failure_classes:[]};
+  if(receipt.state==='VERIFIED_FAIL'&&TRANSIENT_FAILURES.has(receipt.failure_class))return {state:'WAIT',failed:[],waiting:['CANONICAL_TRUTH'],failure_classes:[receipt.failure_class]};
+  if(receipt.state==='VERIFIED_FAIL'){
+    const failed=Array.isArray(receipt.failed_producers)?receipt.failed_producers:[];
+    const producers=Array.isArray(receipt.producers)?receipt.producers:[];
+    const failureClasses=[...new Set([
+      ...failed.map(id=>producers.find(producer=>producer?.id===id)?.failure_class).filter(Boolean),
+      receipt.failure_class,
+    ].filter(Boolean).map(value=>String(value)))];
+    return {state:'FAIL',failed,waiting:receipt.waiting_producers??[],failure_classes:failureClasses};
+  }
   fail('HEALTH_RECEIPT_STATE_INVALID');
+}
+
+export function producerHealthFailureCode(classification){
+  const clean=value=>String(value).toUpperCase().replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,120);
+  const producer=classification.failed?.length?classification.failed.map(clean).join('_'):'UNKNOWN';
+  const cause=classification.failure_classes?.map(clean).filter(Boolean).join('__');
+  return `PRODUCER_HEALTH_FAILED_${producer}${cause?`__${cause}`:''}`;
 }
 
 async function githubApi(route,token,{method='GET',body}={}){
@@ -153,7 +168,7 @@ export async function converge({repository,sourceSha,token,output,healthOutput,m
         await ensureRoot(root,{sourceSha,token,force:true});
         recovery.add(root.id);recovered=true;
       }
-      if(!recovered)fail(`PRODUCER_HEALTH_FAILED_${classification.failed.join('_')||'UNKNOWN'}`);
+      if(!recovered)fail(producerHealthFailureCode(classification));
     }
     if(Date.now()-started>=maxWaitMs)fail('PRODUCER_CONVERGENCE_TIMEOUT');
     await sleep(pollMs);

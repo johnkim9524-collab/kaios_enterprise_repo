@@ -143,5 +143,7 @@ assert.match(deployWorkflow,/continuing with canary verification/);
 
 // Unsupported workflow syntax remains owner-reserved for this PR without stopping unrelated scans.
 assert.equal(isCandidateRejection(new CapabilityDeltaError('CAPABILITY_YAML_UNSUPPORTED_SYNTAX')),true);
+const independentError=new Error('INDEPENDENT_SECURITY_CAPABILITY_ADDED');independentError.code='INDEPENDENT_SECURITY_CAPABILITY_ADDED';
+assert.equal(isCandidateRejection(independentError),true);
 assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_READY')),true);
 assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);
