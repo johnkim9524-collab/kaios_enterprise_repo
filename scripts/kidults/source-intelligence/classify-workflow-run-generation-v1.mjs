@@ -28,7 +28,7 @@ export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha
   if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
   if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
   if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
-  if(expectedProducerEvent!=='workflow_run')return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
+  if(!PRODUCER_EVENTS.has(expectedProducerEvent))return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
   if(!PRODUCER_EVENTS.has(run.event))return {...base,reason:'PRODUCER_EVENT_INVALID'};
   if(!SHA_RE.test(run.head_sha??''))return {...base,reason:'PRODUCER_HEAD_SHA_INVALID'};
   if(run.status!=='completed'||!TERMINAL.has(run.conclusion))return {...base,reason:'PRODUCER_LIFECYCLE_INVALID'};
