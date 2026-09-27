@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e89b0586924d84021e75e5890a98be5c4bb786e9",
+  "revision": "e7b594293297b17c3ec16a2b64c767f5d1ffa49b",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1872,8 +1872,8 @@
     {
       "path": "coordination/kidults/kpmo/post-landing-platform-runtime-terminal-lifecycle-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3df1710a898dffc3106cfb3df800d96c4571e014",
-      "sha256": "sha256:af9b8182c28366470aed3c9b4ce6a6591ca386867cd4a78e21dc9a4bae1e8e12",
+      "git_blob": "79e214d9e4eea5bfc5e05833b7a527525763a831",
+      "sha256": "sha256:85ba0f1f01478222134abf20376baad3f6a5d19a47d88c33e3cf9ddb8ff1e4cd",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5121,8 +5121,8 @@
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c24f3d24e1af9dcdf02725d9df22589f76f63d4d",
-      "sha256": "sha256:51d3fdb28e3e2bd8b4d55504f729c0e40c964b3cd32bf9c274438b10587027b0"
+      "git_blob": "a1ee223b4ce1a35c2808eae13996d11aa5073ea0",
+      "sha256": "sha256:5893c20a6988223d67c81231adc10249eeab72fa1d288a7e6131f38b83aa0458"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
@@ -5215,5 +5215,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:2e247e437052e26f4d7572d5fbef6abd95d933d40631f2cd0f897d5f92725017"
+  "manifest_sha256": "sha256:d6c18800c1635d72b42e9315a67f5cab37cf825d21e9147b498e684cdc7547a8"
 }
