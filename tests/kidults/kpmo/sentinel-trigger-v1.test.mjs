@@ -36,13 +36,16 @@ test('inline Assurance health gate rejects workflow impersonation and unsafe eve
  assert.throws(()=>validateSentinelTrigger({...base,GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',GITHUB_EVENT_NAME:'pull_request'}));
 });
 
-test('Assurance guard only requires producer health for live full-audit guard states',()=>{
+test('Assurance guard requires producer health only for an ephemeral canonical leader',()=>{
  const live={...env,GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1'};
  assert.equal(inlineProducerHealthRequired(live),true);
  assert.equal(inlineProducerHealthRequired({...live,GITHUB_EVENT_NAME:'pull_request'}),false);
  assert.equal(inlineProducerHealthRequired({...live,GITHUB_REF:'refs/heads/feature'}),false);
  assert.equal(guardRequiresProducerHealth({state:'EPHEMERAL_CANONICAL_LEADER_SELECTED'}),true);
- assert.equal(guardRequiresProducerHealth({state:'FULL_AUDIT_BYPASS_NON_ALIASABLE'}),true);
+ // A non-aliasable manual continuation has no canonical leader artifact by
+ // contract. It still runs the full audit, but cannot be made dependent on the
+ // unrelated core-four producer convergence gate.
+ assert.equal(guardRequiresProducerHealth({state:'FULL_AUDIT_BYPASS_NON_ALIASABLE'}),false);
  assert.equal(guardRequiresProducerHealth({state:'DEDUPED_ALIAS'}),false);
  assert.equal(guardRequiresProducerHealth({state:'INPUT_DIVERGENCE_HOLD'}),false);
 });

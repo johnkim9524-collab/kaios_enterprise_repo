@@ -13,7 +13,6 @@ const HEALTH_PATH = fileURLToPath(new URL('./resolve-continuous-assurance-sentin
 const ASSURANCE_WORKFLOW = 'KIDULTS Platform Continuous Assurance V1';
 const FULL_AUDIT_GUARD_STATES = new Set([
   'EPHEMERAL_CANONICAL_LEADER_SELECTED',
-  'FULL_AUDIT_BYPASS_NON_ALIASABLE',
 ]);
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
