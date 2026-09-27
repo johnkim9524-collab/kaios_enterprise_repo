@@ -99,6 +99,20 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
 
+function assertInternalPullRequestOrigin(pr, expectedRepository) {
+  // Change origin is provenance only. Landing authority is independently
+  // established by the Owner-bound controls in selectApproval and the live
+  // dispatch/run checks. External fork heads remain forbidden.
+  if (!expectedRepository || pr?.head?.repo?.full_name !== expectedRepository) {
+    fail('DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED');
+  }
+  return {
+    actor: pr?.user?.login || null,
+    actor_type: pr?.user?.type || null,
+    head_repository: pr.head.repo.full_name,
+  };
+}
+
 const approvalKeys = [
   'repository', 'pull_request', 'exact_base_sha', 'exact_head_sha', 'expected_head_tree_sha', 'operation', 'transport',
   'authorization_id', 'nonce', 'expires_at', 'purpose', 'scope', 'approval_rebind',
@@ -256,7 +270,7 @@ try {
   if (headCommit?.sha !== expectedHeadSha || headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_MISMATCH');
   }
-  if (pr.user?.login !== owner || pr.head?.repo?.full_name !== repository) fail('DIRECT_OWNER_HANDOFF_PR_OWNER_BINDING_INVALID');
+  const changeOrigin = assertInternalPullRequestOrigin(pr, repository);
   if (pr.base?.sha !== expectedBaseSha || main?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_BASE_NOT_CURRENT_MAIN');
   if (pr.mergeable !== true || !['clean', 'unstable', 'blocked', 'has_hooks'].includes(pr.mergeable_state)) fail('DIRECT_OWNER_HANDOFF_PR_NOT_SERVER_MERGEABLE');
   if (!Array.isArray(files) || files.length !== Number(pr.changed_files || 0)) fail('DIRECT_OWNER_HANDOFF_CHANGED_FILE_PAGINATION_INVALID');
@@ -328,6 +342,9 @@ try {
     exact_head_sha: expectedHeadSha,
     expected_head_tree_sha: expectedHeadTreeSha,
     direct_owner: owner,
+    change_origin_actor: changeOrigin.actor,
+    change_origin_actor_type: changeOrigin.actor_type,
+    change_origin_head_repository: changeOrigin.head_repository,
     transport: TRANSPORT,
     purpose,
     authorization_id_sha256: approval.authorization_id_sha256,
