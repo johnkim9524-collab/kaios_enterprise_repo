@@ -72,6 +72,7 @@ deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',int
 console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:13}));
 
 const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
+const governedWorkflow=fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
 assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
@@ -80,6 +81,14 @@ assert.match(dispatcherWorkflow,/pull_request_target:/);
 assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
 assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Governed Landing Authorization V1\][\s\S]*types: \[completed\]/);
 assert.match(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
+assert.match(dispatcherWorkflow,/READINESS_BASE_SHA: \$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.base\.sha \}\}/);
+assert.match(dispatcherWorkflow,/permission_profile:"DRAFT_READY_TRANSITION"/);
+assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
+assert.match(dispatcherWorkflow,/id: transition_draft[\s\S]*if: steps\.transition_draft\.outputs\.performed != 'true'/);
+assert.match(dispatcherWorkflow,/assertDraftReadyTransitionCandidate[\s\S]*assertDraftReadyPostMutation/);
+assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready GitHub App token|DRAFT_READY_TOKEN_STEP_OUTCOME/);
+assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
+assert.match(governedWorkflow,/state:'READY_PENDING_ATOMIC_LANDING'[\s\S]*exact_base_sha:base/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request' \|\| github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
