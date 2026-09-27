@@ -84,7 +84,30 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /await publish\('failure'/);
 });
 
-test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
+test('internal app-authored PR provenance is distinct from exact Owner landing authority', () => {
+  assert.doesNotMatch(runner, /pr\.user\?\.login !== owner/);
+  assert.match(runner, /assertInternalPullRequestOrigin\(pr, repository\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED/);
+  assert.match(runner, /change_origin_actor: changeOrigin\.actor/);
+  assert.match(runner, /comment\?\.user\?\.login !== repositoryOwner/);
+  assert.match(runner, /actor !== owner/);
+
+  const start = runner.indexOf('function assertInternalPullRequestOrigin(');
+  const end = runner.indexOf('\n}\n\nconst approvalKeys', start) + 2;
+  assert.ok(start >= 0 && end > start, 'production origin validator source unavailable');
+  const validate = new Function('fail', `${runner.slice(start, end)}\nreturn assertInternalPullRequestOrigin;`)(code => {
+    const error = new Error(code);
+    error.code = code;
+    throw error;
+  });
+  const repository = 'johnkim9524-collab/kaios_enterprise_repo';
+  assert.equal(validate({user: {login: 'johnkim9524-collab', type: 'User'}, head: {repo: {full_name: repository}}}, repository).actor,
+    'johnkim9524-collab');
+  assert.equal(validate({user: {login: 'Copilot', type: 'Bot'}, head: {repo: {full_name: repository}}}, repository).actor,
+    'Copilot');
+  assert.throws(() => validate({user: {login: 'Copilot', type: 'Bot'}, head: {repo: {full_name: 'attacker/fork'}}}, repository),
+    /DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED/);
+});test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
   const {approvalKeys, parseApproval} = loadProductionApprovalParser();
   const approval = [
     'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2',

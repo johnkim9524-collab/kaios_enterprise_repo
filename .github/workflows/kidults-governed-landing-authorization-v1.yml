@@ -168,7 +168,9 @@ jobs:
             }
             if(lastReadiness?.event==='convert_to_draft') fail('latest readiness event is convert_to_draft');
 
-            if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');
+            // PR authorship is provenance, not landing authority. Internal
+            // GitHub Apps may create the PR; the separate exact-head Owner
+            // approval and event-emitting handoff remain mandatory.
             if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');
             // Ready is lifecycle state only. It may be emitted by the autonomous
             // finalizer and never grants landing authority by itself.
@@ -201,6 +203,7 @@ jobs:
               decision_id:'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
+              change_origin_actor:pr.user?.login||null,
               readiness:readinessReceipt,
               ready_state_is_lifecycle_only:true,
               landing_authorization_created:false,
