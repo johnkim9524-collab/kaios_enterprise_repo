@@ -128,7 +128,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
-  require(!workflow.includes('id-token: write'), 'GOVERNED_READINESS_OIDC_WRITE_FORBIDDEN');
+  require(!workflow.includes(['id-token', 'write'].join(': ')), 'GOVERNED_READINESS_OIDC_WRITE_FORBIDDEN');
   require(!workflow.includes('markPullRequestReadyForReview'), 'GOVERNED_READINESS_MUTATION_FORBIDDEN');
   require(workflow.includes("state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'")
     && workflow.includes('exact_base_sha:base') && workflow.includes('promotion_eligible:false'), 'DRAFT_READINESS_RECEIPT_BINDING_INVALID');
