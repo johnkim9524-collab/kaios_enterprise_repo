@@ -81,7 +81,7 @@ const eventConsumerControls = [
 const autonomousProviderControls = [{
   label: 'P0B Bounded Discovery Candidates',
   text: p0bWorkflow,
-  expected: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}",
+  expected: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}",
   unsafe: "group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.ref }}"
 }];
 
@@ -109,11 +109,11 @@ function validateAutonomousProvider(control) {
   if (!/^  workflow_dispatch:\s*$/m.test(control.text)) findings.push(`${control.label} recovery trigger missing`);
   if (!/^  pull_request:\s*$/m.test(control.text)) findings.push(`${control.label} validation trigger missing`);
   if (!/^  schedule:\s*$/m.test(control.text)) findings.push(`${control.label} liveness schedule missing`);
-  if (!/^  workflow_run:\s*$/m.test(control.text)) findings.push(`${control.label} upstream trigger missing`);
+  if (/^  workflow_run:\s*$/m.test(control.text)) findings.push(`${control.label} upstream trigger exceeds the natural Coverage depth budget`);
   if (!control.text.includes(control.expected)) findings.push(`${control.label} concurrency is not isolated by explicit run id`);
   if (control.text.includes(control.unsafe)) findings.push(`${control.label} unsafe ref-only concurrency remains`);
-  if (!control.text.includes("github.event.workflow_run.conclusion == 'success'")) {
-    findings.push(`${control.label} upstream success guard missing`);
+  if (!control.text.includes("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'")) {
+    findings.push(`${control.label} schedule-root/recovery producer guard missing`);
   }
   return findings;
 }
@@ -159,6 +159,10 @@ for (const control of autonomousProviderControls) {
   if (validateAutonomousProvider(mutatedTrigger).length === 0) errors.push(`${control.label} missing automatic trigger mutation escaped`);
   const mutatedConcurrency = { ...control, text: control.text.replace(control.expected, control.unsafe) };
   if (validateAutonomousProvider(mutatedConcurrency).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);
+  const mutatedDepth = { ...control, text: control.text.replace('  pull_request:', "  workflow_run:\n    workflows: ['KIDULTS ASI P0 Mission Consumption v1']\n    types: [completed]\n  pull_request:") };
+  if (validateAutonomousProvider(mutatedDepth).length === 0) errors.push(`${control.label} over-depth natural chain mutation escaped`);
+  const mutatedGuard = { ...control, text: control.text.replace("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'", 'if: true') };
+  if (validateAutonomousProvider(mutatedGuard).length === 0) errors.push(`${control.label} unbounded event guard mutation escaped`);
 }
 
 for (const marker of [

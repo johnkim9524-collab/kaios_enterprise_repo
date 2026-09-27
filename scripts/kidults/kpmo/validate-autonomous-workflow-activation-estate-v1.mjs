@@ -28,7 +28,8 @@ const protectedManual = new Set([
 ]);
 
 const autonomousRequired = new Map([
-  ['kidults-asi-p0b-bounded-discovery-candidates-v1.yml', ['schedule', 'workflow_run']],
+  ['kidults-asi-p0b-bounded-discovery-candidates-v1.yml', ['schedule']],
+  ['kidults-asi-shadow-operating-evidence-v1.yml', ['schedule', 'push']],
   ['kidults-asi-p1-source-preflight-v1.yml', ['workflow_run']],
   ['kidults-autonomous-getty-sale-sample.yml', ['schedule']],
   ['kidults-autonomous-met-sample.yml', ['schedule']],
@@ -60,16 +61,64 @@ for (const [file, required] of autonomousRequired) {
   for (const trigger of required) assert(observed.has(trigger), `AUTONOMOUS_TRIGGER_MISSING:${file}:${trigger}`);
 }
 
-const p0b = fs.readFileSync(path.join(workflowRoot, 'kidults-asi-p0b-bounded-discovery-candidates-v1.yml'), 'utf8');
-const p1 = fs.readFileSync(path.join(workflowRoot, 'kidults-asi-p1-source-preflight-v1.yml'), 'utf8');
-assert(p0b.includes("github.event.workflow_run.conclusion == 'success'"), 'P0B_UPSTREAM_SUCCESS_GUARD_MISSING');
-assert(p1.includes("github.event.workflow_run.conclusion == 'success'"), 'P1_UPSTREAM_SUCCESS_GUARD_MISSING');
-assert(!triggers(p1).includes('schedule'), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
-
-const p0bMutation = p0b.replace("  schedule:\n    - cron: '37 * * * *'\n", '');
-assert(!triggers(p0bMutation).includes('schedule'), 'P0B_MANUAL_ONLY_MUTATION_NOT_DETECTED');
-const p1Mutation = p1.replace('  workflow_run:', '  x-workflow-run:');
-assert(!triggers(p1Mutation).includes('workflow_run'), 'P1_UPSTREAM_MUTATION_NOT_DETECTED');
+// GitHub allows at most three successive workflow_run levels after a root event.
+// P0B(schedule) -> P1 -> ARL -> Coverage uses the complete budget. A P0 Mission
+// workflow_run before P0B would silently suppress Coverage, even with all jobs green.
+function eventBlock(source, event) {
+  const lines = source.replace(/\r\n/g, '\n').split('\n');
+  const start = lines.indexOf('  ' + event + ':');
+  if (start < 0) return '';
+  const output = [];
+  for (const line of lines.slice(start + 1)) {
+    if (/^  [a-z_]+:/.test(line) || /^[^ #\s][^:]*:/.test(line)) break;
+    output.push(line);
+  }
+  return output.join('\n');
+}
+function validateNaturalChain(source) {
+  assert(triggers(source.p0b).includes('schedule'), 'P0B_NATURAL_SCHEDULE_ROOT_MISSING');
+  assert(!triggers(source.p1).includes('schedule'), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
+  const depth = ['p0b', 'p1', 'arl', 'coverage'].filter(key => triggers(source[key]).includes('workflow_run')).length;
+  assert(depth <= 3, 'NATURAL_CHAIN_WORKFLOW_RUN_DEPTH_EXCEEDED');
+  for (const [key, expected] of [
+    ['p1', 'KIDULTS ASI P0B Bounded Discovery Candidates v1'],
+    ['arl', 'KIDULTS ASI P1 Source Preflight v1'],
+    ['coverage', 'KIDULTS ASI Autonomous Resolution Layer v1'],
+  ]) {
+    const block = eventBlock(source[key], 'workflow_run');
+    const names = [...block.matchAll(/^      - '([^'\n]+)'\s*$/gm)].map(match => match[1]);
+    assert(names.length === 1 && names[0] === expected, 'NATURAL_CHAIN_UPSTREAM_IDENTITY:' + key);
+    assert(/^    branches: \[main\]\s*$/m.test(block) && /^    types: \[completed\]\s*$/m.test(block), 'NATURAL_CHAIN_UPSTREAM_BOUNDARY:' + key);
+  }
+  assert(source.p0b.includes("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"), 'P0B_PRODUCER_EVENT_GUARD_MISSING');
+  assert(source.p1.includes("github.event.workflow_run.conclusion == 'success'"), 'P1_UPSTREAM_SUCCESS_GUARD_MISSING');
+  const push = eventBlock(source.shadow, 'push');
+  assert(/^    branches: \[main\]\s*$/m.test(push), 'SHADOW_EXACT_MAIN_PUSH_MISSING');
+  assert(!/^    (?:paths|paths-ignore|branches-ignore|tags|tags-ignore):/m.test(push), 'SHADOW_EXACT_MAIN_PUSH_FILTER_FORBIDDEN');
+  return depth;
+}
+const source = Object.fromEntries([
+  ['p0b', 'kidults-asi-p0b-bounded-discovery-candidates-v1.yml'],
+  ['p1', 'kidults-asi-p1-source-preflight-v1.yml'],
+  ['arl', 'kidults-asi-autonomous-resolution-layer-v1.yml'],
+  ['coverage', 'kidults-asi-requirement-adapter-coverage-v1.yml'],
+  ['shadow', 'kidults-asi-shadow-operating-evidence-v1.yml'],
+].map(([key, file]) => [key, fs.readFileSync(path.join(workflowRoot, file), 'utf8')]));
+const naturalChainDepth = validateNaturalChain(source);
+let naturalChainMutationsRejected = 0;
+function rejectMutation(key, changed, expectedCode) {
+  assert(changed !== source[key], 'NATURAL_CHAIN_MUTATION_NO_EFFECT:' + key);
+  let failure = null;
+  try { validateNaturalChain({...source, [key]: changed}); } catch (error) { failure = error.message; }
+  assert(failure === expectedCode, 'NATURAL_CHAIN_MUTATION_NOT_REJECTED:' + expectedCode + ':' + failure);
+  naturalChainMutationsRejected += 1;
+}
+rejectMutation('p0b', source.p0b.replace('  pull_request:', "  workflow_run:\n    workflows:\n      - 'KIDULTS ASI P0 Mission Consumption v1'\n    branches: [main]\n    types: [completed]\n  pull_request:"), 'NATURAL_CHAIN_WORKFLOW_RUN_DEPTH_EXCEEDED');
+rejectMutation('p0b', source.p0b.replace("  schedule:\n    - cron: '37 * * * *'\n", ''), 'P0B_NATURAL_SCHEDULE_ROOT_MISSING');
+rejectMutation('p1', source.p1.replace('  workflow_dispatch:', "  schedule:\n    - cron: '41 * * * *'\n  workflow_dispatch:"), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
+rejectMutation('arl', source.arl.replace("      - 'KIDULTS ASI P1 Source Preflight v1'", "      - 'UNBOUND UPSTREAM'"), 'NATURAL_CHAIN_UPSTREAM_IDENTITY:arl');
+rejectMutation('coverage', source.coverage.replace('    branches: [main]', '    branches: [untrusted]'), 'NATURAL_CHAIN_UPSTREAM_BOUNDARY:coverage');
+rejectMutation('shadow', source.shadow.replace('  push:\n    branches: [main]', "  push:\n    branches: [main]\n    paths:\n      - 'unrelated-only/**'"), 'SHADOW_EXACT_MAIN_PUSH_FILTER_FORBIDDEN');
 
 console.log(JSON.stringify({
   suite: 'KIDULTS_AUTONOMOUS_WORKFLOW_ACTIVATION_ESTATE_V1',
@@ -78,6 +127,11 @@ console.log(JSON.stringify({
   autonomous_required_count: autonomousRequired.size,
   protected_manual_count: protectedManual.size,
   unclassified_manual_count: 0,
+  natural_chain_workflow_run_depth: naturalChainDepth,
+  natural_chain_workflow_run_maximum: 3,
+  natural_chain_adversarial_mutations_rejected: naturalChainMutationsRejected,
+  shadow_every_protected_main_push_required: true,
+  workflow_dispatch_is_natural_producer_evidence: false,
   production: 'HOLD',
   public: 'HOLD',
   g5: 'HOLD',

@@ -4,11 +4,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '37 * * * *'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI P0 Mission Consumption v1'
-    branches: [main]
-    types: [completed]
   pull_request:
     branches: [main]
     paths:
@@ -32,13 +27,13 @@ permissions:
   actions: read
 
 concurrency:
-  # Distinct upstream completions and schedules must not share a cancellation namespace.
-  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.run_id }}
+  # P0B must be the schedule root: P1 -> ARL -> Coverage consumes all three workflow_run levels.
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
   bounded-discovery-candidates:
-    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
