@@ -5102,8 +5102,8 @@
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c24f3d24e1af9dcdf02725d9df22589f76f63d4d",
-      "sha256": "sha256:51d3fdb28e3e2bd8b4d55504f729c0e40c964b3cd32bf9c274438b10587027b0"
+      "git_blob": "aa0494ef6877d0a23165e004b96845ba7c6e88f6",
+      "sha256": "sha256:8e14e4fedd839bfa110f21d53b39521602c8970b187874a9f6d432ac0dc23bb4"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
@@ -5196,5 +5196,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a6ef72edeef17923f2fd65d788e43680fdb3069523fdace8b73835c41f48ca51"
+  "manifest_sha256": "sha256:8c41b82a12d4c5aefc3cadbf5ba69f55ae7258cf6bcbaae06a796772bd18d2cb"
 }
