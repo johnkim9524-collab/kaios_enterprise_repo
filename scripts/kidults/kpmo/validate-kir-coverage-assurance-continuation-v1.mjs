@@ -43,9 +43,8 @@ function validateCoverageRun(run, expected, lifecycle) {
   if (run.repository?.full_name !== REPOSITORY || run.head_repository?.full_name !== REPOSITORY) fail('COVERAGE_REPOSITORY_MISMATCH');
   if (run.path !== WORKFLOW_PATH || !nativeWorkflowRunNameMatches(run, WORKFLOW_NAME, WORKFLOW_PATH)) fail('COVERAGE_WORKFLOW_IDENTITY_MISMATCH');
   if (run.head_branch !== 'main' || run.head_sha !== expected.sourceSha) fail('COVERAGE_SOURCE_MISMATCH');
-  if (!['workflow_run', 'workflow_dispatch'].includes(run.event)) fail('COVERAGE_EVENT_NOT_AUTHORITATIVE');
-  if ((run.event === 'workflow_run' && run.display_title !== `KIDULTS Coverage / source-${run.head_sha}`) ||
-      (run.event === 'workflow_dispatch' && run.display_title !== `KIDULTS Coverage / manual-${run.id}`)) {
+  if (run.event !== 'workflow_run') fail('COVERAGE_EVENT_NOT_AUTHORITATIVE');
+  if (run.display_title !== `KIDULTS Coverage / source-${run.head_sha}`) {
     fail('COVERAGE_EVENT_RUN_IDENTITY_MISMATCH');
   }
   if (!Number.isFinite(Date.parse(run.created_at || ''))) fail('COVERAGE_CREATED_AT_INVALID');
