@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "b2365de3d0954f72821796a4e79627b0aae7dd0a",
+  "revision": "17fcd708884386a5acb5473050f9edc1af02009e",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 663
+    "file_count": 665
   },
   "files": [
     {
@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "288e317fff4b1e2d958c3448639ae6d13b8cb144",
-      "sha256": "sha256:da2f5f6d8295c8c7eed340a9355d0349ebd80e669c46eecc79f2376234615246",
+      "git_blob": "a15f13cabda59767c45ba897ac4901ddeec148b8",
+      "sha256": "sha256:a7fde0de3e00f8aae54ac00abf72400cc88833c0ed9276f0321ff4b30fbafe6b",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -470,8 +470,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9c99fc8e1f23822300ff8865f069ffcf47f5ffab",
-      "sha256": "sha256:d6725de7b25f73d342704493ba33ffc71ff41494e07555f9b86068959f711b0a",
+      "git_blob": "83d11af22426b3c202f686e8d965ce53a423a16e",
+      "sha256": "sha256:b13693fa781bd1be4bffdfb3ed12ef91483b8581fd66801b8fad8c866cbdbea7",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3689,6 +3689,19 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "1ed1bdd174438c04c83c915582866d8fd248cd8d",
+      "sha256": "sha256:f12a13cc4bab0c844c5da4543092fc810d1151c60b472df803aae107dfcbf107",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/validate-human-autonomy-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "4c569a7beef71d6ad43adea25dee286c073eeaca",
@@ -5100,6 +5113,12 @@
       "sha256": "sha256:c1a15307cc54865311e1a15df72b2b7cd1f3c44966f552fac7d35d8da8a1ef3f"
     },
     {
+      "path": "tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "e44f22e89d509e232f6e9188b742163b8c2a0c11",
+      "sha256": "sha256:a73d1ddf22d2d0d2c8df230249905abf0a51b6a1fb2b9fc712d0fcae68aff956"
+    },
+    {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "c24f3d24e1af9dcdf02725d9df22589f76f63d4d",
@@ -5138,8 +5157,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "eeef6d17d9c73e7c9a4302b5c53d401e537d111d",
-      "sha256": "sha256:cbcc5393f8bac45943c84ab872f22b0ad696791f3b7c69604f370bdee124f7ae"
+      "git_blob": "54efb973b3c98e44041ccabeffaa9806b0ffe03f",
+      "sha256": "sha256:bd0b231cab446a165f8e8db3a19a3c8b3f7a88387dfee468cce0dbcd8cd0c719"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5196,5 +5215,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7a9d670c7f0821aa3de135d292b1b2f74b04170d5a82e3de546d9c640a18f422"
+  "manifest_sha256": "sha256:2ca6cfbbe1c1bc636fecc60b71a711c548a300ad377cc7a69c5db78ae61aa20d"
 }
