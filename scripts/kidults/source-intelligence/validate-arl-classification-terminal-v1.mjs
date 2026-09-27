@@ -3,15 +3,9 @@ import fs from 'node:fs';
 
 const ARL_PATH = '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml';
 const COVERAGE_PATH = '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
-const TERMINAL_BLOCK = `      - name: Preserve invalid trigger RED while terminating expected non-authority cleanly
+const TERMINAL_BLOCK = `      - name: Preserve non-authoritative or invalid trigger RED after receipt retention
         if: steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'
-        run: |
-          set -euo pipefail
-          if [ "\${{ steps.classify.outputs.state }}" = 'VERIFIED_SKIP' ]; then
-            exit 0
-          fi
-          exit 1`;
-const STATE_OUTPUT = 'state: ${{ steps.classify.outputs.state }}';
+        run: exit 1`;
 const PRODUCER_GUARD = `if: >-
       always() && (github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
@@ -25,7 +19,6 @@ export function validateArlClassificationTerminal(readFile = (path) => fs.readFi
   const arl = readFile(ARL_PATH);
   const coverage = readFile(COVERAGE_PATH);
   if (occurrences(arl, TERMINAL_BLOCK) !== 1) fail('ARL_NONAUTHORITATIVE_TERMINAL_BLOCK_INVALID');
-  if (occurrences(arl, STATE_OUTPUT) !== 1) fail('ARL_CLASSIFICATION_STATE_OUTPUT_INVALID');
   if (occurrences(arl, PRODUCER_GUARD) !== 1) fail('ARL_AUTHORITATIVE_PRODUCER_GUARD_INVALID');
   if (occurrences(arl, CLASSIFICATION_UPLOAD) !== 1) fail('ARL_CLASSIFICATION_RECEIPT_RETENTION_INVALID');
   if (occurrences(coverage, COVERAGE_GUARD) !== 1) fail('COVERAGE_SUCCESS_ONLY_TRIGGER_GUARD_INVALID');
@@ -34,8 +27,7 @@ export function validateArlClassificationTerminal(readFile = (path) => fs.readFi
     id: 'kidults-arl-classification-terminal-validation-v1',
     state: 'VERIFIED_PASS',
     classification_receipt_retained: true,
-    expected_nonauthority_terminal_clean: true,
-    invalid_trigger_terminal_fail_closed: true,
+    nonauthoritative_terminal_fail_closed: true,
     authoritative_producer_guarded: true,
     coverage_success_only_trigger_guarded: true,
   };
@@ -47,9 +39,7 @@ const pristine = {
 };
 const mutations = [
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(TERMINAL_BLOCK, TERMINAL_BLOCK.replace("classification != 'CURRENT_MAIN_EXACT'", "classification == 'INVALID_TRIGGER'")) },
-  { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(TERMINAL_BLOCK, TERMINAL_BLOCK.replace("= 'VERIFIED_SKIP'", "!= 'VERIFIED_FAIL'")) },
-  { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(TERMINAL_BLOCK, TERMINAL_BLOCK.replace('          exit 1', '          exit 0')) },
-  { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(STATE_OUTPUT, 'state: missing') },
+  { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(TERMINAL_BLOCK, TERMINAL_BLOCK.replace('run: exit 1', 'run: exit 0')) },
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(PRODUCER_GUARD, PRODUCER_GUARD.replace(" == 'CURRENT_MAIN_EXACT'", " != 'INVALID_TRIGGER'")) },
   { ...pristine, [ARL_PATH]: pristine[ARL_PATH].replace(CLASSIFICATION_UPLOAD, 'name: classification-unbound') },
   { ...pristine, [COVERAGE_PATH]: pristine[COVERAGE_PATH].replace(COVERAGE_GUARD, "if: needs.classify-upstream-arl-generation.outputs.should_run != 'false'") },
