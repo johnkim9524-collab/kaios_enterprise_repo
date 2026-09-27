@@ -510,7 +510,7 @@ jobs:
           const fs=require('fs');const path=require('path');const dir=process.argv[2];const kind=process.argv[3];
           const mutate=(name,fn)=>{const p=path.join(dir,name);const x=JSON.parse(fs.readFileSync(p,'utf8'));fn(x);fs.writeFileSync(p,JSON.stringify(x,null,2));};
           if(kind==='zero-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.mission_count=0;x.bindings=[];});
-          if(kind==='partial-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.bindings=x.bindings.slice(0,191);x.mission_count=191;});
+          if(kind==='partial-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.bindings=x.bindings.slice(0,191);x.mission_count=192;});
           if(kind==='duplicate-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.bindings[191]={...x.bindings[191],mission_id:x.bindings[0].mission_id};x.mission_count=192;});
           if(kind==='zero-candidates') mutate('p1-preflight-action-queue-v1.json',(x)=>{x.actions=[];});
           NODE
