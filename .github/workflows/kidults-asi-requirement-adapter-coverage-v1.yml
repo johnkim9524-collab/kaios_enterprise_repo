@@ -764,7 +764,7 @@ jobs:
   dispatch-kir-coverage-assurance:
     needs: [classify-upstream-arl-generation, verify-requirement-adapter-coverage]
     if: >-
-      always() && github.event_name == 'workflow_run' &&
+      always() && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') &&
       needs.classify-upstream-arl-generation.result == 'success' &&
       needs.classify-upstream-arl-generation.outputs.should_run == 'true' &&
       needs.verify-requirement-adapter-coverage.result == 'success'
