@@ -37,9 +37,16 @@ export function buildReplacement({ bindings, gate1, frontier, crosswalk, adapter
   const rightsClearProfiles = frontierProfiles.filter((profile) => profile.rights_eligibility?.decision === RIGHTS_CLEAR);
   const rightsHoldProfiles = frontierProfiles.filter((profile) => profile.rights_eligibility?.decision !== RIGHTS_CLEAR);
 
+  const bindingMissionIds = bindings.bindings.map((binding) => binding.mission_id);
+  const uniqueBindingMissionIds = uniq(bindingMissionIds);
+  if (uniqueBindingMissionIds.length !== bindings.mission_count || bindings.bindings.length !== bindings.mission_count) {
+    throw new Error('REPLACEMENT_BINDING_MISSION_CARDINALITY_INVALID');
+  }
   const missionById = new Map(bindings.bindings.map((binding) => [binding.mission_id, binding]));
+  const gateMissionIds = new Set(uniq(gate1.decisions.map((decision) => decision.mission_id)));
+  for (const missionId of gateMissionIds) if (!missionById.has(missionId)) throw new Error(`REPLACEMENT_GATE_MISSION_BINDING_MISSING:${missionId}`);
   const missions = [];
-  for (const missionId of uniq(gate1.decisions.map((decision) => decision.mission_id))) {
+  for (const missionId of uniqueBindingMissionIds) {
     const binding = missionById.get(missionId);
     if (!binding) throw new Error(`REPLACEMENT_MISSION_BINDING_MISSING:${missionId}`);
     const requiredClaim = contract.replacement_policy.claim_mapping[binding.evidence_class];

@@ -34,10 +34,13 @@ assert(inputs.adapter.id==='kidults-asi-p1-market-event-adapter-runtime-contract
 assert(inputs.rightsPreflight.id==='kidults-top16-empirical-activation-preflight-v1'&&inputs.rightsPreflight.rows?.length===inputs.adapter.registered_source_profiles.length,'INPUT_RIGHTS_PREFLIGHT');
 
 const candidateIds=[...new Set(inputs.actions.actions.map((a)=>a.candidate_id))].sort();
-const missionIds=[...new Set(inputs.gate1.decisions.map((d)=>d.mission_id))].sort();
+const bindingMissionIds=[...new Set(inputs.bindings.bindings.map((b)=>b.mission_id))].sort();
+const gateMissionIds=[...new Set(inputs.gate1.decisions.map((d)=>d.mission_id))].sort();
 const rightsIndex=buildPurposeRightsIndex(inputs.rightsPreflight,inputs.adapter.registered_source_profiles.map((tuple)=>tuple[1]),'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION');
 const expectedRightsClear=[...rightsIndex.values()].filter((value)=>value.decision===RIGHTS_CLEAR).length;
-assert(candidateIds.length>0&&missionIds.length===192,'INPUT_CARDINALITY');
+assert(bindingMissionIds.length===inputs.bindings.mission_count&&bindingMissionIds.length===192,'INPUT_BINDING_MISSION_CARDINALITY');
+assert(gateMissionIds.length>0&&gateMissionIds.every((id)=>bindingMissionIds.includes(id)),'INPUT_GATE_MISSION_BINDING');
+assert(candidateIds.length>0&&bindingMissionIds.length===192,'INPUT_CARDINALITY');
 assert(inputs.gate1.decisions.length===inputs.admissions.candidates.length,'GATE_ADMISSION_COUNT');
 assert(inputs.actions.actions.length===candidateIds.length*7,'ACTION_CARDINALITY');
 for(const id of candidateIds){const types=inputs.actions.actions.filter((a)=>a.candidate_id===id).map((a)=>a.action_type).sort();assert(JSON.stringify(types)===JSON.stringify([...inputs.contract.action_types].sort()),`ACTION_SET:${id}`);}
@@ -65,7 +68,7 @@ const nodeIds=new Set(dependency.nodes.map((n)=>n.node_id));assert(dependency.ed
 assert(schedule.id==='kidults-asi-resolution-schedule-v1'&&schedule.batches?.length===4,'SCHEDULE_ID_BATCHES');
 assert(schedule.batches[0].batch_id==='SEMANTIC_TRIAGE'&&schedule.batches[0].item_count===candidateIds.length,'SCHEDULE_SEMANTIC');
 assert(schedule.batches[1].item_count===inputs.actions.actions.length-candidateIds.length&&schedule.batches[1].state==='SUPERSEDED','SCHEDULE_SUPERSEDED');
-assert(schedule.batches[2].item_count===inputs.gate1.decisions.length&&schedule.batches[3].item_count===missionIds.length,'SCHEDULE_DOWNSTREAM');
+assert(schedule.batches[2].item_count===inputs.gate1.decisions.length&&schedule.batches[3].item_count===bindingMissionIds.length,'SCHEDULE_DOWNSTREAM');
 assert(schedule.batches[3].outcome===(replacement.adapter_development_backlog.length>0?'RIGHTS_CLEAR_PROFILE_BACKLOG_CREATED':'RIGHTS_PREFLIGHT_QUEUE_ONLY'),'SCHEDULE_RIGHTS_OUTCOME');
 assert(schedule.total_original_actions===inputs.actions.actions.length&&schedule.terminal_actions===inputs.actions.actions.length&&schedule.live_network_requests===0&&schedule.manual_orchestration_required===false,'SCHEDULE_BOUNDARY');
 
@@ -95,7 +98,7 @@ assert(admission.id==='kidults-asi-evidence-admission-resolution-ledger-v1'&&adm
 assert(admission.admitted_count===0&&admission.ready_count===0&&admission.rejected_count===inputs.admissions.candidates.length&&admission.market_events_created===0,'ADMISSION_RESOLUTION_COUNTS');
 for(const r of admission.records)assert(r.resolved_state==='REJECTED_SOURCE_ROLE_INCOMPATIBLE'&&r.evidence_admitted===false&&r.admitted_evidence_id===null&&r.market_event_created===false&&r.collection_authorized===false,'ADMISSION_PROMOTION');
 
-assert(replacement.id==='kidults-asi-replacement-source-mission-queue-v1'&&replacement.mission_count===missionIds.length&&replacement.missions?.length===missionIds.length,'REPLACEMENT_MISSION_COUNT');
+assert(replacement.id==='kidults-asi-replacement-source-mission-queue-v1'&&replacement.mission_count===bindingMissionIds.length&&replacement.missions?.length===bindingMissionIds.length,'REPLACEMENT_MISSION_COUNT');
 assert(replacement.missions_with_profile_candidates+replacement.missions_without_profile_candidates===replacement.mission_count,'REPLACEMENT_PARTITION');
 assert(replacement.filled_source_slots===replacement.missions.reduce((t,m)=>t+m.filled_slot_count,0),'REPLACEMENT_SLOT_COUNT');
 assert(replacement.unique_registered_profiles_selected===replacement.adapter_development_backlog?.length,'REPLACEMENT_PROFILE_COUNT');
@@ -118,7 +121,7 @@ assert(manifest.results.current_candidate_count===candidateIds.length&&manifest.
 assert(manifest.results.semantic_reject_actions===candidateIds.length&&manifest.results.superseded_actions===inputs.actions.actions.length-candidateIds.length,'MANIFEST_OUTCOMES');
 assert(manifest.results.gate1_original_hold===inputs.gate1.decisions.length&&manifest.results.gate1_resolved_reject===inputs.gate1.decisions.length&&manifest.results.gate1_remaining_hold===0&&manifest.results.gate1_pass===0,'MANIFEST_GATE1');
 assert(manifest.results.evidence_admission_candidates_rejected===inputs.admissions.candidates.length&&manifest.results.evidence_admitted===0&&manifest.results.market_events_created===0,'MANIFEST_ADMISSION');
-assert(manifest.results.replacement_missions===missionIds.length&&manifest.results.live_network_requests===0&&manifest.results.collection_rights_created===0&&manifest.results.snapshot_candidates_created===0&&manifest.results.track_b_input_pairs_created===0,'MANIFEST_BOUNDARY');
+assert(manifest.results.replacement_missions===bindingMissionIds.length&&manifest.results.live_network_requests===0&&manifest.results.collection_rights_created===0&&manifest.results.snapshot_candidates_created===0&&manifest.results.track_b_input_pairs_created===0,'MANIFEST_BOUNDARY');
 assert(manifest.results.rights_clear_registered_profiles===replacement.rights_clear_registered_profile_count&&manifest.results.rights_hold_registered_profiles===replacement.rights_hold_registered_profile_count&&manifest.results.rights_preflight_queue_items===replacement.rights_preflight_queue_count,'MANIFEST_RIGHTS_COUNTS');
 assert(manifest.results.rights_clear_gate==='RIGHTS_CLEAR_FOR_PURPOSE_REQUIRED_BEFORE_ADAPTER_BACKLOG_OR_REPLACEMENT_PROFILE_SELECTION','MANIFEST_RIGHTS_GATE');
 assert(manifest.output_files?.length===10,'MANIFEST_OUTPUT_FILE_COUNT');

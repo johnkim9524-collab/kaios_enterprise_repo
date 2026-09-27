@@ -419,6 +419,19 @@ jobs:
               "/tmp/kidults-asi-autonomous-resolution-layer-run-${RUN}"
           done
           diff -qr /tmp/kidults-asi-autonomous-resolution-layer-run-1 /tmp/kidults-asi-autonomous-resolution-layer-run-2
+          node - <<'NODE'
+          const fs=require('fs');
+          const bindings=JSON.parse(fs.readFileSync('/tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json','utf8'));
+          const actions=JSON.parse(fs.readFileSync('/tmp/p1-input/p1-preflight-action-queue-v1.json','utf8'));
+          const manifest=JSON.parse(fs.readFileSync('/tmp/kidults-asi-autonomous-resolution-layer-run-1/autonomous-resolution-manifest-v1.json','utf8'));
+          const missionCount=new Set((bindings.bindings||[]).map((binding)=>binding.mission_id)).size;
+          const candidateCount=new Set((actions.actions||[]).map((action)=>action.candidate_id)).size;
+          if(bindings.mission_count!==192||missionCount!==192) throw new Error('P0B_BINDING_MISSION_CARDINALITY_INVALID');
+          if(candidateCount<1) throw new Error('P1_CANDIDATE_CARDINALITY_INVALID');
+          if(manifest.results?.replacement_missions!==192||manifest.results?.current_candidate_count!==candidateCount){
+            throw new Error('ARL_MANIFEST_CARDINALITY_INVALID');
+          }
+          NODE
       - name: Validate seven resolution engines and terminal outcomes
         run: |
           set -euo pipefail
@@ -439,19 +452,28 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          validate() {
+          validate_with_inputs() {
             node scripts/kidults/source-intelligence/validate-asi-autonomous-resolution-layer-v1.mjs \
               "$1" \
-              /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
-              /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
-              /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
-              /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
-              /tmp/p1-input/p1-preflight-action-queue-v1.json \
+              "$2" \
+              "$3" \
+              "$4" \
+              "$5" \
+              "$6" \
               coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv \
               coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json \
               coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json \
               coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json \
               coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json
+          }
+          validate() {
+            validate_with_inputs \
+              "$1" \
+              /tmp/p0b-input/p0b-source-candidate-registry-v1.json \
+              /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json \
+              /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json \
+              /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json \
+              /tmp/p1-input/p1-preflight-action-queue-v1.json
           }
           mutate_and_reject() {
             local NAME="$1"
@@ -474,6 +496,35 @@ jobs:
               exit 1
             fi
           }
+          mutate_input_and_reject() {
+            local NAME="$1"
+            local SCRIPT="$2"
+            local DIR="/tmp/bad-input-${NAME}"
+            mkdir -p "$DIR"
+            cp /tmp/p0b-input/p0b-source-candidate-registry-v1.json "$DIR/p0b-source-candidate-registry-v1.json"
+            cp /tmp/p0b-input/p0b-mission-candidate-binding-ledger-v1.json "$DIR/p0b-mission-candidate-binding-ledger-v1.json"
+            cp /tmp/p1-input/p1-gate1-source-safety-decisions-v1.json "$DIR/p1-gate1-source-safety-decisions-v1.json"
+            cp /tmp/p1-input/p1-evidence-admission-candidate-register-v1.json "$DIR/p1-evidence-admission-candidate-register-v1.json"
+            cp /tmp/p1-input/p1-preflight-action-queue-v1.json "$DIR/p1-preflight-action-queue-v1.json"
+            node - "$DIR" "$SCRIPT" <<'NODE'
+          const fs=require('fs');const path=require('path');const dir=process.argv[2];const kind=process.argv[3];
+          const mutate=(name,fn)=>{const p=path.join(dir,name);const x=JSON.parse(fs.readFileSync(p,'utf8'));fn(x);fs.writeFileSync(p,JSON.stringify(x,null,2));};
+          if(kind==='zero-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.mission_count=0;x.bindings=[];});
+          if(kind==='partial-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.bindings=x.bindings.slice(0,191);x.mission_count=191;});
+          if(kind==='duplicate-missions') mutate('p0b-mission-candidate-binding-ledger-v1.json',(x)=>{x.bindings[191]={...x.bindings[191],mission_id:x.bindings[0].mission_id};x.mission_count=192;});
+          if(kind==='zero-candidates') mutate('p1-preflight-action-queue-v1.json',(x)=>{x.actions=[];});
+          NODE
+            if validate_with_inputs \
+              /tmp/kidults-asi-autonomous-resolution-layer-run-1 \
+              "$DIR/p0b-source-candidate-registry-v1.json" \
+              "$DIR/p0b-mission-candidate-binding-ledger-v1.json" \
+              "$DIR/p1-gate1-source-safety-decisions-v1.json" \
+              "$DIR/p1-evidence-admission-candidate-register-v1.json" \
+              "$DIR/p1-preflight-action-queue-v1.json"; then
+              echo "Validator accepted malformed input mutation: $NAME" >&2
+              exit 1
+            fi
+          }
           mutate_and_reject semantic-pass semantic-pass
           mutate_and_reject rights-allow rights-allow
           mutate_and_reject gate1-pass gate1-pass
@@ -481,6 +532,10 @@ jobs:
           mutate_and_reject evidence-admission evidence-admission
           mutate_and_reject rights-hold-promotion rights-hold-promotion
           mutate_and_reject global-retirement global-retirement
+          mutate_input_and_reject zero-missions zero-missions
+          mutate_input_and_reject partial-missions partial-missions
+          mutate_input_and_reject duplicate-missions duplicate-missions
+          mutate_input_and_reject zero-candidates zero-candidates
       - name: Reject manual-only activation mutation
         run: |
           set -euo pipefail
