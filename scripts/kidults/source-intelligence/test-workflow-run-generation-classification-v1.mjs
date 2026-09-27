@@ -15,8 +15,14 @@ result=classify({event:'schedule'});
 assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','PRODUCER_EVENT_MISMATCH',false]);
 assert.equal(result.producer_event,'schedule');
 assert.equal(result.expected_producer_event,'workflow_run');
+result=classify({event:'schedule'}, {expectedProducerEvent:'schedule'});
+assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_PASS','CURRENT_MAIN_EXACT','CURRENT_MAIN_PRODUCER_BOUND',true]);
+assert.equal(result.producer_event,'schedule');
+assert.equal(result.expected_producer_event,'schedule');
 result=classify({event:'workflow_dispatch'});
 assert.equal(result.reason,'PRODUCER_EVENT_MISMATCH');
+result=classify({event:'workflow_dispatch'}, {expectedProducerEvent:'workflow_dispatch'});
+assert.equal(result.reason,'EXPECTED_PRODUCER_EVENT_INVALID');
 result=classify({head_sha:priorMainSha});
 assert.deepEqual([result.state,result.classification,result.reason,result.current_main_authority],['VERIFIED_SKIP','EXPECTED_NONAUTHORITATIVE_SKIP','STALE_PRIOR_MAIN_TRIGGER',false]);
 for(const conclusion of ['failure','cancelled','timed_out']){
@@ -31,4 +37,4 @@ result=classify({}, {currentMainSha:'bad'}); assert.equal(result.reason,'CURRENT
 result=classify({}, {executionSha:'bad'}); assert.equal(result.reason,'EXECUTION_SHA_INVALID');
 result=classify({}, {executionSha:priorMainSha}); assert.equal(result.reason,'CURRENT_MAIN_ADVANCED_DURING_CLASSIFICATION');
 assert.equal(result.promotion_eligible,false); assert.equal(result.production,'HOLD');
-console.log(JSON.stringify({state:'VERIFIED_PASS',test:'workflow-run-generation-classification-v1',scheduled_producer_rejected:true,manual_producer_rejected:true}));
+console.log(JSON.stringify({state:'VERIFIED_PASS',test:'workflow-run-generation-classification-v1',scheduled_producer_requires_explicit_contract:true,manual_producer_rejected:true}));

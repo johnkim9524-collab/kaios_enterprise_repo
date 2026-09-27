@@ -174,7 +174,7 @@ jobs:
               '{classification:"CURRENT_MAIN_EXACT",reason:"EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED",current_main_sha:$sha,upstream_run_id:$run,upstream_event:"workflow_dispatch",promotion_authority:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' \
               > /tmp/arl-p1-generation-classification-v1.json
           else
-            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json
+            node scripts/kidults/source-intelligence/classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"             "$CURRENT_MAIN_SHA"             "$GITHUB_SHA"             "$GITHUB_REPOSITORY"             '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'             /tmp/arl-p1-generation-classification-v1.json             "${{ github.event.workflow_run.event }}"
           fi
           echo "classification=$(jq -r .classification /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
           echo "reason=$(jq -r .reason /tmp/arl-p1-generation-classification-v1.json)" >> "$GITHUB_OUTPUT"
