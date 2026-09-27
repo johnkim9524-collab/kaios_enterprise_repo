@@ -43,6 +43,11 @@ on:
         default: deep
         type: choice
         options: [sentinel, deep]
+      coverage_event:
+        description: Exact event that produced the bound Coverage run
+        required: false
+        default: ''
+        type: string
       coverage_run_id:
         description: Exact successful Coverage run to consume after the workflow_run chain limit
         required: false
@@ -139,6 +144,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         env:
           COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          COVERAGE_EVENT: ${{ inputs.coverage_event }}
           COVERAGE_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt }}
           COVERAGE_SOURCE_SHA: ${{ inputs.coverage_source_sha }}
           COVERAGE_SOURCE_TREE: ${{ inputs.coverage_source_tree }}
@@ -148,7 +154,7 @@ jobs:
           CONTINUATION_KEY: ${{ inputs.coverage_continuation_key }}
         run: |
           set -euo pipefail
-          VALUES=("$COVERAGE_RUN_ID" "$COVERAGE_RUN_ATTEMPT" "$COVERAGE_SOURCE_SHA" "$COVERAGE_SOURCE_TREE" "$COVERAGE_CREATED_AT" "$DISPATCH_ARTIFACT_ID" "$DISPATCH_ARTIFACT_DIGEST" "$CONTINUATION_KEY")
+          VALUES=("$COVERAGE_EVENT" "$COVERAGE_RUN_ID" "$COVERAGE_RUN_ATTEMPT" "$COVERAGE_SOURCE_SHA" "$COVERAGE_SOURCE_TREE" "$COVERAGE_CREATED_AT" "$DISPATCH_ARTIFACT_ID" "$DISPATCH_ARTIFACT_DIGEST" "$CONTINUATION_KEY")
           PRESENT=0
           for VALUE in "${VALUES[@]}"; do
             if [ -n "$VALUE" ]; then PRESENT=$((PRESENT + 1)); fi
@@ -166,6 +172,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          COVERAGE_EVENT: ${{ inputs.coverage_event }}
           COVERAGE_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt }}
           COVERAGE_SOURCE_SHA: ${{ inputs.coverage_source_sha }}
           COVERAGE_SOURCE_TREE: ${{ inputs.coverage_source_tree }}
@@ -195,6 +202,7 @@ jobs:
             fi
             sleep 5
           done
+          test "$COVERAGE_EVENT" = "$(jq -r .event /tmp/kir-forwarded-coverage-run.json)"
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}/artifacts?per_page=100" \
             > /tmp/kir-forwarded-coverage-artifacts.json
@@ -229,11 +237,12 @@ jobs:
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" --arg sha "$COVERAGE_SOURCE_SHA" --arg tree "$COVERAGE_SOURCE_TREE" \
             --arg created "$COVERAGE_CREATED_AT" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
+            --arg event "$COVERAGE_EVENT" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" --argjson artifact "$DISPATCH_ARTIFACT_ID" \
             --argjson prior "$PRIOR_CONSUMPTION_COUNT" --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
             --slurpfile runRecord /tmp/kir-forwarded-coverage-run.json --slurpfile artifactRecord /tmp/kir-forwarded-dispatch-artifact.json \
             --slurpfile receipt "${RECEIPTS[0]}" \
-            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
+            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
             > /tmp/kir-coverage-assurance-consume-input-v1.json
           mkdir -p "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET"
           cp /tmp/kir-forwarded-dispatch-archive-receipt.json "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/"
@@ -244,16 +253,16 @@ jobs:
       - name: Classify exact trigger into canonical identity
         id: classify
         env:
-          KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}
+          KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event_name }}
           KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
           KPMO_SCHEDULE_EXPRESSION: ${{ github.event.schedule || '' }}
           KPMO_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
           KPMO_UPSTREAM_RUN_ID: ${{ inputs.coverage_run_id || github.event.workflow_run.id || '' }}
           KPMO_UPSTREAM_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt || github.event.workflow_run.run_attempt || '' }}
-          KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha) || github.event.workflow_run.name || '' }}
+          KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && (inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id) || format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha)) || github.event.workflow_run.name || '' }}
           KPMO_UPSTREAM_WORKFLOW_PATH: ${{ inputs.coverage_run_id != '' && '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' || github.event.workflow_run.path || '' }}
-          KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event.workflow_run.event || '' }}
+          KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || '' }}
           KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}
           KPMO_UPSTREAM_CREATED_AT: ${{ inputs.coverage_created_at || github.event.workflow_run.created_at || '' }}
         run: >-
@@ -300,9 +309,9 @@ jobs:
       KPMO_PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
       KPMO_UPSTREAM_RUN_ID: ${{ inputs.coverage_run_id || github.event.workflow_run.id || '' }}
       KPMO_UPSTREAM_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt || github.event.workflow_run.run_attempt || '' }}
-      KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha) || github.event.workflow_run.name || '' }}
+      KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && (inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id) || format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha)) || github.event.workflow_run.name || '' }}
       KPMO_UPSTREAM_WORKFLOW_PATH: ${{ inputs.coverage_run_id != '' && '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' || github.event.workflow_run.path || '' }}
-      KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event.workflow_run.event || '' }}
+      KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || '' }}
       KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}
       KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE: ${{ needs.classify-canonical-identity.outputs.upstream_audit_conclusion_acceptable }}
       KPMO_UPSTREAM_AUDIT_DISPOSITION: ${{ needs.classify-canonical-identity.outputs.upstream_audit_disposition }}
