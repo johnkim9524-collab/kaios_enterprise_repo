@@ -9,6 +9,7 @@ const aggregateWorkflowPath = '.github/workflows/kidults-scope-aware-authoritati
 const aggregatePolicyPath = 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json';
 const atomicRunnerPath = 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs';
 const aggregateRunnerPath = 'scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs';
+const dispatcherWorkflowPath = '.github/workflows/kidults-autonomous-dispatcher-v1.yml';
 
 const requiredPrefixes = [
   '.github/',
@@ -28,6 +29,7 @@ const requiredPrefixes = [
 function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner) {
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(id); };
+  const dispatcherWorkflow = fs.readFileSync(dispatcherWorkflowPath, 'utf8');
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
@@ -118,27 +120,27 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready lifecycle verified; operation-specific landing authority required",
-    'id-token: write',
     'pull-requests: read',
-    'markPullRequestReadyForReview',
-    "state:'LIFECYCLE_READY_AUTOMATED'",
     "state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING'",
     'post_landing_verification_required:terminal.merged===true',
     'assertTerminalNonAuthorizingPullRequest',
-    'assertDraftReadyTransitionCandidate',
-    'validateDraftReadyBrokerResponse',
-    'assertDraftReadyPostMutation',
     'ready_state_grants_authorization:false',
-    'DRAFT_READY_TOKEN_UNAVAILABLE',
-    'DRAFT_READY_MUTATION_FORBIDDEN',
-    'KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION',
-    'KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN',
-    'KIDULTS_GITHUB_APP_ID',
-    'KIDULTS_GITHUB_INSTALLATION_ID',
-    'permission_profile:"DRAFT_READY_TRANSITION"',
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
+  require(!workflow.includes('id-token: write'), 'GOVERNED_READINESS_OIDC_WRITE_FORBIDDEN');
+  require(!workflow.includes('markPullRequestReadyForReview'), 'GOVERNED_READINESS_MUTATION_FORBIDDEN');
+  require(workflow.includes("state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'")
+    && workflow.includes('exact_base_sha:base') && workflow.includes('promotion_eligible:false'), 'DRAFT_READINESS_RECEIPT_BINDING_INVALID');
+  for (const marker of [
+    'environment: KIDULTS-AUTONOMOUS-DISPATCHER',
+    'permission_profile:"DRAFT_READY_TRANSITION"',
+    'allow_draft_recovery:true',
+    'assertDraftReadyTransitionCandidate',
+    'markPullRequestReadyForReview',
+    'assertDraftReadyPostMutation',
+    "steps.transition_draft.outputs.performed != 'true'",
+  ]) require(dispatcherWorkflow.includes(marker), `DISPATCHER_DRAFT_READY_GUARD_MISSING:${marker}`);
 
   for (const marker of [
     'workflow_dispatch:',
