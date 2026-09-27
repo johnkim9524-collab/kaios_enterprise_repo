@@ -470,8 +470,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "214564abb98bb51f0c00c6d83046dc5ea2711617",
-      "sha256": "sha256:c2466c856f616586810386d7a89a753ba27f8a85566d3db1f9ce14a2adfa1f50",
+      "git_blob": "9c99fc8e1f23822300ff8865f069ffcf47f5ffab",
+      "sha256": "sha256:d6725de7b25f73d342704493ba33ffc71ff41494e07555f9b86068959f711b0a",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3379,8 +3379,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "54326c9e86b220425ad15607fc6cbc1927642b6d",
-      "sha256": "sha256:638baec25de83fca3dc70f24b6e294d248719087400cfb355dc379ca3f4da346",
+      "git_blob": "64402566dab5c2edefbfaad36b90d08f6eef8115",
+      "sha256": "sha256:08458f2cb0cfdd05899815f1d8310659d312681b76acfae957ac25984e8be599",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3678,8 +3678,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "50ad8da3c184f8d0cf8efe911ae2dbebab8b2896",
-      "sha256": "sha256:3c3768f4668c0bcfd84620ce10fbaf8494ec6e2a773f4682545a9d724811f169",
+      "git_blob": "c8cd70ff86dace51a657edd43204947dd1b6d823",
+      "sha256": "sha256:fe59b7eaa7584925598c7d01ed02ec4d1f7811cb63797b3320ecf38c0008dba0",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5066,8 +5066,8 @@
     {
       "path": "tests/kidults/kpmo/direct-owner-landing-handoff-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9555176698476faa3a35d899f138b986d99a66f6",
-      "sha256": "sha256:7f3a30bda1a114ced4992a1d6c5a5ec4817efd8510482d15bd749ef46ca57a42"
+      "git_blob": "4b9935a0ddc20a71798f86ffbc77c6b2a105f000",
+      "sha256": "sha256:b83f24b9593e55761f3d3b44b40b4d6e34808ec1289f2798598782d6b58f3464"
     },
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
@@ -5196,5 +5196,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4ec147a32edfbc7cb250c6862a7b784b3c95386d7e8b10e537dad08bcec99935"
+  "manifest_sha256": "sha256:a6ef72edeef17923f2fd65d788e43680fdb3069523fdace8b73835c41f48ca51"
 }
