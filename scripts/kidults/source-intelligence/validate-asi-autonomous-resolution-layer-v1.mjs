@@ -35,11 +35,12 @@ assert(inputs.rightsPreflight.id==='kidults-top16-empirical-activation-preflight
 
 const candidateIds=[...new Set(inputs.actions.actions.map((a)=>a.candidate_id))].sort();
 const bindingMissionIds=[...new Set(inputs.bindings.bindings.map((b)=>b.mission_id))].sort();
+const bindingMissionIdSet=new Set(bindingMissionIds);
 const gateMissionIds=[...new Set(inputs.gate1.decisions.map((d)=>d.mission_id))].sort();
 const rightsIndex=buildPurposeRightsIndex(inputs.rightsPreflight,inputs.adapter.registered_source_profiles.map((tuple)=>tuple[1]),'CURRENT_SOLD_TRANSACTION_AND_LIQUIDITY_ACQUISITION');
 const expectedRightsClear=[...rightsIndex.values()].filter((value)=>value.decision===RIGHTS_CLEAR).length;
 assert(bindingMissionIds.length===inputs.bindings.mission_count&&bindingMissionIds.length===192,'INPUT_BINDING_MISSION_CARDINALITY');
-assert(gateMissionIds.length>0&&gateMissionIds.every((id)=>bindingMissionIds.includes(id)),'INPUT_GATE_MISSION_BINDING');
+assert(gateMissionIds.length>0&&gateMissionIds.every((id)=>bindingMissionIdSet.has(id)),'INPUT_GATE_MISSION_BINDING');
 assert(candidateIds.length>0&&bindingMissionIds.length===192,'INPUT_CARDINALITY');
 assert(inputs.gate1.decisions.length===inputs.admissions.candidates.length,'GATE_ADMISSION_COUNT');
 assert(inputs.actions.actions.length===candidateIds.length*7,'ACTION_CARDINALITY');
