@@ -4,6 +4,13 @@ const now=Date.parse('2026-09-26T12:10:00Z'),head='a'.repeat(40);
 const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:'o/r',workflow_run_id:10,workflow_run_attempt:1,pull_request:2381,exact_head_sha:head,evaluated_at:'2026-09-26T12:00:01Z',final_live_reread:true,ordinary_readiness_published_success:false,atomic_landing_required:true,production:'HOLD',public_release:'HOLD',g5:'HOLD'};
 const input={repository:'o/r',runId:10,runAttempt:1,prNumber:2381,headSha:head,now,maximumAgeSeconds:900};
 test('consumes an exact-head readiness receipt inside the bounded window',()=>assert.equal(validateReadinessConsumption(receipt,input).state,'READINESS_EXACT_HEAD_CONSUMED_FOR_AUTONOMOUS_DISPATCH'));
+test('consumes a bounded Draft lifecycle request without granting landing authority',()=>{
+  const draft={...receipt,state:'DRAFT_READY_PENDING_DISPATCHER',exact_base_sha:'c'.repeat(40),ready_transition_requested:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false};
+  assert.equal(validateReadinessConsumption(draft,input).state,'DRAFT_READY_EXACT_HEAD_CONSUMED_FOR_LIFECYCLE_ONLY');
+  for(const [field,value] of [['ready_state_grants_authorization',true],['landing_authorization_created',true],['atomic_landing_required',true]]){
+    assert.throws(()=>validateReadinessConsumption({...draft,[field]:value},input),/AUTHORITY_BOUNDARY/);
+  }
+});
 for(const [name,mutate,code] of [
  ['head drift',x=>x.exact_head_sha='b'.repeat(40),'EXACT_HEAD'],['run drift',x=>x.workflow_run_id=11,'RUN_BINDING'],['success escalation',x=>x.ordinary_readiness_published_success=true,'AUTHORITY_BOUNDARY'],['HOLD drift',x=>x.production='ALLOW','HOLD_BOUNDARY'],['stale pending',x=>x.evaluated_at='2026-09-26T11:00:00Z','TIMEOUT_RECONVERGENCE'],
 ])test(`fails closed on ${name}`,()=>{const x=structuredClone(receipt);mutate(x);assert.throws(()=>validateReadinessConsumption(x,input),new RegExp(code));});

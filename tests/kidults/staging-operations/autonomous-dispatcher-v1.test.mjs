@@ -10,6 +10,22 @@ const governedFile=(filename,base_content,head_content,patch)=>({filename,base_c
 const e=classifyCandidate(input);assert.equal(e.authorization_generation,'pr-42-bbbbbbbbbbbbbbbbbbbb');assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
 deny({pr:{...pr,draft:true}},'DISPATCH_PR_NOT_READY');
+const lifecycleRequired=[{context:'unit',integration_id:7},{context:'KIDULTS Governed Landing Authorization V1',integration_id:7}];
+const lifecycleStatuses=[{id:401,context:'KIDULTS Governed Landing Authorization V1',state:'pending',sha:sha('b'),avatar_url:'https://avatars.githubusercontent.com/in/7?v=4'}];
+const draftLifecycle=classifyCandidate({...input,pr:{...pr,draft:true},requiredChecks:lifecycleRequired,statuses:lifecycleStatuses,allowDraftReadyTransition:true});
+assert.equal(draftLifecycle.lifecycle_action,'DRAFT_READY_TRANSITION');
+assert.equal(draftLifecycle.permission_profile,'DRAFT_READY_TRANSITION');
+assert.equal(draftLifecycle.allow_draft_recovery,true);
+assert.equal(draftLifecycle.production,'HOLD');
+const scheduleExpansion=governedFile('.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
+  "job:\n  if: github.event_name == 'workflow_dispatch'\n",
+  "job:\n  if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'\n",
+  "@@ -1,2 +1,2 @@\n job:\n-  if: github.event_name == 'workflow_dispatch'\n+  if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'\n");
+assert.throws(()=>classifyCandidate({...input,files:[scheduleExpansion]}),x=>x.code==='CAPABILITY_GUARD_WEAKENED'||x.code==='INDEPENDENT_SECURITY_CAPABILITY_CHANGED');
+const pendingGateDraft=classifyCandidate({...input,pr:{...pr,draft:true},requiredChecks:lifecycleRequired,statuses:lifecycleStatuses,files:[scheduleExpansion],allowDraftReadyTransition:true});
+assert.deepEqual(pendingGateDraft.test_evidence.lifecycle_only_pending_contexts,['KIDULTS Governed Landing Authorization V1']);
+assert.deepEqual(pendingGateDraft.test_evidence.required_check_runs.map(x=>x.context),['unit']);
+assert.deepEqual(pendingGateDraft.test_evidence.required_contexts.map(x=>x.context),['KIDULTS Governed Landing Authorization V1','unit']);
 deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
 const safeWorkflowPatch='@@ -1 +1,2 @@\n name: x\n+concurrency: internal-safe';
 assert.deepEqual(classifyCandidate({...input,files:[governedFile('.github/workflows/x.yml','name: x\n','name: x\nconcurrency: internal-safe\n',safeWorkflowPatch)]}).changed_paths,['.github/workflows/x.yml']);
@@ -80,6 +96,11 @@ assert.match(dispatcherWorkflow,/pull_request_target:/);
 assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
 assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Governed Landing Authorization V1\][\s\S]*types: \[completed\]/);
 assert.match(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
+assert.match(dispatcherWorkflow,/DRAFT_READY_PENDING_DISPATCHER/);
+assert.match(dispatcherWorkflow,/Transition exact preflighted Draft to Ready with the narrow installation token/);
+assert.match(dispatcherWorkflow,/permission_profile:"DRAFT_READY_TRANSITION"/);
+assert.match(dispatcherWorkflow,/validateDraftReadyBrokerResponse/);
+assert.match(dispatcherWorkflow,/assertDraftReadyPostMutation/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request' \|\| github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
@@ -118,7 +139,8 @@ for(const workflowPath of oidcWorkflowPaths){
   assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
   assert.doesNotMatch(workflow,/AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID[\s\S]{0,200}\$GITHUB_ENV/);
   assert.equal((workflow.match(/export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
-  assert.equal((workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT/g)||[]).length,sessions);
+  const traps=(workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION(?: APP_TOKEN)?' EXIT/g)||[]).length;
+  assert.equal(traps,sessions);
 }
 const allWorkflowText=fs.readdirSync('.github/workflows')
   .filter(name=>name.endsWith('.yml'))

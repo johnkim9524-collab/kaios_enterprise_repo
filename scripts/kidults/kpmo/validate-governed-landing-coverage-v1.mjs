@@ -3,6 +3,7 @@ import fs from 'node:fs';
 
 const policyPath = 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json';
 const workflowPath = '.github/workflows/kidults-governed-landing-authorization-v1.yml';
+const dispatcherWorkflowPath = '.github/workflows/kidults-autonomous-dispatcher-v1.yml';
 const preflightPath = '.github/workflows/solo-owner-preflight.yml';
 const atomicWorkflowPath = '.github/workflows/kidults-atomic-governed-landing-v1.yml';
 const aggregateWorkflowPath = '.github/workflows/kidults-scope-aware-authoritative-status-v1.yml';
@@ -25,7 +26,7 @@ const requiredPrefixes = [
   'infra/',
 ];
 
-function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner) {
+function findingsFor(policy, workflow, dispatcherWorkflow = fs.readFileSync(dispatcherWorkflowPath, 'utf8'), preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner) {
   const findings = [];
   const require = (condition, id) => { if (!condition) findings.push(id); };
   const prefixes = new Set(policy.governed_path_prefixes || []);
@@ -118,27 +119,24 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready lifecycle verified; operation-specific landing authority required",
-    'id-token: write',
     'pull-requests: read',
-    'markPullRequestReadyForReview',
-    "state:'LIFECYCLE_READY_AUTOMATED'",
     "state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING'",
     'post_landing_verification_required:terminal.merged===true',
     'assertTerminalNonAuthorizingPullRequest',
-    'assertDraftReadyTransitionCandidate',
-    'validateDraftReadyBrokerResponse',
-    'assertDraftReadyPostMutation',
-    'ready_state_grants_authorization:false',
-    'DRAFT_READY_TOKEN_UNAVAILABLE',
-    'DRAFT_READY_MUTATION_FORBIDDEN',
-    'KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION',
-    'KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN',
-    'KIDULTS_GITHUB_APP_ID',
-    'KIDULTS_GITHUB_INSTALLATION_ID',
-    'permission_profile:"DRAFT_READY_TRANSITION"',
     'validate-approval-generation-equality-live-pr-v1.mjs',
     'Enforce active approval-generation equality before readiness',
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
+  require(!workflow.includes(['id-token:', 'write'].join(' ')) && !workflow.includes('markPullRequestReadyForReview'), 'READINESS_WORKFLOW_MUST_NOT_MINT_OR_MUTATE_DRAFT_READY');
+  for (const marker of [
+    ['id-token:', 'write'].join(' '), 'DRAFT_READY_PENDING_DISPATCHER',
+    'Transition exact preflighted Draft to Ready with the narrow installation token',
+    'markPullRequestReadyForReview', "state:'LIFECYCLE_READY_AUTOMATED'",
+    'ready_state_grants_authorization:false', 'assertDraftReadyTransitionCandidate',
+    'validateDraftReadyBrokerResponse', 'assertDraftReadyPostMutation',
+    'KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION', 'KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN',
+    'KIDULTS_GITHUB_APP_ID', 'KIDULTS_GITHUB_INSTALLATION_ID',
+    'permission_profile:"DRAFT_READY_TRANSITION"',
+  ]) require(dispatcherWorkflow.includes(marker), `DISPATCHER_DRAFT_READY_GUARD_MISSING:${marker}`);
 
   for (const marker of [
     'workflow_dispatch:',
@@ -209,19 +207,21 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
 
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 const workflow = fs.readFileSync(workflowPath, 'utf8');
+const dispatcherWorkflow = fs.readFileSync(dispatcherWorkflowPath, 'utf8');
 const preflight = fs.readFileSync(preflightPath, 'utf8');
 const atomicWorkflow = fs.readFileSync(atomicWorkflowPath, 'utf8');
 const aggregateWorkflow = fs.readFileSync(aggregateWorkflowPath, 'utf8');
 const aggregatePolicy = JSON.parse(fs.readFileSync(aggregatePolicyPath, 'utf8'));
 const atomicRunner = fs.readFileSync(atomicRunnerPath, 'utf8');
 const aggregateRunner = fs.readFileSync(aggregateRunnerPath, 'utf8');
-const findings = findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner);
+const findings = findingsFor(policy, workflow, dispatcherWorkflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner);
 
 const mutations = [
   {
     id: 'PROVIDER_PATH_REVERTS_TO_STALE_PLURAL',
     policy: {...policy, governed_path_prefixes: policy.governed_path_prefixes.map(x => x === 'coordination/kidults/provider/' ? 'coordination/kidults/providers/' : x)},
     workflow,
+    dispatcherWorkflow,
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -233,6 +233,7 @@ const mutations = [
     id: 'SOLO_APPROVAL_COUNT_GUARD_REMOVED',
     policy,
     workflow: workflow.replace("if((protectPr?.parameters?.required_approving_review_count||0)!==0) fail('Protect main approval count drifted from approved solo-owner zero');", ''),
+    dispatcherWorkflow,
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -244,6 +245,7 @@ const mutations = [
     id: 'CANONICAL_REPOSITORY_HEAD_GUARD_REMOVED',
     policy,
     workflow: workflow.replace("if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');", ''),
+    dispatcherWorkflow,
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -255,6 +257,7 @@ const mutations = [
     id: 'INDEPENDENT_REVIEW_REINTRODUCED',
     policy,
     workflow,
+    dispatcherWorkflow,
     preflight: preflight.replace('OPTIONAL_NOT_REQUIRED_BY_SOLO_OWNER_RULESET', 'REQUIRED_BY_PROTECT_MAIN_RULESET'),
     atomicWorkflow,
     aggregateWorkflow,
@@ -360,6 +363,7 @@ const mutations = [
     id: 'APPROVAL_GENERATION_EQUALITY_GATE_REMOVED',
     policy,
     workflow: workflow.replace('Enforce active approval-generation equality before readiness', 'Approval generation check removed'),
+    dispatcherWorkflow,
     preflight,
     atomicWorkflow,
     aggregateWorkflow,
@@ -374,6 +378,7 @@ const mutationResults = mutations.map(mutation => ({
   rejected: findingsFor(
     mutation.policy,
     mutation.workflow,
+    mutation.dispatcherWorkflow,
     mutation.preflight,
     mutation.atomicWorkflow,
     mutation.aggregateWorkflow,

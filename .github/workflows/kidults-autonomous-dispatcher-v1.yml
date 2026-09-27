@@ -59,6 +59,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
 
       - name: Consume bounded exact-head readiness or fail for automatic reconvergence
+        id: consume-readiness
         if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Governed Landing Authorization V1'
         env:
           READINESS_RUN_ID: ${{ github.event.workflow_run.id }}
@@ -66,18 +67,82 @@ jobs:
           READINESS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
           READINESS_HEAD_SHA: ${{ github.event.workflow_run.pull_requests[0].head.sha }}
           READINESS_MAXIMUM_AGE_SECONDS: '900'
-        run: node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs "$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json"
+        run: |
+          set -euo pipefail
+          receipt="$RUNNER_TEMP/kidults-governed-landing-readiness/receipt.json"
+          node scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs "$receipt"
+          state=$(jq -er '.state' "$receipt")
+          if [ "$state" = DRAFT_READY_PENDING_DISPATCHER ]; then echo 'draft_ready_transition=true' >> "$GITHUB_OUTPUT"; else echo 'draft_ready_transition=false' >> "$GITHUB_OUTPUT"; fi
 
       - name: Discover exact eligible PR bindings
         id: discover
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}
+          KIDULTS_ALLOW_DRAFT_READY_TRANSITION: ${{ steps.consume-readiness.outputs.draft_ready_transition == 'true' }}
         run: |
           set -euo pipefail
           node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
+          draft_ready_count=$(jq '[.[] | select(.state=="DRAFT_READY_ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
+          echo "draft_ready_count=$draft_ready_count" >> "$GITHUB_OUTPUT"
+
+      - name: Transition exact preflighted Draft to Ready with the narrow installation token
+        if: steps.discover.outputs.draft_ready_count != '0'
+        env:
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
+          BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          EXPECTED_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
+        run: |
+          set -euo pipefail
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION APP_TOKEN' EXIT
+          test -n "$AWS_ROLE_ARN"
+          test -n "$BROKER_FUNCTION"
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-draft-ready-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          jq -c '.[] | select(.state=="DRAFT_READY_ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json | while IFS= read -r envelope; do
+            pr_number=$(jq -er '.pull_request' <<<"$envelope")
+            base_sha=$(jq -er '.base_sha' <<<"$envelope")
+            head_sha=$(jq -er '.head_sha' <<<"$envelope")
+            generation=$(jq -er '.authorization_generation' <<<"$envelope")
+            request=$(jq -cn --arg repository "$GITHUB_REPOSITORY" --arg repository_id "$GITHUB_REPOSITORY_ID" --argjson pull_request "$pr_number" --arg base_sha "$base_sha" --arg head_sha "$head_sha" --arg authorization_generation "$generation" '{action:"MINT_INSTALLATION_TOKEN",permission_profile:"DRAFT_READY_TRANSITION",allow_draft_recovery:true,repository:$repository,repository_id:$repository_id,pull_request:$pull_request,base_sha:$base_sha,head_sha:$head_sha,authorization_generation:$authorization_generation}')
+            response_path="$RUNNER_TEMP/kidults-draft-ready-${pr_number}.json"
+            aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" "$response_path" >/dev/null
+            chmod 600 "$response_path"
+            APP_TOKEN=$(jq -er '.token' "$response_path")
+            echo "::add-mask::$APP_TOKEN"
+            DRAFT_READY_TOKEN_RESPONSE_PATH="$response_path" GITHUB_TOKEN="$GITHUB_TOKEN" GITHUB_REPOSITORY="$GITHUB_REPOSITORY" PR_NUMBER="$pr_number" EXPECTED_BASE_SHA="$base_sha" EXPECTED_HEAD_SHA="$head_sha" EXPECTED_APP_ID="$EXPECTED_APP_ID" EXPECTED_INSTALLATION_ID="$EXPECTED_INSTALLATION_ID" APP_TOKEN="$APP_TOKEN" node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import {validateDraftReadyBrokerResponse,assertDraftReadyTransitionCandidate,assertDraftReadyPostMutation} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          const repo=process.env.GITHUB_REPOSITORY,number=Number(process.env.PR_NUMBER),head=process.env.EXPECTED_HEAD_SHA,base=process.env.EXPECTED_BASE_SHA,appToken=process.env.APP_TOKEN;
+          const broker=JSON.parse(fs.readFileSync(process.env.DRAFT_READY_TOKEN_RESPONSE_PATH,'utf8'));
+          validateDraftReadyBrokerResponse(broker,{repository:repo,repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.EXPECTED_APP_ID,installationId:process.env.EXPECTED_INSTALLATION_ID,githubToken:process.env.GITHUB_TOKEN});
+          const headers={Authorization:`Bearer ${appToken}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'};
+          const api=async path=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{headers,redirect:'error'});if(!r.ok)throw new Error(`DRAFT_READY_GITHUB_API_${r.status}:${path}`);return r.json();};
+          const before=await api(`/pulls/${number}`);
+          const binding=assertDraftReadyTransitionCandidate(before,{repository:repo,expectedPullRequestNumber:number,expectedHeadSha:head,expectedBaseSha:base,expectedTriggerDraft:true});
+          const main=await api('/branches/main');if(main.commit?.sha!==base)throw new Error('DRAFT_READY_MAIN_SHA_DRIFT');
+          const response=await fetch('https://api.github.com/graphql',{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({query:'mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',variables:{pullRequestId:binding.node_id}}),redirect:'error'});
+          if(!response.ok)throw new Error(`DRAFT_READY_MUTATION_HTTP_${response.status}`);
+          const body=await response.json();if(body.errors?.length)throw new Error(`DRAFT_READY_MUTATION_${body.errors[0].type||'FAILED'}`);
+          const after=await api(`/pulls/${number}`);assertDraftReadyPostMutation(before,after,{repository:repo,expectedHeadSha:head,expectedBaseSha:base});
+          const finalMain=await api('/branches/main');if(finalMain.commit?.sha!==base)throw new Error('DRAFT_READY_POST_MUTATION_MAIN_SHA_DRIFT');
+          console.log(JSON.stringify({state:'LIFECYCLE_READY_AUTOMATED',pull_request:number,exact_head_sha:head,exact_base_sha:base,ready_state_grants_authorization:false,landing_authorization_created:false,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+          NODE
+            unset APP_TOKEN
+            rm -f "$response_path"
+          done
 
       - name: Mint exact short-lived token and emit all three role events in one credential boundary
         if: steps.discover.outputs.eligible_count != '0'

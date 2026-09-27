@@ -22,16 +22,18 @@ test('Draft technical validation has a separate non-authority status', () => {
 
 test('eligible Draft is validated then autonomously promoted without landing authority', () => {
   assert.match(landingWorkflow, /DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE/);
-  assert.match(landingWorkflow, /await status\('pending','Draft is non-promotable; automated Ready transition pending'\)/);
+  assert.match(landingWorkflow, /await status\('pending','Draft passed exact-head preflight; trusted dispatcher must perform lifecycle-only Ready transition'\)/);
   assert.match(landingWorkflow, /landing_authorization_created:false/);
-  assert.match(landingWorkflow, /markPullRequestReadyForReview/);
-  assert.match(landingWorkflow, /DRAFT_READY_TOKEN_UNAVAILABLE/);
-  assert.match(landingWorkflow, /DRAFT_READY_MUTATION_FORBIDDEN/);
-  assert.match(landingWorkflow, /assertDraftReadyPostMutation/);
-  assert.match(landingWorkflow, /validateDraftReadyBrokerResponse/);
-  assert.match(landingWorkflow, /KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION/);
-  assert.match(landingWorkflow, /permission_profile:"DRAFT_READY_TRANSITION"/);
-  assert.match(landingWorkflow, /state:'LIFECYCLE_READY_AUTOMATED'/);
+  assert.match(landingWorkflow, /state:'DRAFT_READY_PENDING_DISPATCHER'/);
+  assert.match(landingWorkflow, /ready_transition_requested:true/);
+  assert.doesNotMatch(landingWorkflow, /id-token: write|markPullRequestReadyForReview|validateDraftReadyBrokerResponse/);
+  const dispatcherWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml', 'utf8');
+  assert.match(dispatcherWorkflow, /markPullRequestReadyForReview/);
+  assert.match(dispatcherWorkflow, /assertDraftReadyPostMutation/);
+  assert.match(dispatcherWorkflow, /validateDraftReadyBrokerResponse/);
+  assert.match(dispatcherWorkflow, /permission_profile:"DRAFT_READY_TRANSITION"/);
+  assert.match(dispatcherWorkflow, /state:'LIFECYCLE_READY_AUTOMATED'/);
+  assert.match(dispatcherWorkflow, /draft_ready_transition/);
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
   assert.doesNotMatch(landingWorkflow, /if \(pr\.draft\) fail\('governed PR is Draft'\)/);
 });
