@@ -152,7 +152,8 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(covSource.includes('dispatch-kir-coverage-assurance:'));
  assert.ok(covSource.includes('kidults-kir-coverage-assurance-dispatch-v1-${{ github.run_id }}-${{ github.run_attempt }}'));
  assert.ok(covSource.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
- assert.ok(covSource.includes("(github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch')"));
+ assert.ok(covSource.includes("always() && github.event_name == 'workflow_run'"));
+ assert.ok(!covSource.includes("github.event_name == 'workflow_dispatch') &&"));
  assert.ok(covSource.includes('coverage_event:$event'));
  assert.ok(covSource.includes('coverage_event:$coverage_event'));
  assert.ok(covSource.includes('/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches'));
