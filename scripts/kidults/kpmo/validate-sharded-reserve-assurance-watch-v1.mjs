@@ -78,6 +78,9 @@ function validateAssurance(source) {
 
 function validateReserve(source) {
   const required = [
+    "cron: '14 * * * *'",
+    "cron: '29 * * * *'",
+    "cron: '44 * * * *'",
     'KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER',
     'KIDULTS_RESERVE_PRODUCER_STATE=READY',
     'if: env.KIDULTS_RESERVE_PRODUCER_STATE == \'READY\'',
@@ -121,6 +124,8 @@ for (const [from, to] of assuranceMutations) {
 }
 
 const reserveMutations = [
+  ["    - cron: '14 * * * *'\n", ''],
+  ["    - cron: '44 * * * *'\n", ''],
   ['KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER', 'KIDULTS_RESERVE_PRODUCER_STATE=READY'],
   ["state:'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'", "state:'VERIFIED_PASS'"],
   ['promotion_eligible:false', 'promotion_eligible:true'],

@@ -507,6 +507,9 @@ for (const trigger of ['workflow_dispatch', 'schedule', 'push', 'workflow_run'])
   assert(hasTopLevelTrigger(reserveWorkflow, trigger), `RESERVE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
 }
 assert(reserveWorkflow.includes('KIDULTS ASI Global Any-Site Hourly Pooling v2'), 'RESERVE_MISSING_UPSTREAM_WORKFLOW');
+const globalPoolingWorkflow = fs.readFileSync('.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml', 'utf8');
+assert(hasTopLevelTrigger(globalPoolingWorkflow, 'schedule'), 'GLOBAL_POOLING_NATURAL_SCHEDULE_MISSING');
+assert(globalPoolingWorkflow.includes("if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"), 'GLOBAL_POOLING_NATURAL_PRODUCER_JOB_DISABLED');
 for (const trigger of ['workflow_dispatch', 'pull_request']) {
   assert(hasTopLevelTrigger(scaleWorkflow, trigger), `SCALE_MISSING_GOVERNED_TRIGGER:${trigger}`);
 }

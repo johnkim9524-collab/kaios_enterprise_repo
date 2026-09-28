@@ -1082,7 +1082,10 @@ jobs:
              and .status=="completed"
              and .conclusion==$conclusion'             /tmp/truth-upstream-run.json >/dev/null
           TRUTH_UPSTREAM_EVENT=$(jq -r '.event' /tmp/truth-upstream-run.json)
-          [[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]
+          # Canonical Truth is normally reached through its exact-main
+          # workflow_run chain. Reject unknown events, but admit that canonical
+          # producer event instead of failing a healthy terminal receipt.
+          [[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${TRUTH_UPSTREAM_RUN_ID}/artifacts?per_page=100"             > /tmp/truth-upstream-artifacts.json
           TRUTH_ARTIFACT_NAME="kpmo-live-canonical-issue-truth-v1-${TRUTH_UPSTREAM_RUN_ID}"
           TRUTH_ARTIFACT_COUNT=$(jq             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/truth-upstream-artifacts.json)

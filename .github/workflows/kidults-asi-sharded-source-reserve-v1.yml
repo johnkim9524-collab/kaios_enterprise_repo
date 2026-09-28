@@ -3,7 +3,11 @@ name: KIDULTS ASI Sharded Source Reserve v1
 on:
   workflow_dispatch:
   schedule:
+    # Straddle both P0B natural-root windows so one dropped GitHub schedule
+    # cannot leave the exact-main producer set without a Reserve observation.
+    - cron: '14 * * * *'
     - cron: '29 * * * *'
+    - cron: '44 * * * *'
   push:
     branches: [main]
     paths:
