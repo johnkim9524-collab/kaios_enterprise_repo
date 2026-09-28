@@ -41,3 +41,9 @@ test('rejects a replayed dispatch id', () => {
   assert.throws(() => verifyNaturalClockDispatch({payload, liveMainSha: sha, now, seenDispatchIds: new Set([payload.dispatch_id])}),
     error => error instanceof NaturalClockError && error.code === 'NATURAL_CLOCK_REPLAY');
 });
+
+test('accepts Pooling as the governed producer root', () => {
+  const pooling = {...payload, slot:'POOLING'};
+  pooling.dispatch_id = `kidults-natural-clock-v1:POOLING:${sha}:${pooling.nonce}`;
+  assert.equal(verifyNaturalClockDispatch({payload:pooling,liveMainSha:sha,now}).slot,'POOLING');
+});

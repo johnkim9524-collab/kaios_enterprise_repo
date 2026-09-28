@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 
 const SHA_RE = /^[0-9a-f]{40}$/;
 const NONCE_RE = /^[A-Za-z0-9_-]{32,128}$/;
-const SLOT_RE = /^(P0B|RESERVE|SENTINEL|ASSURANCE)$/;
+const SLOT_RE = /^(POOLING|P0B|RESERVE|SENTINEL|ASSURANCE)$/;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 
 export class NaturalClockError extends Error {
