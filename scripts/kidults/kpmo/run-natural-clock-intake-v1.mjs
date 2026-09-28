@@ -4,11 +4,12 @@ import {verifyNaturalClockDispatch} from './lib/natural-clock-dispatch-v1.mjs';
 
 const required=name=>{const value=process.env[name];if(!value)throw new Error(`NATURAL_CLOCK_ENV_REQUIRED:${name}`);return value;};
 const event=JSON.parse(fs.readFileSync(required('GITHUB_EVENT_PATH'),'utf8'));
-if(required('GITHUB_EVENT_NAME')!=='repository_dispatch'||event.action!=='kidults.natural.clock.v1') throw new Error('NATURAL_CLOCK_EVENT_INVALID');
+const expectedSlot=required('KIDULTS_NATURAL_CLOCK_SLOT');
+const expectedAction=`kidults.natural.clock.${expectedSlot.toLowerCase()}.v1`;
+if(required('GITHUB_EVENT_NAME')!=='repository_dispatch'||event.action!==expectedAction) throw new Error('NATURAL_CLOCK_EVENT_INVALID');
 if(event.repository?.full_name!==required('GITHUB_REPOSITORY')) throw new Error('NATURAL_CLOCK_REPOSITORY_INVALID');
 const expectedSender=required('KIDULTS_NATURAL_CLOCK_APP_LOGIN');
 if(event.sender?.type!=='Bot'||event.sender?.login!==expectedSender) throw new Error('NATURAL_CLOCK_SENDER_INVALID');
-const expectedSlot=required('KIDULTS_NATURAL_CLOCK_SLOT');
 if(event.client_payload?.slot!==expectedSlot) throw new Error('NATURAL_CLOCK_SLOT_ROUTE_INVALID');
 const receipt=verifyNaturalClockDispatch({payload:event.client_payload,liveMainSha:required('KIDULTS_LIVE_MAIN_SHA')});
 const output=process.env.GITHUB_OUTPUT;

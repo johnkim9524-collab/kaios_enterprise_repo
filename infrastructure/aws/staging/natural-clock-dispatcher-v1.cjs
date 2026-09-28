@@ -41,7 +41,7 @@ function createHandler({getPrivateKey, request, putOnce, config, now=()=>Date.no
     const digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
     await putOnce({dispatchId,slot,exactMainSha,issuedAt,digest,expiresAt:Math.floor(now()/1000)+86400});
     await call(`https://api.github.com/repos/${config.repository}/dispatches`,{bearer:installation.token,method:'POST',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:'kidults.natural.clock.v1',client_payload:payload})});
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});
     return {ok:true,state:'VERIFIED_DISPATCHED',dispatch_id:dispatchId,exact_main_sha:exactMainSha,slot,receipt_digest:digest};
   };
 }

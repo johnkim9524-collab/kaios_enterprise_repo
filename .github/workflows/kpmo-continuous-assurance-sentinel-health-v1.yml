@@ -2,7 +2,7 @@ name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 
 on:
   repository_dispatch:
-    types: [kidults.natural.clock.v1]
+    types: [kidults.natural.clock.sentinel.v1]
   push:
     branches: [main]
   pull_request:

@@ -30,7 +30,7 @@ test('binds protected main, writes replay ledger before repository dispatch',asy
   assert.equal(x.writes.length,1);
   const dispatch=x.calls.find(c=>c.url.endsWith('/dispatches'));
   const body=JSON.parse(dispatch.options.body);
-  assert.equal(body.event_type,'kidults.natural.clock.v1');
+  assert.equal(body.event_type,'kidults.natural.clock.p0b.v1');
   assert.equal(body.client_payload.source,'AWS_EVENTBRIDGE_SCHEDULER');
   assert.equal(body.client_payload.exact_main_sha,sha);
 });
@@ -40,6 +40,7 @@ test('admits the Pooling root as a governed natural-clock slot',async()=>{
   const out=await x.handler({source:'aws.scheduler',slot:'POOLING'});
   assert.equal(out.slot,'POOLING');
   const body=JSON.parse(x.calls.find(c=>c.url.endsWith('/dispatches')).options.body);
+  assert.equal(body.event_type,'kidults.natural.clock.pooling.v1');
   assert.equal(body.client_payload.slot,'POOLING');
 });
 

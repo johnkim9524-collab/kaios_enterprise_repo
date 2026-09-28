@@ -42,7 +42,7 @@ test('first deployment does not couple Lambda creation to reserved concurrency m
 
 test('Pooling is an authenticated external-clock producer and Reserve cannot report green while waiting',()=>{
   const pooling=fs.readFileSync('.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml','utf8');
-  assert.match(pooling,/repository_dispatch:\s*\n\s+types: \[kidults\.natural\.clock\.v1\]/);
+  assert.match(pooling,/repository_dispatch:\s*\n\s+types: \[kidults\.natural\.clock\.pooling\.v1\]/);
   assert.match(pooling,/github\.event\.client_payload\.slot == 'POOLING'/);
   assert.match(pooling,/KIDULTS_NATURAL_CLOCK_SLOT: POOLING/);
   assert.match(pooling,/run-natural-clock-intake-v1\.mjs/);
@@ -51,4 +51,19 @@ test('Pooling is an authenticated external-clock producer and Reserve cannot rep
   const reserve=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
   assert.match(reserve,/name: Enforce producer-ready reserve semantics/);
   assert.match(reserve,/if: env\.KIDULTS_RESERVE_PRODUCER_STATE == 'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'[\s\S]{0,240}exit 1/);
+});
+
+test('each natural-clock slot has a unique repository dispatch route',()=>{
+  const routes={
+    POOLING:['.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml','pooling'],
+    P0B:['.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml','p0b'],
+    RESERVE:['.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','reserve'],
+    SENTINEL:['.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','sentinel'],
+    ASSURANCE:['.github/workflows/kidults-platform-continuous-assurance-v1.yml','assurance'],
+  };
+  for(const [slot,[file,route]] of Object.entries(routes)){
+    const workflow=fs.readFileSync(file,'utf8');
+    assert.match(workflow,new RegExp(`types: \\[kidults\\.natural\\.clock\\.${route}\\.v1\\]`),slot);
+    assert.doesNotMatch(workflow,/types: \[kidults\.natural\.clock\.v1\]/,slot);
+  }
 });

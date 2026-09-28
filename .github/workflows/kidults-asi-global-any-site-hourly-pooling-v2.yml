@@ -2,7 +2,7 @@ name: KIDULTS ASI Global Any-Site Hourly Pooling v2
 
 on:
   repository_dispatch:
-    types: [kidults.natural.clock.v1]
+    types: [kidults.natural.clock.pooling.v1]
   schedule:
     - cron: '47 * * * *'
   workflow_dispatch:
