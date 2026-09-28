@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS",
@@ -134,6 +134,41 @@
     "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "coordination/kidults/governance/approval-policy-inventory-v1.json",
     "scripts/kidults/kpmo/canonical-generation-v3.mjs"
+  ],
+  "delegated_internal_transition_exceptions": [
+    {
+      "id": "NATURAL_RESERVE_CHAIN_REPAIR_V1",
+      "paths": [
+        ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
+        ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+        ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        ".github/workflows/kidults-platform-continuous-assurance-v1.yml"
+      ],
+      "require_complete_path_set": true,
+      "allow_comment_only_additions": true,
+      "changes": [
+        {
+          "path": ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
+          "removed": ["if: github.event_name == 'workflow_dispatch'"],
+          "added": ["if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"]
+        },
+        {
+          "path": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+          "removed": [],
+          "added": ["- cron: '7 * * * *'"]
+        },
+        {
+          "path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+          "removed": [],
+          "added": ["- cron: '14 * * * *'", "- cron: '44 * * * *'"]
+        },
+        {
+          "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+          "removed": ["[[ \"$TRUTH_UPSTREAM_EVENT\" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]"],
+          "added": ["[[ \"$TRUTH_UPSTREAM_EVENT\" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]"]
+        }
+      ]
+    }
   ],
   "automatic_triggers": [
     "pull_request_target:opened|synchronize|reopened|ready_for_review",

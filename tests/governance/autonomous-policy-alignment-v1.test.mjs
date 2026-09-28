@@ -72,6 +72,39 @@ test('exact exceptions are classified and cannot weaken routing coverage',()=>{
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1,2 @@\n {\n+  "verification_evidence": "monotonic-hardening"'}],policy:landing}),[filename]);
 });
 
+test('natural Reserve repair is the only autonomous trigger-expansion exception',()=>{
+  const files=[
+    {
+      filename:'.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml',
+      base_content:"if: github.event_name == 'workflow_dispatch'\n",
+      head_content:"# reviewed repair\nif: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'\n",
+      patch:"@@ -1 +1,2 @@\n if: github.event_name == 'workflow_dispatch'\n+# reviewed repair\n+if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
+    },
+    {
+      filename:'.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml',
+      base_content:'schedule:\n  - cron: \'37 * * * *\'\n',
+      head_content:'# reviewed repair\nschedule:\n  - cron: \'7 * * * *\'\n  - cron: \'37 * * * *\'\n',
+      patch:"@@ -1,2 +1,4 @@\n schedule:\n+  - cron: '7 * * * *'\n   - cron: '37 * * * *'",
+    },
+    {
+      filename:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+      base_content:'schedule:\n  - cron: \'29 * * * *\'\n',
+      head_content:'# reviewed repair\nschedule:\n  - cron: \'14 * * * *\'\n  - cron: \'29 * * * *\'\n  - cron: \'44 * * * *\'\n',
+      patch:"@@ -1,2 +1,4 @@\n schedule:\n+  - cron: '14 * * * *'\n   - cron: '29 * * * *'\n+  - cron: '44 * * * *'",
+    },
+    {
+      filename:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+      base_content:'[[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]\n',
+      head_content:'# reviewed repair\n[[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]\n',
+      patch:'@@ -1 +1,2 @@\n-[[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]\n+[[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]',
+    },
+  ];
+  assert.deepEqual(assertAutonomousFileScope({files,policy:landing}),files.map(value=>value.filename).sort());
+  assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
+  assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
+  assert.throws(()=>assertAutonomousFileScope({files:files.slice(0,3),policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+});
+
 test('comment-only deletion and monotonic hardening remain autonomous',()=>{
   const filename='scripts/kidults/kpmo/internal-recovery.mjs';
   const patch='@@ -1,2 +1,2 @@\n-// stale comment\n+// corrected comment\n+export const failClosed = true;';

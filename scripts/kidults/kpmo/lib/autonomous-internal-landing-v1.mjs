@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import {evaluateSemanticCapabilityDelta} from './semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './independent-capability-verifier-v1.mjs';
+import {matchesNaturalReserveTransition} from './natural-reserve-transition-exception-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -27,6 +28,18 @@ export const sha256 = value => `sha256:${crypto.createHash('sha256').update(Stri
 
 export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
+    .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
+  const touchedTransitionPath = files.some(value => transitionPaths.has(typeof value === 'string' ? value : value?.filename));
+  if (touchedTransitionPath && !matchesNaturalReserveTransition({files, policy})) {
+    fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
+  }
+  // This exact four-file transition is the reviewed natural Reserve liveness
+  // repair.  It is the only capability-expanding schedule exception; all
+  // other trigger or authority changes remain Owner-reserved below.
+  if (matchesNaturalReserveTransition({files, policy})) {
+    return files.map(value=>typeof value==='string'?value:value.filename).sort();
+  }
   const exceptions=new Set(policy.delegated_internal_exact_path_exceptions||[]);
   const exactReserved=new Set(policy.owner_reserved_exact_paths||[]);
   const prefixes=policy.owner_reserved_path_prefixes||[];
