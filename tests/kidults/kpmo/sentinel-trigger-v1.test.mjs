@@ -129,12 +129,12 @@ test('completion collection reuses existing Assurance edges and keeps strict sen
 import {spawnSync} from 'node:child_process';
 function resolverCli(scenario){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-cli-'));
- const payload=event();
+ const payload=scenario==='natural'?naturalEvent():event();
  if(scenario==='fork')payload.workflow_run.head_repository.full_name='other/repo';
  const eventPath=path.join(dir,'event.json'),output=path.join(dir,'receipt.json'),trace=path.join(dir,'trace.json');
  fs.writeFileSync(eventPath,scenario==='malformed-json'?'{bad':JSON.stringify(payload));
  const hook=`import fs from 'node:fs';import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';
-const p=${JSON.stringify(event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
+const p=${JSON.stringify(scenario==='natural'?naturalEvent():event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
 const exec=cp.execFileSync;cp.execFileSync=(f,a,o)=>f==='git'&&a.join(' ')==='rev-parse HEAD'?process.env.GITHUB_SHA+'\\n':exec(f,a,o);syncBuiltinESMExports();
 process.on('exit',()=>fs.writeFileSync(process.env.TRACE,JSON.stringify(calls)));
 globalThis.fetch=async(url,options)=>{
@@ -153,7 +153,7 @@ globalThis.fetch=async(url,options)=>{
 };`;
  try{
   const preload=path.join(dir,'hook.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
+  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_EVENT_NAME:scenario==='natural'?'repository_dispatch':env.GITHUB_EVENT_NAME,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
   assert.equal(result.error,undefined,result.stderr);
   const r=JSON.parse(fs.readFileSync(output,'utf8')),calls=JSON.parse(fs.readFileSync(trace,'utf8'));
   assert.equal(r.promotion_eligible,false);assert.equal(r.semantic_content_verified,false);
@@ -167,6 +167,10 @@ globalThis.fetch=async(url,options)=>{
 test('actual completion observer reads native trigger twice and keeps missing producers HOLD',()=>{
  const x=resolverCli('valid');assert.equal(x.receipt.state,'VERIFIED_HOLD',x.result.stderr);
  assert.equal(x.calls.filter(v=>v.path.endsWith('/actions/runs/100')).length,2);
+});
+test('actual natural Sentinel observer reads and validates its repository_dispatch payload',()=>{
+ const x=resolverCli('natural');assert.equal(x.receipt.state,'VERIFIED_HOLD',x.result.stderr);
+ assert.notEqual(x.receipt.failure_class,'SENTINEL_NATURAL_CLOCK_EVENT_CONTEXT');
 });
 for(const scenario of ['fork','malformed-json','native-attempt','native-repository','readback-drift'])test(`actual completion observer durably rejects ${scenario}`,()=>{
  const x=resolverCli(scenario);assert.equal(x.receipt.state,'VERIFIED_FAIL');assert.notEqual(x.result.status,0);

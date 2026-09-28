@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "54d98fe66377b42248a4e494108e7aad56810887",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -5133,8 +5133,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "bcc86e60bc96dc3682d8cde673285b58a211959f",
-      "sha256": "sha256:fb98ed991b852f22e691feec3f1df7ca29d057c02d84888c496b93830cfa85fd"
+      "git_blob": "b12e8c00e43a51477f2764d0d03073f3494ca11c",
+      "sha256": "sha256:2c90a809d464ec8687c194487376fea9d03dfe986600214143c2f101fd100ee1"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -5215,5 +5215,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:65d299e3ac158a5700a1ffb299651420b83286b4ec2eda89c5d053fa6a013f4a"
+  "manifest_sha256": "sha256:74a00f36b6395b9095a4d3a9e67750f37d76f4e520172d583353777ccbedfcd0"
 }

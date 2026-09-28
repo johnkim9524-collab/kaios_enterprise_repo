@@ -247,7 +247,8 @@ async function liveInput(){
   const repo=process.env.GITHUB_REPOSITORY||'';
   const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   if(repo!==REPOSITORY||!token)fail('REPOSITORY_OR_TOKEN_MISSING');
-  const triggerPayload=process.env.GITHUB_EVENT_NAME==='workflow_run'?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
+  const eventPayloadRequired=['workflow_run','repository_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
+  const triggerPayload=eventPayloadRequired?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
   const upstreamTrigger=validateSentinelTrigger(process.env,triggerPayload);
   if(process.env.GITHUB_REF!=='refs/heads/main')fail('SENTINEL_MAIN_REF_REQUIRED');
   const observerRun=Number(process.env.GITHUB_RUN_ID),observerAttempt=Number(process.env.GITHUB_RUN_ATTEMPT);
@@ -256,7 +257,7 @@ async function liveInput(){
   const sourceSha=main?.commit?.sha||'';
   if(!SHA.test(sourceSha)||process.env.GITHUB_SHA!==sourceSha||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()!==sourceSha)fail('SENTINEL_EXACT_LIVE_MAIN_MISMATCH');
   // Event payload is an assertion; re-read the named native producer before use.
-  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+  if(upstreamTrigger?.run_id)validateSentinelTrigger(process.env,triggerPayload,
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const canonicalConvergence=process.env.GITHUB_EVENT_NAME==='push'
     ? await waitForCanonicalConvergence(repo,sourceSha,token)
@@ -315,7 +316,7 @@ async function liveInput(){
     const fresh=await api(`https://api.github.com/repos/${repo}/actions/runs/${related.run.id}`,token);
     if(generationSignature(fresh)!==generationSignature(related.run)||fresh.head_sha!==sourceSha||fresh.status!=='completed'||fresh.conclusion!=='success')fail('COVERAGE_ALIAS_RUN_CHANGED_DURING_READ');
   }
-  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+  if(upstreamTrigger?.run_id)validateSentinelTrigger(process.env,triggerPayload,
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const afterMain=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   if(afterMain?.commit?.sha!==sourceSha)fail('SENTINEL_MAIN_CHANGED_DURING_READ');
