@@ -9,11 +9,34 @@ import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../..
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
+function naturalEvent(slot='SENTINEL'){
+ const nonce='A'.repeat(32);
+ return {action:'kidults.natural.clock.v1',repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
+}
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
 for(const name of ['push','schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
+test('natural Sentinel dispatch accepts the authenticated exact-main clock binding',()=>{
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
+ assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
+});
+test('inline Assurance accepts only its exact natural-clock slot',()=>{
+ const inline={...env,GITHUB_EVENT_NAME:'repository_dispatch',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
+ assert.equal(validateSentinelTrigger(inline,naturalEvent('ASSURANCE')).slot,'ASSURANCE');
+ assert.throws(()=>validateSentinelTrigger(inline,naturalEvent('SENTINEL')),/SENTINEL_NATURAL_CLOCK_BINDING_INVALID/);
+});
+for(const [name,mutate] of [
+ ['wrong sender',p=>p.sender.login='untrusted[bot]'],
+ ['wrong slot',p=>p.client_payload.slot='RESERVE'],
+ ['wrong main SHA',p=>p.client_payload.exact_main_sha='b'.repeat(40)],
+ ['dispatch identity drift',p=>p.client_payload.dispatch_id='forged'],
+ ['extra payload field',p=>p.client_payload.unexpected=true],
+])test(`natural Sentinel dispatch rejects ${name}`,()=>{
+ const p=naturalEvent();mutate(p);
+ assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},p));
+});
 test('Requirement producer accepts explicit exact-SHA workflow dispatch evidence',()=>assert.ok(PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Requirement-to-Adapter Coverage v1').events.includes('workflow_dispatch')));
 
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{

@@ -4,7 +4,7 @@ const {createHash, createSign, randomBytes} = require('node:crypto');
 
 const deny = code => { throw new Error(`NATURAL_CLOCK_${code}`); };
 const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');
-const validSlot = value => ['P0B','RESERVE','SENTINEL','ASSURANCE'].includes(value);
+const validSlot = value => ['POOLING','P0B','RESERVE','SENTINEL','ASSURANCE'].includes(value);
 
 function createHandler({getPrivateKey, request, putOnce, config, now=()=>Date.now(), nonce=()=>randomBytes(24).toString('base64url')}) {
   return async event => {

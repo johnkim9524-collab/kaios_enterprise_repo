@@ -344,6 +344,11 @@ jobs:
           path: /tmp/asi-sharded-source-reserve-waiting-receipt-v1.json
           retention-days: 30
           if-no-files-found: error
+      - name: Enforce producer-ready reserve semantics
+        if: env.KIDULTS_RESERVE_PRODUCER_STATE == 'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'
+        run: |
+          echo "Reserve emitted an auditable HOLD receipt because its exact-SHA Pooling producer is absent." >&2
+          exit 1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: env.KIDULTS_RESERVE_PRODUCER_STATE == 'READY'
         with:

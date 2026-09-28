@@ -35,6 +35,14 @@ test('binds protected main, writes replay ledger before repository dispatch',asy
   assert.equal(body.client_payload.exact_main_sha,sha);
 });
 
+test('admits the Pooling root as a governed natural-clock slot',async()=>{
+  const x=fixture();
+  const out=await x.handler({source:'aws.scheduler',slot:'POOLING'});
+  assert.equal(out.slot,'POOLING');
+  const body=JSON.parse(x.calls.find(c=>c.url.endsWith('/dispatches')).options.body);
+  assert.equal(body.client_payload.slot,'POOLING');
+});
+
 for(const [name,event] of [
   ['manual-shaped source',{source:'manual',slot:'P0B'}],
   ['unknown slot',{source:'aws.scheduler',slot:'OTHER'}],

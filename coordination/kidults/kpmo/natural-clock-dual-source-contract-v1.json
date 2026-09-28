@@ -1,6 +1,6 @@
 {
   "id": "kidults-natural-clock-dual-source-contract-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "state": "IMPLEMENTED_VERIFIED_ACTIVATION_HOLD",
   "purpose": "Preserve natural exact-main producer liveness when GitHub schedule delivery is delayed or dropped.",
   "time_sources": [
@@ -9,11 +9,20 @@
   ],
   "external_dispatch_event": "kidults.natural.clock.v1",
   "accepted_slots": [
+    "POOLING",
     "P0B",
     "RESERVE",
     "SENTINEL",
     "ASSURANCE"
   ],
+  "ordered_half_hour_slots_utc_minutes": {
+    "POOLING": [2, 32],
+    "P0B": [7, 37],
+    "RESERVE": [14, 44],
+    "SENTINEL": [23, 53],
+    "ASSURANCE": [27, 57]
+  },
+  "ordering_invariant": "POOLING_AND_P0B_BEFORE_RESERVE_BEFORE_SENTINEL_BEFORE_ASSURANCE",
   "required_bindings": [
     "dispatch_id",
     "exact_main_sha",
