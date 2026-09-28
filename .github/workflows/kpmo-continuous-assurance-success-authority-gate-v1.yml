@@ -88,6 +88,9 @@ jobs:
               conclusion:process.env.UPSTREAM_CONCLUSION
             },
             current_protected_main_sha:null,
+            producer_health_run_id:null,
+            producer_health_run_attempt:null,
+            producer_health_event:null,
             producer_health_receipt_digest:null,
             producer_health_state:'UNAVAILABLE',
             coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
@@ -125,26 +128,48 @@ jobs:
           test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
           echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
 
-      - name: Restore exact upstream Assurance producer-health receipt
+      - name: Restore latest preceding exact-main natural Sentinel producer-health receipt
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
           gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" \
-            > "$GATE_DIR/upstream-artifacts.json"
-          ARTIFACT_COUNT=$(jq --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" \
+            > "$GATE_DIR/upstream-assurance-run.json"
+          UPSTREAM_CREATED_AT=$(jq -r '.created_at // empty' "$GATE_DIR/upstream-assurance-run.json")
+          test -n "$UPSTREAM_CREATED_AT"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100" \
+            > "$GATE_DIR/sentinel-runs.json"
+          jq --arg sha "$UPSTREAM_SHA" --arg before "$UPSTREAM_CREATED_AT" '
+            [.workflow_runs[] | select(
+              .head_sha==$sha and .head_branch=="main" and
+              (.event=="repository_dispatch" or .event=="schedule") and
+              .status=="completed" and .conclusion=="success" and
+              .run_attempt==1 and .created_at<=$before
+            )] | sort_by(.created_at,.id) | last // empty
+          ' "$GATE_DIR/sentinel-runs.json" > "$GATE_DIR/selected-sentinel-run.json"
+          SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
+          SENTINEL_RUN_ATTEMPT=$(jq -r '.run_attempt // empty' "$GATE_DIR/selected-sentinel-run.json")
+          SENTINEL_EVENT=$(jq -r '.event // empty' "$GATE_DIR/selected-sentinel-run.json")
+          [[ "$SENTINEL_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          test "$SENTINEL_RUN_ATTEMPT" = 1
+          [[ "$SENTINEL_EVENT" =~ ^(repository_dispatch|schedule)$ ]]
+          ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${SENTINEL_RUN_ID}-${SENTINEL_RUN_ATTEMPT}"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100" \
+            > "$GATE_DIR/sentinel-artifacts.json"
+          ARTIFACT_COUNT=$(jq --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
-            "$GATE_DIR/upstream-artifacts.json")
+            "$GATE_DIR/sentinel-artifacts.json")
           test "$ARTIFACT_COUNT" -eq 1
-          ARTIFACT_ID=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+          ARTIFACT_ID=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
-            "$GATE_DIR/upstream-artifacts.json")
-          ARTIFACT_DIGEST=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            "$GATE_DIR/sentinel-artifacts.json")
+          ARTIFACT_DIGEST=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
-            "$GATE_DIR/upstream-artifacts.json")
+            "$GATE_DIR/sentinel-artifacts.json")
           [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
@@ -159,6 +184,11 @@ jobs:
             '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")][0].text' \
             "$GATE_DIR/upstream-health-packet.json" \
             > "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
+          {
+            echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
+            echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
+            echo "PRODUCER_HEALTH_EVENT=$SENTINEL_EVENT"
+          } >> "$GITHUB_ENV"
 
       - name: Seal exact successful Assurance authority-gate receipt
         if: always()
@@ -188,6 +218,9 @@ jobs:
             state: exactSource&&healthPass?'VERIFIED_PASS':'VERIFIED_FAIL',
             failure_class: exactSource&&healthPass?null:'SUCCESSFUL_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_NOT_VERIFIED',
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
+            producer_health_run_id:/^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_RUN_ID||'')?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
+            producer_health_run_attempt:process.env.PRODUCER_HEALTH_RUN_ATTEMPT==='1'?1:null,
+            producer_health_event:/^(repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
             producer_health_receipt_digest:healthDigest,
             producer_health_state:health?.state||'UNAVAILABLE'
           };
@@ -221,6 +254,9 @@ jobs:
             (.upstream_assurance.event|length)>0 and
             .upstream_assurance.conclusion=="success" and
             .current_protected_main_sha==env.UPSTREAM_SHA and
+            (.producer_health_run_id|type)=="number" and
+            .producer_health_run_attempt==1 and
+            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule") and
             (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .producer_health_state=="VERIFIED_PASS" and
             .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
