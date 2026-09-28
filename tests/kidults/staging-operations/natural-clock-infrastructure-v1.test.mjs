@@ -28,3 +28,9 @@ test('scheduler has only invoke authority and dispatcher has no production autho
   const dispatcher=JSON.stringify(template.Resources.DispatcherRole);
   assert.doesNotMatch(dispatcher,/s3:Put|cloudformation:|iam:PassRole|execute-api:/);
 });
+
+test('first deployment does not couple Lambda creation to reserved concurrency mutation',()=>{
+  assert.equal(Object.hasOwn(template.Resources.Dispatcher.Properties,'ReservedConcurrentExecutions'),false);
+  assert.equal(template.Resources.Dispatcher.Properties.Timeout,30);
+  assert.equal(template.Resources.Dispatcher.Properties.MemorySize,128);
+});

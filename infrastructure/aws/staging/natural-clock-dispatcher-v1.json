@@ -44,7 +44,6 @@
         "Timeout": 30,
         "MemorySize": 128,
         "Role": {"Fn::GetAtt": ["DispatcherRole", "Arn"]},
-        "ReservedConcurrentExecutions": 1,
         "Code": {"S3Bucket": {"Ref": "ArtifactBucket"}, "S3Key": {"Ref": "ArtifactKey"}},
         "Environment": {"Variables": {
           "GITHUB_APP_PRIVATE_KEY_SECRET_ARN": {"Ref": "GitHubPrivateKeySecretArn"},
