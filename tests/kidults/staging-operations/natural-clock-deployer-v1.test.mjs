@@ -6,10 +6,14 @@ const bootstrap=JSON.parse(fs.readFileSync('infrastructure/aws/staging/natural-c
 const workflow=fs.readFileSync('.github/workflows/kidults-natural-clock-deploy-v1.yml','utf8');
 const clock=JSON.parse(fs.readFileSync('infrastructure/aws/staging/natural-clock-dispatcher-v1.json','utf8'));
 
-test('bootstrap trust matches the default GitHub environment subject and valid IAM session bounds',()=>{
+test('bootstrap trust admits GitHub environment subject customization without crossing the exact environment prefix',()=>{
   const trust=bootstrap.Resources.DeployerRole.Properties.AssumeRolePolicyDocument.Statement[0];
   assert.deepEqual(trust.Principal.Federated,{Ref:'GitHubOidcProviderArn'});
-  assert.deepEqual(trust.Condition.StringEquals['token.actions.githubusercontent.com:sub'],{'Fn::Sub':'repo:${GitHubRepository}:environment:${GitHubEnvironment}'});
+  assert.equal(trust.Condition.StringEquals['token.actions.githubusercontent.com:aud'],'sts.amazonaws.com');
+  assert.deepEqual(trust.Condition.StringLike['token.actions.githubusercontent.com:sub'],[
+    {'Fn::Sub':'repo:${GitHubRepository}:environment:${GitHubEnvironment}'},
+    {'Fn::Sub':'repo:${GitHubRepository}:environment:${GitHubEnvironment}:*'},
+  ]);
   assert.equal(bootstrap.Parameters.WorkflowRef,undefined);
   const maxSessionDuration=bootstrap.Resources.DeployerRole.Properties.MaxSessionDuration;
   assert.ok(maxSessionDuration >= 3600 && maxSessionDuration <= 43200,`invalid IAM MaxSessionDuration: ${maxSessionDuration}`);
