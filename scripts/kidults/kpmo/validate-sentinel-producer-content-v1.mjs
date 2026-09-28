@@ -80,6 +80,12 @@ export function readArchive(bytes,expectedDigest){
   req(child.status===0,'ARCHIVE_CONTENT_REJECTED');
   const packet=JSON.parse(child.stdout);
   req(packet.archive_digest===expectedDigest&&packet.extraction_performed===false&&Array.isArray(packet.members),'ARCHIVE_READER_CONTRACT');
+  req(packet.members.every(member=>member&&typeof member.name==='string'&&
+    (member.encoding==='utf-8'&&typeof member.text==='string'&&DIGEST.test(member.sha256||'')||
+     member.encoding==='zip'&&typeof member.text==='undefined'&&DIGEST.test(member.sha256||'')&&
+       Number.isSafeInteger(member.byte_length)&&member.byte_length>0&&
+       Number.isSafeInteger(member.nested_member_count)&&member.nested_member_count>=0)),
+    'ARCHIVE_MEMBER_ENCODING_CONTRACT');
   return packet;
 }
 export function checkTransport(run,artifact,sourceSha,observedAt){

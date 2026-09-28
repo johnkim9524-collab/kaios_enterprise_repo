@@ -9,9 +9,12 @@ on:
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
+      - 'scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs'
+      - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
       - 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json'
   workflow_run:
-    workflows: ['KIDULTS Platform Continuous Assurance V1']
+    workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']
     branches: [main]
     types: [completed]
 
@@ -45,6 +48,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
+          node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
 
   success-authority-gate:
@@ -53,8 +57,12 @@ jobs:
       github.event.workflow_run.repository.full_name == github.repository &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.status == 'completed' &&
-      github.event.workflow_run.conclusion == 'success'
+      ((github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
+        github.event.workflow_run.status == 'completed' &&
+        github.event.workflow_run.conclusion == 'success') ||
+       (github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
+        github.event.workflow_run.status == 'completed' &&
+        (github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'schedule')))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -63,6 +71,7 @@ jobs:
       UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
       UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
       UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      UPSTREAM_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
       GATE_DIR: /tmp/kpmo-success-assurance-authority-gate
     steps:
       - name: Initialize durable fail-closed gate receipt
@@ -80,18 +89,24 @@ jobs:
             version:'1.0.0', state:'VERIFIED_FAIL',
             failure_class:'SUCCESSFUL_ASSURANCE_AUTHORITY_NOT_RECONCILED',
             repository:process.env.GITHUB_REPOSITORY,
-            upstream_assurance:{
+            upstream_observation:{
+              workflow_name:process.env.UPSTREAM_WORKFLOW_NAME,
               run_id:Number(process.env.UPSTREAM_RUN_ID),
               run_attempt:Number(process.env.UPSTREAM_RUN_ATTEMPT),
               head_sha:process.env.UPSTREAM_SHA,
               event:process.env.UPSTREAM_EVENT,
               conclusion:process.env.UPSTREAM_CONCLUSION
             },
+            upstream_assurance:process.env.UPSTREAM_WORKFLOW_NAME==='KIDULTS Platform Continuous Assurance V1'?{
+              run_id:Number(process.env.UPSTREAM_RUN_ID),run_attempt:Number(process.env.UPSTREAM_RUN_ATTEMPT),
+              head_sha:process.env.UPSTREAM_SHA,event:process.env.UPSTREAM_EVENT,conclusion:process.env.UPSTREAM_CONCLUSION
+            }:null,
             current_protected_main_sha:null,
             producer_health_run_id:null,
             producer_health_run_attempt:null,
             producer_health_event:null,
             producer_health_receipt_digest:null,
+            producer_health_conclusion:null,
             producer_health_state:'UNAVAILABLE',
             coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
             whole_platform_authority:false,
@@ -128,7 +143,7 @@ jobs:
           test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
           echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
 
-      - name: Restore latest preceding exact-main natural Sentinel producer-health receipt
+      - name: Restore latest exact-main natural Sentinel producer-health receipt
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -142,20 +157,25 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100" \
             > "$GATE_DIR/sentinel-runs.json"
-          jq --arg sha "$UPSTREAM_SHA" --arg before "$UPSTREAM_CREATED_AT" '
-            [.workflow_runs[] | select(
-              .head_sha==$sha and .head_branch=="main" and
-              (.event=="repository_dispatch" or .event=="schedule") and
-              .status=="completed" and .conclusion=="success" and
-              .run_attempt==1 and .created_at<=$before
-            )] | sort_by(.created_at,.id) | last // empty
-          ' "$GATE_DIR/sentinel-runs.json" > "$GATE_DIR/selected-sentinel-run.json"
+          node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" \
+            > "$GATE_DIR/sentinel-selection.json"
+          jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
           SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_RUN_ATTEMPT=$(jq -r '.run_attempt // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_EVENT=$(jq -r '.event // empty' "$GATE_DIR/selected-sentinel-run.json")
+          SENTINEL_CONCLUSION=$(jq -r '.conclusion // empty' "$GATE_DIR/selected-sentinel-run.json")
           [[ "$SENTINEL_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           test "$SENTINEL_RUN_ATTEMPT" = 1
           [[ "$SENTINEL_EVENT" =~ ^(repository_dispatch|schedule)$ ]]
+          {
+            echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
+            echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
+            echo "PRODUCER_HEALTH_EVENT=$SENTINEL_EVENT"
+            echo "PRODUCER_HEALTH_CONCLUSION=$SENTINEL_CONCLUSION"
+          } >> "$GITHUB_ENV"
+          jq -e '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"' \
+            "$GATE_DIR/sentinel-selection.json" >/dev/null
           ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${SENTINEL_RUN_ID}-${SENTINEL_RUN_ATTEMPT}"
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100" \
@@ -184,11 +204,6 @@ jobs:
             '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")][0].text' \
             "$GATE_DIR/upstream-health-packet.json" \
             > "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
-          {
-            echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
-            echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
-            echo "PRODUCER_HEALTH_EVENT=$SENTINEL_EVENT"
-          } >> "$GITHUB_ENV"
 
       - name: Seal exact successful Assurance authority-gate receipt
         if: always()
@@ -209,19 +224,21 @@ jobs:
           if(healthUnsigned) delete healthUnsigned.receipt_digest;
           const healthDigest=health&&/^sha256:[0-9a-f]{64}$/.test(health.receipt_digest||'')&&health.receipt_digest===sha256(healthUnsigned)?health.receipt_digest:null;
           const exactSource=process.env.CURRENT_MAIN_SHA===process.env.UPSTREAM_SHA && /^[0-9a-f]{40}$/.test(process.env.UPSTREAM_SHA||'');
+          const upstreamAssurancePass=process.env.UPSTREAM_CONCLUSION==='success' && process.env.UPSTREAM_WORKFLOW_NAME==='KIDULTS Platform Continuous Assurance V1';
           const healthPass=health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1' && health?.state==='VERIFIED_PASS' &&
             health?.source_sha===process.env.UPSTREAM_SHA && health?.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM' &&
             health?.semantic_content_verified===true && health?.runtime_health_proven===false &&
             health?.whole_platform_authority===false && health?.promotion_eligible===false && healthDigest;
           const base={
             ...prior,
-            state: exactSource&&healthPass?'VERIFIED_PASS':'VERIFIED_FAIL',
-            failure_class: exactSource&&healthPass?null:'SUCCESSFUL_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_NOT_VERIFIED',
+            state: exactSource&&upstreamAssurancePass&&healthPass?'VERIFIED_PASS':'VERIFIED_FAIL',
+            failure_class: exactSource&&upstreamAssurancePass&&healthPass?null:'LATEST_NATURAL_SENTINEL_OR_ASSURANCE_NOT_VERIFIED',
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
             producer_health_run_id:/^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_RUN_ID||'')?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
             producer_health_run_attempt:process.env.PRODUCER_HEALTH_RUN_ATTEMPT==='1'?1:null,
             producer_health_event:/^(repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
             producer_health_receipt_digest:healthDigest,
+            producer_health_conclusion:process.env.PRODUCER_HEALTH_CONCLUSION||null,
             producer_health_state:health?.state||'UNAVAILABLE'
           };
           delete base.receipt_digest;
@@ -247,16 +264,17 @@ jobs:
           jq -e '
             .receipt_id=="kpmo-continuous-assurance-success-authority-gate-v1" and
             .repository==env.GITHUB_REPOSITORY and
-            .upstream_assurance.run_id==(env.UPSTREAM_RUN_ID|tonumber) and
-            .upstream_assurance.run_attempt==(env.UPSTREAM_RUN_ATTEMPT|tonumber) and
-            .upstream_assurance.head_sha==env.UPSTREAM_SHA and
-            (.upstream_assurance.event|type)=="string" and
-            (.upstream_assurance.event|length)>0 and
-            .upstream_assurance.conclusion=="success" and
+            .upstream_observation.run_id==(env.UPSTREAM_RUN_ID|tonumber) and
+            .upstream_observation.run_attempt==(env.UPSTREAM_RUN_ATTEMPT|tonumber) and
+            .upstream_observation.head_sha==env.UPSTREAM_SHA and
+            .upstream_observation.workflow_name==env.UPSTREAM_WORKFLOW_NAME and
+            (.upstream_observation.event|type)=="string" and
+            (.upstream_observation.event|length)>0 and
             .current_protected_main_sha==env.UPSTREAM_SHA and
             (.producer_health_run_id|type)=="number" and
             .producer_health_run_attempt==1 and
             (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule") and
+            .producer_health_conclusion=="success" and
             (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .producer_health_state=="VERIFIED_PASS" and
             .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
@@ -267,5 +285,6 @@ jobs:
             .database_authority==false and
             .empirical_delta==0 and
             .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            (.upstream_observation.conclusion=="success" and .upstream_observation.workflow_name=="KIDULTS Platform Continuous Assurance V1") and
             .state=="VERIFIED_PASS"
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null

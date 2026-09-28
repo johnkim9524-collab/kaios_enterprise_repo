@@ -88,11 +88,16 @@
     "coverage_scope": "CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM",
     "required_bindings": [
       "repository",
-      "upstream_assurance_run_id",
-      "upstream_assurance_run_attempt",
-      "upstream_assurance_head_sha",
-      "upstream_assurance_event",
-      "upstream_assurance_conclusion",
+      "upstream_observation_workflow_name",
+      "upstream_observation_run_id",
+      "upstream_observation_run_attempt",
+      "upstream_observation_head_sha",
+      "upstream_observation_event",
+      "upstream_observation_conclusion",
+      "producer_health_run_id",
+      "producer_health_run_attempt",
+      "producer_health_event",
+      "producer_health_conclusion",
       "current_protected_main_sha",
       "producer_health_receipt_digest"
     ],
@@ -102,7 +107,18 @@
     "database_authority": false,
     "production": "HOLD",
     "public": "HOLD",
-    "g5": "HOLD"
+    "g5": "HOLD",
+    "assurance_pass_requires": [
+      "upstream_observation_workflow_name=KIDULTS Platform Continuous Assurance V1",
+      "upstream_observation_conclusion=success",
+      "latest_exact_main_natural_sentinel=VERIFIED_PASS"
+    ],
+    "sentinel_failure_event_requires": [
+      "upstream_observation_workflow_name=KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "upstream_observation_event in [repository_dispatch,schedule]",
+      "terminal_state=VERIFIED_FAIL_OR_HOLD"
+    ],
+    "latest_natural_failure_fallback_forbidden": true
   },
   "state_model": {
     "axes": [

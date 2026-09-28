@@ -7,6 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
 import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {selectLatestNaturalSentinelRun} from '../../../scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 
 // Synthetic API metadata. The payload is a native tracked control snapshot;
@@ -26,6 +27,32 @@ function run(id=10,extra={}){return {id,run_attempt:1,repository:{full_name:REPO
 const good=run();
 const artifact={id:110,name:spec.artifacts[0],expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-09-05T10:01:00Z',expires_at:'2026-12-01T00:00:00Z',workflow_run:{id:10,head_sha:sourceSha}};
 function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},sourceSha,observed,{110:bytes});}
+
+function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'}={}){
+ return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt};
+}
+test('terminal sentinel selector refuses to fall back from a newer natural failure to an older PASS',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(36478860735,{createdAt:'2026-09-05T09:00:00Z'}),
+  sentinelRun(36492105402,{conclusion:'failure',createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_FAIL');assert.equal(result.latest.id,36492105402);
+});
+test('terminal sentinel selector excludes workflow_dispatch from natural freshness',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(30),sentinelRun(31,{event:'workflow_dispatch',conclusion:'failure',createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,30);
+});
+test('terminal sentinel selector rejects an exact-SHA run from a substituted workflow path',()=>{
+ assert.throws(()=>selectLatestNaturalSentinelRun([sentinelRun(50,{path:'.github/workflows/other.yml'})],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'}),/WORKFLOW_PATH_INVALID/);
+});
+test('terminal sentinel selector keeps a newer in-progress natural run on HOLD',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(40),sentinelRun(41,{status:'in_progress',conclusion:null,createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_HOLD');assert.equal(result.latest.id,41);
+});
 
 test('generation index: one exact native SHADOW control payload remains reachable',()=>{
  const result=evaluate([good]);assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.selected_run_id,10);assert.equal(result.artifact_content_validated,true);
