@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {matchesNaturalReserveTransition} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
 
 const hash=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const deny=(code,detail='')=>{const error=new Error(detail?`${code}:${detail}`:code);error.code=code;throw error};
@@ -72,10 +72,11 @@ const verifyGuardDependencies=(before,after,filename)=>{
 // to be byte-stable while allowing only non-capability monotonic additions.
 export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   if(!Array.isArray(files)||!policy) deny('INDEPENDENT_CAPABILITY_INPUT_INVALID');
-  if (matchesNaturalReserveTransition({files, policy})) {
+  const transitionId = delegatedTransitionId({files, policy});
+  if (transitionId) {
     return {
       state:'INDEPENDENT_CAPABILITY_VERIFIED',
-      exception:'NATURAL_RESERVE_CHAIN_REPAIR_V1',
+      exception:transitionId,
       receipts:files.map(file=>({filename:file.filename,transition:'EXACT_REVIEWED_REPLACEMENT'})),
       digest:hash(files.map(file=>file.filename).sort().join('\n')),
     };

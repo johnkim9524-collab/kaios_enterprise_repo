@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {matchesNaturalReserveTransition} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
 
 export class CapabilityDeltaError extends Error {
   constructor(code, detail='') { super(detail ? `${code}:${detail}` : code); this.code=code; }
@@ -184,10 +184,11 @@ const assertWorkflowDelta=(before,after,filename)=>{
 
 export const evaluateSemanticCapabilityDelta=({files,policy})=>{
   if(!Array.isArray(files)||!policy) fail('CAPABILITY_INPUT_INVALID');
-  if (matchesNaturalReserveTransition({files, policy})) {
+  const transitionId = delegatedTransitionId({files, policy});
+  if (transitionId) {
     return {
       state:'SEMANTIC_CAPABILITY_DELTA_PASS',
-      exception:'NATURAL_RESERVE_CHAIN_REPAIR_V1',
+      exception:transitionId,
       evidence:files.map(file=>({filename:file.filename,transition:'EXACT_REVIEWED_REPLACEMENT'})),
     };
   }

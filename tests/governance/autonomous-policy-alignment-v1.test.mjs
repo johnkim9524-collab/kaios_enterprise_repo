@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
 
 import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
+import {delegatedTransitionId} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
@@ -103,6 +105,25 @@ test('natural Reserve repair is the only autonomous trigger-expansion exception'
   assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
   assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
   assert.throws(()=>assertAutonomousFileScope({files:files.slice(0,3),policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+});
+
+test('natural clock repair is an exact immutable transition, not a broad exemption',()=>{
+  const base='name: clock\non:\n  schedule:\n    - cron: "37 * * * *"\n';
+  const head='name: clock\non:\n  schedule:\n    - cron: "37 * * * *"\n    - cron: "47 * * * *"\n';
+  const baseSha=`sha256:${crypto.createHash('sha256').update(base).digest('hex')}`;
+  const headSha=`sha256:${crypto.createHash('sha256').update(head).digest('hex')}`;
+  const policy={delegated_internal_transition_exceptions:[{
+    id:'NATURAL_CLOCK_DUAL_SOURCE_REPAIR_V1',
+    paths:['.github/workflows/clock.yml'],
+    require_complete_path_set:true,
+    content_binding:'EXACT_IMMUTABLE_BASE_HEAD_SHA256',
+    content_digests:[{path:'.github/workflows/clock.yml',base_sha256:baseSha,head_sha256:headSha}],
+  }]};
+  const file={filename:'.github/workflows/clock.yml',base_content:base,head_content:head};
+  assert.equal(delegatedTransitionId({files:[file],policy}),'NATURAL_CLOCK_DUAL_SOURCE_REPAIR_V1');
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy}).exception,'NATURAL_CLOCK_DUAL_SOURCE_REPAIR_V1');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy}).exception,'NATURAL_CLOCK_DUAL_SOURCE_REPAIR_V1');
+  assert.equal(delegatedTransitionId({files:[{...file,head_content:head+'# drift\n'}],policy}),null);
 });
 
 test('comment-only deletion and monotonic hardening remain autonomous',()=>{

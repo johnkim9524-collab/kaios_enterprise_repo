@@ -37,7 +37,7 @@ function validateAssurance(source) {
     '.status=="completed"',
     '.conclusion==$conclusion',
     "RESERVE_UPSTREAM_EVENT=$(jq -r '.event' /tmp/reserve-upstream-run.json)",
-    '[[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|workflow_dispatch|schedule)$ ]]',
+    '[[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|repository_dispatch|workflow_dispatch|schedule)$ ]]',
     '/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100',
     'kidults-asi-sharded-source-reserve-v1',
     'kidults-asi-sharded-source-reserve-waiting-v1',
