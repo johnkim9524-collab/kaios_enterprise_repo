@@ -139,7 +139,7 @@ jobs:
         if: github.event_name == 'repository_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
-          KIDULTS_NATURAL_CLOCK_APP_LOGIN: ${{ vars.KIDULTS_NATURAL_CLOCK_APP_LOGIN }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: kidults-autonomous-landing-staging[bot]
           KIDULTS_NATURAL_CLOCK_SLOT: ASSURANCE
         run: |
           set -euo pipefail
