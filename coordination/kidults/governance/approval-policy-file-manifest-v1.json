@@ -1,7 +1,10 @@
+Warning: truncated output (original token count: 62139)
+Total output lines: 5219
+
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "54d98fe66377b42248a4e494108e7aad56810887",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2570,175 +2573,7 @@
     {
       "path": "docs/methodology/kidult-100-universe-and-methodology-outline-v0.9.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "6b90066161d859460831e123af4a566bb467e811",
-      "sha256": "sha256:1589214409ce782441ba02af0f791216793ed3ca0662226a8f39214df0ce885c"
-    },
-    {
-      "path": "docs/operations/KIDULTS_ABC_SHARED_DIRECTIVE_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "177942afaf63f2954e3f20a11d4139c69e41b5b0",
-      "sha256": "sha256:3517927e05da18729b47bfcc190ee4502684bf3556b5e4f6d77404438bcbefdb"
-    },
-    {
-      "path": "docs/operations/KIDULTS_MISSION_CONTROL_DIGITAL_TWIN_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "51254c03304bd799c8d5ff61c1eb6aa0442b332b",
-      "sha256": "sha256:156dc2cf1679f215d6cdd24c64d8004d49410476df3f149a24192453195c0bcf"
-    },
-    {
-      "path": "docs/operations/KIDULTS_POC_TO_PRODUCTION_GATES_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "24bffb08ae2b8ae9eefcd1b6aa478ad7af962e62",
-      "sha256": "sha256:826dffa45c1c1f3824e4d3a13428b31e065d2bc512ec6dcf8cde08a7bfcef79e"
-    },
-    {
-      "path": "docs/operations/KIDULTS_REGISTRY_GOVERNANCE_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "7cac9fe887bb508bd201fbea8f575a46656355cf",
-      "sha256": "sha256:594bcbc5cbd5912231c6ce59f017623209a6d0fe7d9ed794c2bcf15dc7c13bcb"
-    },
-    {
-      "path": "docs/operations/KIDULTS_SHARED_PROGRAM_ANNOUNCEMENT_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "cf0504626fd18c26f61f7f615379dbfaaf8cb681",
-      "sha256": "sha256:fba04a722756512e7884ee97e8fc2d7e297f6eaa449342d91577175009657513"
-    },
-    {
-      "path": "docs/operations/KIDULTS_V502_RELEASE_CANDIDATE.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "4f6d2158b36ee5067f59673989c9d6aeec9b8b96",
-      "sha256": "sha256:41c8a01018eb2070813bef5362393ce89bd3db70c8b2de046a8d1fdaaf90ab84"
-    },
-    {
-      "path": "docs/operations/sprint-18-b4-artfund-staging-portal.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "ddb82acbf253807f0314a39e23cdd4d417a47e73",
-      "sha256": "sha256:08bba254cda025f554b93ffbc6c91522070f4a6e28b34278e996d5040caa6515"
-    },
-    {
-      "path": "docs/operations/sprint-18-c1-autonomous-source-framework.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "5a79a668d99a0231e7575ccf05b483b3fea93a0f",
-      "sha256": "sha256:43516f4cfb14097c10a1ab79c3d79ac949ab75e445460beece931fb72b0344b0"
-    },
-    {
-      "path": "docs/operations/sprint-18-c3-entity-resolution-foundation.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "6fd05d7238176ae9245aeec9de4f0d627e3bbb4c",
-      "sha256": "sha256:b96ea5758a81c1761f757d06a16714e8bc4f648fb8d756f6f34b16838fd65a43"
-    },
-    {
-      "path": "docs/operations/sprint-18-c5-scoring-index-foundation.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "23773a87df5ba4f03c75a374b4fd45efa26dbda3",
-      "sha256": "sha256:0c8d71f234f3f623303a4ad77407c670bcdbfd6c4eb61c23f12b054cecb5a4b8"
-    },
-    {
-      "path": "docs/operations/sprint-19-a1-kidults-production-promotion-gate.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "cb869a7ab853840942475aa19a2672ef1bae93c4",
-      "sha256": "sha256:f7597c7fcbe922ba315e37d40eca225480c8f9b37bcd84045c81e5b1f35f42d6"
-    },
-    {
-      "path": "docs/operations/sprint-19-a4-kidults-production-promotion-evidence-sealing.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "e5967958481bfe8b3110ac60e27fd01b6edfa96e",
-      "sha256": "sha256:fbf9d9277e1cb3ca2ee2eb81ba8d7ab677e6841a36b1284cf1fd1a7a90e13a1d"
-    },
-    {
-      "path": "docs/operations/sprint-19-a5-kidults-controlled-production-promotion.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "1eb4a59372d2df34b2d74ad2acc1add3910a5128",
-      "sha256": "sha256:aff34c354d442724d707c37bad9b6179c8678303ab695fe1967391945ee7608e"
-    },
-    {
-      "path": "docs/operations/sprint-19-a7-kidults-stability-baseline-record.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "140e92ed12a3fee5253bbe8be24dac2f656f4e7f",
-      "sha256": "sha256:d7d2849e8928d97e92728ae67a3367c55d63d277dd0f1d0b9cbe310cbb3be859"
-    },
-    {
-      "path": "docs/operations/sprint-19-a8-kidults-stability-monitoring.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "34f5748d46a19dfcb4735a17bd96800d1b653339",
-      "sha256": "sha256:b2d2260046f3661b7e19b8fd2d98269d9be1db5a8dddf7e0f731bb66c9938593"
-    },
-    {
-      "path": "docs/operations/sprint-20-a12-kidults-comprehensive-portal-tuning.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "57bad603b40e49ded2006191057b6c3698f869f3",
-      "sha256": "sha256:7d682733a1540badec1da3df9c237ca63a13c8a49c040f32999735f9f14ed51e"
-    },
-    {
-      "path": "docs/product/dual-luxury-product-quality-gate.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "6e453e2de64c246ca5c8999f8f08f6f1b8cbdbb6",
-      "sha256": "sha256:7e7f3d7771a81f5665eb97ee48c22e7da05621c0ae386ae4bfe2b37f5d0d57d6"
-    },
-    {
-      "path": "docs/release/dual-release-candidate-environment-contract-v0.1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "910b22a53de10685c742236316820121ba5746f2",
-      "sha256": "sha256:254845cd645d3ad266d4d671debd55c76bc75f1160e2f09a15ba27072355a545"
-    },
-    {
-      "path": "docs/security/authentication-authorization.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "c5e197328db91b72d101f1f625d991be3ade3608",
-      "sha256": "sha256:315e5341de5326f96a58175272f4d61052ab5621b25828060af2851d7adacbd6"
-    },
-    {
-      "path": "docs/standards/kidults-global-collectibles-taxonomy-v0.9.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "feff4662ebd8c5c1feae283b7fc1487ff845c4f9",
-      "sha256": "sha256:0a242e0cb4ded240d2191832cff70ca3fdb9a1b510976de2b18187606676e1fe"
-    },
-    {
-      "path": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "710ac7538d6110552201680c4af02c258c39f865",
-      "sha256": "sha256:9e909139b1a7e881d277b4d10b20500a48ad95936aa3a80b95051ecbcf527b97"
-    },
-    {
-      "path": "docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "c0456d91a5846b7dc7f525057025340a6fe780b0",
-      "sha256": "sha256:7b625895aea09e30e1def9e9e1938af9b8f5d0f7670c90073ee6bf8f2e514289"
-    },
-    {
-      "path": "docs/strategy/a13-global-best-benchmark-analysis.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "efd31607c90a680c047165277062733573912591",
-      "sha256": "sha256:7d501e22d2c4a576f2244b0c5be69a7058d9eb137e6cac8f9ad52960c49b2d9c"
-    },
-    {
-      "path": "docs/strategy/a13-kidults-zero-base-global-standard-review.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "e351c201483adb4ad820bdcdc08f969ddba038fe",
-      "sha256": "sha256:8051f8097c21dc9daa3eafee27bb7f4402bb76f63241630813381ee0e3e891e6"
-    },
-    {
-      "path": "docs/testing/dual-staging-executable-smoke-matrix-v0.1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "76eda4869c35d5ea5317b79c95aa88ae84fd07a7",
-      "sha256": "sha256:22176da34111ea85dedee14219df2bc05439ccf1ee02d5bf9ae5d99e7b289c03"
-    },
-    {
-      "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "91105296ac9cea22aef68b1125ca3bdf9929f44f",
-      "sha256": "sha256:0b8fc7f9094e0af3483a4fddbf5cc888094618fc8a0bc48b92ed083df28baa30"
-    },
-    {
-      "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b840fd92266725c691ef5149af718425fb0d5805",
-      "sha256": "sha256:0c4653079d23833ed9f4ebae795bad9d496a7bc2aa22ef6381df4448d4332048"
-    },
-    {
-      "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a016b5fe93dc998b7e4a44a38790d2bfc8f859c1",
+      "git_blob": "6b90066161d859460831e…2139 tokens truncated…8f859c1",
       "sha256": "sha256:0be444c139db3b6a38d92e1eef3e3cd69ff91f5cc86a420ea3e3a565756c9cae"
     },
     {
@@ -5133,8 +4968,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "bcc86e60bc96dc3682d8cde673285b58a211959f",
-      "sha256": "sha256:fb98ed991b852f22e691feec3f1df7ca29d057c02d84888c496b93830cfa85fd"
+      "git_blob": "b12e8c00e43a51477f2764d0d03073f3494ca11c",
+      "sha256": "sha256:2c90a809d464ec8687c194487376fea9d03dfe986600214143c2f101fd100ee1"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -5215,5 +5050,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:65d299e3ac158a5700a1ffb299651420b83286b4ec2eda89c5d053fa6a013f4a"
+  "manifest_sha256": "sha256:74a00f36b6395b9095a4d3a9e67750f37d76f4e520172d583353777ccbedfcd0"
 }
