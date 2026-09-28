@@ -100,8 +100,8 @@ test('current schedule receipt without P3 is exact-producer-bound and canary-eva
 });
 
 test('producer workflow binds exact head, run attempt and canonical artifact identity', () => {
-  assert.match(workflow, /KIDULTS_EXACT_SOURCE_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(workflow, /group: kidults-asi-global-any-site-hourly-v2-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /KIDULTS_EXACT_SOURCE_SHA: \$\{\{ github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.exact_main_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /group: kidults-asi-global-any-site-hourly-v2-\$\{\{ github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.exact_main_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(workflow, /ref: \$\{\{ env\.KIDULTS_EXACT_SOURCE_SHA \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$KIDULTS_EXACT_SOURCE_SHA"/);
   assert.match(workflow, /KIDULTS_WORKFLOW_RUN_ATTEMPT: \$\{\{ github\.run_attempt \}\}/);
