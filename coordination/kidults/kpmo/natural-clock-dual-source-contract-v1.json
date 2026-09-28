@@ -1,0 +1,36 @@
+{
+  "id": "kidults-natural-clock-dual-source-contract-v1",
+  "version": "1.0.0",
+  "state": "IMPLEMENTED_VERIFIED_ACTIVATION_HOLD",
+  "purpose": "Preserve natural exact-main producer liveness when GitHub schedule delivery is delayed or dropped.",
+  "time_sources": [
+    "GITHUB_ACTIONS_SCHEDULE",
+    "AWS_EVENTBRIDGE_SCHEDULER"
+  ],
+  "external_dispatch_event": "kidults.natural.clock.v1",
+  "accepted_slots": [
+    "P0B",
+    "RESERVE",
+    "SENTINEL",
+    "ASSURANCE"
+  ],
+  "required_bindings": [
+    "dispatch_id",
+    "exact_main_sha",
+    "issued_at",
+    "nonce",
+    "slot",
+    "source"
+  ],
+  "acceptance_window_seconds": 300,
+  "dedupe_authority": "REMOTE_DYNAMODB_CONDITIONAL_WRITE_REQUIRED_BEFORE_EXECUTION",
+  "github_app_installation_token_required": true,
+  "workflow_dispatch_is_natural_evidence": false,
+  "repository_dispatch_without_verified_eventbridge_receipt_is_natural_evidence": false,
+  "github_schedule_remains_accepted": true,
+  "manual_replay_forbidden": true,
+  "promotion_authority": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

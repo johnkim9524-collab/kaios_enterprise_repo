@@ -1,6 +1,8 @@
 name: KIDULTS Platform Continuous Assurance V1
 
 on:
+  repository_dispatch:
+    types: [kidults.natural.clock.v1]
   push:
     branches: [main]
   pull_request:
@@ -96,6 +98,7 @@ permissions:
 jobs:
   classify-canonical-identity:
     if: >-
+      (github.event_name != 'repository_dispatch' || github.event.client_payload.slot == 'ASSURANCE') &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main')) &&
@@ -126,12 +129,23 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Verify independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: ${{ vars.KIDULTS_NATURAL_CLOCK_APP_LOGIN }}
+          KIDULTS_NATURAL_CLOCK_SLOT: ASSURANCE
+        run: |
+          set -euo pipefail
+          export KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
+          test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Validate canonical classifier and negative cases
         run: |
           set -euo pipefail
@@ -257,7 +271,7 @@ jobs:
         id: classify
         env:
           KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}
-          KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
+          KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
           KPMO_SCHEDULE_EXPRESSION: ${{ github.event.schedule || '' }}
           KPMO_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
@@ -268,6 +282,8 @@ jobs:
           KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || '' }}
           KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}
           KPMO_UPSTREAM_CREATED_AT: ${{ inputs.coverage_created_at || github.event.workflow_run.created_at || '' }}
+          KPMO_NATURAL_CLOCK_DISPATCH_ID: ${{ github.event.client_payload.dispatch_id || '' }}
+          KPMO_NATURAL_CLOCK_ISSUED_AT: ${{ github.event.client_payload.issued_at || '' }}
         run: >-
           node scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
           --output "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/canonical-identity-receipt.json"
@@ -335,8 +351,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
-      KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
-      KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
+      KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+      KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'repository_dispatch' && 'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
       KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
       KPMO_PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
       KPMO_PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
@@ -366,7 +382,7 @@ jobs:
       KPMO_EPHEMERAL_ACTIONS_LEADER: 'false'
       KPMO_AUDIT_EXECUTION_DISPOSITION: EXECUTE_FULL_AUDIT_GUARD_NOT_RESOLVED
       KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST: UNAVAILABLE
-      KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
+      KPMO_AUDIT_PROFILE: ${{ (github.event_name == 'schedule' || github.event_name == 'repository_dispatch') && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
       KPMO_PACKET_SUFFIX: kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Initialize fail-closed assurance packet
@@ -948,7 +964,7 @@ jobs:
              and .conclusion==$conclusion' \
             /tmp/reserve-upstream-run.json >/dev/null
           RESERVE_UPSTREAM_EVENT=$(jq -r '.event' /tmp/reserve-upstream-run.json)
-          [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|workflow_dispatch|schedule)$ ]]
+          [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|repository_dispatch|workflow_dispatch|schedule)$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100" \
             > /tmp/reserve-upstream-artifacts.json

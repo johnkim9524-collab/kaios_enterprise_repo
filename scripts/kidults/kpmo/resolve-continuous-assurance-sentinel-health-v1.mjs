@@ -14,7 +14,7 @@ const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_requ
 const SPECS=[
   {id:'SHADOW',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch'],artifacts:['kidults-asi-shadow-operating-evidence-v1']},
   {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
-  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
+  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','repository_dispatch','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
   {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run','workflow_dispatch'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
 const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');

@@ -18,12 +18,14 @@
     "pull_request": "SOURCE_GENERATION",
     "workflow_run": "SOURCE_GENERATION",
     "schedule": "UPSTREAM_LOGICAL_SCHEDULE_SLOT",
+    "repository_dispatch": "UPSTREAM_EXTERNAL_NATURAL_CLOCK_RUN",
     "workflow_dispatch": "UPSTREAM_MANUAL_REQUEST_RUN"
   },
   "direct_event_generation_rules": {
     "push": "SOURCE_GENERATION",
     "pull_request": "PULL_REQUEST_HEAD_GENERATION",
     "schedule": "ASSURANCE_LOGICAL_SCHEDULE_SLOT",
+    "repository_dispatch": "ASSURANCE_EXTERNAL_NATURAL_CLOCK_SLOT",
     "workflow_dispatch": "ASSURANCE_MANUAL_REQUEST_RUN"
   },
   "logical_schedule_slot_minutes": 30,

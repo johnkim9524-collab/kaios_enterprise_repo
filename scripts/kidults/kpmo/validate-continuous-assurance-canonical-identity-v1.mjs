@@ -258,6 +258,13 @@ const manualB = classifyCanonicalIdentity({ event_name: 'workflow_dispatch', rep
 assert(manualA.dedupe_eligible === false && manualA.canonical_key !== manualB.canonical_key, 'MANUAL_REQUEST_IDENTITY_NOT_PRESERVED');
 assert(manualA.ephemeral_actions_alias_eligible === false, 'MANUAL_ALIAS_FORBIDDEN');
 
+const externalClock = classifyCanonicalIdentity({
+  event_name:'repository_dispatch',repository:base.repository,source_sha:shaA,run_id:'9503',run_attempt:'1',observed_at:base.observed_at,
+  natural_clock_dispatch_id:`kidults-natural-clock-v1:ASSURANCE:${shaA}:${'n'.repeat(32)}`,
+  natural_clock_issued_at:'2026-08-29T23:47:00.000Z',
+},contract,contractText);
+assert(externalClock.upstream_class==='ASSURANCE_EXTERNAL_NATURAL_CLOCK'&&externalClock.dedupe_eligible===true,'EXTERNAL_NATURAL_CLOCK_IDENTITY');
+
 const upstreamManual = classifyCanonicalIdentity({
   ...base,
   run_id: '9510',
@@ -288,7 +295,8 @@ const negativeCases = [
   ['COVERAGE_DYNAMIC_NAME_CROSS_PATH', { ...base, upstream_workflow_name: `KIDULTS Coverage / source-${shaA}`, upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml' }],
   ['SOURCE_SHA_INVALID', { ...base, source_sha: 'bad' }],
   ['UPSTREAM_CONCLUSION_INVALID', { ...base, upstream_conclusion: 'queued' }],
-  ['UPSTREAM_EVENT_INVALID', { ...base, upstream_event: 'repository_dispatch' }],
+  ['UPSTREAM_EVENT_INVALID', { ...base, upstream_event: 'deployment' }],
+  ['NATURAL_CLOCK_DISPATCH_ID_INVALID', { event_name:'repository_dispatch',repository:base.repository,source_sha:shaA,run_id:'9600',run_attempt:'1',observed_at:base.observed_at,natural_clock_dispatch_id:'manual',natural_clock_issued_at:base.observed_at }],
 ];
 for (const [name, fixture] of negativeCases) {
   let rejected = false;
