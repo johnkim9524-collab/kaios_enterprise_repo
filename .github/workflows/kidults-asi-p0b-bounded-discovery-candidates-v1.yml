@@ -3,6 +3,10 @@ name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 on:
   workflow_dispatch:
   schedule:
+    # Two independent natural roots per hour. GitHub documents that an
+    # individual scheduled event may be delayed or dropped under load, so the
+    # second slot is a bounded delivery-redundancy control, not a manual replay.
+    - cron: '7 * * * *'
     - cron: '37 * * * *'
   pull_request:
     branches: [main]

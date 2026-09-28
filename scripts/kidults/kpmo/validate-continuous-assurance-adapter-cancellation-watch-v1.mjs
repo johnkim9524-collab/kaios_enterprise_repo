@@ -155,7 +155,7 @@ for (const control of eventConsumerControls) {
 }
 for (const control of autonomousProviderControls) {
   errors.push(...validateAutonomousProvider(control));
-  const mutatedTrigger = { ...control, text: control.text.replace("  schedule:\n    - cron: '37 * * * *'\n", '') };
+  const mutatedTrigger = { ...control, text: control.text.replace('  schedule:\n', '') };
   if (validateAutonomousProvider(mutatedTrigger).length === 0) errors.push(`${control.label} missing automatic trigger mutation escaped`);
   const mutatedConcurrency = { ...control, text: control.text.replace(control.expected, control.unsafe) };
   if (validateAutonomousProvider(mutatedConcurrency).length === 0) errors.push(`${control.label} ref-only concurrency mutation escaped`);

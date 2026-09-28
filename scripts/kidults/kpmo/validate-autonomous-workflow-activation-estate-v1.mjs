@@ -77,6 +77,7 @@ function eventBlock(source, event) {
 }
 function validateNaturalChain(source) {
   assert(triggers(source.p0b).includes('schedule'), 'P0B_NATURAL_SCHEDULE_ROOT_MISSING');
+  assert(source.p0b.includes("cron: '7 * * * *'") && source.p0b.includes("cron: '37 * * * *'"), 'P0B_NATURAL_SCHEDULE_REDUNDANCY_MISSING');
   assert(!triggers(source.p1).includes('schedule'), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
   const depth = ['p0b', 'p1', 'arl', 'coverage'].filter(key => triggers(source[key]).includes('workflow_run')).length;
   assert(depth <= 3, 'NATURAL_CHAIN_WORKFLOW_RUN_DEPTH_EXCEEDED');
@@ -114,7 +115,8 @@ function rejectMutation(key, changed, expectedCode) {
   naturalChainMutationsRejected += 1;
 }
 rejectMutation('p0b', source.p0b.replace('  pull_request:', "  workflow_run:\n    workflows:\n      - 'KIDULTS ASI P0 Mission Consumption v1'\n    branches: [main]\n    types: [completed]\n  pull_request:"), 'NATURAL_CHAIN_WORKFLOW_RUN_DEPTH_EXCEEDED');
-rejectMutation('p0b', source.p0b.replace("  schedule:\n    - cron: '37 * * * *'\n", ''), 'P0B_NATURAL_SCHEDULE_ROOT_MISSING');
+rejectMutation('p0b', source.p0b.replace('  schedule:\n', ''), 'P0B_NATURAL_SCHEDULE_ROOT_MISSING');
+rejectMutation('p0b', source.p0b.replace("    - cron: '7 * * * *'\n", ''), 'P0B_NATURAL_SCHEDULE_REDUNDANCY_MISSING');
 rejectMutation('p1', source.p1.replace('  workflow_dispatch:', "  schedule:\n    - cron: '41 * * * *'\n  workflow_dispatch:"), 'P1_REDUNDANT_SCHEDULE_FORBIDDEN');
 rejectMutation('arl', source.arl.replace("      - 'KIDULTS ASI P1 Source Preflight v1'", "      - 'UNBOUND UPSTREAM'"), 'NATURAL_CHAIN_UPSTREAM_IDENTITY:arl');
 rejectMutation('coverage', source.coverage.replace('    branches: [main]', '    branches: [untrusted]'), 'NATURAL_CHAIN_UPSTREAM_BOUNDARY:coverage');
