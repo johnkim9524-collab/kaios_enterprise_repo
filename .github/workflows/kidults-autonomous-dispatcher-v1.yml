@@ -116,12 +116,26 @@ jobs:
           const appToken=validateDraftReadyBrokerResponse(response,{repository:env.GITHUB_REPOSITORY,repositoryId:env.GITHUB_REPOSITORY_ID,appId:env.EXPECTED_APP_ID,installationId:env.EXPECTED_INSTALLATION_ID,githubToken:env.READ_TOKEN}).token;
           console.log(`::add-mask::${appToken}`);
           const api=async(bearer,path,options={})=>{const r=await fetch(`https://api.github.com/repos/${env.GITHUB_REPOSITORY}${path}`,{...options,headers:{Authorization:`Bearer ${bearer}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1',...(options.headers||{})},redirect:'error'});if(!r.ok)throw new GateFailure(`GITHUB_API_${r.status}`,path);return r.json();};
+          const scopePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
+          const wait=milliseconds=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+          const waitForDraftDevelopmentAuthority=async()=>{
+            for(let attempt=1;attempt<=60;attempt+=1){
+              const statuses=await api(env.READ_TOKEN,`/commits/${env.EXPECTED_HEAD_SHA}/statuses?per_page=100`);
+              const latest=statuses.find(item=>item.context===scopePolicy.draft_development_status_context);
+              if(latest?.state==='success'&&latest?.description?.endsWith('exact-head contexts verified; Draft non-promotable'))return latest;
+              if(latest?.state==='failure')throw new GateFailure('DRAFT_DEVELOPMENT_AUTHORITY_FAILED',latest.description||'failure');
+              if(attempt<60)await wait(3000);
+            }
+            throw new GateFailure('DRAFT_DEVELOPMENT_AUTHORITY_TIMEOUT');
+          };
           const before=assertDraftReadyTransitionCandidate(await api(env.READ_TOKEN,`/pulls/${env.PR_NUMBER}`),{repository:env.GITHUB_REPOSITORY,expectedPullRequestNumber:env.PR_NUMBER,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA,expectedTriggerDraft:true});
+          await waitForDraftDevelopmentAuthority();
+          const stableBefore=assertDraftReadyTransitionCandidate(await api(env.READ_TOKEN,`/pulls/${env.PR_NUMBER}`),{repository:env.GITHUB_REPOSITORY,expectedPullRequestNumber:env.PR_NUMBER,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA,expectedTriggerDraft:true});
           const mutation=await fetch('https://api.github.com/graphql',{method:'POST',headers:{Authorization:`Bearer ${appToken}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','Content-Type':'application/json','User-Agent':'kidults-autonomous-dispatcher-v1'},body:JSON.stringify({query:'mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',variables:{pullRequestId:before.node_id}}),redirect:'error'});
           if(!mutation.ok)throw new GateFailure(`DRAFT_READY_MUTATION_HTTP_${mutation.status}`);
           const mutationBody=await mutation.json();if(mutationBody.errors?.length)throw new GateFailure(`DRAFT_READY_MUTATION_${mutationBody.errors[0].type||'FAILED'}`);
           const after=await api(appToken,`/pulls/${env.PR_NUMBER}`);
-          const verified=assertDraftReadyPostMutation(before,after,{repository:env.GITHUB_REPOSITORY,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA});
+          const verified=assertDraftReadyPostMutation(stableBefore,after,{repository:env.GITHUB_REPOSITORY,expectedHeadSha:env.EXPECTED_HEAD_SHA,expectedBaseSha:env.EXPECTED_BASE_SHA});
           if([env.PRODUCTION_STATE,env.PUBLIC_STATE,env.G5_STATE].some(value=>value!=='HOLD'))throw new GateFailure('DRAFT_READY_HOLD_BOUNDARY_WEAKENED');
           fs.unlinkSync(env.DRAFT_READY_RESPONSE_PATH);
           console.log(JSON.stringify({state:'EXACT_DRAFT_READY_TRANSITION_VERIFIED',...verified,permission_profile:response.permission_profile,production:'HOLD',public_release:'HOLD',g5:'HOLD'}));
