@@ -83,6 +83,11 @@ assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation,
 assert.match(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
 assert.match(dispatcherWorkflow,/READINESS_BASE_SHA: \$\{\{ github\.event\.workflow_run\.pull_requests\[0\]\.base\.sha \}\}/);
 assert.match(dispatcherWorkflow,/permission_profile:"DRAFT_READY_TRANSITION"/);
+assert.match(dispatcherWorkflow,/waitForDraftDevelopmentAuthority/);
+assert.match(dispatcherWorkflow,/exact-head contexts verified; Draft non-promotable/);
+assert.match(dispatcherWorkflow,/DRAFT_DEVELOPMENT_AUTHORITY_FAILED/);
+assert.match(dispatcherWorkflow,/DRAFT_DEVELOPMENT_AUTHORITY_TIMEOUT/);
+assert.doesNotMatch(governedWorkflow,/await status\('success','Draft development controls verified; landing remains blocked',scopePolicy\.draft_development_status_context\)/);
 assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
 assert.match(dispatcherWorkflow,/id: transition_draft[\s\S]*if: steps\.transition_draft\.outputs\.performed != 'true'/);
 assert.match(dispatcherWorkflow,/assertDraftReadyTransitionCandidate[\s\S]*assertDraftReadyPostMutation/);

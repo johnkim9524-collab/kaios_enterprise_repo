@@ -28,13 +28,14 @@ const assertRegularFile = (path, name) => {
 };
 const allowTestInputs = process.env.KIDULTS_ALLOW_TEST_INPUTS === '1' && process.env.GITHUB_ACTIONS !== 'true';
 
-assert(contract.id === 'kidults-asi-source-eligibility-receipt-contract-v1' && contract.version === '1.1.0', 'CONTRACT_IDENTITY');
+assert(contract.id === 'kidults-asi-source-eligibility-receipt-contract-v1' && contract.version === '1.2.0', 'CONTRACT_IDENTITY');
 assert(contract.admission_boundary?.evidence_eligibility_ceiling_without_p3_exact_canary === 'CANARY_EVALUATION_ELIGIBLE_ONLY'
   && contract.admission_boundary?.product_content_admission_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
-  && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true,
+  && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
+  && contract.admission_boundary?.repository_dispatch_requires_verified_external_natural_clock_receipt === true,
 'CONTRACT_P3_CANARY_AUTHORITY_BOUNDARY_INVALID');
 if (!allowTestInputs) assert(contractPath === contract.canonical_input_paths?.contract, 'CONTRACT_PATH_NOT_CANONICAL');
-assert(receipt.id === 'kidults-asi-source-eligibility-receipts-v1' && receipt.version === '1.1.0', 'IDENTITY');
+assert(receipt.id === 'kidults-asi-source-eligibility-receipts-v1' && receipt.version === '1.2.0', 'IDENTITY');
 assert(receipt.purpose_id === contract.purpose_id, 'PURPOSE_DRIFT');
 assert(Number.isFinite(Date.parse(receipt.evaluated_at)), 'EVALUATED_AT_INVALID');
 
