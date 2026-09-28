@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "30ffaba8e7e58df7acaec4e687d124cc21b91126",
+  "revision": "4853b3e6a0f26c15c2d0581a003857da2320c17a",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 665
+    "file_count": 667
   },
   "files": [
     {
@@ -511,6 +511,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "88d0c0b5df78c3f15eacebe5d6e99e56234d7bf5",
       "sha256": "sha256:85b4f393c8dbadefb87cb04a2f5c6c63799c6675c411ae5ad25881ad207e993a",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/kidults-natural-clock-deploy-v1.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "135e710583c4ea8501c19df4366f8c92b0305936",
+      "sha256": "sha256:6fccc64fd3a3bac90229df8289c004d8dcc106f59145d5e94c55fe5a28f26916",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1840,6 +1853,19 @@
           "mode": "CONSUMER",
           "consumer": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
           "source_reference": "kidults-autonomous-approval-policy-envelope-v1"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/natural-clock-deployment-runbook-v1.md",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "dcb3e941d395c853342effc3eae039a54728b15f",
+      "sha256": "sha256:0424010015216b19dc5c11e42d44222d71892e7f15f4c9e2fd63457a175803cd",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
         }
       }
     },
@@ -5215,5 +5241,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:50762d2176eecd8778554653812ab936e078e26fcc46ffd5b74c13c46b8f07b4"
+  "manifest_sha256": "sha256:cf1c94bd1ad46ed3224487542649ceed42ac28a9e59782c217532b055226c784"
 }
