@@ -113,7 +113,11 @@ concurrency:
 
 jobs:
   global-any-site-hourly-pool-v2:
-    if: github.event_name == 'workflow_dispatch'
+    # This workflow is the exact-SHA producer consumed by Sharded Reserve.
+    # A declared schedule that cannot enter the producer job leaves Reserve in
+    # a permanent WAITING state, so natural schedule and recovery dispatch are
+    # the only execution events admitted here.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
