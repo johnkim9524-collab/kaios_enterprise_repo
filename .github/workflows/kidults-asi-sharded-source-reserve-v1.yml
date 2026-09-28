@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      EXPECTED_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -126,11 +126,12 @@ jobs:
         run: |
           set -euo pipefail
           export KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          test "$EXPECTED_SHA" = "$KIDULTS_LIVE_MAIN_SHA"
           node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
           test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Preserve independent natural-clock receipt
         if: github.event_name == 'repository_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-natural-clock-reserve-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/kidults-natural-clock-receipt-v1.json

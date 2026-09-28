@@ -148,7 +148,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Preserve independent natural-clock receipt
         if: github.event_name == 'repository_dispatch'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-natural-clock-sentinel-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/kidults-natural-clock-receipt-v1.json
