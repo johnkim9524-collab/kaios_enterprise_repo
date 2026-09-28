@@ -8,8 +8,7 @@
       "AllowedPattern": "^arn:aws:iam::528314240275:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
     },
     "GitHubRepository": {"Type": "String", "Default": "johnkim9524-collab/kaios_enterprise_repo"},
-    "GitHubEnvironment": {"Type": "String", "Default": "KIDULTS-NATURAL-CLOCK-DEPLOYER"},
-    "WorkflowRef": {"Type": "String", "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-natural-clock-deploy-v1.yml@refs/heads/main"}
+    "GitHubEnvironment": {"Type": "String", "Default": "KIDULTS-NATURAL-CLOCK-DEPLOYER"}
   },
   "Resources": {
     "ArtifactBucket": {
@@ -44,8 +43,8 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "kidults-natural-clock-deployer-staging-v1",
-        "MaxSessionDuration": 900,
-        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Federated": {"Ref": "GitHubOidcProviderArn"}}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": {"StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com", "token.actions.githubusercontent.com:sub": {"Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}:workflow_ref:${WorkflowRef}"}}}}]},
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Federated": {"Ref": "GitHubOidcProviderArn"}}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": {"StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com", "token.actions.githubusercontent.com:sub": {"Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}"}}}}]},
         "Policies": [{"PolicyName": "deploy-exact-natural-clock-stack", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
           {"Effect": "Allow", "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion"], "Resource": {"Fn::Sub": "${ArtifactBucket.Arn}/natural-clock/*"}},
           {"Effect": "Allow", "Action": ["cloudformation:CreateChangeSet", "cloudformation:DescribeChangeSet", "cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet", "cloudformation:DescribeStacks", "cloudformation:DescribeStackEvents", "cloudformation:GetTemplate"], "Resource": ["arn:aws:cloudformation:ap-northeast-2:528314240275:stack/kidults-natural-clock-staging-v1/*", "arn:aws:cloudformation:ap-northeast-2:528314240275:changeSet/kidults-natural-clock-*/*"]},
