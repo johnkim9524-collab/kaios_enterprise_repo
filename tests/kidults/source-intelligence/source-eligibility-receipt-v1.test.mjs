@@ -170,6 +170,21 @@ test('pull request and manual recovery receipts remain canary-evaluation-only wi
   }
 });
 
+test('verified natural-clock repository dispatch is admitted without gaining activation authority', t => {
+  const item = fixture({ eventName: 'repository_dispatch' });
+  t.after(() => fs.rmSync(item.directory, { recursive: true, force: true }));
+  const result = validate(item);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const receipt = JSON.parse(fs.readFileSync(item.paths.receipt, 'utf8'));
+  assert.equal(receipt.records[0].canary_evaluation_eligible, true);
+  assert.equal(receipt.records[0].adapter_activation_authorized, false);
+  assert.equal(receipt.records[0].product_content_admission_authorized, false);
+  assert.equal(canonicalContract.producer_identity.adapter_activation_events.includes('repository_dispatch'), false);
+  const verifyIndex = workflow.indexOf('Verify independent natural-clock receipt');
+  const buildIndex = workflow.indexOf('Cross-bind source evidence for canary evaluation without activation authority');
+  assert.ok(verifyIndex >= 0 && buildIndex > verifyIndex, 'natural-clock receipt must be verified before eligibility generation');
+});
+
 test('canonical input path substitution is rejected before receipt use', t => {
   const item = fixture();
   t.after(() => fs.rmSync(item.directory, { recursive: true, force: true }));

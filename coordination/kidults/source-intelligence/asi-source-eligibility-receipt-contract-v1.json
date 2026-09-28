@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-source-eligibility-receipt-contract-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "purpose": "Establish source-specific canary-evaluation eligibility from current evidence. Product-content admission and adapter activation additionally require an exact source-bound P3 CANARY receipt and an allowed protected producer event.",
   "purpose_id": "KIDULTS_CURRENT_SOLD_INTERNAL_ANALYTICS",
@@ -17,7 +17,7 @@
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "workflow_path": ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
     "artifact_name": "kidults-asi-global-any-site-source-pool-v2",
-    "allowed_events": ["schedule", "push", "pull_request", "workflow_dispatch"],
+    "allowed_events": ["schedule", "push", "pull_request", "repository_dispatch", "workflow_dispatch"],
     "adapter_activation_events": ["schedule", "push"]
   },
   "receipt_time_policy": {
@@ -79,6 +79,7 @@
     "adapter_activation_requires_allowed_producer_event": true,
     "receipt_input_paths_are_contract_allowlisted": true,
     "receipt_source_sha_run_attempt_and_artifact_are_exactly_bound": true,
+    "repository_dispatch_requires_verified_external_natural_clock_receipt": true,
     "p3_requires_exact_pair_files_and_provider_artifact_provenance": true,
     "p3_requires_exact_five_transaction_and_source_content_snapshot_bindings": true,
     "adapter_activation_hard_disabled_pending_archive_verified_artifact_consumer": true,

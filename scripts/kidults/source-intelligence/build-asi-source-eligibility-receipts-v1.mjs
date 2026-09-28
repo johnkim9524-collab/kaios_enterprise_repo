@@ -33,12 +33,13 @@ const assertRegularFile = (path, name) => {
 };
 
 const contract = read(contractPath);
-if (contract.id !== 'kidults-asi-source-eligibility-receipt-contract-v1' || contract.version !== '1.1.0') {
+if (contract.id !== 'kidults-asi-source-eligibility-receipt-contract-v1' || contract.version !== '1.2.0') {
   throw new Error('CONTRACT_IDENTITY');
 }
 assert(contract.admission_boundary?.evidence_eligibility_ceiling_without_p3_exact_canary === 'CANARY_EVALUATION_ELIGIBLE_ONLY'
   && contract.admission_boundary?.product_content_admission_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
-  && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true,
+  && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
+  && contract.admission_boundary?.repository_dispatch_requires_verified_external_natural_clock_receipt === true,
 'CONTRACT_ADMISSION_BOUNDARY_INVALID');
 const suppliedInputs = {
   product_value: valuePath,
@@ -178,7 +179,7 @@ const productContentAdmitted = records.filter(record => record.product_content_a
 const adapterActivationAuthorized = records.filter(record => record.adapter_activation_authorized).length;
 const receipt = {
   id: 'kidults-asi-source-eligibility-receipts-v1',
-  version: '1.1.0',
+  version: '1.2.0',
   status: evidenceEligible ? 'BOUNDED_CANARY_EVALUATION_ELIGIBILITY_CREATED' : 'FAIL_CLOSED_NO_CANARY_EVALUATION_ELIGIBLE_SOURCE',
   evaluated_at: evaluatedAt,
   purpose_id: contract.purpose_id,

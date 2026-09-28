@@ -19,6 +19,7 @@ const protectedManual = new Set([
   'kidults-er-r7k-finalization-boundary.yml',
   'kidults-er-r7k-graded-population.yml',
   'kidults-graded-authority-probe-gate-v1.yml',
+  'kidults-natural-clock-deploy-v1.yml',
   'kidults-pcgs-banknote-alias-probe-r1.yml',
   'kidults-pcgs-live-single-record-probe-r1.yml',
   'kidults-production-release-evidence-v1.yml',
