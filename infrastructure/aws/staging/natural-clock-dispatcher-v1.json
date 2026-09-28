@@ -27,6 +27,7 @@
     "DispatcherRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
+        "RoleName": "kidults-natural-clock-dispatcher-staging-v1",
         "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
         "Policies": [{"PolicyName": "exact-natural-clock-boundary", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
           {"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": {"Ref": "GitHubPrivateKeySecretArn"}},
@@ -58,6 +59,7 @@
     "SchedulerRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
+        "RoleName": "kidults-natural-clock-scheduler-staging-v1",
         "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "scheduler.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
         "Policies": [{"PolicyName": "invoke-natural-clock-only", "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "lambda:InvokeFunction", "Resource": {"Fn::GetAtt": ["Dispatcher", "Arn"]}}]}}]
       }

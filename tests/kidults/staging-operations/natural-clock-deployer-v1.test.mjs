@@ -1,0 +1,33 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const bootstrap=JSON.parse(fs.readFileSync('infrastructure/aws/staging/natural-clock-deployer-bootstrap-v1.json','utf8'));
+const workflow=fs.readFileSync('.github/workflows/kidults-natural-clock-deploy-v1.yml','utf8');
+const clock=JSON.parse(fs.readFileSync('infrastructure/aws/staging/natural-clock-dispatcher-v1.json','utf8'));
+
+test('bootstrap trust is exact environment and immutable main workflow ref',()=>{
+  const trust=bootstrap.Resources.DeployerRole.Properties.AssumeRolePolicyDocument.Statement[0];
+  assert.deepEqual(trust.Principal.Federated,{Ref:'GitHubOidcProviderArn'});
+  assert.deepEqual(trust.Condition.StringEquals['token.actions.githubusercontent.com:sub'],{'Fn::Sub':'repo:${GitHubRepository}:environment:${GitHubEnvironment}:workflow_ref:${WorkflowRef}'});
+  assert.match(bootstrap.Parameters.WorkflowRef.Default,/kidults-natural-clock-deploy-v1\.yml@refs\/heads\/main$/);
+});
+
+test('deployer is bounded to exact STAGING resources and cannot reach production',()=>{
+  const source=JSON.stringify(bootstrap);
+  for(const marker of ['kidults-natural-clock-staging-v1','kidults-natural-clock-dispatcher-staging-v1','kidults-natural-clock-ledger-staging-v1','KIDULTS-NATURAL-CLOCK-DEPLOYER']) assert.match(source,new RegExp(marker));
+  assert.doesNotMatch(source,/\"Resource\":\"\*\"|production:[^H]|public:[^H]|g5:[^H]/i);
+  for(const denied of ['organizations:','account:','iam:CreateUser','iam:CreateAccessKey']) assert.doesNotMatch(source,new RegExp(denied));
+});
+
+test('deployment is exact-main, owner-dispatched, OIDC-only and enables every schedule',()=>{
+  for(const marker of ["github.actor == github.repository_owner","github.sha == inputs.main_sha","id-token: write",'ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','negative_canary:\"PASS\"']) assert.ok(workflow.includes(marker),marker);
+  assert.ok(!workflow.includes('workflow_run:'));
+  assert.ok(!workflow.includes('pull_request:'));
+  assert.ok(!workflow.includes('secrets.'));
+});
+
+test('managed natural-clock roles have stable bounded names',()=>{
+  assert.equal(clock.Resources.DispatcherRole.Properties.RoleName,'kidults-natural-clock-dispatcher-staging-v1');
+  assert.equal(clock.Resources.SchedulerRole.Properties.RoleName,'kidults-natural-clock-scheduler-staging-v1');
+});
