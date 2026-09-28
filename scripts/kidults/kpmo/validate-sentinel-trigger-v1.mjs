@@ -15,7 +15,8 @@ export const PRODUCER_COMPLETIONS=Object.freeze([
 const fail=code=>{throw new Error(code);};
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
 function validateNaturalClockEvent(env,payload,expectedSlot){
-  if(!object(payload)||payload.action!=='kidults.natural.clock.v1'
+  const expectedAction=`kidults.natural.clock.${expectedSlot.toLowerCase()}.v1`;
+  if(!object(payload)||payload.action!==expectedAction
     ||payload.repository?.full_name!==REPO)fail('SENTINEL_NATURAL_CLOCK_EVENT_CONTEXT');
   if(payload.sender?.type!=='Bot'||payload.sender?.login!=='kidults-autonomous-landing-staging[bot]')fail('SENTINEL_NATURAL_CLOCK_SENDER');
   const clock=payload.client_payload;

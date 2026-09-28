@@ -2,7 +2,7 @@ name: KIDULTS ASI Sharded Source Reserve v1
 
 on:
   repository_dispatch:
-    types: [kidults.natural.clock.v1]
+    types: [kidults.natural.clock.reserve.v1]
   workflow_dispatch:
   schedule:
     # Straddle both P0B natural-root windows so one dropped GitHub schedule
