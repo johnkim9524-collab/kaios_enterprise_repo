@@ -118,7 +118,21 @@
       "upstream_observation_event in [workflow_run,repository_dispatch,schedule]",
       "terminal_state=VERIFIED_FAIL_OR_HOLD"
     ],
-    "latest_natural_failure_fallback_forbidden": true
+    "latest_natural_failure_fallback_forbidden": true,
+    "all_success_events_classified_required": true,
+    "producer_health_eligible_upstream_events": [
+      "repository_dispatch",
+      "workflow_run"
+    ],
+    "non_authorizing_observation_events": [
+      "pull_request",
+      "push",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "unclassified_event_state": "VERIFIED_FAIL",
+    "non_authorizing_terminal_state": "VERIFIED_HOLD",
+    "non_authorizing_receipt_required": true
   },
   "state_model": {
     "axes": [
