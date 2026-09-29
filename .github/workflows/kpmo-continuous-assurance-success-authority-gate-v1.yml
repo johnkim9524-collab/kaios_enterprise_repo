@@ -107,6 +107,9 @@ jobs:
             producer_health_receipt_digest:null,
             producer_health_conclusion:null,
             producer_health_state:'UNAVAILABLE',
+            assurance_receipt_digest:null,
+            assurance_actual_upstream:null,
+            producer_health_eligible:false,
             coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
             whole_platform_authority:false,
             promotion_eligible:false,
@@ -142,7 +145,7 @@ jobs:
           test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
           echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
 
-      - name: Restore latest exact-main natural Sentinel producer-health receipt
+      - name: Restore and verify exact Assurance receipt and causal upstream tuple
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -150,59 +153,104 @@ jobs:
           set -euo pipefail
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" \
-            > "$GATE_DIR/upstream-assurance-run.json"
-          UPSTREAM_CREATED_AT=$(jq -r '.created_at // empty' "$GATE_DIR/upstream-assurance-run.json")
-          test -n "$UPSTREAM_CREATED_AT"
+            > "${GATE_DIR}/upstream-assurance-run.json"
+          jq -e \
+            --argjson run "${UPSTREAM_RUN_ID}" --argjson attempt "${UPSTREAM_RUN_ATTEMPT}" \
+            --arg sha "${UPSTREAM_SHA}" --arg repo "${GITHUB_REPOSITORY}" \
+            '.id==$run and .run_attempt==$attempt and .name=="KIDULTS Platform Continuous Assurance V1" and
+             .repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and
+             .head_sha==$sha and .status=="completed" and .conclusion=="success"' \
+            "${GATE_DIR}/upstream-assurance-run.json" >/dev/null
+          ASSURANCE_ARTIFACT_NAME="kidults-continuous-assurance-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
           gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100" \
-            > "$GATE_DIR/sentinel-runs.json"
-          node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" \
-            > "$GATE_DIR/sentinel-selection.json"
-          jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
-          SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
-          SENTINEL_RUN_ATTEMPT=$(jq -r '.run_attempt // empty' "$GATE_DIR/selected-sentinel-run.json")
-          SENTINEL_EVENT=$(jq -r '.event // empty' "$GATE_DIR/selected-sentinel-run.json")
-          SENTINEL_CONCLUSION=$(jq -r '.conclusion // empty' "$GATE_DIR/selected-sentinel-run.json")
-          [[ "$SENTINEL_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          test "$SENTINEL_RUN_ATTEMPT" = 1
-          [[ "$SENTINEL_EVENT" =~ ^(workflow_run|repository_dispatch|schedule)$ ]]
-          {
-            echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
-            echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
-            echo "PRODUCER_HEALTH_EVENT=$SENTINEL_EVENT"
-            echo "PRODUCER_HEALTH_CONCLUSION=$SENTINEL_CONCLUSION"
-          } >> "$GITHUB_ENV"
-          jq -e '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"' \
-            "$GATE_DIR/sentinel-selection.json" >/dev/null
-          ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${SENTINEL_RUN_ID}-${SENTINEL_RUN_ATTEMPT}"
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" \
+            > "${GATE_DIR}/upstream-assurance-artifacts.json"
+          ASSURANCE_ARTIFACT_COUNT=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            "$GATE_DIR/upstream-assurance-artifacts.json")
+          test "$ASSURANCE_ARTIFACT_COUNT" -eq 1
+          ASSURANCE_ARTIFACT_ID=$(jq -r --arg name "$ASSURANCE_ARTIFACT_NAME" \
+            '[.artifacts[] | select(.name==$name and .expired==false)][0].id' "$GATE_DIR/upstream-assurance-artifacts.json")
+          ASSURANCE_ARTIFACT_DIGEST=$(jq -r --arg name "$ASSURANCE_ARTIFACT_NAME" \
+            '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' "$GATE_DIR/upstream-assurance-artifacts.json")
+          [[ "$ASSURANCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ASSURANCE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100" \
-            > "$GATE_DIR/sentinel-artifacts.json"
-          ARTIFACT_COUNT=$(jq --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ASSURANCE_ARTIFACT_ID}/zip" \
+            > "${GATE_DIR}/upstream-assurance.zip"
+          python3 scripts/kidults/kpmo/read-sentinel-artifact-v1.py "$ASSURANCE_ARTIFACT_DIGEST" \
+            < "$GATE_DIR/upstream-assurance.zip" > "$GATE_DIR/upstream-assurance-packet.json"
+          jq -e '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")] | length==1' \
+            "$GATE_DIR/upstream-assurance-packet.json" >/dev/null
+          jq -r '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")][0].text' \
+            "$GATE_DIR/upstream-assurance-packet.json" > "$GATE_DIR/upstream-assurance-receipt.json"
+          jq -e \
+            --arg run "$UPSTREAM_RUN_ID" --arg attempt "$UPSTREAM_RUN_ATTEMPT" --arg sha "$UPSTREAM_SHA" \
+            '.receipt_type=="KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE" and
+             .source.expected_sha==$sha and .source.actual_sha==$sha and .source.sha==$sha and .source.match==true and
+             (.execution.workflow_run_id|tostring)==$run and (.execution.workflow_run_attempt|tostring)==$attempt and
+             .execution.trigger=="workflow_run" and .states.internal_control_state=="VERIFIED_PASS" and
+             .states.promotion_eligible==false and .states.release_state=="HOLD" and
+             (.receipt_digest|test("^sha256:[0-9a-f]{64}$"))' \
+            "$GATE_DIR/upstream-assurance-receipt.json" >/dev/null
+          ACTUAL_UPSTREAM_NAME=$(jq -r '.execution.upstream.workflow_name // empty' "$GATE_DIR/upstream-assurance-receipt.json")
+          if [ "$ACTUAL_UPSTREAM_NAME" = "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1" ]; then
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$UPSTREAM_SHA" \
+              '.execution.upstream.repository==$repo and .execution.upstream.head_sha==$sha and
+               .execution.upstream.conclusion=="success" and
+               (.execution.upstream.run_id|tostring|test("^[1-9][0-9]*$")) and
+               (.execution.upstream.run_attempt|tostring|test("^[1-9][0-9]*$"))' \
+              "$GATE_DIR/upstream-assurance-receipt.json" >/dev/null
+            {
+              echo "CAUSAL_ELIGIBLE=true"
+              echo "PRODUCER_HEALTH_RUN_ID=$(jq -r '.execution.upstream.run_id' "$GATE_DIR/upstream-assurance-receipt.json")"
+              echo "PRODUCER_HEALTH_RUN_ATTEMPT=$(jq -r '.execution.upstream.run_attempt' "$GATE_DIR/upstream-assurance-receipt.json")"
+              echo "PRODUCER_HEALTH_EVENT=$(jq -r '.execution.upstream.workflow_event' "$GATE_DIR/upstream-assurance-receipt.json")"
+              echo "PRODUCER_HEALTH_CONCLUSION=$(jq -r '.execution.upstream.conclusion' "$GATE_DIR/upstream-assurance-receipt.json")"
+            } >> "$GITHUB_ENV"
+          else
+            echo "CAUSAL_ELIGIBLE=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Restore causally bound exact-main Sentinel producer-health receipt
+        if: env.CAUSAL_ELIGIBLE == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_HEALTH_RUN_ID}" \
+            > "${GATE_DIR}/selected-sentinel-run.json"
+          jq -e \
+            --argjson run "$PRODUCER_HEALTH_RUN_ID" --argjson attempt "$PRODUCER_HEALTH_RUN_ATTEMPT" \
+            --arg sha "$UPSTREAM_SHA" --arg repo "$GITHUB_REPOSITORY" --arg event "$PRODUCER_HEALTH_EVENT" \
+            '.id==$run and .run_attempt==$attempt and
+             .name=="KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1" and
+             .repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and
+             .head_sha==$sha and .event==$event and .status=="completed" and .conclusion=="success"' \
+            "$GATE_DIR/selected-sentinel-run.json" >/dev/null
+          ARTIFACT_NAME="kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${PRODUCER_HEALTH_RUN_ID}-${PRODUCER_HEALTH_RUN_ATTEMPT}"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${PRODUCER_HEALTH_RUN_ID}/artifacts?per_page=100" \
+            > "${GATE_DIR}/sentinel-artifacts.json"
+          ARTIFACT_COUNT=$(jq --arg name "$ARTIFACT_NAME" --argjson run "$PRODUCER_HEALTH_RUN_ID" --arg sha "$UPSTREAM_SHA" \
             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
             "$GATE_DIR/sentinel-artifacts.json")
           test "$ARTIFACT_COUNT" -eq 1
-          ARTIFACT_ID=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
-            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
-            "$GATE_DIR/sentinel-artifacts.json")
-          ARTIFACT_DIGEST=$(jq -r --arg name "$ARTIFACT_NAME" --argjson run "$SENTINEL_RUN_ID" --arg sha "$UPSTREAM_SHA" \
-            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
-            "$GATE_DIR/sentinel-artifacts.json")
+          ARTIFACT_ID=$(jq -r --arg name "$ARTIFACT_NAME" '[.artifacts[] | select(.name==$name and .expired==false)][0].id' "$GATE_DIR/sentinel-artifacts.json")
+          ARTIFACT_DIGEST=$(jq -r --arg name "$ARTIFACT_NAME" '[.artifacts[] | select(.name==$name and .expired==false)][0].digest // empty' "$GATE_DIR/sentinel-artifacts.json")
           [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}/zip" \
-            > "$GATE_DIR/upstream-health.zip"
+            > "${GATE_DIR}/upstream-health.zip"
           python3 scripts/kidults/kpmo/read-sentinel-artifact-v1.py "$ARTIFACT_DIGEST" \
             < "$GATE_DIR/upstream-health.zip" > "$GATE_DIR/upstream-health-packet.json"
-          jq -e \
-            '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")] | length==1' \
+          jq -e '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")] | length==1' \
             "$GATE_DIR/upstream-health-packet.json" >/dev/null
-          jq -r \
-            '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")][0].text' \
-            "$GATE_DIR/upstream-health-packet.json" \
-            > "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
+          jq -r '[.members[] | select((.name|split("/")|last)=="kpmo-continuous-assurance-sentinel-health-v1.json")][0].text' \
+            "$GATE_DIR/upstream-health-packet.json" > "$GATE_DIR/kpmo-continuous-assurance-sentinel-health-v1.json"
 
       - name: Seal exact successful Assurance authority-gate receipt
         if: always()
@@ -212,37 +260,71 @@ jobs:
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
           import fs from 'node:fs';
-          const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
-          const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
-          const gatePath=`${process.env.GATE_DIR}/kpmo-continuous-assurance-success-authority-gate-v1.json`;
-          const healthPath=`${process.env.GATE_DIR}/kpmo-continuous-assurance-sentinel-health-v1.json`;
+          const stable=(value)=>Array.isArray(value)?'['+value.map(stable).join(',')+']':value&&typeof value==='object'?'{'+Object.keys(value).sort().map((key)=>JSON.stringify(key)+':'+stable(value[key])).join(',')+'}':JSON.stringify(value);
+          const sha256=(value)=>'sha256:'+crypto.createHash('sha256').update(stable(value)).digest('hex');
+          const gatePath=process.env.GATE_DIR+'/kpmo-continuous-assurance-success-authority-gate-v1.json';
+          const assurancePath=process.env.GATE_DIR+'/upstream-assurance-receipt.json';
+          const healthPath=process.env.GATE_DIR+'/kpmo-continuous-assurance-sentinel-health-v1.json';
           const prior=JSON.parse(fs.readFileSync(gatePath,'utf8'));
-          let health=null;
+          let assurance=null,health=null;
+          try { assurance=JSON.parse(fs.readFileSync(assurancePath,'utf8')); } catch {}
           try { health=JSON.parse(fs.readFileSync(healthPath,'utf8')); } catch {}
-          const healthUnsigned=health?structuredClone(health):null;
-          if(healthUnsigned) delete healthUnsigned.receipt_digest;
-          const healthDigest=health&&/^sha256:[0-9a-f]{64}$/.test(health.receipt_digest||'')&&health.receipt_digest===sha256(healthUnsigned)?health.receipt_digest:null;
+          const digestOf=(receipt)=>{
+            if(!receipt) return null;
+            const unsigned=structuredClone(receipt); delete unsigned.receipt_digest;
+            const withoutObservation=structuredClone(unsigned); delete withoutObservation.observed_at;
+            const valid=/^sha256:[0-9a-f]{64}$/.test(receipt.receipt_digest||'') &&
+              (receipt.receipt_digest===sha256(unsigned) || receipt.receipt_digest===sha256(withoutObservation));
+            return valid?receipt.receipt_digest:null;
+          };
+          const assuranceDigest=digestOf(assurance);
+          const healthDigest=digestOf(health);
           const exactSource=process.env.CURRENT_MAIN_SHA===process.env.UPSTREAM_SHA && /^[0-9a-f]{40}$/.test(process.env.UPSTREAM_SHA||'');
-          const upstreamAssurancePass=process.env.UPSTREAM_CONCLUSION==='success' && process.env.UPSTREAM_WORKFLOW_NAME==='KIDULTS Platform Continuous Assurance V1';
-          const healthPass=health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1' && health?.state==='VERIFIED_PASS' &&
-            health?.source_sha===process.env.UPSTREAM_SHA && health?.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM' &&
+          const upstreamAssurancePass=process.env.UPSTREAM_CONCLUSION==='success' &&
+            process.env.UPSTREAM_WORKFLOW_NAME==='KIDULTS Platform Continuous Assurance V1' &&
+            assurance?.receipt_type==='KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE' &&
+            String(assurance?.execution?.workflow_run_id)===process.env.UPSTREAM_RUN_ID &&
+            String(assurance?.execution?.workflow_run_attempt)===process.env.UPSTREAM_RUN_ATTEMPT &&
+            assurance?.source?.sha===process.env.UPSTREAM_SHA && assuranceDigest;
+          const actual=assurance?.execution?.upstream||null;
+          const eligible=process.env.CAUSAL_ELIGIBLE==='true' &&
+            actual?.workflow_name==='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1';
+          const causalTuplePass=eligible &&
+            String(actual?.run_id)===process.env.PRODUCER_HEALTH_RUN_ID &&
+            String(actual?.run_attempt)===process.env.PRODUCER_HEALTH_RUN_ATTEMPT &&
+            actual?.head_sha===process.env.UPSTREAM_SHA &&
+            actual?.repository===process.env.GITHUB_REPOSITORY &&
+            actual?.conclusion==='success';
+          const healthPass=causalTuplePass &&
+            health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1' &&
+            health?.state==='VERIFIED_PASS' && health?.source_sha===process.env.UPSTREAM_SHA &&
+            health?.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM' &&
             health?.semantic_content_verified===true && health?.runtime_health_proven===false &&
+            health?.causal_reserve_binding?.required===true && health?.causal_reserve_binding?.state==='VERIFIED_PASS' &&
+            health?.causal_reserve_binding?.triggering_run_id===health?.causal_reserve_binding?.selected_run_id &&
+            health?.causal_reserve_binding?.triggering_run_attempt===health?.causal_reserve_binding?.selected_run_attempt &&
             health?.whole_platform_authority===false && health?.promotion_eligible===false && healthDigest;
+          const pass=Boolean(exactSource&&upstreamAssurancePass&&healthPass);
+          const hold=Boolean(exactSource&&upstreamAssurancePass&&!eligible);
           const base={
             ...prior,
-            state: exactSource&&upstreamAssurancePass&&healthPass?'VERIFIED_PASS':'VERIFIED_FAIL',
-            failure_class: exactSource&&upstreamAssurancePass&&healthPass?null:'LATEST_NATURAL_SENTINEL_OR_ASSURANCE_NOT_VERIFIED',
+            state:pass?'VERIFIED_PASS':hold?'VERIFIED_HOLD':'VERIFIED_FAIL',
+            failure_class:pass?null:hold?'ASSURANCE_ACTUAL_UPSTREAM_NOT_SENTINEL':'CAUSAL_SENTINEL_OR_ASSURANCE_NOT_VERIFIED',
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
-            producer_health_run_id:/^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_RUN_ID||'')?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
-            producer_health_run_attempt:process.env.PRODUCER_HEALTH_RUN_ATTEMPT==='1'?1:null,
-            producer_health_event:/^(workflow_run|repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
+            assurance_receipt_digest:assuranceDigest,
+            assurance_actual_upstream:actual,
+            producer_health_eligible:eligible,
+            producer_health_run_id:causalTuplePass?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
+            producer_health_run_attempt:causalTuplePass?Number(process.env.PRODUCER_HEALTH_RUN_ATTEMPT):null,
+            producer_health_event:causalTuplePass?process.env.PRODUCER_HEALTH_EVENT:null,
             producer_health_receipt_digest:healthDigest,
-            producer_health_conclusion:process.env.PRODUCER_HEALTH_CONCLUSION||null,
-            producer_health_state:health?.state||'UNAVAILABLE'
+            producer_health_conclusion:causalTuplePass?process.env.PRODUCER_HEALTH_CONCLUSION:null,
+            producer_health_state:health?.state||'UNAVAILABLE',
+            causal_reserve_binding:health?.causal_reserve_binding||null
           };
           delete base.receipt_digest;
           const receipt={...base,receipt_digest:sha256(base)};
-          fs.writeFileSync(gatePath,`${JSON.stringify(receipt,null,2)}\n`);
+          fs.writeFileSync(gatePath,JSON.stringify(receipt,null,2)+'\n');
           NODE
 
       - name: Upload exact-run successful Assurance authority-gate packet
@@ -267,25 +349,28 @@ jobs:
             .upstream_observation.run_attempt==(env.UPSTREAM_RUN_ATTEMPT|tonumber) and
             .upstream_observation.head_sha==env.UPSTREAM_SHA and
             .upstream_observation.workflow_name==env.UPSTREAM_WORKFLOW_NAME and
-            (.upstream_observation.event|type)=="string" and
-            (.upstream_observation.event|length)>0 and
             .current_protected_main_sha==env.UPSTREAM_SHA and
-            (.producer_health_run_id|type)=="number" and
-            .producer_health_run_attempt==1 and
-            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule" or .producer_health_event=="workflow_run") and
-            .producer_health_conclusion=="success" and
-            (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
-            .producer_health_state=="VERIFIED_PASS" and
+            (.assurance_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
-            .whole_platform_authority==false and
-            .promotion_eligible==false and
-            .empirical_authority==false and
-            .provider_authority==false and
-            .database_authority==false and
-            .empirical_delta==0 and
-            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
-            (.upstream_observation.conclusion=="success" and .upstream_observation.workflow_name=="KIDULTS Platform Continuous Assurance V1") and
-            .state=="VERIFIED_PASS"
+            .whole_platform_authority==false and .promotion_eligible==false and
+            .empirical_authority==false and .provider_authority==false and .database_authority==false and
+            .empirical_delta==0 and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            (
+              (.state=="VERIFIED_PASS" and .producer_health_eligible==true and
+               .assurance_actual_upstream.workflow_name=="KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1" and
+               .producer_health_run_id==(.assurance_actual_upstream.run_id|tonumber) and
+               .producer_health_run_attempt==(.assurance_actual_upstream.run_attempt|tonumber) and
+               .assurance_actual_upstream.head_sha==env.UPSTREAM_SHA and
+               .assurance_actual_upstream.repository==env.GITHUB_REPOSITORY and
+               .assurance_actual_upstream.conclusion=="success" and
+               .producer_health_conclusion=="success" and .producer_health_state=="VERIFIED_PASS" and
+               .causal_reserve_binding.state=="VERIFIED_PASS" and
+               (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")))
+              or
+              (.state=="VERIFIED_HOLD" and .producer_health_eligible==false and
+               .assurance_actual_upstream.workflow_name!="KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1" and
+               .producer_health_run_id==null and .producer_health_receipt_digest==null)
+            )
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null
 
   non-authorizing-success-observation:

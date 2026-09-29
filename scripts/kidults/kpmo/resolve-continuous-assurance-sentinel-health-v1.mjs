@@ -184,10 +184,26 @@ export function evaluateHealth(input){
   if(!Number.isFinite(Date.parse(observedAt||'')))fail('OBSERVED_AT_INVALID');
   if(!SHA.test(input.source_sha||''))fail('SOURCE_SHA_INVALID');
   const producers=SPECS.map((spec)=>evaluateProducer(spec,input.runs?.[spec.id]||[],input.artifacts_by_run||{},input.source_sha,observedAt,input.archives_by_id||{},input.related_by_id||{}));
+  const reserve=producers.find((producer)=>producer.id==='RESERVE');
+  const trigger=input.triggering_reserve||null;
+  const causalReserveBinding=trigger?{
+    required:true,
+    triggering_run_id:Number(trigger.run_id),
+    triggering_run_attempt:Number(trigger.run_attempt),
+    selected_run_id:reserve?.selected_run_id??null,
+    selected_run_attempt:reserve?.selected_run_attempt??null,
+    state:Number(reserve?.selected_run_id)===Number(trigger.run_id)&&Number(reserve?.selected_run_attempt)===Number(trigger.run_attempt)?'VERIFIED_PASS':'VERIFIED_FAIL'
+  }:{required:false,state:'NOT_APPLICABLE'};
+  if(causalReserveBinding.state==='VERIFIED_FAIL'&&reserve){
+    reserve.state='VERIFIED_FAIL';
+    reserve.failure_class='TRIGGERING_RESERVE_SELECTION_DIVERGENCE';
+    reserve.triggering_run_id=causalReserveBinding.triggering_run_id;
+    reserve.triggering_run_attempt=causalReserveBinding.triggering_run_attempt;
+  }
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
   const state=failures.length?'VERIFIED_FAIL':holds.length?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,triggering_reserve:trigger,causal_reserve_binding:causalReserveBinding,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 
@@ -320,7 +336,10 @@ async function liveInput(){
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const afterMain=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   if(afterMain?.commit?.sha!==sourceSha)fail('SENTINEL_MAIN_CHANGED_DURING_READ');
-  return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById};
+  const triggeringReserve=upstreamTrigger?.run_id&&upstreamTrigger.path==='.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'
+    ? {run_id:Number(upstreamTrigger.run_id),run_attempt:Number(upstreamTrigger.run_attempt),path:upstreamTrigger.path,event:upstreamTrigger.event,conclusion:upstreamTrigger.conclusion}
+    : null;
+  return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),triggering_reserve:triggeringReserve,runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById};
 }
 
 function fakeRun(id,spec,sha,{status='completed',conclusion='success',event=spec.events[0],minute=id}={}){return {id,run_attempt:1,repository:{full_name:REPOSITORY},path:spec.path,head_branch:'main',head_sha:sha,event,status,conclusion,created_at:`2026-09-04T00:${String(minute%60).padStart(2,'0')}:00Z`};}
@@ -335,6 +354,8 @@ function selfTest(){
   const pending=structuredClone(input);pending.runs.REQUIREMENT.push(fakeRun(98,SPECS[1],sha,{status:'in_progress',conclusion:null,minute:58}));if(evaluateHealth(pending).state!=='VERIFIED_HOLD')fail('SELF_PENDING');
   const missing=structuredClone(input);missing.artifacts_by_run[missing.runs.CANONICAL_TRUTH[0].id]=[];if(evaluateHealth(missing).state!=='VERIFIED_FAIL')fail('SELF_MISSING_ARTIFACT');
   const waiting=structuredClone(input);const rr=waiting.runs.RESERVE[0];waiting.artifacts_by_run[rr.id]=[fakeArtifact(333,rr,SPECS[2].waitingArtifact)];if(evaluateHealth(waiting).state!=='VERIFIED_HOLD')fail('SELF_WAITING');
+  const causal=structuredClone(input);causal.triggering_reserve={run_id:causal.runs.RESERVE[0].id,run_attempt:causal.runs.RESERVE[0].run_attempt};const causalResult=evaluateHealth(causal);if(causalResult.causal_reserve_binding.state!=='VERIFIED_PASS')fail('SELF_CAUSAL_RESERVE_BINDING_PASS');
+  const divergent=structuredClone(causal);divergent.triggering_reserve.run_id=999;const divergentResult=evaluateHealth(divergent);if(divergentResult.state!=='VERIFIED_FAIL'||divergentResult.causal_reserve_binding.state!=='VERIFIED_FAIL'||divergentResult.producers.find((p)=>p.id==='RESERVE').failure_class!=='TRIGGERING_RESERVE_SELECTION_DIVERGENCE')fail('SELF_CAUSAL_RESERVE_DIVERGENCE');
   const supersede=structuredClone(input);const spec=SPECS[0];const old=fakeRun(1,spec,sha,{conclusion:'failure',minute:1});const newer=fakeRun(2,spec,sha,{conclusion:'success',minute:2});supersede.runs.SHADOW=[old,newer];supersede.artifacts_by_run[newer.id]=[fakeArtifact(444,newer,spec.artifacts[0])];const result=evaluateHealth(supersede);const shadow=result.producers.find((p)=>p.id==='SHADOW');if(result.state!=='VERIFIED_HOLD'||shadow.failure_class!=='SHADOW_ARTIFACT_CONTENT_NOT_VALIDATED'||shadow.superseded_red_run_ids.length!==0)fail('SELF_METADATA_SUPERSESSION_MUST_HOLD');
   console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',metadata_only_semantic_pass:false,metadata_only_state:'VERIFIED_HOLD',positive:0,negative:6,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
 }

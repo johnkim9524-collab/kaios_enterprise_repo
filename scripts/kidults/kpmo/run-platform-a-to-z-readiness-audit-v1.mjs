@@ -351,6 +351,7 @@ try {
         audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
         audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
         repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
+        head_sha: process.env.KPMO_UPSTREAM_HEAD_SHA || 'UNKNOWN',
         head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
         created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
         exact_binding_digest: process.env.KPMO_UPSTREAM_BINDING_DIGEST || null,
@@ -453,6 +454,9 @@ try {
         conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
         audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
         audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
+        repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
+        head_sha: process.env.KPMO_UPSTREAM_HEAD_SHA || 'UNKNOWN',
+        head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
         created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
         exact_binding_digest: process.env.KPMO_UPSTREAM_BINDING_DIGEST || null,
         source_receipt_digest: process.env.KPMO_UPSTREAM_SOURCE_RECEIPT_DIGEST || null
