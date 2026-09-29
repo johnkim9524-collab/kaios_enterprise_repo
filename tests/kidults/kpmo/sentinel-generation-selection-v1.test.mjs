@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,bindCausalTriggerRun,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../../../scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 
@@ -83,15 +83,33 @@ test('generation index: Canonical V3 workflow_run supersedes the startup-race pu
  const selection=selectProducerGeneration([pushFailure,regenerated],canonical,sourceSha,observed);
  assert.equal(selection.latest.id,21);
 });
-test('generation index: recovery dispatch cannot supersede natural Reserve evidence',()=>{
+test('generation index: only causal Reserve workflow_run is eligible for producer health',()=>{
  const reserve=SPECS.find(candidate=>candidate.id==='RESERVE');
  const base={run_attempt:1,repository:{full_name:REPOSITORY},path:reserve.path,head_branch:'main',head_sha:sourceSha,status:'completed'};
- const natural={...base,id:30,event:'repository_dispatch',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
+ const naturalClock={...base,id:30,event:'repository_dispatch',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
  const manualFailure={...base,id:31,event:'workflow_dispatch',conclusion:'failure',created_at:'2026-09-05T10:01:00Z'};
- const workflowRunFailure={...base,id:32,event:'workflow_run',conclusion:'failure',created_at:'2026-09-05T10:02:00Z'};
- const selection=selectProducerGeneration([natural,manualFailure,workflowRunFailure],reserve,sourceSha,observed);
- assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30]);
- assert.equal(selection.latest.id,30);
+ const scheduledFailure={...base,id:32,event:'schedule',conclusion:'failure',created_at:'2026-09-05T10:02:00Z'};
+ const causalSuccess={...base,id:33,event:'workflow_run',conclusion:'success',created_at:'2026-09-05T10:03:00Z'};
+ const selection=selectProducerGeneration([naturalClock,manualFailure,scheduledFailure,causalSuccess],reserve,sourceSha,observed);
+ assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[33]);
+ assert.equal(selection.latest.id,33);
+});
+
+test('causal Reserve binding selects the triggering workflow_run instead of a newer independent generation',()=>{
+ const reserve=SPECS.find(candidate=>candidate.id==='RESERVE');
+ const base={run_attempt:1,repository:{full_name:REPOSITORY},path:reserve.path,head_branch:'main',head_sha:sourceSha,status:'completed',conclusion:'success'};
+ const causal={...base,id:40,event:'workflow_run',created_at:'2026-09-05T10:00:00Z'};
+ const laterIndependent={...base,id:41,event:'repository_dispatch',created_at:'2026-09-05T10:01:00Z'};
+ const bound=bindCausalTriggerRun(reserve,[causal,laterIndependent],{run_id:40,run_attempt:1,path:reserve.path,event:'workflow_run'});
+ assert.deepEqual(bound.map(candidate=>candidate.id),[40]);
+});
+
+test('causal Reserve binding rejects substitution, attempt drift, and non-causal Reserve events',()=>{
+ const reserve=SPECS.find(candidate=>candidate.id==='RESERVE');
+ const base={run_attempt:1,repository:{full_name:REPOSITORY},path:reserve.path,head_branch:'main',head_sha:sourceSha,event:'workflow_run',status:'completed',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
+ assert.throws(()=>bindCausalTriggerRun(reserve,[{...base,id:50}],{run_id:51,run_attempt:1,path:reserve.path,event:'workflow_run'}),/RESERVE_CAUSAL_TRIGGER_RUN_CARDINALITY/);
+ assert.throws(()=>bindCausalTriggerRun(reserve,[{...base,id:50}],{run_id:50,run_attempt:2,path:reserve.path,event:'workflow_run'}),/RESERVE_CAUSAL_TRIGGER_ATTEMPT_MISMATCH/);
+ assert.throws(()=>bindCausalTriggerRun(reserve,[{...base,id:50,event:'repository_dispatch'}],{run_id:50,run_attempt:1,path:reserve.path,event:'repository_dispatch'}),/RESERVE_CAUSAL_TRIGGER_EVENT_INVALID/);
 });
 test('generation index: manual producer generations are excluded from every terminal producer',()=>{
  for(const producer of SPECS)assert.equal(producer.events.includes('workflow_dispatch'),false,producer.id);
