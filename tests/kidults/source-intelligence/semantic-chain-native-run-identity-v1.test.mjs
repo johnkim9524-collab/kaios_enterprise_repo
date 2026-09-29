@@ -173,7 +173,9 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(assurance.includes('CONSUME_REPLAY_DETECTED') || fs.readFileSync('scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs','utf8').includes('CONSUME_REPLAY_DETECTED'));
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
- assert.ok(!/^  workflow_run:/m.test(strict));
+ assert.match(strict,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(strict,/^  push:/m);
+ assert.doesNotMatch(strict,/^  schedule:/m);
 });
 
 function embeddedPython(marker){
