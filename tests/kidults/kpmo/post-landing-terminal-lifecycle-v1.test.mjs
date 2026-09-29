@@ -51,7 +51,9 @@ test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assuran
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
   assert.match(assurance, /- 'KPMO Live Canonical Issue Truth V1'/);
   assert.match(sentinel, /actions:\s*read/);
-  assert.match(sentinel, /^  push:\n    branches: \[main\]/m);
+  assert.match(sentinel, /^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.doesNotMatch(sentinel, /^  push:/m);
+  assert.doesNotMatch(sentinel, /^  schedule:/m);
   assert.doesNotMatch(sentinel, /Run exact-SHA producer auto-convergence/);
   assert.doesNotMatch(sentinel, /Dispatch exact-main terminal Continuous Assurance/);
   assert.doesNotMatch(sentinel, /gh workflow run kidults-platform-continuous-assurance-v1\.yml/);

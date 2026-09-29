@@ -44,6 +44,12 @@ test('terminal sentinel selector excludes workflow_dispatch from natural freshne
  ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,30);
 });
+test('terminal sentinel selector treats the successful Reserve completion edge as natural',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(32,{event:'workflow_run',createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,32);
+});
 test('terminal sentinel selector rejects an exact-SHA run from a substituted workflow path',()=>{
  assert.throws(()=>selectLatestNaturalSentinelRun([sentinelRun(50,{path:'.github/workflows/other.yml'})],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'}),/WORKFLOW_PATH_INVALID/);
 });

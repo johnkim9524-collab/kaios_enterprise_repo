@@ -78,9 +78,9 @@ function validateAssurance(source) {
 
 function validateReserve(source) {
   const required = [
-    "cron: '14 * * * *'",
-    "cron: '29 * * * *'",
-    "cron: '44 * * * *'",
+    'workflow_run:',
+    "- 'KIDULTS ASI Global Any-Site Hourly Pooling v2'",
+    "github.event.workflow_run.conclusion == 'success'",
     'KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER',
     'KIDULTS_RESERVE_PRODUCER_STATE=READY',
     'if: env.KIDULTS_RESERVE_PRODUCER_STATE == \'READY\'',
@@ -95,6 +95,7 @@ function validateReserve(source) {
     'production:\'HOLD\''
   ];
   for (const marker of required) if (!source.includes(marker)) fail(`RESERVE_MARKER_MISSING:${marker}`);
+  if (/^  schedule:/m.test(source)) fail('RESERVE_INDEPENDENT_NATIVE_SCHEDULE_FORBIDDEN');
   const waitingUpload = count(source, 'name: kidults-asi-sharded-source-reserve-waiting-v1');
   if (waitingUpload !== 1) fail(`WAITING_ARTIFACT_CARDINALITY:${waitingUpload}`);
 }
@@ -124,8 +125,8 @@ for (const [from, to] of assuranceMutations) {
 }
 
 const reserveMutations = [
-  ["    - cron: '14 * * * *'\n", ''],
-  ["    - cron: '44 * * * *'\n", ''],
+  ["      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'\n", ''],
+  ["github.event.workflow_run.conclusion == 'success'", "github.event.workflow_run.conclusion == 'failure'"],
   ['KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER', 'KIDULTS_RESERVE_PRODUCER_STATE=READY'],
   ["state:'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'", "state:'VERIFIED_PASS'"],
   ['promotion_eligible:false', 'promotion_eligible:true'],

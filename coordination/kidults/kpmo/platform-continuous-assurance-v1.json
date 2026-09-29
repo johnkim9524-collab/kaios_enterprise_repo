@@ -115,7 +115,7 @@
     ],
     "sentinel_failure_event_requires": [
       "upstream_observation_workflow_name=KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
-      "upstream_observation_event in [repository_dispatch,schedule]",
+      "upstream_observation_event in [workflow_run,repository_dispatch,schedule]",
       "terminal_state=VERIFIED_FAIL_OR_HOLD"
     ],
     "latest_natural_failure_fallback_forbidden": true

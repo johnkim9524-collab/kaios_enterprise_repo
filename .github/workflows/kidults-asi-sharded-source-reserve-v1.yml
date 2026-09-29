@@ -4,12 +4,6 @@ on:
   repository_dispatch:
     types: [kidults.natural.clock.reserve.v1]
   workflow_dispatch:
-  schedule:
-    # Straddle both P0B natural-root windows so one dropped GitHub schedule
-    # cannot leave the exact-main producer set without a Reserve observation.
-    - cron: '14 * * * *'
-    - cron: '29 * * * *'
-    - cron: '44 * * * *'
   push:
     branches: [main]
     paths:
@@ -104,7 +98,7 @@ jobs:
           node scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs
 
   rolling-live-reserve:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'RESERVE') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'RESERVE') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -156,7 +150,8 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs
           node - <<'NODE'
           const fs=require('fs');const p=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
-          for(const marker of ['repository_dispatch:','workflow_dispatch:','schedule:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          for(const marker of ['repository_dispatch:','workflow_dispatch:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          if(/^  schedule:/m.test(p))throw new Error('RESERVE_MUST_NOT_HAVE_INDEPENDENT_NATIVE_SCHEDULE');
           const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
           if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
           if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');

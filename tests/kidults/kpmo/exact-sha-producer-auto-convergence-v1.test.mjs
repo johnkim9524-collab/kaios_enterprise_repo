@@ -101,7 +101,9 @@ test('terminal producer-health failure preserves the originating sentinel class'
 
 test('sentinel observes protected-main health without dispatching or mutating producers',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
-  assert.match(workflow,/^  push:\n    branches: \[main\]/m);
+  assert.match(workflow,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.doesNotMatch(workflow,/^  push:/m);
+  assert.doesNotMatch(workflow,/^  schedule:/m);
   assert.match(workflow,/permissions:\n  contents: read\n  actions: read/);
   assert.doesNotMatch(workflow,/Run exact-SHA producer auto-convergence/);
   assert.doesNotMatch(workflow,/node scripts\/kidults\/kpmo\/run-exact-sha-producer-auto-convergence-v1\.mjs/);

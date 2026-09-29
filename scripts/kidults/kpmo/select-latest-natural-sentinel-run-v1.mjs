@@ -1,5 +1,7 @@
 const SHA=/^[0-9a-f]{40}$/;
-const NATURAL_EVENTS=new Set(['repository_dispatch','schedule']);
+// A successful Reserve completion is the primary natural progression edge.
+// AWS repository_dispatch remains the independent recovery/verification clock.
+const NATURAL_EVENTS=new Set(['workflow_run','repository_dispatch','schedule']);
 const WORKFLOW_PATH='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
 const positive=value=>Number.isSafeInteger(value)&&value>0;
 

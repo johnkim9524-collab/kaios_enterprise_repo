@@ -4,6 +4,8 @@ on:
   repository_dispatch:
     types: [kidults.natural.clock.pooling.v1]
   schedule:
+    # Native backup root; the independent AWS clock runs at :02/:32.
+    # Downstream stages advance only from successful exact-main completions.
     - cron: '47 * * * *'
   workflow_dispatch:
   pull_request:
