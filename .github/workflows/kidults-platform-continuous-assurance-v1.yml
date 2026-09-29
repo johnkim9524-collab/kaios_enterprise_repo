@@ -367,6 +367,7 @@ jobs:
       KPMO_UPSTREAM_AUDIT_DISPOSITION: ${{ needs.classify-canonical-identity.outputs.upstream_audit_disposition }}
       KPMO_UPSTREAM_CREATED_AT: ${{ inputs.coverage_created_at || github.event.workflow_run.created_at || '' }}
       KPMO_UPSTREAM_REPOSITORY: ${{ inputs.coverage_run_id != '' && github.repository || github.event.workflow_run.repository.full_name || '' }}
+      KPMO_UPSTREAM_HEAD_SHA: ${{ inputs.coverage_run_id != '' && inputs.coverage_source_sha || github.event.workflow_run.head_sha || '' }}
       KPMO_UPSTREAM_HEAD_BRANCH: ${{ inputs.coverage_run_id != '' && 'main' || github.event.workflow_run.head_branch || '' }}
       KPMO_CANONICAL_KEY: ${{ needs.classify-canonical-identity.outputs.canonical_key }}
       KPMO_UPSTREAM_CLASS: ${{ needs.classify-canonical-identity.outputs.upstream_class }}

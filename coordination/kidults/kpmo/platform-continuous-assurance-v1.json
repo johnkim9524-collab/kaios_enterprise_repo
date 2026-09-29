@@ -94,12 +94,21 @@
       "upstream_observation_head_sha",
       "upstream_observation_event",
       "upstream_observation_conclusion",
+      "assurance_receipt_digest",
+      "assurance_actual_upstream_workflow_name",
+      "assurance_actual_upstream_run_id",
+      "assurance_actual_upstream_run_attempt",
+      "assurance_actual_upstream_head_sha",
+      "assurance_actual_upstream_repository",
+      "assurance_actual_upstream_conclusion",
       "producer_health_run_id",
       "producer_health_run_attempt",
       "producer_health_event",
       "producer_health_conclusion",
       "current_protected_main_sha",
-      "producer_health_receipt_digest"
+      "producer_health_receipt_digest",
+      "causal_reserve_triggering_run_id",
+      "causal_reserve_selected_run_id"
     ],
     "whole_platform_green_claim_allowed": false,
     "empirical_authority": false,
@@ -111,14 +120,38 @@
     "assurance_pass_requires": [
       "upstream_observation_workflow_name=KIDULTS Platform Continuous Assurance V1",
       "upstream_observation_conclusion=success",
-      "latest_exact_main_natural_sentinel=VERIFIED_PASS"
+      "assurance_receipt.execution.upstream.workflow_name=KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "producer_health tuple equals assurance_receipt.execution.upstream tuple",
+      "causally_bound_exact_main_sentinel=VERIFIED_PASS",
+      "sentinel causal_reserve_binding.triggering_run_id=selected_run_id"
     ],
     "sentinel_failure_event_requires": [
       "upstream_observation_workflow_name=KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
       "upstream_observation_event in [workflow_run,repository_dispatch,schedule]",
       "terminal_state=VERIFIED_FAIL_OR_HOLD"
     ],
-    "latest_natural_failure_fallback_forbidden": true
+    "latest_natural_failure_fallback_forbidden": true,
+    "all_success_events_classified_required": true,
+    "producer_health_eligible_upstream_events": [],
+    "non_authorizing_observation_events": [
+      "pull_request",
+      "push",
+      "schedule",
+      "workflow_dispatch"
+    ],
+    "unclassified_event_state": "VERIFIED_FAIL",
+    "non_authorizing_terminal_state": "VERIFIED_HOLD",
+    "non_authorizing_receipt_required": true,
+    "producer_health_eligibility_basis": "EXACT_ASSURANCE_RECEIPT_CAUSAL_UPSTREAM",
+    "producer_health_eligible_assurance_upstream_workflows": [
+      "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1"
+    ],
+    "receipt_classified_events": [
+      "repository_dispatch",
+      "workflow_run"
+    ],
+    "non_sentinel_assurance_state": "VERIFIED_HOLD",
+    "independent_latest_sentinel_selection_forbidden": true
   },
   "state_model": {
     "axes": [
