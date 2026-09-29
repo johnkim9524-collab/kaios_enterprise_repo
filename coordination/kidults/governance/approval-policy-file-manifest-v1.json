@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "4b01d11f1c17bc95c1bc9a25eb33c7154c6ae181",
+  "revision": "HEAD",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3366,8 +3366,8 @@
     {
       "path": "scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "332d5b388420a2e10bd2460a894cfc144e463daf",
-      "sha256": "sha256:8dffda0eb72a715ddefa542848dbcdb60d164ff096c977d1ab6f27e8d8005188",
+      "git_blob": "001b71e8f52f84d421a62d2e43b061bf9f1058e1",
+      "sha256": "sha256:768e5b393fe60be7c3236ff37ab089031e07da7835f751009f82bfb058dafe00",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3405,8 +3405,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "64402566dab5c2edefbfaad36b90d08f6eef8115",
-      "sha256": "sha256:08458f2cb0cfdd05899815f1d8310659d312681b76acfae957ac25984e8be599",
+      "git_blob": "8fdd20dce2496d3a3a327a30baf899817a646133",
+      "sha256": "sha256:b7ba2a372fe24268cfc15c8627e37c3f7c1c33401e6f3bf27b60ea8740abfed5",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5033,8 +5033,8 @@
     {
       "path": "tests/kidults/kpmo/atomic-landing-one-use-preflight-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3db8cdf17137296d1e8b9a428a21a1995164d6a6",
-      "sha256": "sha256:29ddc0ae26fba0fa7a16cdc1c4347aecb0b38de064080abb8864734cad868cbe"
+      "git_blob": "f8601a9e7b1ea0df03b2b0e4a251c85438308f1e",
+      "sha256": "sha256:7bcabf36357bfc0d8976477ce75f5f0e029eb0a2eb54ef54db3504e3a078213b"
     },
     {
       "path": "tests/kidults/kpmo/atomic-landing-postmerge-transport-containment-v1.test.mjs",
@@ -5241,5 +5241,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:dbeed3588872d4f77cd0b15985e4cc4eb760d5d03f21677ddbf41b884a943b04"
+  "manifest_sha256": "sha256:5d7b5558a5b28ce71d14561ce5416100c5f3a59cc561e1ae4758974d0bcfe302"
 }
