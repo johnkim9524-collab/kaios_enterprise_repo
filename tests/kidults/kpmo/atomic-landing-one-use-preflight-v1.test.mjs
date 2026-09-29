@@ -134,6 +134,38 @@ test('failed pre-mutation attempts allow at most three dispatches in two hours',
   }), 'ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
 });
 
+test('pre-approval failures do not consume a later valid Owner authorization', () => {
+  const result = evaluateAtomicLandingOneUseRunSet([
+    run({id: 80, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:00:00Z'}),
+    run({id: 81, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 82, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:00:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  });
+  assert.equal(result.bounded_attempt_ordinal, 1);
+  assert.equal(result.prior_non_success_attempt_count, 0);
+
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:31:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:32:00Z'}),
+    run({id: 92, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:33:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED');
+});
+
 test('same tuple is consumed across protected-main generations while cross-PR runs do not substitute', () => {
   const crossPrRunName = buildAtomicLandingRunName({
     prNumber: 1844,
