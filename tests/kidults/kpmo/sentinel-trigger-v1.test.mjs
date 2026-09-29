@@ -17,6 +17,15 @@ for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact sa
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
+test('sentinel Reserve completion accepts only the causal workflow_run generation',()=>{
+ const reserve=PRODUCER_COMPLETIONS.find((spec)=>spec.name==='KIDULTS ASI Sharded Source Reserve v1');
+ const causal=event(reserve);assert.equal(causal.workflow_run.event,'workflow_run');
+ assert.equal(validateSentinelTrigger(env,causal,structuredClone(causal.workflow_run)).run_id,100);
+ for(const eventName of ['schedule','workflow_dispatch']){
+  const nonCausal=event(reserve);nonCausal.workflow_run.event=eventName;
+  assert.throws(()=>validateSentinelTrigger(env,nonCausal,structuredClone(nonCausal.workflow_run)),/SENTINEL_RESERVE_TRIGGER_NOT_CAUSAL/);
+ }
+});
 test('manual recovery observer remains valid',()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'}),null));
 test('natural Sentinel dispatch accepts the authenticated exact-main clock binding',()=>{
  const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
@@ -112,6 +121,7 @@ test('completion collection serializes Reserve into the strict sentinel gate',()
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
  assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.ok(s.includes("github.event.workflow_run.event == 'workflow_run'"));
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);

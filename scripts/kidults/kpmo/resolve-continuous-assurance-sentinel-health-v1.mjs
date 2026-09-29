@@ -14,7 +14,9 @@ const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_requ
 const SPECS=[
   {id:'SHADOW',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push'],artifacts:['kidults-asi-shadow-operating-evidence-v1']},
   {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
-  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['repository_dispatch','schedule'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
+  // Reserve health is authority-bearing only on the causal Pooling→Reserve
+  // workflow_run edge. Clock/recovery runs cannot substitute for that lineage.
+  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
   {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
 const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');
@@ -225,6 +227,15 @@ async function downloadArtifact(repo,artifact,token){
 }
 const latestApplicable=(runs,spec,sha)=>selectProducerGeneration(runs,spec,sha,new Date().toISOString()).latest;
 
+export function bindCausalTriggerRun(spec,runs,upstreamTrigger){
+  if(spec.id!=='RESERVE'||!upstreamTrigger?.run_id||upstreamTrigger.path!==spec.path)return runs;
+  if(upstreamTrigger.event!=='workflow_run')fail(`${spec.id}_CAUSAL_TRIGGER_EVENT_INVALID`);
+  const matches=runs.filter((run)=>Number(run.id)===Number(upstreamTrigger.run_id));
+  if(matches.length!==1)fail(`${spec.id}_CAUSAL_TRIGGER_RUN_CARDINALITY`);
+  if(Number(matches[0].run_attempt)!==Number(upstreamTrigger.run_attempt))fail(`${spec.id}_CAUSAL_TRIGGER_ATTEMPT_MISMATCH`);
+  return matches;
+}
+
 async function workflowRuns(repo,spec,sha,token){
   const out=[];let expectedCount;
   for(let page=1;page<=10;page+=1){
@@ -264,9 +275,10 @@ async function liveInput(){
     : null;
   const runs={},artifactsByRun={},archivesById={},relatedById={};
   for(const spec of SPECS){
-    runs[spec.id]=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
+    const observedRuns=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
       ? canonicalConvergence.evaluation_truth_runs
       : await workflowRuns(repo,spec,sourceSha,token);
+    runs[spec.id]=bindCausalTriggerRun(spec,observedRuns,upstreamTrigger);
     const run=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
       ? canonicalConvergence.consumer
       : latestApplicable(runs[spec.id],spec,sourceSha);
@@ -309,7 +321,8 @@ async function liveInput(){
       continue;
     }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
-    const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
+    const refreshed=bindCausalTriggerRun(spec,await workflowRuns(repo,spec,sourceSha,token),upstreamTrigger);
+    const after=latestApplicable(refreshed,spec,sourceSha);
     if(generationSignature(before)!==generationSignature(after))fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
   }
   for(const related of Object.values(relatedById)){

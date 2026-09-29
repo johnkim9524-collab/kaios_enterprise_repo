@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
+const RESERVE_PATH='.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
 const terminal=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
@@ -91,6 +92,7 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;
   validateRun(run,env.GITHUB_SHA);
+  if(run.path===RESERVE_PATH&&run.event!=='workflow_run')fail('SENTINEL_RESERVE_TRIGGER_NOT_CAUSAL');
   if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,false);
   return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
 }
