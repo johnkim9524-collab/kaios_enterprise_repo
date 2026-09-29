@@ -59,7 +59,9 @@ jobs:
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
       github.event.workflow_run.status == 'completed' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'workflow_run' ||
+       github.event.workflow_run.event == 'repository_dispatch')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -285,3 +287,127 @@ jobs:
             (.upstream_observation.conclusion=="success" and .upstream_observation.workflow_name=="KIDULTS Platform Continuous Assurance V1") and
             .state=="VERIFIED_PASS"
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null
+
+  non-authorizing-success-observation:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
+      github.event.workflow_run.status == 'completed' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.event == 'pull_request' ||
+       github.event.workflow_run.event == 'push' ||
+       github.event.workflow_run.event == 'schedule' ||
+       github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+      UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+      UPSTREAM_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
+      UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      UPSTREAM_WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+      RECEIPT_DIR: /tmp/kpmo-success-assurance-non-authorizing-observation
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Emit exact non-authorizing successful Assurance observation receipt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"
+          CURRENT_MAIN_SHA="$(gh api "repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+          test "$CURRENT_MAIN_SHA" != ""
+          export CURRENT_MAIN_SHA
+          mkdir -p "$RECEIPT_DIR"
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/platform-continuous-assurance-v1.json','utf8'));
+          const gate=policy.successful_assurance_authority_gate;
+          const event=process.env.UPSTREAM_EVENT;
+          if (!gate.non_authorizing_observation_events.includes(event)) throw new Error('SUCCESSFUL_ASSURANCE_EVENT_NOT_CLASSIFIED_NON_AUTHORIZING');
+          if (gate.producer_health_eligible_upstream_events.includes(event)) throw new Error('SUCCESSFUL_ASSURANCE_EVENT_CLASS_OVERLAP');
+          const stable=(value)=>Array.isArray(value)?'['+value.map(stable).join(',')+']':value&&typeof value==='object'?'{'+Object.keys(value).sort().map((key)=>JSON.stringify(key)+':'+stable(value[key])).join(',')+'}':JSON.stringify(value);
+          const sha256=(value)=>'sha256:'+crypto.createHash('sha256').update(stable(value)).digest('hex');
+          const base={
+            receipt_id:'kpmo-continuous-assurance-non-authorizing-observation-v1',
+            version:'1.0.0',state:'VERIFIED_HOLD',
+            disposition:'NON_AUTHORIZING_EVENT_CLASS',
+            reason:'UPSTREAM_EVENT_NOT_PRODUCER_HEALTH_ELIGIBLE',
+            repository:process.env.GITHUB_REPOSITORY,
+            upstream_observation:{
+              workflow_name:process.env.UPSTREAM_WORKFLOW_NAME,
+              run_id:Number(process.env.UPSTREAM_RUN_ID),
+              run_attempt:Number(process.env.UPSTREAM_RUN_ATTEMPT),
+              head_sha:process.env.UPSTREAM_SHA,
+              head_branch:process.env.UPSTREAM_BRANCH,
+              event,
+              conclusion:process.env.UPSTREAM_CONCLUSION
+            },
+            current_protected_main_sha:process.env.CURRENT_MAIN_SHA,
+            producer_health_eligible:false,
+            producer_health_receipt_required:false,
+            coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
+            whole_platform_authority:false,
+            promotion_eligible:false,
+            empirical_authority:false,
+            provider_authority:false,
+            database_authority:false,
+            empirical_delta:0,
+            public:'HOLD',production:'HOLD',g5:'HOLD',
+            evaluated_at:new Date().toISOString()
+          };
+          const receipt={...base,receipt_digest:sha256(base)};
+          fs.writeFileSync(process.env.RECEIPT_DIR+'/kpmo-continuous-assurance-non-authorizing-observation-v1.json',JSON.stringify(receipt,null,2)+'\n');
+          NODE
+      - name: Upload exact non-authorizing successful Assurance observation
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-non-authorizing-observation-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ env.RECEIPT_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
+      - name: Enforce non-authorizing observation boundary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          RECEIPT="$RECEIPT_DIR/kpmo-continuous-assurance-non-authorizing-observation-v1.json"
+          test -s "$RECEIPT"
+          jq -e '
+            .receipt_id=="kpmo-continuous-assurance-non-authorizing-observation-v1" and
+            .repository==env.GITHUB_REPOSITORY and
+            .upstream_observation.run_id==(env.UPSTREAM_RUN_ID|tonumber) and
+            .upstream_observation.run_attempt==(env.UPSTREAM_RUN_ATTEMPT|tonumber) and
+            .upstream_observation.head_sha==env.UPSTREAM_SHA and
+            .upstream_observation.event==env.UPSTREAM_EVENT and
+            .upstream_observation.conclusion=="success" and
+            (.upstream_observation.event=="pull_request" or .upstream_observation.event=="push" or .upstream_observation.event=="schedule" or .upstream_observation.event=="workflow_dispatch") and
+            (.current_protected_main_sha|test("^[0-9a-f]{40}$")) and
+            .producer_health_eligible==false and
+            .producer_health_receipt_required==false and
+            .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
+            .whole_platform_authority==false and
+            .promotion_eligible==false and
+            .empirical_authority==false and
+            .provider_authority==false and
+            .database_authority==false and
+            .empirical_delta==0 and
+            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            (.receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
+            .state=="VERIFIED_HOLD"
+          ' "$RECEIPT" >/dev/null
+
