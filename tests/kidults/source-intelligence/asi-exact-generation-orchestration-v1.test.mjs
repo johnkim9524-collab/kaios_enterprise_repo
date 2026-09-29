@@ -22,6 +22,7 @@ const specification = {
   expectedBaseSha: 'd'.repeat(40),
   expectedHeadSha: sha,
   expectedGenerationSha: sha,
+  triggeringRunId: null,
   triggerExpected: true,
   maxAttempts: 3,
   pollMilliseconds: 0,
@@ -79,6 +80,15 @@ test('missing trigger contract is distinct from producer absence', () => {
   const receipt = classify({ attempt: 1, runs: [], artifacts: [] }, { triggerExpected: false });
   assert.equal(receipt.failure_class, 'TRIGGER_MISSING');
   assert.equal(receipt.attempts_completed, 1);
+});
+
+test('triggering run id is bound and rejects run substitution', () => {
+  const waiting = classify({ attempt: 1, runs: [run], artifacts: [artifact] }, { triggeringRunId: 777 });
+  assert.equal(waiting.state, 'RUNNING_VERIFIED');
+  assert.equal(waiting.outcome, 'WAITING_FOR_TRIGGERING_RUN');
+  const failure = classify({ attempt: 3, runs: [run], artifacts: [artifact] }, { triggeringRunId: 777 });
+  assert.equal(failure.failure_class, 'TRIGGER_RUN_ID_MISMATCH');
+  assert.equal(validateReceipt(failure), true);
 });
 
 test('in-progress producer becomes orchestration timeout at bound', () => {
@@ -208,6 +218,12 @@ test('polling distinguishes producer absence without external provider calls', a
   const requested = [];
   const fetchImpl = async (url) => {
     requested.push(String(url));
+    if (String(url).includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha } }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
     return new Response(JSON.stringify({ total_count: 0, workflow_runs: [] }), {
       status: 200,
       headers: { 'content-type': 'application/json' },
@@ -219,9 +235,23 @@ test('polling distinguishes producer absence without external provider calls', a
     sleep: async () => {},
   });
   assert.equal(receipt.failure_class, 'PRODUCER_NOT_CREATED');
-  assert.equal(requested.length, 3);
+  assert.equal(requested.length, 6);
   assert(requested.every((url) => url.startsWith('https://api.github.com/')));
   assert(requested.every((url) => !url.includes('commoncrawl') && !url.includes('openalex') && !url.includes('datacite')));
+});
+
+test('stale protected-main head SHA fails closed before producer consumption', async () => {
+  const receipt = await resolveOrchestration(specification, {
+    token: 'test-token',
+    fetchImpl: async () => new Response(JSON.stringify({ object: { sha: 'c'.repeat(40) } }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }),
+    sleep: async () => {},
+  });
+  assert.equal(receipt.failure_class, 'STALE_MAIN_ADVANCED');
+  assert.equal(receipt.bounded_failure_detail, 'CURRENT_REF_SHA_MISMATCH');
+  assert.equal(validateReceipt(receipt), true);
 });
 
 test('transport and malformed API evidence return bounded failure receipts', async () => {

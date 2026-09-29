@@ -1,6 +1,13 @@
 name: KIDULTS ASI Common Crawl Rolling Seed Frontier v1
 
 on:
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Self-Driving Control Loop v1'
+    branches:
+      - main
+    types:
+      - completed
   workflow_dispatch:
   pull_request:
     paths:
@@ -25,19 +32,20 @@ concurrency:
 
 jobs:
   rolling-seed-frontier:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Verify exact source and syntax
         env:
-          EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_EXECUTION_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_EXECUTION_SHA"
           node --check scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs
@@ -81,12 +89,13 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ github.sha }}
-          EXPECTED_BASE_SHA: ${{ github.sha }}
-          EXPECTED_HEAD_SHA: ${{ github.sha }}
-          EXPECTED_GENERATION_SHA: ${{ github.sha }}
-          TARGET_BRANCH: main
-          TRIGGER_EXPECTED: 'false'
+          EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_GENERATION_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || 'main' }}
+          TRIGGER_EXPECTED: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}
+          TRIGGERING_PRODUCER_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -103,6 +112,7 @@ jobs:
             --expected-base-sha "$EXPECTED_BASE_SHA" \
             --expected-head-sha "$EXPECTED_HEAD_SHA" \
             --expected-generation-sha "$EXPECTED_GENERATION_SHA" \
+            --triggering-run-id "$TRIGGERING_PRODUCER_RUN_ID" \
             --trigger-expected "$TRIGGER_EXPECTED" \
             --max-attempts 24 \
             --poll-milliseconds 10000
