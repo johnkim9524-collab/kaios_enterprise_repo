@@ -35,6 +35,7 @@ on:
       - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI SHADOW Operating Evidence v1'
       - 'KPMO Live Canonical Issue Truth V1'
+      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
     branches: [main]
     types: [completed]
   workflow_dispatch:
