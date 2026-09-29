@@ -114,6 +114,7 @@ test('completion collection reuses existing Assurance edges and keeps strict sen
  assert.doesNotMatch(s,/^  workflow_run:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
  for(const x of PRODUCER_COMPLETIONS)assert.ok(a.includes(`      - '${x.name}'`));
+ assert.ok(a.includes("      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'"));
  assert.match(a,/types: \[completed\]/);assert.match(a,/branches: \[main\]/);
  assert.ok(s.includes('tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'));
  const job=a.slice(a.indexOf('  observe-core-producer-content:'));
