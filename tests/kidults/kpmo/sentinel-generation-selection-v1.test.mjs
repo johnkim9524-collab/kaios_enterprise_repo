@@ -53,6 +53,17 @@ test('terminal sentinel selector keeps a newer in-progress natural run on HOLD',
  ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
  assert.equal(result.state,'VERIFIED_HOLD');assert.equal(result.latest.id,41);
 });
+test('terminal sentinel selector CLI consumes the real GitHub workflow-runs envelope',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-selector-'));
+ const input=path.join(dir,'runs.json');
+ fs.writeFileSync(input,JSON.stringify({total_count:2,workflow_runs:[
+  sentinelRun(60,{createdAt:'2026-09-05T09:00:00Z'}),
+  sentinelRun(61,{conclusion:'failure',createdAt:'2026-09-05T11:00:00Z'})
+ ]}));
+ const child=spawnSync(process.execPath,['scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs',input,sourceSha,'2026-09-05T12:00:00Z',REPOSITORY],{encoding:'utf8'});
+ assert.equal(child.status,0,child.stderr);
+ const result=JSON.parse(child.stdout);assert.equal(result.state,'VERIFIED_FAIL');assert.equal(result.latest.id,61);
+});
 
 test('generation index: one exact native SHADOW control payload remains reachable',()=>{
  const result=evaluate([good]);assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.selected_run_id,10);assert.equal(result.artifact_content_validated,true);

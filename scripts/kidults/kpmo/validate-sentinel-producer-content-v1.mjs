@@ -73,10 +73,10 @@ const json=(packet,basename,optional=false)=>{
   req(entries.length===1,`CONTENT_MEMBER_CARDINALITY:${basename}`);
   return {...entries[0],value:JSON.parse(entries[0].text),sha256:digest(entries[0].text)};
 };
-export function readArchive(bytes,expectedDigest){
+export function readArchive(bytes,expectedDigest,{coverageCandidate=false}={}){
   req(Buffer.isBuffer(bytes)&&bytes.length>0&&bytes.length<=MAX_ARCHIVE_BYTES,'ARCHIVE_BYTES_REQUIRED');
   req(DIGEST.test(expectedDigest)&&digest(bytes)===expectedDigest,'ARCHIVE_DIGEST_MISMATCH');
-  const child=spawnSync(pythonExecutable(),['-I',path.join(ROOT,'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'),expectedDigest],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
+  const child=spawnSync(pythonExecutable(),['-I',path.join(ROOT,'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'),expectedDigest,coverageCandidate?'COVERAGE_CANDIDATE':'NO_NESTED'],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
   req(child.status===0,'ARCHIVE_CONTENT_REJECTED');
   const packet=JSON.parse(child.stdout);
   req(packet.archive_digest===expectedDigest&&packet.extraction_performed===false&&Array.isArray(packet.members),'ARCHIVE_READER_CONTRACT');
@@ -266,7 +266,7 @@ export function validateProducerContent(spec,run,artifact,bytes,sourceSha,observ
   req(names.includes(artifact.name)||(spec.id==='REQUIREMENT'&&coverageCanonicalName.test(artifact.name)),'CONTENT_ARTIFACT_NAME');
   checkTransport(run,artifact,sourceSha,observedAt);
   req(bytes.length===artifact.size_in_bytes,'ARCHIVE_SIZE_BINDING');
-  const packet=readArchive(bytes,artifact.digest);
+  const packet=readArchive(bytes,artifact.digest,{coverageCandidate:spec.id==='REQUIREMENT'});
   for(const member of packet.members)if(member.name.endsWith('.json'))rejectElevation(JSON.parse(member.text));
   let result;
   if(spec.id==='SHADOW')result=shadow(packet);

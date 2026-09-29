@@ -135,7 +135,7 @@ for(const [name,entries] of [['traversal',[['../receipt.json','{}']]],['duplicat
 test('safe ZIP reader validates a bounded nested candidate ZIP against its extraction sidecar',()=>{
  const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
  const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_PASS"}\n']]);
- const packet=readArchive(outer,digest(outer));
+ const packet=readArchive(outer,digest(outer),{coverageCandidate:true});
  const nested=packet.members.find(member=>member.name==='candidates/artifact-123.zip');
  assert.equal(nested.encoding,'zip');assert.equal(nested.sha256,digest(inner));assert.equal(nested.nested_member_count,1);
  assert.equal(packet.members.find(member=>member.name==='candidates/extract-123/receipt.json').encoding,'utf-8');
@@ -143,10 +143,18 @@ test('safe ZIP reader validates a bounded nested candidate ZIP against its extra
 test('safe ZIP reader rejects a nested ZIP whose extracted sidecar differs',()=>{
  const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
  const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_FAIL"}\n']]);
- assert.throws(()=>readArchive(outer,digest(outer)),/ARCHIVE_CONTENT_REJECTED/);
+ assert.throws(()=>readArchive(outer,digest(outer),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
 });
 test('safe ZIP reader rejects non-ZIP opaque binary members',()=>{
  const bytes=zip([['opaque.bin',Buffer.from([0,0x85,0xff,0x10])]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const name of ['artifact-123.ZIP','other.zip'])test(`safe ZIP reader rejects noncanonical nested ${name}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([[name,inner]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const producer of ['SHADOW','RESERVE','CANONICAL'])test(`safe ZIP reader rejects nested ZIP for ${producer}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([['artifact-123.zip',inner],['extract-123/receipt.json','{}']]);
  assert.throws(()=>readArchive(bytes,digest(bytes)),/ARCHIVE_CONTENT_REJECTED/);
 });
 test('safe ZIP reader rejects malformed nested ZIP bytes',()=>{
