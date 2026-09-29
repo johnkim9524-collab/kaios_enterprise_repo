@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fd7d3b7694f67fcb1b30e64898e2611f05d9b991",
+  "revision": "HEAD",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2816,8 +2816,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e35e663b7a98497d2e72f157d6f857f13d265a6b",
-      "sha256": "sha256:62ddbcd81e064c5b937ef280cda0a275ee1a5aa3a1aafe62f36aa3cf82513754",
+      "git_blob": "764d25c181e54f4decd8d1aab4bc418aa88f0cb8",
+      "sha256": "sha256:05bc89a86dfe47b424c52ec6ad6a9b1fe5686361df8a8373f6fd86dfef86e775",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5241,5 +5241,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:176da73c7bbee18c4320a56b8a04f4dfe3ca24e7df56edc8785751d32461d238"
+  "manifest_sha256": "sha256:5e09f5f1818150c39ac996d2df92b3c37f54285f17367715001503ba43c850ae"
 }

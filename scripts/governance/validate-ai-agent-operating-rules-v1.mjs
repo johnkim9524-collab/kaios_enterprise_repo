@@ -503,9 +503,10 @@ for (const [key, expected] of Object.entries({
   assert(registry.registered_policy?.[key] === expected, `REGISTRY_PATH_MISMATCH:${key}`);
 }
 
-for (const trigger of ['workflow_dispatch', 'schedule', 'push', 'workflow_run']) {
+for (const trigger of ['repository_dispatch', 'workflow_dispatch', 'push', 'workflow_run']) {
   assert(hasTopLevelTrigger(reserveWorkflow, trigger), `RESERVE_MISSING_AUTONOMOUS_TRIGGER:${trigger}`);
 }
+assert(!hasTopLevelTrigger(reserveWorkflow, 'schedule'), 'RESERVE_INDEPENDENT_NATIVE_SCHEDULE_FORBIDDEN');
 assert(reserveWorkflow.includes('KIDULTS ASI Global Any-Site Hourly Pooling v2'), 'RESERVE_MISSING_UPSTREAM_WORKFLOW');
 const globalPoolingWorkflow = fs.readFileSync('.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml', 'utf8');
 assert(hasTopLevelTrigger(globalPoolingWorkflow, 'schedule'), 'GLOBAL_POOLING_NATURAL_SCHEDULE_MISSING');
