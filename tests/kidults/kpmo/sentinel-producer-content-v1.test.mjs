@@ -132,6 +132,35 @@ test('Reserve validates WAITING payload but never promotes it',()=>{
  const f=fixture('RESERVE',[['asi-sharded-source-reserve-waiting-receipt-v1.json',text(r)]]);f.artifact.name=f.spec.waitingArtifact;assert.equal(check(f).state,'VERIFIED_HOLD');
 });
 for(const [name,entries] of [['traversal',[['../receipt.json','{}']]],['duplicate members',[['receipt.json','{}'],['receipt.json','{}']]],['duplicate JSON keys',[['receipt.json','{"state":"FAIL","state":"PASS"}']]],['nonfinite JSON',[['receipt.json','{"n":NaN}']]],['absolute',[['/tmp/x','x']]],['backslash',[['x\\x.json','{}']]],['member expansion',[['x.txt','0'.repeat(100000)]]]])test(`safe ZIP reader rejects ${name}`,()=>{const bytes=zip(entries);assert.throws(()=>readArchive(bytes,digest(bytes)));});
+test('safe ZIP reader validates a bounded nested candidate ZIP against its extraction sidecar',()=>{
+ const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const packet=readArchive(outer,digest(outer),{coverageCandidate:true});
+ const nested=packet.members.find(member=>member.name==='candidates/artifact-123.zip');
+ assert.equal(nested.encoding,'zip');assert.equal(nested.sha256,digest(inner));assert.equal(nested.nested_member_count,1);
+ assert.equal(packet.members.find(member=>member.name==='candidates/extract-123/receipt.json').encoding,'utf-8');
+});
+test('safe ZIP reader rejects a nested ZIP whose extracted sidecar differs',()=>{
+ const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_FAIL"}\n']]);
+ assert.throws(()=>readArchive(outer,digest(outer),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+test('safe ZIP reader rejects non-ZIP opaque binary members',()=>{
+ const bytes=zip([['opaque.bin',Buffer.from([0,0x85,0xff,0x10])]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const name of ['artifact-123.ZIP','other.zip'])test(`safe ZIP reader rejects noncanonical nested ${name}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([[name,inner]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const producer of ['SHADOW','RESERVE','CANONICAL'])test(`safe ZIP reader rejects nested ZIP for ${producer}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([['artifact-123.zip',inner],['extract-123/receipt.json','{}']]);
+ assert.throws(()=>readArchive(bytes,digest(bytes)),/ARCHIVE_CONTENT_REJECTED/);
+});
+test('safe ZIP reader rejects malformed nested ZIP bytes',()=>{
+ const bytes=zip([['candidates/artifact-123.zip',Buffer.from([0,0x85,0xff])]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes)),/ARCHIVE_CONTENT_REJECTED/);
+});
 for(const url of ['http://x.blob.core.windows.net/x','https://evil.example/x','https://x.blob.core.windows.net.evil.example/x','https://user:secret@x.blob.core.windows.net/x','https://x.blob.core.windows.net:8443/x','https://api.github.com/x'])test(`artifact redirect rejects ${url.split('/')[2]}`,()=>assert.throws(()=>allowedArtifactRedirect(url)));
 test('artifact redirect accepts HTTPS signed storage without credentials',()=>assert.equal(allowedArtifactRedirect('https://example.blob.core.windows.net/artifact?sig=test').hostname,'example.blob.core.windows.net'));
 function healthInput(){const input={repository:REPOSITORY,source_sha:sha,observed_at:observed,observer_run_id:900,observer_run_attempt:1,runs:{},artifacts_by_run:{},archives_by_id:{}};for(const f of [shadow,coverage,reserve,canonical]){input.runs[f.spec.id]=[f.run];input.artifacts_by_run[f.run.id]=[f.artifact];input.archives_by_id[f.artifact.id]=f.bytes;}return input;}

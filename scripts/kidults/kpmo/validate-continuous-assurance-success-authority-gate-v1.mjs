@@ -10,15 +10,21 @@ const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
-  "workflows: ['KIDULTS Platform Continuous Assurance V1']",
-  "github.event.workflow_run.conclusion == 'success'",
+  "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']",
+  "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
+  "github.event.workflow_run.conclusion == 'success')",
+  "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
   'ref: ${{ github.event.workflow_run.head_sha }}',
+  'upstream_observation:{',
+  'UPSTREAM_WORKFLOW_NAME',
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
-  'Restore latest preceding exact-main natural Sentinel producer-health receipt',
+  'Restore latest exact-main natural Sentinel producer-health receipt',
   'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100',
-  '(.event=="repository_dispatch" or .event=="schedule")',
-  '.created_at<=$before',
+  'select-latest-natural-sentinel-run-v1.mjs',
+  'PRODUCER_HEALTH_CONCLUSION',
+  'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
+  '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"',
   'actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100',
   'read-sentinel-artifact-v1.py',
   'kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${SENTINEL_RUN_ID}-${SENTINEL_RUN_ATTEMPT}',
@@ -38,8 +44,12 @@ for (const token of requiredWorkflowTokens) {
   if (!workflow.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_TOKEN_MISSING:${token}`);
 }
 
-if (workflow.includes("github.event.workflow_run.event == 'schedule'")) {
-  fail('SUCCESS_AUTHORITY_GATE_EVENT_SPECIFIC_BYPASS');
+if (workflow.includes('.conclusion=="success"') && workflow.includes('.created_at<=$before')) {
+  fail('SUCCESS_AUTHORITY_GATE_STALE_SUCCESS_FILTER');
+}
+
+if (!workflow.includes("github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'schedule'")) {
+  fail('SUCCESS_AUTHORITY_GATE_NATURAL_FAILURE_TRIGGER_MISSING');
 }
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
@@ -63,15 +73,17 @@ const expected = {
   database_authority: false,
   production: 'HOLD',
   public: 'HOLD',
-  g5: 'HOLD'
+  g5: 'HOLD',
+  latest_natural_failure_fallback_forbidden: true
 };
 for (const [key, value] of Object.entries(expected)) {
   if (JSON.stringify(gate[key]) !== JSON.stringify(value)) fail(`SUCCESS_AUTHORITY_GATE_POLICY_DRIFT:${key}`);
 }
 
 const requiredBindings = [
-  'repository', 'upstream_assurance_run_id', 'upstream_assurance_run_attempt',
-  'upstream_assurance_head_sha', 'upstream_assurance_event', 'upstream_assurance_conclusion',
+  'repository', 'upstream_observation_workflow_name', 'upstream_observation_run_id',
+  'upstream_observation_run_attempt', 'upstream_observation_head_sha',
+  'upstream_observation_event', 'upstream_observation_conclusion',
   'current_protected_main_sha', 'producer_health_receipt_digest'
 ];
 if (!Array.isArray(gate.required_bindings) || !requiredBindings.every((item) => gate.required_bindings.includes(item))) {
@@ -79,8 +91,8 @@ if (!Array.isArray(gate.required_bindings) || !requiredBindings.every((item) => 
 }
 
 const eventSpecificMutation = workflow.replace(
-  "github.event.workflow_run.conclusion == 'success'",
-  "github.event.workflow_run.event == 'schedule' &&\n      github.event.workflow_run.conclusion == 'success'"
+  "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
+  "github.event.workflow_run.event == 'schedule' &&\n        github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&"
 );
 if (eventSpecificMutation === workflow || !eventSpecificMutation.includes("github.event.workflow_run.event == 'schedule'")) {
   fail('SUCCESS_AUTHORITY_GATE_MUTATION_SETUP');

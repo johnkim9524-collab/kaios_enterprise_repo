@@ -134,6 +134,47 @@ test('failed pre-mutation attempts allow at most three dispatches in two hours',
   }), 'ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
 });
 
+test('pre-approval failures do not consume a later valid Owner authorization', () => {
+  const result = evaluateAtomicLandingOneUseRunSet([
+    run({id: 80, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:00:00Z'}),
+    run({id: 81, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 82, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:00:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  });
+  assert.equal(result.bounded_attempt_ordinal, 1);
+  assert.equal(result.prior_non_success_attempt_count, 0);
+
+  code(() => evaluateAtomicLandingOneUseRunSet([run()], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: 'not-a-timestamp',
+  }), 'ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:31:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:32:00Z'}),
+    run({id: 92, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:33:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED');
+});
+
 test('same tuple is consumed across protected-main generations while cross-PR runs do not substitute', () => {
   const crossPrRunName = buildAtomicLandingRunName({
     prNumber: 1844,
@@ -290,10 +331,16 @@ test('runner rechecks one-use consumption and lifecycle-only Ready boundary imme
   assert.match(runner, /selectLatestLifecycleReadyEvent/);
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
-  assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha, repositoryOwner\)/);
+  assert.match(runner, /authorizationApprovedAt/);
+  assert.match(runner, /programOwnerApproval\.comment_created_at/);
+  assert.match(runner, /ATOMIC_LANDING_CONSUMPTION_APPROVAL_TIME_DRIFT/);
   assert.match(runner, /ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT/);
   assert.match(gates, /PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED/);
   assert.match(oneUse, /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  const approvalSelection = oneUse.indexOf('const programOwnerApproval = selectExactHeadProgramOwnerApproval');
+  const retryEvaluation = oneUse.indexOf('const oneUse = evaluateAtomicLandingOneUseRunSet');
+  assert.ok(approvalSelection >= 0 && retryEvaluation > approvalSelection);
+  assert.match(oneUse, /authorizationApprovedAt: programOwnerApproval\.comment_created_at/);
   assert.doesNotMatch(oneUse, /&& run\?\.head_sha === protectedMainShaAtDispatch\n    && run\?\.display_title === expectedRunName/);
 });
 

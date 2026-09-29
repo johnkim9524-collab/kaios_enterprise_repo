@@ -2,7 +2,9 @@
 import fs from 'node:fs';
 import {
   GOVERNED_LANDING_CONTEXT,
+  GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
   GOVERNED_LANDING_PENDING_DESCRIPTION,
+  isAtomicLandingNativeStatusReady,
   READY_GOVERNED_REASON,
   SCOPE_AWARE_CONTEXT,
   selectAtomicLandingLifecycleAuthority,
@@ -54,6 +56,18 @@ const nativeStatuses = [
     updated_at: '2026-09-01T13:28:37Z',
   },
 ];
+assert(isAtomicLandingNativeStatusReady({
+  context: GOVERNED_LANDING_CONTEXT,
+  state: 'pending',
+  description: GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
+  creator: {login: 'github-actions[bot]'},
+}), 'NORMAL_READY_GITHUB_ACTIONS_STATUS_REJECTED');
+assert(!isAtomicLandingNativeStatusReady({
+  context: GOVERNED_LANDING_CONTEXT,
+  state: 'pending',
+  description: GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
+  creator: {login: 'untrusted'},
+}), 'NORMAL_READY_UNTRUSTED_STATUS_ACCEPTED');
 const receiptEvidence = statuses => statuses.map(status => ({
   context: status.context,
   state: status.state,

@@ -62,6 +62,7 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
   workflowId,
   expectedRunName,
   protectedMainShaAtDispatch,
+  authorizationApprovedAt = null,
 } = {}) {
   assert(Array.isArray(runs), 'ATOMIC_ONE_USE_RUN_SET_INVALID');
   assert(/^\d+$/.test(String(currentRunId || '')), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_INVALID');
@@ -88,12 +89,25 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
   assert(current?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
   assert(Number(current?.run_attempt) === 1, 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
 
-  const prior = matches.filter(run => Number(run?.id) !== Number(currentRunId));
-  if (prior.some(run => run?.status !== 'completed' || run?.conclusion === 'success')) {
-    fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(matches.length));
+  // Count only attempts made under the current immutable Owner approval.
+  // Pre-approval failures cannot consume a later valid authorization.
+  let eligibleMatches = matches;
+  if (authorizationApprovedAt != null) {
+    const approvedAt = Date.parse(String(authorizationApprovedAt));
+    assert(Number.isFinite(approvedAt), 'ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+    eligibleMatches = matches.filter(run => {
+      if (Number(run?.id) === Number(currentRunId)) return true;
+      const createdAt = Date.parse(String(run?.created_at || ''));
+      return Number.isFinite(createdAt) && createdAt >= approvedAt;
+    });
   }
-  if (matches.length > MAX_BOUNDED_ATTEMPTS) {
-    fail('ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED', String(matches.length));
+
+  const prior = eligibleMatches.filter(run => Number(run?.id) !== Number(currentRunId));
+  if (prior.some(run => run?.status !== 'completed' || run?.conclusion === 'success')) {
+    fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(eligibleMatches.length));
+  }
+  if (eligibleMatches.length > MAX_BOUNDED_ATTEMPTS) {
+    fail('ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED', String(eligibleMatches.length));
   }
   const currentCreatedAt = Date.parse(String(current?.created_at || ''));
   const priorCreatedAt = prior.map(run => Date.parse(String(run?.created_at || '')));
@@ -106,7 +120,7 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
 
   return {
     matching_run_count: 1,
-    bounded_attempt_ordinal: matches.length,
+    bounded_attempt_ordinal: eligibleMatches.length,
     prior_non_success_attempt_count: prior.length,
     matching_run_id: Number(current.id),
     matching_run_attempt: Number(current.run_attempt),
@@ -278,15 +292,6 @@ async function main() {
     fail('ATOMIC_LANDING_CURRENT_RUN_NOT_DISCOVERABLE');
   };
 
-  const runs = await loadWorkflowRuns();
-  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
-    currentRunId: runId,
-    currentRunAttempt: runAttempt,
-    workflowId: currentRun.workflow_id,
-    expectedRunName,
-    protectedMainShaAtDispatch: currentRun.head_sha,
-  });
-
   const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
@@ -318,6 +323,19 @@ async function main() {
     latestReadyAt: latestReady.created_at,
     landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
     evaluationTime: new Date().toISOString(),
+  });
+
+  // Retry accounting is scoped to the immutable exact-head Owner approval.
+  // Resolve and validate that approval before evaluating any prior dispatches,
+  // otherwise pre-approval failures can consume a later authorization budget.
+  const runs = await loadWorkflowRuns();
+  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
+    currentRunId: runId,
+    currentRunAttempt: runAttempt,
+    workflowId: currentRun.workflow_id,
+    expectedRunName,
+    protectedMainShaAtDispatch: currentRun.head_sha,
+    authorizationApprovedAt: programOwnerApproval.comment_created_at,
   });
 
   const finalPr = await request(`/pulls/${prNumber}`);
