@@ -99,10 +99,15 @@ function parseArguments(argv) {
     ['allowed-event', []],
   ]);
   let allowNoProducerHistory = false;
+  let allowProducerHistoryOutsideLookbackBaseline = false;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--allow-no-producer-history') {
       allowNoProducerHistory = true;
+      continue;
+    }
+    if (token === '--allow-producer-history-outside-lookback-baseline') {
+      allowProducerHistoryOutsideLookbackBaseline = true;
       continue;
     }
     if (!token.startsWith('--')) fail('ARGUMENT_INVALID', token);
@@ -141,6 +146,7 @@ function parseArguments(argv) {
       ? requirePositiveInteger(single.get('max-compressed-bytes'), 'MAX_COMPRESSED_BYTES_INVALID')
       : DEFAULT_MAX_COMPRESSED_BYTES,
     allowNoProducerHistory,
+    allowProducerHistoryOutsideLookbackBaseline,
   };
 }
 
@@ -244,6 +250,23 @@ function sameArtifactMetadata(left, right) {
     && left?.workflow_run?.id === right?.workflow_run?.id
     && left?.workflow_run?.head_sha === right?.workflow_run?.head_sha
     && left?.workflow_run?.head_branch === right?.workflow_run?.head_branch;
+}
+
+export function resolveNoProducerHistoryBaselineState(
+  allHistoryTotal,
+  allHistoryRowCount,
+  allowProducerHistoryOutsideLookbackBaseline = false,
+) {
+  const total = requireNonNegativeInteger(allHistoryTotal, 'ALL_HISTORY_TOTAL_COUNT_INVALID');
+  const rowCount = requireNonNegativeInteger(allHistoryRowCount, 'ALL_HISTORY_ROW_COUNT_INVALID');
+  if (rowCount > 1 || rowCount > total) fail('ALL_HISTORY_PROBE_INVALID');
+  const historyExistsOutsideLookback = total !== 0 || rowCount !== 0;
+  if (historyExistsOutsideLookback && !allowProducerHistoryOutsideLookbackBaseline) {
+    fail('PRODUCER_HISTORY_OUTSIDE_LOOKBACK', total);
+  }
+  return historyExistsOutsideLookback
+    ? 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY'
+    : 'NO_PRODUCER_HISTORY_BASELINE_ONLY';
 }
 
 async function readBoundedBody(response, maxBytes) {
@@ -371,9 +394,12 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     if (!Array.isArray(allHistoryProbe?.workflow_runs) || allHistoryProbe.workflow_runs.length > 1) {
       fail('ALL_HISTORY_PROBE_INVALID');
     }
-    if (allHistoryTotal !== 0 || allHistoryProbe.workflow_runs.length !== 0) {
-      fail('PRODUCER_HISTORY_OUTSIDE_LOOKBACK', allHistoryTotal);
-    }
+    const baselineState = resolveNoProducerHistoryBaselineState(
+      allHistoryTotal,
+      allHistoryProbe.workflow_runs.length,
+      specification.allowProducerHistoryOutsideLookbackBaseline,
+    );
+    const historyExistsOutsideLookback = baselineState === 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY';
     const baselineArchivePath = path.resolve(specification.archivePath);
     const baselineExtractDir = path.resolve(specification.extractDir);
     fs.rmSync(baselineArchivePath, { force: true });
@@ -383,7 +409,7 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     const receipt = writeReceipt(specification.receiptPath, {
       id: 'kidults-exact-github-artifact-restore-receipt-v1',
       version: '1.0.0',
-      state: 'NO_PRODUCER_HISTORY_BASELINE_ONLY',
+      state: baselineState,
       repository,
       producer_workflow_name: specification.workflowName,
       producer_workflow_path: specification.workflowPath,
@@ -392,9 +418,11 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
       lookback_start: lookbackStart,
       run_total_count: 0,
       run_pages_fetched: runReadback.pagesFetched,
-      all_history_total_count: 0,
+      all_history_total_count: allHistoryTotal,
       pagination_reconciled_complete: true,
-      baseline_reset_after_producer_history_forbidden: true,
+      historical_producer_artifact_consumed: false,
+      optional_feedback_baseline_only: historyExistsOutsideLookback,
+      baseline_reset_after_producer_history_forbidden: !historyExistsOutsideLookback,
       public_release: 'HOLD',
       production: 'HOLD',
       g5: 'HOLD',
