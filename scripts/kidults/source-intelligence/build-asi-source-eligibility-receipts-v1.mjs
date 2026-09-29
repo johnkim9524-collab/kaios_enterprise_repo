@@ -41,6 +41,11 @@ assert(contract.admission_boundary?.evidence_eligibility_ceiling_without_p3_exac
   && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
   && contract.admission_boundary?.repository_dispatch_requires_verified_external_natural_clock_receipt === true,
 'CONTRACT_ADMISSION_BOUNDARY_INVALID');
+assert(contract.receipt_time_policy?.expired_promotable_rights_decision === 'HOLD_AND_REJECT_AUTHORITY'
+  && contract.receipt_time_policy?.expired_negative_rights_decision === 'STALE_FAIL_CLOSED_EXCLUSION_CONTINUE_CONTROL_PLANE'
+  && contract.eligibility_rules?.stale_negative_decision_is_authority === false
+  && contract.eligibility_rules?.stale_negative_decision_stops_control_plane === false,
+'CONTRACT_STALE_RIGHTS_POLICY_INVALID');
 const suppliedInputs = {
   product_value: valuePath,
   rights: rightsPath,
@@ -126,10 +131,19 @@ for (const [sourceId, right] of rightsBy) {
     .filter(value => Number.isFinite(Date.parse(value)))
     .sort((a, b) => Date.parse(a) - Date.parse(b));
   const expiresAt = validExpiryCandidates[0] || null;
+  const rightsExpiry = Date.parse(right?.evidence_binding?.recheck_due_at);
+  const rightsEvidenceFresh = Number.isFinite(rightsExpiry) && rightsExpiry > Date.parse(evaluatedAt);
+  const staleNegativeDecision = !rightsEvidenceFresh && ['HOLD', 'NO_GO'].includes(right?.decision);
+  const rightsEvidenceFreshness = rightsEvidenceFresh
+    ? 'CURRENT'
+    : staleNegativeDecision
+      ? 'STALE_FAIL_CLOSED_EXCLUSION'
+      : 'STALE_AUTHORITY_REJECTED';
   if (validExpiryCandidates.length !== expiryCandidates.length) failures.push('EVIDENCE_EXPIRY_INVALID');
   if (!expiresAt || !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.parse(evaluatedAt)) {
     failures.push('EVIDENCE_EXPIRED_OR_EXPIRY_MISSING');
   }
+  if (staleNegativeDecision) failures.push('RIGHTS_EVIDENCE_STALE_FAIL_CLOSED_EXCLUSION');
   const canaryEvaluationEligible = failures.length === 0;
   const p3Bindings = p3Canary?.bindingBySource.get(sourceId) || [];
   const p3ExactCanaryBound = Boolean(canaryEvaluationEligible && p3Bindings.length > 0
@@ -161,6 +175,7 @@ for (const [sourceId, right] of rightsBy) {
     purpose_id: contract.purpose_id,
     state: canaryEvaluationEligible ? 'CANARY_EVALUATION_ELIGIBLE' : 'HOLD',
     failures,
+    rights_evidence_freshness: rightsEvidenceFreshness,
     binding,
     receipt_digest: hash(binding),
     canary_evaluation_eligible: canaryEvaluationEligible,
@@ -177,6 +192,7 @@ const evidenceEligible = records.filter(record => record.canary_evaluation_eligi
 const p3ExactCanaryBound = records.filter(record => record.p3_exact_canary_receipt_bound).length;
 const productContentAdmitted = records.filter(record => record.product_content_admission_authorized).length;
 const adapterActivationAuthorized = records.filter(record => record.adapter_activation_authorized).length;
+const staleFailClosedExclusions = records.filter(record => record.rights_evidence_freshness === 'STALE_FAIL_CLOSED_EXCLUSION').length;
 const receipt = {
   id: 'kidults-asi-source-eligibility-receipts-v1',
   version: '1.2.0',
@@ -194,7 +210,8 @@ const receipt = {
     hold: records.length - evidenceEligible,
     p3_exact_canary_bound: p3ExactCanaryBound,
     product_content_admitted: productContentAdmitted,
-    adapter_activation_authorized: adapterActivationAuthorized
+    adapter_activation_authorized: adapterActivationAuthorized,
+    stale_fail_closed_exclusions: staleFailClosedExclusions
   },
   records,
   truth_boundary: {

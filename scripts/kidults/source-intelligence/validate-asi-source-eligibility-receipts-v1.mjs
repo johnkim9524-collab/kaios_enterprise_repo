@@ -29,6 +29,11 @@ const assertRegularFile = (path, name) => {
 const allowTestInputs = process.env.KIDULTS_ALLOW_TEST_INPUTS === '1' && process.env.GITHUB_ACTIONS !== 'true';
 
 assert(contract.id === 'kidults-asi-source-eligibility-receipt-contract-v1' && contract.version === '1.2.0', 'CONTRACT_IDENTITY');
+assert(contract.receipt_time_policy?.expired_promotable_rights_decision === 'HOLD_AND_REJECT_AUTHORITY'
+  && contract.receipt_time_policy?.expired_negative_rights_decision === 'STALE_FAIL_CLOSED_EXCLUSION_CONTINUE_CONTROL_PLANE'
+  && contract.eligibility_rules?.stale_negative_decision_is_authority === false
+  && contract.eligibility_rules?.stale_negative_decision_stops_control_plane === false,
+'CONTRACT_STALE_RIGHTS_POLICY_INVALID');
 assert(contract.admission_boundary?.evidence_eligibility_ceiling_without_p3_exact_canary === 'CANARY_EVALUATION_ELIGIBLE_ONLY'
   && contract.admission_boundary?.product_content_admission_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
   && contract.admission_boundary?.adapter_activation_requires_eligible_unexpired_receipt_p3_source_binding_and_allowed_producer_event === true
@@ -124,6 +129,17 @@ for (const row of receipt.records) {
     .filter(value => Number.isFinite(Date.parse(value)))
     .sort((a, b) => Date.parse(a) - Date.parse(b));
   const expectedExpiresAt = validExpiryCandidates[0] || null;
+  const rightsExpiry = Date.parse(rights?.evidence_binding?.recheck_due_at);
+  const rightsEvidenceFresh = Number.isFinite(rightsExpiry) && rightsExpiry > Date.parse(receipt.evaluated_at);
+  const staleNegativeDecision = !rightsEvidenceFresh && ['HOLD', 'NO_GO'].includes(rights?.decision);
+  const expectedRightsEvidenceFreshness = rightsEvidenceFresh
+    ? 'CURRENT'
+    : staleNegativeDecision
+      ? 'STALE_FAIL_CLOSED_EXCLUSION'
+      : 'STALE_AUTHORITY_REJECTED';
+  assert(row.rights_evidence_freshness === expectedRightsEvidenceFreshness, 'RIGHTS_EVIDENCE_FRESHNESS_DRIFT');
+  assert(!staleNegativeDecision || row.failures.includes('RIGHTS_EVIDENCE_STALE_FAIL_CLOSED_EXCLUSION'),
+    'STALE_NEGATIVE_EXCLUSION_RECEIPT_MISSING');
   assert(row.binding.expires_at === expectedExpiresAt, 'EXPIRY_BINDING_DRIFT');
   assert(row.binding.product_value_digest === (value ? hash(value) : null), 'PRODUCT_VALUE_BINDING_DRIFT');
   assert(row.binding.rights_record_digest === (rights ? hash(rights) : null), 'RIGHTS_BINDING_DRIFT');
@@ -168,9 +184,11 @@ const eligible = receipt.records.filter(record => record.canary_evaluation_eligi
 const p3Bound = receipt.records.filter(record => record.p3_exact_canary_receipt_bound).length;
 const admitted = receipt.records.filter(record => record.product_content_admission_authorized).length;
 const activated = receipt.records.filter(record => record.adapter_activation_authorized).length;
+const staleFailClosedExclusions = receipt.records.filter(record => record.rights_evidence_freshness === 'STALE_FAIL_CLOSED_EXCLUSION').length;
 assert(receipt.summary.evidence_eligible === eligible && receipt.summary.eligible === eligible
   && receipt.summary.canary_evaluation_eligible === eligible &&
-  receipt.summary.sources === receipt.records.length && receipt.summary.hold === receipt.records.length - eligible, 'SUMMARY_DRIFT');
+  receipt.summary.sources === receipt.records.length && receipt.summary.hold === receipt.records.length - eligible
+  && receipt.summary.stale_fail_closed_exclusions === staleFailClosedExclusions, 'SUMMARY_DRIFT');
 assert(receipt.summary.p3_exact_canary_bound === p3Bound, 'P3_CANARY_SUMMARY_DRIFT');
 assert(receipt.summary.product_content_admitted === admitted && receipt.summary.adapter_activation_authorized === activated,
   'ADMISSION_SUMMARY_DRIFT');
