@@ -292,15 +292,6 @@ async function main() {
     fail('ATOMIC_LANDING_CURRENT_RUN_NOT_DISCOVERABLE');
   };
 
-  const runs = await loadWorkflowRuns();
-  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
-    currentRunId: runId,
-    currentRunAttempt: runAttempt,
-    workflowId: currentRun.workflow_id,
-    expectedRunName,
-    protectedMainShaAtDispatch: currentRun.head_sha,
-  });
-
   const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
     request('/branches/main'),
@@ -332,6 +323,19 @@ async function main() {
     latestReadyAt: latestReady.created_at,
     landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
     evaluationTime: new Date().toISOString(),
+  });
+
+  // Retry accounting is scoped to the immutable exact-head Owner approval.
+  // Resolve and validate that approval before evaluating any prior dispatches,
+  // otherwise pre-approval failures can consume a later authorization budget.
+  const runs = await loadWorkflowRuns();
+  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
+    currentRunId: runId,
+    currentRunAttempt: runAttempt,
+    workflowId: currentRun.workflow_id,
+    expectedRunName,
+    protectedMainShaAtDispatch: currentRun.head_sha,
+    authorizationApprovedAt: programOwnerApproval.comment_created_at,
   });
 
   const finalPr = await request(`/pulls/${prNumber}`);

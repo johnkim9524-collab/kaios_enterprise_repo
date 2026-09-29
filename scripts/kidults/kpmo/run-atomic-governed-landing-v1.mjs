@@ -317,7 +317,10 @@ const sameApproval = (left, right) =>
   && left?.authorization_id_sha256 === right?.authorization_id_sha256
   && left?.expires_at === right?.expires_at;
 
-const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
+const assertLiveOneUseConsumption = async (baseSha, repositoryOwner, authorizationApprovedAt) => {
+  if (!authorizationApprovedAt || !Number.isFinite(Date.parse(authorizationApprovedAt))) {
+    throw new Error('ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+  }
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
   if (currentRun?.head_sha !== baseSha) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_BASE_MISMATCH');
@@ -327,6 +330,7 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt,
   });
   const receipt = assertAtomicLandingConsumptionReceipt(readConsumptionReceipt(), {
     repository,
@@ -345,6 +349,9 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     || receipt.landing_workflow_run_id !== oneUse.matching_run_id
     || receipt.landing_workflow_run_attempt !== oneUse.matching_run_attempt) {
     throw new Error('ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT');
+  }
+  if (receipt.program_owner_approval?.comment_created_at !== authorizationApprovedAt) {
+    throw new Error('ATOMIC_LANDING_CONSUMPTION_APPROVAL_TIME_DRIFT');
   }
   return {oneUse, receipt, currentRun};
 };
@@ -368,8 +375,6 @@ try {
   if (initial.user?.login !== repositoryOwner) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
   if (initial.base?.sha !== expectedBaseSha) throw new Error('ATOMIC_LANDING_EXPECTED_BASE_MISMATCH');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
-
-  const authorizationConsumption = await assertLiveOneUseConsumption(initial.base.sha, repositoryOwner);
 
   const approvalGeneration = await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
@@ -401,10 +406,11 @@ try {
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
 
-  const [timeline, approvalComments, headCommit] = await Promise.all([
+  const [timeline, approvalComments, headCommit, currentLandingRun] = await Promise.all([
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
     request(`/commits/${expectedHeadSha}`),
+    request(`/actions/runs/${landingRunId}`),
   ]);
   if (headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     throw new Error('ATOMIC_LANDING_EXPECTED_HEAD_TREE_MISMATCH');
@@ -421,10 +427,14 @@ try {
     prCreatedAt: initial.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: latestReady.created_at,
-    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
-      || authorizationConsumption.currentRun.created_at,
+    landingAttemptStartedAt: currentLandingRun.run_started_at || currentLandingRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const authorizationConsumption = await assertLiveOneUseConsumption(
+    initial.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
@@ -517,7 +527,11 @@ try {
     throw new Error('IMMEDIATE_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
 
-  await assertLiveOneUseConsumption(immediatePreMerge.base.sha, repositoryOwner);
+  await assertLiveOneUseConsumption(
+    immediatePreMerge.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
 
   const [finalPreMerge, finalPreMergeMain, finalPreMergeTimeline, finalPreMergeApprovalComments] = await Promise.all([
     request(`/pulls/${prNumber}`),
@@ -584,6 +598,11 @@ try {
   if (!sameLifecycleAuthority(finalPreMergeLifecycleAuthority, immediateLifecycleAuthority)) {
     throw new Error('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
+  await assertLiveOneUseConsumption(
+    finalPreMerge.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
 
   const transportWindowOpenedAt = finalMergeObserved
     ? authorizationWindowOpenedAt
