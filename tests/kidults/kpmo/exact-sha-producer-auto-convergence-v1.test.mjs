@@ -105,11 +105,11 @@ test('sentinel dispatches only its gated Assurance continuation after protected-
   assert.match(workflow,/permissions:\n  contents: read\n  actions: read/);
   assert.doesNotMatch(workflow,/Run exact-SHA producer auto-convergence/);
   assert.doesNotMatch(workflow,/node scripts\/kidults\/kpmo\/run-exact-sha-producer-auto-convergence-v1\.mjs/);
-  const topPermissions=workflow.slice(workflow.indexOf('\\npermissions:\\n'),workflow.indexOf('\\njobs:\\n'));
+  const topPermissions=workflow.slice(workflow.indexOf('\npermissions:\n'),workflow.indexOf('\njobs:\n'));
   assert.match(topPermissions,/contents: read/);
   assert.match(topPermissions,/actions: read/);
   assert.doesNotMatch(topPermissions,/actions: write/);
-  assert.match(workflow,/^  exact-main-health:\\n    permissions:\\n      actions: write\\n      contents: read/m);
+  assert.match(workflow,/^  exact-main-health:\n    permissions:\n      actions: write\n      contents: read/m);
   for(const marker of ['promotion_eligible==false','public=="HOLD"','production=="HOLD"','g5=="HOLD"'])assert.ok(workflow.includes(marker));
 });
 
