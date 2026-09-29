@@ -155,21 +155,29 @@ jobs:
       - name: Reject protected output mutations
         run: |
           set -euo pipefail
-          for CASE in CURRENT_PRICE GENERIC_EVENT TOP16_ACTIVATION PUBLIC_RELEASE; do
+          for CASE in LIVE_SNAPSHOT ACQUISITION_RECEIPT EMPIRICAL_ADMISSION HISTORICAL_EVENT CURRENT_PRICE GENERIC_EVENT TOP16_ACTIVATION PUBLIC_RELEASE; do
             DIR=$(mktemp -d /tmp/bad-getty-historical.XXXXXX)
             cp -a /tmp/kidults-getty-historical-run-1/. "$DIR/"
             CASE="$CASE" DIR="$DIR" node - <<'NODE'
           const fs=require('fs');
           const dir=process.env.DIR;
           const choose={
+            LIVE_SNAPSHOT:'getty-historical-transaction-manifest-v1.json',
+            ACQUISITION_RECEIPT:'getty-historical-transaction-manifest-v1.json',
+            EMPIRICAL_ADMISSION:'getty-historical-transaction-evidence-ledger-v1.json',
+            HISTORICAL_EVENT:'getty-historical-transaction-event-ledger-v1.json',
             CURRENT_PRICE:'getty-historical-transaction-evidence-ledger-v1.json',
             GENERIC_EVENT:'getty-historical-transaction-event-ledger-v1.json',
             TOP16_ACTIVATION:'top16-empirical-activation-blocker-ledger-v1.json',
             PUBLIC_RELEASE:'getty-historical-transaction-admission-receipt-v1.json'
           }[process.env.CASE];
           const p=`${dir}/${choose}`,x=JSON.parse(fs.readFileSync(p));
+          if(process.env.CASE==='LIVE_SNAPSHOT') x.counts.immutable_live_source_snapshots_verified=2;
+          if(process.env.CASE==='ACQUISITION_RECEIPT') x.counts.machine_proven_acquisition_receipts=1;
+          if(process.env.CASE==='EMPIRICAL_ADMISSION') x.historical_transaction_evidence_admitted=1;
+          if(process.env.CASE==='HISTORICAL_EVENT') x.historical_transaction_events_created=1;
           if(process.env.CASE==='CURRENT_PRICE') x.records[0].current_price_eligible=true;
-          if(process.env.CASE==='GENERIC_EVENT') x.events[0].generic_market_event_admitted=true;
+          if(process.env.CASE==='GENERIC_EVENT') x.events=[{generic_market_event_admitted:true}];
           if(process.env.CASE==='TOP16_ACTIVATION') x.empirically_activated=1;
           if(process.env.CASE==='PUBLIC_RELEASE') x.public_release='ALLOW';
           fs.writeFileSync(p,JSON.stringify(x,null,2));
@@ -200,23 +208,25 @@ jobs:
           set -euo pipefail
           node - <<'NODE' >/tmp/kidults-getty-historical-kpmo-receipt-v1.json
           const fs=require('fs'),crypto=require('crypto');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const sourceSha=event.pull_request?.head?.sha || process.env.GITHUB_SHA;
           const now=new Date().toISOString();
           const run=`https://github.com/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
-          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${process.env.GITHUB_SHA}`;
+          const commit=`https://github.com/${process.env.GITHUB_REPOSITORY}/commit/${sourceSha}`;
           const validationPath='/tmp/kidults-getty-historical-final-validation-v1.json';
           const manifestPath='/tmp/kidults-getty-historical-run-1/getty-historical-transaction-manifest-v1.json';
           const digest=(p)=>`sha256:${crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex')}`;
           const receipt={
             id:'kidults-asi-getty-historical-transaction-admission-kpmo-receipt-v1',version:'1.0.0',
             agent_id:'github-actions/kidults-asi-getty-historical-transaction-admission-v1',as_of:now,
-            scope:'Exact-digest Getty CC0 historical transaction evidence admission with current-market isolation',state:'VERIFIED_PASS',
+            scope:'Exact-digest Getty CC0 committed-reference replay with acquisition and empirical admission fail-closed',state:'VERIFIED_PASS',
             facts:[
-              {statement:'immutable_live_source_snapshots_verified=2; purpose_specific_rights_verified_sources=1',evidence_ref_ids:['validator','manifest']},
-              {statement:'historical_transaction_evidence_admitted=1; historical_transaction_events_created=1',evidence_ref_ids:['validator','manifest']},
+              {statement:'committed_reference_snapshots_verified=2; immutable_live_source_snapshots_verified=0; machine_proven_acquisition_receipts=0',evidence_ref_ids:['validator','manifest']},
+              {statement:'historical_transaction_evidence_admitted=0; historical_transaction_events_created=0; promotable=false',evidence_ref_ids:['validator','manifest']},
               {statement:'generic_market_events_admitted=0; verified_current_sold_events_created=0; current_prices_created=0; liquidity_measures_created=0',evidence_ref_ids:['validator','manifest']},
               {statement:'top16_source_adapters_activated=0; top16_evidence_admitted=0',evidence_ref_ids:['validator','manifest']},
-              {statement:'autonomous_effect=POSITIVE',evidence_ref_ids:['workflow-run','manifest']},
-              {statement:'global_effect=POSITIVE_BOUNDED_HISTORICAL_COVERAGE_ONLY',evidence_ref_ids:['manifest']},
+              {statement:'autonomous_effect=POSITIVE_FAIL_CLOSED_CONTROL_REPLAY',evidence_ref_ids:['workflow-run','manifest']},
+              {statement:'global_effect=CONTROL_ONLY_COMMITTED_REFERENCE_REPLAY',evidence_ref_ids:['manifest']},
               {statement:'irreplaceable_value_effect=POSITIVE',evidence_ref_ids:['manifest']},
               {statement:'transparency_effect=POSITIVE',evidence_ref_ids:['validator','manifest']}
             ],
@@ -228,6 +238,7 @@ jobs:
             ],
             inferences:[],
             uncertainties:[
+              'No acquisition-time HTTP status, headers, timestamp, raw-byte retrieval artifact or run-bound acquisition receipt is machine-proven.',
               'The source record supplies a month window, not an exact transaction day.',
               'The documented monetary amount is not labeled as hammer, all-in realized or current price.',
               'One historical record does not establish current demand, price, liquidity or market representativeness.'
@@ -237,18 +248,18 @@ jobs:
               {blocked_action:'Create current price or liquidity signals from this Getty record',detected_at:now,blocker:'The evidence is historical-only and lacks current-market and exposure semantics.',owner:'KPMO Source Intelligence',unblock_condition:'Admit separate current-sold and exposure evidence from rights-cleared sources.'}
             ],
             actions_executed:[
-              {action:'Verified two exact-digest official Getty JSON-LD snapshots and CC0 purpose rights.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
-              {action:'Admitted one bounded historical transaction evidence record and created one historical event.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
+              {action:'Verified two committed Getty JSON-LD reference snapshot digests and CC0 rights metadata; did not claim live acquisition.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
+              {action:'Held empirical historical evidence admission and event creation at zero because acquisition evidence is absent.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']},
               {action:'Rejected adapter mutations, current-market promotions and forged generic-router wrappers.',result:'EXECUTED',evidence_ref_ids:['workflow-run','validator']},
               {action:'Kept Top16, Public, Production and G5 gates on HOLD.',result:'EXECUTED',evidence_ref_ids:['validator','manifest']}
             ],
             next_action:'Obtain authorized access and purpose-specific rights for one Top16 current-sold source or licensed feed.',
             authority_boundary:{within_authority:true,protected_gates_touched:[],notes:'Reversible internal implementation only; no account, terms acceptance, spend, permission request, credential expansion, public release, Production or G5 action.'},
-            defect_disposition:'NO_REVERSIBLE_DEFECT_DETECTED',
-            remediation_sequence:[],
+            defect_disposition:'REMEDIATED_AND_VERIFIED',
+            remediation_sequence:['ROOT_CAUSE_CORRECTED','REGRESSION_TESTED','NEGATIVE_TESTED','EXACT_HEAD_REVALIDATED','TARGET_MAIN_REVALIDATED_OR_PREMERGE_NOT_APPLICABLE','REGISTRY_ISSUE_TRUTH_SYNCED','VERIFIED_OUTCOME_READY','PRIORITIZED_IMPROVEMENT_PROPOSAL_READY'],
             verification_evidence_refs:['workflow-run','validator','manifest'],
             truth_sync_refs:['coordination/kidults/source-intelligence/asi-getty-historical-transaction-admission-registry-v1.json'],
-            improvement_proposal:'Prioritize rights-cleared current-market transaction and exposure evidence while preserving Getty historical evidence as historical-only context.',
+            improvement_proposal:'Require an independent acquisition-time HTTP/raw-byte receipt before any empirical Getty admission.',
             production:'HOLD',public_release:'HOLD'
           };
           process.stdout.write(`${JSON.stringify(receipt,null,2)}\n`);
@@ -281,5 +292,43 @@ jobs:
             /tmp/kidults-getty-historical-kpmo-receipt-v1.json
             /tmp/kidults-getty-historical-kpmo-receipt-validation-v1.json
             /tmp/kidults-getty-historical-report-after-remediation-validation-v1.json
+          retention-days: 90
+          if-no-files-found: error
+
+      - name: Emit terminal Getty reference-replay receipt
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const event=JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,'utf8'));
+          const sourceSha=event.pull_request?.head?.sha || process.env.GITHUB_SHA;
+          fs.writeFileSync('/tmp/kidults-getty-reference-replay-terminal-v1.json', JSON.stringify({
+            id:'kidults-getty-reference-replay-terminal-v1',
+            version:'1.0.0',
+            repository:process.env.GITHUB_REPOSITORY,
+            source_sha:sourceSha,
+            event_sha:process.env.GITHUB_SHA,
+            run_id:Number(process.env.GITHUB_RUN_ID),
+            run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
+            event_name:process.env.GITHUB_EVENT_NAME,
+            job_status:process.env.JOB_STATUS,
+            committed_reference_snapshots_verified:2,
+            immutable_live_source_snapshots_verified:0,
+            machine_proven_acquisition_receipts:0,
+            historical_transaction_evidence_admitted:0,
+            historical_transaction_events_created:0,
+            promotable:false,
+            public_release:'HOLD',
+            production:'HOLD',
+            g5:'HOLD'
+          },null,2)+'\n');
+          NODE
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: kidults-getty-reference-replay-terminal-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-getty-reference-replay-terminal-v1.json
           retention-days: 90
           if-no-files-found: error
