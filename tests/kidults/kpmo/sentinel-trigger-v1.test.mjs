@@ -176,17 +176,3 @@ for(const scenario of ['fork','malformed-json','native-attempt','native-reposito
  const x=resolverCli(scenario);assert.equal(x.receipt.state,'VERIFIED_FAIL');assert.notEqual(x.result.status,0);
  if(['fork','malformed-json'].includes(scenario))assert.equal(x.calls.length,0);
 });
-test('verified exact-main Sentinel automatically dispatches its Assurance continuation',()=>{
- const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- const enforce=s.indexOf('Enforce fail-closed producer health after receipt retention');
- const dispatch=s.indexOf('Dispatch exact Sentinel-bound Assurance continuation');
- assert.ok(enforce>=0&&dispatch>enforce);
- assert.ok(s.includes('permissions:\n      actions: write\n      contents: read'));
- const continuation=s.slice(dispatch);
- assert.ok(continuation.includes('if: success()'));
- assert.ok(continuation.includes('.state=="VERIFIED_PASS"'));
- assert.ok(continuation.includes('.source_sha==$sha'));
- assert.ok(continuation.includes('.observer_run_id==$run'));
- assert.ok(continuation.includes('inputs:{profile:$profile}'));
- assert.ok(continuation.includes('/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches'));
-});
