@@ -10,10 +10,9 @@ const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
-  "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']",
+  "workflows: ['KIDULTS Platform Continuous Assurance V1']",
   "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
-  "github.event.workflow_run.conclusion == 'success')",
-  "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+  "github.event.workflow_run.conclusion == 'success'",
   'ref: ${{ github.event.workflow_run.head_sha }}',
   'upstream_observation:{',
   'UPSTREAM_WORKFLOW_NAME',
@@ -32,7 +31,7 @@ const requiredWorkflowTokens = [
   'kpmo-continuous-assurance-success-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
   '.producer_health_run_attempt==1',
-  '(.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule")',
+  '(.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule" or .producer_health_event=="workflow_run")',
   '.whole_platform_authority==false',
   '.promotion_eligible==false',
   '.public=="HOLD"',
@@ -48,8 +47,8 @@ if (workflow.includes('.conclusion=="success"') && workflow.includes('.created_a
   fail('SUCCESS_AUTHORITY_GATE_STALE_SUCCESS_FILTER');
 }
 
-if (!workflow.includes("github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'schedule'")) {
-  fail('SUCCESS_AUTHORITY_GATE_NATURAL_FAILURE_TRIGGER_MISSING');
+if (workflow.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'")) {
+  fail('SUCCESS_AUTHORITY_GATE_PREMATURE_SENTINEL_TRIGGER_FORBIDDEN');
 }
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');

@@ -17,7 +17,7 @@ for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact sa
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
-for(const name of ['push','schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
+test('manual recovery observer remains valid',()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'}),null));
 test('natural Sentinel dispatch accepts the authenticated exact-main clock binding',()=>{
  const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
  assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
@@ -108,10 +108,12 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
-test('completion collection reuses existing Assurance edges and keeps strict sentinel gate',()=>{
+test('completion collection serializes Reserve into the strict sentinel gate',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
- assert.doesNotMatch(s,/^  workflow_run:/m);
+ assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(s,/^  push:/m);
+ assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
  for(const x of PRODUCER_COMPLETIONS)assert.ok(a.includes(`      - '${x.name}'`));
  assert.ok(a.includes("      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'"));

@@ -14,7 +14,7 @@ on:
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
       - 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json'
   workflow_run:
-    workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']
+    workflows: ['KIDULTS Platform Continuous Assurance V1']
     branches: [main]
     types: [completed]
 
@@ -57,12 +57,9 @@ jobs:
       github.event.workflow_run.repository.full_name == github.repository &&
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.head_branch == 'main' &&
-      ((github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
-        github.event.workflow_run.status == 'completed' &&
-        github.event.workflow_run.conclusion == 'success') ||
-       (github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
-        github.event.workflow_run.status == 'completed' &&
-        (github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'schedule')))
+      github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
+      github.event.workflow_run.status == 'completed' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -167,7 +164,7 @@ jobs:
           SENTINEL_CONCLUSION=$(jq -r '.conclusion // empty' "$GATE_DIR/selected-sentinel-run.json")
           [[ "$SENTINEL_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           test "$SENTINEL_RUN_ATTEMPT" = 1
-          [[ "$SENTINEL_EVENT" =~ ^(repository_dispatch|schedule)$ ]]
+          [[ "$SENTINEL_EVENT" =~ ^(workflow_run|repository_dispatch|schedule)$ ]]
           {
             echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
             echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
@@ -236,7 +233,7 @@ jobs:
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
             producer_health_run_id:/^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_RUN_ID||'')?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
             producer_health_run_attempt:process.env.PRODUCER_HEALTH_RUN_ATTEMPT==='1'?1:null,
-            producer_health_event:/^(repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
+            producer_health_event:/^(workflow_run|repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
             producer_health_receipt_digest:healthDigest,
             producer_health_conclusion:process.env.PRODUCER_HEALTH_CONCLUSION||null,
             producer_health_state:health?.state||'UNAVAILABLE'
@@ -273,7 +270,7 @@ jobs:
             .current_protected_main_sha==env.UPSTREAM_SHA and
             (.producer_health_run_id|type)=="number" and
             .producer_health_run_attempt==1 and
-            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule") and
+            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule" or .producer_health_event=="workflow_run") and
             .producer_health_conclusion=="success" and
             (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .producer_health_state=="VERIFIED_PASS" and
