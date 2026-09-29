@@ -2,6 +2,10 @@ name: KIDULTS ASI Common Crawl Gate Chain Binding v1
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows:
+      - 'KIDULTS ASI Global Any-Site Discovery v2'
+    types: [completed]
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs'
@@ -25,21 +29,32 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  # A skipped/ineligible workflow_run must never cancel a valid producer completion.
+  # Successful producer completions are isolated by upstream run id.
+  group: kidults-asi-common-crawl-gate-chain-binding-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   common-crawl-gate-chain-binding:
+    # Reject workflow_run events whose producer did not succeed on main. workflow_dispatch and
+    # pull_request retain their existing entry paths for recovery/validation.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
       - name: Verify exact source, provenance guard and syntax
         env:
-          EXPECTED_EXECUTION_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_EXECUTION_SHA: ${{ github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}
         run: |
           test "$(git rev-parse HEAD)" = "$EXPECTED_EXECUTION_SHA"
           node --check scripts/kidults/source-intelligence/asi-common-crawl-host-expansion-v1.mjs
@@ -83,14 +98,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TARGET_BRANCH: main
-          EXPECTED_SHA: ${{ github.sha }}
-          EXPECTED_BASE_SHA: ${{ github.sha }}
-          EXPECTED_HEAD_SHA: ${{ github.sha }}
-          EXPECTED_GENERATION_SHA: ${{ github.sha }}
-          TRIGGER_EXPECTED: 'false'
+          # For causal workflow_run triggers, bind every expected SHA and the upstream run id
+          # to the exact triggering producer. workflow_dispatch remains a manual recovery lane
+          # (no causal triggering run available), so trigger-expected is false there.
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          EXPECTED_GENERATION_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          TRIGGER_EXPECTED: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}
         shell: bash
         run: |
           set -euo pipefail
+          # Stale-main fence: refuse to consume upstream if protected main has already advanced
+          # past the exact triggering producer's head SHA. Fails closed on any mismatch.
+          MAIN_SHA="$(gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/branches/main" --jq '.commit.sha')"
+          if [ "$MAIN_SHA" != "$EXPECTED_SHA" ]; then
+            echo "STALE_MAIN_REJECTED expected=$EXPECTED_SHA current_main=$MAIN_SHA"
+            exit 1
+          fi
           mkdir -p discovery-out /tmp/any-site-input
           node scripts/kidults/source-intelligence/resolve-asi-exact-generation-orchestration-v1.mjs \
             --mode live \
@@ -108,6 +134,13 @@ jobs:
             --max-attempts 24 \
             --poll-milliseconds 10000
           RUN_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/asi-common-crawl-gate-chain-orchestration-v1.json")).selected_run_id')
+          # For causal workflow_run runs, assert the resolver selected the exact triggering producer run id.
+          if [ "$TRIGGER_EXPECTED" = 'true' ]; then
+            if [ -z "${UPSTREAM_RUN_ID}" ] || [ "$RUN_ID" != "$UPSTREAM_RUN_ID" ]; then
+              echo "TRIGGERING_RUN_ID_MISMATCH selected=$RUN_ID upstream=$UPSTREAM_RUN_ID"
+              exit 1
+            fi
+          fi
           ART_ID=$(node -p 'JSON.parse(require("fs").readFileSync("/tmp/asi-common-crawl-gate-chain-orchestration-v1.json")).selected_artifact_id')
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ART_ID}/zip" \
