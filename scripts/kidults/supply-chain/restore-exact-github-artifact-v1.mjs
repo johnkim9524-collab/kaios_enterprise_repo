@@ -100,6 +100,7 @@ function parseArguments(argv) {
   ]);
   let allowNoProducerHistory = false;
   let allowProducerHistoryOutsideLookbackBaseline = false;
+  let allowProducerHistoryWithoutArtifactBaseline = false;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === '--allow-no-producer-history') {
@@ -108,6 +109,10 @@ function parseArguments(argv) {
     }
     if (token === '--allow-producer-history-outside-lookback-baseline') {
       allowProducerHistoryOutsideLookbackBaseline = true;
+      continue;
+    }
+    if (token === '--allow-producer-history-without-artifact-baseline') {
+      allowProducerHistoryWithoutArtifactBaseline = true;
       continue;
     }
     if (!token.startsWith('--')) fail('ARGUMENT_INVALID', token);
@@ -147,6 +152,7 @@ function parseArguments(argv) {
       : DEFAULT_MAX_COMPRESSED_BYTES,
     allowNoProducerHistory,
     allowProducerHistoryOutsideLookbackBaseline,
+    allowProducerHistoryWithoutArtifactBaseline,
   };
 }
 
@@ -267,6 +273,17 @@ export function resolveNoProducerHistoryBaselineState(
   return historyExistsOutsideLookback
     ? 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY'
     : 'NO_PRODUCER_HISTORY_BASELINE_ONLY';
+}
+
+export function resolveMissingArtifactBaselineState(
+  successfulRunCount,
+  allowProducerHistoryWithoutArtifactBaseline = false,
+) {
+  const runCount = requirePositiveInteger(successfulRunCount, 'SUCCESSFUL_RUN_COUNT_INVALID');
+  if (!allowProducerHistoryWithoutArtifactBaseline) {
+    fail('PRODUCER_HISTORY_WITHOUT_EXACT_ARTIFACT', runCount);
+  }
+  return 'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY';
 }
 
 async function readBoundedBody(response, maxBytes) {
@@ -448,7 +465,38 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     selectedArtifactReadback = artifactReadback;
     break;
   }
-  if (!selectedArtifact) fail('PRODUCER_HISTORY_WITHOUT_EXACT_ARTIFACT', runs.length);
+  if (!selectedArtifact) {
+    const baselineState = resolveMissingArtifactBaselineState(
+      runs.length,
+      specification.allowProducerHistoryWithoutArtifactBaseline,
+    );
+    const baselineArchivePath = path.resolve(specification.archivePath);
+    const baselineExtractDir = path.resolve(specification.extractDir);
+    fs.rmSync(baselineArchivePath, { force: true });
+    fs.rmSync(`${baselineArchivePath}.safe-zip-receipt.json`, { force: true });
+    fs.rmSync(baselineExtractDir, { recursive: true, force: true });
+    fs.mkdirSync(baselineExtractDir, { recursive: true });
+    return writeReceipt(specification.receiptPath, {
+      id: 'kidults-exact-github-artifact-restore-receipt-v1',
+      version: '1.0.0',
+      state: baselineState,
+      repository,
+      producer_workflow_name: specification.workflowName,
+      producer_workflow_path: specification.workflowPath,
+      producer_branch: specification.branch,
+      artifact_name: specification.artifactName,
+      lookback_start: lookbackStart,
+      successful_producer_run_count: runs.length,
+      run_total_count: runReadback.totalCount,
+      run_pages_fetched: runReadback.pagesFetched,
+      pagination_reconciled_complete: true,
+      historical_producer_artifact_consumed: false,
+      optional_feedback_baseline_only: true,
+      public_release: 'HOLD',
+      production: 'HOLD',
+      g5: 'HOLD',
+    });
+  }
 
   const exactRun = await getJson(`${apiBase}/runs/${selectedRun.id}`);
   validateProducerRun(exactRun, specification, repository);
