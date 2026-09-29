@@ -99,6 +99,9 @@ jobs:
           node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
+    permissions:
+      actions: write
+      contents: read
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'SENTINEL'))
     runs-on: ubuntu-24.04
     timeout-minutes: 55
@@ -197,3 +200,34 @@ jobs:
             ([.producers[].state]|all(.=="VERIFIED_PASS")) and
             ([.producers[].artifact_content_validated]|all(.==true))
           ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null
+      - name: Dispatch exact Sentinel-bound Assurance continuation
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          CURRENT_MAIN_SHA=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)
+          test "$CURRENT_MAIN_SHA" = "$GITHUB_SHA"
+          jq -e --arg sha "$GITHUB_SHA" --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" '
+            .receipt_id=="kpmo-continuous-assurance-sentinel-health-v1" and
+            .state=="VERIFIED_PASS" and
+            .source_sha==$sha and
+            .observer_run_id==$run and
+            .observer_run_attempt==$attempt and
+            .semantic_content_verified==true and
+            .runtime_health_proven==false and
+            .whole_platform_authority==false and
+            .promotion_eligible==false and
+            .provider_authority==false and
+            .database_authority==false and
+            .public=="HOLD" and .production=="HOLD" and .g5=="HOLD" and
+            (.producers|length)==4 and
+            ([.producers[].state]|all(.=="VERIFIED_PASS")) and
+            ([.producers[].artifact_content_validated]|all(.==true))
+          ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null
+          jq -n --arg ref main --arg profile sentinel \
+            '{ref:$ref,inputs:{profile:$profile}}' \
+            > "$RUNNER_TEMP/sentinel-assurance-dispatch.json"
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "/repos/$GITHUB_REPOSITORY/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \
+            --input "$RUNNER_TEMP/sentinel-assurance-dispatch.json"
