@@ -46,6 +46,20 @@ jobs:
           node-version: "24.19.0"
           package-manager-cache: false
 
+      - name: Syntax-check market governance runtimes
+        run: |
+          set -euo pipefail
+          mapfile -d '' MARKET_MODULES < <(
+            find scripts/kidults/market -type f -name '*.mjs' -print0 | sort -z
+          )
+          test "${#MARKET_MODULES[@]}" -gt 0
+          for module in "${MARKET_MODULES[@]}"; do
+            node --check "$module"
+          done
+
+      - name: Validate atomic terminal recovery finalization contract
+        run: node scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-finalization-v1.mjs
+
       - name: Verify mandatory GitHub-source agent bootstrap
         run: |
           set -euo pipefail
