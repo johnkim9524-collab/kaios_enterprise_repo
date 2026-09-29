@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {
   ExactArtifactRestoreError,
   collectCompletePages,
+  resolveNoProducerHistoryBaselineState,
+  resolveMissingArtifactBaselineState,
   selectAllowedProducerRuns,
   validateArtifact,
   validateProducerRun,
@@ -84,6 +86,22 @@ const specification = {
   allowedEvents: ['schedule', 'workflow_dispatch', 'push'],
 };
 const repository = 'kidults/example';
+
+assert.equal(resolveNoProducerHistoryBaselineState(0, 0, false), 'NO_PRODUCER_HISTORY_BASELINE_ONLY');
+expectRejected(
+  () => resolveNoProducerHistoryBaselineState(9, 1, false),
+  'PRODUCER_HISTORY_OUTSIDE_LOOKBACK',
+);
+assert.equal(
+  resolveNoProducerHistoryBaselineState(9, 1, true),
+  'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY',
+);
+expectRejected(() => resolveNoProducerHistoryBaselineState(0, 1, true), 'ALL_HISTORY_PROBE_INVALID');
+expectRejected(() => resolveMissingArtifactBaselineState(4, false), 'PRODUCER_HISTORY_WITHOUT_EXACT_ARTIFACT');
+assert.equal(
+  resolveMissingArtifactBaselineState(4, true),
+  'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY',
+);
 const run = {
   id: 41,
   run_attempt: 2,
@@ -176,6 +194,10 @@ function staticFailures(resolverSource, criticalSources) {
     'VERIFIED_PASS_PRE_EXTRACTION',
     'safe_zip_validated_before_extraction: true',
     'PRODUCER_HISTORY_OUTSIDE_LOOKBACK',
+    'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY',
+    '--allow-producer-history-outside-lookback-baseline',
+    'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY',
+    '--allow-producer-history-without-artifact-baseline',
   ];
   for (const marker of resolverMarkers) {
     if (!resolverSource.includes(marker)) failures.push(`resolver marker missing: ${marker}`);
@@ -211,6 +233,8 @@ const sourceMutations = [
   ['remove required basename binding', '--required-basename', '--optional-basename'],
   ['move Safe-ZIP after extraction', "execFileSync('python3', safeZipArguments", "execFileSync('python3-after-unzip', safeZipArguments"],
   ['allow stale baseline reset', 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK', 'PRODUCER_HISTORY_BASELINE_ALLOWED'],
+  ['remove explicit optional stale-feedback mode', '--allow-producer-history-outside-lookback-baseline', '--unsafe-stale-feedback-baseline'],
+  ['remove explicit optional missing-artifact mode', '--allow-producer-history-without-artifact-baseline', '--unsafe-missing-artifact-baseline'],
   ['allow forbidden-only history as empty baseline', 'NO_ALLOWED_PRODUCER_HISTORY', 'NO_PRODUCER_HISTORY'],
 ];
 for (const [label, from, to] of sourceMutations) {
