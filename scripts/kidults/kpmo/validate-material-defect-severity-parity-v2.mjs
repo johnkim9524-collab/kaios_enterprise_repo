@@ -17,6 +17,19 @@ function fail(message) {
 export function declaredSeverityLabels(title) {
   const declared = new Set();
   const text = String(title || '');
+
+  // Authoritative severity may be expressed either as an exact bracket marker
+  // ([P0], [P1], [P0/P1], [P1/P0]) or as a strict leading prefix
+  // (P0:, P1:, P0/P1:, P1/P0:). Prefix recognition is deliberately anchored
+  // so aliases/prose such as [P0-SUPPORT], [P0-A] or "P1 producer" are not
+  // silently promoted into material severity declarations.
+  const prefixMatch = text.match(/^\s*((?:P0|P1)(?:\s*\/\s*(?:P0|P1))*)\s*:/);
+  if (prefixMatch) {
+    for (const part of String(prefixMatch[1] || '').split('/').map(part => part.trim()).filter(Boolean)) {
+      declared.add(part);
+    }
+  }
+
   for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
     const parts = String(match[1] || '').split('/').map(part => part.trim()).filter(Boolean);
     if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1')) continue;
@@ -72,19 +85,35 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
+  const prefixP1 = { number: 6, state: 'open', title: 'P1: strict prefix', labels: [{ name: 'P1' }] };
+  const prefixP0 = { number: 7, state: 'open', title: 'P0: strict prefix', labels: [{ name: 'P0' }] };
+  const prefixCombined = { number: 8, state: 'open', title: 'P1/P0: strict combined prefix', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const prefixMissing = { number: 9, state: 'open', title: 'P1: missing label', labels: [] };
+  const prefixConflict = { number: 10, state: 'open', title: 'P1: conflicting label', labels: [{ name: 'P0' }, { name: 'P1' }] };
+  const ordinaryProse = { number: 11, state: 'open', title: 'P1 producer contract discussion', labels: [] };
+
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
   if (declaredSeverityLabels(support.title).length !== 0) throw new Error('SELF_TEST_SUPPORT_ALIASING');
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
-  if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (materialRecord({ number: 12, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (parityFailures(prefixP1).length || declaredSeverityLabels(prefixP1.title).join(',') !== 'P1') throw new Error('SELF_TEST_PREFIX_P1_REJECTED');
+  if (parityFailures(prefixP0).length || declaredSeverityLabels(prefixP0.title).join(',') !== 'P0') throw new Error('SELF_TEST_PREFIX_P0_REJECTED');
+  if (parityFailures(prefixCombined).length || declaredSeverityLabels(prefixCombined.title).join(',') !== 'P0,P1') throw new Error('SELF_TEST_PREFIX_COMBINED_REJECTED');
+  if (!parityFailures(prefixMissing).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_PREFIX_MISMATCH_NOT_REJECTED');
+  if (!parityFailures(prefixConflict).some(x => x.includes('P0_LABEL_WITH_P1_ONLY_TITLE'))) throw new Error('SELF_TEST_PREFIX_CONFLICT_NOT_REJECTED');
+  if (declaredSeverityLabels(ordinaryProse.title).length !== 0 || parityFailures(ordinaryProse).length) throw new Error('SELF_TEST_PREFIX_PROSE_ALIASING');
+
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
     exact_marker: true,
     combined_marker_normalization: true,
+    strict_prefix_marker_normalization: true,
     support_alias_excluded: true,
+    non_prefix_prose_excluded: true,
     label_only_authority_preserved: true,
     mismatch_fail_closed: true
   }));
@@ -145,7 +174,9 @@ try {
     complete_open_issue_pagination: true,
     cardinality_stable: true,
     exact_and_combined_marker_normalization: true,
+    strict_prefix_marker_normalization: true,
     support_alias_excluded: true,
+    non_prefix_prose_excluded: true,
     label_only_material_authority_preserved: true,
     promotion_eligible: false,
     production: 'HOLD',
