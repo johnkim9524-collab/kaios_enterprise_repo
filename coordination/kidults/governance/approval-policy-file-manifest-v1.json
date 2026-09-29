@@ -1872,8 +1872,8 @@
     {
       "path": "coordination/kidults/kpmo/platform-continuous-assurance-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "db366728509d65682e9e8c503a3c59c81101a250",
-      "sha256": "sha256:98e5f2f147cf6c4b6c7476b523283c0ad8f04bacc0d2dca7fc2cb983a00af761",
+      "git_blob": "4fb489070d8efc9641b987d0fad1dcea50068a0a",
+      "sha256": "sha256:ef0211f461a8a8da283b53cb681106a0cd2d7ddbb4d03fcb085f351d130c9834",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5241,5 +5241,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5e09f5f1818150c39ac996d2df92b3c37f54285f17367715001503ba43c850ae"
+  "manifest_sha256": "sha256:e270dbf421fb43b8de8b02541411e14462c81ade1c7bf229a9838f73c625dd7b"
 }
