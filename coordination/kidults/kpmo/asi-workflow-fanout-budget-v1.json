@@ -40,7 +40,7 @@
   "budgets": {
     "workflow_run_consumers_max": 16,
     "execution_workflow_run_edges_max": 29,
-    "control_observer_edges_max": 19,
+    "control_observer_edges_max": 20,
     "direct_consumers_per_producer_max": 2,
     "workflow_run_chain_depth_max": 8,
     "cycles_max": 0
@@ -71,7 +71,8 @@
       "KIDULTS ASI Requirement-to-Adapter Coverage v1",
       "KIDULTS ASI SHADOW Operating Evidence v1",
       "KIDULTS ASI Sharded Source Reserve v1",
-      "KPMO Live Canonical Issue Truth V1"
+      "KPMO Live Canonical Issue Truth V1",
+      "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1"
     ],
     "terminal_observer_only": true,
     "repository_mutation_allowed": false,

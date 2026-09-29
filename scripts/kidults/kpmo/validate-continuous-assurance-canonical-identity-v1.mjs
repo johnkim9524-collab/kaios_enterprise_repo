@@ -62,6 +62,7 @@ const expectedClassByWorkflow = new Map([
   ['KIDULTS ASI Sharded Source Reserve v1', 'ASI_SHARDED_SOURCE_RESERVE'],
   ['KIDULTS ASI SHADOW Operating Evidence v1', 'ASI_SHADOW_OPERATING_EVIDENCE'],
   ['KPMO Live Canonical Issue Truth V1', 'KPMO_LIVE_CANONICAL_ISSUE_TRUTH'],
+  ['KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 'KPMO_EXACT_SHA_PRODUCER_HEALTH'],
 ]);
 for (const entry of contract.workflow_run_class_allowlist) {
   assert(expectedClassByWorkflow.get(entry.workflow_name) === entry.upstream_class, `WORKFLOW_CLASS_REASSIGNMENT:${entry.workflow_name}`);

@@ -535,8 +535,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3ffdaf970724e38ff41e30adb15dc556d266cc6e",
-      "sha256": "sha256:5ada48eca82a36e51fafab7de8f2c63b4fe4ad74eaf3ec76bedf5a23013835aa",
+      "git_blob": "8c8c36514117a6298b2440033ee9cac348f6e63f",
+      "sha256": "sha256:707483e9c477b07b49c79ebcd533e26fb7222b58db5ed74fac6d1c3ae748c17d",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5153,14 +5153,14 @@
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0cf1cfb1e9eb711cd90776a8c7274f482bcba785",
-      "sha256": "sha256:83f5bf6a75653b1361a812b746439daea16f838fdac7ed18ab4e190811d67161"
+      "git_blob": "ab3af12abf67f80edbafb05194e3c668f170e9cd",
+      "sha256": "sha256:79fb46bfe02f37c057eba5ea0864e101742e66087c0e5a25d47ee458b8765762"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4d7fed6a5198bcdb83407b03f525711e2e096290",
-      "sha256": "sha256:6fbb07b7af04dc9715ce3ce4f474944ce49ea9a669a83911ab8e561359338af2"
+      "git_blob": "156184e59fd9f5908960982afbb0e277bab2f066",
+      "sha256": "sha256:85c9339e438d019b0db4c2dd2efa78950a15a58cdfc90e59c68125c197b0056f"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -5241,5 +5241,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7edb6bbde775b618c8ffff1b912a2b4cdfab8b9a23633a0ca494018a81f6217d"
+  "manifest_sha256": "sha256:2efd78985589531539747699f34b338938a96bf72deb694276f6fcb6122fce82"
 }
