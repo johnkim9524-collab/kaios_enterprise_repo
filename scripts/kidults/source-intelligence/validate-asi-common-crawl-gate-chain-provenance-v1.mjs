@@ -6,19 +6,23 @@ const source = fs.readFileSync(workflowPath, 'utf8');
 function violations(text) {
   const failures = [];
   const mustInclude = [
-    'EXPECTED_SHA: ${{ github.sha }}',
-    'TARGET_BRANCH: main',
+    "EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}",
+    "TARGET_BRANCH: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || 'main' }}",
     'resolve-asi-exact-generation-orchestration-v1.mjs',
     '--mode live',
     '--mode pr-fixture',
+    '--triggering-run-id "$TRIGGERING_PRODUCER_RUN_ID"',
     '--trigger-expected "$TRIGGER_EXPECTED"',
     '--trigger-expected false',
+    "TRIGGER_EXPECTED: ${{ github.event_name == 'workflow_run' && 'true' || 'false' }}",
+    "TRIGGERING_PRODUCER_RUN_ID: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || '' }}",
     '--max-attempts 24 \\',
     '--poll-milliseconds 10000',
     '--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml',
     '--artifact-name kidults-asi-global-any-site-discovery-v2',
+    '  workflow_run:',
     '  workflow_dispatch:',
-    'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
+    "ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.pull_request.head.sha || github.sha }}",
     "if: github.event_name != 'pull_request'",
     "if: always() && github.event_name != 'pull_request'",
     'producer_run_id:r.selected_run_id',
@@ -46,13 +50,14 @@ if (pristine.length) {
 }
 
 const mutations = [
-  ['DROP_EXPECTED_SHA', t => t.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound')],
-  ['RESTORE_AUTOMATIC_TRIGGER', t => t.replace('  workflow_dispatch:', '  schedule:')],
+  ['DROP_EXPECTED_SHA', t => t.replaceAll("EXPECTED_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}", 'EXPECTED_SHA: unbound')],
+  ['RESTORE_AUTOMATIC_TRIGGER', t => t.replace('  workflow_run:', '  schedule:')],
   ['DROP_RESOLVER', t => t.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs')],
   ['DROP_CANONICAL_PATH', t => t.replaceAll('--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml', '--workflow-path .github/workflows/forged.yml')],
   ['DROP_BOUND', t => t.replace('--max-attempts 24', '--max-attempts 240')],
   ['ALLOW_PR_LIVE', t => t.replaceAll("if: github.event_name != 'pull_request'", 'if: always()')],
   ['DROP_PR_FIXTURE', t => t.replace('--mode pr-fixture', '--mode live')],
+  ['DROP_TRIGGERING_RUN_BINDING', t => t.replace('--triggering-run-id "$TRIGGERING_PRODUCER_RUN_ID"', '--triggering-run-id ""')],
   ['DROP_RECEIPT_PROVENANCE', t => t.replace('upstream_global_discovery:provenance,', '')],
   ['ALLOW_FALSE_EXACT_GENERATION', t => t.replace('exact_generation:true', 'exact_generation:false')]
 ];

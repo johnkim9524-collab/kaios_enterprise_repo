@@ -10,12 +10,13 @@ const WORKFLOW_PATH = /^\.github\/workflows\/[A-Za-z0-9_.-]+\.ya?ml$/;
 const SAFE_NAME = /^[A-Za-z0-9_.-]+$/;
 const SAFE_BRANCH = /^[A-Za-z0-9._\/-]+$/;
 const SAFE_REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
-const ALLOWED_EVENTS = new Set(['schedule', 'workflow_dispatch', 'push']);
+const ALLOWED_EVENTS = new Set(['schedule', 'workflow_dispatch', 'workflow_run', 'push']);
 const MAX_API_RESPONSE_BYTES = 4 * 1024 * 1024;
 const RECEIPT_KEYS = new Set([
   'id', 'version', 'consumer_id', 'repository', 'producer_workflow_path',
   'producer_workflow_name', 'producer_branch', 'expected_producer_sha',
   'expected_base_sha', 'expected_head_sha', 'expected_generation_sha',
+  'triggering_run_id',
   'artifact_name', 'trigger_expected', 'attempts_completed', 'max_attempts',
   'matched_run_count', 'selected_run_id', 'selected_run_attempt',
   'selected_run_status', 'selected_run_conclusion', 'artifact_match_count',
@@ -65,9 +66,14 @@ function validateSpecification(specification) {
   if (specification.expectedSha !== specification.expectedGenerationSha) fail('GENERATION_SHA_ALIAS_MISMATCH');
   if (specification.expectedHeadSha !== specification.expectedGenerationSha) fail('HEAD_GENERATION_MISMATCH');
   if (typeof specification.triggerExpected !== 'boolean') fail('TRIGGER_EXPECTED_INVALID');
+  const triggeringRunId = specification.triggeringRunId === null
+    || specification.triggeringRunId === undefined
+    || specification.triggeringRunId === ''
+    ? null
+    : integer(specification.triggeringRunId, 'TRIGGERING_RUN_ID_INVALID', 1);
   const maxAttempts = integer(specification.maxAttempts, 'MAX_ATTEMPTS_INVALID', 1, 60);
   const pollMilliseconds = integer(specification.pollMilliseconds, 'POLL_MILLISECONDS_INVALID', 0, 60_000);
-  return { ...specification, maxAttempts, pollMilliseconds };
+  return { ...specification, triggeringRunId, maxAttempts, pollMilliseconds };
 }
 
 function validateRunShape(run, specification) {
@@ -109,6 +115,7 @@ function receiptBase(specification, observation) {
     expected_base_sha: specification.expectedBaseSha,
     expected_head_sha: specification.expectedHeadSha,
     expected_generation_sha: specification.expectedGenerationSha,
+    triggering_run_id: specification.triggeringRunId,
     artifact_name: specification.artifactName,
     trigger_expected: specification.triggerExpected,
     attempts_completed: observation.attempt,
@@ -141,10 +148,18 @@ export function classifyObservation(specificationInput, observation) {
   const exactRuns = [...observation.runs];
   exactRuns.forEach((run) => validateRunShape(run, specification));
   exactRuns.sort((left, right) => right.run_attempt - left.run_attempt || right.id - left.id);
-  const run = exactRuns[0] || null;
+  const run = specification.triggeringRunId === null
+    ? (exactRuns[0] || null)
+    : (exactRuns.find((candidate) => candidate.id === specification.triggeringRunId) || null);
   const base = receiptBase(specification, { attempt, matchedRunCount: exactRuns.length, run });
 
   if (!run) {
+    if (specification.triggeringRunId !== null) {
+      if (attempt === specification.maxAttempts) {
+        return seal({ ...base, state: 'VERIFIED_FAIL', terminal: true, outcome: 'TRIGGER_RUN_ID_MISMATCH', failure_class: 'TRIGGER_RUN_ID_MISMATCH' });
+      }
+      return seal({ ...base, state: 'RUNNING_VERIFIED', terminal: false, outcome: 'WAITING_FOR_TRIGGERING_RUN', failure_class: null });
+    }
     if (!specification.triggerExpected) {
       return seal({ ...base, state: 'VERIFIED_FAIL', terminal: true, outcome: 'TRIGGER_MISSING', failure_class: 'TRIGGER_MISSING' });
     }
@@ -220,6 +235,7 @@ export function validateReceipt(receipt) {
     expectedBaseSha: receipt.expected_base_sha,
     expectedHeadSha: receipt.expected_head_sha,
     expectedGenerationSha: receipt.expected_generation_sha,
+    triggeringRunId: receipt.triggering_run_id,
     triggerExpected: receipt.trigger_expected,
     maxAttempts: receipt.max_attempts,
     pollMilliseconds: 0,
@@ -238,7 +254,7 @@ export function validateReceipt(receipt) {
     if (!receipt.terminal || receipt.outcome !== 'EXACT_GENERATION_ARTIFACT_AVAILABLE' || receipt.failure_class !== null) fail('RECEIPT_PASS_INVALID');
     if (!Number.isSafeInteger(receipt.selected_run_id) || !Number.isSafeInteger(receipt.selected_artifact_id) || !DIGEST.test(receipt.selected_artifact_digest || '')) fail('RECEIPT_PASS_BINDING_INVALID');
   } else if (receipt.state === 'VERIFIED_FAIL') {
-    if (!receipt.terminal || !['TRIGGER_MISSING', 'PRODUCER_NOT_CREATED', 'PRODUCER_TERMINAL_FAILURE', 'ARTIFACT_MISSING', 'ARTIFACT_EXPIRED', 'ARTIFACT_CARDINALITY_INVALID', 'ORCHESTRATION_TIMEOUT', 'MALFORMED_EVIDENCE', 'TRANSPORT_FAILURE'].includes(receipt.failure_class)) fail('RECEIPT_FAILURE_INVALID');
+    if (!receipt.terminal || !['TRIGGER_MISSING', 'TRIGGER_RUN_ID_MISMATCH', 'PRODUCER_NOT_CREATED', 'PRODUCER_TERMINAL_FAILURE', 'ARTIFACT_MISSING', 'ARTIFACT_EXPIRED', 'ARTIFACT_CARDINALITY_INVALID', 'ORCHESTRATION_TIMEOUT', 'MALFORMED_EVIDENCE', 'TRANSPORT_FAILURE', 'STALE_MAIN_ADVANCED'].includes(receipt.failure_class)) fail('RECEIPT_FAILURE_INVALID');
   } else if (receipt.state === 'RUNNING_VERIFIED') {
     if (receipt.terminal || receipt.failure_class !== null) fail('RECEIPT_WAITING_INVALID');
   } else if (receipt.state === 'VERIFIED_PASS_LOCAL_FIXTURE') {
@@ -297,6 +313,13 @@ async function requestJson(url, token, fetchImpl) {
   }
 }
 
+async function assertCurrentBranchSha(base, specification, token, fetchImpl) {
+  const payload = await requestJson(`${base}/git/ref/heads/${encodeURIComponent(specification.branch)}`, token, fetchImpl);
+  const remoteSha = payload?.object?.sha;
+  if (!SHA.test(remoteSha || '')) fail('CURRENT_REF_SHA_INVALID');
+  if (remoteSha !== specification.expectedGenerationSha) fail('CURRENT_REF_SHA_MISMATCH', remoteSha);
+}
+
 export async function resolveOrchestration(specificationInput, dependencies = {}) {
   const specification = validateSpecification(specificationInput);
   const token = dependencies.token || process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
@@ -309,6 +332,7 @@ export async function resolveOrchestration(specificationInput, dependencies = {}
   let lastReceipt = null;
   for (let attempt = 1; attempt <= specification.maxAttempts; attempt += 1) {
     try {
+      await assertCurrentBranchSha(base, specification, token, fetchImpl);
       const query = new URLSearchParams({ branch: specification.branch, head_sha: specification.expectedGenerationSha, per_page: '100' });
       const runsPayload = await requestJson(`${base}/workflows/${encodeURIComponent(workflowFile)}/runs?${query}`, token, fetchImpl);
       if (!Array.isArray(runsPayload?.workflow_runs) || Number(runsPayload?.total_count) > 100 || Number(runsPayload?.total_count) !== runsPayload.workflow_runs.length) fail('RUN_EVIDENCE_INVALID');
@@ -325,7 +349,10 @@ export async function resolveOrchestration(specificationInput, dependencies = {}
       lastReceipt = classifyObservation(specification, { attempt, runs: exactRuns, artifacts });
     } catch (error) {
       const transportCodes = new Set(['TRANSPORT_TIMEOUT', 'TRANSPORT_FAILURE', 'GITHUB_API_ERROR']);
-      const failureClass = error instanceof OrchestrationError && transportCodes.has(error.code) ? 'TRANSPORT_FAILURE' : 'MALFORMED_EVIDENCE';
+      const staleMain = error instanceof OrchestrationError && error.code === 'CURRENT_REF_SHA_MISMATCH';
+      const failureClass = staleMain
+        ? 'STALE_MAIN_ADVANCED'
+        : (error instanceof OrchestrationError && transportCodes.has(error.code) ? 'TRANSPORT_FAILURE' : 'MALFORMED_EVIDENCE');
       return seal({
         ...receiptBase(specification, { attempt }),
         state: 'VERIFIED_FAIL',
@@ -375,6 +402,7 @@ function parseArguments(argv) {
       expectedBaseSha: values.get('expected-base-sha'),
       expectedHeadSha: values.get('expected-head-sha'),
       expectedGenerationSha: values.get('expected-generation-sha'),
+      triggeringRunId: values.get('triggering-run-id') || null,
       triggerExpected: triggerExpected === 'true',
       maxAttempts: values.get('max-attempts') || 24,
       pollMilliseconds: values.get('poll-milliseconds') || 10_000,
