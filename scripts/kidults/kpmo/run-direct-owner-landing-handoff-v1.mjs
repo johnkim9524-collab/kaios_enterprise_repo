@@ -283,16 +283,17 @@ try {
     || currentRun?.triggering_actor?.login !== owner) {
     fail('DIRECT_OWNER_HANDOFF_CURRENT_RUN_BINDING_INVALID');
   }
+  const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
+  const readyEvent = selectLatestLifecycleReadyEvent({timeline, repositoryOwner: owner, pullRequest: pr});
+  const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
   const oneUse = evaluateAtomicLandingOneUseRunSet(await workflowRuns(currentRun.workflow_id), {
     currentRunId: runId,
     currentRunAttempt: runAttempt,
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: expectedBaseSha,
+    authorizationApprovedAt: approval.comment_created_at,
   });
-  const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
-  const readyEvent = selectLatestLifecycleReadyEvent({timeline, repositoryOwner: owner, pullRequest: pr});
-  const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
   const protect = rulesets.find(value => value.name === 'Protect main' && value.enforcement === 'active');
