@@ -5,14 +5,18 @@ const WORKFLOW_FILE = 'kpmo-pr-lifecycle-integrity-v1.yml';
 export const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
 export const GOVERNED_LANDING_CONTEXT = 'KIDULTS Governed Landing Authorization V1';
 export const GOVERNED_LANDING_PENDING_DESCRIPTION = 'Ready; operation-specific atomic landing is required';
+export const GOVERNED_LANDING_NORMAL_READY_DESCRIPTION = 'Ready lifecycle verified; operation-specific landing authority required';
 export const READY_GOVERNED_REASON = 'NATIVE_SCOPE_SUCCESS_AND_OPERATION_SPECIFIC_ATOMIC_LANDING_PENDING';
 
 export function isAtomicLandingNativeStatusReady(status) {
   const context = String(status?.context || '');
   const state = String(status?.state || 'missing');
   if (context === GOVERNED_LANDING_CONTEXT) {
-    return state === 'pending'
-      && String(status?.description || '') === GOVERNED_LANDING_PENDING_DESCRIPTION;
+    if (state !== 'pending') return false;
+    const description = String(status?.description || '');
+    if (description === GOVERNED_LANDING_PENDING_DESCRIPTION) return true;
+    return description === GOVERNED_LANDING_NORMAL_READY_DESCRIPTION
+      && status?.creator?.login === 'github-actions[bot]';
   }
   if (context === SCOPE_AWARE_CONTEXT) return state === 'success';
   return state === 'success';
