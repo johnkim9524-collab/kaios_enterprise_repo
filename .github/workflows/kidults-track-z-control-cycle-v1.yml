@@ -1,0 +1,121 @@
+name: KIDULTS Track Z Control Cycle V1
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/track-z/**'
+      - 'coordination/kidults/registry/provider/**'
+      - 'coordination/kidults/provider/**'
+      - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json'
+      - 'docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md'
+      - 'docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md'
+      - 'docs/operations/KIDULTS_TRACK_Z_OPERATING_SYSTEM_V1.md'
+      - 'scripts/kidults/track-z/**'
+      - 'tests/kidults/track-z/**'
+      - '.github/workflows/kidults-track-z-control-cycle-v1.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'coordination/kidults/track-z/**'
+      - 'coordination/kidults/registry/provider/**'
+      - 'coordination/kidults/provider/**'
+      - 'coordination/kidults/internalization/**'
+      - 'coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json'
+      - 'coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json'
+      - 'docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md'
+      - 'docs/strategy/IH_GROUP_PROVIDER_WRITTEN_EMAIL_ONLY_NEGOTIATION_POLICY_V1.md'
+      - 'docs/operations/KIDULTS_TRACK_Z_OPERATING_SYSTEM_V1.md'
+      - 'scripts/kidults/track-z/**'
+      - 'tests/kidults/track-z/**'
+      - '.github/workflows/kidults-track-z-control-cycle-v1.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-track-z-control-cycle-v1-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate-track-z-control-cycle:
+    name: KIDULTS Track Z Control Cycle V1
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Verify exact head and syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --check scripts/kidults/track-z/lib/track-z-control-engine-v1.mjs
+          node --check scripts/kidults/track-z/run-track-z-control-cycle-v1.mjs
+          node --check tests/kidults/track-z/track-z-control-cycle-v1.test.mjs
+          node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/track-z/track-z-operating-system-v1.json','utf8'))"
+      - name: Run Track Z regression and negative tests
+        run: node --test tests/kidults/track-z/track-z-control-cycle-v1.test.mjs
+      - name: Execute and validate bounded Track Z terminal receipt
+        run: |
+          set -euo pipefail
+          node scripts/kidults/track-z/run-track-z-control-cycle-v1.mjs \
+            --observed-at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --source-ref "$EXPECTED_SHA" \
+            --output /tmp/kidults-track-z-control-cycle-v1.json \
+            | tee /tmp/kidults-track-z-control-cycle-v1.log
+          node - <<'NODE'
+          const receipt = JSON.parse(require('fs').readFileSync('/tmp/kidults-track-z-control-cycle-v1.json', 'utf8'));
+          const terminalStates = new Set([
+            'VERIFIED_PASS_INTERNAL_CONTROL_ONLY',
+            'VERIFIED_HOLD_CASE_ERRORS',
+            'VERIFIED_HOLD_BACKPRESSURE'
+          ]);
+          if (receipt.source_ref !== process.env.EXPECTED_SHA) throw new Error('TRACK_Z_SOURCE_REF_MISMATCH');
+          if (!terminalStates.has(receipt.state)) throw new Error('TRACK_Z_TERMINAL_STATE_INVALID');
+          if (receipt.summary.external_actions_authorized !== 0) throw new Error('TRACK_Z_EXTERNAL_AUTHORITY_OPEN');
+          if (receipt.summary.contract_spend_credential_acquisition_authorized !== 0) throw new Error('TRACK_Z_PROTECTED_AUTHORITY_OPEN');
+          if (receipt.summary.production_public_g5_authorized !== 0) throw new Error('TRACK_Z_RELEASE_AUTHORITY_OPEN');
+          NODE
+          git diff --exit-code
+      - name: Upload Track Z terminal receipt
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: kidults-track-z-control-cycle-v1-${{ env.EXPECTED_SHA }}
+          path: |
+            /tmp/kidults-track-z-control-cycle-v1.json
+            /tmp/kidults-track-z-control-cycle-v1.log
+          retention-days: 90
+          if-no-files-found: error
+      - name: Reapply fail-closed Track Z terminal verdict
+        if: ${{ always() }}
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = '/tmp/kidults-track-z-control-cycle-v1.json';
+          if (!fs.existsSync(path)) throw new Error('TRACK_Z_TERMINAL_RECEIPT_MISSING');
+          const receipt = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (receipt.source_ref !== process.env.EXPECTED_SHA) throw new Error('TRACK_Z_SOURCE_REF_MISMATCH');
+          if (receipt.summary.external_actions_authorized !== 0) throw new Error('TRACK_Z_EXTERNAL_AUTHORITY_OPEN');
+          if (receipt.summary.contract_spend_credential_acquisition_authorized !== 0) throw new Error('TRACK_Z_PROTECTED_AUTHORITY_OPEN');
+          if (receipt.summary.production_public_g5_authorized !== 0) throw new Error('TRACK_Z_RELEASE_AUTHORITY_OPEN');
+          if (receipt.state !== 'VERIFIED_PASS_INTERNAL_CONTROL_ONLY') {
+            throw new Error(`TRACK_Z_TERMINAL_HOLD:${receipt.state}`);
+          }
+          NODE
