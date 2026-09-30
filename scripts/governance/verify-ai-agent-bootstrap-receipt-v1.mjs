@@ -986,7 +986,29 @@ let roleRegistry;
 try { roleRegistry = JSON.parse(roleBlob.body.toString('utf8')); } catch { fail('COMMITTED_ROLE_REGISTRY_INVALID_JSON'); }
 const expectedRoleId = AGENT_CLASS_ROLE_MAP[receipt.agent_class];
 const expectedRole = roleRegistry.roles?.find((role) => role.role_id === expectedRoleId);
+// Named-role containment for #2433. A matching holder string is not authentication.
+// No acceptance path is enabled until a separately governed protected verifier exists.
+const enforceNamedRoleIdentity = (registry, roleId, agentId) => {
+  const protectedRoles = ['deputy-kpmo', 'track-r-red-team', 'track-c-portal-v502'];
+  const named = protectedRoles.map(id => {
+    const matches = registry.roles?.filter(role => role.role_id === id);
+    if (matches?.length !== 1 || typeof matches[0].holder_id !== 'string' || !matches[0].holder_id.trim()) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', id);
+    return matches[0];
+  });
+  const incumbents = registry.roles?.filter(role => role.role_id === 'integration-conductor');
+  if (incumbents?.length !== 1 || !incumbents[0].holder_id) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', 'integration-conductor');
+  if (new Set(named.map(role => role.holder_id)).size !== named.length || named.some(role => role.holder_id === incumbents[0].holder_id)) fail('REGISTERED_ROLE_HOLDER_CONFLICT');
+  const requested = named.find(role => role.role_id === roleId);
+  const designatedActor = named.find(role => role.holder_id === agentId);
+  if (!requested && !designatedActor) return;
+  if (!requested || requested.holder_id !== agentId) fail('REGISTERED_ROLE_HOLDER_MISMATCH');
+  const gate = registry.named_role_identity_gate;
+  if (gate?.mode !== 'DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER' || gate.trusted_identity_verifier_registered !== false || gate.holder_string_is_authentication !== false || gate.synthetic_receipt_is_actor_acceptance !== false) fail('ROLE_IDENTITY_POLICY_INVALID');
+  fail('ROLE_IDENTITY_ATTESTATION_REQUIRED');
+};
+
 if (!expectedRole) fail('BOUND_ROLE_NOT_FOUND', expectedRoleId ?? receipt.agent_class);
+enforceNamedRoleIdentity(roleRegistry, expectedRoleId, receipt.agent_id);
 if (readiness?.manifest_path !== manifestDocument.path || readiness?.manifest_sha256 !== manifestDocument.sha256
   || readiness?.role_registry_path !== roleDocument.path || readiness?.role_registry_sha256 !== roleDocument.sha256
   || readiness?.bound_role_id !== expectedRole.role_id || readiness?.bound_role_mission !== expectedRole.mission

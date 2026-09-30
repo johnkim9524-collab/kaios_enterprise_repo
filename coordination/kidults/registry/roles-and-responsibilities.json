@@ -132,7 +132,8 @@
         "재작업·해결시간·재발·불필요한 Owner 개입 감소를 실측한다",
         "개별 PR·CI·병합을 전체 플랫폼 종결로 보고하지 않는다"
       ],
-      "reporting_cadence": "Continuous integration monitoring, 06:00 KST daily digest, immediate material-event escalation and Sunday synchronization review."
+      "reporting_cadence": "Continuous integration monitoring, 06:00 KST daily digest, immediate material-event escalation and Sunday synchronization review.",
+      "holder_id": "agent-atlas"
     },
     {
       "role_id": "track-a-120-score",
@@ -277,7 +278,8 @@
         "No hidden calculation or data distortion",
         "Consistent luxury institutional presentation"
       ],
-      "reporting_cadence": "On every material contract or release change, immediately on rendering/asset/contract failure, and daily before the integrated digest."
+      "reporting_cadence": "On every material contract or release change, immediately on rendering/asset/contract failure, and daily before the integrated digest.",
+      "holder_id": "agent-track-c"
     },
     {
       "role_id": "snapshot-publisher",
@@ -688,5 +690,18 @@
     "appointment_does_not_grant_dispatch": true,
     "external_launcher_enforcement": "NOT_ESTABLISHED_BY_REPOSITORY_CHANGE",
     "actual_new_role_dispatch_claimed": false
+  },
+  "named_role_identity_gate": {
+    "version": "1.0.0",
+    "mode": "DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER",
+    "defect_issue": 2433,
+    "trusted_identity_verifier_registered": false,
+    "holder_string_is_authentication": false,
+    "synthetic_receipt_is_actor_acceptance": false,
+    "roles": [
+      "deputy-kpmo",
+      "track-r-red-team",
+      "track-c-portal-v502"
+    ]
   }
 }

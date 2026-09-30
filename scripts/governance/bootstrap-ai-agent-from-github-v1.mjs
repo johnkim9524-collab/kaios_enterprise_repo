@@ -961,7 +961,29 @@ try {
 }
 const boundRoleId = TRUST.agentClassRoleMap[options.agentClass];
 const boundRole = roleRegistry.roles?.find((role) => role.role_id === boundRoleId);
+// Named-role containment for #2433. A matching holder string is not authentication.
+// No acceptance path is enabled until a separately governed protected verifier exists.
+const enforceNamedRoleIdentity = (registry, roleId, agentId) => {
+  const protectedRoles = ['deputy-kpmo', 'track-r-red-team', 'track-c-portal-v502'];
+  const named = protectedRoles.map(id => {
+    const matches = registry.roles?.filter(role => role.role_id === id);
+    if (matches?.length !== 1 || typeof matches[0].holder_id !== 'string' || !matches[0].holder_id.trim()) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', id);
+    return matches[0];
+  });
+  const incumbents = registry.roles?.filter(role => role.role_id === 'integration-conductor');
+  if (incumbents?.length !== 1 || !incumbents[0].holder_id) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', 'integration-conductor');
+  if (new Set(named.map(role => role.holder_id)).size !== named.length || named.some(role => role.holder_id === incumbents[0].holder_id)) fail('REGISTERED_ROLE_HOLDER_CONFLICT');
+  const requested = named.find(role => role.role_id === roleId);
+  const designatedActor = named.find(role => role.holder_id === agentId);
+  if (!requested && !designatedActor) return;
+  if (!requested || requested.holder_id !== agentId) fail('REGISTERED_ROLE_HOLDER_MISMATCH');
+  const gate = registry.named_role_identity_gate;
+  if (gate?.mode !== 'DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER' || gate.trusted_identity_verifier_registered !== false || gate.holder_string_is_authentication !== false || gate.synthetic_receipt_is_actor_acceptance !== false) fail('ROLE_IDENTITY_POLICY_INVALID');
+  fail('ROLE_IDENTITY_ATTESTATION_REQUIRED');
+};
+
 if (!boundRole) fail('BOUND_ROLE_NOT_FOUND', boundRoleId ?? options.agentClass);
+enforceNamedRoleIdentity(roleRegistry, boundRoleId, options.agentId);
 const readinessDocument = loadedDocuments.find((document) => document.path === 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json');
 if (!readinessDocument) fail('CONSTITUTIONAL_READINESS_MANIFEST_NOT_LOADED');
 const acceptedDomains = ['VISION_AND_GOALS', 'OPERATING_PRINCIPLES', 'AI_GOVERNANCE', 'JD_AND_ROLE', 'WORKING_ATTITUDE'];

@@ -57,3 +57,17 @@ for(const [name,mutate]of [
 ])test(name+' roster rejected',()=>{const x=roster();mutate(x);assert.ok(validateTrackRoster(x,approvedRoster).length>0)});
 test('schema cannot drop core track',()=>assert.ok(validateTrackRoster(roster(),approvedRoster.slice(1)).some(e=>e.startsWith('CORE_TRACK_SCHEMA_MISSING'))));
 test('duplicate schema ids fail closed',()=>assert.deepEqual(validateTrackRoster(roster(),[...approvedRoster,approvedRoster[0]]),['APPROVED_TRACK_SCHEMA_INVALID']));
+
+const identityCases=[
+ ['missing identity gate',s=>delete s.roles.named_role_identity_gate,'NAMED_ROLE_IDENTITY_CONTAINMENT_REQUIRED'],
+ ['self-claimed verifier ready',s=>s.roles.named_role_identity_gate.trusted_identity_verifier_registered=true,'NAMED_ROLE_IDENTITY_CONTAINMENT_REQUIRED'],
+ ['holder string treated as authentication',s=>s.roles.named_role_identity_gate.holder_string_is_authentication=true,'NAMED_ROLE_IDENTITY_CONTAINMENT_REQUIRED'],
+ ['synthetic acceptance promoted',s=>s.roles.named_role_identity_gate.synthetic_receipt_is_actor_acceptance=true,'NAMED_ROLE_IDENTITY_CONTAINMENT_REQUIRED'],
+ ['Track C identity gate omitted',s=>s.roles.named_role_identity_gate.roles.pop(),'NAMED_ROLE_SET_MISMATCH'],
+ ['Deputy and Track R same identity',s=>s.roles.roles.find(r=>r.role_id==='track-r-red-team').holder_id='agent-codex-deputy','NAMED_ROLE_HOLDER_CONFLICT'],
+ ['Atlas takes Track R',s=>s.roles.roles.find(r=>r.role_id==='track-r-red-team').holder_id='agent-atlas','NAMED_ROLE_HOLDER_CONFLICT'],
+ ['Track C registry mismatch',s=>s.roles.roles.find(r=>r.role_id==='track-c-portal-v502').holder_id='unregistered','NAMED_ROLE_HOLDER_REGISTRY_MISMATCH'],
+ ['emitter guard removed',s=>s.sources.emitter=s.sources.emitter.replace('enforceNamedRoleIdentity(roleRegistry,','disabledNamedRoleIdentity(roleRegistry,'),'NAMED_ROLE_GUARD_MISSING:emitter'],
+ ['verifier guard removed',s=>s.sources.verifier=s.sources.verifier.replace('enforceNamedRoleIdentity(roleRegistry,','disabledNamedRoleIdentity(roleRegistry,'),'NAMED_ROLE_GUARD_MISSING:verifier'],
+];
+for(const [label,mutate,code]of identityCases)test('named-role containment rejects '+label,()=>{const s=structuredClone(state);mutate(s);assert.ok(validateLeadershipState(s).includes(code),code)});

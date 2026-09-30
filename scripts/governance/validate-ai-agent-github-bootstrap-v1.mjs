@@ -1012,22 +1012,47 @@ assert(dispatchResult.task_dispatch_allowed_for_bound_task_session === true, 'CO
 assert(stableStringify(dispatchResult.authority_boundary) === stableStringify(exactAuthorityBoundary), 'CONSUMING_VERIFICATION_EXACT_AUTHORITY_BOUNDARY');
 expectFailure(paths.verifier, [...verifyArgs, '--consume'], 'BOOTSTRAP_NONCE_REPLAY');
 
-// Synthetic role-mapping tests only: these are NOT candidate role acceptance.
-for (const [fixtureClass, fixtureRole] of [['DEPUTY_KPMO', 'deputy-kpmo'], ['TRACK_R', 'track-r-red-team']]) {
-  const fixtureIdentity = 'TEST_ONLY-' + fixtureClass + '-' + unique;
+// #2433: synthetic identities must never mint consumable named-role acceptance.
+// Even the correct holder stays blocked without a protected identity verifier.
+const identityDenials = [
+  ['TRACK_R', 'TEST_ONLY-TRACK_R-' + unique, 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['TRACK_R', 'agent-atlas', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['TRACK_R', 'agent-codex-deputy', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['DEPUTY_KPMO', 'agent-aegis', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['TRACK_C', 'TEST_ONLY-TRACK_C-' + unique, 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['DEPUTY_KPMO', 'agent-codex-deputy', 'ROLE_IDENTITY_ATTESTATION_REQUIRED'],
+  ['TRACK_R', 'agent-aegis', 'ROLE_IDENTITY_ATTESTATION_REQUIRED'],
+  ['TRACK_C', 'agent-track-c', 'ROLE_IDENTITY_ATTESTATION_REQUIRED'],
+  ['CODING_AGENTS', 'agent-aegis', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['CODING_AGENTS', 'agent-codex-deputy', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+  ['CODING_AGENTS', 'agent-track-c', 'REGISTERED_ROLE_HOLDER_MISMATCH'],
+];
+for (const [fixtureClass, fixtureIdentity, reason] of identityDenials) {
   const fixtureEnv = { ...baseEnv, KIDULTS_BOOTSTRAP_NONCE: crypto.randomBytes(32).toString('base64url') };
   const fixtureArgs = ['--agent-id', fixtureIdentity, '--agent-class', fixtureClass,
-    '--task-id', 'TEST_ONLY-' + unique, '--session-id', fixtureIdentity, '--expected-sha', workingSha];
-  const b = JSON.parse(run(paths.entrypoint, fixtureArgs, fixtureEnv));
-  const receiptBody = absoluteJson(b.receipt_path);
-  assert(receiptBody.constitutional_readiness.bound_role_id === fixtureRole, 'NEW_ROLE_EMITTER_MAPPING:' + fixtureClass);
-  assert(receiptBody.constitutional_readiness.strategy_first_attitude_accepted === true, 'NEW_ROLE_STRATEGY_BINDING:' + fixtureClass);
-  assert(receiptBody.constitutional_readiness.reading_proves_execution_quality === false, 'NEW_ROLE_NO_PERFORMANCE_INFLATION:' + fixtureClass);
-  const v = JSON.parse(run(paths.verifier, ['--receipt', b.receipt_path, ...fixtureArgs, '--consume'], fixtureEnv));
-  assert(v.state === 'BOOTSTRAP_VERIFIED' && v.consumed === true && v.bound_role_id === fixtureRole, 'NEW_ROLE_VERIFIER_MAPPING:' + fixtureClass);
-  assert(v.authority_boundary.merge_authority_granted_by_bootstrap === false, 'NEW_ROLE_NO_MERGE_AUTHORITY:' + fixtureClass);
+    '--task-id', 'TEST_ONLY-DENY-' + unique, '--session-id', 'TEST_ONLY-DENY-' + fixtureClass + unique, '--expected-sha', workingSha];
+  expectFailure(paths.entrypoint, fixtureArgs, reason, fixtureEnv);
 }
-
+// Forge integrity-valid negative fixtures under GIT_DIR only. They must be rejected
+// before consumption; these are not external agent identity attestations.
+for (const [fixtureClass, fixtureIdentity, reason] of identityDenials) {
+  const candidate = structuredClone(receipt);
+  candidate.agent_class = fixtureClass;
+  candidate.agent_id = fixtureIdentity;
+  candidate.task_id = 'TEST_ONLY-VERIFIER-DENY-' + unique;
+  candidate.session_id = 'TEST_ONLY-VERIFIER-DENY-' + fixtureClass + unique;
+  const roleId = ({TRACK_R:'track-r-red-team', DEPUTY_KPMO:'deputy-kpmo', TRACK_C:'track-c-portal-v502', CODING_AGENTS:'program-participant'})[fixtureClass];
+  const expectedRole = roles.roles.find(role => role.role_id === roleId);
+  candidate.constitutional_readiness.bound_role_id = roleId;
+  candidate.constitutional_readiness.bound_role_mission = expectedRole.mission;
+  candidate.receipt_digest = digestReceipt(candidate, nonce);
+  const filename = 'receipt-' + sha256Hex(stableStringify({agent_id:candidate.agent_id, task_id:candidate.task_id, session_id:candidate.session_id, nonce_sha256:candidate.nonce_sha256})) + '.json';
+  const negativePath = path.join(path.dirname(bootstrapResult.receipt_path), filename);
+  fs.writeFileSync(negativePath, JSON.stringify(candidate, null, 2) + '\n', {flag:'wx',mode:0o600});
+  try {
+    expectFailure(paths.verifier, ['--receipt', negativePath, '--agent-id', candidate.agent_id, '--agent-class', candidate.agent_class, '--task-id', candidate.task_id, '--session-id', candidate.session_id, '--expected-sha', workingSha, '--consume'], reason);
+  } finally { fs.rmSync(negativePath, {force:true}); }
+}
 const alternateReplayBindings = {
   ...bindings,
   taskId: `validator-replay-task-${unique}`,
@@ -1423,6 +1448,7 @@ try {
       fs.writeFileSync(isolatedBootstrap.receipt_path, originalIsolatedReceiptText, { mode: 0o600 });
     }
   };
+  expectSignedReceiptTamper((candidate) => { candidate.version = '1.7.0'; candidate.agent_class = 'TRACK_C'; candidate.agent_id = 'agent-track-c'; }, 'RECEIPT_ID_OR_VERSION_INVALID');
   expectSignedReceiptTamper((candidate) => { candidate.unexpected_top_level = true; }, 'RECEIPT_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { delete candidate.dispatch_gate; }, 'RECEIPT_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.bound_role_id = 'program-owner'; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
@@ -1469,6 +1495,10 @@ console.log(JSON.stringify({
   required_documents_validated: requiredDocuments.length,
   governed_agent_classes_validated: governedClasses.length,
   negative_controls_verified: [
+    'NAMED_ROLE_WRONG_HOLDER_EMITTER_AND_VERIFIER_REJECTION',
+    'NAMED_ROLE_MATCHING_STRING_WITHOUT_ATTESTOR_REJECTION',
+    'NAMED_ACTOR_GENERIC_CLASS_EVASION_REJECTION',
+    'HISTORICAL_TRACK_C_RECEIPT_VERSION_REJECTION',
     'EXPECTED_CHECKOUT_SHA_REQUIRED',
     'LOCAL_EXPECTED_SHA_NOT_GITHUB_PROVENANCE',
     'RECEIPT_ALONE_DOES_NOT_OPEN_TASK_GATE',

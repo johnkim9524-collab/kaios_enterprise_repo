@@ -58,6 +58,14 @@ export function validateLeadershipState(s){
   check(s.contract.inheritance.applies_to.includes(agentClass),'BOOTSTRAP_CLASS_MISSING:'+agentClass);
   for(const [label,source]of Object.entries(s.sources))check(source.includes(agentClass+": '"+jdId+"'"),'BOOTSTRAP_ROLE_MAP_MISMATCH:'+label+':'+agentClass);
  }
+ const identityGate=r.named_role_identity_gate;
+ check(identityGate?.mode==='DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER'&&identityGate.trusted_identity_verifier_registered===false&&identityGate.holder_string_is_authentication===false&&identityGate.synthetic_receipt_is_actor_acceptance===false,'NAMED_ROLE_IDENTITY_CONTAINMENT_REQUIRED');
+ check(same(identityGate?.roles,['deputy-kpmo','track-r-red-team','track-c-portal-v502']),'NAMED_ROLE_SET_MISMATCH');
+ const namedIds=['integration-conductor','deputy-kpmo','track-r-red-team','track-c-portal-v502'];
+ const holders=namedIds.map(id=>r.roles.find(role=>role.role_id===id)?.holder_id);
+ check(holders.every(nonempty)&&new Set(holders).size===namedIds.length,'NAMED_ROLE_HOLDER_CONFLICT');
+ check(holders[0]===s.records['role-integration-conductor'].holder_id&&holders[3]===s.records['role-track-c'].holder_id,'NAMED_ROLE_HOLDER_REGISTRY_MISMATCH');
+ for(const [label,text]of Object.entries(s.sources))check(text.includes('enforceNamedRoleIdentity(roleRegistry,')&&text.includes("fail('ROLE_IDENTITY_ATTESTATION_REQUIRED')")&&text.includes("fail('REGISTERED_ROLE_HOLDER_MISMATCH')"),'NAMED_ROLE_GUARD_MISSING:'+label);
  check(s.contract.version==='1.8.0','BOOTSTRAP_VERSION_MISMATCH');
  for(const [label,source]of Object.entries(s.sources))check(source.includes('strategy_contract_sha256')&&source.includes('strategy_first_attitude_accepted')&&source.includes('reading_proves_execution_quality'),'STRATEGY_RECEIPT_BINDING_MISSING:'+label);
  const tc=s.records['track-c-portal-v502-experience-layer'];
