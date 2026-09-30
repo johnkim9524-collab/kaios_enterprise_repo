@@ -145,7 +145,17 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
       - parseTime(a.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
       || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  const currentGeneration = marked.filter(comment => parseTime(
+  const directOwnerMarked = marked.filter(comment =>
+    comment?.user?.login === repositoryOwner
+    && comment?.author_association === 'OWNER'
+    && comment?.user?.type === 'User'
+    && comment?.performed_via_github_app == null
+    && comment.updated_at === comment.created_at);
+  if (!directOwnerMarked.length) {
+    if (marked.some(comment => comment?.performed_via_github_app != null)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
+  }
+  const currentGeneration = directOwnerMarked.filter(comment => parseTime(
     comment.created_at,
     'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID',
   ) > finalLifecycleBoundaryAt);
@@ -154,9 +164,6 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   const comment = currentGeneration[0];
   const fields = parseApproval(comment?.body);
   if (!fields) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
-  if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
-  if (comment.updated_at !== comment.created_at) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
   if (fields.repository !== repository || fields.pull_request !== prNumber) fail('DIRECT_OWNER_HANDOFF_APPROVAL_REPOSITORY_PR_MISMATCH');
   if (fields.exact_base_sha !== expectedBaseSha || fields.exact_head_sha !== expectedHeadSha
       || fields.expected_head_tree_sha !== expectedHeadTreeSha) fail('DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH');
