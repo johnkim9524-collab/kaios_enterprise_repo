@@ -25,8 +25,13 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     for(const other of roles.map(v=>v[5]).filter(v=>v!==eventName)) assert.equal(workflow.includes(`      - ${other}`),false);
     assert.ok(workflow.includes(`environment: ${template.Parameters[envParam].Default}`));
     refs.add(template.Parameters[wfParam].Default);
-    const actions=template.Resources[`${prefix}ApprovalRole`].Properties.Policies[0].PolicyDocument.Statement.flatMap(v=>v.Action||[]);
-    assert.equal(actions.some(a=>a.startsWith('dynamodb:')),false);
+    const statements=template.Resources[`${prefix}ApprovalRole`].Properties.Policies[0].PolicyDocument.Statement;
+    const actions=statements.flatMap(v=>v.Action||[]);
+    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')),['dynamodb:Query']);
+    const ledgerRead=statements.find(statement=>(statement.Action||[]).includes('dynamodb:Query'));
+    assert.deepEqual(ledgerRead.Resource,{'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
+    assert.deepEqual(ledgerRead.Condition,{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
+    assert.equal(actions.some(a=>['dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:DeleteItem'].includes(a)),false);
     assert.ok(actions.includes('kms:Sign'));
   }
   assert.equal(refs.size,3);
