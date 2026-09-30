@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e33fef68f2e1584ae08533c3652c8520e3e8f588",
+  "revision": "96e2c9cd1dbe5bc095d22954dd956f744c9662c0",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2203,8 +2203,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "e92471f8a9b59a0e2154cee3af2e5c38a17e1dd6",
-      "sha256": "sha256:087d6378fce195808408d360340027bb0e633a991933a1ee757bb1e59d66c61c"
+      "git_blob": "c0fd9f0160f025c9f3a4d4fa86bf2e820e5ae293",
+      "sha256": "sha256:fe96c943d9c84745df1467d656c4d315bc7d58ec7bb45e79f3dc8b07eed6e571"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-red-team-assurance.json",
@@ -2931,8 +2931,8 @@
     {
       "path": "scripts/governance/validate-leadership-execution-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4c9a2bd69af88564f3541c31216aaa6d57b90f23",
-      "sha256": "sha256:91f2c4ef3d640f87899fc9321d4d88e095593b672355fe0d434f7351ab2a0c2d",
+      "git_blob": "8753e7f689cef39327c74aeec1410483a50a386c",
+      "sha256": "sha256:f03fa1376b714c28a5b69a6dd26bee95eca367f3ab177c043db7361721483974",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5052,8 +5052,8 @@
     {
       "path": "tests/governance/leadership-execution-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2b898eb8117aa8450604b7300e83d7e8561d5c43",
-      "sha256": "sha256:7aaed1142dc15419129b65763470a85adbcab688875fa49653f382206021dcc1",
+      "git_blob": "7b683009713fc6b0afe54bbd505b351ca195dda0",
+      "sha256": "sha256:4d92824a9b957fe6abcd5d6a31a6ce88c0b5843a69a31e5661b9a0cba355fc12",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5303,5 +5303,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:afe027598b8dbe9809f1acf586aaa7d5a69a6a6e69d5e7a50d48520cd32f4b05"
+  "manifest_sha256": "sha256:3c48c11a73c83f9033d78eb4886130f36dde2113aea0e51f828723b439215934"
 }
