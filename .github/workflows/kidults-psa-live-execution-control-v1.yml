@@ -63,6 +63,12 @@ jobs:
           node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
           node scripts/kidults/provider/validate-psa-120-admission-note-v1.mjs
           node scripts/kidults/provider/validate-psa-120-admission-receipt-v1.mjs
+      - name: Validate canonical bounded preflight gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/kidults/provider/validate-psa-bounded-preflight-v1.mjs | tee /tmp/psa-bounded-preflight.json
+          node -e "const fs=require('fs'); const r=JSON.parse(fs.readFileSync('/tmp/psa-bounded-preflight.json','utf8')); if(!/^BLOCKED_/.test(r.state)) process.exit(1); if(r.empirical_guard.graded_population!=='0/120') process.exit(1); if(r.authority_guard.public!=='HOLD'||r.authority_guard.production!=='HOLD'||r.authority_guard.g5!=='HOLD'||r.authority_guard.provider_activation!=='HOLD') process.exit(1);"
       - name: Validate authoritative KIR state and receipt boundaries
         run: |
           node scripts/kidults/runtime/validate-kir-module-boundaries-v1.mjs
