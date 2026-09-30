@@ -3223,8 +3223,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "000c92caee30ced2c65ffffa4bd105c233d98cbd",
-      "sha256": "sha256:96e8195b0116fbb97e3ded65a27b0eef39718ee06397461779b15f0dd874c308",
+      "git_blob": "29fcabb41f852b70a7b4d5db2d1d2f8906c6984a",
+      "sha256": "sha256:a41837ae34e73fd8cbfe1d58c609b5f3180bb109485966d08d708e8b239fd3db",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3405,8 +3405,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "46ba3abaf95f23318f9310b4039739d106b1704d",
-      "sha256": "sha256:de653da36f9a844bcdd5db2e1af6aca58ff125f8aa450bef311bffb1b5797291",
+      "git_blob": "19e50bc568c2bebeb4eb1aeca6a36cce60c2fc86",
+      "sha256": "sha256:9f8388b8f903789fa2ff3c95676892ff58cc24f896794aed8fd6804b641dae89",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3418,8 +3418,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "8fdd20dce2496d3a3a327a30baf899817a646133",
-      "sha256": "sha256:b7ba2a372fe24268cfc15c8627e37c3f7c1c33401e6f3bf27b60ea8740abfed5",
+      "git_blob": "fca79e86c889080035700f05b9ed55e5e7affa9d",
+      "sha256": "sha256:9efcaaf302545aa568ac0445897dce6fc441115c95499cab05202f36c7d689e7",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3574,8 +3574,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b6cb4fa850cc160e1f5d9e8154360d7651d9fb58",
-      "sha256": "sha256:5d8ac67023ad0bafb23f7ffd3ae3d82531a437e0075f5521652d79f80cf378b6",
+      "git_blob": "f21ef926169399e26b96b60325ee6ec32f25fe4f",
+      "sha256": "sha256:1c04916318d05ae82721f54df574403a5e60f85de0f2cc7c0ed28ac249130c3e",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5273,5 +5273,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9927d21c461686d68d22470f45ec9d3edd32099e04626e8b4103138b0f15a433"
+  "manifest_sha256": "sha256:c2c71fd794e3261bde258ca0ba231bcb3a5ec7cfc26ab5bc2a6ca353b4039cf0"
 }
