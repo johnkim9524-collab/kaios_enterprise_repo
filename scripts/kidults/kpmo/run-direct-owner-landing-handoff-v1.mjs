@@ -155,10 +155,17 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
     if (marked.some(comment => comment?.performed_via_github_app != null)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
     fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
   }
-  const currentGeneration = directOwnerMarked.filter(comment => parseTime(
-    comment.created_at,
-    'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID',
-  ) > finalLifecycleBoundaryAt);
+  const currentGeneration = directOwnerMarked.filter(comment => {
+    if (parseTime(comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID') <= finalLifecycleBoundaryAt) return false;
+    const fields = parseApproval(comment?.body);
+    return fields?.repository === repository
+      && fields?.pull_request === prNumber
+      && fields?.exact_base_sha === expectedBaseSha
+      && fields?.exact_head_sha === expectedHeadSha
+      && fields?.expected_head_tree_sha === expectedHeadTreeSha
+      && fields?.authorization_id === authorizationId
+      && fields?.purpose === purpose;
+  });
   if (!currentGeneration.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
   if (currentGeneration.length !== 1) fail('DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS');
   const comment = currentGeneration[0];
