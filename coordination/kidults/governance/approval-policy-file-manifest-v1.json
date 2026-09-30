@@ -3782,8 +3782,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1e05dbab2df35c0f519615cf4459773308b83a51",
-      "sha256": "sha256:41255d02bf4e88dca5f5f956461dfa6ddeb915f78fc9cafa0c4e89544086c120",
+      "git_blob": "3039ba9a867e5b593f7ef7f55d854f0b43133692",
+      "sha256": "sha256:35eb1e21d277d0e1568025af049b4832cf693231918a8ed45a18affde3582d96",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:323742acbaf13a15fff56a93d4dcc6bcbb9c0650c0caea257fc148b86ad009b7"
+  "manifest_sha256": "sha256:85e77a379c91902209b456ac33dffbfbeca4ecbb7541c5c42313e727de8a9255"
 }
