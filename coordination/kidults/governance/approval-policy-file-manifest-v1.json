@@ -1053,8 +1053,8 @@
     {
       "path": "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "99d54b410de506d7ff6d1756a56005304861b6a0",
-      "sha256": "sha256:71e347e1a0470479efe442caf672bf9fcc8378f4da17d49a5d02c1c314fed1a1"
+      "git_blob": "4629b1880da5cf36a4c771befb0d650173f447ed",
+      "sha256": "sha256:4b00799039fb06f98f1962e491c00f991b6656127dcfc596f5ed7583b6c37224"
     },
     {
       "path": "artifacts/audit/evidence-pack.txt",
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f7177920d4620544705978bd6ca76cec02874de91bb529f437a66373e4109454"
+  "manifest_sha256": "sha256:3308893898bc2ca10c697ae46617fee580586bc41ce56432f7534d5ae3f3f3e0"
 }
