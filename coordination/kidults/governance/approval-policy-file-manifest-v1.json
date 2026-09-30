@@ -3392,8 +3392,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0f42d393cac43ac587381da7b48ed7e05e4b592f",
-      "sha256": "sha256:e923ee8df0af042a6e45690ef3bc86aa0638d7eeedb4a1fac6e9cf977d212870",
+      "git_blob": "d125a9043a55234615c335f1a280b386830eddee",
+      "sha256": "sha256:28a0fca998a40c61aeaf4d77a0102e6ec103699d99cd23508a53ffa3cbd3a2b3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d525a120a3ea946c68b8c35247c3c204dca6869f45c686c8f9a7edfe55e29992"
+  "manifest_sha256": "sha256:96a34e05cf9a7ea775c639a6451857bdfb068ab43e07a7f880d9c1169e5e1d4d"
 }
