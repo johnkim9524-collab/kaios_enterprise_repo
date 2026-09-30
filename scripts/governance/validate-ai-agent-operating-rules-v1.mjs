@@ -128,9 +128,10 @@ assert(contract.autonomous_closure_ownership_policy_path === files.autonomousClo
 assert(autonomousClosurePolicy.rule_id === 'AI-022' && autonomousClosurePolicy.rule_name === 'AUTONOMOUS_CLOSURE_OWNERSHIP', 'AUTONOMOUS_CLOSURE_POLICY_IDENTITY');
 assert(autonomousClosurePolicy.whole_authority_chain_change_unit?.trigger_compatibility_contract_path === files.triggerCompatibilityContract, 'AUTONOMOUS_CLOSURE_TRIGGER_CONTRACT');
 assert(autonomousClosurePolicy.single_root_incident?.one_accountable_completion_owner === true, 'AUTONOMOUS_CLOSURE_SINGLE_OWNER');
-assert(autonomousClosurePolicy.continuation?.same_task_session_retains_accountability_until_terminal_state === true, 'AUTONOMOUS_CLOSURE_SESSION_CONTINUITY');
+assert(autonomousClosurePolicy.continuation?.same_root_incident_and_completion_owner_retained_until_terminal_state === true, 'AUTONOMOUS_CLOSURE_WORK_CONTINUITY');
+assert(autonomousClosurePolicy.session_resume?.fresh_exact_source_bootstrap_and_consumption_required === true && autonomousClosurePolicy.session_resume?.resume_grants_or_extends_authority === false, 'AUTONOMOUS_CLOSURE_RESUME_BOUNDARY');
 assert(autonomousClosurePolicy.continuation?.pr_creation_ci_success_merge_or_single_workflow_success_is_terminal === false, 'AUTONOMOUS_CLOSURE_INTERMEDIATE_TERMINAL_FORBIDDEN');
-assert(autonomousClosurePolicy.reporting_gate?.routine_intermediate_progress_report_allowed === false, 'AUTONOMOUS_CLOSURE_INTERMEDIATE_REPORT_FORBIDDEN');
+assert(autonomousClosurePolicy.reporting_gate?.evidence_based_nonblocking_observability_allowed === true && autonomousClosurePolicy.reporting_gate?.observability_may_require_owner_reply_or_terminate_work === false, 'AUTONOMOUS_CLOSURE_NONBLOCKING_OBSERVABILITY');
 assert(autonomousClosurePolicy.reporting_gate?.routine_request_for_next_or_repeat_approval_allowed === false, 'AUTONOMOUS_CLOSURE_REPROMPT_FORBIDDEN');
 assert(autonomousClosurePolicy.completion_gate?.producer_health_sentinel_success_required === true, 'AUTONOMOUS_CLOSURE_SENTINEL_REQUIRED');
 assert(autonomousClosurePolicy.authority_boundary?.production === 'HOLD' && autonomousClosurePolicy.authority_boundary?.public === 'HOLD' && autonomousClosurePolicy.authority_boundary?.g5 === 'HOLD', 'AUTONOMOUS_CLOSURE_HOLDS');
@@ -318,7 +319,7 @@ for (const marker of ['whole Producer-to-Artifact', 'Requirement-to-Reserve', 'P
   assert(principleById.get('AI-021')?.requirement?.includes(marker), `AI_021_REQUIREMENT:${marker}`);
 }
 assert(principleById.get('AI-022')?.name === 'AUTONOMOUS_CLOSURE_OWNERSHIP', 'AI_022_IDENTITY_BINDING');
-for (const marker of ['accountable task session', 'exact-main whole-chain', 'routine progress prompts', 'repeated Owner approval']) {
+for (const marker of ['durable root incident', 'fresh bootstrap', 'exact-main whole-chain', 'routine progress prompts', 'repeated Owner approval']) {
   assert(principleById.get('AI-022')?.requirement?.includes(marker), `AI_022_REQUIREMENT:${marker}`);
 }
 for (const rule of contract.principles) {

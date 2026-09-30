@@ -33,6 +33,7 @@ on:
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - 'scripts/governance/validate-autonomous-closure-ownership-v1.mjs'
+      - 'tests/governance/autonomous-work-continuity-v1.test.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ci-validation.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
@@ -71,6 +72,7 @@ on:
       - 'scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs'
       - 'scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs'
       - 'scripts/governance/validate-autonomous-closure-ownership-v1.mjs'
+      - 'tests/governance/autonomous-work-continuity-v1.test.mjs'
       - '.github/workflows/ai-agent-governance-enforcement-v1.yml'
       - '.github/workflows/ci-validation.yml'
       - '.github/workflows/ai-agent-bootstrap-remediation-enforcement-v1.yml'
@@ -163,6 +165,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/governance/validate-ai-agent-report-after-remediation-v1.mjs | tee /tmp/ai-agent-report-after-remediation-contract-validation-v1.json
+          node --test tests/governance/autonomous-work-continuity-v1.test.mjs
           node scripts/governance/validate-autonomous-closure-ownership-v1.mjs | tee /tmp/autonomous-closure-ownership-validation-v1.json
       - name: Validate a compliant evidence-bound repository status receipt through both gates
         run: |
