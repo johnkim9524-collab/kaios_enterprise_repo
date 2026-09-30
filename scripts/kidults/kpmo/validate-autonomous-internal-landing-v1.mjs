@@ -41,10 +41,11 @@ const base = {
   nonce_digest:sha256('nonce'),issued_at:'2026-09-21T12:00:00Z',expires_at:'2026-09-21T12:30:00Z',
   operation:'INTERNAL_REVERSIBLE_LANDING',changed_paths:paths,production:'HOLD',public:'HOLD',g5:'HOLD'
 };
-const liveEvidence={statuses:[{context:'KIDULTS Required',state:'success'}],checks:[{name:'unit',status:'completed',conclusion:'success'}]};
-const track=deriveApprovalDecision({envelope:{...base,workload:workload('ACCOUNTABLE_TRACK_AGENT',1)},role:'ACCOUNTABLE_TRACK_AGENT',...liveEvidence});
-const kpmo=deriveApprovalDecision({envelope:{...base,workload:workload('KPMO',2)},role:'KPMO',...liveEvidence});
-const verifier=deriveApprovalDecision({envelope:{...base,workload:workload('INDEPENDENT_VERIFIER',3)},role:'INDEPENDENT_VERIFIER',...liveEvidence});
+const requiredBindings=[{context:'KIDULTS Required',integration_id:0}];
+const liveEvidence={statuses:[{id:101,context:'KIDULTS Required',state:'success',sha:base.head_sha}],checks:[]};
+const track=deriveApprovalDecision({envelope:{...base,workload:workload('ACCOUNTABLE_TRACK_AGENT',1)},role:'ACCOUNTABLE_TRACK_AGENT',...liveEvidence,requiredContexts:requiredBindings,headSha:base.head_sha});
+const kpmo=deriveApprovalDecision({envelope:{...base,workload:workload('KPMO',2)},role:'KPMO',...liveEvidence,requiredContexts:requiredBindings,headSha:base.head_sha});
+const verifier=deriveApprovalDecision({envelope:{...base,workload:workload('INDEPENDENT_VERIFIER',3)},role:'INDEPENDENT_VERIFIER',...liveEvidence,requiredContexts:requiredBindings,headSha:base.head_sha});
 const now=Date.parse('2026-09-21T12:10:00Z');
 assert.equal(validateEnvelope(track,{policy,now}).operation,'INTERNAL_REVERSIBLE_LANDING');
 const quorum=validateQuorum({track,kpmo,verifier,registry,policy,now});
@@ -80,9 +81,13 @@ const sharedEnvironment={...kpmo,workload:{...kpmo.workload,environment:track.wo
 assert.throws(()=>validateQuorum({track,kpmo:sharedEnvironment,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedEnvironment.workload}]},policy,now}));
 assert.throws(()=>validateQuorum({track,kpmo,verifier:{...verifier,verification_state:'FAILED'},registry,policy,now}));
 assert.throws(()=>validateQuorum({track:{...track,decision:{...track.decision,state:'CALLER_PASS'}},kpmo,verifier,registry,policy,now}));
-assert.doesNotThrow(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{context:'required',state:'success'},{context:'KIDULTS Governed Landing Authorization V1',state:'pending'}],checks:[],requiredContexts:['required']}));
-assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{context:'required',state:'failure'}],checks:[]}));
-assert.throws(()=>deriveApprovalDecision({envelope:base,role:'FINALIZER',...liveEvidence}));
+assert.doesNotThrow(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:201,context:'required',state:'success',sha:base.head_sha},{id:202,context:'KIDULTS Governed Landing Authorization V1',state:'pending',sha:base.head_sha}],checks:[],requiredContexts:[{context:'required',integration_id:0}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:203,context:'required',state:'failure',sha:base.head_sha}],checks:[],requiredContexts:[{context:'required',integration_id:0}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:204,context:'required',state:'success',sha:base.head_sha}],checks:[],requiredContexts:[{context:'required',integration_id:0},{context:'missing',integration_id:0}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:205,context:'required',state:'success',sha:base.head_sha}],checks:[],requiredContexts:[{context:'required',integration_id:0},{context:'required',integration_id:0}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:206,context:'required',state:'success',sha:base.head_sha}],checks:[{id:207,name:'required',status:'completed',conclusion:'success',head_sha:base.head_sha,app:{id:7}}],requiredContexts:[{context:'required',integration_id:0}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{id:208,context:'required',state:'success',sha:base.head_sha,app_id:8}],checks:[],requiredContexts:[{context:'required',integration_id:9}],headSha:base.head_sha}));
+assert.throws(()=>deriveApprovalDecision({envelope:base,role:'FINALIZER',...liveEvidence,requiredContexts:requiredBindings,headSha:base.head_sha}));
 assert.throws(()=>buildTerminalReceipt({quorum,reservation:{state:'RESERVED',conditional_write:true},merge:{},postmerge:{}}));
 assert.throws(()=>validateWorkload({...workload('FINALIZER',4),signing_key_arn:track.workload.signing_key_arn},registry,'FINALIZER'));
 assert.equal(policy.approval_quorum.approval_workloads_may_finalize,false);
