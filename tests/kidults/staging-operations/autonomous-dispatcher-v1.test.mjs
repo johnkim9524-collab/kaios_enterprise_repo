@@ -77,9 +77,9 @@ const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
 assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
 assert.doesNotMatch(deployWorkflow,/\n  push:/);
-assert.match(dispatcherWorkflow,/pull_request_target:/);
-assert.match(dispatcherWorkflow,/types: \[opened, synchronize, reopened, ready_for_review\]/);
-assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[CI Validation, KPMO PR Lifecycle Integrity V1, KIDULTS Scope-Aware Authoritative Status V1\][\s\S]*types: \[completed\]/);
+assert.doesNotMatch(dispatcherWorkflow,/^  pull_request_target:/m);
+assert.match(dispatcherWorkflow,/cron: '17 \* \* \* \*'/);
+assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[KIDULTS Scope-Aware Authoritative Status V1\][\s\S]*types: \[completed\]/);
 assert.doesNotMatch(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/READINESS_BASE_SHA/);
 assert.doesNotMatch(dispatcherWorkflow,/DRAFT_READY_TRANSITION/);
@@ -100,10 +100,12 @@ assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready Git
 assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
 assert.match(governedWorkflow,/state:'READY_PENDING_ATOMIC_LANDING'[\s\S]*exact_base_sha:base/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request' \|\| github\.event\.workflow_run\.event == 'pull_request_target'/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
 assert.doesNotMatch(dispatcherWorkflow,/workflow_run\.pull_requests\[0\]\.head\.repo\.full_name/);
-assert.match(dispatcherWorkflow,/github\.event\.pull_request\.number \|\| github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/cancel-in-progress: true/);
+assert.match(dispatcherWorkflow,/required: true/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 assert.equal((dispatcherWorkflow.match(/for event in kidults\.track\.authorization\.v1/g)||[]).length,1);
 assert.match(dispatcherWorkflow,/for event[\s\S]*KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs[\s\S]*repos\/\$\{GITHUB_REPOSITORY\}\/dispatches/);

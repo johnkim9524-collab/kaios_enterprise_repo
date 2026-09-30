@@ -90,6 +90,8 @@ export async function discover({repository,token,prNumber,policy}){
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
   for(const pr of prs){try{
+    if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
+    if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     const requiredChecks=pr.draft===true
       ? baseRequiredChecks.map(x=>x.context==='KIDULTS Scope-Aware Authoritative Status V1'
         ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
