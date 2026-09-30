@@ -9,20 +9,20 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 667
+    "file_count": 668
   },
   "files": [
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "85434a1e660bed11d917716ca0bda513b555e40c",
-      "sha256": "sha256:615c2092086cf28daba7c8eec29e0e4867ccc43c928c9a33a7de43d64523e738"
+      "git_blob": "79262bf6b606ad0b0c2e6719b90384ab4ae15091",
+      "sha256": "sha256:6adf86dfe53aa4733f3347e64d717683f8cc19ce3c11f1661ed347a3179e166d"
     },
     {
       "path": ".github/copilot-instructions.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3e46e6fdaa5fbf380bdf3378829bf5380f2d5101",
-      "sha256": "sha256:65edb60547332c48d000792d16ca435b3fe155af3cd9896a0b4f6ff10a50c749"
+      "git_blob": "88feb48d6949036a3471aa7e415f3e58fb600ad9",
+      "sha256": "sha256:6fd2df8b5608ed8c2e255acb30ed8fa3340d871563aa813f8a4f964935fc3ee2"
     },
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
@@ -717,8 +717,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "89e2b44912a3774cb10bd8b67037f7a36737a02e",
-      "sha256": "sha256:9ea5283f9539977152219f1929ab01a21374c08cb2770b26e2fabe719ecf5818"
+      "git_blob": "27c73d9a31dcad1b6b5de2065ebc2b940f689d24",
+      "sha256": "sha256:2359549f8e0b551bf1160b44e8b57c3343ea7c08ab92f1ce8fc9f928b55f69f4"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1281,8 +1281,8 @@
     {
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2aa77bd607dfbae4a4efa5b432f81721ebe558c4",
-      "sha256": "sha256:dab1a12666998761fe71619587c6382b1ff504f374e649a951639d96277f4495",
+      "git_blob": "806d2d6a08fe58cc47c4f5b7649eec811db8f876",
+      "sha256": "sha256:0ea2e83a6d2e0c11da52dacda5075d616175a404e13c22c41603a02bdb521cc0",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1334,8 +1334,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "59f33f5eaa02b193c3b1cb21d0cb940339e68da9",
-      "sha256": "sha256:cf80e991acda77876eb7c863298c5afb89c702a34d3ab614e26e2ad206c0fd5e",
+      "git_blob": "504176a22ee31c254e6fe5936831fa1032430765",
+      "sha256": "sha256:3a980ebc7b98ce8029dda44161f3dfd3ad602834052290a704e328a33878d411",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2816,8 +2816,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "764d25c181e54f4decd8d1aab4bc418aa88f0cb8",
-      "sha256": "sha256:05bc89a86dfe47b424c52ec6ad6a9b1fe5686361df8a8373f6fd86dfef86e775",
+      "git_blob": "e85fe46b017160669e37a8e3ee9caf68331eaf21",
+      "sha256": "sha256:7bd32c8a6790b40974369ed95babb9669d31714b419e356299431e49fdb7bd52",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -2856,8 +2856,8 @@
     {
       "path": "scripts/governance/validate-autonomous-closure-ownership-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7a0dca2379b75b0a9201172dc0d31c2dd8408b0c",
-      "sha256": "sha256:447cd0e3785040dbc0a959e698241be5a857adfa8adf7cf817b52947af890b4b",
+      "git_blob": "80035badec298c2493c505d2b0ccc167c5426add",
+      "sha256": "sha256:11b7097cb65d6ac34b3ccbf469584070de5952db54cc1a99d60f37076049a026",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -4988,6 +4988,19 @@
       }
     },
     {
+      "path": "tests/governance/autonomous-work-continuity-v1.test.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "073326c04e54af7378a81e4d3d8ebdb38d851996",
+      "sha256": "sha256:0723d98fa60e34d01cd87b50a716180a03d10fd90d101559197aacd9e321b665",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "tests/governance/delegated-autonomous-internal-authority-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "75c93fac4a375c2298e420b71eb00332a5227cae",
@@ -5241,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5e09f5f1818150c39ac996d2df92b3c37f54285f17367715001503ba43c850ae"
+  "manifest_sha256": "sha256:f7177920d4620544705978bd6ca76cec02874de91bb529f437a66373e4109454"
 }
