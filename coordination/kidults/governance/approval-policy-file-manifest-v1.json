@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 670
+    "file_count": 672
   },
   "files": [
     {
@@ -139,6 +139,19 @@
         "coverage": {
           "mode": "EXEMPTION",
           "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "25c38cc73875ef03063a21f644c34aaad01a4099",
+      "sha256": "sha256:5f960b2c4c73cc2c905829d2a18e9f8d30c108683c20d8f255777623a9c0e580",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -1769,6 +1782,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "29ac25f2ca9c0d4c3c5faf6d1f08fb72b1eb93fb",
       "sha256": "sha256:7b734bf4f2a60475cfa5538f2509f861acb53701debf7bd741c0709580ce4551",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/autonomous-landing-staging-deployment-runbook-v1.md",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "a1051c91c83411fa9d07cbd089f86052cc64a9fa",
+      "sha256": "sha256:0e0500ac36682997b317149bd7ff50c934b465cd285ee53d16bdd236b8134fc3",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5273,5 +5299,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:29d2de45c70fa4674cd8ccebc4f029b409860a5015574d7bfc2d0d10b35336df"
+  "manifest_sha256": "sha256:db6e99c2782af7bfb83335e2ac2a6c0129699789d4d82242bcc3577850c6ed0e"
 }

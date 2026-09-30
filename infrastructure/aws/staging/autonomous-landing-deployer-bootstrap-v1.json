@@ -1,0 +1,90 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "One-time STAGING bootstrap for the exact autonomous-landing CloudFormation deployer and three-role IAM policy execution boundary.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "Default": "arn:aws:iam::528314240275:oidc-provider/token.actions.githubusercontent.com",
+      "AllowedPattern": "^arn:aws:iam::528314240275:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "GitHubRepository": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo"
+    },
+    "GitHubEnvironment": {
+      "Type": "String",
+      "Default": "KIDULTS-AUTONOMOUS-LANDING-DEPLOYER"
+    },
+    "WorkflowRef": {
+      "Type": "String",
+      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml@refs/heads/main"
+    }
+  },
+  "Resources": {
+    "DeployerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-autonomous-landing-deployer-staging-v1",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{
+            "Effect": "Allow",
+            "Principal": {"Federated": {"Ref": "GitHubOidcProviderArn"}},
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+              "StringEquals": {
+                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": {
+                  "Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}:workflow_ref:${WorkflowRef}"
+                }
+              }
+            }
+          }]
+        },
+        "Policies": [{
+          "PolicyName": "deploy-exact-autonomous-landing-stack",
+          "PolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Action": [
+                  "cloudformation:CreateChangeSet",
+                  "cloudformation:DescribeChangeSet",
+                  "cloudformation:ExecuteChangeSet",
+                  "cloudformation:DeleteChangeSet",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:DescribeStackEvents",
+                  "cloudformation:GetTemplate"
+                ],
+                "Resource": [
+                  "arn:aws:cloudformation:ap-northeast-2:528314240275:stack/kidults-autonomous-internal-landing-staging-v1/*",
+                  "arn:aws:cloudformation:ap-northeast-2:528314240275:changeSet/kidults-autonomous-landing-*/*"
+                ]
+              },
+              {
+                "Effect": "Allow",
+                "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:PutRolePolicy"],
+                "Resource": [
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role",
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role"
+                ]
+              }
+            ]
+          }
+        }],
+        "Tags": [
+          {"Key": "Environment", "Value": "STAGING"},
+          {"Key": "Production", "Value": "HOLD"},
+          {"Key": "Public", "Value": "HOLD"},
+          {"Key": "G5", "Value": "HOLD"}
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "GitHubDeployerRoleArn": {"Value": {"Fn::GetAtt": ["DeployerRole", "Arn"]}}
+  }
+}
