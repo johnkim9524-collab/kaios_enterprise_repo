@@ -6,9 +6,10 @@ const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
 const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
-const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.pull_request.number || github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
-const dispatcherDirectRepositoryGuard = "github.event_name != 'pull_request_target' || github.event.pull_request.head.repo.id == github.repository_id";
+const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
 const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
+const dispatcherTerminalWorkflow = 'workflows: [KIDULTS Scope-Aware Authoritative Status V1]';
+const dispatcherRecoverySchedule = "cron: '17 * * * *'";
 const allowedUnbounded = new Set([
   'ci-validation.yml',
   autonomousDispatcherWorkflow,
@@ -23,21 +24,15 @@ function autonomousDispatcherViolations(source) {
   const problems = [];
   const jobsIndex = source.indexOf('\njobs:');
   const workflowScope = jobsIndex >= 0 ? source.slice(0, jobsIndex) : source;
-  if (!/pull_request_target:\s*\n\s{4}branches:\s*\[main\]/.test(source)) {
-    problems.push('DISPATCHER_TARGET_NOT_RESTRICTED_TO_MAIN');
-  }
-  if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) {
-    problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
-  }
-  if (!source.includes(dispatcherDirectRepositoryGuard) || !source.includes(dispatcherWorkflowRunRepositoryGuard)) {
-    problems.push('DISPATCHER_SAME_REPOSITORY_GUARD_MISSING');
-  }
-  if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) {
-    problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
-  }
-  if (!source.includes(dispatcherExactPrBinding)) {
-    problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
-  }
+  if (/^  pull_request_target:/m.test(workflowScope)) problems.push('DISPATCHER_REDUNDANT_PR_TARGET_PRESENT');
+  if (!source.includes(dispatcherTerminalWorkflow)) problems.push('DISPATCHER_TERMINAL_WORKFLOW_TRIGGER_MISSING');
+  if (!source.includes(dispatcherRecoverySchedule) || source.includes("cron: '*/10 * * * *'")) problems.push('DISPATCHER_RECOVERY_SCAN_NOT_BOUNDED');
+  if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
+  if (!source.includes(dispatcherWorkflowRunRepositoryGuard)
+      || !source.includes("github.event.workflow_run.conclusion == 'success'")
+      || !source.includes("github.event.workflow_run.event == 'pull_request_target'")) problems.push('DISPATCHER_TERMINAL_EVENT_GUARD_MISSING');
+  if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
+  if (!source.includes(dispatcherExactPrBinding)) problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
   return problems;
 }
 
@@ -228,11 +223,12 @@ if (files.includes(autonomousDispatcherWorkflow)) {
     violations.push({ file: autonomousDispatcherWorkflow, kind });
   }
   const mutations = [
-    source.replace('    branches: [main]\n', ''),
-    source.replace(` && (${dispatcherDirectRepositoryGuard})`, ''),
+    source.replace(dispatcherTerminalWorkflow, 'workflows: [CI Validation]'),
     source.replace(` && ${dispatcherWorkflowRunRepositoryGuard}`, ''),
+    source.replace("github.event.workflow_run.conclusion == 'success'", 'true'),
     source.replace('          persist-credentials: false', '          persist-credentials: true'),
-    source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}')
+    source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}'),
+    source.replace(dispatcherRecoverySchedule, "cron: '*/10 * * * *'")
   ];
   for (const [index, mutated] of mutations.entries()) {
     if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
@@ -263,10 +259,12 @@ const receipt = {
   },
   autonomous_dispatcher_trust_boundary: {
     fork_pr_dispatch: 'DENIED_BY_JOB_GUARD',
-    pull_request_target_base: 'main',
+    normal_trigger: 'SCOPE_AWARE_TERMINAL_WORKFLOW_RUN_ONLY',
+    pull_request_target_trigger: 'REMOVED',
+    recovery_schedule: 'HOURLY',
     source_checkout: 'TRUSTED_BASE_ONLY',
     exact_pr_binding: true,
-    mutation_cases: 5
+    mutation_cases: 6
   },
   violations
 };
