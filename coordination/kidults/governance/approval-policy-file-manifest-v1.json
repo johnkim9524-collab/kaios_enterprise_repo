@@ -3353,8 +3353,8 @@
     {
       "path": "scripts/kidults/kpmo/run-atomic-landing-lifecycle-preflight-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "470864b362c92db5fdabcff6e6a08e2b0ee3504e",
-      "sha256": "sha256:947b29283e7fbd8a4ee8aeb7873a070b4fda475298f053f71a1317f058914bd9",
+      "git_blob": "8dd968ecc990f10507f5c745e61485b9ff92c8f8",
+      "sha256": "sha256:ba991ce847cce62b03fa46dfb48a39f382f49731fb509a62872de8e65294fc35",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f3f760f8f7a72e43348456280dd6ff8799b15cdda38070413dc3465775f615fe"
+  "manifest_sha256": "sha256:deaa77f7354179e3431d6510ead60dd833850c26ae3f045801cfbfa9f8f078ec"
 }
