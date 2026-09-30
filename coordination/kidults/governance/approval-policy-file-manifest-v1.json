@@ -3405,8 +3405,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "8fdd20dce2496d3a3a327a30baf899817a646133",
-      "sha256": "sha256:b7ba2a372fe24268cfc15c8627e37c3f7c1c33401e6f3bf27b60ea8740abfed5",
+      "git_blob": "fca79e86c889080035700f05b9ed55e5e7affa9d",
+      "sha256": "sha256:9efcaaf302545aa568ac0445897dce6fc441115c95499cab05202f36c7d689e7",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:50ddb2a9d8e71f373afff15ff1ceea480db98918318adf599ea5d7afe35e2cde"
+  "manifest_sha256": "sha256:d9e41714af83df4dd3648f17e9fd3996937582106bb1ed2c59765baf1fd1bbe6"
 }
