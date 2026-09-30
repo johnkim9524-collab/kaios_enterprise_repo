@@ -228,8 +228,12 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
 
 export function validateQuorum({track, kpmo, verifier, registry, policy, now = Date.now()}) {
   const envelopes = [track, kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
+  for (const field of ['dispatch_id','dispatch_idempotency_key']) {
+    if (!envelopes.every(value=>DIGEST.test(String(value[field])))) fail('AUTONOMOUS_DISPATCH_BINDING_REQUIRED',field);
+  }
   const tuple = ['repository_id','repository','pull_request','base_sha','head_sha','head_tree_sha','scope_digest',
-    'test_evidence_digest','rollback_digest','authorization_generation','nonce_digest','issued_at','expires_at'];
+    'test_evidence_digest','rollback_digest','authorization_generation','nonce_digest','issued_at','expires_at',
+    'dispatch_id','dispatch_idempotency_key'];
   for (const field of tuple) if (!envelopes.every(value => String(value[field]) === String(envelopes[0][field]))) {
     fail('AUTONOMOUS_QUORUM_BINDING_MISMATCH', field);
   }

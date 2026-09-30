@@ -38,6 +38,7 @@ const base = {
   base_sha:sha('a'),head_sha:sha('b'),head_tree_sha:sha('c'),scope_digest:sha256([...paths].sort().join('\n')),
   test_evidence:testEvidence,test_evidence_digest:sha256(canonicalJson(testEvidence)),
   rollback_plan:rollbackPlan,rollback_digest:sha256(canonicalJson(rollbackPlan)),authorization_generation:'gen-1',
+  dispatch_id:sha256('dispatch-generation-1'),dispatch_idempotency_key:sha256('dispatch-generation-1'),
   nonce_digest:sha256('nonce'),issued_at:'2026-09-21T12:00:00Z',expires_at:'2026-09-21T12:30:00Z',
   operation:'INTERNAL_REVERSIBLE_LANDING',changed_paths:paths,production:'HOLD',public:'HOLD',g5:'HOLD'
 };
