@@ -223,6 +223,19 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
   return {ok: false, reason: 'ASSURANCE_BINDING_OUTCOMES_MIXED_OR_UNSAFE', bindings};
 }
 
+export function assuranceJobMetadataSettled(jobs, mergeSha, expectedRunId) {
+  if (!Array.isArray(jobs) || !shaPattern.test(mergeSha || '')
+      || !Number.isInteger(Number(expectedRunId)) || Number(expectedRunId) <= 0) return false;
+  const audits = jobs.filter(job => Number(job?.run_id) === Number(expectedRunId)
+    && job?.head_sha === mergeSha && job?.name === 'audit');
+  if (audits.length !== 1) return false;
+  const audit = audits[0];
+  if (audit.status !== 'completed' || !['success', 'failure'].includes(audit.conclusion)
+      || !Array.isArray(audit.steps) || audit.steps.length === 0) return false;
+  return audit.steps.every(step => step?.status === 'completed'
+    && typeof step?.conclusion === 'string' && step.conclusion.length > 0);
+}
+
 async function selfTest() {
   const policy = validatePolicy(readJson(policyPath, 'DIRECT_OWNER_POSTMERGE_POLICY_JSON_INVALID'));
   const mergeSha = 'a'.repeat(40);
@@ -374,11 +387,26 @@ async function main() {
 
   const assuranceRun = evaluation.required.find(run => run.path === assuranceWorkflowPath);
   requireCondition(assuranceRun, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_MISSING');
-  const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
-  requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
-  requireCondition(Number(jobsPayload?.total_count) === jobsPayload.jobs.length, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_PAGINATION_REQUIRED');
-  const assuranceSemanticProof = classifyAssuranceSemantics(jobsPayload.jobs, mergeSha, assuranceRun.run_id);
-  requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+  // GitHub may mark a workflow run completed before its jobs endpoint exposes
+  // terminal step metadata.  Poll only that read model for a short bounded
+  // interval; never reinterpret a settled unsafe shape as success.
+  const assuranceSettleDeadline = Date.now() + Math.min(waitSeconds, 30) * 1000;
+  let assuranceSemanticProof = null;
+  while (true) {
+    const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
+    requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
+    requireCondition(Number(jobsPayload?.total_count) === jobsPayload.jobs.length, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_PAGINATION_REQUIRED');
+    if (assuranceJobMetadataSettled(jobsPayload.jobs, mergeSha, assuranceRun.run_id)) {
+      assuranceSemanticProof = classifyAssuranceSemantics(jobsPayload.jobs, mergeSha, assuranceRun.run_id);
+      requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+      break;
+    }
+    if (Date.now() >= assuranceSettleDeadline) {
+      assuranceSemanticProof = classifyAssuranceSemantics(jobsPayload.jobs, mergeSha, assuranceRun.run_id);
+      throw codedError('DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+    }
+    await new Promise(resolve => setTimeout(resolve, Math.min(policy.poll_interval_seconds, 1) * 1000));
+  }
 
   // Re-read the selected suite and main immediately before recording consumption.
   // This is a read-back continuity check, not an atomic GitHub snapshot/lease.
