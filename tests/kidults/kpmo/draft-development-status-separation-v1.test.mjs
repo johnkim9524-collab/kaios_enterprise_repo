@@ -18,6 +18,8 @@ test('Draft technical validation has a separate non-authority status', () => {
   assert.match(scopeRunner, /validation_lane: draftDevelopment \? 'DRAFT_DEVELOPMENT' : 'READY_PROMOTION'/);
   assert.match(scopeRunner, /landing_authorization_created: false/);
   assert.match(scopeRunner, /draft_non_promotable: draftDevelopment/);
+  assert.match(scopeRunner, /activeStatusContext !== context/);
+  assert.match(scopeRunner, /lifecycle-only Draft/);
   assert.match(scopeWorkflow, /Publish exact-head aggregate status/);
 });
 
