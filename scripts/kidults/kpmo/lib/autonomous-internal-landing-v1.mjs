@@ -120,12 +120,17 @@ export function validateWorkload(workload, registry, expectedRole) {
   return {role: expectedRole, stable_id: workload.workload_id, signing_key_arn: workload.signing_key_arn};
 }
 
-export function deriveApprovalDecision({envelope, role, statuses = [], checks = []}) {
+export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = []}) {
   if (!ROLE.has(role) || role === 'FINALIZER') fail('AUTONOMOUS_DECISION_ROLE_INVALID');
   if (!Array.isArray(statuses) || !Array.isArray(checks) || (!statuses.length && !checks.length)) fail('AUTONOMOUS_DECISION_EVIDENCE_MISSING');
-  const normalizedStatuses=statuses.map(value=>({context:String(value.context),state:String(value.state)})).sort((a,b)=>a.context.localeCompare(b.context));
-  const normalizedChecks=checks.map(value=>({name:String(value.name),status:String(value.status),conclusion:String(value.conclusion)})).sort((a,b)=>a.name.localeCompare(b.name));
-  if (normalizedStatuses.some(value=>value.state!=='success') || normalizedChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
+  const required=new Set((requiredContexts||[]).map(String));
+  const normalizedStatuses=statuses.map(value=>({context:String(value.context),state:String(value.state)}))
+    .filter(value=>!required.size||required.has(value.context)).sort((a,b)=>a.context.localeCompare(b.context));
+  const normalizedChecks=checks.map(value=>({name:String(value.name),status:String(value.status),conclusion:String(value.conclusion)}))
+    .filter(value=>!required.size||required.has(value.name)).sort((a,b)=>a.name.localeCompare(b.name));
+  if ((!normalizedStatuses.length&&!normalizedChecks.length)
+      || normalizedStatuses.some(value=>value.state!=='success')
+      || normalizedChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
     fail('AUTONOMOUS_DECISION_EVIDENCE_NOT_GREEN');
   }
   const testEvidence={

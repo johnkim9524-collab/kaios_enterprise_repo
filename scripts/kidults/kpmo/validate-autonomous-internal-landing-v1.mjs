@@ -80,6 +80,7 @@ const sharedEnvironment={...kpmo,workload:{...kpmo.workload,environment:track.wo
 assert.throws(()=>validateQuorum({track,kpmo:sharedEnvironment,verifier,registry:{workloads:[...registry.workloads,{role:'KPMO',...sharedEnvironment.workload}]},policy,now}));
 assert.throws(()=>validateQuorum({track,kpmo,verifier:{...verifier,verification_state:'FAILED'},registry,policy,now}));
 assert.throws(()=>validateQuorum({track:{...track,decision:{...track.decision,state:'CALLER_PASS'}},kpmo,verifier,registry,policy,now}));
+assert.doesNotThrow(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{context:'required',state:'success'},{context:'KIDULTS Governed Landing Authorization V1',state:'pending'}],checks:[],requiredContexts:['required']}));
 assert.throws(()=>deriveApprovalDecision({envelope:base,role:'KPMO',statuses:[{context:'required',state:'failure'}],checks:[]}));
 assert.throws(()=>deriveApprovalDecision({envelope:base,role:'FINALIZER',...liveEvidence}));
 assert.throws(()=>buildTerminalReceipt({quorum,reservation:{state:'RESERVED',conditional_write:true},merge:{},postmerge:{}}));
