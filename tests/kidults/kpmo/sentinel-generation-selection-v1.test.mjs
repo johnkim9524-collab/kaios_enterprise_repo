@@ -83,15 +83,15 @@ test('generation index: Canonical V3 workflow_run supersedes the startup-race pu
  const selection=selectProducerGeneration([pushFailure,regenerated],canonical,sourceSha,observed);
  assert.equal(selection.latest.id,21);
 });
-test('generation index: recovery dispatch cannot supersede natural Reserve evidence',()=>{
+test('generation index: natural Reserve workflow_run participates while manual dispatch stays excluded',()=>{
  const reserve=SPECS.find(candidate=>candidate.id==='RESERVE');
  const base={run_attempt:1,repository:{full_name:REPOSITORY},path:reserve.path,head_branch:'main',head_sha:sourceSha,status:'completed'};
- const natural={...base,id:30,event:'repository_dispatch',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
+ const clockNatural={...base,id:30,event:'repository_dispatch',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
  const manualFailure={...base,id:31,event:'workflow_dispatch',conclusion:'failure',created_at:'2026-09-05T10:01:00Z'};
- const workflowRunFailure={...base,id:32,event:'workflow_run',conclusion:'failure',created_at:'2026-09-05T10:02:00Z'};
- const selection=selectProducerGeneration([natural,manualFailure,workflowRunFailure],reserve,sourceSha,observed);
- assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30]);
- assert.equal(selection.latest.id,30);
+ const producerNatural={...base,id:32,event:'workflow_run',conclusion:'success',created_at:'2026-09-05T10:02:00Z'};
+ const selection=selectProducerGeneration([clockNatural,manualFailure,producerNatural],reserve,sourceSha,observed);
+ assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30,32]);
+ assert.equal(selection.latest.id,32);
 });
 test('generation index: manual producer generations are excluded from every terminal producer',()=>{
  for(const producer of SPECS)assert.equal(producer.events.includes('workflow_dispatch'),false,producer.id);
