@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "a8440cfeb2b7ea4eaefb0386b184d48baf4d8f5d",
+  "revision": "aaa229afed9b75ac14c1ad6d87d51d2a62aae0b8",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
