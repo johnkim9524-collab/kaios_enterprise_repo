@@ -86,8 +86,13 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   const expectedRef = `johnkim9524-collab/kaios_enterprise_repo/.github/workflows/${workflowFile}@refs/heads/main`;
   assert.equal(template.Parameters[workflowParameter].Default, expectedRef);
   finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${' + workflowParameter + '}'}`});
-  const actions = role.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-  assert.equal(actions.some(action => action.startsWith('dynamodb:')), false);
+  const statements = role.Policies[0].PolicyDocument.Statement;
+  const actions = statements.flatMap(value => value.Action || []);
+  assert.deepEqual(actions.filter(action => action.startsWith('dynamodb:')), ['dynamodb:Query']);
+  const ledgerRead = statements.find(value => (value.Action || []).includes('dynamodb:Query'));
+  assert.deepEqual(ledgerRead.Resource, {'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
+  assert.deepEqual(ledgerRead.Condition, {'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
+  assert.equal(actions.some(action => ['dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:DeleteItem'].includes(action)), false);
   assert.ok(actions.includes('lambda:InvokeFunction'));
   assert.ok(actions.includes('kms:Sign'));
   const sign = role.Policies[0].PolicyDocument.Statement.find(value => (value.Action || []).includes('kms:Sign'));

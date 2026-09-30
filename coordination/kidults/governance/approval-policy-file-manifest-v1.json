@@ -2764,8 +2764,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a016b5fe93dc998b7e4a44a38790d2bfc8f859c1",
-      "sha256": "sha256:0be444c139db3b6a38d92e1eef3e3cd69ff91f5cc86a420ea3e3a565756c9cae"
+      "git_blob": "fbed7006f5e9e5aff412fa0b1472c17f315b315a",
+      "sha256": "sha256:aa5bfcda0d855a8a626836b693179fd2220af0c25454b4d48dafcd8983bfee4f"
     },
     {
       "path": "package.json",
@@ -2869,8 +2869,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "8dabfbae1cf5e99b04a1e3f696d68e457e939758",
-      "sha256": "sha256:06172e0b297ecff070c2a46916ba227e3f0f030fe7ad0f4db0d0f48f230476d4",
+      "git_blob": "84934e4e0c3d17d36bd94eee5908f7cd3c0c89dd",
+      "sha256": "sha256:05c70242c71fdb1ed2310a7129c9090abf4a4298bda2b59bbbfe39de89c00c72",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5239,8 +5239,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3e3d79c91496e225239a572d2a40fa556f844dd7",
-      "sha256": "sha256:68ff507b31fc3a0cb2c7c2fa18a1ae8f4ad1758318e4ea0858385e04d2e9b326"
+      "git_blob": "4415b1c5c75ce254f1bae1619695ad92ee766cbe",
+      "sha256": "sha256:d606768e00a17db679af8de093807f8029f94ec537b00b4ccab1578124583f15"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -5273,5 +5273,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c2c71fd794e3261bde258ca0ba231bcb3a5ec7cfc26ab5bc2a6ca353b4039cf0"
+  "manifest_sha256": "sha256:29d2de45c70fa4674cd8ccebc4f029b409860a5015574d7bfc2d0d10b35336df"
 }
