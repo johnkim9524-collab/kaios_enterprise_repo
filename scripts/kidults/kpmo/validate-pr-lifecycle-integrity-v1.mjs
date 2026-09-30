@@ -271,7 +271,7 @@ async function main() {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
     const [prInitial, mainBranch, statuses, timeline] = await Promise.all([
       api(`/pulls/${prNumber}`),
-      api('/branches/main'),
+      api('/git/ref/heads/main'),
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/issues/${prNumber}/timeline`),
     ]);
@@ -302,11 +302,11 @@ async function main() {
       headTree: approvalHeadTree,
       readJson: filename => readJsonAtRef(filename, prInitial.head.sha),
       prBaseSha: prInitial.base.sha,
-      liveMainSha: mainBranch?.commit?.sha,
+      liveMainSha: mainBranch?.object?.sha,
     });
     const classification = classifyLifecycle({
       pr: prInitial,
-      liveMainSha: mainBranch?.commit?.sha,
+      liveMainSha: mainBranch?.object?.sha,
       statuses,
       policy,
       expectedHeadSha,
