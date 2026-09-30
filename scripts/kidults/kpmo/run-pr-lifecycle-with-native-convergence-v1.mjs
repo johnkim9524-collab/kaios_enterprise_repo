@@ -131,7 +131,7 @@ async function main() {
   for (attempts = 1; attempts <= maxAttempts; attempts += 1) {
     const [pr, main, status] = await Promise.all([
       request(`/pulls/${prNumber}`),
-      request('/branches/main'),
+      request('/git/ref/heads/main'),
       request(`/commits/${expectedHeadSha}/status`),
     ]);
     const stableReadyCandidate = pr?.state === 'open'
@@ -140,7 +140,7 @@ async function main() {
       && pr?.head?.sha === expectedHeadSha
       && pr?.base?.ref === 'main'
       && pr?.base?.sha === expectedBaseSha
-      && main?.commit?.sha === expectedBaseSha;
+      && main?.object?.sha === expectedBaseSha;
     if (!stableReadyCandidate) break;
     const statuses = Array.isArray(status?.statuses) ? status.statuses : [];
     if (nativeGovernanceConverged(statuses, required)) {
