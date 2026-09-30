@@ -122,7 +122,7 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
     'DRAFT_POLICY_TOKEN_BOUNDARY_INVALID');
   requireExact(draft.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER',
     'DRAFT_POLICY_TOKEN_SOURCE_INVALID');
-  requireExactArray(draft.ready_transition_required_permissions, ['pull_requests:write','metadata:read'],
+  requireExactArray(draft.ready_transition_required_permissions, ['contents:write','pull_requests:write','metadata:read'],
     'DRAFT_POLICY_REQUIRED_PERMISSIONS');
   requireExact(draft.ready_transition_installation_identity_bound === true,
     'DRAFT_POLICY_INSTALLATION_BINDING_INVALID');

@@ -23,12 +23,13 @@ Before using this reading order, every agent instance must execute the canonical
 export KIDULTS_BOOTSTRAP_NONCE='<unique-orchestrator-nonce-at-least-32-bytes>'
 npm run agent:bootstrap -- \
   --agent-id <agent-id> --agent-class <governed-class> \
-  --task-id <task-id> --session-id <session-id>
+  --task-id <task-id> --session-id <session-id> \
+  --expected-sha <externally-supplied-exact-checkout-sha>
 ```
 
 Do not start track work after receipt creation alone. The orchestrator must independently run `npm run verify:agent-bootstrap -- ... --consume` and obtain `BOOTSTRAP_VERIFIED` for the same bindings.
 
-The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
+The global GitHub bootstrap reads all contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
 
 1. `coordination/kidults/README.md`
 2. `coordination/kidults/registry/README.md`
@@ -117,3 +118,11 @@ next reporting time
 ```
 
 Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution
+
+## 전략 우선 실행과 역할 분리 — 2026-09-30
+
+모든 에이전트는 이미 필수 읽기에 포함된 `coordination/kidults/registry/roles-and-responsibilities.json`의 `mandatory_execution_strategy`와 자신의 직무를 읽고 수락한다. 착수 전 목표·최종 증거·현재 사실/가설/미확인·핵심 병목·선택 경로/제외 범위·결정적 선검증·시간/비용/재시도 한도·전환 기준·인수인계를 작업 위험에 비례해 준비한다. 같은 실패는 새 근거 없이 반복하지 않으며 계획 자체도 제한한다. 별도 일상 Owner 승인 대기열은 만들지 않는다. 읽기 receipt는 이해력·수행 능력·운영 완료를 입증하지 않는다.
+
+Atlas는 통합·종결의 최종 책임을 유지한다. `DEPUTY_KPMO`는 `deputy-kpmo`, `TRACK_R`는 `track-r-red-team`에 결속되며 기존 `RED_TEAM`의 incident-manager 매핑을 새 Track R 선임으로 오인하지 않는다. Deputy와 Track R은 겸임하지 않는다. Track R은 John 직보이며 자신이 작성한 결과를 독립 검증하지 않는다. Track B 판정은 대체하지 않는다. 조건부 지정은 역할 수락·실제 실행·영구 적격 PASS가 아니다.
+
+Track C의 2026-08-12 수락 이력은 보존하되 현재 세션 준비와 구분한다. 미전달·연결 장애는 거부가 아니다. 실제 전달과 실행 여건이 확인된 상태의 거부 또는 정당한 사유 없는 미이행만 증거 기반 교체 대상이다. 모든 기존 Production/Public/G5·지출·계약·활성화·trust-root 경계는 유지한다. 구현·수락·가동의 후속 기준은 #2431에서 추적한다.

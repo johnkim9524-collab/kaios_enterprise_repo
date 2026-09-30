@@ -1,0 +1,22 @@
+{
+  "id": "agent-aegis",
+  "record_type": "ai_agent",
+  "version": "1.0.0",
+  "status": "DESIGNATED_PENDING_ROLE_READINESS",
+  "display_name": "Aegis — Track R",
+  "role_ids": [
+    "role-track-r"
+  ],
+  "jd_role_id": "track-r-red-team",
+  "reports_to": "program-owner",
+  "engine_assignment": "EXISTING_GITHUB_CLAUDE_ROUTE_PENDING_ROLE_BINDING",
+  "canonical_issue": 2431,
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "decision_id": "decision-leadership-restart-20260930",
+  "approval_evidence": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+  "current_session_readiness": "PENDING",
+  "role_acceptance_receipt": null,
+  "dispatch_enabled": false,
+  "qualification_pass_claimed": false
+}

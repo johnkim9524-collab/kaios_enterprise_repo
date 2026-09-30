@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import {validateTrackRoster} from "../registry/lib/validate-track-roster-v1.mjs";
 
 const root = process.cwd();
 const requiredFiles = [
+  "coordination/kidults/registry-engine/schemas/track-record.schema.json",
   "coordination/kidults/registry/program-registry.json",
   "coordination/kidults/registry/roles-and-responsibilities.json",
   "coordination/kidults/registry/operating-cadence.json",
@@ -64,13 +66,8 @@ if (verticals) {
 }
 
 const trackIndex = parsed.get("coordination/kidults/registry/track/index.json");
-if (trackIndex) {
-  const operationalTrackIds = new Set(trackIndex.records?.map((track) => track.id));
-  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system"]) {
-    if (!operationalTrackIds.has(id)) errors.push(`Operational Track Registry missing ${id}`);
-  }
-  if (trackIndex.record_count !== 5) errors.push(`Operational Track Registry must contain exactly 5 records; found ${trackIndex.record_count}.`);
-}
+const trackSchema = parsed.get("coordination/kidults/registry-engine/schemas/track-record.schema.json");
+errors.push(...validateTrackRoster(trackIndex, trackSchema?.properties?.id?.enum));
 
 const operationalVerticals = parsed.get("coordination/kidults/registry/vertical/index.json");
 if (operationalVerticals?.record_count !== 8) errors.push("Operational Core Vertical Registry must contain exactly 8 records.");
@@ -89,4 +86,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; five tracks A-E registered; KPMO master #344 canonical).`);
+console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; approved Track schema and exact registry roster matched; KPMO master #344 canonical).`);

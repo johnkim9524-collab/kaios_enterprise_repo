@@ -50,7 +50,7 @@ requireTrue(bootstrap.repeated_human_prompting_required === false, 'REPEATED_PRO
 requireTrue(bootstrap.bootstrap_must_load_before_task_execution === true, 'BOOTSTRAP_PRELOAD_REQUIRED');
 requireTrue(bootstrap.bootstrap_inheritance?.child_rule_can_weaken === false, 'CHILD_WEAKENING_FORBIDDEN');
 requireTrue(bootstrap.bootstrap_inheritance?.agent_self_exemption_allowed === false, 'SELF_EXEMPTION_FORBIDDEN');
-const inheritedAgentClasses = ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','RED_TEAM','ASI','CODING_AGENTS','REVIEW_AGENTS','TEST_AGENTS','RELEASE_AGENTS','DOCUMENTATION_AGENTS','DISCOVERY_AGENTS','EVIDENCE_AGENTS','GRAPH_AGENTS','PROVIDER_AGENTS','RUNTIME_AGENTS','SCHEDULED_AGENT_AUTOMATIONS','EXTERNAL_MODEL_AGENTS'];
+const inheritedAgentClasses = ['KPMO','TRACK_A','TRACK_B','TRACK_C','TRACK_D','TRACK_E','RED_TEAM','ASI','CODING_AGENTS','REVIEW_AGENTS','TEST_AGENTS','RELEASE_AGENTS','DOCUMENTATION_AGENTS','DISCOVERY_AGENTS','EVIDENCE_AGENTS','GRAPH_AGENTS','PROVIDER_AGENTS','RUNTIME_AGENTS','SCHEDULED_AGENT_AUTOMATIONS','EXTERNAL_MODEL_AGENTS','DEPUTY_KPMO','TRACK_R'];
 for (const agent of inheritedAgentClasses) {
   requireTrue(bootstrap.bootstrap_inheritance?.[agent] === true, `MISSING_BOOTSTRAP_INHERITANCE:${agent}`);
 }

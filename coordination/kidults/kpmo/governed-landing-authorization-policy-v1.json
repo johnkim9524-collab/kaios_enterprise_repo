@@ -105,6 +105,7 @@
     "ordinary_github_token_ready_mutation_forbidden": true,
     "ready_transition_token_source": "REPOSITORY_GITHUB_APP_INSTALLATION_BROKER",
     "ready_transition_required_permissions": [
+      "contents:write",
       "pull_requests:write",
       "metadata:read"
     ],

@@ -1,0 +1,43 @@
+{
+  "id": "decision-leadership-restart-20260930",
+  "record_type": "decision",
+  "version": "1.0.0",
+  "status": "APPROVED_CONDITIONAL_IMPLEMENTATION",
+  "decided_at": "2026-09-30T00:44:13.794Z",
+  "owner": "John",
+  "created_by": "Atlas",
+  "registered_by": "Atlas",
+  "approved_by": "John",
+  "authorization_provenance": "OWNER_CHAT_INSTRUCTION_RECORDED_BY_CONNECTOR_NOT_DIRECT_OWNER_SIGNATURE",
+  "decision": "Atlas의 기존 직무 유지와 전략·종결 책임 강화, Codex Deputy와 Aegis 독립 Track R의 조건부 지정, 전략 우선 업무 기준과 Track C 재수락·정합성 복구를 구현한다.",
+  "scope": [
+    "Leadership roles",
+    "Strategy-first execution",
+    "Track C role revalidation"
+  ],
+  "conditions": [
+    "신규 역할 가동과 영구 KPMO 적격 PASS를 구분한다",
+    "92점 목표와 필수 결격조건 유지",
+    "실제 별도 역할 수락 전 신규 역할 dispatch 금지",
+    "Track C 거부·미이행은 전달·가용성과 증거를 확인한 경우에만 판정한다"
+  ],
+  "evidence_references": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+    "issue:2431",
+    "issue:237:comment:5901693529"
+  ],
+  "protected_holds": [
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "NEW_EXTERNAL_SPEND",
+    "CONTRACT_EULA",
+    "PROVIDER_ACTIVATION",
+    "CREDENTIAL_API_ACTIVATION",
+    "GITHUB_APP_OAUTH_INSTALLATION",
+    "TRUST_ROOT_CHANGE",
+    "IRREVERSIBLE_SECURITY_LEGAL_CHANGE"
+  ],
+  "committee_votes_claimed": false,
+  "private_counsel_included": false
+}

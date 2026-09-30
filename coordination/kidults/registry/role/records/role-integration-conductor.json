@@ -1,13 +1,26 @@
 {
-  "id":"role-integration-conductor",
-  "record_type":"role",
-  "version":"1.0.0",
-  "status":"ACTIVE",
-  "title":"Chief Architect / Integration Conductor / Registry Custodian",
-  "holder_id":"agent-atlas",
-  "mission":"Maintain the full program score, compatible artifacts, traceable decisions and one integrated operating picture.",
-  "authority":["REJECT_INCOMPLETE_HANDOFF","BLOCK_CONTRACT_MISMATCH","RECOMMEND_RELEASE_HOLD_ROLLBACK"],
-  "must_not":["FINAL_PRODUCTION_APPROVAL","PROVIDER_CONTRACT_APPROVAL","ALTER_TRACK_A_METRICS","REPLACE_TRACK_B_ASSESSMENT"],
-  "created_by":"Atlas",
-  "approved_by":"John"
+  "id": "role-integration-conductor",
+  "record_type": "role",
+  "version": "1.1.0",
+  "status": "ACTIVE",
+  "title": "Chief Architect / Integration Conductor / Registry Custodian",
+  "holder_id": "agent-atlas",
+  "mission": "사전 전략과 핵심 병목을 먼저 확정하고 모든 Track의 호환 가능한 인계를 통합하며, 허용된 과제를 실제 종결 증거까지 책임진다.",
+  "authority": [
+    "REJECT_INCOMPLETE_HANDOFF",
+    "BLOCK_CONTRACT_MISMATCH",
+    "RECOMMEND_RELEASE_HOLD_ROLLBACK"
+  ],
+  "must_not": [
+    "FINAL_PRODUCTION_APPROVAL",
+    "PROVIDER_CONTRACT_APPROVAL",
+    "ALTER_TRACK_A_METRICS",
+    "REPLACE_TRACK_B_ASSESSMENT"
+  ],
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "jd_role_id": "integration-conductor",
+  "accountability_contract": "AI-019/AI-022",
+  "updated_jd_readiness": "REACCEPT_AFTER_LANDING",
+  "decision_id": "decision-leadership-restart-20260930"
 }

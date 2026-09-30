@@ -48,10 +48,14 @@ const TRUST = Object.freeze({
     'PROVIDER_AGENTS',
     'RUNTIME_AGENTS',
     'SCHEDULED_AGENT_AUTOMATIONS',
-    'EXTERNAL_MODEL_AGENTS'
+    'EXTERNAL_MODEL_AGENTS',
+    'DEPUTY_KPMO',
+    'TRACK_R'
   ],
   agentClassRoleMap: {
     KPMO: 'integration-conductor',
+    DEPUTY_KPMO: 'deputy-kpmo',
+    TRACK_R: 'track-r-red-team',
     TRACK_A: 'track-a-120-score',
     TRACK_B: 'track-b-rankability',
     TRACK_C: 'track-c-portal-v502',
@@ -115,7 +119,7 @@ const TRUST = Object.freeze({
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
     'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.7.0',
+  receiptVersion: '1.8.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -669,7 +673,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.8.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -957,7 +961,29 @@ try {
 }
 const boundRoleId = TRUST.agentClassRoleMap[options.agentClass];
 const boundRole = roleRegistry.roles?.find((role) => role.role_id === boundRoleId);
+// Named-role containment for #2433. A matching holder string is not authentication.
+// No acceptance path is enabled until a separately governed protected verifier exists.
+const enforceNamedRoleIdentity = (registry, roleId, agentId) => {
+  const protectedRoles = ['deputy-kpmo', 'track-r-red-team', 'track-c-portal-v502'];
+  const named = protectedRoles.map(id => {
+    const matches = registry.roles?.filter(role => role.role_id === id);
+    if (matches?.length !== 1 || typeof matches[0].holder_id !== 'string' || !matches[0].holder_id.trim()) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', id);
+    return matches[0];
+  });
+  const incumbents = registry.roles?.filter(role => role.role_id === 'integration-conductor');
+  if (incumbents?.length !== 1 || !incumbents[0].holder_id) fail('REGISTERED_ROLE_HOLDER_UNRESOLVED', 'integration-conductor');
+  if (new Set(named.map(role => role.holder_id)).size !== named.length || named.some(role => role.holder_id === incumbents[0].holder_id)) fail('REGISTERED_ROLE_HOLDER_CONFLICT');
+  const requested = named.find(role => role.role_id === roleId);
+  const designatedActor = named.find(role => role.holder_id === agentId);
+  if (!requested && !designatedActor) return;
+  if (!requested || requested.holder_id !== agentId) fail('REGISTERED_ROLE_HOLDER_MISMATCH');
+  const gate = registry.named_role_identity_gate;
+  if (gate?.mode !== 'DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER' || gate.trusted_identity_verifier_registered !== false || gate.holder_string_is_authentication !== false || gate.synthetic_receipt_is_actor_acceptance !== false) fail('ROLE_IDENTITY_POLICY_INVALID');
+  fail('ROLE_IDENTITY_ATTESTATION_REQUIRED');
+};
+
 if (!boundRole) fail('BOUND_ROLE_NOT_FOUND', boundRoleId ?? options.agentClass);
+enforceNamedRoleIdentity(roleRegistry, boundRoleId, options.agentId);
 const readinessDocument = loadedDocuments.find((document) => document.path === 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json');
 if (!readinessDocument) fail('CONSTITUTIONAL_READINESS_MANIFEST_NOT_LOADED');
 const acceptedDomains = ['VISION_AND_GOALS', 'OPERATING_PRINCIPLES', 'AI_GOVERNANCE', 'JD_AND_ROLE', 'WORKING_ATTITUDE'];
@@ -1020,6 +1046,9 @@ const receiptWithoutDigest = {
     bound_role_mission: boundRole.mission,
     accepted_domains: acceptedDomains,
     role_jd_fields_accepted: ['mission', 'core_responsibilities', 'required_deliverables', 'decision_authority', 'must_not', 'success_measures', 'reporting_cadence'],
+    strategy_contract_sha256: sha256(stableStringify(roleRegistry.mandatory_execution_strategy)),
+    strategy_first_attitude_accepted: true,
+    reading_proves_execution_quality: false,
     acceptance_mechanism: 'SUCCESSFUL_EXPLICIT_BOOTSTRAP_INVOCATION',
     acceptance_bound_to_agent_task_session_nonce_and_sha: true,
     parent_acceptance_substitution_allowed: false

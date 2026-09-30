@@ -57,14 +57,14 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || main.commit?.sha!==base_sha) fail();
     const writePermissions=permission_profile==='DRAFT_READY_TRANSITION'
-      ? {pull_requests:'write'}
+      ? {contents:'write',pull_requests:'write'}
       : {contents:'write',pull_requests:'write'};
     const minted=await mint(writePermissions);
     if (!validScope(minted,writePermissions)) fail();
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
       app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
       permissions:(permission_profile==='DRAFT_READY_TRANSITION'
-        ? ['pull_requests:write','metadata:read']
+        ? ['contents:write','pull_requests:write','metadata:read']
         : ['contents:write','pull_requests:write','metadata:read']),
       expires_at:minted.expires_at,token:minted.token};
   };

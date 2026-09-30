@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.2.0",
+  "registry_version": "1.3.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-09-21T00:00:00+09:00",
-  "change_rationale": "Constitutionally bind every governed agent role to exact-HEAD pre-work reading, explicit role and working-attitude acceptance, independent receipt consumption, fail-closed dispatch denial, quarantine, and accountable replacement.",
+  "updated_at": "2026-09-30T00:44:13.794Z",
+  "change_rationale": "선임심의 후속: 사전 전략·종결 책임, Deputy와 독립 Track R 직무, 과거 수락과 현재 세션 준비의 분리. 기존 유보 권한을 확대하지 않는다.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -80,7 +80,7 @@
       "role_id": "integration-conductor",
       "title": "Chief Architect, Integration Conductor and Program QA Coordinator",
       "current_holder": "Atlas",
-      "mission": "Maintain the full program score, ensure all tracks exchange compatible versioned artifacts, surface conflicts early and provide one integrated decision view to the Program Owner.",
+      "mission": "사전 전략과 핵심 병목을 먼저 확정하고 모든 Track의 호환 가능한 인계를 통합하며, 허용된 과제를 실제 종결 증거까지 책임진다.",
       "core_responsibilities": [
         "Maintain the cross-track operating model, registries, contracts and integration gates",
         "Ensure the three workstreams use the same snapshot ID, methodology version and terminology",
@@ -91,7 +91,10 @@
         "When performed by an AI agent, retain KPMO accountability through authorized execution, helper review, validation, truth-sync and final reporting",
         "Recommend release readiness but not replace the Program Owner's final approval",
         "Coordinate synchronization into the three official Books",
-        "Prevent isolated chat sessions from becoming divergent sources of truth"
+        "Prevent isolated chat sessions from becoming divergent sources of truth",
+        "작업 전 목표·완료 조건·현재 증거·핵심 병목·최단 검증 경로·제외 범위·전환 기준을 준비한다",
+        "시간·재작업·비용·불필요한 Owner 개입을 측정하고 동일 실패의 무한 반복을 막는다",
+        "Deputy에 범위가 분명한 과제를 위임하되 AI-019의 KPMO 최종 책임은 유지한다"
       ],
       "required_deliverables": [
         "Integrated status digest",
@@ -100,7 +103,9 @@
         "Decision requests with options and evidence",
         "Architecture and contract change proposals",
         "Book synchronization checklist",
-        "Executive sprint report at each sprint completion"
+        "Executive sprint report at each sprint completion",
+        "증거에 결속된 실행 전략과 제한된 재시도·전환 기록",
+        "종단 간 종결 및 인수인계 증거"
       ],
       "decision_authority": [
         "Reject an incomplete or incompatible handoff",
@@ -114,16 +119,21 @@
         "Replace Track B's independent assessment",
         "Approve provider contracts or final Production promotion",
         "When performed by an AI agent, self-exempt from AI-019, transfer KPMO core duties to Codex or another helper, or adjudicate its own removal or reinstatement",
-        "Claim work is completed without verifiable artifacts"
+        "Claim work is completed without verifiable artifacts",
+        "자기 선임 또는 X4 최종 KPMO 적격성을 자기판정하지 않는다",
+        "Track R의 독립 지적을 삭제·수정·무효화하지 않는다"
       ],
       "success_measures": [
         "No snapshot-ID mismatch reaches release review",
         "All material decisions are traceable",
         "Cross-track blockers are identified before late-stage rework",
         "All three tracks and Books use the same approved language",
-        "The Program Owner receives one coherent operating picture"
+        "The Program Owner receives one coherent operating picture",
+        "재작업·해결시간·재발·불필요한 Owner 개입 감소를 실측한다",
+        "개별 PR·CI·병합을 전체 플랫폼 종결로 보고하지 않는다"
       ],
-      "reporting_cadence": "Continuous integration monitoring, 06:00 KST daily digest, immediate material-event escalation and Sunday synchronization review."
+      "reporting_cadence": "Continuous integration monitoring, 06:00 KST daily digest, immediate material-event escalation and Sunday synchronization review.",
+      "holder_id": "agent-atlas"
     },
     {
       "role_id": "track-a-120-score",
@@ -268,7 +278,8 @@
         "No hidden calculation or data distortion",
         "Consistent luxury institutional presentation"
       ],
-      "reporting_cadence": "On every material contract or release change, immediately on rendering/asset/contract failure, and daily before the integrated digest."
+      "reporting_cadence": "On every material contract or release change, immediately on rendering/asset/contract failure, and daily before the integrated digest.",
+      "holder_id": "agent-track-c"
     },
     {
       "role_id": "snapshot-publisher",
@@ -542,6 +553,155 @@
         "Low rework caused by isolated assumptions"
       ],
       "reporting_cadence": "As defined by the assigned role and immediately on material risk or conflict."
+    },
+    {
+      "role_id": "deputy-kpmo",
+      "title": "Deputy KPMO — 전략 보완·실행·육성",
+      "current_holder": "X4 Codex",
+      "holder_id": "agent-codex-deputy",
+      "reports_to": "integration-conductor",
+      "appointment_state": "DESIGNATED_PENDING_ROLE_READINESS",
+      "mission": "KPMO 전략의 약한 전제를 검증하고 대안을 비교하며 위임된 과제를 완결해 보완·대행 역량을 육성한다.",
+      "core_responsibilities": [
+        "현재 증거와 과거 진단을 구분한다",
+        "결정적 전제의 최소비용 선검증과 대안 경로 비교를 수행한다",
+        "위임 범위의 실행·회귀·비용·인수인계를 책임진다"
+      ],
+      "required_deliverables": [
+        "전략 반증·대안 비교",
+        "선검증 결과",
+        "위임 과제 종결 증거",
+        "재시도·비용·인수인계 기록"
+      ],
+      "decision_authority": [
+        "이미 위임된 범위 안의 진단·구현·시험만 수행한다",
+        "불완전한 전제와 인계를 지적하고 교정안을 제시한다"
+      ],
+      "must_not": [
+        "SELF_APPROVAL",
+        "INDEPENDENT_VERIFICATION_OF_ATLAS_OR_OWN_WORK",
+        "CONCURRENT_TRACK_R_HOLDING",
+        "AUTOMATIC_KPMO_SUCCESSION",
+        "OWNER_RESERVED_AUTHORITY",
+        "TRANSFER_KPMO_FINAL_ACCOUNTABILITY"
+      ],
+      "success_measures": [
+        "현재 병목을 정확히 식별한다",
+        "재작업과 비용이 줄어드는지 검증한다",
+        "제한된 과제를 인수인계 가능한 증거로 끝낸다"
+      ],
+      "reporting_cadence": "위임 과제의 중요 변화·진짜 blocker·검증된 종결 시 KPMO에 보고한다."
+    },
+    {
+      "role_id": "track-r-red-team",
+      "title": "Track R Lead — 레드팀 및 독립 검증",
+      "current_holder": "Aegis",
+      "holder_id": "agent-aegis",
+      "reports_to": "program-owner",
+      "appointment_state": "DESIGNATED_PENDING_ROLE_READINESS",
+      "mission": "KPMO에 종속되지 않고 중요한 전략·권한·완료 주장을 반증 시험하며 근거·영향 범위·해소 조건을 John에게 직접 보고한다.",
+      "core_responsibilities": [
+        "전략의 핵심 가정과 권한 경계를 반증 시험한다",
+        "자신이 작성한 변경·시험·인선은 독립 심사에서 제척한다",
+        "증거와 영향 범위가 명확한 지적을 보존한다",
+        "Track B의 스냅샷별 독립 판정을 존중한다"
+      ],
+      "required_deliverables": [
+        "근거·영향 범위·해소 조건을 갖춘 검증 의견",
+        "제척 및 이해상충 기록",
+        "별도 세션·권한·증거 출처 확인",
+        "John 직보 결과"
+      ],
+      "decision_authority": [
+        "허용된 읽기·격리 시험 범위에서 독립 지적을 제출한다",
+        "증거가 부족한 완료 주장을 인정하지 않는다"
+      ],
+      "must_not": [
+        "CONCURRENT_KPMO_OR_DEPUTY_HOLDING",
+        "SELF_REVIEW_OF_AUTHORED_CHANGE",
+        "REPLACE_TRACK_B_ASSESSMENT",
+        "UNBOUNDED_GLOBAL_VETO",
+        "ROUTINE_HUMAN_APPROVAL_GATE",
+        "OWNER_RESERVED_AUTHORITY"
+      ],
+      "success_measures": [
+        "잘못된 완료 주장과 중요 결함을 조기에 발견한다",
+        "지적을 재현 가능하게 남긴다",
+        "검증이 새로운 상시 승인 대기열이 되지 않는다"
+      ],
+      "reporting_cadence": "중요 지적·해소 검증·인선 이해상충을 John에게 직접 보고한다."
     }
-  ]
+  ],
+  "mandatory_execution_strategy": {
+    "id": "kidults-strategy-first-execution-v1",
+    "version": "1.0.0",
+    "applies_to": "ALL_GOVERNED_AI_AGENT_WORK",
+    "required_plan_fields": [
+      "goal",
+      "terminal_evidence",
+      "current_facts",
+      "hypotheses_and_unknowns",
+      "critical_bottleneck",
+      "chosen_route",
+      "excluded_work",
+      "decisive_precheck",
+      "limits",
+      "pivot_rule",
+      "handoff"
+    ],
+    "same_failure_retry_without_new_evidence_allowed": false,
+    "maximum_retries_per_root": 2,
+    "routine_owner_approval_required": false,
+    "planning_must_be_bounded": true,
+    "existing_evidence_reuse_required": true,
+    "missing_cost_observability_allows_paid_dispatch": false,
+    "reading_receipt_proves_execution_quality": false,
+    "plan_validation_grants_dispatch_or_spend_authority": false,
+    "completion_contract": "AI-022",
+    "validator": "scripts/governance/validate-leadership-execution-v1.mjs"
+  },
+  "leadership_governance": {
+    "decision_id": "decision-leadership-restart-20260930",
+    "source": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+    "committee_followup_issue": 2431,
+    "permanent_kpmo_target_score": 92,
+    "qualification_pass_claimed": false,
+    "material_disqualifiers_waived": false,
+    "deputy_and_track_r_may_be_same_holder": false,
+    "track_r_reports_to": "program-owner",
+    "kpmo_may_overrule_track_r_findings": false,
+    "track_r_may_replace_track_b": false,
+    "same_vendor_counts_as_independent": false,
+    "automatic_kpmo_succession_allowed": false,
+    "protected_holds": [
+      "PRODUCTION",
+      "PUBLIC",
+      "G5",
+      "NEW_EXTERNAL_SPEND",
+      "CONTRACT_EULA",
+      "PROVIDER_ACTIVATION",
+      "CREDENTIAL_API_ACTIVATION",
+      "GITHUB_APP_OAUTH_INSTALLATION",
+      "TRUST_ROOT_CHANGE",
+      "IRREVERSIBLE_SECURITY_LEGAL_CHANGE"
+    ],
+    "pat_allowed": false,
+    "ruleset_bypass_allowed": false,
+    "appointment_does_not_grant_dispatch": true,
+    "external_launcher_enforcement": "NOT_ESTABLISHED_BY_REPOSITORY_CHANGE",
+    "actual_new_role_dispatch_claimed": false
+  },
+  "named_role_identity_gate": {
+    "version": "1.0.0",
+    "mode": "DENY_UNTIL_PROTECTED_IDENTITY_VERIFIER",
+    "defect_issue": 2433,
+    "trusted_identity_verifier_registered": false,
+    "holder_string_is_authentication": false,
+    "synthetic_receipt_is_actor_acceptance": false,
+    "roles": [
+      "deputy-kpmo",
+      "track-r-red-team",
+      "track-c-portal-v502"
+    ]
+  }
 }

@@ -1,0 +1,19 @@
+{
+  "id": "track-r-red-team-assurance",
+  "record_type": "track",
+  "version": "1.0.0",
+  "status": "DESIGNATED_PENDING_ROLE_READINESS",
+  "display_name": "Track R — 레드팀 및 독립 검증",
+  "role_id": "role-track-r",
+  "holder_id": "agent-aegis",
+  "canonical_issue": 2431,
+  "reports_to": "program-owner",
+  "role_acceptance": "PENDING",
+  "current_session_readiness": "PENDING",
+  "dispatch_enabled": false,
+  "production": "HOLD",
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "decision_id": "decision-leadership-restart-20260930",
+  "approval_evidence": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802"
+}

@@ -1,7 +1,7 @@
 {
   "id": "kidults-ai-agent-github-bootstrap-contract-v1",
-  "version": "1.7.0",
-  "change_rationale": "Bind AI-022 autonomous closure ownership into the exact committed pre-dispatch trust closure so an accountable task session cannot fragment authorized reversible remediation or terminate at PR, CI, merge, or partial workflow success.",
+  "version": "1.8.0",
+  "change_rationale": "전략 우선 직무 계약과 신규 Deputy/Track R 역할을 정확한 문서·역할 결속에 추가한다. nonce/HMAC/소비/권한 경계는 변경하지 않는다.",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -317,7 +317,9 @@
       "PROVIDER_AGENTS",
       "RUNTIME_AGENTS",
       "SCHEDULED_AGENT_AUTOMATIONS",
-      "EXTERNAL_MODEL_AGENTS"
+      "EXTERNAL_MODEL_AGENTS",
+      "DEPUTY_KPMO",
+      "TRACK_R"
     ],
     "every_agent_instance_must_emit_own_receipt": true,
     "parent_receipt_may_replace_child_receipt": false,

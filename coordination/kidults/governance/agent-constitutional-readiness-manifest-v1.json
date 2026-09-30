@@ -1,6 +1,6 @@
 {
   "id": "kidults-agent-constitutional-readiness-manifest-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -64,9 +64,9 @@
         "AI-020",
         "AI-021",
         "whole authority chain",
-        "exact-landed main reproduction"
-        ,"AI-022"
-        ,"autonomous closure ownership"
+        "exact-landed main reproduction",
+        "AI-022",
+        "autonomous closure ownership"
       ]
     },
     {
@@ -81,7 +81,9 @@
         "decision_authority",
         "must_not",
         "success_measures",
-        "reporting_cadence"
+        "reporting_cadence",
+        "mandatory_execution_strategy",
+        "leadership_governance"
       ]
     },
     {
@@ -97,7 +99,12 @@
         "finish authorized reversible work",
         "fix first",
         "report last",
-        "no accountability evasion"
+        "no accountability evasion",
+        "strategy first",
+        "critical bottleneck",
+        "bounded planning and retry",
+        "smallest decisive precheck",
+        "evidence-bound terminal closure"
       ]
     }
   ],
