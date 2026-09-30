@@ -40,7 +40,8 @@ function execute({stepOutcome='success', moveMain=false, changeAttempt=false, fa
    let body;
    if(url.endsWith('/branches/main')){mains++;body={commit:{sha:${moveMain?'mains>1?"'+ 'b'.repeat(40)+'":':''}${JSON.stringify(SHA)}}};}
    else if(url.includes('/actions/runs?')){indices++;body={total_count:runs.length,workflow_runs:structuredClone(runs)};if(${changeAttempt}&&indices>1)body.workflow_runs[0].run_attempt=2;}
-   else if(url.includes('/jobs?')){jobReads++;body=${lagAssuranceJobs?'jobReads===1?{total_count:jobs.length,jobs:jobs.map(job=>({...job,steps:[]}))}:':''}{total_count:jobs.length,jobs};}
+   else if(url.includes('/actions/runs/')&&url.includes('/jobs?')){jobReads++;body={total_count:jobs.length,jobs:${lagAssuranceJobs?'jobs.map(job=>({...job,steps:[]}))':'jobs'}};}
+   else if(url.includes('/actions/jobs/'))body=jobs[0];
    else throw new Error('MOCK_UNEXPECTED_API');
    return {ok:true,status:200,json:async()=>body};
   };
@@ -87,7 +88,7 @@ test('unexpected assurance failure cannot masquerade as governed HOLD',()=>{
  const r=execute({stepOutcome:'skipped',retainedHold:true,unexpectedFailure:true});assert.equal(r.status,1);
  assert.equal(r.receipt.failure_code,'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID');
 });
-test('completed run waits for eventually consistent assurance step metadata',()=>{
+test('completed run uses exact job read when run-jobs listing has stale step metadata',()=>{
  const {status,stderr,receipt}=execute({stepOutcome:'skipped',lagAssuranceJobs:true});assert.equal(status,0,stderr);
  assert.equal(receipt.post_merge_push_suite.assurance_semantic_classification.state,'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
  assert.equal(receipt.post_merge_push_suite.producer_health_authority,false);
