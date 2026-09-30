@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {validateTrackRoster} from '../registry/lib/validate-track-roster-v1.mjs';
 
 const root = process.cwd();
 const registryRoot = path.join(root, 'coordination', 'kidults', 'registry');
@@ -28,7 +29,8 @@ const blocker = readJson('blocker/index.json');
 const twinIndex = readJson('digital-twin/index.json');
 const twin = readJson('digital-twin/records/twin-current-program-state-v1.json');
 
-assert(track?.record_count === 5, 'Track Registry must contain exactly five registered tracks (A–E).');
+const trackSchema = readJson('../registry-engine/schemas/track-record.schema.json');
+errors.push(...validateTrackRoster(track, trackSchema?.properties?.id?.enum));
 assert(milestone?.current_record_id === 'milestone-ms-0001-first-canonical-snapshot', 'MS-0001 remains the historical milestone pointer until a versioned milestone transition is registered.');
 assert(mission?.record_count === 5, 'Mission Registry must preserve the five registered mission ledger records.');
 assert(workQueue?.record_count >= 6, 'Work Queue must retain at least six bootstrap work items.');

@@ -45,3 +45,15 @@ for(const [name,mutate,code]of [
  ['unchanged retry',x=>x.same_failure_retry_without_new_evidence=true,'PLAN_UNCHANGED_RETRY_FORBIDDEN'],
  ['plan grants authority',x=>x.authority_granted_by_plan=true,'PLAN_CANNOT_GRANT_AUTHORITY']
 ])test(name+' plan rejected',()=>{const x=structuredClone(plan);mutate(x);assert.ok(validateExecutionPlan(x,sha).includes(code),code)});
+import {CORE_TRACK_IDS,validateTrackRoster} from '../../scripts/kidults/registry/lib/validate-track-roster-v1.mjs';
+const approvedRoster=[...CORE_TRACK_IDS,'track-r-red-team-assurance'];
+const roster=()=>({record_count:approvedRoster.length,records:approvedRoster.map(id=>({id}))});
+test('six approved tracks pass exact schema-backed roster',()=>assert.deepEqual(validateTrackRoster(roster(),approvedRoster),[]));
+for(const [name,mutate]of [
+ ['missing Track R',x=>{x.records.pop();x.record_count--}],
+ ['unapproved Track',x=>{x.records.push({id:'track-unapproved'});x.record_count++}],
+ ['duplicate Track',x=>{x.records[5]=x.records[0]}],
+ ['stale numeric count',x=>{x.record_count=5}]
+])test(name+' roster rejected',()=>{const x=roster();mutate(x);assert.ok(validateTrackRoster(x,approvedRoster).length>0)});
+test('schema cannot drop core track',()=>assert.ok(validateTrackRoster(roster(),approvedRoster.slice(1)).some(e=>e.startsWith('CORE_TRACK_SCHEMA_MISSING'))));
+test('duplicate schema ids fail closed',()=>assert.deepEqual(validateTrackRoster(roster(),[...approvedRoster,approvedRoster[0]]),['APPROVED_TRACK_SCHEMA_INVALID']));
