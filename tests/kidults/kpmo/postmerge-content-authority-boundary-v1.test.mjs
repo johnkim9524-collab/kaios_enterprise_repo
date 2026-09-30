@@ -17,12 +17,25 @@ const steps=[
  'Validate exact Sharded Reserve upstream terminal binding',
  'Validate exact Canonical Truth upstream terminal binding',
 ];
-function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false, retainedHold=false, unexpectedFailure=false, lagAssuranceJobs=false}={}) {
+function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false, retainedHold=false, unexpectedFailure=false, lagAssuranceJobs=false, staleExactAuditSteps=false, mixedStaleUnsafe=false}={}) {
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'postmerge-boundary-'));
  const file=path.join(dir,'receipt.json');
  const runs=POLICY.required_workflows.map((x,i)=>({id:1000+i,run_attempt:1,path:x.path,name:x.name,head_sha:SHA,head_branch:'main',event:'push',status:'completed',conclusion:failRequired&&i===1?'failure':'success',created_at:'2026-09-05T00:00:01Z',updated_at:'2026-09-05T00:00:02Z'}));
  const assurance=runs.find(x=>x.path.includes('continuous-assurance'));
- const auditSteps=steps.map((name,i)=>({name,number:i+1,status:'completed',conclusion:stepOutcome}));
+ const auditSteps=steps.map((name,i)=>({
+  name,number:i+1,
+  status:staleExactAuditSteps?'pending':'completed',
+  conclusion:staleExactAuditSteps?null:stepOutcome,
+  started_at:staleExactAuditSteps?null:'2026-09-05T00:00:01Z',
+  completed_at:staleExactAuditSteps?null:'2026-09-05T00:00:02Z',
+ }));
+ if(staleExactAuditSteps) auditSteps.push(
+  {name:'Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage',number:17,status:'completed',conclusion:'success'},
+  {name:'Run audit and always retain receipt',number:18,status:'completed',conclusion:'success'},
+  {name:'Upload exact-run assurance packet',number:20,status:'completed',conclusion:'success'},
+  {name:'Preserve control result without promoting overall HOLD',number:21,status:'completed',conclusion:'success'},
+ );
+ if(mixedStaleUnsafe) Object.assign(auditSteps[0],{status:'completed',conclusion:'success',started_at:'2026-09-05T00:00:01Z',completed_at:'2026-09-05T00:00:02Z'});
  if(retainedHold) auditSteps.push(
   {name:'Resolve bounded ephemeral canonical leader or alias',number:10,status:'completed',conclusion:'failure'},
   {name:'Run audit and always retain receipt',number:11,status:'completed',conclusion:'success'},
@@ -92,4 +105,18 @@ test('completed run uses exact job read when run-jobs listing has stale step met
  const {status,stderr,receipt}=execute({stepOutcome:'skipped',lagAssuranceJobs:true});assert.equal(status,0,stderr);
  assert.equal(receipt.post_merge_push_suite.assurance_semantic_classification.state,'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
  assert.equal(receipt.post_merge_push_suite.producer_health_authority,false);
+});
+test('terminal successful push accepts only the bounded stale skipped-step placeholder shape',()=>{
+ const {status,stderr,receipt}=execute({staleExactAuditSteps:true});assert.equal(status,0,stderr);
+ const proof=receipt.post_merge_push_suite.assurance_semantic_classification;
+ assert.equal(proof.state,'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH_STALE_STEP_READBACK');
+ assert.equal(proof.stale_binding_step_count,4);
+ assert.equal(proof.static_event_condition,'EXACT_MAIN_PUSH_BINDING_STEPS_NOT_APPLICABLE');
+ assert.equal(proof.producer_health_authority,false);
+ assert.equal(receipt.post_merge_push_suite.promotion_eligible,false);
+});
+test('stale placeholders mixed with an executed binding step remain fail closed',()=>{
+ const result=execute({staleExactAuditSteps:true,mixedStaleUnsafe:true});assert.equal(result.status,1);
+ assert.equal(result.receipt.failure_code,'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID');
+ assert.equal(result.receipt.post_merge_push_suite_consumed,false);
 });
