@@ -3210,8 +3210,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "35a062d90a4354da83bcb1771055a91492427830",
-      "sha256": "sha256:aeb86637243dca6f70f4b93b47f7821b9204b39dbb96dfeb9586aac2ad9fa39d",
+      "git_blob": "2c57592ad04d963a7eae561f785c4b56e7e6aba6",
+      "sha256": "sha256:1169db971d803dbaa12828bd4800471cbad75f0d5b6278df435494246babb723",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3392,8 +3392,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1f6d8244ce8d42c73cb4b949c26cd30b70c38d85",
-      "sha256": "sha256:3a871d67547b35c00c60468c521a7ec86e07d4a5d7bb6b5606615b2f7c1bdcdb",
+      "git_blob": "d125a9043a55234615c335f1a280b386830eddee",
+      "sha256": "sha256:28a0fca998a40c61aeaf4d77a0102e6ec103699d99cd23508a53ffa3cbd3a2b3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3561,8 +3561,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "faa41c17b79063672c1068f631080539d0281aec",
-      "sha256": "sha256:2acaeb5fc33aeaa84ef198c7c3ad05793b8509aa1a890a427b74f1f37bceab47",
+      "git_blob": "1c66bfd372deda0f6a1309ba7967e083843cac1c",
+      "sha256": "sha256:2ac43c9ce6b5e39a84f0b2b9ed57dac014ada316b87e85d70d8d18f82151b06d",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:053a208a9190ac6cdbfd565027448803f1242dbb1a84f77f8009ff8fe009f373"
+  "manifest_sha256": "sha256:50ddb2a9d8e71f373afff15ff1ceea480db98918318adf599ea5d7afe35e2cde"
 }
