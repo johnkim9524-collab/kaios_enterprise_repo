@@ -76,7 +76,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 
 export async function discover({repository,token,prNumber,policy}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
-  const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
+  const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/git/ref/heads/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.object?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
   const soloDetail=await api(`/repos/${repository}/rulesets/${solo.id}`,token);
