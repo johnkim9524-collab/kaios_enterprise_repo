@@ -1,9 +1,9 @@
 # Autonomous Landing STAGING Deployment Runbook v1
 
-Status: STAGING ONLY / OWNER EXACT-MAIN AUTHORIZATION REQUIRED  
-Production: HOLD  
-Public: HOLD  
-G5: HOLD  
+Status: STAGING ONLY / OWNER EXACT-MAIN AUTHORIZATION REQUIRED
+Production: HOLD
+Public: HOLD
+G5: HOLD
 Provider activation: HOLD
 
 ## Purpose
