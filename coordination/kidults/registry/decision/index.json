@@ -1,14 +1,27 @@
 {
-  "registry_id":"kidults-decision-registry",
-  "registry_name":"Decision Registry",
-  "registry_version":"1.1.0",
-  "schema_version":"1.0.0",
-  "owner":"Program Owner / KPMO",
-  "custodian":"Atlas",
-  "status":"ACTIVE",
-  "effective_at":"2026-08-12T12:00:00+09:00",
-  "record_directory":"records",
-  "record_count":1,
-  "current_record_id":"decision-phase0-operating-framework-launch",
-  "records":[{"id":"decision-phase0-operating-framework-launch","path":"records/decision-phase0-operating-framework-launch.json","version":"1.0.0","status":"APPROVED"}]
+  "registry_id": "kidults-decision-registry",
+  "registry_name": "Decision Registry",
+  "registry_version": "1.2.0",
+  "schema_version": "1.0.0",
+  "owner": "Program Owner / KPMO",
+  "custodian": "Atlas",
+  "status": "ACTIVE",
+  "effective_at": "2026-08-12T12:00:00+09:00",
+  "record_directory": "records",
+  "record_count": 2,
+  "current_record_id": "decision-phase0-operating-framework-launch",
+  "records": [
+    {
+      "id": "decision-phase0-operating-framework-launch",
+      "path": "records/decision-phase0-operating-framework-launch.json",
+      "version": "1.0.0",
+      "status": "APPROVED"
+    },
+    {
+      "id": "decision-leadership-restart-20260930",
+      "path": "records/decision-leadership-restart-20260930.json",
+      "status": "APPROVED_CONDITIONAL_IMPLEMENTATION"
+    }
+  ],
+  "updated_at": "2026-09-30T00:44:13.794Z"
 }

@@ -1,14 +1,38 @@
 {
-  "$schema":"https://json-schema.org/draft/2020-12/schema",
-  "$id":"https://kidults.com/schemas/track-record.schema.json",
-  "title":"KIDULTS Track Record",
-  "type":"object",
-  "required":["id","record_type","version","status","display_name","role_id","created_by","approved_by"],
-  "properties":{
-    "record_type":{"const":"track"},
-    "id":{"enum":["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system"]},
-    "display_name":{"type":"string"},
-    "role_id":{"type":"string"}
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.com/schemas/track-record.schema.json",
+  "title": "KIDULTS Track Record",
+  "type": "object",
+  "required": [
+    "id",
+    "record_type",
+    "version",
+    "status",
+    "display_name",
+    "role_id",
+    "created_by",
+    "approved_by"
+  ],
+  "properties": {
+    "record_type": {
+      "const": "track"
+    },
+    "id": {
+      "enum": [
+        "track-a-120-intelligence-factory",
+        "track-b-rankability-validation-gate",
+        "track-c-portal-v502-experience-layer",
+        "track-d-data-platform-production-reliability",
+        "track-e-executive-operating-system",
+        "track-r-red-team-assurance"
+      ]
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "role_id": {
+      "type": "string"
+    }
   },
-  "additionalProperties":true
+  "additionalProperties": true
 }

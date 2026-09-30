@@ -42,7 +42,7 @@ const governedClasses = [
   'KPMO', 'TRACK_A', 'TRACK_B', 'TRACK_C', 'TRACK_D', 'TRACK_E', 'RED_TEAM', 'ASI',
   'CODING_AGENTS', 'REVIEW_AGENTS', 'TEST_AGENTS', 'RELEASE_AGENTS',
   'DOCUMENTATION_AGENTS', 'DISCOVERY_AGENTS', 'EVIDENCE_AGENTS', 'GRAPH_AGENTS',
-  'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS'
+  'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS', 'DEPUTY_KPMO', 'TRACK_R'
 ];
 const acceptedOrigins = [
   'https://github.com/johnkim9524-collab/kaios_enterprise_repo.git',
@@ -652,7 +652,7 @@ for (const relativePath of Object.values(paths)) {
 
 const contract = json(paths.contract);
 assert(contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID');
-assert(contract.version === '1.7.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.8.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER');
 assert(contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -827,7 +827,7 @@ for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritan
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
 assert(registry.version === '2.0.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.2.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.3.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.constitutional_readiness?.manifest === paths.readiness, 'BOOTSTRAP_ROLE_READINESS_MANIFEST');
 assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true, 'BOOTSTRAP_ROLE_READINESS_PREWORK');
 assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'BOOTSTRAP_ROLE_READINESS_REPLACEMENT');
@@ -896,7 +896,7 @@ assert(markerOnlySpoofRejected, 'DISPATCH_MARKER_ONLY_SPOOF_NOT_REJECTED');
 
 const staticResult = {
   id: 'kidults-ai-agent-github-bootstrap-static-validation-v1',
-  version: '1.7.0',
+  version: '1.8.0',
   state: 'STATIC_VERIFIED_PASS',
   required_documents_validated: requiredDocuments.length,
   governed_agent_classes_validated: governedClasses.length,
@@ -977,7 +977,7 @@ assert(bootstrapResult.source_scope === 'LOCAL_COMMIT_BOUND', 'LOCAL_EXPECTED_SH
 assert(/^receipt-[0-9a-f]{64}\.json$/.test(path.basename(bootstrapResult.receipt_path)),
   'RUNTIME_RECEIPT_FILENAME_NOT_FIXED_DIGEST');
 const receipt = absoluteJson(bootstrapResult.receipt_path);
-assert(receipt.version === '1.7.0', 'RUNTIME_RECEIPT_VERSION');
+assert(receipt.version === '1.8.0', 'RUNTIME_RECEIPT_VERSION');
 assert(stableStringify(Object.keys(receipt).sort()) === stableStringify([...exactRequiredReceiptFields].sort()), 'RUNTIME_RECEIPT_EXACT_KEYS');
 assert(stableStringify(receipt.authority_boundary) === stableStringify(exactAuthorityBoundary), 'RUNTIME_RECEIPT_EXACT_AUTHORITY_BOUNDARY');
 assert(stableStringify(Object.keys(receipt.trusted_git ?? {}).sort()) === stableStringify(['binary_sha256', 'path', 'version']), 'RUNTIME_TRUSTED_GIT_EXACT_KEYS');
@@ -1011,6 +1011,23 @@ assert(dispatchResult.constitutional_readiness_verified === true && dispatchResu
 assert(dispatchResult.task_dispatch_allowed_for_bound_task_session === true, 'CONSUMING_VERIFICATION_DID_NOT_OPEN_BOUND_GATE');
 assert(stableStringify(dispatchResult.authority_boundary) === stableStringify(exactAuthorityBoundary), 'CONSUMING_VERIFICATION_EXACT_AUTHORITY_BOUNDARY');
 expectFailure(paths.verifier, [...verifyArgs, '--consume'], 'BOOTSTRAP_NONCE_REPLAY');
+
+// Synthetic role-mapping tests only: these are NOT candidate role acceptance.
+for (const [fixtureClass, fixtureRole] of [['DEPUTY_KPMO', 'deputy-kpmo'], ['TRACK_R', 'track-r-red-team']]) {
+  const fixtureIdentity = 'TEST_ONLY-' + fixtureClass + '-' + unique;
+  const fixtureEnv = { ...baseEnv, KIDULTS_BOOTSTRAP_NONCE: crypto.randomBytes(32).toString('base64url') };
+  const fixtureArgs = ['--agent-id', fixtureIdentity, '--agent-class', fixtureClass,
+    '--task-id', 'TEST_ONLY-' + unique, '--session-id', fixtureIdentity, '--expected-sha', workingSha];
+  const b = JSON.parse(run(paths.entrypoint, fixtureArgs, fixtureEnv));
+  const receiptBody = absoluteJson(b.receipt_path);
+  assert(receiptBody.constitutional_readiness.bound_role_id === fixtureRole, 'NEW_ROLE_EMITTER_MAPPING:' + fixtureClass);
+  assert(receiptBody.constitutional_readiness.strategy_first_attitude_accepted === true, 'NEW_ROLE_STRATEGY_BINDING:' + fixtureClass);
+  assert(receiptBody.constitutional_readiness.reading_proves_execution_quality === false, 'NEW_ROLE_NO_PERFORMANCE_INFLATION:' + fixtureClass);
+  const v = JSON.parse(run(paths.verifier, ['--receipt', b.receipt_path, ...fixtureArgs, '--consume'], fixtureEnv));
+  assert(v.state === 'BOOTSTRAP_VERIFIED' && v.consumed === true && v.bound_role_id === fixtureRole, 'NEW_ROLE_VERIFIER_MAPPING:' + fixtureClass);
+  assert(v.authority_boundary.merge_authority_granted_by_bootstrap === false, 'NEW_ROLE_NO_MERGE_AUTHORITY:' + fixtureClass);
+}
+
 const alternateReplayBindings = {
   ...bindings,
   taskId: `validator-replay-task-${unique}`,
@@ -1171,7 +1188,7 @@ try {
   const isolatedEnv = { ...baseEnv, KIDULTS_BOOTSTRAP_NONCE: isolatedNonce };
   const isolatedBootstrap = JSON.parse(run(paths.entrypoint, isolatedArgs, isolatedEnv, isolationRoot));
   const isolatedReceipt = absoluteJson(isolatedBootstrap.receipt_path);
-  assert(isolatedReceipt.version === '1.7.0', 'ISOLATION_RECEIPT_VERSION');
+  assert(isolatedReceipt.version === '1.8.0', 'ISOLATION_RECEIPT_VERSION');
   assert(stableStringify(Object.keys(isolatedReceipt).sort()) === stableStringify([...exactRequiredReceiptFields].sort()), 'ISOLATION_RECEIPT_EXACT_KEYS');
   assert(stableStringify(isolatedReceipt.authority_boundary) === stableStringify(exactAuthorityBoundary), 'ISOLATION_RECEIPT_EXACT_AUTHORITY_BOUNDARY');
   assertWorktreeState(isolatedReceipt.worktree_state, 'ISOLATION_WORKTREE_STATE', { expectedStatus: 'CLEAN', requireClean: true });
@@ -1410,6 +1427,9 @@ try {
   expectSignedReceiptTamper((candidate) => { delete candidate.dispatch_gate; }, 'RECEIPT_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.bound_role_id = 'program-owner'; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
   expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.accepted_domains = ['VISION_AND_GOALS']; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.strategy_contract_sha256 = 'sha256:' + '0'.repeat(64); }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.strategy_first_attitude_accepted = false; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
+  expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.reading_proves_execution_quality = true; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
   expectSignedReceiptTamper((candidate) => { candidate.constitutional_readiness.parent_acceptance_substitution_allowed = true; }, 'CONSTITUTIONAL_READINESS_BINDING_INVALID');
   expectSignedReceiptTamper((candidate) => { candidate.authority_boundary.unexpected = false; }, 'AUTHORITY_BOUNDARY_FIELD_SET_MISMATCH');
   expectSignedReceiptTamper((candidate) => { candidate.authority_boundary.production = 'OPEN'; }, 'AUTHORITY_BOUNDARY_FIELD_SET_MISMATCH');
@@ -1442,7 +1462,7 @@ if (dispatchResult.consumption_marker) fs.rmSync(dispatchResult.consumption_mark
 
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-github-bootstrap-validation-v1',
-  version: '1.7.0',
+  version: '1.8.0',
   state: 'VERIFIED_PASS',
   canonical_repository: contract.canonical_repository.slug,
   working_sha: workingSha,
@@ -1482,6 +1502,9 @@ console.log(JSON.stringify({
     'DETACHED_HEAD_REMOTE_ATTESTATION_REJECTION',
     'EXACT_RECEIPT_FIELD_SET_REJECTION',
     'CONSTITUTIONAL_ROLE_DOMAIN_AND_PARENT_SUBSTITUTION_TAMPER_REJECTION',
+    'DEPUTY_AND_TRACK_R_SYNTHETIC_ROLE_BINDING_VERIFIED',
+    'STRATEGY_CONTRACT_DIGEST_AND_ACCEPTANCE_TAMPER_REJECTION',
+    'READING_IS_NOT_PERFORMANCE_PROOF',
     'EXACT_AUTHORITY_BOUNDARY_REJECTION',
     'RAW_NONCE_PERSISTENCE_REJECTION',
     'TRUSTED_GIT_EVIDENCE_TAMPER_REJECTION',

@@ -1,0 +1,22 @@
+{
+  "id": "agent-codex-deputy",
+  "record_type": "ai_agent",
+  "version": "1.0.0",
+  "status": "DESIGNATED_PENDING_ROLE_READINESS",
+  "display_name": "X4 Codex — Deputy KPMO",
+  "role_ids": [
+    "role-deputy-kpmo"
+  ],
+  "jd_role_id": "deputy-kpmo",
+  "reports_to": "integration-conductor",
+  "engine_assignment": "EXISTING_GITHUB_CODEX_ROUTE_PENDING_ROLE_BINDING",
+  "canonical_issue": 2431,
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "decision_id": "decision-leadership-restart-20260930",
+  "approval_evidence": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+  "current_session_readiness": "PENDING",
+  "role_acceptance_receipt": null,
+  "dispatch_enabled": false,
+  "qualification_pass_claimed": false
+}

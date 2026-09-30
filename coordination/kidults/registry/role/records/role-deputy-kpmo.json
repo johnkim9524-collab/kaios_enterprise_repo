@@ -1,0 +1,30 @@
+{
+  "id": "role-deputy-kpmo",
+  "record_type": "role",
+  "version": "1.0.0",
+  "status": "DESIGNATED_PENDING_ROLE_READINESS",
+  "title": "Deputy KPMO — 전략 보완·실행·육성",
+  "holder_id": "agent-codex-deputy",
+  "jd_role_id": "deputy-kpmo",
+  "reports_to": "integration-conductor",
+  "mission": "KPMO 전략의 약한 전제를 검증하고 대안을 비교하며 위임된 과제를 완결해 보완·대행 역량을 육성한다.",
+  "authority": [
+    "이미 위임된 범위 안의 진단·구현·시험만 수행한다",
+    "불완전한 전제와 인계를 지적하고 교정안을 제시한다"
+  ],
+  "must_not": [
+    "SELF_APPROVAL",
+    "INDEPENDENT_VERIFICATION_OF_ATLAS_OR_OWN_WORK",
+    "CONCURRENT_TRACK_R_HOLDING",
+    "AUTOMATIC_KPMO_SUCCESSION",
+    "OWNER_RESERVED_AUTHORITY",
+    "TRANSFER_KPMO_FINAL_ACCOUNTABILITY"
+  ],
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "decision_id": "decision-leadership-restart-20260930",
+  "approval_evidence": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+  "current_session_readiness": "PENDING",
+  "role_acceptance_receipt": null,
+  "dispatch_enabled": false
+}

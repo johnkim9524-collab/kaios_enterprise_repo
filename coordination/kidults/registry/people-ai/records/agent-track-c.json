@@ -1,13 +1,33 @@
 {
-  "id":"agent-track-c",
-  "record_type":"ai_agent",
-  "version":"1.0.0",
-  "status":"ROLE_ACCEPTANCE_PENDING",
-  "display_name":"Track C Agent",
-  "role_ids":["role-track-c"],
-  "working_room_name":"C. KIDULTS | Portal V502 & Experience Layer",
-  "canonical_issue":237,
-  "created_by":"Atlas",
-  "approved_by":"John",
-  "known_limitation":"Track C role was defined by KPMO but a separate formal agent acceptance has not yet been registered."
+  "id": "agent-track-c",
+  "record_type": "ai_agent",
+  "version": "1.1.0",
+  "status": "ROLE_REVALIDATION_PENDING",
+  "display_name": "Track C Agent",
+  "role_ids": [
+    "role-track-c"
+  ],
+  "working_room_name": "C. KIDULTS | Portal V502 & Experience Layer",
+  "canonical_issue": 237,
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "known_limitation": "과거 역할 수락 이력은 존재하지만 현재 세션의 별도 수락·검증은 미확보. 미전달이나 연결 장애를 거부로 취급하지 않는다.",
+  "history": [
+    {
+      "previous_status": "ROLE_ACCEPTANCE_PENDING",
+      "observed_main": "13f53fa2211fac1abf580d5b34f23ef2d4498211",
+      "note": "과거 수락 완료와 현재 세션 수락 대기가 혼재했던 등록 상태를 보존한다."
+    }
+  ],
+  "historical_role_acceptance": {
+    "status": "APPROVED_AS_RECORDED",
+    "date": "2026-08-12",
+    "pr": 244,
+    "merge_sha": "eadf88522e21b0643ebbdc5c23cade02f4d70bad",
+    "not_current_session_proof": true
+  },
+  "current_session_readiness": "PENDING",
+  "role_acceptance_receipt": null,
+  "dispatch_enabled": false,
+  "acceptance_request": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/237#issuecomment-5901693529"
 }

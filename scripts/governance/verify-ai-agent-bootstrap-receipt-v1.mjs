@@ -29,10 +29,12 @@ const GOVERNED_CLASSES = [
   'KPMO', 'TRACK_A', 'TRACK_B', 'TRACK_C', 'TRACK_D', 'TRACK_E', 'RED_TEAM', 'ASI',
   'CODING_AGENTS', 'REVIEW_AGENTS', 'TEST_AGENTS', 'RELEASE_AGENTS',
   'DOCUMENTATION_AGENTS', 'DISCOVERY_AGENTS', 'EVIDENCE_AGENTS', 'GRAPH_AGENTS',
-  'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS'
+  'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS', 'DEPUTY_KPMO', 'TRACK_R'
 ];
 const AGENT_CLASS_ROLE_MAP = Object.freeze({
   KPMO: 'integration-conductor',
+  DEPUTY_KPMO: 'deputy-kpmo',
+  TRACK_R: 'track-r-red-team',
   TRACK_A: 'track-a-120-score',
   TRACK_B: 'track-b-rankability',
   TRACK_C: 'track-c-portal-v502',
@@ -694,7 +696,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.8.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -919,7 +921,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.7.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.8.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -990,6 +992,9 @@ if (readiness?.manifest_path !== manifestDocument.path || readiness?.manifest_sh
   || readiness?.bound_role_id !== expectedRole.role_id || readiness?.bound_role_mission !== expectedRole.mission
   || stableStringify(readiness?.accepted_domains) !== stableStringify(expectedDomains)
   || stableStringify(readiness?.role_jd_fields_accepted) !== stableStringify(expectedJdFields)
+  || readiness?.strategy_contract_sha256 !== sha256(stableStringify(roleRegistry.mandatory_execution_strategy))
+  || readiness?.strategy_first_attitude_accepted !== true
+  || readiness?.reading_proves_execution_quality !== false
   || readiness?.acceptance_mechanism !== 'SUCCESSFUL_EXPLICIT_BOOTSTRAP_INVOCATION'
   || readiness?.acceptance_bound_to_agent_task_session_nonce_and_sha !== true
   || readiness?.parent_acceptance_substitution_allowed !== false) {
@@ -1036,7 +1041,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.7.0',
+  version: '1.8.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,

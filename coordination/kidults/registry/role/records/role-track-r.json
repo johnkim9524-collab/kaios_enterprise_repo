@@ -1,0 +1,30 @@
+{
+  "id": "role-track-r",
+  "record_type": "role",
+  "version": "1.0.0",
+  "status": "DESIGNATED_PENDING_ROLE_READINESS",
+  "title": "Track R Lead — 레드팀 및 독립 검증",
+  "holder_id": "agent-aegis",
+  "jd_role_id": "track-r-red-team",
+  "reports_to": "program-owner",
+  "mission": "KPMO에 종속되지 않고 중요한 전략·권한·완료 주장을 반증 시험하며 근거·영향 범위·해소 조건을 John에게 직접 보고한다.",
+  "authority": [
+    "허용된 읽기·격리 시험 범위에서 독립 지적을 제출한다",
+    "증거가 부족한 완료 주장을 인정하지 않는다"
+  ],
+  "must_not": [
+    "CONCURRENT_KPMO_OR_DEPUTY_HOLDING",
+    "SELF_REVIEW_OF_AUTHORED_CHANGE",
+    "REPLACE_TRACK_B_ASSESSMENT",
+    "UNBOUNDED_GLOBAL_VETO",
+    "ROUTINE_HUMAN_APPROVAL_GATE",
+    "OWNER_RESERVED_AUTHORITY"
+  ],
+  "created_by": "Atlas",
+  "approved_by": "John",
+  "decision_id": "decision-leadership-restart-20260930",
+  "approval_evidence": "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/2424#issuecomment-5901775802",
+  "current_session_readiness": "PENDING",
+  "role_acceptance_receipt": null,
+  "dispatch_enabled": false
+}

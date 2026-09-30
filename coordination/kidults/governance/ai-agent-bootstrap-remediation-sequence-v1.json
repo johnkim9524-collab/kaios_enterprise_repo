@@ -45,7 +45,9 @@
     "SCHEDULED_AGENT_AUTOMATIONS": true,
     "EXTERNAL_MODEL_AGENTS": true,
     "child_rule_can_weaken": false,
-    "agent_self_exemption_allowed": false
+    "agent_self_exemption_allowed": false,
+    "DEPUTY_KPMO": true,
+    "TRACK_R": true
   },
   "stop_conditions": [
     "PRODUCTION_G5",
@@ -69,5 +71,6 @@
     "PRIORITIZED_IMPROVEMENT_PROPOSAL"
   ],
   "reporting_rule": "INTERNAL_REVERSIBLE_DEFECTS_MUST_BE_REMEDIATED_AND_VALIDATED_BEFORE_ROUTINE_STATUS_REPORTING",
-  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate."
+  "truth_boundary": "Protected authority gates remain fail-closed. If a stop condition applies, the agent reports BLOCKED/HOLD with exact evidence and does not bypass the gate.",
+  "change_rationale": "기존 복구 계약 스키마를 유지하고 새 Deputy KPMO와 Track R도 모든 복구·검증·보고 의무를 동일하게 상속한다."
 }

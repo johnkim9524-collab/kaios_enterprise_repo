@@ -22,7 +22,9 @@
     "build:control-tower": "node scripts/kidults/kpmo/build-management-control-tower-snapshot-v1.mjs",
     "validate:control-tower": "node scripts/kidults/kpmo/validate-management-control-tower-snapshot-v1.mjs",
     "test:source-eligibility-receipt": "node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs",
-    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs"
+    "validate:p0-control-plane-closure": "node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs",
+    "validate:leadership-execution": "node scripts/governance/validate-leadership-execution-v1.mjs",
+    "test:leadership-execution": "node --test tests/governance/leadership-execution-v1.test.mjs"
   },
   "dependencies": {
     "ajv": "8.17.1",

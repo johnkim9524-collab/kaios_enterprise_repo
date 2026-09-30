@@ -147,7 +147,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.7.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.8.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
@@ -434,7 +434,7 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.2.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.3.0', 'ROLE_REGISTRY_VERSION');
 assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1', 'READINESS_ID');
 assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
 assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');

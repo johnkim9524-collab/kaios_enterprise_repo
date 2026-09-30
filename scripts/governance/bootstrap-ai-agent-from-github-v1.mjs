@@ -48,10 +48,14 @@ const TRUST = Object.freeze({
     'PROVIDER_AGENTS',
     'RUNTIME_AGENTS',
     'SCHEDULED_AGENT_AUTOMATIONS',
-    'EXTERNAL_MODEL_AGENTS'
+    'EXTERNAL_MODEL_AGENTS',
+    'DEPUTY_KPMO',
+    'TRACK_R'
   ],
   agentClassRoleMap: {
     KPMO: 'integration-conductor',
+    DEPUTY_KPMO: 'deputy-kpmo',
+    TRACK_R: 'track-r-red-team',
     TRACK_A: 'track-a-120-score',
     TRACK_B: 'track-b-rankability',
     TRACK_C: 'track-c-portal-v502',
@@ -115,7 +119,7 @@ const TRUST = Object.freeze({
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
     'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.7.0',
+  receiptVersion: '1.8.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -669,7 +673,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.8.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -1020,6 +1024,9 @@ const receiptWithoutDigest = {
     bound_role_mission: boundRole.mission,
     accepted_domains: acceptedDomains,
     role_jd_fields_accepted: ['mission', 'core_responsibilities', 'required_deliverables', 'decision_authority', 'must_not', 'success_measures', 'reporting_cadence'],
+    strategy_contract_sha256: sha256(stableStringify(roleRegistry.mandatory_execution_strategy)),
+    strategy_first_attitude_accepted: true,
+    reading_proves_execution_quality: false,
     acceptance_mechanism: 'SUCCESSFUL_EXPLICIT_BOOTSTRAP_INVOCATION',
     acceptance_bound_to_agent_task_session_nonce_and_sha: true,
     parent_acceptance_substitution_allowed: false
