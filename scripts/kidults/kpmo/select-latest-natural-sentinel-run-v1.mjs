@@ -35,7 +35,7 @@ export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observ
   return {state,failure_class:state==='VERIFIED_FAIL'?'LATEST_NATURAL_SENTINEL_NOT_SUCCESS':null,latest:clean,candidate_count:candidates.length};
 }
 
-if(import.meta.url===`file://${process.argv[1]}`){
+if(process.argv[1] && import.meta.url===new URL(`file:///${process.argv[1].replace(/\\/g,'/')}`).href){
   try{
     const [inputPath,sourceSha,observedAt,repository]=process.argv.slice(2);
     const input=JSON.parse(await (await import('node:fs/promises')).readFile(inputPath,'utf8'));
