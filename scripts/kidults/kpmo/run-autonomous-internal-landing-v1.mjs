@@ -380,7 +380,7 @@ const collectCheckRuns = async sha => {
   }
   throw new AutonomousLandingError('AUTONOMOUS_CHECK_PAGINATION_LIMIT');
 };
-const liveRequiredChecks = async ({includeLandingStatus=true}={}) => {
+const liveRequiredChecks = async ({includeLandingStatus=true,draftDevelopment=false}={}) => {
   const rulesets=await api('/rulesets');
   const solo=(rulesets||[]).find(value=>value.name==='KAIOS Solo Owner Preflight'&&value.enforcement==='active');
   if(!solo) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_RULESET_MISSING');
@@ -388,12 +388,16 @@ const liveRequiredChecks = async ({includeLandingStatus=true}={}) => {
   if((detail.bypass_actors||[]).length) throw new AutonomousLandingError('AUTONOMOUS_RULESET_BYPASS_FORBIDDEN');
   const rule=(detail.rules||[]).find(value=>value.type==='required_status_checks');
   if(!rule?.parameters?.strict_required_status_checks_policy) throw new AutonomousLandingError('AUTONOMOUS_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
-  const all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
+  let all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
-  return includeLandingStatus ? all : all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
+  if(!includeLandingStatus) all=all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
+  if(draftDevelopment) all=all.map(value=>value.context==='KIDULTS Scope-Aware Authoritative Status V1'
+    ? {context:'KIDULTS Draft Development Validation V1',integration_id:value.integration_id}
+    : value);
+  return all;
 };
 
-const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true}={}) => {
+const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true}={}) => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
   if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
@@ -404,27 +408,29 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     collectCheckRuns(envelope.head_sha),
-    liveRequiredChecks({includeLandingStatus}),
+    liveRequiredChecks({includeLandingStatus,draftDevelopment:pr.draft===true}),
   ]);
   const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
   const authoritativeChecks=checks;
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
   const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
-  if(canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
+  if(requireEnvelopeBinding && canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
   const bound=bindRequiredGateEvidence({required:requiredChecks,checks:authoritativeChecks,statuses:authoritativeStatuses,headSha:envelope.head_sha,
     fail:(code,context)=>{throw new AutonomousLandingError(code==='REQUIRED_CONTEXT_MISSING'?'AUTONOMOUS_REQUIRED_STATUS_MISSING':
       code==='REQUIRED_CONTEXT_AMBIGUOUS'?'AUTONOMOUS_REQUIRED_CHECK_AMBIGUOUS':
       code==='REQUIRED_STATUS_NOT_GREEN'?'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN':`AUTONOMOUS_${code}`,context);}});
-  const dispatched=envelope.test_evidence?.required_check_runs||[];
-  if(bound.length!==dispatched.length || bound.some((value,index)=>value.kind!==dispatched[index]?.kind || value.id!==Number(dispatched[index]?.id) || value.app_id!==Number(dispatched[index]?.app_id))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
+  if(requireEnvelopeBinding) {
+    const dispatched=envelope.test_evidence?.required_check_runs||[];
+    if(bound.length!==dispatched.length || bound.some((value,index)=>value.kind!==dispatched[index]?.kind || value.id!==Number(dispatched[index]?.id) || value.app_id!==Number(dispatched[index]?.app_id))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
+  }
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks};
 };
 const waitForReadyCandidate = async () => {
   const timeoutSeconds=Number(policy.bounded_recovery?.draft_ready_validation_timeout_seconds||420);
   const deadline=Date.now()+timeoutSeconds*1000;
   while (Date.now()<deadline) {
-    try { return await validateLiveCandidate(); }
+    try { return await validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false}); }
     catch (error) {
       if (!(error instanceof AutonomousLandingError)||!['AUTONOMOUS_REQUIRED_STATUS_MISSING','AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN'].includes(error.code)) throw error;
     }

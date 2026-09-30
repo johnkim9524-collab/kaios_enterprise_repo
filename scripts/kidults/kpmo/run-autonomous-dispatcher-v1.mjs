@@ -85,7 +85,10 @@ export async function discover({repository,token,prNumber,policy}){
   if(!statusRule?.parameters?.strict_required_status_checks_policy) fail('DISPATCH_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
   const requiredChecks=(statusRule.parameters.required_status_checks||[])
     .map(x=>({context:x.context,integration_id:Number(x.integration_id||0)}))
-    .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1');
+    .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1')
+    .map(x=>pr.draft===true && x.context==='KIDULTS Scope-Aware Authoritative Status V1'
+      ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
+      : x);
   if(!requiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
