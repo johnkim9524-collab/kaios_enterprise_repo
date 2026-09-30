@@ -11,6 +11,8 @@ export const isCandidateRejection=error=>error instanceof DispatcherError || err
   || /^INDEPENDENT_/.test(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+const SCOPE_CONTEXT='KIDULTS Scope-Aware Authoritative Status V1';
+const DRAFT_CONTEXT='KIDULTS Draft Development Validation V1';
 
 export function assertDelegatedPathScope(changedPaths,policy){
   try { return assertAutonomousFileScope({files:changedPaths,policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'}); }
@@ -92,7 +94,10 @@ export async function discover({repository,token,prNumber,policy}){
   for(const pr of prs){try{
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
-    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
+    const lifecycleRequiredChecks=pr.draft===true
+      ? requiredChecks.map(value=>value.context===SCOPE_CONTEXT?{...value,context:DRAFT_CONTEXT}:value)
+      : requiredChecks;
+    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks:lifecycleRequiredChecks,policy})});
   }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }

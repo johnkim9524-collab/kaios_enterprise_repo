@@ -380,7 +380,9 @@ const collectCheckRuns = async sha => {
   }
   throw new AutonomousLandingError('AUTONOMOUS_CHECK_PAGINATION_LIMIT');
 };
-const liveRequiredChecks = async ({includeLandingStatus=true}={}) => {
+const SCOPE_CONTEXT='KIDULTS Scope-Aware Authoritative Status V1';
+const DRAFT_CONTEXT='KIDULTS Draft Development Validation V1';
+const liveRequiredChecks = async ({includeLandingStatus=true,draftDevelopment=false}={}) => {
   const rulesets=await api('/rulesets');
   const solo=(rulesets||[]).find(value=>value.name==='KAIOS Solo Owner Preflight'&&value.enforcement==='active');
   if(!solo) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_RULESET_MISSING');
@@ -390,7 +392,10 @@ const liveRequiredChecks = async ({includeLandingStatus=true}={}) => {
   if(!rule?.parameters?.strict_required_status_checks_policy) throw new AutonomousLandingError('AUTONOMOUS_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
   const all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
-  return includeLandingStatus ? all : all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
+  const withoutLanding=includeLandingStatus ? all : all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
+  return draftDevelopment
+    ? withoutLanding.map(value=>value.context===SCOPE_CONTEXT?{...value,context:DRAFT_CONTEXT}:value)
+    : withoutLanding;
 };
 
 const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true}={}) => {
@@ -404,12 +409,13 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     collectCheckRuns(envelope.head_sha),
-    liveRequiredChecks({includeLandingStatus}),
+    liveRequiredChecks({includeLandingStatus,draftDevelopment:pr.draft===true}),
   ]);
   const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
   const authoritativeChecks=checks;
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
   const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
+    .map(value=>pr.draft===false&&value.context===DRAFT_CONTEXT?{...value,context:SCOPE_CONTEXT}:value)
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
   const bound=bindRequiredGateEvidence({required:requiredChecks,checks:authoritativeChecks,statuses:authoritativeStatuses,headSha:envelope.head_sha,

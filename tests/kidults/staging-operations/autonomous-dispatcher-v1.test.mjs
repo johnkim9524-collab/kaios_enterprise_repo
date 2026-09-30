@@ -7,6 +7,8 @@ const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,now:new Date('2026-09-24T12:00:00Z')};
 const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
+const draftTechnical=classifyCandidate({...input,pr:{...pr,draft:true},requiredChecks:[{context:'KIDULTS Draft Development Validation V1',integration_id:7}],statuses:[{id:399,context:'KIDULTS Draft Development Validation V1',state:'success',sha:sha('b'),avatar_url:'https://avatars.githubusercontent.com/in/7?v=4'}]});
+assert.equal(draftTechnical.test_evidence.required_check_runs[0].id,399);
 const e=classifyCandidate(input);assert.equal(e.authorization_generation,'pr-42-bbbbbbbbbbbbbbbbbbbb');assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
 assert.equal(classifyCandidate({...input,pr:{...pr,draft:true}}).authorization_generation,'pr-42-bbbbbbbbbbbbbbbbbbbb');
