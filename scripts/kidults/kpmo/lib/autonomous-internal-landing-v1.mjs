@@ -255,8 +255,10 @@ export function validateRecoveryGeneration({prior, current, history = [], policy
 }
 
 export function validateDraftReadyRebind({before, after, envelope, policy}) {
-  if (policy?.bounded_recovery?.draft_ready_rebind !== 'AUTOMATIC') fail('AUTONOMOUS_DRAFT_READY_REBIND_NOT_AUTHORIZED');
-  if (!envelope?.recovery) fail('AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED');
+  if (policy?.lifecycle?.finalizer_owns_atomic_ready_transition !== true
+    || policy?.lifecycle?.prelanding_draft_ready_transition_required !== false) {
+    fail('AUTONOMOUS_DRAFT_READY_FINALIZER_POLICY_INVALID');
+  }
   if (!before || before.state !== 'open' || before.merged === true || before.draft !== true) fail('AUTONOMOUS_DRAFT_READY_SOURCE_INVALID');
   if (!after || after.state !== 'open' || after.merged === true || after.draft !== false) fail('AUTONOMOUS_DRAFT_READY_TARGET_INVALID');
   for (const [label, candidate] of [['SOURCE', before], ['TARGET', after]]) {
@@ -266,13 +268,13 @@ export function validateDraftReadyRebind({before, after, envelope, policy}) {
   }
   if (!before.node_id || before.node_id !== after.node_id) fail('AUTONOMOUS_DRAFT_READY_IDENTITY_DRIFT');
   return {
-    state:'DRAFT_READY_REBOUND',
+    state:'DRAFT_READY_ATOMIC_FINALIZER',
     pull_request:Number(envelope.pull_request),
     node_id:before.node_id,
     head_sha:envelope.head_sha,
     head_tree_sha:envelope.head_tree_sha,
     authorization_generation:envelope.authorization_generation,
-    recovery_attempt:Number(envelope.recovery.attempt),
+    recovery_attempt:envelope.recovery ? Number(envelope.recovery.attempt) : null,
   };
 }
 

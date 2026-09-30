@@ -18,7 +18,7 @@ export function assertDelegatedPathScope(changedPaths,policy){
 }
 
 export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date()}) {
-  if (!pr || pr.state!=='open' || pr.merged===true || pr.draft!==false) fail('DISPATCH_PR_NOT_READY');
+  if (!pr || pr.state!=='open' || pr.merged===true) fail('DISPATCH_PR_NOT_OPEN');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
@@ -83,7 +83,9 @@ export async function discover({repository,token,prNumber,policy}){
   if((soloDetail.bypass_actors||[]).length) fail('DISPATCH_RULESET_BYPASS_FORBIDDEN');
   const statusRule=(soloDetail.rules||[]).find(x=>x.type==='required_status_checks');
   if(!statusRule?.parameters?.strict_required_status_checks_policy) fail('DISPATCH_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
-  const requiredChecks=(statusRule.parameters.required_status_checks||[]).map(x=>({context:x.context,integration_id:Number(x.integration_id||0)}));
+  const requiredChecks=(statusRule.parameters.required_status_checks||[])
+    .map(x=>({context:x.context,integration_id:Number(x.integration_id||0)}))
+    .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1');
   if(!requiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];

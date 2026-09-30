@@ -60,7 +60,7 @@ test("live PR files paginate to exhaustion and reject an Owner-reserved path at 
   assert.deepEqual(assertAutonomousFileScope({files:[{filename:'.github/workflows/internal.yml',patch:'@@ -1 +1,2 @@\n name: internal\n+concurrency: safe'}],policy:autonomousPolicy}),['.github/workflows/internal.yml']);
   assert.throws(()=>assertAutonomousFileScope({files:[{filename:'.github/workflows/internal.yml',patch:'@@ -1 +1,2 @@\n name: internal\n+permissions: write-all'}],policy:autonomousPolicy}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
 });
-test("draft ready recovery is reserved, rebound, revalidated, then merged", () => {
+test("draft lifecycle is UI-only and finalizer atomically readies after reservation", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");
   const finalizer=source.slice(source.indexOf("const candidate=await validateLiveCandidate"));
   const ordered=[
@@ -72,8 +72,11 @@ test("draft ready recovery is reserved, rebound, revalidated, then merged", () =
   ].map(fragment=>finalizer.indexOf(fragment));
   assert.ok(ordered.every(index=>index>=0),`missing lifecycle operation: ${ordered}`);
   assert.deepEqual([...ordered].sort((a,b)=>a-b),ordered,"lifecycle mutation order drifted");
-  assert.match(source,/if \(!envelope\.recovery\) throw new AutonomousLandingError\('AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED'\)/);
+  assert.doesNotMatch(source,/AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED/);
   assert.match(source,/validateDraftReadyRebind\(\{before,after,envelope,policy\}\)/);
+  const autonomousPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
+  assert.equal(autonomousPolicy.lifecycle.prelanding_draft_ready_transition_required,false);
+  assert.equal(autonomousPolicy.lifecycle.finalizer_owns_atomic_ready_transition,true);
 });
 test("finalizer revalidates paginated checks and shared status identity", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");

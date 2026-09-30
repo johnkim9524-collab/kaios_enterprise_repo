@@ -38,9 +38,7 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
-          : permissionProfile==='DRAFT_READY_TRANSITION'
-            ? {pull_requests:'write'}
-            : {contents:'write',pull_requests:'write'});
+          : {contents:'write',pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{...(Object.hasOwn(body.permissions,'contents')
           ? {contents:body.permissions.contents==='read'?readPermission:permission}
@@ -61,23 +59,20 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
-test('draft ready profile returns minimum pull-request write scope and installation identity',async()=>{
-  const {handler}=setup({draft:true,permissionProfile:'DRAFT_READY_TRANSITION'});
-  const result=await handler({...event,allow_draft_recovery:true,permission_profile:'DRAFT_READY_TRANSITION'});
-  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
-  assert.equal(result.installation_id,'66');
-  assert.equal(result.app_id,'55');
-});
-test('allows exact draft only for an explicitly declared recovery before reservation',async()=>{
-  const rejected=setup({draft:true});
-  await assert.rejects(rejected.handler(event),/DENIED/);
-  assert.equal(rejected.calls.filter(x=>x.permissions?.contents==='write').length,0);
-  const result=await setup({draft:true}).handler({...event,allow_draft_recovery:true});
+test('allows exact open Draft for internal event dispatch without lifecycle authority',async()=>{
+  const {handler}=setup({draft:true});
+  const result=await handler(event);
   assert.equal(result.ok,true);
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
 });
-test('rejects malformed draft recovery declaration',async()=>{
+test('retired draft-ready permission profile is rejected before requesting any token',async()=>{
   const {handler,calls}=setup({draft:true});
-  await assert.rejects(handler({...event,allow_draft_recovery:'true'}),/DENIED/);
+  await assert.rejects(handler({...event,permission_profile:'DRAFT_READY_TRANSITION'}),/DENIED/);
+  assert.equal(calls.length,0);
+});
+test('retired draft recovery declaration is rejected before requesting any token',async()=>{
+  const {handler,calls}=setup({draft:true});
+  await assert.rejects(handler({...event,allow_draft_recovery:true}),/DENIED/);
   assert.equal(calls.length,0);
 });
 test('rejects wrong repository before mint',async()=>{

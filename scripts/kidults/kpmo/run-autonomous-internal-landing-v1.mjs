@@ -380,7 +380,7 @@ const collectCheckRuns = async sha => {
   }
   throw new AutonomousLandingError('AUTONOMOUS_CHECK_PAGINATION_LIMIT');
 };
-const liveRequiredChecks = async () => {
+const liveRequiredChecks = async ({includeLandingStatus=true}={}) => {
   const rulesets=await api('/rulesets');
   const solo=(rulesets||[]).find(value=>value.name==='KAIOS Solo Owner Preflight'&&value.enforcement==='active');
   if(!solo) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_RULESET_MISSING');
@@ -388,11 +388,12 @@ const liveRequiredChecks = async () => {
   if((detail.bypass_actors||[]).length) throw new AutonomousLandingError('AUTONOMOUS_RULESET_BYPASS_FORBIDDEN');
   const rule=(detail.rules||[]).find(value=>value.type==='required_status_checks');
   if(!rule?.parameters?.strict_required_status_checks_policy) throw new AutonomousLandingError('AUTONOMOUS_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
-  return (rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
+  const all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
+  return includeLandingStatus ? all : all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
 };
 
-const validateLiveCandidate = async ({allowDraft=false}={}) => {
+const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true}={}) => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
   if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
   const commit=await api(`/git/commits/${envelope.head_sha}`);
@@ -403,7 +404,7 @@ const validateLiveCandidate = async ({allowDraft=false}={}) => {
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     collectCheckRuns(envelope.head_sha),
-    liveRequiredChecks(),
+    liveRequiredChecks({includeLandingStatus}),
   ]);
   const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
   const authoritativeChecks=checks;
@@ -433,7 +434,6 @@ const waitForReadyCandidate = async () => {
 };
 const rebindDraftReady = async before => {
   if (before.draft!==true) return {state:'ALREADY_READY',head_sha:envelope.head_sha};
-  if (!envelope.recovery) throw new AutonomousLandingError('AUTONOMOUS_DRAFT_READY_RECOVERY_REQUIRED');
   await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id});
   const after=await api(`/pulls/${envelope.pull_request}`);
   return validateDraftReadyRebind({before,after,envelope,policy});
@@ -441,7 +441,7 @@ const rebindDraftReady = async before => {
 
 try {
   if (mode === 'APPROVAL') {
-    const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+    const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
     if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyCapabilityDelta({files:candidate.files,policy});
     envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks});
     if (envelope.recovery) {
@@ -480,9 +480,9 @@ try {
     } else {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
-      const candidate=await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+      const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       const eventToken=await acquireEventToken();
-      await validateLiveCandidate({allowDraft:Boolean(envelope.recovery)});
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,

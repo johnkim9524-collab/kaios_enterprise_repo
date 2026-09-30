@@ -134,13 +134,20 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     && workflow.includes('exact_base_sha:base') && workflow.includes('promotion_eligible:false'), 'DRAFT_READINESS_RECEIPT_BINDING_INVALID');
   for (const marker of [
     'environment: KIDULTS-AUTONOMOUS-DISPATCHER',
+    'KIDULTS Scope-Aware Authoritative Status V1',
+    'Discover exact eligible PR bindings',
+    'kidults.track.authorization.v1',
+    'kidults.kpmo.authorization.v1',
+    'kidults.independent.verification.v1',
+  ]) require(dispatcherWorkflow.includes(marker), `+'DISPATCHER_AUTONOMOUS_CHAIN_MISSING:${marker}'+`);
+  for (const retired of [
     'permission_profile:"DRAFT_READY_TRANSITION"',
     'allow_draft_recovery:true',
     'assertDraftReadyTransitionCandidate',
-    'markPullRequestReadyForReview',
-    'assertDraftReadyPostMutation',
-    "steps.transition_draft.outputs.performed != 'true'",
-  ]) require(dispatcherWorkflow.includes(marker), `DISPATCHER_DRAFT_READY_GUARD_MISSING:${marker}`);
+    'steps.transition_draft.outputs.performed',
+  ]) require(!dispatcherWorkflow.includes(retired), `+'DISPATCHER_RETIRED_READY_STAGE_PRESENT:${retired}'+`);
+  require(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8').includes('await rebindDraftReady(candidate.pr)'),
+    'FINALIZER_ATOMIC_READY_TRANSITION_MISSING');
 
   for (const marker of [
     'workflow_dispatch:',
