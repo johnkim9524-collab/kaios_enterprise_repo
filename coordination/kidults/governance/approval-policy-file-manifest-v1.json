@@ -3379,8 +3379,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e7a09372257cf85054911a517a4ceae3f9058749",
-      "sha256": "sha256:1008592982f98e8b6d5ccb6dc44210acba4c29ec313573fd36ad028836876fbb",
+      "git_blob": "4f50c68f3d8734bb5422f50cbdd01e630b9cf083",
+      "sha256": "sha256:0d2e6384522217020f2ec180dbeeb689466ff534f249d4480348b7a4675a2c47",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5254,5 +5254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:deaa77f7354179e3431d6510ead60dd833850c26ae3f045801cfbfa9f8f078ec"
+  "manifest_sha256": "sha256:fc29e59fbdfc2941fe952a126bfd13e72a66275b4c3f11e82d2a1b06aefaf4e7"
 }
