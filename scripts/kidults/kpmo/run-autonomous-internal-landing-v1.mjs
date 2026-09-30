@@ -424,7 +424,7 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
     const dispatched=envelope.test_evidence?.required_check_runs||[];
     if(bound.length!==dispatched.length || bound.some((value,index)=>value.kind!==dispatched[index]?.kind || value.id!==Number(dispatched[index]?.id) || value.app_id!==Number(dispatched[index]?.app_id))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   }
-  return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks};
+  return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context)};
 };
 const waitForReadyCandidate = async () => {
   const timeoutSeconds=Number(policy.bounded_recovery?.draft_ready_validation_timeout_seconds||420);
