@@ -67,8 +67,8 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
     || receipt.latest_ready_event_actor !== lastReadyEventActor) {
     fail('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH');
   }
-  if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
-  if (receipt.reason !== READY_GOVERNED_REASON) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  if (!['READY_GOVERNED','READY_VERIFIED_NON_PROMOTABLE'].includes(receipt.state)) fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
+  if (!((receipt.state === 'READY_GOVERNED' && receipt.reason === READY_GOVERNED_REASON) || (receipt.state === 'READY_VERIFIED_NON_PROMOTABLE' && receipt.reason === 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING'))) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
   if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
   if (receipt.validator_authority !== 'CONTROL_ONLY') fail('LIFECYCLE_RECEIPT_AUTHORITY_INVALID');
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
