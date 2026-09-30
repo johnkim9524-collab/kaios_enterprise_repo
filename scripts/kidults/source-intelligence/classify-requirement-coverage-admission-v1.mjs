@@ -23,7 +23,7 @@ export function classifyRequirementCoverageAdmission({run, classification, repos
   if (run.repository?.full_name !== repository || run.head_repository?.full_name !== repository) return {...base, reason: 'ARL_REPOSITORY_MISMATCH'};
   if (run.path !== ARL_PATH || run.head_branch !== 'main') return {...base, reason: 'ARL_TRIGGER_IDENTITY_INVALID'};
   if (run.status !== 'completed' || run.conclusion !== 'success') return {...base, reason: 'ARL_NOT_SUCCESS'};
-  if (run.head_sha !== executionSha) return {...base, reason: 'ARL_NOT_CURRENT_EXECUTION'};
+  if (run.head_sha !== executionSha) return {...base, state: 'VERIFIED_SKIP', admission: 'EXPECTED_NONAUTHORITATIVE_SKIP', reason: 'STALE_PRIOR_MAIN_TRIGGER', should_run: false};
   if (run.event === 'push') {
     const title = run.display_title ?? run.name ?? '';
     if (title !== `KIDULTS ARL / recovery-${executionSha}` || classification != null) return {...base, reason: 'ARL_RECOVERY_IDENTITY_INVALID'};

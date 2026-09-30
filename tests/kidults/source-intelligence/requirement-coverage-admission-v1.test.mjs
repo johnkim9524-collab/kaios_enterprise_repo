@@ -25,6 +25,15 @@ test('terminates exact main-push ARL recovery as proven nonauthority without cla
   assert.equal(result.should_run, false);
 });
 
+test('stale prior-main ARL completion is terminal nonauthority, not a current-main failure', () => {
+  const stale = {...structuredClone(run), head_sha: 'b'.repeat(40)};
+  const result = classifyWith(stale, receipt, sha);
+  assert.equal(result.state, 'VERIFIED_SKIP');
+  assert.equal(result.admission, 'EXPECTED_NONAUTHORITATIVE_SKIP');
+  assert.equal(result.reason, 'STALE_PRIOR_MAIN_TRIGGER');
+  assert.equal(result.should_run, false);
+});
+
 test('rejects forged main-push ARL recovery identity', () => {
   const recovery = {...structuredClone(run), event: 'push', name: 'KIDULTS ARL / recovery-forged', display_title: 'KIDULTS ARL / recovery-forged'};
   const result = classify({run: recovery, classification: null, repository: repo, executionSha: sha});
