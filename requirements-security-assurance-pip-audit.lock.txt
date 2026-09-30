@@ -1,6 +1,6 @@
 # KIDULTS Security Assurance pip-audit bootstrap lock (issue #976).
 # Target: GitHub-hosted ubuntu-24.04 x86_64, CPython 3.11.
-# Generated from pip-audit==2.10.1 with wheel-only resolution on 2026-08-23.
+# Generated from pip-audit==2.10.1 with wheel-only resolution on 2026-09-30.
 # Every direct and transitive requirement is exact and bound to the selected wheel digest.
 boolean-py==5.0 --hash=sha256:ef28a70bd43115208441b53a045d1549e2f0ec6e3d08a9d142cbc41c1938e8d9
 cachecontrol==0.14.4 --hash=sha256:b7ac014ff72ee199b5f8af1de29d60239954f223e948196fa3d84adaffc71d2b
@@ -31,3 +31,4 @@ tomli==2.4.1 --hash=sha256:5a881ab208c0baf688221f8cecc5401bd291d67e38a1ac884d673
 tomli-w==1.2.0 --hash=sha256:188306098d013b691fcadc011abd66727d3c414c571bb01b1a174ba8c983cf90
 typing-extensions==4.16.0 --hash=sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8
 urllib3==2.8.0 --hash=sha256:0cf3cae568d36aa9576b28dfb35f11328f1cb974ca7647d9475ebb86c75ac6e3
+ 
