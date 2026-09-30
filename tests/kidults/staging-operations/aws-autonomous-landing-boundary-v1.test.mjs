@@ -6,9 +6,9 @@ const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomo
 const oidc = JSON.parse(fs.readFileSync('coordination/kidults/governance/github-oidc-subject-customization-v1.json','utf8'));
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 const roles = [
-  ['Track','TrackEnvironment','TrackWorkflowRef','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.track.authorization.v1'],
-  ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.kpmo.authorization.v1'],
-  ['Verifier','VerifierEnvironment','VerifierWorkflowRef','VerifierApprovalSigningKey','kidults-autonomous-independent-verification-authorization-v1.yml','kidults.independent.verification.v1'],
+  ['Track','TrackEnvironment','TrackWorkflowRef','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.authorization.generation.v1'],
+  ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.authorization.generation.v1'],
+  ['Verifier','VerifierEnvironment','VerifierWorkflowRef','VerifierApprovalSigningKey','kidults-autonomous-independent-verification-authorization-v1.yml','kidults.authorization.generation.v1'],
 ];
 
 test('AWS trust uses only aud and custom sub and role workflows are distinct', () => {

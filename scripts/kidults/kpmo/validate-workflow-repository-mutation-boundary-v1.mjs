@@ -8,9 +8,9 @@ const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-gove
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
 const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
-  [path.resolve(ROOT, 'kidults-autonomous-track-authorization-v1.yml'), { event: 'kidults.track.authorization.v1', environment: 'KIDULTS-AUTONOMOUS-TRACK' }],
-  [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), { event: 'kidults.kpmo.authorization.v1', environment: 'KIDULTS-AUTONOMOUS-KPMO' }],
-  [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), { event: 'kidults.independent.verification.v1', environment: 'KIDULTS-AUTONOMOUS-VERIFIER' }],
+  [path.resolve(ROOT, 'kidults-autonomous-track-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-TRACK' }],
+  [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-KPMO' }],
+  [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-VERIFIER' }],
 ]);
 const AUTONOMOUS_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs');
 const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');

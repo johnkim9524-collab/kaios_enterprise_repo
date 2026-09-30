@@ -18,6 +18,7 @@ import {
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -52,15 +53,16 @@ if (!Number.isInteger(attemptNumber) || attemptNumber < 1 || attemptNumber > max
 }
 if (eventName !== 'repository_dispatch') throw new AutonomousLandingError('AUTONOMOUS_NORMAL_EVENT_REQUIRED');
 
-const eventRole = new Map([
-  ['kidults.track.authorization.v1','ACCOUNTABLE_TRACK_AGENT'],
-  ['kidults.kpmo.authorization.v1','KPMO'],
-  ['kidults.independent.verification.v1','INDEPENDENT_VERIFIER'],
-]);
-const approvalRole = eventRole.get(event.action);
-if (!approvalRole) throw new AutonomousLandingError('AUTONOMOUS_EVENT_NOT_ALLOWED');
 if (event.client_payload?.envelope?.workload !== undefined) throw new AutonomousLandingError('AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN');
 let envelope = validateEnvelope(event.client_payload?.envelope,{policy});
+const approvalRole = mode === 'APPROVAL' ? required('KIDULTS_AUTONOMOUS_APPROVAL_ROLE') : null;
+const dispatchBinding = validateDispatchEvent({
+  eventAction:event.action,
+  envelope,
+  dispatch:event.client_payload?.dispatch,
+  role:approvalRole,
+});
+envelope={...envelope,dispatch_id:dispatchBinding.dispatch_id,dispatch_idempotency_key:dispatchBinding.idempotency_key};
 const runtimeWorkload = {
   workload_id:workloadId,
   environment:workloadEnvironment,
@@ -211,6 +213,13 @@ const kmsSignCanonical = (value, failureCode) => {
 };
 const putApproval = () => {
   const envelopeJson = canonicalJson(envelope);
+  const exactExisting = () => {
+    const existing=readApprovals()[approvalRole];
+    if (!existing) return false;
+    if (canonicalJson(existing)!==envelopeJson) throw new AutonomousLandingError('AUTONOMOUS_APPROVAL_REPLAY_BINDING_MISMATCH',approvalRole);
+    return true;
+  };
+  if (exactExisting()) return 'APPROVAL_ALREADY_RECORDED';
   try {
     invokeLedgerWriter({
       action:'CREATE_APPROVAL',
@@ -223,7 +232,9 @@ const putApproval = () => {
       envelope_digest:sha256(envelopeJson),
       expires_at_epoch:String(Math.floor(Date.parse(envelope.expires_at)/1000)),
     });
+    return 'APPROVAL_RECORDED';
   } catch (error) {
+    if (exactExisting()) return 'APPROVAL_ALREADY_RECORDED';
     if (error instanceof AutonomousLandingError) throw error;
     throw new AutonomousLandingError('AUTONOMOUS_APPROVAL_DUPLICATE_OR_LEDGER_FAILURE',approvalRole);
   }
@@ -455,12 +466,15 @@ try {
       const prior=priorApprovals.KPMO || priorApprovals.ACCOUNTABLE_TRACK_AGENT || priorApprovals.INDEPENDENT_VERIFIER;
       validateRecoveryGeneration({prior,current:envelope,history:Object.values(priorApprovals).map(value=>({authorization_generation:value.authorization_generation,state:value.ledger_state||'APPROVAL_RECORDED'})),policy});
     }
-    putApproval();
+    const approvalState=putApproval();
     const approvalReceipt = {
       id:'kidults-autonomous-internal-landing-approval-receipt-v1',
       version:'1.0.0',
-      state:'APPROVAL_RECORDED',
+      state:approvalState,
       authorization_generation:envelope.authorization_generation,
+      dispatch_id:envelope.dispatch_id,
+      dispatcher_run_id:event.client_payload.dispatch.transport.github_run_id,
+      dispatcher_run_attempt:event.client_payload.dispatch.transport.github_run_attempt,
       received_role:approvalRole,
       workload_id:runtimeWorkload.workload_id,
       signing_key_arn:runtimeWorkload.signing_key_arn,

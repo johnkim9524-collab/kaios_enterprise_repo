@@ -136,9 +136,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'environment: KIDULTS-AUTONOMOUS-DISPATCHER',
     'KIDULTS Scope-Aware Authoritative Status V1',
     'Discover exact eligible PR bindings',
-    'kidults.track.authorization.v1',
-    'kidults.kpmo.authorization.v1',
-    'kidults.independent.verification.v1',
+    'kidults.authorization.generation.v1',
   ]) require(dispatcherWorkflow.includes(marker), `+'DISPATCHER_AUTONOMOUS_CHAIN_MISSING:${marker}'+`);
   for (const retired of [
     'permission_profile:"DRAFT_READY_TRANSITION"',
