@@ -21,19 +21,16 @@ test('Draft technical validation has a separate non-authority status', () => {
   assert.match(scopeWorkflow, /Publish exact-head aggregate status/);
 });
 
-test('eligible Draft is validated then autonomously promoted without landing authority', () => {
+test('eligible Draft is evaluated without a pre-Ready mutation and finalizer owns atomic Ready transition', () => {
   assert.match(landingWorkflow, /DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE/);
-  assert.match(landingWorkflow, /await status\('pending','Draft is non-promotable; automated Ready transition pending'\)/);
   assert.match(landingWorkflow, /landing_authorization_created:false/);
   assert.doesNotMatch(landingWorkflow, /id-token: write|markPullRequestReadyForReview|DRAFT_READY_TOKEN_UNAVAILABLE/);
   assert.match(landingWorkflow, /exact_base_sha:base/);
-  assert.match(dispatcherWorkflow, /markPullRequestReadyForReview/);
-  assert.match(dispatcherWorkflow, /validateDraftReadyBrokerResponse/);
-  assert.match(dispatcherWorkflow, /permission_profile:"DRAFT_READY_TRANSITION"/);
-  assert.match(dispatcherWorkflow, /assertDraftReadyPostMutation/);
-  assert.match(dispatcherWorkflow, /steps\.transition_draft\.outputs\.performed != 'true'/);
+  assert.doesNotMatch(dispatcherWorkflow, /markPullRequestReadyForReview|validateDraftReadyBrokerResponse|DRAFT_READY_TRANSITION|transition_draft/);
+  const finalizer=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+  assert.match(finalizer, /action:'CREATE_RESERVATION'[\s\S]*await rebindDraftReady\(candidate\.pr\)[\s\S]*await publishLandingStatus\('success'/);
+  assert.match(finalizer, /allowDraft:true,includeLandingStatus:false/);
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
-  assert.doesNotMatch(landingWorkflow, /if \(pr\.draft\) fail\('governed PR is Draft'\)/);
 });
 
 test('Atomic landing continues to reject Draft PRs', () => {

@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-closure-ownership-policy-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "rule_id": "AI-022",
@@ -33,15 +33,14 @@
     "COMPLETE_VERIFIED"
   ],
   "continuation": {
-    "same_task_session_retains_accountability_until_terminal_state": true,
     "authorized_reversible_work_continues_without_routine_owner_prompt": true,
     "failure_dispatches_next_bounded_diagnostic_or_remediation_step": true,
     "unchanged_failure_may_not_create_unbounded_retry": true,
     "bounded_retry_exhaustion_requires_structured_root_blocker": true,
-    "pr_creation_ci_success_merge_or_single_workflow_success_is_terminal": false
+    "pr_creation_ci_success_merge_or_single_workflow_success_is_terminal": false,
+    "same_root_incident_and_completion_owner_retained_until_terminal_state": true
   },
   "reporting_gate": {
-    "routine_intermediate_progress_report_allowed": false,
     "routine_request_for_next_or_repeat_approval_allowed": false,
     "user_return_allowed_only_for": [
       "COMPLETE_VERIFIED",
@@ -49,7 +48,10 @@
       "EXTERNAL_PERMISSION_CREDENTIAL_OR_PROVIDER_DEPENDENCY_WITH_NO_AUTHORIZED_PATH",
       "BOUNDED_AUTONOMOUS_RETRY_EXHAUSTED_WITH_EXACT_ROOT_BLOCKER"
     ],
-    "unknown_failure_code_allowed_at_terminal": false
+    "unknown_failure_code_allowed_at_terminal": false,
+    "evidence_based_nonblocking_observability_allowed": true,
+    "observability_may_require_owner_reply_or_terminate_work": false,
+    "user_return_means_control_handoff_not_telemetry": true
   },
   "completion_gate": {
     "exact_landed_main_required": true,
@@ -66,5 +68,20 @@
     "g5": "HOLD",
     "owner_reserved_gates_preserved": true,
     "policy_grants_no_new_credentials_spend_contract_release_or_irreversible_authority": true
+  },
+  "session_resume": {
+    "durable_checkpoint_required": true,
+    "original_session_provenance_preserved": true,
+    "root_incident_and_completion_owner_must_match": true,
+    "fresh_exact_source_bootstrap_and_consumption_required": true,
+    "existing_actor_identity_and_authority_gates_required": true,
+    "previous_writer_fencing_and_exclusive_lease_required": true,
+    "remaining_budget_and_root_retry_count_preserved": true,
+    "completed_side_effects_must_not_be_reexecuted": true,
+    "ambiguous_side_effects_reconciled_before_retry": true,
+    "checkpoint_schema_validation_is_identity_authentication": false,
+    "resume_grants_or_extends_authority": false,
+    "resume_resets_budget_or_retry_count": false,
+    "runtime_implementation_claimed_by_policy": false
   }
 }

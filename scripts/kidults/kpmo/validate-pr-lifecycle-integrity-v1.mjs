@@ -275,11 +275,24 @@ async function main() {
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/issues/${prNumber}/timeline`),
     ]);
-    const latestReadiness = selectLatestLifecycleReadyEvent({
-      timeline,
-      repositoryOwner,
-      pullRequest: prInitial,
-    });
+    const latestReadiness = prInitial.draft === true
+      ? Object.freeze({
+          id: null,
+          event: 'draft_current_state',
+          created_at: prInitial.updated_at || prInitial.created_at,
+          actor: prInitial.user?.login || null,
+          performed_via_github_app: null,
+          direct_repository_owner: false,
+          authority: 'LIFECYCLE_ONLY',
+          grants_authorization: false,
+          synthetic_lifecycle_boundary: true,
+          latest_invalidating_event: null,
+        })
+      : selectLatestLifecycleReadyEvent({
+          timeline,
+          repositoryOwner,
+          pullRequest: prInitial,
+        });
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
       api(`/git/trees/${prInitial.head.sha}?recursive=1`),

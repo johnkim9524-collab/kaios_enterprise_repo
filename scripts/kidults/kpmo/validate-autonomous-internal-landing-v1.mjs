@@ -112,19 +112,18 @@ for (const mutation of [
 }
 assert.throws(()=>validateRecoveryGeneration({prior,current:recovery,history:[{authorization_generation:'gen-2',state:'APPROVAL_RECORDED'}],policy,now}));
 assert.throws(()=>validateRecoveryGeneration({prior,current:recovery,history:[{authorization_generation:'gen-1',state:'RESERVED'}],policy,now}));
-const draftPr={number:42,node_id:'PR_node_42',state:'open',merged:false,draft:true,head:{sha:recovery.head_sha},base:{sha:recovery.base_sha}};
+const draftPr={number:42,node_id:'PR_node_42',state:'open',merged:false,draft:true,head:{sha:base.head_sha},base:{sha:base.base_sha}};
 const readyPr={...draftPr,draft:false};
-const lifecycle=validateDraftReadyRebind({before:draftPr,after:readyPr,envelope:recovery,policy});
-assert.equal(lifecycle.state,'DRAFT_READY_REBOUND');
-assert.equal(lifecycle.authorization_generation,'gen-2');
+const lifecycle=validateDraftReadyRebind({before:draftPr,after:readyPr,envelope:base,policy});
+assert.equal(lifecycle.state,'DRAFT_READY_ATOMIC_FINALIZER');
+assert.equal(lifecycle.authorization_generation,base.authorization_generation);
 for (const [before,after,envelope] of [
-  [draftPr,{...readyPr,head:{sha:sha('9')}},recovery],
-  [draftPr,{...readyPr,base:{sha:sha('9')}},recovery],
-  [draftPr,{...readyPr,node_id:'PR_node_other'},recovery],
-  [{...draftPr,draft:false},readyPr,recovery],
-  [draftPr,{...readyPr,draft:true},recovery],
-  [draftPr,readyPr,{...recovery,recovery:undefined}],
+  [draftPr,{...readyPr,head:{sha:sha('9')}},base],
+  [draftPr,{...readyPr,base:{sha:sha('9')}},base],
+  [draftPr,{...readyPr,node_id:'PR_node_other'},base],
+  [{...draftPr,draft:false},readyPr,base],
+  [draftPr,{...readyPr,draft:true},base],
 ]) assert.throws(()=>validateDraftReadyRebind({before,after,envelope,policy}));
 const lifecycleReceipt=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true},merge:{merge_sha:sha('d'),main_sha:sha('d'),head_sha:sha('b'),tree_sha:sha('c')},postmerge:{state:'VERIFIED_PASS'}});
-assert.equal(lifecycleReceipt.lifecycle.state,'DRAFT_READY_REBOUND');
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:13,negative:31,bounded_attempts:3,decisions:'LIVE_DERIVED',draft_ready_rebind:'AUTOMATIC_AFTER_RESERVATION',production:'HOLD',public:'HOLD',g5:'HOLD'}));
+assert.equal(lifecycleReceipt.lifecycle.state,'DRAFT_READY_ATOMIC_FINALIZER');
+console.log(JSON.stringify({state:'VERIFIED_PASS',positive:13,negative:31,bounded_attempts:3,decisions:'LIVE_DERIVED',draft_ready_rebind:'ATOMIC_FINALIZER_AFTER_RESERVATION',production:'HOLD',public:'HOLD',g5:'HOLD'}));

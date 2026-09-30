@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Bind one accountable task session to autonomous whole-chain closure and forbid fragmented PR-by-PR completion, routine progress prompts, and repeated Owner approval for authorized reversible internal work.",
+  "change_rationale": "Retain durable root-incident accountability across freshly verified task sessions and permit nonblocking evidence telemetry without repeated Owner approval; preserve all existing identity, authority, and completion gates.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -153,7 +153,7 @@
       "rule_id": "AI-022",
       "name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
       "severity_on_violation": "P1_OPERATING_DEFECT",
-      "requirement": "One accountable task session must own each authorized reversible internal root incident through bounded remediation, exact-main whole-chain reproduction, and Producer Health Sentinel success; PR creation, CI success, merge, partial workflow success, routine progress prompts, and repeated Owner approval cannot terminate or fragment that responsibility."
+      "requirement": "One durable root incident and accountable completion owner persist until exact-main whole-chain reproduction and Producer Health Sentinel success. A replacement task session requires a verified checkpoint, fresh bootstrap, existing actor identity and authority checks, previous-writer fencing, and preserved budgets and completed-effect history. Nonblocking evidence telemetry does not end work; routine progress prompts and repeated Owner approval cannot fragment authorized reversible internal responsibility."
     }
   ],
   "governed_states": {
