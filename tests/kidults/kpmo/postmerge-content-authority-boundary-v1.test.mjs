@@ -17,7 +17,7 @@ const steps=[
  'Validate exact Sharded Reserve upstream terminal binding',
  'Validate exact Canonical Truth upstream terminal binding',
 ];
-function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false, retainedHold=false, unexpectedFailure=false}={}) {
+function execute({stepOutcome='success', moveMain=false, changeAttempt=false, failRequired=false, retainedHold=false, unexpectedFailure=false, lagAssuranceJobs=false}={}) {
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'postmerge-boundary-'));
  const file=path.join(dir,'receipt.json');
  const runs=POLICY.required_workflows.map((x,i)=>({id:1000+i,run_attempt:1,path:x.path,name:x.name,head_sha:SHA,head_branch:'main',event:'push',status:'completed',conclusion:failRequired&&i===1?'failure':'success',created_at:'2026-09-05T00:00:01Z',updated_at:'2026-09-05T00:00:02Z'}));
@@ -33,21 +33,22 @@ function execute({stepOutcome='success', moveMain=false, changeAttempt=false, fa
  const jobs=[{id:5000,run_id:assurance.id,run_attempt:1,head_sha:SHA,name:'audit',status:'completed',conclusion:retainedHold?'failure':'success',steps:auditSteps}];
  fs.writeFileSync(file,JSON.stringify({id:'kidults-direct-owner-landing-handoff-receipt-v1',state:'CONSUMED_BY_DIRECT_OWNER_MERGE',merge_commit_sha:SHA,merged_at:'2026-09-05T00:00:00Z',merged_by:'owner',direct_owner:'owner',production:'HOLD',public:'HOLD',g5:'HOLD'}));
  const harness=`
-  const runs=${JSON.stringify(runs)}, jobs=${JSON.stringify(jobs)};let mains=0,indices=0;
+  const runs=${JSON.stringify(runs)}, jobs=${JSON.stringify(jobs)};let mains=0,indices=0,jobReads=0;
   globalThis.fetch=async(url,options)=>{
    if(options?.method && options.method!=='GET')throw new Error('MOCK_MUTATION_FORBIDDEN');
    if(!url.startsWith('https://api.github.com/repos/${REPOSITORY}/'))throw new Error('MOCK_ORIGIN_FORBIDDEN');
    let body;
    if(url.endsWith('/branches/main')){mains++;body={commit:{sha:${moveMain?'mains>1?"'+ 'b'.repeat(40)+'":':''}${JSON.stringify(SHA)}}};}
    else if(url.includes('/actions/runs?')){indices++;body={total_count:runs.length,workflow_runs:structuredClone(runs)};if(${changeAttempt}&&indices>1)body.workflow_runs[0].run_attempt=2;}
-   else if(url.includes('/jobs?'))body={total_count:jobs.length,jobs};
+   else if(url.includes('/jobs?')){jobReads++;body=${lagAssuranceJobs?'jobReads===1?{total_count:jobs.length,jobs:jobs.map(job=>({...job,steps:[]}))}:':''}{total_count:jobs.length,jobs};}
    else throw new Error('MOCK_UNEXPECTED_API');
    return {ok:true,status:200,json:async()=>body};
   };
   await (await import(${JSON.stringify(pathToFileURL(path.resolve(SCRIPT)).href)})).runCli();
  `;
  try {
-  const r=spawnSync(process.execPath,['--input-type=module','-e',harness],{cwd:ROOT,encoding:'utf8',timeout:10000,env:{PATH:path.dirname(process.execPath)+':/usr/bin:/bin',GH_REPOSITORY:REPOSITORY,GH_TOKEN:'SYNTHETIC_NOT_A_CREDENTIAL',HANDOFF_RECEIPT_PATH:file,POSTMERGE_PUSH_SUITE_WAIT_SECONDS:'0'}});
+  const waitSeconds=lagAssuranceJobs?'2':'0';
+  const r=spawnSync(process.execPath,['--input-type=module','-e',harness],{cwd:ROOT,encoding:'utf8',timeout:10000,env:{PATH:path.dirname(process.execPath)+':/usr/bin:/bin',GH_REPOSITORY:REPOSITORY,GH_TOKEN:'SYNTHETIC_NOT_A_CREDENTIAL',HANDOFF_RECEIPT_PATH:file,POSTMERGE_PUSH_SUITE_WAIT_SECONDS:waitSeconds}});
   assert.ifError(r.error);
   return {status:r.status,stderr:r.stderr,receipt:JSON.parse(fs.readFileSync(file,'utf8'))};
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
@@ -85,4 +86,9 @@ test('fail-closed assurance HOLD with retained validated receipt is accepted onl
 test('unexpected assurance failure cannot masquerade as governed HOLD',()=>{
  const r=execute({stepOutcome:'skipped',retainedHold:true,unexpectedFailure:true});assert.equal(r.status,1);
  assert.equal(r.receipt.failure_code,'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID');
+});
+test('completed run waits for eventually consistent assurance step metadata',()=>{
+ const {status,stderr,receipt}=execute({stepOutcome:'skipped',lagAssuranceJobs:true});assert.equal(status,0,stderr);
+ assert.equal(receipt.post_merge_push_suite.assurance_semantic_classification.state,'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
+ assert.equal(receipt.post_merge_push_suite.producer_health_authority,false);
 });
