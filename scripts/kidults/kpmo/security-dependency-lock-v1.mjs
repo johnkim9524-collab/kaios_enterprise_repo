@@ -1,6 +1,8 @@
 // Pure lock-graph policy. No file, process, network or Provider authority.
 export const WRANGLER_VERSION = '4.131.2';
 export const SHARP_MINIMUM = '0.35.4';
+// GHSA-w293-vg96-wgc3 / GHSA-rfgv-xxqx-mfg5: patched same-major release.
+export const UNDICI_VERSION = '7.29.1';
 export const LOCK_DIRECTORIES = Object.freeze([
   'services/kidults-autonomous-intelligence',
   'tooling/kidults-cloudflare-workers-shadow',
@@ -42,7 +44,17 @@ export function validateDependencyLock(manifest, lock) {
     validatePackage(node, 'sharp');
     requireValue(versionAtLeast(node.version, SHARP_MINIMUM), 'VULNERABLE_SHARP');
   }
+  requireValue(manifest.overrides?.undici === UNDICI_VERSION, 'UNDICI_SECURITY_OVERRIDE_REQUIRED');
+  requireValue(typeof miniflare.dependencies?.undici === 'string', 'UNDICI_PARENT_EDGE_REQUIRED');
+  const undici = packages['node_modules/undici'];
+  requireValue(undici?.version === UNDICI_VERSION, 'LOCKED_UNDICI_SECURITY_PIN');
+  const undiciCopies = Object.entries(packages).filter(([entryPath, node]) => /(^|\/)node_modules\/undici$/.test(entryPath) || node?.name === 'undici');
+  requireValue(undiciCopies.length > 0, 'UNDICI_MISSING');
+  for (const [, node] of undiciCopies) {
+    validatePackage(node, 'undici');
+    requireValue(node.version === UNDICI_VERSION, 'UNPATCHED_OR_UNAPPROVED_UNDICI');
+  }
   return Object.freeze({state: 'VERIFIED_PASS', scope: 'LOCK_GRAPH_POLICY_ONLY_NOT_LIVE_AUDIT',
     wrangler: wrangler.version, miniflare: miniflare.version, sharp: sharp.version,
-    sharp_copy_count: copies.length, provider_authority: false, production: 'HOLD', public: 'HOLD', g5: 'HOLD'});
+    sharp_copy_count: copies.length, undici: undici.version, undici_copy_count: undiciCopies.length, provider_authority: false, production: 'HOLD', public: 'HOLD', g5: 'HOLD'});
 }
