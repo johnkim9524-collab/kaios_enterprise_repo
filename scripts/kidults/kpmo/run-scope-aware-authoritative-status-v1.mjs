@@ -85,7 +85,7 @@ let activeStatusContext = context;
 try {
   const [initial, mainBranch] = await Promise.all([
     api(`/pulls/${prNumber}`),
-    api('/branches/main'),
+    api('/git/ref/heads/main'),
   ]);
   const draftDevelopment = initial.draft === true;
   if (draftDevelopment) {
@@ -104,7 +104,7 @@ try {
       noMergePolicy: landingPolicy.no_merge_policy,
     });
   }
-  if (initial.base?.sha !== mainBranch?.commit?.sha) {
+  if (initial.base?.sha !== mainBranch?.object?.sha) {
     throw new Error('SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN');
   }
   await postStatus('pending', draftDevelopment
@@ -117,7 +117,7 @@ try {
     files,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: initial.base.sha,
-    liveMainSha: mainBranch.commit.sha,
+    liveMainSha: mainBranch.object.sha,
   });
   const scope = resolveScopeRequirements(files, initial, policy);
   let results = null;
@@ -133,7 +133,7 @@ try {
   if (!results) throw new Error('SCOPE_AGGREGATOR_NO_TERMINAL_RESULT');
   const [final, finalMain] = await Promise.all([
     api(`/pulls/${prNumber}`),
-    api('/branches/main'),
+    api('/git/ref/heads/main'),
   ]);
   if (draftDevelopment) {
     if (final.state !== 'open' || final.merged === true || final.draft !== true
@@ -147,7 +147,7 @@ try {
       noMergePolicy: landingPolicy.no_merge_policy,
     });
   }
-  if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== mainBranch.commit.sha) {
+  if (final.base?.sha !== finalMain?.object?.sha || finalMain.object.sha !== mainBranch.object.sha) {
     throw new Error('SCOPE_AGGREGATOR_LIVE_MAIN_DRIFT');
   }
   await postStatus('success', draftDevelopment
@@ -161,7 +161,7 @@ try {
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
     exact_base_sha: initial.base.sha,
-    live_main_sha: mainBranch.commit.sha,
+    live_main_sha: mainBranch.object.sha,
     scopes: scope.scopes,
     files_accounted_for: scope.files.length,
     required_contexts: scope.required_contexts,
