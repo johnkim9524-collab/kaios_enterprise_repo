@@ -150,9 +150,13 @@ try {
   if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== mainBranch.commit.sha) {
     throw new Error('SCOPE_AGGREGATOR_LIVE_MAIN_DRIFT');
   }
-  await postStatus('success', draftDevelopment
+  const successDescription = draftDevelopment
     ? `${scope.required_contexts.length} exact-head contexts verified; Draft non-promotable`
-    : `${scope.required_contexts.length} exact-head contexts verified`, activeStatusContext);
+    : `${scope.required_contexts.length} exact-head contexts verified`;
+  await postStatus('success', successDescription, activeStatusContext);
+  if (draftDevelopment && activeStatusContext !== context) {
+    await postStatus('success', `${scope.required_contexts.length} exact-head contexts verified; lifecycle-only Draft`, context);
+  }
   console.log(JSON.stringify({
     id: 'kidults-scope-aware-authoritative-status-receipt-v1',
     version: '1.1.0',
