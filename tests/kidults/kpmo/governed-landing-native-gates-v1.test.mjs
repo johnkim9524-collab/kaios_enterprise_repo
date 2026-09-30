@@ -115,7 +115,7 @@ test('draft ready broker token validation rejects substitution, identity drift, 
     repository_id: '321',
     app_id: '654',
     installation_id: '987',
-    permissions: ['pull_requests:write', 'metadata:read'],
+    permissions: ['contents:write', 'pull_requests:write', 'metadata:read'],
     expires_at: '2026-09-01T03:00:00Z',
     token: 'installation-token-1234567890',
   };

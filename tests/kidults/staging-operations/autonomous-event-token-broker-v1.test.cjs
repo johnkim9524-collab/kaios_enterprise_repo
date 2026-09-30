@@ -39,7 +39,7 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
           : permissionProfile==='DRAFT_READY_TRANSITION'
-            ? {pull_requests:'write'}
+            ? {contents:'write',pull_requests:'write'}
             : {contents:'write',pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{...(Object.hasOwn(body.permissions,'contents')
@@ -61,10 +61,10 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
-test('draft ready profile returns minimum pull-request write scope and installation identity',async()=>{
+test('draft ready profile returns minimum observed Ready mutation scope and installation identity',async()=>{
   const {handler}=setup({draft:true,permissionProfile:'DRAFT_READY_TRANSITION'});
   const result=await handler({...event,allow_draft_recovery:true,permission_profile:'DRAFT_READY_TRANSITION'});
-  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
   assert.equal(result.installation_id,'66');
   assert.equal(result.app_id,'55');
 });

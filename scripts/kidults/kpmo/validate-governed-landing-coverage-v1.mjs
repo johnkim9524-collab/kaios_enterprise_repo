@@ -76,7 +76,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     && policy.draft_policy?.automated_transition_grants_landing_authority === false
     && policy.draft_policy?.ordinary_github_token_ready_mutation_forbidden === true
     && policy.draft_policy?.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER'
-    && JSON.stringify(policy.draft_policy?.ready_transition_required_permissions) === JSON.stringify(['pull_requests:write', 'metadata:read'])
+    && JSON.stringify(policy.draft_policy?.ready_transition_required_permissions) === JSON.stringify(['contents:write', 'pull_requests:write', 'metadata:read'])
     && policy.draft_policy?.ready_transition_installation_identity_bound === true
     && policy.draft_policy?.ready_transition_post_mutation_reread_required === true, 'AUTOMATED_DRAFT_READY_POLICY_INVALID');
   require(review.changes_requested_on_exact_head_blocks === true, 'CHANGES_REQUESTED_BLOCK');

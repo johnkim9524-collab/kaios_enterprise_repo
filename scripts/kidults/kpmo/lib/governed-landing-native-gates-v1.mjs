@@ -297,9 +297,10 @@ export function validateDraftReadyBrokerResponse(response, {
     fail('DRAFT_READY_INSTALLATION_REPOSITORY_MISMATCH');
   }
   if (!permissions
-    || permissions.length !== 2
-    || permissions[0] !== 'metadata:read'
-    || permissions[1] !== 'pull_requests:write') {
+    || permissions.length !== 3
+    || permissions[0] !== 'contents:write'
+    || permissions[1] !== 'metadata:read'
+    || permissions[2] !== 'pull_requests:write') {
     fail('DRAFT_READY_INSTALLATION_PERMISSION_INSUFFICIENT');
   }
   return {
