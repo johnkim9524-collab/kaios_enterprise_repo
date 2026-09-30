@@ -7,7 +7,7 @@
     "coordination/kidults/registry/projection/index.json",
     "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"
   ],
-  "generated_at": "2026-08-19T01:45:29.861Z",
+  "generated_at": "2026-09-30T01:18:23.110Z",
   "registry_system_version": "2.0.0",
   "catalog_revision": "2.2.0",
   "program_status": "ACTIVE",
@@ -252,10 +252,10 @@
   },
   "freshness": {
     "status": "CURRENT_CANONICAL_BASELINE",
-    "source_projection_generated_at": "2026-08-19T01:45:29.768Z",
-    "source_track_registry_version": "1.6.0",
+    "source_projection_generated_at": "2026-09-30T01:18:22.953Z",
+    "source_track_registry_version": "1.7.0",
     "source_blocker_registry_version": "1.4.0",
     "policy_baseline": "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
-    "as_of": "2026-08-19T01:45:29.861Z"
+    "as_of": "2026-09-30T01:18:23.110Z"
   }
 }
