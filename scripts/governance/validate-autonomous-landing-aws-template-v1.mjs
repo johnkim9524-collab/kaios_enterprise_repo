@@ -15,9 +15,9 @@ const receiptBucketPolicy = resources.AutonomousReceiptBucketPolicy.Properties.P
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 
 const approvals = [
-  ['Track','TrackEnvironment','TrackWorkflowRef','kidults-autonomous-track-staging-role','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.track.authorization.v1'],
-  ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','kidults-autonomous-kpmo-staging-role','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.kpmo.authorization.v1'],
-  ['Verifier','VerifierEnvironment','VerifierWorkflowRef','kidults-autonomous-verifier-staging-role','VerifierApprovalSigningKey','kidults-autonomous-independent-verification-authorization-v1.yml','kidults.independent.verification.v1'],
+  ['Track','TrackEnvironment','TrackWorkflowRef','kidults-autonomous-track-staging-role','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.authorization.generation.v1'],
+  ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','kidults-autonomous-kpmo-staging-role','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.authorization.generation.v1'],
+  ['Verifier','VerifierEnvironment','VerifierWorkflowRef','kidults-autonomous-verifier-staging-role','VerifierApprovalSigningKey','kidults-autonomous-independent-verification-authorization-v1.yml','kidults.authorization.generation.v1'],
 ];
 
 assert.equal(table.TableName, 'kidults-autonomous-landing-staging-ledger');

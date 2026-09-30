@@ -17,8 +17,8 @@ on:
         type: string
 
 concurrency:
-  group: kidults-autonomous-dispatcher
-  cancel-in-progress: true
+  group: kidults-autonomous-dispatcher-${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request || github.sha }}-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
 
 permissions: {}
 
@@ -59,56 +59,65 @@ jobs:
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
 
-      - name: Mint exact short-lived token and emit all three role events in one credential boundary
+      - name: Mint exact short-lived token and atomically fan out one common role event
         if: steps.discover.outputs.eligible_count != '0'
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
           BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
           GITHUB_TOKEN: ${{ github.token }}
+          KIDULTS_AUTONOMOUS_DISPATCH_EVENT: kidults.authorization.generation.v1
         run: |
           set -euo pipefail
+          current_receipt=''
+          mark_failed() {
+            if [[ -n "$current_receipt" && -f "$current_receipt" ]]; then
+              node scripts/kidults/kpmo/manage-autonomous-dispatch-fanout-v1.mjs --phase failed --receipt "$current_receipt" --failure_code DISPATCH_STEP_FAILED || true
+            fi
+          }
+          trap 'status=$?; mark_failed; unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION; exit "$status"' ERR
           trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          mkdir -p out/autonomous-dispatcher-v1/fanout
           test -n "$AWS_ROLE_ARN"
-          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
-          export AWS_REGION=ap-northeast-2
-          unset CREDS OIDC_JSON OIDC_TOKEN
-          test -n "$AWS_ACCESS_KEY_ID"
           test -n "$BROKER_FUNCTION"
-          jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json | while IFS= read -r envelope; do
+          test "$KIDULTS_AUTONOMOUS_DISPATCH_EVENT" = kidults.authorization.generation.v1
+          while IFS= read -r envelope; do
+            pr_number=$(jq -r '.pull_request' <<<"$envelope")
+            initialized=$(node scripts/kidults/kpmo/manage-autonomous-dispatch-fanout-v1.mjs --phase initialize --results out/autonomous-dispatcher-v1/results.json --pull_request "$pr_number" --output_dir out/autonomous-dispatcher-v1/fanout)
+            current_receipt=$(jq -er '.receipt_path' <<<"$initialized")
+            request_path=$(jq -er '.request_path' <<<"$initialized")
+            OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+            OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+            echo "::add-mask::$OIDC_TOKEN"
+            CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+            echo "::add-mask::$AWS_ACCESS_KEY_ID"
+            echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+            echo "::add-mask::$AWS_SESSION_TOKEN"
+            export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+            export AWS_REGION=ap-northeast-2
+            unset CREDS OIDC_JSON OIDC_TOKEN
+            test -n "$AWS_ACCESS_KEY_ID"
             request=$(jq -c '{action:"MINT_INSTALLATION_TOKEN",repository,repository_id,pull_request,base_sha,head_sha,authorization_generation}' <<<"$envelope")
             response=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /dev/stderr 2>&1 >/dev/null)
             token=$(jq -er '.token' <<<"$response")
             test "$(jq -r '.ok' <<<"$response")" = true
             unset response
-            pr_number=$(jq -r '.pull_request' <<<"$envelope")
             KIDULTS_PR_NUMBER="$pr_number" node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
             live=$(jq -cer --argjson pr "$pr_number" '.[] | select(.state=="ELIGIBLE" and .envelope.pull_request==$pr) | .envelope' out/autonomous-dispatcher-v1/results.json)
             stable_filter='{repository,repository_id,pull_request,base_sha,head_sha,head_tree_sha,scope_digest,changed_paths,test_evidence:{required_contexts:.test_evidence.required_contexts,required_check_runs:.test_evidence.required_check_runs}}'
             test "$(jq -Sc "$stable_filter" <<<"$live")" = "$(jq -Sc "$stable_filter" <<<"$envelope")"
-            envelope="$live"
-            for event in kidults.track.authorization.v1 kidults.kpmo.authorization.v1 kidults.independent.verification.v1; do
-              KIDULTS_PR_NUMBER="$pr_number" node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
-              live=$(jq -cer --argjson pr "$pr_number" '.[] | select(.state=="ELIGIBLE" and .envelope.pull_request==$pr) | .envelope' out/autonomous-dispatcher-v1/results.json)
-              test "$(jq -Sc "$stable_filter" <<<"$live")" = "$(jq -Sc "$stable_filter" <<<"$envelope")"
-              envelope="$live"
-              body=$(jq -cn --arg event_type "$event" --argjson envelope "$envelope" '{event_type:$event_type,client_payload:{envelope:$envelope}}')
-              curl --fail --silent --show-error -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" -d "$body"
-            done
+            curl --fail --silent --show-error -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $token" -H "X-GitHub-Api-Version: 2022-11-28" "https://api.github.com/repos/${GITHUB_REPOSITORY}/dispatches" --data-binary "@$request_path"
+            node scripts/kidults/kpmo/manage-autonomous-dispatch-fanout-v1.mjs --phase accepted --receipt "$current_receipt"
+            current_receipt=''
             unset token
-          done
+            unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
+          done < <(jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json)
 
-      - name: Upload bounded scan evidence
+      - name: Upload bounded scan and terminal fanout evidence
+        if: ${{ always() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: kidults-autonomous-dispatcher-${{ github.run_id }}
-          path: out/autonomous-dispatcher-v1/results.json
+          path: out/autonomous-dispatcher-v1/
           if-no-files-found: error
           retention-days: 90
