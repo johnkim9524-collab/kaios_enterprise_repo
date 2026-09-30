@@ -1793,8 +1793,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomous-landing-staging-deployment-runbook-v1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "60fb8686ef15f35fa1f6b611fd1f8c7e4a07a49e",
-      "sha256": "sha256:d6c171b81303266e0d43821927417cc51f00a94558c03583d034b62990bc1858",
+      "git_blob": "a1051c91c83411fa9d07cbd089f86052cc64a9fa",
+      "sha256": "sha256:0e0500ac36682997b317149bd7ff50c934b465cd285ee53d16bdd236b8134fc3",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5299,5 +5299,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d4fbdcaf11ecd6dbf393cb70ea9aab65babb48e13b742e5e370ac93a9f87582c"
+  "manifest_sha256": "sha256:db6e99c2782af7bfb83335e2ac2a6c0129699789d4d82242bcc3577850c6ed0e"
 }
