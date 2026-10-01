@@ -93,6 +93,29 @@ test('template validator accepts only the exact three-role Query delta and exact
   });
 });
 
+
+test('template validator accepts rollback state with legacy Verifier DescribeTable plus Query', () => {
+  const current = structuredClone(desired);
+  const statements = current.Resources.VerifierApprovalRole.Properties.Policies[0].PolicyDocument.Statement;
+  const query = statements.find(statement => same(statement, boundedQuery));
+  query.Action = ['dynamodb:DescribeTable', 'dynamodb:Query'];
+  const changeSet = {
+    Status: 'CREATE_COMPLETE',
+    Changes: [{ResourceChange: {
+      Action: 'Modify', LogicalResourceId: 'VerifierApprovalRole', ResourceType: 'AWS::IAM::Role', Replacement: 'False',
+      Details: [{Target: {Attribute: 'Properties', Name: 'Policies'}, ChangeSource: 'DirectModification'}],
+    }}],
+  };
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+});
+
 test('template validator rejects unrelated resource mutation and extra change-set resources', () => {
   const current = currentTemplate();
   current.Resources.AutonomousLandingLedger.Properties.BillingMode = 'PROVISIONED';
@@ -101,7 +124,7 @@ test('template validator rejects unrelated resource mutation and extra change-se
       '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
     ], {encoding: 'utf8'});
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY/);
+    assert.match(result.stderr, /TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY_OR_LEGACY_VERIFIER_READ/);
   });
 });
 
