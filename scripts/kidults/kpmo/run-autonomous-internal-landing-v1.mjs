@@ -515,8 +515,6 @@ try {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-      const eventToken=await acquireEventToken();
-      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
@@ -524,6 +522,8 @@ try {
         run_id:required('GITHUB_RUN_ID'),
         head_sha:envelope.head_sha,
       });
+      const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
