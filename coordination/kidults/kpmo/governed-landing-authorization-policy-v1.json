@@ -70,7 +70,12 @@
       "MULTIPLE_CURRENT_GENERATION_APPROVALS",
       "APPROVAL_REPLAY"
     ],
-    "root_issue": 1787
+    "root_issue": 1787,
+    "scope": "OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY",
+    "delegated_machine_quorum_exempt": true,
+    "delegated_machine_quorum_authority": "EXACT_TUPLE_TRACK_KPMO_INDEPENDENT_VERIFIER_QUORUM",
+    "delegated_finalizer_draft_ready_transition_invalidates_quorum": false,
+    "delegated_routine_owner_comment_required": false
   },
   "review_policy": {
     "manual_independent_review_required_for_ai_020_eligible_work": false,

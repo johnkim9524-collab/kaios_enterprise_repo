@@ -20,6 +20,14 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(governed.routing.routine_owner_reapproval_for_delegated_work,'FORBIDDEN');
   assert.equal(governed.routing.internal_reversible_workflow_and_governance_strengthening,'AI_020_AUTONOMOUS');
   assert.equal(governed.review_policy.manual_independent_review_required_for_ai_020_eligible_work,false);
+  assert.equal(governed.approval_generation_policy.scope,'OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY');
+  assert.equal(governed.approval_generation_policy.delegated_machine_quorum_exempt,true);
+  assert.equal(governed.approval_generation_policy.delegated_finalizer_draft_ready_transition_invalidates_quorum,false);
+  assert.equal(governed.approval_generation_policy.delegated_routine_owner_comment_required,false);
+  const envelope=read('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_generation_policy_applies,false);
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_recovery_fallback_for_normal_path,'FORBIDDEN');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.finalizer_lifecycle_transition_preserves_exact_tuple_quorum,true);
 });
 
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{
