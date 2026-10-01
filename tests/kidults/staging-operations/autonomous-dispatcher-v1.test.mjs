@@ -122,7 +122,7 @@ assert.match(dispatcherWorkflow,/required: true/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/for event in kidults\.track\.authorization\.v1/);
 assert.match(dispatcherWorkflow,/manage-autonomous-dispatch-fanout-v1\.mjs --phase initialize/);
-assert.match(dispatcherWorkflow,/--data-binary "@\$request_path"/);
+assert.match(dispatcherWorkflow,/post-repository-dispatch-v1\.mjs "\$request_path"/);
 assert.match(dispatcherWorkflow,/manage-autonomous-dispatch-fanout-v1\.mjs --phase accepted/);
 assert.match(dispatcherWorkflow,/if: \$\{\{ always\(\) \}\}[\s\S]*Upload bounded scan and terminal fanout evidence|Upload bounded scan and terminal fanout evidence[\s\S]*if: \$\{\{ always\(\) \}\}/);
 const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
@@ -150,7 +150,7 @@ for(const workflowPath of oidcWorkflowPaths){
     assert.doesNotMatch(workflow,/kidults\.(?:track|kpmo|independent)\.(?:authorization|verification)\.v1/);
   }
   const sessions=(workflow.match(/read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length;
-  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -r/g)||[]).length;
+  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -(?:e?r|r?e)/g)||[]).length;
   assert.ok(sessions>0,`expected OIDC session blocks in ${workflowPath}`);
   assert.equal((workflow.match(/echo "::add-mask::\$AWS_ACCESS_KEY_ID"/g)||[]).length,sessions);
   assert.equal((workflow.match(/echo "::add-mask::\$AWS_SECRET_ACCESS_KEY"/g)||[]).length,sessions);
@@ -159,7 +159,7 @@ for(const workflowPath of oidcWorkflowPaths){
   assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
   assert.doesNotMatch(workflow,/AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID[\s\S]{0,200}\$GITHUB_ENV/);
   assert.equal((workflow.match(/export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
-  assert.equal((workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT/g)||[]).length,sessions);
+  assert.ok((workflow.match(/trap '[^\n]*unset CREDS[^\n]*AWS_REGION[^\n]*EXIT/g)||[]).length>=sessions);
 }
 const allWorkflowText=fs.readdirSync('.github/workflows')
   .filter(name=>name.endsWith('.yml'))

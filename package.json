@@ -10,6 +10,7 @@
     "validate:delegated-autonomous-authority": "node scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs",
     "validate:autonomous-approval-envelope": "node scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs",
     "validate:autonomous-landing-aws-template": "node scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
+    "validate:github-app-oidc-broker": "node scripts/kidults/kpmo/validate-github-app-oidc-broker-architecture-v1.mjs",
     "validate:cloudtrail-continuous-assurance": "node scripts/governance/validate-cloudtrail-continuous-assurance-v1.mjs",
     "test:cloudtrail-continuous-assurance": "node --test tests/governance/cloudtrail-continuous-assurance-v1.test.mjs",
     "run:staging-shadow-cycle": "node scripts/kidults/staging-operations/run-shadow-vertical-cycle-v1.mjs",
