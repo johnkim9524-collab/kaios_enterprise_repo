@@ -187,6 +187,70 @@ test('template validator accepts rollback state with legacy Verifier DescribeTab
   });
 });
 
+test('template validator accepts exact CloudFormation dynamic dependency fanout for writer policy change', () => {
+  const current = structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement =
+    current.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.filter(
+      statement => !(Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'kms:Decrypt'),
+    );
+  const dynamic = (LogicalResourceId, ResourceType, Name, CausingEntity) => ({ResourceChange: {
+    Action: 'Modify', LogicalResourceId, ResourceType, Replacement: 'False',
+    Details: [{Target: {Attribute: 'Properties', Name}, Evaluation: 'Dynamic',
+      ChangeSource: 'ResourceAttribute', CausingEntity}],
+  }});
+  const changeSet = {
+    Status: 'CREATE_COMPLETE',
+    Changes: [
+      dynamic('AutonomousLedgerWriterFunction', 'AWS::Lambda::Function', 'Role', 'AutonomousLedgerWriterRole.Arn'),
+      {ResourceChange: {
+        Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterRole', ResourceType: 'AWS::IAM::Role', Replacement: 'False',
+        Details: [{Target: {Attribute: 'Properties', Name: 'Policies'}, Evaluation: 'Static', ChangeSource: 'DirectModification'}],
+      }},
+      dynamic('FinalizerRole', 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn'),
+      ...roleIds.map(logicalId => dynamic(logicalId, 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn')),
+    ],
+  };
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+});
+
+test('template validator rejects unrecognized dynamic dependency fanout', () => {
+  const current = structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement =
+    current.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.filter(
+      statement => !(Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'kms:Decrypt'),
+    );
+  const changeSet = {
+    Status: 'CREATE_COMPLETE',
+    Changes: [
+      {ResourceChange: {
+        Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterRole', ResourceType: 'AWS::IAM::Role', Replacement: 'False',
+        Details: [{Target: {Attribute: 'Properties', Name: 'Policies'}, ChangeSource: 'DirectModification'}],
+      }},
+      {ResourceChange: {
+        Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterFunction', ResourceType: 'AWS::Lambda::Function', Replacement: 'False',
+        Details: [{Target: {Attribute: 'Properties', Name: 'Environment'}, Evaluation: 'Dynamic',
+          ChangeSource: 'ResourceAttribute', CausingEntity: 'AutonomousLedgerWriterRole.Arn'}],
+      }},
+    ],
+  };
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const result = spawnSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /CHANGE_SET_DYNAMIC_PROPERTY_INVALID/);
+  });
+});
+
 test('template validator rejects unrelated resource mutation and extra change-set resources', () => {
   const current = currentTemplate();
   current.Resources.AutonomousLandingLedger.Properties.BillingMode = 'PROVISIONED';

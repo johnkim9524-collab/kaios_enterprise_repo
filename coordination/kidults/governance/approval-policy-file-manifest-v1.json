@@ -5253,8 +5253,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b46158adbe2a91f930c6f0f38fc7180fd216015d",
-      "sha256": "sha256:c6ce8a865faaf55dd1585838279450337fd08506529a40a5f2efe1bab612a425"
+      "git_blob": "d99ebe987596a6aea2d65d07273306ce95762917",
+      "sha256": "sha256:2217c71fd3a19a35e4145421545232700ced982f631efe905a6554873d1efe0f"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
@@ -5305,5 +5305,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:84694d1a6d7d86feddb78f74806fa652d6a8a876073ef2c3cb767784d171861f"
+  "manifest_sha256": "sha256:5361b2bdae3eb19b2082fdc590ba44e9ad0825d7c35a7aef9852d7a788ad4e6f"
 }
