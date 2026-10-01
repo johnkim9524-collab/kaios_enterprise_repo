@@ -12,15 +12,15 @@
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
-      "execution_authorization_controls": 179,
+      "execution_authorization_controls": 178,
       "consumers": 8,
-      "exemptions": 171,
+      "exemptions": 170,
       "route_counts": {
         "CANONICAL_ENVELOPE": 8,
         "DOMAIN_ADJUDICATION": 47,
         "INTERNAL_REVERSIBLE": 48,
         "NON_EXECUTING_REFERENCE": 52,
-        "OWNER_RESERVED": 11,
+        "OWNER_RESERVED": 10,
         "STAGING_BOUNDED": 13
       }
     }
