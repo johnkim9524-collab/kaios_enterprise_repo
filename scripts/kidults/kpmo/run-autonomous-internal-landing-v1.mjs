@@ -399,7 +399,7 @@ const liveRequiredChecks = async ({includeLandingStatus=true,draftDevelopment=fa
   if((detail.bypass_actors||[]).length) throw new AutonomousLandingError('AUTONOMOUS_RULESET_BYPASS_FORBIDDEN');
   const rule=(detail.rules||[]).find(value=>value.type==='required_status_checks');
   if(!rule?.parameters?.strict_required_status_checks_policy) throw new AutonomousLandingError('AUTONOMOUS_STRICT_REQUIRED_STATUS_POLICY_REQUIRED');
-  let all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
+  let all=(rule.parameters.required_status_checks||[]).map(value=>({context:String(value.context),integration_id:Number(value.integration_id||value.app_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(!includeLandingStatus) all=all.filter(value=>value.context!=='KIDULTS Governed Landing Authorization V1');
   if(draftDevelopment) all=all.map(value=>value.context==='KIDULTS Scope-Aware Authoritative Status V1'
@@ -425,7 +425,7 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   const authoritativeChecks=checks;
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
   const envelopeRequiredSource=envelope.test_evidence?.required_contexts||envelope.test_evidence?.required_evidence||[];
-  const envelopeRequired=envelopeRequiredSource.map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
+  const envelopeRequired=envelopeRequiredSource.map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||value.app_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(requireEnvelopeBinding) {
     const liveByContext=new Map(requiredChecks.map(value=>[value.context,value]));
