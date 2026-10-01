@@ -62,10 +62,27 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:kms:ap-northeast-2:528314240275:key/609e9ec0-3c22-40a0-b728-90fdf0756d3e',
     'arn:aws:kms:ap-northeast-2:528314240275:key/7aea838e-972e-468b-b0a7-001f6549e61c',
   ]);
+  const auxiliaryRoleRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'iam:GetRole',
+  );
+  assert.deepEqual(auxiliaryRoleRead?.Resource, [
+    'arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
+  ]);
+  assert.doesNotMatch(JSON.stringify(auxiliaryRoleRead), /iam:PutRolePolicy/);
+
   assert.match(source, /kidults-autonomous-track-staging-role/);
   assert.match(source, /kidults-autonomous-kpmo-staging-role/);
   assert.match(source, /kidults-autonomous-verifier-staging-role/);
-  assert.doesNotMatch(source, /kidults-autonomous-finalizer-staging-role/);
+  const approvalWrite = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.includes('iam:PutRolePolicy'),
+  );
+  assert.deepEqual(approvalWrite?.Resource, [
+    'arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role',
+  ]);
+  assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer|ledger-writer/);
 });
 
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
