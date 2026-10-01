@@ -76,7 +76,7 @@ jobs:
           set -euo pipefail
           mkdir -p out/autonomous-landing-staging-deploy-v1
           test "$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text)" = UPDATE_COMPLETE
-          aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output text > "$RUNNER_TEMP/current-template.json"
+          aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json | jq -r ".TemplateBody" > "$RUNNER_TEMP/current-template.json"
           validation=$(node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs --current "$RUNNER_TEMP/current-template.json" --desired "$TEMPLATE_PATH")
           mode=$(jq -er '.mode' <<<"$validation")
           test "$mode" = CHANGE_REQUIRED -o "$mode" = ALREADY_APPLIED
