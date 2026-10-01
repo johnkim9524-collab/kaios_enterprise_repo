@@ -9,6 +9,32 @@ const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
 const normalizedScript=value=>String(value).replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim();
+const derivedApprovalMetadataPaths=new Set([
+  'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+  'coordination/kidults/governance/approval-policy-inventory-v1.json',
+]);
+const normalizedDerivedApprovalMetadata=(source,filename)=>{
+  let value; try { value=JSON.parse(source||'{}'); } catch { deny('INDEPENDENT_JSON_PARSE_FAILED',filename); }
+  value=structuredClone(value);
+  if(filename.endsWith('approval-policy-file-manifest-v1.json')){
+    value.manifest_sha256='DERIVED';
+    for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
+  } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
+    if(value.audit) value.audit.manifest_sha256='DERIVED';
+  }
+  return value;
+};
+const isDerivedApprovalMetadataShape=(source,filename)=>{
+  try {
+    const value=JSON.parse(source||'{}');
+    if(filename.endsWith('approval-policy-file-manifest-v1.json')) return Array.isArray(value.files)&&typeof value.manifest_sha256==='string';
+    if(filename.endsWith('approval-policy-inventory-v1.json')) return typeof value.audit?.manifest_sha256==='string';
+  } catch {}
+  return false;
+};
+const verifyDerivedApprovalMetadata=(before,after,filename)=>{
+  if(JSON.stringify(normalizedDerivedApprovalMetadata(before,filename))!==JSON.stringify(normalizedDerivedApprovalMetadata(after,filename))) deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
+};
 
 // Independent structural recomputation. Unlike the primary token graph, this
 // walks balanced source spans and reconstructs predicate bindings directly
@@ -89,7 +115,9 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
     for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
-    if(file.filename.endsWith('.json')) {
+    if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)) {
+      verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename);
+    } else if(file.filename.endsWith('.json')) {
       let a,b; try {a=JSON.parse(file.base_content||'{}');b=JSON.parse(file.head_content||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',file.filename)}
       const walk=(left,right,path='')=>{if(left&&typeof left==='object'){for(const key of Object.keys(left)){if(!(key in (right||{})))deny('INDEPENDENT_POLICY_KEY_REMOVED',`${file.filename}:${path}${key}`);walk(left[key],right[key],`${path}${key}.`)}}else if(JSON.stringify(left)!==JSON.stringify(right))deny('INDEPENDENT_POLICY_VALUE_CHANGED',`${file.filename}:${path}`)};
       walk(a,b);
