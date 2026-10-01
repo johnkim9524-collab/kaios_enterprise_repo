@@ -41,7 +41,7 @@ const withFixture = (files, callback) => {
   }
 };
 
-test('bootstrap trust is exact workflow/environment and permissions are bounded to three STAGING roles', () => {
+test('bootstrap trust is exact and IAM write permissions stay bounded while stack role readback is explicit', () => {
   const trust = bootstrap.Resources.DeployerRole.Properties.AssumeRolePolicyDocument.Statement[0];
   assert.equal(trust.Condition.StringEquals['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
   assert.deepEqual(trust.Condition.StringEquals['token.actions.githubusercontent.com:sub'], {
@@ -62,10 +62,21 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:kms:ap-northeast-2:528314240275:key/609e9ec0-3c22-40a0-b728-90fdf0756d3e',
     'arn:aws:kms:ap-northeast-2:528314240275:key/7aea838e-972e-468b-b0a7-001f6549e61c',
   ]);
-  assert.match(source, /kidults-autonomous-track-staging-role/);
-  assert.match(source, /kidults-autonomous-kpmo-staging-role/);
-  assert.match(source, /kidults-autonomous-verifier-staging-role/);
-  assert.doesNotMatch(source, /kidults-autonomous-finalizer-staging-role/);
+  const iamReadOnly = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => JSON.stringify(statement.Action) === JSON.stringify(['iam:GetRole']),
+  );
+  assert.deepEqual(iamReadOnly?.Resource, [
+    'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role',
+  ]);
+  const iamWriter = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.includes('iam:PutRolePolicy'),
+  );
+  assert.deepEqual(iamWriter?.Resource, [
+    'arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role',
+  ]);
 });
 
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
