@@ -68,6 +68,7 @@ function normalizeAllowedRecoveryState(template) {
     const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
     assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     let exactQueryCount = 0;
+    let exactDecryptCount = 0;
     let legacyVerifierCount = 0;
     const normalizedStatements = [];
     for (const statement of statements) {
@@ -75,7 +76,10 @@ function normalizeAllowedRecoveryState(template) {
         exactQueryCount += 1;
         continue;
       }
-      if (equal(statement, LEDGER_DECRYPT_STATEMENT)) continue;
+      if (equal(statement, LEDGER_DECRYPT_STATEMENT)) {
+        exactDecryptCount += 1;
+        continue;
+      }
       if (logicalId === 'VerifierApprovalRole' && equal(statement, LEGACY_VERIFIER_QUERY_STATEMENT)) {
         legacyVerifierCount += 1;
         continue;
@@ -83,6 +87,7 @@ function normalizeAllowedRecoveryState(template) {
       normalizedStatements.push(statement);
     }
     assert.ok(exactQueryCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_QUERY:' + logicalId);
+    assert.ok(exactDecryptCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_LEDGER_DECRYPT:' + logicalId);
     assert.ok(legacyVerifierCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_LEGACY_VERIFIER_QUERY');
     assert.ok(!(exactQueryCount && legacyVerifierCount), 'CURRENT_TEMPLATE_CONFLICTING_VERIFIER_QUERY');
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement = normalizedStatements;
@@ -140,6 +145,7 @@ console.log(JSON.stringify({
   mode,
   allowed_logical_ids: ROLE_IDS,
   allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
+  allowed_kms_resource: 'AutonomousLedgerKey',
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
   production: 'HOLD',
