@@ -70,6 +70,15 @@
               },
               {
                 "Effect": "Allow",
+                "Action": ["kms:DescribeKey"],
+                "Resource": [
+                  "arn:aws:kms:ap-northeast-2:528314240275:key/887d2856-30c8-4a7f-8d85-c0b6e4978cc0",
+                  "arn:aws:kms:ap-northeast-2:528314240275:key/609e9ec0-3c22-40a0-b728-90fdf0756d3e",
+                  "arn:aws:kms:ap-northeast-2:528314240275:key/7aea838e-972e-468b-b0a7-001f6549e61c"
+                ]
+              },
+              {
+                "Effect": "Allow",
                 "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:PutRolePolicy"],
                 "Resource": [
                   "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
