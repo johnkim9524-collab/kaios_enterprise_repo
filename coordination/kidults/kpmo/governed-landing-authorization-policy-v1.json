@@ -70,7 +70,12 @@
       "MULTIPLE_CURRENT_GENERATION_APPROVALS",
       "APPROVAL_REPLAY"
     ],
-    "root_issue": 1787
+    "root_issue": 1787,
+    "scope": "OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY",
+    "delegated_machine_quorum_exempt": true,
+    "delegated_machine_quorum_authority": "EXACT_TUPLE_TRACK_KPMO_INDEPENDENT_VERIFIER_QUORUM",
+    "delegated_finalizer_draft_ready_transition_invalidates_quorum": false,
+    "delegated_routine_owner_comment_required": false
   },
   "review_policy": {
     "manual_independent_review_required_for_ai_020_eligible_work": false,
@@ -131,6 +136,9 @@
     "readiness_status": "pending",
     "operation_specific_dispatch_required": true,
     "live_dispatch_actor_must_equal_repository_owner": true,
+    "live_dispatch_actor_guard_scope": "OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY",
+    "delegated_internal_dispatch_actor": "REGISTERED_AUTONOMOUS_FINALIZER_GITHUB_APP",
+    "delegated_internal_repository_owner_actor_required": false,
     "expected_head_sha_required": true,
     "initial_live_pull_request_read_required": true,
     "final_live_pull_request_reread_required": true,
@@ -139,6 +147,13 @@
     "terminal_merged_state": "MERGED_POST_LANDING_VERIFICATION_REQUIRED",
     "repository_github_token_merge_forbidden": true,
     "event_emitting_transport": "DIRECT_OWNER_GITHUB_UI",
+    "event_emitting_transport_scope": "OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY",
+    "delegated_internal_normal_transport": "AUTONOMOUS_FINALIZER_GITHUB_APP",
+    "delegated_internal_owner_ui_transport_required": false,
+    "delegated_internal_owner_comment_required": false,
+    "canonical_postmerge_refresh": "PROTECTED_MAIN_PUSH_ONE_SHOT",
+    "canonical_schedule_role": "WATCHDOG_FALLBACK_ONLY",
+    "canonical_schedule_max_wait_is_not_normal_path": true,
     "event_emitting_transport_availability_before_consumption": true,
     "expected_base_sha_required": true,
     "expected_head_sha_required": true,

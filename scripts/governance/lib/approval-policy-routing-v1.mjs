@@ -15,6 +15,10 @@ export const ALLOWED_EXEMPTIONS=new Set([
 ]);
 
 export const routeAuthorizationControl = (file, source) => {
+  if (/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source)) return {
+    route:"OWNER_RESERVED",
+    coverage:{mode:"EXEMPTION",reason_code:"EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"},
+  };
   const referencesEnvelope=source.includes(CANONICAL_ENVELOPE_PATH)||source.includes(CANONICAL_ENVELOPE_ID);
   if (referencesEnvelope) return {
     route:"CANONICAL_ENVELOPE",

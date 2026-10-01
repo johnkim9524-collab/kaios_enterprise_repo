@@ -7,6 +7,7 @@ import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../s
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import {delegatedTransitionId} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
+import {routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
@@ -20,6 +21,60 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(governed.routing.routine_owner_reapproval_for_delegated_work,'FORBIDDEN');
   assert.equal(governed.routing.internal_reversible_workflow_and_governance_strengthening,'AI_020_AUTONOMOUS');
   assert.equal(governed.review_policy.manual_independent_review_required_for_ai_020_eligible_work,false);
+  assert.equal(governed.approval_generation_policy.scope,'OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY');
+  assert.equal(governed.approval_generation_policy.delegated_machine_quorum_exempt,true);
+  assert.equal(governed.approval_generation_policy.delegated_finalizer_draft_ready_transition_invalidates_quorum,false);
+  assert.equal(governed.approval_generation_policy.delegated_routine_owner_comment_required,false);
+  const envelope=read('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_generation_policy_applies,false);
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_recovery_fallback_for_normal_path,'FORBIDDEN');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.finalizer_lifecycle_transition_preserves_exact_tuple_quorum,true);
+  assert.equal(envelope.classes.UNKNOWN.decision,'QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED');
+  assert.equal(envelope.classes.UNKNOWN.owner_escalation_only_after_unresolved_reclassification,true);
+});
+
+test('autonomous-named workflows cannot be manual-only unless an explicit Owner-reserved boundary is documented',()=>{
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.startsWith('kidults-autonomous-')&&name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    const hasAutomatic=/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target):/m.test(source);
+    const ownerReserved=/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source);
+    assert.ok(hasAutomatic||ownerReserved,`MANUAL_ONLY_AUTONOMOUS_WORKFLOW_UNCLASSIFIED:${file}`);
+  }
+});
+
+test('explicit Owner-reserved workflow markers override legacy internal or staging routing',()=>{
+  for(const [file,marker] of [
+    ['.github/workflows/kidults-autonomous-smithsonian-sample.yml','OWNER_RESERVED_EXTERNAL_SECRET_CALL'],
+    ['.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
+    ['.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
+  ]){
+    const source=fs.readFileSync(file,'utf8');
+    assert.ok(source.includes(marker));
+    assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
+  }
+});
+
+test('repository-wide manual-only workflows are an exact reviewed exception set',()=>{
+  const reviewed=new Set([
+    'digitalocean-staging-bootstrap-exec.yml','digitalocean-staging-readonly-audit.yml',
+    'kidults-agci-os-candidate-r2-preflight.yml','kidults-atomic-governed-landing-v1.yml',
+    'kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml',
+    'kidults-autonomous-smithsonian-sample.yml','kidults-cloudflare-pages-boundary-readonly-v1.yml',
+    'kidults-cloudflare-pages-emergency-control-v1.yml','kidults-cloudflare-pages-staging-deploy-v1.yml',
+    'kidults-er-r7k-finalization-boundary.yml','kidults-er-r7k-graded-population.yml',
+    'kidults-graded-authority-probe-gate-v1.yml','kidults-natural-clock-deploy-v1.yml',
+    'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
+    'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
+    'p0-postgres-target-time-restore-verification.yml','p0-remote-postgres-persistence-pitr.yml',
+  ]);
+  const actual=new Set();
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    if(!/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target|issues):/m.test(source)) actual.add(file);
+  }
+  assert.deepEqual([...actual].sort(),[...reviewed].sort());
 });
 
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{

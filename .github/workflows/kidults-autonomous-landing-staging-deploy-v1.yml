@@ -1,5 +1,8 @@
 name: KIDULTS Autonomous Landing STAGING Deploy V1
+# OWNER_RESERVED_STAGING_INFRA_CHANGE: CloudFormation deployment can alter IAM/OIDC/KMS authority surfaces.
+# Manual dispatch is intentional until an exact no-permission-expansion change-set verifier delegates this operation.
 run-name: KIDULTS Autonomous Landing STAGING Deploy ${{ inputs.main_sha }}
+# OWNER_RESERVED_STAGING_INFRA_CHANGE: CloudFormation deployment can alter IAM/OIDC/KMS authority surfaces.
 
 on:
   workflow_dispatch:

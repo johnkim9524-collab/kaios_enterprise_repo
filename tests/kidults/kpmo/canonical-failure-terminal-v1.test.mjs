@@ -32,6 +32,7 @@ const kind=process.env.TEST_CASE;
 const output={validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',version:'3.1.0',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',protected_main_sha:process.env.EXPECTED_PROTECTED_MAIN_SHA,material_defect_registry_sha256:'sha256:'+'0'.repeat(64),material_defect_count:0,material_defects:[],material_defect_query_cardinality:{P0:0,P1:0},empirical_promotion:false,whole_platform_closure:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
 let receipt={receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.5.1',repository:process.env.GITHUB_REPOSITORY,run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),state:'VERIFIED_FAIL',mode:'UNCOMMITTED',writes:0,failure_class:'COMMIT_MISMATCH',mismatch_fields:['material_defect_count','truth_digest'],promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
 if(kind==='bootstrap')receipt.mismatch_fields=['material_defect_count','material_defect_issue_numbers','material_defect_registry_sha256','truth_digest'];
+if(kind==='bootstrap-stale'){receipt.failure_class='LATEST_COMMITTED_GENERATION_STALE';receipt.mismatch_fields=[];}
 if(kind==='wrong-repository')receipt.repository='other/repo';
 if(kind==='wrong-run')receipt.run_id+=1;
 if(kind==='string-run')receipt.run_id=String(receipt.run_id);
@@ -61,7 +62,7 @@ process.exit(1);
     if(bootstrap){
       fs.mkdirSync(path.join(dir,'.github/workflows'),{recursive:true});
       fs.mkdirSync(path.join(dir,'tests/kidults/kpmo'),{recursive:true});
-      fs.writeFileSync(path.join(dir,'.github/workflows/kpmo-canonical-generation-v3-apply.yml'),"schedule:\n    - cron: '13,43 * * * *'\nCANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}\n");
+      fs.writeFileSync(path.join(dir,'.github/workflows/kpmo-canonical-generation-v3-apply.yml'),"schedule:\n    - cron: '13,43 * * * *'\nCANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}\nif test \"$GITHUB_EVENT_NAME\" = 'workflow_dispatch'; then\n");
       fs.writeFileSync(path.join(dir,'scripts/kidults/kpmo/canonical-generation-v3.mjs'),"!['workflow_dispatch','push','schedule'].includes(event) authority_type:'PROTECTED_MAIN_SCHEDULE' CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'\n");
       fs.writeFileSync(path.join(dir,'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'),"'CANONICAL_V3_APPEND_ONLY_REFRESH'\n");
     }
@@ -75,7 +76,7 @@ process.exit(1);
     const receipt=JSON.parse(fs.readFileSync(path.join(temp,'canonical-truth-receipt-v1.json'),'utf8'));
     assert.equal(receipt.validation_output_sha256,'sha256:'+crypto.createHash('sha256').update(text).digest('hex'));
     return {receipt,output:JSON.parse(text),capture,staleExists:fs.existsSync(stale)};
-  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+  }finally{try{fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:50});}catch(error){if(process.platform!=='win32')throw error;}}
 }
 for(const event of ['pull_request','push','workflow_dispatch'])test(`${event}: actual capture and emitter preserve failure class, fields and exact identity`,()=>{
   const {receipt:x,output,capture}=exercise('mismatch',event);
@@ -101,9 +102,18 @@ test('bounded PR bootstrap is machine-readable and never claims live registry pr
   assert.equal(x.post_landing_refresh_required,true);
   assert.equal(output.material_registry_verified,false);
 });
+test('stale committed generation may bootstrap only through the exact self-heal contract',()=>{
+  const {receipt:x,output,capture}=exercise('bootstrap-stale','pull_request',true);
+  assert.equal(capture.status,0,capture.stderr);
+  assert.equal(x.state,'IMPLEMENTED_NOT_VERIFIED');
+  assert.equal(x.bootstrap_transition,true);
+  assert.equal(x.post_landing_refresh_required,true);
+  assert.equal(output.root_failure_class,'LATEST_COMMITTED_GENERATION_STALE');
+  assert.equal(output.material_registry_verified,false);
+});
 test('terminal wrapper contains a fail-closed post-landing bootstrap boundary',()=>{
   const source=fs.readFileSync(runner,'utf8');
-  for(const marker of ["identity.event!=='pull_request'","value.failure_class!=='COMMIT_MISMATCH'","fields.length!==BOOTSTRAP_FIELDS.size","PROTECTED_MAIN_SCHEDULE","state:'IMPLEMENTED_NOT_VERIFIED'","post_landing_refresh_required:true","production:'HOLD',public:'HOLD',g5:'HOLD'"]) assert.ok(source.includes(marker),marker);
+  for(const marker of ["identity.event!=='pull_request'","value.failure_class==='COMMIT_MISMATCH'","value.failure_class==='LATEST_COMMITTED_GENERATION_STALE'","workflow_dispatch'; then","PROTECTED_MAIN_SCHEDULE","state:'IMPLEMENTED_NOT_VERIFIED'","post_landing_refresh_required:true","production:'HOLD',public:'HOLD',g5:'HOLD'"]) assert.ok(source.includes(marker),marker);
 });
 const failureKinds=['wrong-repository','wrong-run','string-run','wrong-attempt','authority','writes','mode','upstream-pass','unknown-field','duplicate-field','bad-error','missing','bad-json','oversized','symlink','stale','pass-on-failure','zero-exit-fail'];
 for(const kind of failureKinds)test(`failure diagnostic rejects or contains ${kind} without granting PASS`, {skip: kind==='symlink'&&process.platform==='win32'?'Windows symlink privilege unavailable':false},()=>{

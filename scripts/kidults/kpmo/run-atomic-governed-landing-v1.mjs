@@ -44,6 +44,10 @@ const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
 const runnerTemp = process.env.RUNNER_TEMP;
 const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH;
 const transportWaitSeconds = Number(process.env.ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS || '600');
+const authorityClass = process.env.KIDULTS_AUTHORITY_CLASS || 'OWNER_RESERVED_RECOVERY';
+if (authorityClass === 'INTERNAL_REVERSIBLE' || authorityClass === 'STAGING_BOUNDED') {
+  throw new Error('LEGACY_ATOMIC_OWNER_PATH_FORBIDDEN_FOR_DELEGATED_AUTHORITY');
+}
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
 }

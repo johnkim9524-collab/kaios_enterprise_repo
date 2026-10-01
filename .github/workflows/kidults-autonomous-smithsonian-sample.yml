@@ -1,4 +1,7 @@
 name: KIDULTS Autonomous Smithsonian Open Access Sample
+# OWNER_RESERVED_EXTERNAL_SECRET_CALL: this sample resolves a provider secret and performs an external API call.
+# Manual dispatch is intentional under the current external-communication/secret boundary.
+# OWNER_RESERVED_EXTERNAL_SECRET_CALL: resolves a provider secret and performs an external API call.
 
 on:
   workflow_dispatch:
