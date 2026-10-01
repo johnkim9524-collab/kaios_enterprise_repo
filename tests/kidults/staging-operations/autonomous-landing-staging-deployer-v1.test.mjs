@@ -155,6 +155,7 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'kidults-autonomous-landing-deployer-staging-v1',
     'kidults-autonomous-finalizer-staging-role',
     'finalizer_allowed_kms_action',
+    'desired-template.compact.json',
     'if: always()',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
