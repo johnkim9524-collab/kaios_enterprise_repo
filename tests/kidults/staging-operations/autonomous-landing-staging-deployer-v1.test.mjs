@@ -65,7 +65,9 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'inputs.template_sha256',
     'DEPLOY-STAGING-AUTONOMOUS-LANDING-',
     'validate-autonomous-landing-staging-deployment-v1.mjs',
+    '--query TemplateBody --output text',
   ]) assert.ok(workflow.includes(marker), marker);
+  assert.doesNotMatch(workflow, /--query TemplateBody --output json/);
   assert.ok(!workflow.includes('workflow_run:'));
   assert.ok(!workflow.includes('pull_request:'));
   assert.ok(!workflow.includes('secrets.'));
