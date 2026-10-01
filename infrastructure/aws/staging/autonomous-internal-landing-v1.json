@@ -765,6 +765,7 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "dynamodb:DescribeTable",
                     "dynamodb:Query"
                   ],
                   "Resource": {
