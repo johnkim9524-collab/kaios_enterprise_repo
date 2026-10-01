@@ -65,6 +65,11 @@
               },
               {
                 "Effect": "Allow",
+                "Action": ["dynamodb:DescribeTable"],
+                "Resource": "arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger"
+              },
+              {
+                "Effect": "Allow",
                 "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:PutRolePolicy"],
                 "Resource": [
                   "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
