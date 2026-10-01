@@ -1,0 +1,37 @@
+{
+  "id": "kidults-github-app-oidc-broker-architecture-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "local_developer_auth": "GH_LOGIN_WEB_ON_DEMAND_ONLY",
+  "actions_auth": "GITHUB_APP_INSTALLATION_TOKEN_VIA_OIDC_BROKER",
+  "broker": {
+    "credential_root": "AWS_SECRETS_MANAGER",
+    "oidc_audience": "sts.amazonaws.com",
+    "maximum_token_ttl_seconds": 900,
+    "repository_selection": "SELECTED_REPOSITORY_ONLY",
+    "profiles": [
+      "AUTONOMOUS_DISCOVERY_READ",
+      "AUTONOMOUS_LIVE_READBACK",
+      "AUTONOMOUS_EVENT_DISPATCH"
+    ]
+  },
+  "protected_workflows": [
+    ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
+    ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
+    ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
+    ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml"
+  ],
+  "forbidden": [
+    "PAT_PERSISTENCE_OR_SHARING",
+    "TOKEN_IN_CHAT_ISSUE_PR_FILE_OR_COMMAND_ARGUMENT",
+    "DEFAULT_ACTIONS_TOKEN_FOR_AUTONOMOUS_MUTATION",
+    "RULESET_BYPASS",
+    "PRODUCTION_PUBLIC_G5_PROMOTION"
+  ],
+  "owner_hold": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD"
+  }
+}

@@ -59,6 +59,32 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
+test('mints read-only discovery token without a PR tuple',async()=>{
+  const {handler,calls}=setup();
+  const result=await handler({action:'MINT_DISCOVERY_TOKEN',repository:repo,repository_id:'123',
+    authorization_generation:'dispatcher-run-00001',permission_profile:'AUTONOMOUS_DISCOVERY_READ'});
+  assert.equal(result.ok,true);
+  assert.equal(result.permission_profile,'AUTONOMOUS_DISCOVERY_READ');
+  assert.deepEqual(result.permissions,['contents:read','pull_requests:read','metadata:read']);
+  assert.equal(calls.length,1);
+  assert.deepEqual(calls[0].permissions,{contents:'read',pull_requests:'read'});
+});
+test('mints read-only live-readback token after the exact PR tuple',async()=>{
+  const {handler,calls}=setup();
+  const result=await handler({...event,permission_profile:'AUTONOMOUS_LIVE_READBACK'});
+  assert.equal(result.ok,true);
+  assert.equal(result.permission_profile,'AUTONOMOUS_LIVE_READBACK');
+  assert.deepEqual(result.permissions,['contents:read','pull_requests:read','metadata:read']);
+  assert.equal(calls.filter(x=>x.url.endsWith('/access_tokens')).length,1);
+});
+test('discovery profile cannot carry a candidate tuple or request write scope',async()=>{
+  const {handler,calls}=setup();
+  await assert.rejects(handler({action:'MINT_DISCOVERY_TOKEN',repository:repo,repository_id:'123',
+    pull_request:42,authorization_generation:'dispatcher-run-00001',permission_profile:'AUTONOMOUS_DISCOVERY_READ'}),/DENIED/);
+  await assert.rejects(handler({action:'MINT_DISCOVERY_TOKEN',repository:repo,repository_id:'123',
+    authorization_generation:'dispatcher-run-00001',permission_profile:'AUTONOMOUS_EVENT_DISPATCH'}),/DENIED/);
+  assert.equal(calls.length,0);
+});
 test('allows exact open Draft for internal event dispatch without lifecycle authority',async()=>{
   const {handler}=setup({draft:true});
   const result=await handler(event);

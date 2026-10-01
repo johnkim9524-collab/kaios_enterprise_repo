@@ -8,15 +8,20 @@ const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url')
 function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
   return async event => {
     if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail();
-    const {repository, repository_id, pull_request, base_sha, head_sha, authorization_generation,
+    const {action,repository, repository_id, pull_request, base_sha, head_sha, authorization_generation,
       permission_profile='AUTONOMOUS_EVENT_DISPATCH'} = event || {};
-    if (event?.action !== 'MINT_INSTALLATION_TOKEN'
+    const validGeneration = typeof authorization_generation === 'string'
+      && /^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation);
+    const discovery = action === 'MINT_DISCOVERY_TOKEN'
+      && permission_profile === 'AUTONOMOUS_DISCOVERY_READ';
+    const boundDispatch = action === 'MINT_INSTALLATION_TOKEN'
+      && ['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_LIVE_READBACK'].includes(permission_profile);
+    if ((!discovery && !boundDispatch)
       || repository !== config.repository || String(repository_id) !== String(config.repositoryId)
-      || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
-      || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha
-      || permission_profile!=='AUTONOMOUS_EVENT_DISPATCH'
-      || typeof authorization_generation !== 'string'
-      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();
+      || !validGeneration) fail();
+    if (discovery && (pull_request !== undefined || base_sha !== undefined || head_sha !== undefined)) fail();
+    if (boundDispatch && (!Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
+      || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha)) fail();
     const issued = Math.floor(now()/1000);
     const key = await getPrivateKey();
     if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail();
@@ -45,6 +50,13 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       && Number(minted.repositories[0]?.id)===Number(config.repositoryId)
       && minted.repositories[0]?.full_name===repository;
     const readPermissions={contents:'read',pull_requests:'read'};
+    if (discovery) {
+      const minted=await mint(readPermissions);
+      if (!validScope(minted,readPermissions)) fail();
+      return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
+        app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
+        permissions:['contents:read','pull_requests:read','metadata:read'],expires_at:minted.expires_at,token:minted.token};
+    }
     const readonly=await mint(readPermissions);
     if (!validScope(readonly,readPermissions)) fail();
     const [pr,main]=await Promise.all([
@@ -55,6 +67,11 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || main.commit?.sha!==base_sha) fail();
+    if (permission_profile === 'AUTONOMOUS_LIVE_READBACK') {
+      return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
+        app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
+        permissions:['contents:read','pull_requests:read','metadata:read'],expires_at:readonly.expires_at,token:readonly.token};
+    }
     const writePermissions={contents:'write',pull_requests:'write'};
     const minted=await mint(writePermissions);
     if (!validScope(minted,writePermissions)) fail();

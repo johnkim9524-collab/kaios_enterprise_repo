@@ -116,7 +116,9 @@ export async function discover({repository,token,prNumber,policy}){
 
 if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy});
+  const token=process.env.GITHUB_APP_INSTALLATION_TOKEN;
+  if(!token) throw new DispatcherError('DISPATCH_APP_TOKEN_REQUIRED');
+  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy});
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,skipped:results.filter(x=>x.state==='SKIPPED').length}));
 }

@@ -26,7 +26,10 @@ const required = name => {
   return value;
 };
 const repository = required('GITHUB_REPOSITORY');
-const token = required('GITHUB_TOKEN');
+// GitHub API authority is always a short-lived installation token from the
+// AWS broker.  No caller-supplied token (PAT, default Actions token, or
+// otherwise) is accepted here.
+let token = null;
 const eventPath = required('GITHUB_EVENT_PATH');
 const eventName = required('GITHUB_EVENT_NAME');
 const runAttempt = required('GITHUB_RUN_ATTEMPT');
@@ -139,7 +142,7 @@ const invokeLedgerWriter = payload => {
     try { fs.unlinkSync(outputPath); } catch {}
   }
 };
-const acquireEventToken = async () => {
+const acquireEventToken = async (permissionProfile='AUTONOMOUS_EVENT_DISPATCH') => {
   const broker = required('KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION');
   const brokerRole = required('KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN');
   const privateDir = fs.mkdtempSync(path.join(required('RUNNER_TEMP'),'kidults-event-broker-'));
@@ -164,8 +167,7 @@ const acquireEventToken = async () => {
       '--cli-binary-format','raw-in-base64-out',
       '--payload',JSON.stringify({action:'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
-        authorization_generation:envelope.authorization_generation,
-        allow_draft_recovery:Boolean(envelope.recovery)}),
+        authorization_generation:envelope.authorization_generation,permission_profile}),
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
@@ -177,10 +179,13 @@ const acquireEventToken = async () => {
     fs.unlinkSync(outputPath);
     const response=JSON.parse(responseBytes);
     const expiresAt=Date.parse(response.expires_at);
+    const expectedPermissions=permissionProfile==='AUTONOMOUS_LIVE_READBACK'
+      ? ['contents:read','pull_requests:read','metadata:read']
+      : ['contents:write','pull_requests:write','metadata:read'];
     if (response.ok!==true || response.token_type!=='GITHUB_APP_INSTALLATION'
       || response.repository!==repository || String(response.repository_id)!==repositoryId
       || !Array.isArray(response.permissions)
-      || !['contents:write','pull_requests:write','metadata:read'].every(x=>response.permissions.includes(x))
+      || !expectedPermissions.every(x=>response.permissions.includes(x))
       || typeof response.token!=='string' || response.token.length<20 || response.token===token
       || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000)
       throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_INVALID');
@@ -457,6 +462,9 @@ const rebindDraftReady = async before => {
 };
 
 try {
+  // Read-only live PR/quorum evidence is also broker-authorized.  A write
+  // token is acquired only at the exact merge/dispatch boundary below.
+  if (!token) token=await acquireEventToken('AUTONOMOUS_LIVE_READBACK');
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
     if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyCapabilityDelta({files:candidate.files,policy});
