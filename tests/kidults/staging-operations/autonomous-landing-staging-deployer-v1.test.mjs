@@ -85,6 +85,16 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer|ledger-writer/);
 });
 
+test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {
+  for (const roleId of roleIds) {
+    const statements = desired.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement;
+    const decrypts = statements.filter(statement =>
+      (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt'));
+    assert.equal(decrypts.length, 1);
+    assert.deepEqual(decrypts[0].Resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']});
+  }
+});
+
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
   for (const marker of [
     "github.ref == 'refs/heads/main'",
@@ -97,6 +107,8 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     '--query TemplateBody --output json',
     'cloudformation describe-stack-events',
     'cloudformation-stack-events-failure.json',
+    'kms:Decrypt',
+    '03d855ac-8e8c-4465-9984-bbf92987c6a0',
     'if: always()',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
