@@ -7,6 +7,7 @@ import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../s
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import {delegatedTransitionId} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
+import {routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
@@ -37,6 +38,18 @@ test('autonomous-named workflows cannot be manual-only unless an explicit Owner-
     const hasAutomatic=/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target):/m.test(source);
     const ownerReserved=/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source);
     assert.ok(hasAutomatic||ownerReserved,`MANUAL_ONLY_AUTONOMOUS_WORKFLOW_UNCLASSIFIED:${file}`);
+  }
+});
+
+test('explicit Owner-reserved workflow markers override legacy internal or staging routing',()=>{
+  for(const [file,marker] of [
+    ['.github/workflows/kidults-autonomous-smithsonian-sample.yml','OWNER_RESERVED_EXTERNAL_SECRET_CALL'],
+    ['.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
+    ['.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
+  ]){
+    const source=fs.readFileSync(file,'utf8');
+    assert.ok(source.includes(marker));
+    assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
   }
 });
 
