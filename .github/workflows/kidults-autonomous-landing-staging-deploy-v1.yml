@@ -115,7 +115,15 @@ jobs:
         run: |
           set -euo pipefail
           aws cloudformation execute-change-set --stack-name "$STACK_NAME" --change-set-name "${{ steps.changeset.outputs.name }}"
+          set +e
           aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"
+          wait_exit=$?
+          set -e
+          if [ "$wait_exit" -ne 0 ]; then
+            aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --max-items 50 --output json               > out/autonomous-landing-staging-deploy-v1/cloudformation-stack-events-failure.json || true
+            cat out/autonomous-landing-staging-deploy-v1/cloudformation-stack-events-failure.json || true
+            exit "$wait_exit"
+          fi
 
       - name: Read back exact role policies and emit terminal receipt
         run: |
@@ -144,6 +152,7 @@ jobs:
             > out/autonomous-landing-staging-deploy-v1/terminal-receipt.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
         with:
           name: kidults-autonomous-landing-staging-deploy-${{ github.run_id }}
           path: out/autonomous-landing-staging-deploy-v1
