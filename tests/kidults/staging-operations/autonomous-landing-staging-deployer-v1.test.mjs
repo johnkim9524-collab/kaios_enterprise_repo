@@ -81,8 +81,9 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
   ]);
-  assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer|ledger-writer/);
+  assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer/);
 });
 
 test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {
@@ -93,6 +94,16 @@ test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt w
     assert.equal(decrypts.length, 1);
     assert.deepEqual(decrypts[0].Resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']});
   }
+});
+
+test('ledger writer has only exact ledger-key Decrypt plus signing-key Verify as KMS actions', () => {
+  const statements = desired.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement;
+  const decrypts = statements.filter(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt'));
+  assert.equal(decrypts.length, 1);
+  const kmsActions = statements.flatMap(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).filter(Boolean).filter(action => action.startsWith('kms:')));
+  assert.deepEqual(kmsActions.sort(), ['kms:Decrypt','kms:Verify'].sort());
 });
 
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {

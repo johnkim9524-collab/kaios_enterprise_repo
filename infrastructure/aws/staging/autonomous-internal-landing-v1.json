@@ -227,6 +227,18 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "kms:Decrypt"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:Verify"
                   ],
                   "Resource": [

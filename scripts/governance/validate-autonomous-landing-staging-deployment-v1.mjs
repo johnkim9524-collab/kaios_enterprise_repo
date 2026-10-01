@@ -2,7 +2,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-const ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
+const APPROVAL_ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
+const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
+const ROLE_IDS = [...APPROVAL_ROLE_IDS, WRITER_ROLE_ID];
 const QUERY_STATEMENT = {
   Effect: 'Allow',
   Action: ['dynamodb:Query'],
@@ -36,7 +38,7 @@ const equal = (left, right) => JSON.stringify(stable(left)) === JSON.stringify(s
 const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 
 function assertDesiredBoundary(desired) {
-  for (const logicalId of ROLE_IDS) {
+  for (const logicalId of APPROVAL_ROLE_IDS) {
     const role = desired?.Resources?.[logicalId];
     assert.equal(role?.Type, 'AWS::IAM::Role', 'ROLE_TYPE_INVALID:' + logicalId);
     const statements = role?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
@@ -50,21 +52,33 @@ function assertDesiredBoundary(desired) {
       assert.ok(!source.includes(forbidden), 'DYNAMODB_WRITE_FORBIDDEN:' + logicalId + ':' + forbidden);
     }
   }
+  const writer = desired?.Resources?.[WRITER_ROLE_ID];
+  assert.equal(writer?.Type, 'AWS::IAM::Role', 'WRITER_ROLE_TYPE_INVALID');
+  const writerStatements = writer?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  assert.ok(Array.isArray(writerStatements), 'WRITER_ROLE_POLICY_STATEMENTS_INVALID');
+  assert.equal(writerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
+    'BOUNDED_WRITER_LEDGER_DECRYPT_STATEMENT_INVALID');
+  const writerKmsActions = writerStatements.flatMap(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).filter(Boolean).filter(action => String(action).startsWith('kms:')));
+  assert.deepEqual(writerKmsActions.sort(), ['kms:Decrypt','kms:Verify'].sort(), 'WRITER_KMS_ACTION_BOUNDARY_INVALID');
 }
 
 function withoutBoundedRead(template) {
   const copy = structuredClone(template);
-  for (const logicalId of ROLE_IDS) {
+  for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement;
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
       statements.filter(statement => !equal(statement, QUERY_STATEMENT) && !equal(statement, LEDGER_DECRYPT_STATEMENT));
   }
+  const writerStatements = copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement;
+  copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
+    writerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
   return copy;
 }
 
 function normalizeAllowedRecoveryState(template) {
   const copy = structuredClone(template);
-  for (const logicalId of ROLE_IDS) {
+  for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
     assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     let exactQueryCount = 0;
@@ -72,17 +86,10 @@ function normalizeAllowedRecoveryState(template) {
     let legacyVerifierCount = 0;
     const normalizedStatements = [];
     for (const statement of statements) {
-      if (equal(statement, QUERY_STATEMENT)) {
-        exactQueryCount += 1;
-        continue;
-      }
-      if (equal(statement, LEDGER_DECRYPT_STATEMENT)) {
-        exactDecryptCount += 1;
-        continue;
-      }
+      if (equal(statement, QUERY_STATEMENT)) { exactQueryCount += 1; continue; }
+      if (equal(statement, LEDGER_DECRYPT_STATEMENT)) { exactDecryptCount += 1; continue; }
       if (logicalId === 'VerifierApprovalRole' && equal(statement, LEGACY_VERIFIER_QUERY_STATEMENT)) {
-        legacyVerifierCount += 1;
-        continue;
+        legacyVerifierCount += 1; continue;
       }
       normalizedStatements.push(statement);
     }
@@ -92,6 +99,12 @@ function normalizeAllowedRecoveryState(template) {
     assert.ok(!(exactQueryCount && legacyVerifierCount), 'CURRENT_TEMPLATE_CONFLICTING_VERIFIER_QUERY');
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement = normalizedStatements;
   }
+  const writerStatements = copy.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  assert.ok(Array.isArray(writerStatements), 'CURRENT_WRITER_ROLE_POLICY_STATEMENTS_INVALID');
+  const writerDecryptCount = writerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
+  assert.ok(writerDecryptCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_WRITER_LEDGER_DECRYPT');
+  copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
+    writerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
   return copy;
 }
 
@@ -146,6 +159,7 @@ console.log(JSON.stringify({
   allowed_logical_ids: ROLE_IDS,
   allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
+  writer_allowed_kms_action: 'kms:Decrypt',
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
   production: 'HOLD',
