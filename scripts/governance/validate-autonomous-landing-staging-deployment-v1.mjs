@@ -13,6 +13,11 @@ const LEGACY_VERIFIER_QUERY_STATEMENT = {
   ...QUERY_STATEMENT,
   Action: ['dynamodb:DescribeTable', 'dynamodb:Query'],
 };
+const LEDGER_DECRYPT_STATEMENT = {
+  Effect: 'Allow',
+  Action: ['kms:Decrypt'],
+  Resource: {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']},
+};
 
 const args = process.argv.slice(2);
 const value = flag => {
@@ -38,6 +43,8 @@ function assertDesiredBoundary(desired) {
     assert.ok(Array.isArray(statements), 'ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, QUERY_STATEMENT)).length, 1,
       'BOUNDED_QUERY_STATEMENT_INVALID:' + logicalId);
+    assert.equal(statements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
+      'BOUNDED_LEDGER_DECRYPT_STATEMENT_INVALID:' + logicalId);
     const source = JSON.stringify(role);
     for (const forbidden of ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:BatchWriteItem']) {
       assert.ok(!source.includes(forbidden), 'DYNAMODB_WRITE_FORBIDDEN:' + logicalId + ':' + forbidden);
@@ -45,12 +52,12 @@ function assertDesiredBoundary(desired) {
   }
 }
 
-function withoutBoundedQuery(template) {
+function withoutBoundedRead(template) {
   const copy = structuredClone(template);
   for (const logicalId of ROLE_IDS) {
     const statements = copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement;
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
-      statements.filter(statement => !equal(statement, QUERY_STATEMENT));
+      statements.filter(statement => !equal(statement, QUERY_STATEMENT) && !equal(statement, LEDGER_DECRYPT_STATEMENT));
   }
   return copy;
 }
@@ -68,6 +75,7 @@ function normalizeAllowedRecoveryState(template) {
         exactQueryCount += 1;
         continue;
       }
+      if (equal(statement, LEDGER_DECRYPT_STATEMENT)) continue;
       if (logicalId === 'VerifierApprovalRole' && equal(statement, LEGACY_VERIFIER_QUERY_STATEMENT)) {
         legacyVerifierCount += 1;
         continue;
@@ -86,8 +94,8 @@ function validateTemplates(current, desired) {
   assertDesiredBoundary(desired);
   if (equal(current, desired)) return 'ALREADY_APPLIED';
   assert.ok(
-    equal(normalizeAllowedRecoveryState(current), withoutBoundedQuery(desired)),
-    'TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY_OR_LEGACY_VERIFIER_READ',
+    equal(normalizeAllowedRecoveryState(current), withoutBoundedRead(desired)),
+    'TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_READ_OR_LEGACY_VERIFIER_READ',
   );
   return 'CHANGE_REQUIRED';
 }
@@ -131,7 +139,7 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   mode,
   allowed_logical_ids: ROLE_IDS,
-  allowed_action: 'dynamodb:Query',
+  allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
   production: 'HOLD',

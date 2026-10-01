@@ -484,6 +484,18 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "kms:Decrypt"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "lambda:InvokeFunction"
                   ],
                   "Resource": {
@@ -634,6 +646,18 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "kms:Decrypt"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "lambda:InvokeFunction"
                   ],
                   "Resource": {
@@ -779,6 +803,18 @@
                         "AUTH#*"
                       ]
                     }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Decrypt"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLedgerKey",
+                      "Arn"
+                    ]
                   }
                 },
                 {

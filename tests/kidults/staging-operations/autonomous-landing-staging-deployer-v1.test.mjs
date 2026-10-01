@@ -125,6 +125,23 @@ test('template validator accepts only the exact three-role Query delta and exact
 });
 
 
+test('template validator accepts deployed Query state that still lacks bounded ledger decrypt', () => {
+  const current = structuredClone(desired);
+  for (const logicalId of roleIds) {
+    current.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
+      current.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement.filter(
+        statement => !(Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'kms:Decrypt'),
+      );
+  }
+  withFixture({current, desired}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+});
+
 test('template validator accepts rollback state with legacy Verifier DescribeTable plus Query', () => {
   const current = structuredClone(desired);
   const statements = current.Resources.VerifierApprovalRole.Properties.Policies[0].PolicyDocument.Statement;
@@ -155,7 +172,7 @@ test('template validator rejects unrelated resource mutation and extra change-se
       '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
     ], {encoding: 'utf8'});
     assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY_OR_LEGACY_VERIFIER_READ/);
+    assert.match(result.stderr, /TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_READ_OR_LEGACY_VERIFIER_READ/);
   });
 });
 
