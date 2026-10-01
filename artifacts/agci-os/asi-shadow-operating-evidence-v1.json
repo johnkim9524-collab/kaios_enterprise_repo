@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 30234)
-Total output lines: 2275
-
 {
   "id": "kidults-asi-shadow-operating-evidence-v1",
   "record_type": "asi_shadow_operating_evidence",
@@ -764,7 +761,824 @@ Total output lines: 2275
           "ER_EMPIRICAL_BENCHMARK_NOT_ELIGIBLE",
           "ER_EMPIRICAL_OBSERVATION_COUNTS_INVALID",
           "ER_FINAL_DATASET_DIGEST_REQUIRED",
- …10234 tokens truncated…release_authorized": false,
+          "ER_FINAL_DATASET_NOT_REAL_WORLD_LABELED",
+          "ER_FINAL_DATASET_REQUIRED",
+          "ER_FINAL_SCOPE_STRATIFICATION_NOT_COMPLETE",
+          "ER_IDENTITY_BOUNDARY_SAMPLE_FLOORS_NOT_MET",
+          "ER_REQUIRED_STRATA_INCOMPLETE",
+          "ER_SCOPE_ARCHETYPE_SAMPLE_FLOORS_NOT_MET",
+          "EVIDENCE_PACKAGE_DIGEST_REQUIRED",
+          "EVIDENCE_PACKAGE_NOT_IMMUTABLE",
+          "LAUNCH_COHORT_POLICY_OR_DIGEST_BINDING_INVALID",
+          "RIGHTS_ASSERTION_INVALID_OR_EXPIRED:selftest-historical-only",
+          "SNAPSHOT_DIGEST_REQUIRED"
+        ],
+        "constructed_control": true,
+        "current_market_evidence_present": false,
+        "empirical_attestation_verified": false,
+        "empirical_metrics_present": false,
+        "executed": true,
+        "execution_mode": "LOCAL_DETERMINISTIC_BLOCKED_SELFTEST",
+        "handoff_state": "BLOCKED",
+        "production": "HOLD",
+        "production_authorized_count": 0,
+        "publication_authorized_count": 0,
+        "ready_pair_count": 0,
+        "represented_approved_strata_complete": false,
+        "result_sha256": "sha256:21b4daa72f3bafd23913aefec61f5b6290d4818a353650a5551770e5f5258eaa",
+        "track_b_assessment_count": 0,
+        "track_b_pass_count": 0,
+        "track_b_submission_count": 0,
+        "two_run_byte_identical": true
+      },
+      "current_state": "BLOCKED",
+      "ready_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+      "sealed_ready_pair_refs": [],
+      "sealed_track_b_submission_refs": [],
+      "sealed_track_b_assessment_refs": [],
+      "sealed_track_b_pass_refs": [],
+      "ready_pair_count": 0,
+      "track_b_submission_count": 0,
+      "track_b_assessment_count": 0,
+      "track_b_pass_count": 0,
+      "publication_authorized_count": 0,
+      "production_authorized_count": 0,
+      "publication": "HOLD",
+      "production": "HOLD"
+    },
+    "entity_resolution_control_implementations": {
+      "contract_id": "entity-resolution-benchmark-v2-contract",
+      "contract_fingerprint": "sha256:8fddbb3e53b67d3c9e29e2c0ca92be31f6dfabf4572474c97bb0cdbf245b64a9",
+      "synthetic_selftest_id": "entity-resolution-benchmark-v2-selftest",
+      "synthetic_selftest_fingerprint": "sha256:58e26886f5fc64bc13bcdb30db2d5064f13ee617bbb9d7ff9b3f8dc6809f3146",
+      "canonical_scope_matrix_ref": {
+        "path": "coordination/kidults/scope-data/collection-scope-data-requirement-matrix-v1.1.json",
+        "id": null,
+        "version": "1.1",
+        "fingerprint": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26"
+      },
+      "approved_calibration_strata_ref": {
+        "path": "coordination/kidults/entity-resolution/approved-bounded-poc-calibration-strata-v1.json",
+        "id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+        "version": "1.0.0",
+        "fingerprint": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1"
+      },
+      "approved_calibration_strata_id": "kidults-er-approved-bounded-poc-calibration-strata-v1",
+      "approved_calibration_strata_status": "APPROVED_BOUNDED_POC_CALIBRATION",
+      "approved_calibration_strata_fingerprint": "sha256:22e9ef7ee56452910887a764df98e7a0c22d30b47e0eccab01ceaee7aaa09af1",
+      "approved_calibration_strata_count": 7,
+      "required_calibration_strata_ids": [
+        "er-stratum-designer-maker-edition",
+        "er-stratum-graded-population",
+        "er-stratum-pressing-edition-media",
+        "er-stratum-provenance-unique-object",
+        "er-stratum-serialized-reference",
+        "er-stratum-variant-release-heavy",
+        "er-stratum-vehicle-mechanical-asset"
+      ],
+      "approved_calibration_strata_ids": [
+        "er-stratum-designer-maker-edition",
+        "er-stratum-graded-population",
+        "er-stratum-pressing-edition-media",
+        "er-stratum-provenance-unique-object",
+        "er-stratum-serialized-reference",
+        "er-stratum-variant-release-heavy",
+        "er-stratum-vehicle-mechanical-asset"
+      ],
+      "approved_calibration_strata_grammar": [
+        {
+          "archetype": "DESIGNER_MAKER_EDITION",
+          "minimum_boundaries": [
+            "CANONICAL_DESIGN",
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "HARD_NEGATIVE",
+            "SAME_DESIGN_DIFFERENT_OBJECT",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-designer-maker-edition"
+        },
+        {
+          "archetype": "GRADED_POPULATION",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-graded-population"
+        },
+        {
+          "archetype": "PRESSING_EDITION_MEDIA",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-pressing-edition-media"
+        },
+        {
+          "archetype": "PROVENANCE_UNIQUE_OBJECT",
+          "minimum_boundaries": [
+            "MARKET_EVENT",
+            "PHYSICAL_OBJECT"
+          ],
+          "minimum_case_classes": [
+            "AMBIGUOUS_REVIEW_REQUIRED",
+            "HARD_NEGATIVE",
+            "TRANSACTION_TO_OBJECT_LINKAGE"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-provenance-unique-object"
+        },
+        {
+          "archetype": "SERIALIZED_REFERENCE",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-serialized-reference"
+        },
+        {
+          "archetype": "VARIANT_RELEASE_HEAVY",
+          "minimum_boundaries": [
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "CROSS_MARKET_ALIAS",
+            "HARD_NEGATIVE",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-variant-release-heavy"
+        },
+        {
+          "archetype": "VEHICLE_MECHANICAL_ASSET",
+          "minimum_boundaries": [
+            "CANONICAL_DESIGN",
+            "PHYSICAL_OBJECT",
+            "SOURCE_RECORD"
+          ],
+          "minimum_case_classes": [
+            "HARD_NEGATIVE",
+            "SAME_DESIGN_DIFFERENT_OBJECT",
+            "SAME_OBJECT_NORMALIZATION"
+          ],
+          "status": "APPROVED_REQUIRED",
+          "stratum_id": "er-stratum-vehicle-mechanical-asset"
+        }
+      ],
+      "canonical_scope_matrix_fingerprint": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
+      "canonical_scope_archetype_mapping_fingerprint": "sha256:2f173938613d832e66bca2ef9f3e695f017ff1a4e37ca0110db9795e7d70bb62",
+      "canonical_scope_count": 32,
+      "required_scope_archetypes": [
+        "DESIGNER_MAKER_EDITION",
+        "GRADED_POPULATION",
+        "PRESSING_EDITION_MEDIA",
+        "PROVENANCE_UNIQUE_OBJECT",
+        "SERIALIZED_REFERENCE",
+        "VARIANT_RELEASE_HEAVY",
+        "VEHICLE_MECHANICAL_ASSET"
+      ],
+      "required_scope_archetype_count": 7,
+      "benchmark_runner_ref": {
+        "path": "scripts/kidults/entity-resolution/run-entity-resolution-benchmark-v2.mjs",
+        "sha256": "sha256:0edb9fd39e811ed4b6505c662bc6f7fded9dda6cc60d69d9085aa84a66cc2ed6",
+        "byte_count": 35300
+      },
+      "real_source_constructed_control_assembler_ref": {
+        "path": "scripts/kidults/entity-resolution/assemble-real-world-er-dataset-r1.mjs",
+        "sha256": "sha256:3eae02fce34bbcb9b2abc7af6ca8861d6907fb2763b42f4580491fab5eed2efb",
+        "byte_count": 4496
+      },
+      "getty_transaction_r2_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-getty-transaction-r2.mjs",
+        "sha256": "sha256:662bb61d39f284507bd38361d416a68da357814bd6c1518a3ed790630af16a84",
+        "byte_count": 5037
+      },
+      "wikidata_design_r3_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-wikidata-design-r3.mjs",
+        "sha256": "sha256:242568bce4ceaf8395b7f779e38757f038b94dfb2108ee6b9e8c0d6b4ba05050",
+        "byte_count": 5570
+      },
+      "real_holdout_r4_freezer_ref": {
+        "path": "scripts/kidults/entity-resolution/freeze-er-blind-holdout-v1.mjs",
+        "sha256": "sha256:b02fce36d9d8c4b509bad9fe2ead1a9e2447ccfa5a2ad720a0c6ed404d86309b",
+        "byte_count": 2296
+      },
+      "cross_market_alias_r5_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-cross-market-alias-r5.mjs",
+        "sha256": "sha256:87572671b31f8b8c8249d8f575b4fc7d78f5e3f9c2aeb5ed48768c9744dd6335",
+        "byte_count": 5788
+      },
+      "ambiguous_review_r6_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-dataset-ambiguous-review-r6.mjs",
+        "sha256": "sha256:cb39af0dab0a1f76fc9a0ccfc1317a405d3d43dcdf21bc37274b3dbca943e2d8",
+        "byte_count": 5620
+      },
+      "approved_calibration_strata_validator_ref": {
+        "path": "scripts/kidults/entity-resolution/validate-approved-calibration-strata-v1.mjs",
+        "sha256": "sha256:b4d474fde57017622b51edab1daa03bf5ee80f206f3116aeb4203e56154d75a1",
+        "byte_count": 4763
+      },
+      "approved_strata_r7a_promoter_ref": {
+        "path": "scripts/kidults/entity-resolution/promote-er-r6-to-approved-strata-r7a.mjs",
+        "sha256": "sha256:bf4734cfebc53d184962a09cf33dfc981675bab1d42e4c966c7458854c8a07d6",
+        "byte_count": 5397
+      },
+      "serialized_reference_r7b_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7a-serialized-reference-r7b.mjs",
+        "sha256": "sha256:5c2c63bab1dadca05e3c9f196b481025c4a8c988436ae7487abfe7dc43a03053",
+        "byte_count": 10557
+      },
+      "variant_release_r7c_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7b-variant-release-r7c.mjs",
+        "sha256": "sha256:70e1a98f92aa05b4081dd16d9b8dbb5e9517dd84a18d46d34f80fdbaf360def9",
+        "byte_count": 7659
+      },
+      "serialized_cross_authority_r7e_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7c-serialized-cross-authority-r7e.mjs",
+        "sha256": "sha256:203185406500e55d947993ad51fa6e9d61d09acc0d7ad965637fb8750eaafdc5",
+        "byte_count": 11238
+      },
+      "vehicle_minimums_r7f_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7e-vehicle-minimums-r7f.mjs",
+        "sha256": "sha256:23f64b44d2a42b8f2884175cebed9cdee4b948566d93a02316cd5179ab07c8fe",
+        "byte_count": 15441
+      },
+      "variant_minimums_r7g_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7f-variant-minimums-r7g.mjs",
+        "sha256": "sha256:fb6984b827969c2d278f0c8aac85f2ff63710aff2d4eff0d78ad0bfe572424a5",
+        "byte_count": 17525
+      },
+      "pressing_minimums_r7h_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7g-pressing-minimums-r7h.mjs",
+        "sha256": "sha256:41c88d79616ca754a807aa904b8307edb354c7a1b38ef9d1ff102bd4dee0e8e1",
+        "byte_count": 18436
+      },
+      "provenance_minimums_r7i_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7h-provenance-minimums-r7i.mjs",
+        "sha256": "sha256:98a069e748a4d0fea56ccb95c11da0836d6aaefdd1f5cdf088d2276785b8c80c",
+        "byte_count": 17286
+      },
+      "designer_maker_minimums_r7j_extender_ref": {
+        "path": "scripts/kidults/entity-resolution/extend-er-r7i-designer-maker-minimums-r7j.mjs",
+        "sha256": "sha256:f671f97159b6c081640f6b727d020b07af8b6f186255ee4e17417bd8ddc57e15",
+        "byte_count": 26098
+      },
+      "approved_dataset_finalizer_ref": {
+        "path": "scripts/kidults/entity-resolution/finalize-er-approved-dataset-v1.mjs",
+        "sha256": "sha256:dabe628f3215136945854e7f995c8495c87267248afd435de7bcdd65aa423064",
+        "byte_count": 9486
+      },
+      "benchmark_workflow_ref": {
+        "path": ".github/workflows/kidults-entity-resolution-benchmark-v2-runner.yml",
+        "sha256": "sha256:967de8b85d7bb75f51271f51979e07c6e3f17a5ceb7d0c459b083613b82523b4",
+        "byte_count": 13092
+      },
+      "real_source_constructed_control_workflow_ref": {
+        "path": ".github/workflows/kidults-er-real-dataset-r1.yml",
+        "sha256": "sha256:7268d9a74ea56f131bd443dd4f655ff4970fa6e793f010e3e769251d7d980667",
+        "byte_count": 4841
+      },
+      "getty_transaction_r2_workflow_ref": {
+        "path": ".github/workflows/kidults-er-getty-transaction-r2.yml",
+        "sha256": "sha256:e0e20ecd64b03d0219b34da814337069c6fa58ea83db2b56a6be33e32d93d407",
+        "byte_count": 3885
+      },
+      "canonical_design_r3_workflow_ref": {
+        "path": ".github/workflows/kidults-er-canonical-design-r3.yml",
+        "sha256": "sha256:7dc4fc796fcf7d7d3ed42362a4664e499467366dc35e825cdc6f69878ec89ea7",
+        "byte_count": 3891
+      },
+      "real_holdout_r4_workflow_ref": {
+        "path": ".github/workflows/kidults-er-real-holdout-r4.yml",
+        "sha256": "sha256:536cbf0a3e712e929f9d51433d33c2ea57a238cd01952cda50e1c93563bec6e4",
+        "byte_count": 4333
+      },
+      "cross_market_alias_r5_workflow_ref": {
+        "path": ".github/workflows/kidults-er-cross-market-alias-r5.yml",
+        "sha256": "sha256:b285bfd95cc9cebe81f794a0e7da45606395b6a97a55dad6a840a2316d4947f0",
+        "byte_count": 4480
+      },
+      "ambiguous_review_r6_workflow_ref": {
+        "path": ".github/workflows/kidults-er-ambiguous-review-r6.yml",
+        "sha256": "sha256:0f4c836103bbdf742b7df58b193ac581e25cb09ef9aef4782c9734ff588a9e50",
+        "byte_count": 5554
+      },
+      "approved_calibration_strata_workflow_ref": {
+        "path": ".github/workflows/kidults-er-approved-calibration-strata-v1.yml",
+        "sha256": "sha256:a812402b32dda254a0ba4b55313f4827fb2bf0d78e5f370e910d786b33dd487b",
+        "byte_count": 6918
+      },
+      "approved_strata_r7a_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7a-approved-strata-real.yml",
+        "sha256": "sha256:2c3eb3474b03ee123cc7f2e7d197461e4cc2e3a11c5e0ad90a30fc82038da494",
+        "byte_count": 5971
+      },
+      "serialized_reference_r7b_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7b-serialized-reference-real.yml",
+        "sha256": "sha256:b466ea222648ea31472b2febb488b2d65ec27f01e7c75762569ea1534d09416d",
+        "byte_count": 6582
+      },
+      "variant_release_r7c_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7c-variant-release-real.yml",
+        "sha256": "sha256:43a6b9c8fea858adf3bc8844df8a18407c7bbd91e1e056a04530aa27e039cec2",
+        "byte_count": 6680
+      },
+      "serialized_cross_authority_r7e_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7e-serialized-cross-authority.yml",
+        "sha256": "sha256:036d8d5a826561788195d506543b398a00dc6b492ed2fea6a66e57a549a45411",
+        "byte_count": 8335
+      },
+      "vehicle_minimums_r7f_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7f-vehicle-minimums.yml",
+        "sha256": "sha256:571a19e9ba0d1964da953c2929504f5f82ac0dd4b41b64906539dde0ff2a8a7b",
+        "byte_count": 8526
+      },
+      "variant_minimums_r7g_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7g-variant-minimums.yml",
+        "sha256": "sha256:f3000a815e1ef8d1fdffb3874eb9dd324670cfc9824e73f9a838512d9b03a2af",
+        "byte_count": 9582
+      },
+      "pressing_minimums_r7h_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7h-pressing-minimums.yml",
+        "sha256": "sha256:088040e210cb54bd4d11d638570dcf73b0792a2a691dd6ff90c8f14f917e8b96",
+        "byte_count": 10721
+      },
+      "provenance_minimums_r7i_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7i-provenance-minimums.yml",
+        "sha256": "sha256:e23bc3e6a22eb2efb34390c66d7716b6cfd2c55a6f71b95174083f77c6f0ea26",
+        "byte_count": 11683
+      },
+      "designer_maker_minimums_r7j_workflow_ref": {
+        "path": ".github/workflows/kidults-er-r7j-designer-maker-minimums.yml",
+        "sha256": "sha256:3e82fe4a91371ec77a0298a9f65ad82a9b0a355452848126ff6b5cb3d6007bb7",
+        "byte_count": 20015
+      },
+      "finalization_preflight_workflow_ref": {
+        "path": ".github/workflows/kidults-er-finalization-preflight-v1.yml",
+        "sha256": "sha256:e39a76647ba335f6657c65ba15a80f11e5fef1e712b4602f5c4b39fe26b696e2",
+        "byte_count": 10838
+      },
+      "synthetic_selftest_mechanics_present": true,
+      "real_source_constructed_control_implementation_present": true,
+      "r7efg_constructed_control_extensions_implementation_present": true,
+      "r7e_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7e-serialized-minimums",
+      "r7e_declared_output_scope": "R7E_PARTIAL_APPROVED_STRATA_5_OF_7_SERIALIZED_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7f_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7f-vehicle-minimums",
+      "r7f_declared_output_scope": "R7F_PARTIAL_APPROVED_STRATA_5_OF_7_VEHICLE_AND_SERIALIZED_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7g_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7g-variant-minimums",
+      "r7g_declared_output_scope": "R7G_PARTIAL_APPROVED_STRATA_5_OF_7_VARIANT_SERIALIZED_VEHICLE_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7efg_declared_case_count_contract": {
+        "r7e": {
+          "input_case_count": 9,
+          "output_case_count": 10
+        },
+        "r7f": {
+          "input_case_count": 10,
+          "output_case_count": 12
+        },
+        "r7g": {
+          "input_case_count": 12,
+          "output_case_count": 14
+        }
+      },
+      "r7efg_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7efg_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "r7hi_constructed_control_extensions_implementation_present": true,
+      "r7h_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7h-pressing-minimums",
+      "r7h_declared_output_scope": "R7H_PARTIAL_APPROVED_STRATA_5_OF_7_FOUR_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7i_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7i-provenance-minimums",
+      "r7i_declared_output_scope": "R7I_PARTIAL_APPROVED_STRATA_5_OF_7_FIVE_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7efghi_declared_case_count_contract": {
+        "r7e": {
+          "input_case_count": 9,
+          "output_case_count": 10
+        },
+        "r7f": {
+          "input_case_count": 10,
+          "output_case_count": 12
+        },
+        "r7g": {
+          "input_case_count": 12,
+          "output_case_count": 14
+        },
+        "r7h": {
+          "input_case_count": 14,
+          "output_case_count": 16
+        },
+        "r7i": {
+          "input_case_count": 16,
+          "output_case_count": 18
+        }
+      },
+      "r7hi_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7hi_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "r7i_ambiguous_case_declared_expected_decision": "REVIEW",
+      "r7i_ambiguous_case_auto_merge_allowed": false,
+      "r7i_ambiguous_case_auto_split_allowed": false,
+      "r7j_constructed_control_extension_implementation_present": true,
+      "r7j_declared_output_id": "entity-resolution-live-source-derived-constructed-control-r7j-designer-maker-minimums",
+      "r7j_declared_output_scope": "R7J_PARTIAL_APPROVED_STRATA_6_OF_7_SIX_GRAMMARS_COMPLETE_CONSTRUCTED_CONTROL",
+      "r7j_declared_input_case_count": 18,
+      "r7j_declared_output_case_count": 21,
+      "r7j_declared_represented_grammar_count": 6,
+      "r7j_declared_required_grammar_count": 7,
+      "r7j_declared_all_required_grammars_complete": false,
+      "r7j_prior_input_sha256_role": "INTEGRITY_ONLY_NOT_AUTHORITY_OR_PROMOTION_EVIDENCE",
+      "r7j_prior_input_sha256_is_sealed_execution_or_empirical_evidence": false,
+      "finalization_preflight_implementation_present": true,
+      "current_r7j_finalization_state": "BLOCKED",
+      "current_r7j_finalization_blockers": [
+        "FINALIZE_PER_STRATUM_INCOMPLETE:er-stratum-graded-population",
+        "FINALIZE_EMPIRICAL_DATASET_FLAGS_REQUIRED",
+        "FINALIZE_CONSTRUCTED_CONTROL_PROHIBITED",
+        "FINALIZE_CANONICALLY_APPROVED_EMPIRICAL_ATTESTATION_REQUIRED",
+        "FINALIZE_VERIFIED_TRACK_B_EMPIRICAL_ATTESTATION_REQUIRED",
+        "FINALIZE_EMPIRICAL_SAMPLE_FLOORS_REQUIRED",
+        "FINALIZE_WILSON95_LOWER_BOUNDS_REQUIRED",
+        "FINALIZE_ATTESTED_CASE_EVIDENCE_BINDING_REQUIRED",
+        "FINALIZE_EMPIRICAL_BENCHMARK_GATE_REQUIRED"
+      ],
+      "canonical_approved_empirical_attestation_fingerprint_count": 0,
+      "caller_supplied_seven_of_seven_or_empirical_booleans_may_override_canonical_attestation": false,
+      "sealed_finalized_dataset_artifact_refs": [],
+      "sealed_finalization_workflow_attestation_refs": [],
+      "finalized_dataset_artifact_count_in_sealed_evidence": 0,
+      "finalization_execution_evidenced": false,
+      "finalization_public_claim_or_release_authorized": false,
+      "finalization_production_authorized": false,
+      "finalization_production": "HOLD",
+      "constructed_controls_are_empirical_benchmark_eligible": false,
+      "empirical_attestation_required": true,
+      "per_case_source_evidence_required": true,
+      "case_source_evidence_binding_required": true,
+      "case_source_payload_digest_binding_required": true,
+      "scope_matrix_digest_binding_required": true,
+      "exact_required_scope_archetype_binding_required": true,
+      "case_scope_archetype_binding_required": true,
+      "approved_calibration_strata_digest_binding_required": true,
+      "case_to_approved_stratum_binding_required": true,
+      "per_stratum_case_class_and_identity_boundary_minima_required": true,
+      "aggregate_case_class_and_boundary_coverage_may_substitute_for_per_stratum_grammar": false,
+      "caller_supplied_calibration_manifest_must_match_canonical": true,
+      "caller_supplied_calibration_manifest_may_override_canonical": false,
+      "empirical_sample_policy": {
+        "minimum_blind_accuracy_wilson_lower_bound": 0.99,
+        "minimum_blind_cases_per_required_scope_archetype": 25,
+        "minimum_blind_holdout_cases": 400,
+        "minimum_cases_per_identity_boundary": 100,
+        "minimum_cases_per_required_case_class": 50,
+        "minimum_cases_per_required_scope_archetype": 50,
+        "minimum_overall_accuracy_wilson_lower_bound": 0.99,
+        "minimum_total_cases": 800,
+        "wilson_confidence_level": 0.95
+      },
+      "empirical_sample_policy_fingerprint": "sha256:29ac17da78e9020b5a51a756ea265915d862033584e283ff1e21b8fdbf4ec00b",
+      "empirical_sample_floors_required": true,
+      "wilson_95_lower_bound_gate_required": true,
+      "approved_empirical_attestation_manifest_count": 0,
+      "sealed_dataset_artifact_refs": [],
+      "sealed_benchmark_result_refs": [],
+      "sealed_workflow_attestation_refs": [],
+      "sealed_r7_dataset_artifact_refs": [],
+      "sealed_r7_workflow_attestation_refs": [],
+      "r7_chain_execution_evidenced": false,
+      "sealed_r7efg_dataset_artifact_refs": [],
+      "sealed_r7efg_benchmark_result_refs": [],
+      "sealed_r7efg_workflow_attestation_refs": [],
+      "r7efg_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7efg_chain_execution_evidenced": false,
+      "r7efg_empirical_benchmark_evidence_present": false,
+      "r7efg_current_market_evidence_present": false,
+      "r7efg_production_authorized": false,
+      "sealed_r7hi_dataset_artifact_refs": [],
+      "sealed_r7hi_benchmark_result_refs": [],
+      "sealed_r7hi_workflow_attestation_refs": [],
+      "r7hi_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7hi_chain_execution_evidenced": false,
+      "r7hi_blind_holdout_evidence_present": false,
+      "r7hi_empirical_benchmark_evidence_present": false,
+      "r7hi_current_market_evidence_present": false,
+      "r7hi_public_claim_or_release_authorized": false,
+      "r7hi_production_authorized": false,
+      "sealed_r7j_dataset_artifact_refs": [],
+      "sealed_r7j_benchmark_result_refs": [],
+      "sealed_r7j_workflow_attestation_refs": [],
+      "r7j_executed_constructed_control_case_count_in_sealed_evidence": 0,
+      "r7j_chain_execution_evidenced": false,
+      "r7j_blind_holdout_evidence_present": false,
+      "r7j_empirical_benchmark_evidence_present": false,
+      "r7j_current_market_evidence_present": false,
+      "r7j_public_claim_or_release_authorized": false,
+      "r7j_production_authorized": false,
+      "r7j_production": "HOLD",
+      "empirical_99_percent_evidenced": false,
+      "per_case_source_evidence_binding_verified": false,
+      "case_source_evidence_binding_verified": false,
+      "case_source_payload_binding_verified": false,
+      "case_license_evidence_binding_verified": false,
+      "scope_policy_binding_verified": false,
+      "sample_policy_binding_verified": false,
+      "empirical_attestation_verified": false,
+      "required_scope_archetype_coverage_verified": false,
+      "approved_calibration_strata_binding_verified_in_sealed_dataset": false,
+      "per_stratum_case_class_and_identity_boundary_minima_verified": false,
+      "empirical_sample_floors_verified": false,
+      "wilson_95_lower_bound_gate_verified": false,
+      "empirical_benchmark_gate_pass": false,
+      "pre_track_b_promotion_authorized": false,
+      "production_promotion_authorized": false,
+      "empirical_promotion_authorized": false,
+      "independent_label_review_complete": false,
+      "label_adjudication_complete": false,
+      "holdout_sealed_before_modeling": false,
+      "track_b_pass": false
+    },
+    "runtime_core_and_baseline_declarations": {
+      "runtime_core_id": "asi-runtime-core-validation-r1",
+      "runtime_core_fingerprint": "sha256:e6403da65d8c8deae089e04e19272ebefa41dbfd2aa55792c5e9a6279fa67d2f",
+      "baseline_runner_ref": {
+        "path": "scripts/kidults/runtime/run-real-source-runtime-control-baseline-r1.mjs",
+        "sha256": "sha256:317ea44eaf5d48d1f6c1e77173496ee0b53a3ec735b8e62adce2fefb20a5f7da",
+        "byte_count": 5036
+      },
+      "runtime_core_workflow_ref": {
+        "path": ".github/workflows/kidults-asi-runtime-core-validation-r1.yml",
+        "sha256": "sha256:8d153ca109ca1641edd8b12c0fd8ea9017cf3b20152a969af26c0eb2b2c47f7a",
+        "byte_count": 8077
+      },
+      "baseline_workflow_ref": {
+        "path": ".github/workflows/kidults-runtime-control-baseline-r1.yml",
+        "sha256": "sha256:66ce21aeaeca33df05f95fcf123ec80a9e6e6ea156d9dfcaf3887bd68b5b793e",
+        "byte_count": 4936
+      },
+      "queue_recovery_runtime_ref": {
+        "path": "services/kidults-autonomous-intelligence/src/asi/runtime.ts",
+        "sha256": "sha256:f19f160998a70ceded693007195934a361c17cc2973ee66191093cbd8c756bae",
+        "byte_count": 85454
+      },
+      "task_lease_atomic_fencing_migration_ref": {
+        "path": "services/kidults-autonomous-intelligence/migrations/0006_asi_task_lease_atomic_fencing_shadow.sql",
+        "sha256": "sha256:19534c51b5ad9fd6e454629573e7034097bab67c7992afcc2bb7c174b66ba38e",
+        "byte_count": 1400
+      },
+      "d1_fail_closed_shadow_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-shadow-test.mjs",
+        "sha256": "sha256:c5fa25692e35f3db53de7245cabe4df8723173cec4841e1a68bff46805d718b6",
+        "byte_count": 27831
+      },
+      "queue_d1_processor_e2e_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-processor-runtime-e2e-test.mjs",
+        "sha256": "sha256:f3d3b6fcdeb376ff1a44250db142867d54b81f954877a84c8ac7b7286e6e1237",
+        "byte_count": 33856
+      },
+      "runtime_recovery_fairness_test_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/asi-runtime-recovery-fairness-test.mjs",
+        "sha256": "sha256:0147abd5bf3ff4fa2848a669516a811193c6eea86eb74bb025efe19980e7ac4d",
+        "byte_count": 41591
+      },
+      "autonomous_runtime_workflow_ref": {
+        "path": ".github/workflows/kidults-autonomous-runtime.yml",
+        "sha256": "sha256:6c58593fbb17de49eab09af7e797bb78b1b7e214b5b95b4a2cff9d507a553cbd",
+        "byte_count": 4292
+      },
+      "runtime_deploy_preflight_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/deploy-preflight.mjs",
+        "sha256": "sha256:22835a5fb70b1d4bcd0b763bcbfe62bb5a9648dea21f25c9f154ea3ce9b301af",
+        "byte_count": 15811
+      },
+      "runtime_smoke_ref": {
+        "path": "services/kidults-autonomous-intelligence/scripts/runtime-smoke.mjs",
+        "sha256": "sha256:6098ee7d8bb8d88a52b291a904ee5d9ffc17f383e61ab7fdae2a193f6524a702",
+        "byte_count": 4887
+      },
+      "implementation_mode": "LOCAL_IN_MEMORY_QUEUE_D1_COMPATIBLE_DEV_SHADOW_CONTROL",
+      "task_lease_atomic_fencing_local_shadow_verified": true,
+      "task_lease_atomic_fencing_remote_cloudflare_verified": false,
+      "remote_cloudflare_queue_d1_executed": false,
+      "canonical_cloudflare_durability_verified": false,
+      "original_source_record_processed_by_runtime": false,
+      "synthetic_retry_and_quarantine_controls": true,
+      "sealed_baseline_artifact_refs": [],
+      "sealed_workflow_attestation_refs": []
+    },
+    "mainline_real_source_runtime_implementations": {
+      "queue_d1_injection": {
+        "implementation_present": true,
+        "implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+        "remote_execution": false,
+        "original_getty_record_processed": false,
+        "getty_derived_admission_metadata_is_ancillary_on_synthetic_discovery_request": true,
+        "pass_allow_assertions_are_fixture_derived": true,
+        "real_source_admission_metadata_read_by_processors": false,
+        "raw_source_response_preserved": false,
+        "raw_source_response_hash_preserved": false,
+        "raw_source_assertion_binding_preserved": false,
+        "bridge_payload_hash_scope": [
+          "record_id",
+          "record_type",
+          "retrieved_at"
+        ],
+        "external_fetch_forbidden_inside_harness": true,
+        "script_ref": {
+          "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-queue-injection-r1.mjs",
+          "sha256": "sha256:7e6f401b2324635d1f6037ec6d355056987768f9e4ec69b2829928bbf128266a",
+          "byte_count": 7504
+        },
+        "workflow_ref": {
+          "path": ".github/workflows/kidults-asi-real-source-queue-injection-r1.yml",
+          "sha256": "sha256:0dd702dfb9f45e7125ea07c3d0de406fa94d1c382377947927c2548d74f5939b",
+          "byte_count": 5368
+        },
+        "sealed_execution_attestation_refs": []
+      },
+      "retry_dlq_quarantine": {
+        "implementation_present": true,
+        "implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+        "remote_execution": false,
+        "original_getty_record_processed": false,
+        "getty_derived_admission_metadata_is_ancillary_on_synthetic_discovery_request": true,
+        "retry_and_unknown_quarantine_are_synthetic_controls": true,
+        "real_source_admission_metadata_read_by_processors": false,
+        "remote_durability_proven": false,
+        "source_failure_empirically_observed": false,
+        "external_fetch_forbidden_inside_harness": true,
+        "script_ref": {
+          "path": "services/kidults-autonomous-intelligence/scripts/asi-real-source-retry-dlq-quarantine-r1.mjs",
+          "sha256": "sha256:e99750eb6621a101a2b4b81d5298db6469bf084d88a2d8464f3a6f365291529e",
+          "byte_count": 10676
+        },
+        "workflow_ref": {
+          "path": ".github/workflows/kidults-asi-real-source-retry-dlq-quarantine-r1.yml",
+          "sha256": "sha256:c09bb0f20f04d735a4c960bf69d73d9bc9a4016dcae817f1e5e495eb14fa8083",
+          "byte_count": 5898
+        },
+        "sealed_execution_attestation_refs": []
+      },
+      "workflow_presence_is_sealed_execution_attestation": false
+    }
+  },
+  "execution_truth": {
+    "mode": "LOCAL_DETERMINISTIC_SHADOW",
+    "registered_processor_count": 25,
+    "exercised_processor_count": 25,
+    "discovery_fleet_queue_d1_count": 12,
+    "queue_d1_processor_deliveries": 182,
+    "global_pool_registered_endpoint_records": 64,
+    "global_pool_registered_canonical_hosts": 63,
+    "global_pool_queue_seed_events": 264,
+    "network_requests_during_processor_e2e": 0,
+    "sealed_evidence_live_retrieval_artifact_count": 0,
+    "sealed_evidence_bridge_artifact_count": 0,
+    "mainline_real_source_queue_d1_implementation_present": true,
+    "mainline_real_source_retry_dlq_quarantine_implementation_present": true,
+    "mainline_real_source_harness_implementation_mode": "LOCAL_QUEUE_D1_COMPATIBLE_DEV_SHADOW_HARNESS_IMPLEMENTED_WORKFLOW_ATTESTATION_NOT_INCLUDED",
+    "mainline_workflow_presence_is_sealed_execution_attestation": false,
+    "mainline_real_source_harness_remote_execution": false,
+    "sealed_evidence_original_getty_record_processed": false,
+    "sealed_evidence_mainline_workflow_attestation_count": 0,
+    "mainline_runtime_core_declaration_present": true,
+    "mainline_runtime_control_baseline_implementation_present": true,
+    "mainline_runtime_control_implementation_mode": "LOCAL_IN_MEMORY_QUEUE_D1_COMPATIBLE_DEV_SHADOW_CONTROL",
+    "mainline_runtime_core_remote_execution_verified": false,
+    "mainline_runtime_core_canonical_durability_verified": false,
+    "mainline_runtime_core_original_source_record_processed": false,
+    "sealed_evidence_runtime_core_or_baseline_attestation_count": 0,
+    "sealed_evidence_real_source_queue_d1_injection_count": 0,
+    "sealed_evidence_real_source_retry_dlq_quarantine_execution_count": 0,
+    "sealed_evidence_real_source_bridge_processor_mesh_execution": "NOT_RUN_IN_THIS_SEALED_EVIDENCE",
+    "full_platform_runtime_verified": false,
+    "remote_resources_verified": false,
+    "remote_deployment_verified": false,
+    "deployed_runtime_count": 0
+  },
+  "source_truth": {
+    "rights_review_artifact_present": true,
+    "purpose_eligibility_artifact_present": true,
+    "strict_r1_count_scope": "ASI_SOURCE_RIGHTS_ACCESS_REVIEW_R1_ONLY",
+    "reviewed_source_count": 13,
+    "reviewed_purpose_package_count": 14,
+    "purpose_policy_preflight_pass_package_count": 4,
+    "held_purpose_package_count": 7,
+    "rejected_purpose_package_count": 3,
+    "bounded_shadow_rights_policy_preflight_pass_source_count": 1,
+    "purpose_policy_preflight_pass_binding_count": 32,
+    "purpose_policy_preflight_pass_source_count": 3,
+    "purpose_policy_preflight_pass_frontier_channel_count": 2,
+    "purpose_policy_preflight_pass_target_source_count": 1,
+    "evidence_claim_count": 18,
+    "normalized_claim_record_integrity_verified_count": 16,
+    "pending_normalized_claim_record_count": 2,
+    "source_content_capture_complete_count": 0,
+    "source_content_capture_pending_count": 18,
+    "runtime_admission_events_emitted": 0,
+    "runtime_admission_materialized_binding_count": 0,
+    "canonical_region_language_coverage_credit": 0,
+    "purpose_held_source_count": 7,
+    "purpose_rejected_source_count": 3,
+    "market_event_evidence_policy_preflight_pass_source_count": 0,
+    "mainline_methodology_declared_identity_context_admitted_source_count": 2,
+    "mainline_methodology_declared_historical_transaction_admitted_source_count": 1,
+    "mainline_methodology_conditional_source_count": 1,
+    "mainline_methodology_current_market_event_ready_source_count": 0,
+    "mainline_prior_pilot_declared_source_record_count": 4,
+    "global_rights_r2_count_scope": "GLOBAL_RIGHTS_SOURCE_POOL_EXPANSION_R2_REPOSITORY_DECLARATIONS_ONLY",
+    "global_rights_r2_declared_source_record_count": 4,
+    "global_rights_r2_declared_identity_context_source_count": 2,
+    "global_rights_r2_conditional_market_candidate_count": 2,
+    "global_rights_r2_current_market_ready_source_count": 0,
+    "global_rights_r2_strict_r1_revalidation_complete": false,
+    "global_rights_r2_independent_legal_review_complete": false,
+    "global_rights_r2_runtime_admission_events_emitted": 0,
+    "global_rights_r2_counts_are_additive_to_prior_pilot_counts": false,
+    "designer_maker_r3_repository_declared_identity_calibration_metadata_source_count": 2,
+    "designer_maker_r3_strict_r1_evidence_bound_admitted_source_count": 0,
+    "designer_maker_r3_full_source_pool_admitted_source_count": 0,
+    "designer_maker_r3_current_market_ready_source_count": 0,
+    "designer_maker_r3_runtime_admitted_source_count": 0,
+    "designer_maker_r3_image_admitted_source_count": 0,
+    "designer_maker_r3_repository_declaration_only": true,
+    "designer_maker_r3_strict_r1_evidence_bound_revalidation_complete": false,
+    "designer_maker_r3_independent_legal_review_complete": false,
+    "designer_maker_r3_source_content_bytes_archived": false,
+    "designer_maker_r3_runtime_admission_authorized": false,
+    "designer_maker_r3_current_market_claim_authorized": false,
+    "designer_maker_r3_full_source_pool_admission_authorized": false,
+    "designer_maker_r3_public_commercial_admission_authorized": false,
+    "designer_maker_r3_image_admission_authorized": false,
+    "designer_maker_r3_production_promotion_authorized": false,
+    "designer_maker_r3_production": "HOLD",
+    "candidate_handoff_r2_blocked_selftest_executed_locally": true,
+    "candidate_handoff_r2_blocked_selftest_two_run_byte_identical": true,
+    "candidate_handoff_r2_blocker_count": 32,
+    "candidate_handoff_r2_current_state": "BLOCKED",
+    "candidate_handoff_r2_constructed_control": true,
+    "candidate_handoff_r2_empirical_metrics_present": false,
+    "candidate_handoff_r2_empirical_attestation_verified": false,
+    "candidate_handoff_r2_current_market_evidence_present": false,
+    "candidate_handoff_r2_ready_semantics": "TRACK_B_SUBMISSION_ELIGIBILITY_ONLY",
+    "candidate_handoff_r2_ready_pair_count": 0,
+    "candidate_handoff_r2_track_b_submission_count": 0,
+    "candidate_handoff_r2_track_b_assessment_count": 0,
+    "candidate_handoff_r2_track_b_pass_count": 0,
+    "candidate_handoff_r2_publication_authorized_count": 0,
+    "candidate_handoff_r2_production_authorized_count": 0,
+    "candidate_handoff_r2_publication": "HOLD",
+    "candidate_handoff_r2_production": "HOLD",
+    "er_synthetic_selftest_mechanics_present": true,
+    "er_real_source_constructed_control_assembler_present": true,
+    "sealed_er_dataset_artifact_count": 0,
+    "sealed_er_benchmark_result_count": 0,
+    "sealed_er_workflow_attestation_count": 0,
+    "er_approved_empirical_attestation_manifest_count": 0,
+    "er_approved_calibration_strata_count": 7,
+    "sealed_er_r7_dataset_artifact_count": 0,
+    "sealed_er_r7_workflow_attestation_count": 0,
+    "sealed_er_r7efg_dataset_artifact_count": 0,
+    "sealed_er_r7efg_benchmark_result_count": 0,
+    "sealed_er_r7efg_workflow_attestation_count": 0,
+    "er_r7efg_executed_constructed_control_case_count": 0,
+    "sealed_er_r7hi_dataset_artifact_count": 0,
+    "sealed_er_r7hi_benchmark_result_count": 0,
+    "sealed_er_r7hi_workflow_attestation_count": 0,
+    "er_r7hi_executed_constructed_control_case_count": 0,
+    "er_approved_calibration_strata_manifest_present": true,
+    "er_approved_calibration_strata_fingerprint_verified": true,
+    "er_approved_calibration_strata_is_empirical_attestation": false,
+    "er_r7_chain_implementation_present": true,
+    "er_r7_chain_execution_evidenced": false,
+    "er_r7efg_constructed_control_extensions_implementation_present": true,
+    "er_r7efg_chain_execution_evidenced": false,
+    "er_r7efg_empirical_benchmark_evidence_present": false,
+    "er_r7efg_current_market_evidence_present": false,
+    "er_r7efg_production_authorized": false,
+    "er_r7hi_constructed_control_extensions_implementation_present": true,
+    "er_r7hi_chain_execution_evidenced": false,
+    "er_r7hi_blind_holdout_evidence_present": false,
+    "er_r7hi_empirical_benchmark_evidence_present": false,
+    "er_r7hi_current_market_evidence_present": false,
+    "er_r7hi_public_claim_or_release_authorized": false,
     "er_r7hi_production_authorized": false,
     "sealed_er_r7j_dataset_artifact_count": 0,
     "sealed_er_r7j_benchmark_result_count": 0,
@@ -1457,5 +2271,5 @@ Total output lines: 2275
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:df3e8dc05dfce63efee66a8fef7429f63cb69782a095cf6cd0779e6907e53551"
+  "evidence_fingerprint": "sha256:93bd536afa538b9981fa735273df6e98bf2c6c5d50e1d7066ce648e8582af535"
 }
