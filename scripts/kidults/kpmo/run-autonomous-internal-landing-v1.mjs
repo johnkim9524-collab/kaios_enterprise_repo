@@ -426,8 +426,22 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
   const envelopeRequired=(envelope.test_evidence?.required_contexts||[]).map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
-  if(requireEnvelopeBinding && canonicalJson(requiredChecks)!==canonicalJson(envelopeRequired)) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
-  const bound=bindRequiredGateEvidence({required:requiredChecks,checks:authoritativeChecks,statuses:authoritativeStatuses,headSha:envelope.head_sha,
+  if(requireEnvelopeBinding) {
+    const liveByContext=new Map(requiredChecks.map(value=>[value.context,value]));
+    const envelopeByContext=new Map(envelopeRequired.map(value=>[value.context,value]));
+    if(liveByContext.size!==requiredChecks.length || envelopeByContext.size!==envelopeRequired.length
+      || canonicalJson([...liveByContext.keys()].sort())!==canonicalJson([...envelopeByContext.keys()].sort())) {
+      throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT');
+    }
+    for (const [context,live] of liveByContext) {
+      const dispatched=envelopeByContext.get(context);
+      if (!dispatched || (live.integration_id>0 && live.integration_id!==dispatched.integration_id)) {
+        throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT',context);
+      }
+    }
+  }
+  const bindingRequired=requireEnvelopeBinding?envelopeRequired:requiredChecks;
+  const bound=bindRequiredGateEvidence({required:bindingRequired,checks:authoritativeChecks,statuses:authoritativeStatuses,headSha:envelope.head_sha,
     fail:(code,context)=>{throw new AutonomousLandingError(code==='REQUIRED_CONTEXT_MISSING'?'AUTONOMOUS_REQUIRED_STATUS_MISSING':
       code==='REQUIRED_CONTEXT_AMBIGUOUS'?'AUTONOMOUS_REQUIRED_CHECK_AMBIGUOUS':
       code==='REQUIRED_STATUS_NOT_GREEN'?'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN':`AUTONOMOUS_${code}`,context);}});
