@@ -50,6 +50,15 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   const source = JSON.stringify(bootstrap);
   assert.doesNotMatch(source, /"Resource":"\*"/);
   assert.doesNotMatch(source, /iam:(CreateRole|DeleteRole|CreateUser|CreateAccessKey|UpdateAssumeRolePolicy|DeleteRolePolicy)/);
+  const kmsRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.includes('kms:DescribeKey'),
+  );
+  assert.deepEqual(kmsRead?.Action, ['kms:DescribeKey']);
+  assert.deepEqual(kmsRead?.Resource, [
+    'arn:aws:kms:ap-northeast-2:528314240275:key/887d2856-30c8-4a7f-8d85-c0b6e4978cc0',
+    'arn:aws:kms:ap-northeast-2:528314240275:key/609e9ec0-3c22-40a0-b728-90fdf0756d3e',
+    'arn:aws:kms:ap-northeast-2:528314240275:key/7aea838e-972e-468b-b0a7-001f6549e61c',
+  ]);
   assert.match(source, /kidults-autonomous-track-staging-role/);
   assert.match(source, /kidults-autonomous-kpmo-staging-role/);
   assert.match(source, /kidults-autonomous-verifier-staging-role/);
