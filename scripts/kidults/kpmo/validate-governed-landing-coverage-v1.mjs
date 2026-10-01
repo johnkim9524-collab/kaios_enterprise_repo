@@ -63,6 +63,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(generation.closed_or_merged_prereadiness_authority_forbidden === true, 'TERMINAL_PREREADINESS_AUTHORITY_FORBIDDEN');
   require(generation.lifecycle_root_issue === 2028, 'APPROVAL_LIFECYCLE_ROOT_ISSUE');
   require(generation.root_issue === 1787, 'APPROVAL_GENERATION_ROOT_ISSUE');
+  require(generation.scope === 'OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY', 'APPROVAL_GENERATION_SCOPE_NOT_SEPARATED');
+  require(generation.delegated_machine_quorum_exempt === true, 'DELEGATED_MACHINE_QUORUM_NOT_EXEMPT');
+  require(generation.delegated_finalizer_draft_ready_transition_invalidates_quorum === false, 'FINALIZER_READY_MUST_PRESERVE_MACHINE_QUORUM');
+  require(generation.delegated_routine_owner_comment_required === false, 'DELEGATED_OWNER_COMMENT_MUST_BE_FORBIDDEN');
 
   const review = policy.review_policy || {};
   require(review.minimum_non_author_approvals === 0, 'APPROVAL_COUNT_NOT_ZERO');
@@ -86,6 +90,10 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   require(policy.atomic_landing_policy?.ordinary_readiness_may_publish_success === false, 'READINESS_FALSE_SUCCESS_ALLOWED');
   require(policy.atomic_landing_policy?.repository_github_token_merge_forbidden === true, 'REPOSITORY_TOKEN_MERGE_MUST_BE_FORBIDDEN');
   require(policy.atomic_landing_policy?.event_emitting_transport === 'DIRECT_OWNER_GITHUB_UI', 'EVENT_TRANSPORT_INVALID');
+  require(policy.atomic_landing_policy?.event_emitting_transport_scope === 'OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY', 'OWNER_UI_TRANSPORT_SCOPE_INVALID');
+  require(policy.atomic_landing_policy?.delegated_internal_normal_transport === 'AUTONOMOUS_FINALIZER_GITHUB_APP', 'DELEGATED_NORMAL_TRANSPORT_INVALID');
+  require(policy.atomic_landing_policy?.delegated_internal_owner_ui_transport_required === false, 'DELEGATED_OWNER_UI_MUST_BE_FORBIDDEN');
+  require(policy.atomic_landing_policy?.delegated_internal_owner_comment_required === false, 'DELEGATED_OWNER_COMMENT_MUST_BE_FORBIDDEN');
   require(policy.atomic_landing_policy?.event_emitting_transport_availability_before_consumption === true, 'PRECONSUMPTION_TRANSPORT_CHECK_MISSING');
   require(policy.atomic_landing_policy?.expected_base_sha_required === true
     && policy.atomic_landing_policy?.expected_head_sha_required === true
@@ -425,6 +433,10 @@ const receipt = {
     immediate_post_status_premerge_reread: true,
     repository_token_merge_forbidden: true,
     event_emitting_transport: 'DIRECT_OWNER_GITHUB_UI',
+    event_emitting_transport_scope: 'OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY',
+    delegated_internal_normal_transport: 'AUTONOMOUS_FINALIZER_GITHUB_APP',
+    delegated_internal_owner_ui_transport_required: false,
+    delegated_internal_owner_comment_required: false,
     transport_available_before_authorization_consumption: true,
     exact_base_head_tree_binding: true,
     exact_merge_sha_push_suite_required: true,
