@@ -82,6 +82,14 @@
               },
               {
                 "Effect": "Allow",
+                "Action": ["iam:GetRole"],
+                "Resource": [
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role",
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role"
+                ]
+              },
+              {
+                "Effect": "Allow",
                 "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:PutRolePolicy"],
                 "Resource": [
                   "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
