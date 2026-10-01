@@ -1333,8 +1333,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "63d898322cec31b247c07f811df12fc00069a964",
-      "sha256": "sha256:f0a52ad156444e9ce6b6b37f8ff821df44eaff04b56038d8d835fb7e2c4b0108",
+      "git_blob": "5257630d136bfadc9f2b6bfe2e8507a1bd9468ec",
+      "sha256": "sha256:f76a3e760aaf0523285273cb5f1d3e25311dad21df10657bced595c3dde4dd3d",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -1871,8 +1871,8 @@
     {
       "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c9333d69097f52dd9f835418561a2350fc3bb22f",
-      "sha256": "sha256:15d043b33856ebfc0a71d9712eb7c19c3f1b1b3bab7b078b4bc35b52a6fa0433",
+      "git_blob": "c661dbd27cabbf3960cbf4b3bc72cc3eb8c8de3c",
+      "sha256": "sha256:c20fb1aee7abc053ead92be679feb4de5cdc02f2f41205bd1fabb9990fab3350",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5048,8 +5048,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5635e8cdb288fa023c0b20c031fe486bbea428d3",
-      "sha256": "sha256:0adbf0e9eec55a937efc4b336f1c5dfe233835c5384ee35489ca8547fa7be92f",
+      "git_blob": "c42ac08095887d6a58505747fdb79665726b1d1f",
+      "sha256": "sha256:1d6a7d6477251ea40a05496f45d0e33caa2024445997a49568ac629e1a4959c3",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5337,5 +5337,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:fb7bea53ce7b2283a96e2447d20fc0810a81192799879a3aa128a7e9845d13a0"
+  "manifest_sha256": "sha256:8ca486840e48232ab11a4de6975e24091ac26fc88546fa0c1c3163bdee686d99"
 }
