@@ -767,7 +767,7 @@
                   "Action": [
                     "dynamodb:DescribeTable",
                     "dynamodb:Query"
-                  ],
+                  ]
                   "Resource": {
                     "Fn::GetAtt": [
                       "AutonomousLandingLedger",
@@ -1015,10 +1015,7 @@
                     "s3:GetBucketTagging"
                   ],
                   "Resource": {
-                    "Fn::GetAtt": [
-                      "AutonomousReceiptBucket",
-                      "Arn"
-                    ]
+                    "Fn::GetAtt": ["AutonomousReceiptBucket", "Arn"]
                   }
                 },
                 {
@@ -1028,10 +1025,7 @@
                     "dynamodb:ListTagsOfResource"
                   ],
                   "Resource": {
-                    "Fn::GetAtt": [
-                      "AutonomousLandingLedger",
-                      "Arn"
-                    ]
+                    "Fn::GetAtt": ["AutonomousLandingLedger", "Arn"]
                   }
                 },
                 {
@@ -1044,40 +1038,22 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::GetAtt": [
-                        "AutonomousLedgerKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["AutonomousLedgerKey", "Arn"]
                     },
                     {
-                      "Fn::GetAtt": [
-                        "TrackApprovalSigningKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["TrackApprovalSigningKey", "Arn"]
                     },
                     {
-                      "Fn::GetAtt": [
-                        "KpmoApprovalSigningKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["KpmoApprovalSigningKey", "Arn"]
                     },
                     {
-                      "Fn::GetAtt": [
-                        "VerifierApprovalSigningKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["VerifierApprovalSigningKey", "Arn"]
                     },
                     {
-                      "Fn::GetAtt": [
-                        "FinalizerSigningKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["FinalizerSigningKey", "Arn"]
                     },
                     {
-                      "Fn::GetAtt": [
-                        "AutonomousReceiptKey",
-                        "Arn"
-                      ]
+                      "Fn::GetAtt": ["AutonomousReceiptKey", "Arn"]
                     }
                   ]
                 },
