@@ -1,5 +1,9 @@
 export const CANONICAL_ENVELOPE_PATH="coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json";
 export const CANONICAL_ENVELOPE_ID="kidults-autonomous-approval-policy-envelope-v1";
+export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
+  "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
+  "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
+]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
 export const ALLOWED_EXEMPTIONS=new Set([
