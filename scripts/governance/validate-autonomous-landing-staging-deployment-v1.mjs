@@ -124,23 +124,59 @@ function validateChangeSet(changeSet, current, desired) {
   assert.ok(Array.isArray(changes), 'CHANGE_SET_CHANGES_INVALID');
   const expectedChanged = ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId]));
   assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
-  assert.equal(changes.length, expectedChanged.length, 'CHANGE_SET_RESOURCE_COUNT_INVALID');
-  const observed = new Set();
+
+  const writerChanged = expectedChanged.includes(WRITER_ROLE_ID);
+  const dynamicDependencies = new Map([
+    ['AutonomousLedgerWriterFunction', {
+      resourceType: 'AWS::Lambda::Function',
+      targetName: 'Role',
+      causingEntity: 'AutonomousLedgerWriterRole.Arn',
+    }],
+    ['FinalizerRole', {
+      resourceType: 'AWS::IAM::Role',
+      targetName: 'Policies',
+      causingEntity: 'AutonomousLedgerWriterFunction.Arn',
+    }],
+    ...APPROVAL_ROLE_IDS.map(logicalId => [logicalId, {
+      resourceType: 'AWS::IAM::Role',
+      targetName: 'Policies',
+      causingEntity: 'AutonomousLedgerWriterFunction.Arn',
+    }]),
+  ]);
+
+  const directObserved = new Set();
+  const resourceObserved = new Set();
   for (const entry of changes) {
     const change = entry?.ResourceChange;
     assert.equal(change?.Action, 'Modify', 'CHANGE_SET_ACTION_INVALID');
-    assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_RESOURCE_TYPE_INVALID');
-    assert.ok(ROLE_IDS.includes(change?.LogicalResourceId), 'CHANGE_SET_LOGICAL_ID_INVALID');
-    assert.ok(!observed.has(change.LogicalResourceId), 'CHANGE_SET_LOGICAL_ID_DUPLICATE');
-    observed.add(change.LogicalResourceId);
     assert.ok(['False', false].includes(change?.Replacement), 'CHANGE_SET_REPLACEMENT_FORBIDDEN');
-    for (const detail of change?.Details || []) {
+    assert.ok(!resourceObserved.has(change?.LogicalResourceId), 'CHANGE_SET_LOGICAL_ID_DUPLICATE');
+    resourceObserved.add(change.LogicalResourceId);
+
+    const details = change?.Details || [];
+    assert.ok(details.length >= 1, 'CHANGE_SET_DETAILS_REQUIRED');
+    for (const detail of details) {
       assert.equal(detail?.Target?.Attribute, 'Properties', 'CHANGE_SET_ATTRIBUTE_INVALID');
-      assert.equal(detail?.Target?.Name, 'Policies', 'CHANGE_SET_PROPERTY_INVALID');
-      assert.equal(detail?.ChangeSource, 'DirectModification', 'CHANGE_SET_SOURCE_INVALID');
+      if (detail?.ChangeSource === 'DirectModification') {
+        assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
+        assert.ok(expectedChanged.includes(change?.LogicalResourceId), 'CHANGE_SET_DIRECT_LOGICAL_ID_INVALID');
+        assert.equal(detail?.Target?.Name, 'Policies', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');
+        directObserved.add(change.LogicalResourceId);
+        continue;
+      }
+
+      assert.ok(writerChanged, 'CHANGE_SET_DYNAMIC_WITHOUT_WRITER_CHANGE');
+      assert.equal(detail?.ChangeSource, 'ResourceAttribute', 'CHANGE_SET_SOURCE_INVALID');
+      assert.equal(detail?.Evaluation, 'Dynamic', 'CHANGE_SET_DYNAMIC_EVALUATION_INVALID');
+      const allowed = dynamicDependencies.get(change?.LogicalResourceId);
+      assert.ok(allowed, 'CHANGE_SET_DYNAMIC_LOGICAL_ID_INVALID');
+      assert.equal(change?.ResourceType, allowed.resourceType, 'CHANGE_SET_DYNAMIC_RESOURCE_TYPE_INVALID');
+      assert.equal(detail?.Target?.Name, allowed.targetName, 'CHANGE_SET_DYNAMIC_PROPERTY_INVALID');
+      assert.equal(detail?.CausingEntity, allowed.causingEntity, 'CHANGE_SET_DYNAMIC_CAUSE_INVALID');
     }
   }
-  assert.deepEqual([...observed].sort(), [...expectedChanged].sort(), 'CHANGE_SET_ROLE_SET_INVALID');
+
+  assert.deepEqual([...directObserved].sort(), [...expectedChanged].sort(), 'CHANGE_SET_DIRECT_ROLE_SET_INVALID');
 }
 
 const currentPath = value('--current');
