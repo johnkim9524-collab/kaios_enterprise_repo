@@ -115,11 +115,13 @@ jobs:
           change_set="kidults-autonomous-landing-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
           aws cloudformation describe-stacks --stack-name "$STACK_NAME" --output json \
             | jq '[.Stacks[0].Parameters[] | {ParameterKey,UsePreviousValue:true}]' > "$RUNNER_TEMP/parameters.json"
+          jq -c . "$TEMPLATE_PATH" > "$RUNNER_TEMP/desired-template.compact.json"
+          test "$(wc -c < "$RUNNER_TEMP/desired-template.compact.json")" -le 51200
           aws cloudformation create-change-set \
             --stack-name "$STACK_NAME" \
             --change-set-name "$change_set" \
             --change-set-type UPDATE \
-            --template-body "file://$TEMPLATE_PATH" \
+            --template-body "file://$RUNNER_TEMP/desired-template.compact.json" \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameters "file://$RUNNER_TEMP/parameters.json" >/dev/null
           aws cloudformation wait change-set-create-complete --stack-name "$STACK_NAME" --change-set-name "$change_set"
