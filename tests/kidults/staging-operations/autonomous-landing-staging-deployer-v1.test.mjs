@@ -6,6 +6,7 @@ import path from 'node:path';
 import {execFileSync, spawnSync} from 'node:child_process';
 
 const bootstrap = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json', 'utf8'));
+const approvalManifest = JSON.parse(fs.readFileSync('coordination/kidults/governance/approval-policy-file-manifest-v1.json', 'utf8'));
 const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml', 'utf8');
 const desired = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json', 'utf8'));
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
@@ -70,6 +71,11 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
   ]);
   assert.doesNotMatch(JSON.stringify(auxiliaryRoleRead), /iam:PutRolePolicy/);
+  const deployerSelfRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'iam:GetRolePolicy'
+      && statement.Resource === 'arn:aws:iam::528314240275:role/kidults-autonomous-landing-deployer-staging-v1',
+  );
+  assert.ok(deployerSelfRead);
 
   assert.match(source, /kidults-autonomous-track-staging-role/);
   assert.match(source, /kidults-autonomous-kpmo-staging-role/);
@@ -82,8 +88,8 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role',
   ]);
-  assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer/);
 });
 
 test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {
@@ -96,6 +102,19 @@ test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt w
   }
 });
 
+test('finalizer carries one exact ledger-key decrypt without widening existing receipt-key decrypt', () => {
+  const statements = desired.Resources.FinalizerRole.Properties.Policies[0].PolicyDocument.Statement;
+  const ledgerDecrypts = statements.filter(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt')
+    && same(statement.Resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']}));
+  assert.equal(ledgerDecrypts.length, 1);
+  const kmsResources = statements
+    .filter(statement => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt'))
+    .map(statement => statement.Resource);
+  assert.ok(kmsResources.every(resource => same(resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']})
+    || same(resource, {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})));
+});
+
 test('ledger writer has only exact ledger-key Decrypt plus signing-key Verify as KMS actions', () => {
   const statements = desired.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement;
   const decrypts = statements.filter(statement =>
@@ -104,6 +123,17 @@ test('ledger writer has only exact ledger-key Decrypt plus signing-key Verify as
   const kmsActions = statements.flatMap(statement =>
     (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).filter(Boolean).filter(action => action.startsWith('kms:')));
   assert.deepEqual(kmsActions.sort(), ['kms:Decrypt','kms:Verify'].sort());
+});
+
+test('manifest binds bootstrap and bounded STAGING validator as execution authorization controls', () => {
+  const byPath = new Map(approvalManifest.files.map(file => [file.path, file]));
+  for (const control of [
+    'infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json',
+    'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs',
+  ]) {
+    assert.equal(byPath.get(control)?.classification, 'EXECUTION_AUTHORIZATION_CONTROL');
+    assert.ok(byPath.get(control)?.authorization_routing);
+  }
 });
 
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
@@ -120,6 +150,11 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'cloudformation-stack-events-failure.json',
     'kms:Decrypt',
     '03d855ac-8e8c-4465-9984-bbf92987c6a0',
+    '088c00e6-bfc3-4aea-8dbf-b9e98ac2e8c7',
+    'Verify governed deployer bootstrap prerequisite',
+    'kidults-autonomous-landing-deployer-staging-v1',
+    'kidults-autonomous-finalizer-staging-role',
+    'finalizer_allowed_kms_action',
     'if: always()',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);

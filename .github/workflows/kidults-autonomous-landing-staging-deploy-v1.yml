@@ -70,6 +70,27 @@ jobs:
             echo 'AWS_SDK_LOAD_CONFIG=1'
           } >> "$GITHUB_ENV"
 
+      - name: Verify governed deployer bootstrap prerequisite
+        run: |
+          set -euo pipefail
+          aws iam get-role-policy \
+            --role-name "kidults-autonomous-landing-deployer-staging-v1" \
+            --policy-name "deploy-exact-autonomous-landing-stack" \
+            --query PolicyDocument --output json > "$RUNNER_TEMP/deployer-policy.json"
+          jq -e '
+            ([.Statement[]
+              | select((.Action | if type=="array" then . else [.] end) | index("iam:PutRolePolicy"))
+              | .Resource] | flatten | sort)
+            ==
+            ([
+              "arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role"
+            ] | sort)
+          ' "$RUNNER_TEMP/deployer-policy.json" >/dev/null
+
       - name: Prove deployed-template delta is exactly the bounded Query grant
         id: preflight
         run: |
@@ -141,6 +162,19 @@ jobs:
           aws iam get-role-policy --role-name "kidults-autonomous-ledger-writer-staging-role" --policy-name "kidults-autonomous-ledger-conditional-writes" --query PolicyDocument --output json > "$RUNNER_TEMP/writer-policy.json"
           jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/writer-policy.json" >/dev/null
           jq -e '[.Statement[].Action] | flatten | map(select(startswith("kms:"))) | sort == ["kms:Decrypt","kms:Verify"]' "$RUNNER_TEMP/writer-policy.json" >/dev/null
+          aws iam get-role-policy --role-name "kidults-autonomous-finalizer-staging-role" --policy-name "kidults-autonomous-finalizer" --query PolicyDocument --output json > "$RUNNER_TEMP/finalizer-policy.json"
+          jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/finalizer-policy.json" >/dev/null
+          jq -e '
+            ([.Statement[]
+              | select(.Effect=="Allow")
+              | select((.Action | if type=="array" then . else [.] end) | index("kms:Decrypt"))
+              | .Resource] | flatten | sort)
+            ==
+            ([
+              "arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",
+              "arn:aws:kms:ap-northeast-2:528314240275:key/088c00e6-bfc3-4aea-8dbf-b9e98ac2e8c7"
+            ] | sort)
+          ' "$RUNNER_TEMP/finalizer-policy.json" >/dev/null
           deployed_template_sha=$(aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json \
             | jq -S -c . | sha256sum | awk '{print $1}')
           desired_template_sha=$(jq -S -c . "$TEMPLATE_PATH" | sha256sum | awk '{print $1}')
@@ -152,7 +186,7 @@ jobs:
             --arg template_sha256 "${{ inputs.template_sha256 }}" \
             --arg mode "${{ steps.preflight.outputs.mode }}" \
             --arg change_set "${{ steps.changeset.outputs.name }}" \
-            '{id:"kidults-autonomous-landing-staging-deploy-receipt-v1",version:"1.0.0",state:"DEPLOYED_VERIFIED",environment:"STAGING",exact_main_sha:$exact_main_sha,run_id:$run_id,authorization_id:$authorization_id,template_sha256:$template_sha256,deployment_mode:$mode,change_set:(if $change_set=="" then null else $change_set end),stack:"kidults-autonomous-internal-landing-staging-v1",bounded_roles:["kidults-autonomous-track-staging-role","kidults-autonomous-kpmo-staging-role","kidults-autonomous-verifier-staging-role"],allowed_action:"dynamodb:Query",allowed_kms_action:"kms:Decrypt",allowed_kms_resource:"arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",allowed_leading_key:"AUTH#*",dynamodb_write_actions:"DENIED",writer_role:"kidults-autonomous-ledger-writer-staging-role",writer_allowed_kms_action:"kms:Decrypt",production:"HOLD",public:"HOLD",g5:"HOLD",provider_activation:"HOLD"}' \
+            '{id:"kidults-autonomous-landing-staging-deploy-receipt-v1",version:"1.0.0",state:"DEPLOYED_VERIFIED",environment:"STAGING",exact_main_sha:$exact_main_sha,run_id:$run_id,authorization_id:$authorization_id,template_sha256:$template_sha256,deployment_mode:$mode,change_set:(if $change_set=="" then null else $change_set end),stack:"kidults-autonomous-internal-landing-staging-v1",bounded_roles:["kidults-autonomous-track-staging-role","kidults-autonomous-kpmo-staging-role","kidults-autonomous-verifier-staging-role"],allowed_action:"dynamodb:Query",allowed_kms_action:"kms:Decrypt",allowed_kms_resource:"arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",allowed_leading_key:"AUTH#*",dynamodb_write_actions:"DENIED",writer_role:"kidults-autonomous-ledger-writer-staging-role",writer_allowed_kms_action:"kms:Decrypt",finalizer_role:"kidults-autonomous-finalizer-staging-role",finalizer_allowed_kms_action:"kms:Decrypt",production:"HOLD",public:"HOLD",g5:"HOLD",provider_activation:"HOLD"}' \
             > out/autonomous-landing-staging-deploy-v1/terminal-receipt.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f

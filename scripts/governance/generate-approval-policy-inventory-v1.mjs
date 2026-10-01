@@ -2,7 +2,7 @@
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import fs from "node:fs";
-import {routeAuthorizationControl} from "./lib/approval-policy-routing-v1.mjs";
+import {EXPLICIT_EXECUTION_CONTROLS,routeAuthorizationControl} from "./lib/approval-policy-routing-v1.mjs";
 
 const root = process.cwd();
 const revision = process.argv[2] || "HEAD";
@@ -13,10 +13,11 @@ const exclusions = [manifestPath,inventoryPath];
 const pattern = String.raw`(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)`;
 const git = args => execFileSync("git", args, {cwd:root, encoding:"utf8", maxBuffer:64*1024*1024});
 const sha256 = value => `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const paths = git(["grep", "-Il", "-E", pattern, revision]).trim().split("\n").filter(Boolean)
-  .map(value => value.replace(new RegExp(`^${revision}:`), "")).filter(value=>!exclusions.includes(value)).sort();
+const scannedPaths = git(["grep", "-Il", "-E", pattern, revision]).trim().split("\n").filter(Boolean)
+  .map(value => value.replace(new RegExp(`^${revision}:`), "")).filter(value=>!exclusions.includes(value));
+const paths = [...new Set([...scannedPaths, ...EXPLICIT_EXECUTION_CONTROLS])].sort();
 const classify = file => {
-  if (/^(coordination\/kidults\/(governance|kpmo)\/|docs\/governance\/|\.github\/workflows\/|scripts\/(governance|kidults\/kpmo)\/|tests\/governance\/)/.test(file)) return "EXECUTION_AUTHORIZATION_CONTROL";
+  if (EXPLICIT_EXECUTION_CONTROLS.includes(file) || /^(coordination\/kidults\/(governance|kpmo)\/|docs\/governance\/|\.github\/workflows\/|scripts\/(governance|kidults\/kpmo)\/|tests\/governance\/)/.test(file)) return "EXECUTION_AUTHORIZATION_CONTROL";
   if (/^(docs\/|coordination\/)/.test(file)) return "DOMAIN_ADJUDICATION_OR_DOCUMENTATION";
   return "REFERENCE_OR_IMPLEMENTATION";
 };
