@@ -767,7 +767,7 @@
                   "Action": [
                     "dynamodb:DescribeTable",
                     "dynamodb:Query"
-                  ]
+                  ],
                   "Resource": {
                     "Fn::GetAtt": [
                       "AutonomousLandingLedger",
