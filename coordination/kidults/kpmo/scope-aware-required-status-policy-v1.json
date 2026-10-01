@@ -1,6 +1,6 @@
 {
   "id": "kidults-scope-aware-required-status-policy-v1",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
@@ -13,6 +13,75 @@
     "Validate KAIOS Foundation",
     "Validate Production Container"
   ],
+  "available_status_contexts": [
+    "KAIOS Solo Owner Preflight",
+    "Validate KAIOS Foundation",
+    "Validate Production Container",
+    "KIDULTS Delegated Autonomous Internal Authority V1",
+    "KIDULTS P0 Control Plane Closure v1",
+    "KIDULTS Security Assurance Empirical R1",
+    "KPMO PR Lifecycle Integrity V1",
+    "KIDULTS Governed Landing Authorization V1"
+  ],
+  "change_profiles": {
+    "WORKFLOW_ONLY": {
+      "required_contexts": [
+        "KAIOS Solo Owner Preflight",
+        "Validate KAIOS Foundation",
+        "KIDULTS Delegated Autonomous Internal Authority V1",
+        "KIDULTS Security Assurance Empirical R1",
+        "KPMO PR Lifecycle Integrity V1"
+      ],
+      "excluded_contexts": [
+        "Validate Production Container",
+        "KIDULTS P0 Control Plane Closure v1",
+        "KIDULTS Governed Landing Authorization V1"
+      ],
+      "owner_action": "AUTONOMOUS_INTERNAL_LANDING_ELIGIBLE"
+    },
+    "CONTROL_PLANE": {
+      "required_contexts": [
+        "KAIOS Solo Owner Preflight",
+        "Validate KAIOS Foundation",
+        "KIDULTS Delegated Autonomous Internal Authority V1",
+        "KIDULTS P0 Control Plane Closure v1",
+        "KIDULTS Security Assurance Empirical R1",
+        "KPMO PR Lifecycle Integrity V1"
+      ],
+      "excluded_contexts": [
+        "Validate Production Container",
+        "KIDULTS Governed Landing Authorization V1"
+      ],
+      "owner_action": "AUTONOMOUS_INTERNAL_LANDING_ELIGIBLE"
+    },
+    "CODE": {
+      "required_contexts": [
+        "KAIOS Solo Owner Preflight",
+        "Validate KAIOS Foundation",
+        "Validate Production Container",
+        "KIDULTS Security Assurance Empirical R1",
+        "KPMO PR Lifecycle Integrity V1"
+      ],
+      "excluded_contexts": [
+        "KIDULTS P0 Control Plane Closure v1",
+        "KIDULTS Governed Landing Authorization V1"
+      ],
+      "owner_action": "AUTONOMOUS_INTERNAL_LANDING_ELIGIBLE"
+    },
+    "STAGING_OPS": {
+      "required_contexts": [
+        "KAIOS Solo Owner Preflight",
+        "Validate KAIOS Foundation",
+        "KIDULTS Delegated Autonomous Internal Authority V1",
+        "KIDULTS P0 Control Plane Closure v1",
+        "KIDULTS Security Assurance Empirical R1",
+        "KPMO PR Lifecycle Integrity V1",
+        "KIDULTS Governed Landing Authorization V1"
+      ],
+      "excluded_contexts": ["Validate Production Container"],
+      "owner_action": "STAGING_APPROVAL_REQUIRED_PRODUCTION_HOLD"
+    }
+  },
   "native_required_status_contexts": [
     "KIDULTS Governed Landing Authorization V1",
     "KIDULTS Scope-Aware Authoritative Status V1"

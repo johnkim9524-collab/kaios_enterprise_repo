@@ -5,6 +5,7 @@ import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-i
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {classifyChangeProfile, selectProfileRequiredContexts} from './lib/change-profile-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
@@ -23,10 +24,15 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
+  const changeProfile=classifyChangeProfile(files);
+  if (changeProfile.profile==='OWNER_RESERVED') fail('DISPATCH_OWNER_RESERVED_ACTION',changeProfile.reason);
   assertDelegatedPathScope(files,policy);
   evaluateSemanticCapabilityDelta({files,policy});
   independentlyVerifyCapabilityDelta({files,policy});
-  const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
+  const selectedProfileContexts=selectProfileRequiredContexts(changeProfile,requiredChecks.length?requiredChecks:requiredContexts);
+  const profileContexts=selectedProfileContexts.required_contexts;
+  const required=(profileContexts.length?profileContexts:requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
+    .map(value=>typeof value==='string'?({context:value,integration_id:0}):value)
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(new Set(required.map(value=>`${value.context}:${value.integration_id}`)).size!==required.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_AMBIGUOUS');
@@ -53,7 +59,11 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     head_sha:pr.head.sha,head_tree_sha:treeSha,scope_digest:scopeDigest,test_evidence:testEvidence,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_plan:rollbackPlan,rollback_digest:sha256(canonicalJson(rollbackPlan)),
     authorization_generation:generation,nonce_digest:`sha256:${nonce}`,issued_at:issuedAt.toISOString(),expires_at:expiresAt.toISOString(),
-    operation:policy.delegated_operation,changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    operation:policy.delegated_operation,change_profile:changeProfile.profile,
+    profile_reason:changeProfile.reason,owner_action:changeProfile.owner_action,
+    skipped_contexts:[...new Set(selectedProfileContexts.skipped_contexts)].sort(),
+    missing_profile_contexts:[...new Set(selectedProfileContexts.missing_contexts)].sort(),
+    changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
 async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}

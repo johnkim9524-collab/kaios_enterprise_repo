@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {classifyChangeProfile, selectProfileRequiredContexts} from './change-profile-v1.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 const NONCE_PATTERN = /^[0-9a-f]{32}$/;
@@ -425,9 +426,23 @@ export function resolveScopeRequirements(files, metadata, policy) {
     return {files: [], scopes: [], required_contexts: [...policy.technical_base_contexts].sort(), zero_diff: true};
   }
   if (changedFileCount !== files.length) fail('CHANGED_FILE_PAGINATION_INCOMPLETE', `${files.length}/${changedFileCount}`);
+  const classification = classifyChangeProfile(files);
+  if (classification.profile === 'OWNER_RESERVED') {
+    fail('OWNER_RESERVED_CHANGE_PROFILE', classification.reason);
+  }
   const unmatched = [];
   const matchedScopes = new Set();
-  const contexts = new Set(policy.technical_base_contexts || []);
+  const profileSelection = policy.change_profiles
+    ? selectProfileRequiredContexts(
+      classification,
+      policy.available_status_contexts || policy.technical_base_contexts || [],
+    )
+    : {
+      required_contexts: [...(policy.technical_base_contexts || [])],
+      missing_contexts: [],
+      skipped_contexts: [],
+    };
+  const contexts = new Set(profileSelection.required_contexts);
   for (const entry of files) {
     const filename = typeof entry === 'string' ? entry : entry?.filename;
     if (!filename) fail('PULL_REQUEST_FILENAME_INVALID');
@@ -444,10 +459,18 @@ export function resolveScopeRequirements(files, metadata, policy) {
   if (unmatched.length) fail('ZERO_COVERAGE_SCOPE', unmatched.sort().join(','));
   if (!contexts.size) fail('ZERO_REQUIRED_STATUS_CONTEXTS');
   if (contexts.has(policy.required_status_context)) fail('AGGREGATOR_SELF_DEPENDENCY');
+  const profileEvidence = policy.change_profiles ? {
+    change_profile: classification.profile,
+    profile_reason: classification.reason,
+    owner_action: classification.owner_action,
+    skipped_contexts: [...new Set(profileSelection.skipped_contexts)].sort(),
+    missing_profile_contexts: [...new Set(profileSelection.missing_contexts)].sort(),
+  } : {};
   return {
     files: files.map(entry => typeof entry === 'string' ? entry : entry.filename).sort(),
     scopes: [...matchedScopes].sort(),
     required_contexts: [...contexts].sort(),
+    ...profileEvidence,
     zero_diff: false,
   };
 }
