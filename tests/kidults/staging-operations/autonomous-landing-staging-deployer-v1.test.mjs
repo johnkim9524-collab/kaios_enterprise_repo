@@ -58,7 +58,7 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0',
     'arn:aws:kms:ap-northeast-2:528314240275:key/088c00e6-bfc3-4aea-8dbf-b9e98ac2e8c7',
     'arn:aws:kms:ap-northeast-2:528314240275:key/c51e64be-54a8-4e7b-b16c-8e2b349902ec',
-    'arn:aws:kms:ap-northeast-2:528314240275:key/887d2856-30c8-4465-9984-bbf92987c6a0',
+    'arn:aws:kms:ap-northeast-2:528314240275:key/887d2856-30c8-4a7f-8d85-c0b6e4978cc0',
     'arn:aws:kms:ap-northeast-2:528314240275:key/609e9ec0-3c22-40a0-b728-90fdf0756d3e',
     'arn:aws:kms:ap-northeast-2:528314240275:key/7aea838e-972e-468b-b0a7-001f6549e61c',
   ]);
