@@ -1333,8 +1333,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "63d898322cec31b247c07f811df12fc00069a964",
-      "sha256": "sha256:f0a52ad156444e9ce6b6b37f8ff821df44eaff04b56038d8d835fb7e2c4b0108",
+      "git_blob": "1f1f358c95b4e8b3ab6b34c019979d647ed416a6",
+      "sha256": "sha256:3396aa71498fc25959b55e58dd00880a029bbe8abfc96b8d3c1519c40c27934e",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -2887,8 +2887,8 @@
     {
       "path": "scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b72942930f400c7cdbdc45e21b6aa24b0e0a6dea",
-      "sha256": "sha256:b318c636272e1e2e9023fa942a698e8e62c833be0c64dddb5479d36539ab1a7d",
+      "git_blob": "c1ec33792d8cd18a789567e1e390294899c22bc3",
+      "sha256": "sha256:c963ac45e0b5946c82292a7bc30913721d0fe43394f28ec07e3f243d88cb6338",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5048,8 +5048,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "febbdb2f224832b73a0ea823f0e237b538f75a44",
-      "sha256": "sha256:0d6b330674b38de299af0b8a22477334ad0ef2aa23bbdd2ec5544853b5284fe2",
+      "git_blob": "ae58ca82d03276e691b6cec97ffb82d021f25787",
+      "sha256": "sha256:04c396e8a25c2750bf4ba3c1062d7f548f76bb4b4e95fb7b1ae5e8d6dc278638",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5337,5 +5337,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:37202514adcda7fb590f76435931371930cd94b24b9898c4a53b986d78e52e39"
+  "manifest_sha256": "sha256:06ced7c5c59d79128f17302d9b6ea17f8eca0f41961241baa7fadd7af7974612"
 }
