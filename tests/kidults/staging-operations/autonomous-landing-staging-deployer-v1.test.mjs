@@ -6,6 +6,7 @@ import path from 'node:path';
 import {execFileSync, spawnSync} from 'node:child_process';
 
 const bootstrap = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json', 'utf8'));
+const approvalManifest = JSON.parse(fs.readFileSync('coordination/kidults/governance/approval-policy-file-manifest-v1.json', 'utf8'));
 const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml', 'utf8');
 const desired = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json', 'utf8'));
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
@@ -70,6 +71,11 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
   ]);
   assert.doesNotMatch(JSON.stringify(auxiliaryRoleRead), /iam:PutRolePolicy/);
+  const deployerSelfRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'iam:GetRolePolicy'
+      && statement.Resource === 'arn:aws:iam::528314240275:role/kidults-autonomous-landing-deployer-staging-v1',
+  );
+  assert.ok(deployerSelfRead);
 
   assert.match(source, /kidults-autonomous-track-staging-role/);
   assert.match(source, /kidults-autonomous-kpmo-staging-role/);
@@ -119,6 +125,17 @@ test('ledger writer has only exact ledger-key Decrypt plus signing-key Verify as
   assert.deepEqual(kmsActions.sort(), ['kms:Decrypt','kms:Verify'].sort());
 });
 
+test('manifest binds bootstrap and bounded STAGING validator as execution authorization controls', () => {
+  const byPath = new Map(approvalManifest.files.map(file => [file.path, file]));
+  for (const control of [
+    'infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json',
+    'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs',
+  ]) {
+    assert.equal(byPath.get(control)?.classification, 'EXECUTION_AUTHORIZATION_CONTROL');
+    assert.ok(byPath.get(control)?.authorization_routing);
+  }
+});
+
 test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
   for (const marker of [
     "github.ref == 'refs/heads/main'",
@@ -133,6 +150,9 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'cloudformation-stack-events-failure.json',
     'kms:Decrypt',
     '03d855ac-8e8c-4465-9984-bbf92987c6a0',
+    '088c00e6-bfc3-4aea-8dbf-b9e98ac2e8c7',
+    'Verify governed deployer bootstrap prerequisite',
+    'kidults-autonomous-landing-deployer-staging-v1',
     'kidults-autonomous-finalizer-staging-role',
     'finalizer_allowed_kms_action',
     'if: always()',

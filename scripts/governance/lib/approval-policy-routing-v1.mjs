@@ -16,6 +16,7 @@ export const routeAuthorizationControl = (file, source) => {
     route:"CANONICAL_ENVELOPE",
     coverage:{mode:"CONSUMER",consumer:file,source_reference:source.includes(CANONICAL_ENVELOPE_PATH)?CANONICAL_ENVELOPE_PATH:CANONICAL_ENVELOPE_ID},
   };
+  if (/^infrastructure\/aws\/staging\//.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
   if (/^(tests\/|docs\/)|\.(md|json)$/.test(file)) return {route:"NON_EXECUTING_REFERENCE",coverage:{mode:"EXEMPTION",reason_code:"NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"}};
   if (/validate-|\/lib\//.test(file)) return {route:"DOMAIN_ADJUDICATION",coverage:{mode:"EXEMPTION",reason_code:"NON_MUTATING_VALIDATOR_OR_LIBRARY"}};
   if (/(production-release|direct-owner|emergency|legal-commercial|provider-contact|credential|atomic-governed-landing|governed-landing-authorization)/i.test(file)) return {route:"OWNER_RESERVED",coverage:{mode:"EXEMPTION",reason_code:"EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"}};

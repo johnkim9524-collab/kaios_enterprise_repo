@@ -10,13 +10,18 @@ const output = process.argv[3] || "coordination/kidults/governance/approval-poli
 const manifestPath = "coordination/kidults/governance/approval-policy-file-manifest-v1.json";
 const inventoryPath = "coordination/kidults/governance/approval-policy-inventory-v1.json";
 const exclusions = [manifestPath,inventoryPath];
+const explicitExecutionControls = [
+  "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
+  "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
+];
 const pattern = String.raw`(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)`;
 const git = args => execFileSync("git", args, {cwd:root, encoding:"utf8", maxBuffer:64*1024*1024});
 const sha256 = value => `sha256:${createHash("sha256").update(value).digest("hex")}`;
-const paths = git(["grep", "-Il", "-E", pattern, revision]).trim().split("\n").filter(Boolean)
-  .map(value => value.replace(new RegExp(`^${revision}:`), "")).filter(value=>!exclusions.includes(value)).sort();
+const scannedPaths = git(["grep", "-Il", "-E", pattern, revision]).trim().split("\n").filter(Boolean)
+  .map(value => value.replace(new RegExp(`^${revision}:`), "")).filter(value=>!exclusions.includes(value));
+const paths = [...new Set([...scannedPaths, ...explicitExecutionControls])].sort();
 const classify = file => {
-  if (/^(coordination\/kidults\/(governance|kpmo)\/|docs\/governance\/|\.github\/workflows\/|scripts\/(governance|kidults\/kpmo)\/|tests\/governance\/)/.test(file)) return "EXECUTION_AUTHORIZATION_CONTROL";
+  if (explicitExecutionControls.includes(file) || /^(coordination\/kidults\/(governance|kpmo)\/|docs\/governance\/|\.github\/workflows\/|scripts\/(governance|kidults\/kpmo)\/|tests\/governance\/)/.test(file)) return "EXECUTION_AUTHORIZATION_CONTROL";
   if (/^(docs\/|coordination\/)/.test(file)) return "DOMAIN_ADJUDICATION_OR_DOCUMENTATION";
   return "REFERENCE_OR_IMPLEMENTATION";
 };
