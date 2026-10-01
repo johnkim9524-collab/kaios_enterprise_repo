@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 675
+    "file_count": 676
   },
   "files": [
     {
@@ -2417,6 +2417,12 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "c5eb926a5a59f3af7c72b753bf83237c2fffcc0a",
       "sha256": "sha256:6a082e25f9b0334029d35d16b7024455a89b9a8bd8ac2d7fed89f2421ab5cc36"
+    },
+    {
+      "path": "docs/canary/autonomous-terminal-proof-final-20260930.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "8f917048fa249c6a9fb60ff09731ccdf05bc46b1",
+      "sha256": "sha256:fa8019ca5b32bbf16f6e504cf15a607c7d23cee6a476fb6e771ad73465b1cd3d"
     },
     {
       "path": "docs/data/artfund-initial-20-source-acquisition-plan.md",
@@ -5331,5 +5337,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:476fd47eaa7f2815bc42e45832015903dc4b4f411c7a4dd196780281a07e1160"
+  "manifest_sha256": "sha256:b1ac7337b837f6df15bd83345560a0f7726b3c6a6f147f5821d044657eb822ac"
 }

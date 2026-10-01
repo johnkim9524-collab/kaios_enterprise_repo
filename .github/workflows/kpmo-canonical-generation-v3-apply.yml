@@ -40,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           test "$GITHUB_REF" = 'refs/heads/main'
-          if test "$GITHUB_EVENT_NAME" != 'schedule'; then
+          if test "$GITHUB_EVENT_NAME" = 'workflow_dispatch'; then
             test "$GITHUB_ACTOR" = 'johnkim9524-collab'
           fi
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
