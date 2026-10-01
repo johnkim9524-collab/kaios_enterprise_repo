@@ -67,8 +67,8 @@
     {
       "path": ".github/workflows/kidults-atomic-governed-landing-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5c4a2e5377d3e1e81b7ef2346ba13f86ab421a91",
-      "sha256": "sha256:7347c099a4df0f8633a205baf7af620c9b013b71c4053c399f96209bc414184b",
+      "git_blob": "316857c8f93c0f5800c15924ae6cc6321ff1c2ff",
+      "sha256": "sha256:d8c68d7cfd83921fa3432242a655cb2b585e4f8b2602cec30a132f91f4345588",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -106,13 +106,13 @@
     {
       "path": ".github/workflows/kidults-autonomous-event-broker-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b63435479b3b818c2e887c7a380380b6da5ec3ee",
-      "sha256": "sha256:1cb2d51e4b45f9ef31c72cd874ec5c6c17f03e6450174a0b963c522822c2f8d7",
+      "git_blob": "09a7528e0a022bd981b56a2ea7f8e96a26cefbef",
+      "sha256": "sha256:871a341d0c6e1c6d01704b62938fc39f3cb29e410eae8f768340aa0d78d38fde",
       "authorization_routing": {
-        "route": "INTERNAL_REVERSIBLE",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -145,13 +145,13 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "55e52fd81593a55968d7279d7ce3fedfaea5f610",
-      "sha256": "sha256:2b51f318ec554d0124b8cc6979cd4e5f04eb5eb24431da86da46d186ed3a17c8",
+      "git_blob": "1abe39784a1714f02a702f900c3fe79eca8db801",
+      "sha256": "sha256:c8131f3dad385732806f0c7cc07551a3f187cfe65779bc5b0a03630bb894790c",
       "authorization_routing": {
-        "route": "STAGING_BOUNDED",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -2847,8 +2847,8 @@
     {
       "path": "scripts/governance/lib/approval-policy-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cf65a48e49d01ff85f43a32dd146d1b76c0b603b",
-      "sha256": "sha256:22f6050db4e738b46a2c14e4b5846db8847a11941b3b1aade3bbf4efc2eecbdc",
+      "git_blob": "abe3595b889a95304e44a138cd69930ac317ae6a",
+      "sha256": "sha256:a72d24dd5238f0ab3d1651531b16d055a851970a7055022156cfc08d50c5ac41",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5048,13 +5048,13 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c42ac08095887d6a58505747fdb79665726b1d1f",
-      "sha256": "sha256:1d6a7d6477251ea40a05496f45d0e33caa2024445997a49568ac629e1a4959c3",
+      "git_blob": "648205676162a6eb7c6cef61d278a26488dd89d4",
+      "sha256": "sha256:4b914584349222cf2926a4771cd3ceb859f88b48c2d08280fb3758231b31e25c",
       "authorization_routing": {
-        "route": "NON_EXECUTING_REFERENCE",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -5337,5 +5337,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:35c92c0c2120567dffc1c448d745352376e96df8007fcda69ee824c233598ef7"
+  "manifest_sha256": "sha256:7144895e4161ec236eeca9f4da0035e159f531aff9e46584ee23bda0b0b39b6c"
 }
