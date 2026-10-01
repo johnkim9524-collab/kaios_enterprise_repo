@@ -14,9 +14,6 @@
       "same_tree_recovery": "ALLOWED",
       "empty_recovery_commit": "ALLOWED_NON_FORCE_ONLY",
       "draft_ready_rebind": "AUTOMATIC",
-      "finalizer_lifecycle_transition_preserves_exact_tuple_quorum": true,
-      "owner_comment_generation_policy_applies": false,
-      "owner_comment_recovery_fallback_for_normal_path": "FORBIDDEN",
       "consumption_point": "FIRST_EXTERNAL_OR_REPOSITORY_MUTATION",
       "pre_mutation_failure_consumes_authority": false
     },
@@ -41,14 +38,7 @@
       "consumption_point": "LANDING_OR_EXTERNAL_EFFECT_ATTEMPT",
       "pre_mutation_failure_consumes_authority": true
     },
-    "UNKNOWN": {
-      "decision": "QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED",
-      "automatic_reclassification_required": true,
-      "automatic_reclassification_max_attempts": 2,
-      "repository_mutation_during_reclassification": false,
-      "owner_escalation_only_after_unresolved_reclassification": true,
-      "final_unresolved_decision": "FAIL_CLOSED_OWNER_REQUIRED"
-    }
+    "UNKNOWN": {"decision": "FAIL_CLOSED_OWNER_REQUIRED"}
   },
   "binding": {
     "envelope_id_required": true,
