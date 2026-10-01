@@ -30,6 +30,38 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(envelope.classes.INTERNAL_REVERSIBLE.finalizer_lifecycle_transition_preserves_exact_tuple_quorum,true);
 });
 
+test('autonomous-named workflows cannot be manual-only unless an explicit Owner-reserved boundary is documented',()=>{
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.startsWith('kidults-autonomous-')&&name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    const hasAutomatic=/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target):/m.test(source);
+    const ownerReserved=/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source);
+    assert.ok(hasAutomatic||ownerReserved,`MANUAL_ONLY_AUTONOMOUS_WORKFLOW_UNCLASSIFIED:${file}`);
+  }
+});
+
+test('repository-wide manual-only workflows are an exact reviewed exception set',()=>{
+  const reviewed=new Set([
+    'digitalocean-staging-bootstrap-exec.yml','digitalocean-staging-readonly-audit.yml',
+    'kidults-agci-os-candidate-r2-preflight.yml','kidults-atomic-governed-landing-v1.yml',
+    'kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml',
+    'kidults-autonomous-smithsonian-sample.yml','kidults-cloudflare-pages-boundary-readonly-v1.yml',
+    'kidults-cloudflare-pages-emergency-control-v1.yml','kidults-cloudflare-pages-staging-deploy-v1.yml',
+    'kidults-er-r7k-finalization-boundary.yml','kidults-er-r7k-graded-population.yml',
+    'kidults-graded-authority-probe-gate-v1.yml','kidults-natural-clock-deploy-v1.yml',
+    'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
+    'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
+    'p0-postgres-target-time-restore-verification.yml','p0-remote-postgres-persistence-pitr.yml',
+  ]);
+  const actual=new Set();
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    if(!/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target|issues):/m.test(source)) actual.add(file);
+  }
+  assert.deepEqual([...actual].sort(),[...reviewed].sort());
+});
+
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{
   const safe={filename:'.github/workflows/internal-recovery.yml',patch:'@@ -1 +1,2 @@\n name: recovery\n+concurrency: bounded-recovery'};
   assert.deepEqual(assertAutonomousFileScope({files:[safe],policy:landing}),[safe.filename]);

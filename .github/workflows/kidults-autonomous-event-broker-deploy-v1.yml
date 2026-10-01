@@ -1,5 +1,6 @@
 name: KIDULTS Autonomous Event Broker Deploy V1
 run-name: KIDULTS Autonomous Event Broker Deploy V1 ${{ github.sha }}
+# OWNER_RESERVED_STAGING_INFRA_CHANGE: CloudFormation deployment can alter IAM/credential-bearing infrastructure.
 
 on:
   workflow_dispatch:
