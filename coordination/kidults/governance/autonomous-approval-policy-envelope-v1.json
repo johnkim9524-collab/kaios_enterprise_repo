@@ -41,7 +41,14 @@
       "consumption_point": "LANDING_OR_EXTERNAL_EFFECT_ATTEMPT",
       "pre_mutation_failure_consumes_authority": true
     },
-    "UNKNOWN": {"decision": "FAIL_CLOSED_OWNER_REQUIRED"}
+    "UNKNOWN": {
+      "decision": "QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED",
+      "automatic_reclassification_required": true,
+      "automatic_reclassification_max_attempts": 2,
+      "repository_mutation_during_reclassification": false,
+      "owner_escalation_only_after_unresolved_reclassification": true,
+      "final_unresolved_decision": "FAIL_CLOSED_OWNER_REQUIRED"
+    }
   },
   "binding": {
     "envelope_id_required": true,
