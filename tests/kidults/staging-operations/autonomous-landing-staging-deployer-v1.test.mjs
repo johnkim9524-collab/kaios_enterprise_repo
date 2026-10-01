@@ -82,8 +82,8 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role',
     'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
+    'arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role',
   ]);
-  assert.doesNotMatch(JSON.stringify(approvalWrite), /finalizer/);
 });
 
 test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {
@@ -94,6 +94,19 @@ test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt w
     assert.equal(decrypts.length, 1);
     assert.deepEqual(decrypts[0].Resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']});
   }
+});
+
+test('finalizer carries one exact ledger-key decrypt without widening existing receipt-key decrypt', () => {
+  const statements = desired.Resources.FinalizerRole.Properties.Policies[0].PolicyDocument.Statement;
+  const ledgerDecrypts = statements.filter(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt')
+    && same(statement.Resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']}));
+  assert.equal(ledgerDecrypts.length, 1);
+  const kmsResources = statements
+    .filter(statement => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('kms:Decrypt'))
+    .map(statement => statement.Resource);
+  assert.ok(kmsResources.every(resource => same(resource, {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']})
+    || same(resource, {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})));
 });
 
 test('ledger writer has only exact ledger-key Decrypt plus signing-key Verify as KMS actions', () => {
@@ -120,6 +133,8 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'cloudformation-stack-events-failure.json',
     'kms:Decrypt',
     '03d855ac-8e8c-4465-9984-bbf92987c6a0',
+    'kidults-autonomous-finalizer-staging-role',
+    'finalizer_allowed_kms_action',
     'if: always()',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);

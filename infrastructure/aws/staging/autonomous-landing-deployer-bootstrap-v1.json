@@ -95,7 +95,8 @@
                   "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
                   "arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role",
                   "arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role",
-                  "arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role"
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role",
+                  "arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role"
                 ]
               }
             ]
