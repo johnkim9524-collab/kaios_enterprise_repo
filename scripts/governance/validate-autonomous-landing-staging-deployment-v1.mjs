@@ -4,7 +4,8 @@ import fs from 'node:fs';
 
 const APPROVAL_ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
 const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
-const ROLE_IDS = [...APPROVAL_ROLE_IDS, WRITER_ROLE_ID];
+const FINALIZER_ROLE_ID = 'FinalizerRole';
+const ROLE_IDS = [...APPROVAL_ROLE_IDS, WRITER_ROLE_ID, FINALIZER_ROLE_ID];
 const QUERY_STATEMENT = {
   Effect: 'Allow',
   Action: ['dynamodb:Query'],
@@ -52,6 +53,12 @@ function assertDesiredBoundary(desired) {
       assert.ok(!source.includes(forbidden), 'DYNAMODB_WRITE_FORBIDDEN:' + logicalId + ':' + forbidden);
     }
   }
+  const finalizer = desired?.Resources?.[FINALIZER_ROLE_ID];
+  assert.equal(finalizer?.Type, 'AWS::IAM::Role', 'FINALIZER_ROLE_TYPE_INVALID');
+  const finalizerStatements = finalizer?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  assert.ok(Array.isArray(finalizerStatements), 'FINALIZER_ROLE_POLICY_STATEMENTS_INVALID');
+  assert.equal(finalizerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
+    'BOUNDED_FINALIZER_LEDGER_DECRYPT_STATEMENT_INVALID');
   const writer = desired?.Resources?.[WRITER_ROLE_ID];
   assert.equal(writer?.Type, 'AWS::IAM::Role', 'WRITER_ROLE_TYPE_INVALID');
   const writerStatements = writer?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
@@ -70,6 +77,9 @@ function withoutBoundedRead(template) {
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
       statements.filter(statement => !equal(statement, QUERY_STATEMENT) && !equal(statement, LEDGER_DECRYPT_STATEMENT));
   }
+  const finalizerStatements = copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement;
+  copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
+    finalizerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
   const writerStatements = copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement;
   copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
     writerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
@@ -99,6 +109,12 @@ function normalizeAllowedRecoveryState(template) {
     assert.ok(!(exactQueryCount && legacyVerifierCount), 'CURRENT_TEMPLATE_CONFLICTING_VERIFIER_QUERY');
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement = normalizedStatements;
   }
+  const finalizerStatements = copy.Resources?.[FINALIZER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  assert.ok(Array.isArray(finalizerStatements), 'CURRENT_FINALIZER_ROLE_POLICY_STATEMENTS_INVALID');
+  const finalizerDecryptCount = finalizerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
+  assert.ok(finalizerDecryptCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_FINALIZER_LEDGER_DECRYPT');
+  copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
+    finalizerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
   const writerStatements = copy.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   assert.ok(Array.isArray(writerStatements), 'CURRENT_WRITER_ROLE_POLICY_STATEMENTS_INVALID');
   const writerDecryptCount = writerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
@@ -196,6 +212,7 @@ console.log(JSON.stringify({
   allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
   writer_allowed_kms_action: 'kms:Decrypt',
+  finalizer_allowed_kms_action: 'kms:Decrypt',
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
   production: 'HOLD',

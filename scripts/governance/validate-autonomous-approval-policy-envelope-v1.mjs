@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
+import {EXPLICIT_EXECUTION_CONTROLS,validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
 const root = process.cwd();
 const read = relative => JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
 const fail = code => { throw new Error(code); };
@@ -23,7 +23,8 @@ const manifestExclusions=["coordination/kidults/governance/approval-policy-file-
 if (JSON.stringify(manifest.scan.exclusions)!==JSON.stringify(manifestExclusions)) fail("INVENTORY_MANIFEST_EXCLUSIONS_INVALID");
 if (manifest.manifest_sha256 !== sha256(JSON.stringify(manifest.files))) fail("INVENTORY_MANIFEST_DIGEST_INVALID");
 if (inventory.audit?.approval_related_files_reviewed !== manifest.files.length || inventory.audit?.manifest_sha256 !== manifest.manifest_sha256) fail("INVENTORY_MANIFEST_BINDING_INVALID");
-const livePaths = execFileSync("git",["grep","-Il","-E",manifest.scan.pattern,"HEAD"],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024}).trim().split("\n").filter(Boolean).map(value=>value.replace(/^HEAD:/,"" )).filter(value=>!manifestExclusions.includes(value)).sort();
+const scannedLivePaths = execFileSync("git",["grep","-Il","-E",manifest.scan.pattern,"HEAD"],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024}).trim().split("\n").filter(Boolean).map(value=>value.replace(/^HEAD:/,"" )).filter(value=>!manifestExclusions.includes(value));
+const livePaths = [...new Set([...scannedLivePaths, ...EXPLICIT_EXECUTION_CONTROLS])].sort();
 if (JSON.stringify(livePaths) !== JSON.stringify(manifest.files.map(value=>value.path))) fail("INVENTORY_MANIFEST_PATH_SET_DRIFT");
 for (const entry of manifest.files) {
   const bytes=execFileSync("git",["show",`HEAD:${entry.path}`],{cwd:root,maxBuffer:64*1024*1024});
