@@ -9,11 +9,15 @@ const QUERY_STATEMENT = {
   Resource: {'Fn::GetAtt': ['AutonomousLandingLedger', 'Arn']},
   Condition: {'ForAllValues:StringLike': {'dynamodb:LeadingKeys': ['AUTH#*']}},
 };
+const LEGACY_VERIFIER_QUERY_STATEMENT = {
+  ...QUERY_STATEMENT,
+  Action: ['dynamodb:DescribeTable', 'dynamodb:Query'],
+};
 
 const args = process.argv.slice(2);
 const value = flag => {
   const index = args.indexOf(flag);
-  if (index < 0 || !args[index + 1]) throw new Error(`ARGUMENT_REQUIRED:${flag}`);
+  if (index < 0 || !args[index + 1]) throw new Error('ARGUMENT_REQUIRED:' + flag);
   return args[index + 1];
 };
 const stable = input => {
@@ -29,14 +33,14 @@ const read = file => JSON.parse(fs.readFileSync(file, 'utf8'));
 function assertDesiredBoundary(desired) {
   for (const logicalId of ROLE_IDS) {
     const role = desired?.Resources?.[logicalId];
-    assert.equal(role?.Type, 'AWS::IAM::Role', `ROLE_TYPE_INVALID:${logicalId}`);
+    assert.equal(role?.Type, 'AWS::IAM::Role', 'ROLE_TYPE_INVALID:' + logicalId);
     const statements = role?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
-    assert.ok(Array.isArray(statements), `ROLE_POLICY_STATEMENTS_INVALID:${logicalId}`);
+    assert.ok(Array.isArray(statements), 'ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, QUERY_STATEMENT)).length, 1,
-      `BOUNDED_QUERY_STATEMENT_INVALID:${logicalId}`);
+      'BOUNDED_QUERY_STATEMENT_INVALID:' + logicalId);
     const source = JSON.stringify(role);
     for (const forbidden of ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:BatchWriteItem']) {
-      assert.ok(!source.includes(forbidden), `DYNAMODB_WRITE_FORBIDDEN:${logicalId}:${forbidden}`);
+      assert.ok(!source.includes(forbidden), 'DYNAMODB_WRITE_FORBIDDEN:' + logicalId + ':' + forbidden);
     }
   }
 }
@@ -51,23 +55,50 @@ function withoutBoundedQuery(template) {
   return copy;
 }
 
+function normalizeAllowedRecoveryState(template) {
+  const copy = structuredClone(template);
+  for (const logicalId of ROLE_IDS) {
+    const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+    assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
+    let exactQueryCount = 0;
+    let legacyVerifierCount = 0;
+    const normalizedStatements = [];
+    for (const statement of statements) {
+      if (equal(statement, QUERY_STATEMENT)) {
+        exactQueryCount += 1;
+        continue;
+      }
+      if (logicalId === 'VerifierApprovalRole' && equal(statement, LEGACY_VERIFIER_QUERY_STATEMENT)) {
+        legacyVerifierCount += 1;
+        continue;
+      }
+      normalizedStatements.push(statement);
+    }
+    assert.ok(exactQueryCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_QUERY:' + logicalId);
+    assert.ok(legacyVerifierCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_LEGACY_VERIFIER_QUERY');
+    assert.ok(!(exactQueryCount && legacyVerifierCount), 'CURRENT_TEMPLATE_CONFLICTING_VERIFIER_QUERY');
+    copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement = normalizedStatements;
+  }
+  return copy;
+}
+
 function validateTemplates(current, desired) {
   assertDesiredBoundary(desired);
   if (equal(current, desired)) return 'ALREADY_APPLIED';
-  assert.ok(equal(current, withoutBoundedQuery(desired)), 'TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY');
-  for (const logicalId of ROLE_IDS) {
-    const statements = current.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement;
-    assert.equal(statements.filter(statement => equal(statement, QUERY_STATEMENT)).length, 0,
-      `CURRENT_TEMPLATE_ALREADY_CONTAINS_PARTIAL_QUERY:${logicalId}`);
-  }
+  assert.ok(
+    equal(normalizeAllowedRecoveryState(current), withoutBoundedQuery(desired)),
+    'TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_QUERY_OR_LEGACY_VERIFIER_READ',
+  );
   return 'CHANGE_REQUIRED';
 }
 
-function validateChangeSet(changeSet) {
+function validateChangeSet(changeSet, current, desired) {
   assert.equal(changeSet?.Status, 'CREATE_COMPLETE', 'CHANGE_SET_NOT_CREATE_COMPLETE');
   const changes = changeSet?.Changes;
   assert.ok(Array.isArray(changes), 'CHANGE_SET_CHANGES_INVALID');
-  assert.equal(changes.length, ROLE_IDS.length, 'CHANGE_SET_RESOURCE_COUNT_INVALID');
+  const expectedChanged = ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId]));
+  assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
+  assert.equal(changes.length, expectedChanged.length, 'CHANGE_SET_RESOURCE_COUNT_INVALID');
   const observed = new Set();
   for (const entry of changes) {
     const change = entry?.ResourceChange;
@@ -83,15 +114,17 @@ function validateChangeSet(changeSet) {
       assert.equal(detail?.ChangeSource, 'DirectModification', 'CHANGE_SET_SOURCE_INVALID');
     }
   }
-  assert.deepEqual([...observed].sort(), [...ROLE_IDS].sort(), 'CHANGE_SET_ROLE_SET_INVALID');
+  assert.deepEqual([...observed].sort(), [...expectedChanged].sort(), 'CHANGE_SET_ROLE_SET_INVALID');
 }
 
 const currentPath = value('--current');
 const desiredPath = value('--desired');
-const mode = validateTemplates(read(currentPath), read(desiredPath));
+const current = read(currentPath);
+const desired = read(desiredPath);
+const mode = validateTemplates(current, desired);
 if (args.includes('--changeset')) {
   assert.equal(mode, 'CHANGE_REQUIRED', 'CHANGE_SET_NOT_ALLOWED_FOR_ALREADY_APPLIED_TEMPLATE');
-  validateChangeSet(read(value('--changeset')));
+  validateChangeSet(read(value('--changeset')), current, desired);
 }
 
 console.log(JSON.stringify({
@@ -99,6 +132,7 @@ console.log(JSON.stringify({
   mode,
   allowed_logical_ids: ROLE_IDS,
   allowed_action: 'dynamodb:Query',
+  allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
   production: 'HOLD',
   public: 'HOLD',
