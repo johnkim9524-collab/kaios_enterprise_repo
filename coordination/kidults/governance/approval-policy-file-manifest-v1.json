@@ -639,8 +639,8 @@
     {
       "path": ".github/workflows/kpmo-canonical-generation-v3-apply.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7c298d0185b4b858d43b38db2b833f2f15f9b371",
-      "sha256": "sha256:1f1af1aaccfc85cb0469795448eea91967af9a827d2fa2d55b6ed54fe1ff8ead",
+      "git_blob": "9595911dab33ab7bd9846e8910a05524f2af628e",
+      "sha256": "sha256:64fa3fc0b2d171f4d8cb66b902f36700f466f7f844f5d5140306ff2177978f98",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5337,5 +5337,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b1ac7337b837f6df15bd83345560a0f7726b3c6a6f147f5821d044657eb822ac"
+  "manifest_sha256": "sha256:fb7bea53ce7b2283a96e2447d20fc0810a81192799879a3aa128a7e9845d13a0"
 }
