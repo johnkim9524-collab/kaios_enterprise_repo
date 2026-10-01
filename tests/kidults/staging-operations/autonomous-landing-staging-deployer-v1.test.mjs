@@ -65,7 +65,8 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'inputs.template_sha256',
     'DEPLOY-STAGING-AUTONOMOUS-LANDING-',
     'validate-autonomous-landing-staging-deployment-v1.mjs',
-    '--query TemplateBody --output text',
+    '--query TemplateBody --output json',
+    'jq -r ".TemplateBody"',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
   assert.ok(!workflow.includes('workflow_run:'));
