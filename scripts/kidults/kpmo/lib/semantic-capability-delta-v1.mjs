@@ -158,6 +158,35 @@ const yamlModel=source=>{
   return values;
 };
 
+const derivedApprovalMetadataPaths=new Set([
+  'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+  'coordination/kidults/governance/approval-policy-inventory-v1.json',
+]);
+const normalizedDerivedApprovalMetadata=(source,filename)=>{
+  let value; try { value=JSON.parse(source||'{}'); } catch { fail('CAPABILITY_JSON_PARSE_FAILED',filename); }
+  value=structuredClone(value);
+  if(filename.endsWith('approval-policy-file-manifest-v1.json')){
+    value.manifest_sha256='DERIVED';
+    for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
+  } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
+    if(value.audit) value.audit.manifest_sha256='DERIVED';
+  }
+  return value;
+};
+const isDerivedApprovalMetadataShape=(source,filename)=>{
+  try {
+    const value=JSON.parse(source||'{}');
+    if(filename.endsWith('approval-policy-file-manifest-v1.json')) return Array.isArray(value.files)&&typeof value.manifest_sha256==='string';
+    if(filename.endsWith('approval-policy-inventory-v1.json')) return typeof value.audit?.manifest_sha256==='string';
+  } catch {}
+  return false;
+};
+const assertDerivedApprovalMetadataDelta=(before,after,filename)=>{
+  const left=normalizedDerivedApprovalMetadata(before,filename);
+  const right=normalizedDerivedApprovalMetadata(after,filename);
+  if(JSON.stringify(left)!==JSON.stringify(right)) fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
+};
+
 const assertJsonMonotonic=(before,after,filename)=>{
   let left,right; try { left=flattenJson(JSON.parse(before||'{}')); right=flattenJson(JSON.parse(after||'{}')); }
   catch { fail('CAPABILITY_JSON_PARSE_FAILED',filename); }
@@ -201,6 +230,7 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
+    else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename);
     else if(filename.endsWith('.json')) assertJsonMonotonic(file.base_content,file.head_content,filename);
     else {
       assertScriptGuardDependencies(file.base_content,file.head_content,filename);
