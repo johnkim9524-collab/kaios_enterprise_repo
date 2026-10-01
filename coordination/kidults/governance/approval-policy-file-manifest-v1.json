@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1e63b61f50af35fd3307dab2e02dbde6f24fc77d",
-      "sha256": "sha256:dcb78b019145801817ffda74d81c2129f9ef76592aa65d967b7cfac2c5463a07",
+      "git_blob": "628d57b5ae8b278596c25659951e6eb24eedc897",
+      "sha256": "sha256:2d648e045627845a4fa3c31737c4ca8ec817f15f3995d8c30afe6460f3e397b7",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
