@@ -66,6 +66,9 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'DEPLOY-STAGING-AUTONOMOUS-LANDING-',
     'validate-autonomous-landing-staging-deployment-v1.mjs',
     '--query TemplateBody --output json',
+    'cloudformation describe-stack-events',
+    'cloudformation-stack-events-failure.json',
+    'if: always()',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
   assert.ok(!workflow.includes('workflow_run:'));
