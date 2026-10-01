@@ -25,6 +25,12 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(governed.approval_generation_policy.delegated_machine_quorum_exempt,true);
   assert.equal(governed.approval_generation_policy.delegated_finalizer_draft_ready_transition_invalidates_quorum,false);
   assert.equal(governed.approval_generation_policy.delegated_routine_owner_comment_required,false);
+  const envelope=read('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_generation_policy_applies,false);
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_recovery_fallback_for_normal_path,'FORBIDDEN');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.finalizer_lifecycle_transition_preserves_exact_tuple_quorum,true);
+  assert.equal(envelope.classes.UNKNOWN.decision,'QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED');
+  assert.equal(envelope.classes.UNKNOWN.owner_escalation_only_after_unresolved_reclassification,true);
 });
 
 test('autonomous-named workflows cannot be manual-only unless an explicit Owner-reserved boundary is documented',()=>{
