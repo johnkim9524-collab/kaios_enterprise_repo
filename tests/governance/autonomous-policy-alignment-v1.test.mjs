@@ -43,15 +43,15 @@ test('autonomous-named workflows cannot be manual-only unless an explicit Owner-
   }
 });
 
-test('explicit Owner-reserved workflow markers override legacy internal or staging routing',()=>{
-  for(const [file,marker] of [
-    ['.github/workflows/kidults-autonomous-smithsonian-sample.yml','OWNER_RESERVED_EXTERNAL_SECRET_CALL'],
-    ['.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
-    ['.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml','OWNER_RESERVED_STAGING_INFRA_CHANGE'],
-  ]){
-    const source=fs.readFileSync(file,'utf8');
-    assert.ok(source.includes(marker));
-    assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
+test('explicit Owner-reserved markers remain only on true external authority boundaries',()=>{
+  const file='.github/workflows/kidults-autonomous-smithsonian-sample.yml';
+  const source=fs.readFileSync(file,'utf8');
+  assert.ok(source.includes('OWNER_RESERVED_EXTERNAL_SECRET_CALL'));
+  assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
+  for(const normal of ['kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml']){
+    const workflow=fs.readFileSync(`.github/workflows/${normal}`,'utf8');
+    assert.doesNotMatch(workflow,/OWNER_RESERVED_STAGING_INFRA_CHANGE/);
+    assert.match(workflow,/push:/);
   }
 });
 
@@ -59,11 +59,10 @@ test('repository-wide manual-only workflows are an exact reviewed exception set'
   const reviewed=new Set([
     'digitalocean-staging-bootstrap-exec.yml','digitalocean-staging-readonly-audit.yml',
     'kidults-agci-os-candidate-r2-preflight.yml','kidults-atomic-governed-landing-v1.yml',
-    'kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml',
     'kidults-autonomous-smithsonian-sample.yml','kidults-cloudflare-pages-boundary-readonly-v1.yml',
     'kidults-cloudflare-pages-emergency-control-v1.yml','kidults-cloudflare-pages-staging-deploy-v1.yml',
     'kidults-er-r7k-finalization-boundary.yml','kidults-er-r7k-graded-population.yml',
-    'kidults-graded-authority-probe-gate-v1.yml','kidults-natural-clock-deploy-v1.yml',
+    'kidults-graded-authority-probe-gate-v1.yml',
     'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
     'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
     'p0-postgres-target-time-restore-verification.yml','p0-remote-postgres-persistence-pitr.yml',

@@ -165,7 +165,7 @@ test('newest malformed marked approval still fails closed', () => {
       readyEvent,
       {landingAttemptStartedAt: iso(-1)},
     ),
-    /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/,
+    /DIRECT_OWNER_HANDOFF_APPROVAL_SHAPE_INVALID/,
   );
 });
 
