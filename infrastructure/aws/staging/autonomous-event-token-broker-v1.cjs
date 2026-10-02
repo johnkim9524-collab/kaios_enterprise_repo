@@ -1,13 +1,13 @@
 'use strict';
 const {createSign} = require('node:crypto');
 
-const fail = () => { throw new Error('EVENT_TOKEN_BROKER_DENIED'); };
+const fail = code => { throw new Error(`EVENT_TOKEN_BROKER_DENIED:${code || 'UNCLASSIFIED'}`); };
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 
 function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
   return async event => {
-    if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail();
+    if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail('INPUT');
     const {repository, repository_id, pull_request, base_sha, head_sha, current_main_sha, authorization_generation,
       permission_profile='AUTONOMOUS_EVENT_DISPATCH'} = event || {};
     const supportedProfiles=new Set(['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE','AUTONOMOUS_REDUNDANT_PR_HYGIENE']);
@@ -18,25 +18,25 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || !supportedProfiles.has(permission_profile)
       || (permission_profile!=='AUTONOMOUS_EVENT_DISPATCH' && (!sha(current_main_sha)||current_main_sha===base_sha))
       || typeof authorization_generation !== 'string'
-      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();
+      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail('INPUT');
     const issued = Math.floor(now()/1000);
     const key = await getPrivateKey();
-    if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail();
+    if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail('PRIVATE_KEY');
     const unsigned = `${b64url({alg:'RS256',typ:'JWT'})}.${b64url({iat:issued-30,exp:issued+540,iss:String(config.appId)})}`;
     const signer=createSign('RSA-SHA256'); signer.update(unsigned); signer.end();
     const jwt=`${unsigned}.${signer.sign(key).toString('base64url')}`;
-    const api = async (endpoint, bearer, options={}) => {
+    const api = async (endpoint, bearer, options={}, failureCode='GITHUB_API_HTTP') => {
       const response=await request(`https://api.github.com${endpoint}`,{
         ...options,redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${bearer}`,
           'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-event-broker-v1',...(options.headers||{})},
       });
-      if (!response.ok) fail();
+      if (!response.ok) fail(failureCode);
       return response.json();
     };
-    const mint = permissions => api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
+    const mint = (permissions, phase) => api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions}),
-    });
+    },`MINT_${phase}_HTTP`);
     const validScope = (minted, permissions) => typeof minted.token==='string' && minted.token.length>=20
       && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
       && ((permissions.contents===undefined && minted.permissions?.contents===undefined) || minted.permissions?.contents===permissions.contents)
@@ -47,22 +47,22 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       && Number(minted.repositories[0]?.id)===Number(config.repositoryId)
       && minted.repositories[0]?.full_name===repository;
     const readPermissions={contents:'read',pull_requests:'read'};
-    const readonly=await mint(readPermissions);
-    if (!validScope(readonly,readPermissions)) fail();
+    const readonly=await mint(readPermissions,'READ');
+    if (!validScope(readonly,readPermissions)) fail('READ_SCOPE');
     const [pr,main]=await Promise.all([
-      api(`/repos/${repository}/pulls/${pull_request}`,readonly.token),
-      api(`/repos/${repository}/branches/main`,readonly.token),
+      api(`/repos/${repository}/pulls/${pull_request}`,readonly.token,{},'PR_READ_HTTP'),
+      api(`/repos/${repository}/branches/main`,readonly.token,{},'MAIN_READ_HTTP'),
     ]);
     const expectedMain=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'?base_sha:current_main_sha;
     if (pr.number!==Number(pull_request) || pr.state!=='open'
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
-      || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail();
+      || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail('LIVE_TUPLE');
     const writePermissions=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
       ? {contents:'write',pull_requests:'write'}
       : {pull_requests:'write'};
-    const minted=await mint(writePermissions);
-    if (!validScope(minted,writePermissions)) fail();
+    const minted=await mint(writePermissions,'WRITE');
+    if (!validScope(minted,writePermissions)) fail('WRITE_SCOPE');
     const grantedPermissions=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
       ? ['contents:write','pull_requests:write','metadata:read']
       : ['pull_requests:write','metadata:read'];

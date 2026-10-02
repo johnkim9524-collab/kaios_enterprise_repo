@@ -105,13 +105,13 @@ test('rejects wrong repository before mint',async()=>{
   const {handler,calls}=setup();await assert.rejects(handler({...event,repository_id:'999'}),/DENIED/);
   assert.equal(calls.length,0);
 });
-for(const [name,variation] of [['head drift',{prHead:'c'.repeat(40)}],['main drift',{mainBase:'c'.repeat(40)}],
-  ['base drift',{prBase:'c'.repeat(40)}],
-  ['read permission downgrade',{readPermission:'none'}],
-  ['broader repository scope',{repositories:[{id:123,full_name:repo},{id:456}]}]]) {
+for(const [name,variation,reason] of [['head drift',{prHead:'c'.repeat(40)},'LIVE_TUPLE'],['main drift',{mainBase:'c'.repeat(40)},'LIVE_TUPLE'],
+  ['base drift',{prBase:'c'.repeat(40)},'LIVE_TUPLE'],
+  ['read permission downgrade',{readPermission:'none'},'READ_SCOPE'],
+  ['broader repository scope',{repositories:[{id:123,full_name:repo},{id:456}]},'READ_SCOPE']]) {
   test(`rejects ${name} without minting write token`,async()=>{
     const {handler,calls}=setup(variation);
-    await assert.rejects(handler(event),/DENIED/);
+    await assert.rejects(handler(event),new RegExp(`DENIED:${reason}`));
     assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
   });
 }
@@ -122,7 +122,7 @@ test('rejects invalid authorization generation before requesting any token',asyn
 });
 test('rejects write permission downgrade after one authorized write mint',async()=>{
   const {handler,calls}=setup({permission:'read'});
-  await assert.rejects(handler(event),/DENIED/);
+  await assert.rejects(handler(event),/DENIED:WRITE_SCOPE/);
   assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,1);
 });
 test('rejects unsupported permission profile before requesting any token',async()=>{

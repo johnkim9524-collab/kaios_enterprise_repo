@@ -109,7 +109,7 @@ jobs:
           mkdir -p out/autonomous-event-broker-deploy-v1
           function_name=$(aws cloudformation describe-stacks --stack-name "${{ inputs.stack_name }}" --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
           aws lambda invoke --function-name "$function_name" --cli-binary-format raw-in-base64-out --payload '{"action":"DENY_CANARY"}' /tmp/deny.json >/tmp/invoke.json || true
-          test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED
+          test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED:INPUT
           jq -n --arg stack "${{ inputs.stack_name }}" --arg change_set "${{ inputs.change_set_name }}" --arg authorization_id "${{ inputs.authorization_id }}" --arg function "$function_name" --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",operation:"DEPLOY_STAGING_BROKER",stack:$stack,change_set:$change_set,authorization_id:$authorization_id,function:$function,workflow_sha:$sha,run_id:$run_id,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
