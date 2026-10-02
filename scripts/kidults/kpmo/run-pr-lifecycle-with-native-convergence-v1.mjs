@@ -23,10 +23,12 @@ export function nativeGovernanceConverged(statuses, requiredContexts) {
     const matches = statuses.filter(status => status?.context === context);
     if (matches.length !== 1) return false;
     const status = matches[0];
+    const githubActionsIdentity = status.creator?.login === 'github-actions[bot]'
+      || /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/.test(String(status.avatar_url || ''));
     const normalReadyControl = context === 'KIDULTS Governed Landing Authorization V1'
       && status.state === 'pending'
       && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
-      && status.creator?.login === 'github-actions[bot]';
+      && githubActionsIdentity;
     return normalReadyControl || isAtomicLandingNativeStatusReady(status);
   });
 }
@@ -55,7 +57,12 @@ function runSelfTest() {
   };
   assert(nativeGovernanceConverged([scope, normalReady], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_NORMAL_READY_REJECTED');
-  assert(!nativeGovernanceConverged([scope, {...normalReady, creator: {login: 'untrusted'}}], required),
+  const normalReadyApiShape={...normalReady,creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4'};
+  assert(nativeGovernanceConverged([scope, normalReadyApiShape], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_GITHUB_ACTIONS_AVATAR_REJECTED');
+  assert(!nativeGovernanceConverged([scope, {...normalReady, creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_UNTRUSTED_AVATAR_ACCEPTED');
+  assert(!nativeGovernanceConverged([scope, {...normalReady, creator: {login: 'untrusted'},avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_UNTRUSTED_READY_ACCEPTED');
   assert(!nativeGovernanceConverged([{...scope, state: 'pending'}, normalReady], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_SCOPE_PENDING_ACCEPTED');

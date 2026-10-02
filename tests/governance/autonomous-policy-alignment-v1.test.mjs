@@ -6,7 +6,7 @@ import test from 'node:test';
 import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
-import {delegatedTransitionId} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
 import {routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
@@ -75,6 +75,22 @@ test('repository-wide manual-only workflows are an exact reviewed exception set'
     if(!/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target|issues):/m.test(source)) actual.add(file);
   }
   assert.deepEqual([...actual].sort(),[...reviewed].sort());
+});
+
+test('internal reversible PR lifecycle is autonomous end-to-end, not only approval comments',()=>{
+  const lifecycle=landing.normal_internal_pr_lifecycle;
+  for(const key of ['owner_comment_required','owner_review_required','owner_ready_click_required','owner_merge_click_required','manual_dispatch_required','manual_rebase_or_recut_required','manual_stale_pr_cleanup_required']) assert.equal(lifecycle[key],false,key);
+  assert.equal(lifecycle.draft_to_ready,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.merge,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.postmerge,'EXACT_MERGE_SHA_AUTOMATIC');
+  assert.equal(lifecycle.stale_base,'BROKERED_BOUNDED_UPDATE_BRANCH');
+  assert.equal(lifecycle.redundant_pr_cleanup,'BROKERED_EXACT_BLOB_EQUALITY_ONLY');
+  assert.equal(lifecycle.bounded_retry,'AUTOMATIC_FRESH_GENERATION');
+  assert.equal(lifecycle.owner_escalation,'ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED');
+  assert.equal(landing.merge.autonomous_stale_base_convergence.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.close_only_when_all_changed_file_blobs_equal_current_main,true);
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.removed_or_renamed_files_auto_close_forbidden,true);
 });
 
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{
@@ -297,6 +313,35 @@ test('exact Finalizer reservation-before-token reorder passes independent verifi
   assert.equal(independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
   const mutated=prefix+reservation.replace("head_sha:envelope.head_sha","head_sha:'unbound'")+token;
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:mutated}],policy:landing}),/INDEPENDENT_(?:GUARD_DEPENDENCY_CHANGED|EXACT_REORDER_SCOPE_CHANGED)/);
+});
+
+test('finalizer Ready evidence preservation exception is exact and mutation-sensitive',()=>{
+  const filename='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs';
+  const base_content=fs.readFileSync(filename,'utf8');
+  let head_content=base_content;
+  const reservation=`      invokeFinalizerWriter({
+        action:'CREATE_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+      });
+`;
+  const token=`      const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+`;
+  for(const [before,after] of [
+    [token+reservation,reservation+token],
+    ['const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true}={}) => {','const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true,preserveDraftDevelopmentEvidence=false}={}) => {'],
+    ['liveRequiredChecks({includeLandingStatus,draftDevelopment:requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true})','liveRequiredChecks({includeLandingStatus,draftDevelopment:preserveDraftDevelopmentEvidence||(requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true)})'],
+    ['const waitForReadyCandidate = async () => {','const waitForReadyCandidate = async ({preserveDraftDevelopmentEvidence=false}={}) => {'],
+    ['validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false})','validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false,preserveDraftDevelopmentEvidence})'],
+    ['await waitForReadyCandidate();','await waitForReadyCandidate({preserveDraftDevelopmentEvidence:candidate.pr.draft===true});'],
+  ]){assert.ok(head_content.includes(before));head_content=head_content.replace(before,after)}
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content,head_content}),true);
+  assert.equal(evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content,head_content:head_content.replace('candidate.pr.draft===true','true')}),false);
 });
 
 test('fail-closed guard replacement remains Owner-reserved',()=>{

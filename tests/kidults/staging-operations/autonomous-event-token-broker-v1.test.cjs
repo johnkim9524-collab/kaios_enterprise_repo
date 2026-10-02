@@ -45,7 +45,7 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
           : {}),pull_requests:body.permissions.pull_requests},
         repository_selection:'selected',repositories};
     } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
-      head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase}};
+      head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase,repo:{full_name:repo}}};
     else if(url.endsWith('/branches/main')) value={commit:{sha:mainBase}};
     else throw Error('unexpected request');
     return {ok:true,json:async()=>value};
@@ -58,6 +58,25 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.equal(result.permission_profile,'AUTONOMOUS_EVENT_DISPATCH');
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
+});
+test('mints exact stale-base convergence token without adding permissions',async()=>{
+  const current='c'.repeat(40);
+  const {handler}=setup({prBase:base,mainBase:current});
+  const result=await handler({...event,current_main_sha:current,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'});
+  assert.equal(result.permission_profile,'AUTONOMOUS_STALE_BASE_CONVERGENCE');
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
+});
+test('mints exact redundant-PR hygiene token without adding permissions',async()=>{
+  const current='c'.repeat(40);
+  const {handler}=setup({prBase:base,mainBase:current});
+  const result=await handler({...event,current_main_sha:current,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'});
+  assert.equal(result.permission_profile,'AUTONOMOUS_REDUNDANT_PR_HYGIENE');
+});
+test('stale profiles fail closed when current main is absent or equals old base',async()=>{
+  const {handler,calls}=setup();
+  await assert.rejects(handler({...event,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'}),/DENIED/);
+  await assert.rejects(handler({...event,current_main_sha:base,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'}),/DENIED/);
+  assert.equal(calls.length,0);
 });
 test('allows exact open Draft for internal event dispatch without lifecycle authority',async()=>{
   const {handler}=setup({draft:true});
