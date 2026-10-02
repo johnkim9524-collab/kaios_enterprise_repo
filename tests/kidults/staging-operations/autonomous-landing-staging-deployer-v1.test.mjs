@@ -158,13 +158,12 @@ test('deployment workflow auto-converges bounded STAGING deltas while preserving
     'desired-template.compact.json',
     'if: always()',
     'push:',
-    'schedule:',
-    "cron: '17,47 * * * *'",
     'AUTO-STAGING-AUTONOMOUS-LANDING-',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.ok(workflow.indexOf('uses: actions/checkout@') < workflow.indexOf('actual_template_sha=$(sha256sum'), 'checkout must precede template hashing');
-  assert.match(workflow,/github\.event_name == 'schedule'/);
-  assert.match(workflow,/\[ "\$GITHUB_EVENT_NAME" = push \] \|\| \[ "\$GITHUB_EVENT_NAME" = schedule \]/);
+  assert.ok(!workflow.includes('schedule:'), 'normal STAGING convergence is protected-main push triggered, not scheduled');
+  assert.doesNotMatch(workflow,/github\.event_name == 'schedule'/);
+  assert.match(workflow,/\[ "\$GITHUB_EVENT_NAME" = push \]/);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
   assert.ok(!workflow.includes('workflow_run:'));
   assert.ok(!workflow.includes('pull_request:'));
