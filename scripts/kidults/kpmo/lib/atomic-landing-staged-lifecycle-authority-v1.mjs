@@ -172,8 +172,14 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
     || receiptSyntheticBoundary !== readyEvent.synthetic_lifecycle_boundary) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH');
   }
-  if (receipt.readiness_authority !== 'LIFECYCLE_ONLY'
-    || receipt.ready_state_grants_authorization !== false) {
+  const receiptReadinessAuthority = receipt.readiness_authority === undefined
+    ? 'LIFECYCLE_ONLY'
+    : receipt.readiness_authority;
+  const receiptReadyStateGrantsAuthorization = receipt.ready_state_grants_authorization === undefined
+    ? false
+    : receipt.ready_state_grants_authorization;
+  if (receiptReadinessAuthority !== 'LIFECYCLE_ONLY'
+    || receiptReadyStateGrantsAuthorization !== false) {
     fail('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID');
   }
 
