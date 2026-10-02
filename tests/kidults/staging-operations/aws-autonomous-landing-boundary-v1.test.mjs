@@ -70,15 +70,16 @@ test('finalizer reservation is a single-winner lease and followers exit without 
   assert.match(code,/ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head'/);
 });
 
-test('normal-ops recovery finalizer removes Owner handoff when the reservation writer is unavailable', () => {
+test('normal-ops finalization is verifier-only, writer-bound, and bounded', () => {
+  const recovery=landingPolicy.bounded_recovery.normal_ops_finalizer;
+  assert.equal(recovery.elected_workflow,'KIDULTS Autonomous Independent Verification V1');
+  assert.equal(recovery.track_kpmo_finalizer_behavior,'SUCCESSFUL_NON_MERGING_FOLLOWER');
+  assert.equal(recovery.writer_policy_rejection_retry,false);
+  assert.equal(recovery.persistent_writer_failure,'FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL');
   assert.match(runner,/finalizer_quorum_wait_seconds\|\|90/);
-  assert.match(runner,/FINALIZER_RECOVERY_FOLLOWER/);
-  assert.equal(landingPolicy.bounded_recovery.normal_ops_recovery_finalizer.elected_workflow,'KIDULTS Autonomous Independent Verification V1');
-  assert.match(runner,/RECOVERY_VERIFIER_ELECTED/);
-  assert.match(runner,/GITHUB_EXACT_HEAD_FAILOVER/);
-  assert.match(runner,/primary_writer_failure:true/);
-  assert.match(runner,/if\(!recoveryFinalizer\) invokeFinalizerWriter/);
-  assert.match(runner,/AUTONOMOUS_LEDGER_WRITER_FUNCTION_ERROR/);
-  assert.match(runner,/AUTONOMOUS_LEDGER_WRITER_FAILURE/);
-  assert.match(runner,/recoveryPolicy\.activation\.includes\(error\.code\)/);
+  assert.match(runner,/state:'FINALIZER_ROLE_FOLLOWER'/);
+  assert.match(runner,/required\('GITHUB_WORKFLOW'\)!==electedWorkflow/);
+  assert.match(runner,/writer_retry_attempts\|\|3/);
+  assert.match(runner,/error\.code!==?'?AUTONOMOUS_LEDGER_WRITER_FAILURE'?/);
+  assert.doesNotMatch(runner,/RECOVERY_VERIFIER_ELECTED|GITHUB_EXACT_HEAD_FAILOVER|primary_writer_failure/);
 });

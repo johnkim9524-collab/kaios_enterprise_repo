@@ -334,19 +334,15 @@
     "pre_reservation_failure_consumes_authority": false,
     "reservation_occurs_immediately_before_first_mutation": true,
     "finalizer_quorum_wait_seconds": 90,
-    "normal_ops_recovery_finalizer": {
-      "enabled": true,
+    "normal_ops_finalizer": {
       "elected_workflow": "KIDULTS Autonomous Independent Verification V1",
-      "activation": [
-        "AUTONOMOUS_LEDGER_WRITER_FUNCTION_ERROR",
-        "AUTONOMOUS_LEDGER_WRITER_FAILURE"
-      ],
-      "forbidden_activation": [
-        "AUTONOMOUS_LEDGER_WRITER_REJECTED"
-      ],
+      "track_kpmo_finalizer_behavior": "SUCCESSFUL_NON_MERGING_FOLLOWER",
+      "writer_retry_attempts": 3,
+      "writer_retry_delay_seconds": 5,
+      "writer_policy_rejection_retry": false,
+      "persistent_writer_failure": "FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL",
       "requires_exact_head": true,
       "requires_three_role_quorum": true,
-      "owner_boundary_bypass": false,
       "production": "HOLD",
       "public": "HOLD",
       "g5": "HOLD"
