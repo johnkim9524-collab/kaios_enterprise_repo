@@ -112,6 +112,17 @@ assert(ownerReserved.lifecycle_contract_mode === 'OWNER_RESERVED_EXACT_APPROVAL_
   'OWNER_RESERVED_CONTRACT_MODE_INVALID');
 assert(ownerReserved.owner_exact_head_approval_required === true,
   'OWNER_RESERVED_APPROVAL_FLAG_INVALID');
+const ownerReservedLegacyShape = invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+  latest_ready_event_type: undefined,
+  latest_ready_event_synthetic_lifecycle_boundary: undefined,
+}));
+assert(ownerReservedLegacyShape.state === 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  'OWNER_RESERVED_LEGACY_READY_SHAPE_INVALID');
 
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_ID_INVALID', () => invoke(receipt({id: 'wrong'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_VERSION_INVALID', () => invoke(receipt({version: '1.0.0'})));
@@ -147,6 +158,10 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_at: '2026-09-02T04:20:01Z'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_actor: 'automation-bot'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
+  invoke(receipt({latest_ready_event_type: 'created_ready_or_never_drafted'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
+  invoke(receipt({latest_ready_event_synthetic_lifecycle_boundary: true})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
   invoke(receipt(), {...readyEvent, performed_via_github_app: {slug: 'automation'}, direct_repository_owner: false}));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>

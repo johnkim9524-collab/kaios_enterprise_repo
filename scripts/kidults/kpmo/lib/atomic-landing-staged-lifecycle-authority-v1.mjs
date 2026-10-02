@@ -157,8 +157,11 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
     receipt.latest_ready_event_id,
     'ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_EVENT_ID_INVALID',
   );
+  const receiptReadyEventType = receipt.latest_ready_event_type ?? readyEvent.event;
+  const receiptSyntheticBoundary = receipt.latest_ready_event_synthetic_lifecycle_boundary
+    ?? readyEvent.synthetic_lifecycle_boundary;
   if (receiptReadyEventId !== readyEventId
-    || receipt.latest_ready_event_type !== readyEvent.event
+    || receiptReadyEventType !== readyEvent.event
     || receipt.latest_ready_event_at !== readyEvent.created_at
     || receipt.latest_ready_event_actor !== readyEvent.actor) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH');
@@ -166,7 +169,7 @@ export function assertAtomicLandingStagedLifecycleAuthority(receipt, {
   if (JSON.stringify(receipt.latest_ready_event_performed_via_github_app ?? null)
       !== JSON.stringify(readyEvent.performed_via_github_app ?? null)
     || receipt.latest_ready_event_direct_repository_owner !== readyEvent.direct_repository_owner
-    || receipt.latest_ready_event_synthetic_lifecycle_boundary !== readyEvent.synthetic_lifecycle_boundary) {
+    || receiptSyntheticBoundary !== readyEvent.synthetic_lifecycle_boundary) {
     fail('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH');
   }
   if (receipt.readiness_authority !== 'LIFECYCLE_ONLY'
