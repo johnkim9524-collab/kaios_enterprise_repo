@@ -38,7 +38,9 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
-          : {contents:'write',pull_requests:'write'});
+          : permissionProfile==='AUTONOMOUS_EVENT_DISPATCH'
+            ? {contents:'write',pull_requests:'write'}
+            : {pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{...(Object.hasOwn(body.permissions,'contents')
           ? {contents:body.permissions.contents==='read'?readPermission:permission}
@@ -59,18 +61,23 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
-test('mints exact stale-base convergence token without adding permissions',async()=>{
+test('mints exact stale-base convergence token with pull-request-only write scope',async()=>{
   const current='c'.repeat(40);
-  const {handler}=setup({prBase:base,mainBase:current});
-  const result=await handler({...event,current_main_sha:current,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'});
-  assert.equal(result.permission_profile,'AUTONOMOUS_STALE_BASE_CONVERGENCE');
-  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
+  const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
+  assert.equal(result.permission_profile,permissionProfile);
+  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{pull_requests:'write'});
 });
-test('mints exact redundant-PR hygiene token without adding permissions',async()=>{
+test('mints exact redundant-PR hygiene token with pull-request-only write scope',async()=>{
   const current='c'.repeat(40);
-  const {handler}=setup({prBase:base,mainBase:current});
-  const result=await handler({...event,current_main_sha:current,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'});
-  assert.equal(result.permission_profile,'AUTONOMOUS_REDUNDANT_PR_HYGIENE');
+  const permissionProfile='AUTONOMOUS_REDUNDANT_PR_HYGIENE';
+  const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
+  const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
+  assert.equal(result.permission_profile,permissionProfile);
+  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{pull_requests:'write'});
 });
 test('stale profiles fail closed when current main is absent or equals old base',async()=>{
   const {handler,calls}=setup();
