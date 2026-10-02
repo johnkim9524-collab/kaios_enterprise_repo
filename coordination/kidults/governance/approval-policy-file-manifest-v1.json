@@ -120,7 +120,7 @@
       "path": ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "96d92060db9553ad8a7112f53fa2337091050a68",
-      "sha256": "sha256:6b094f8c08cb4e841af16e0596b66f65226ceaaa1eb61641559b6bf180818e67",
+      "sha256": "sha256:a0a79a83da3704bce8ad51f0474366ec38e7affc065c30a134214b784b1b4091",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3390,7 +3390,7 @@
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "61f1b7aeebeb57338259136ec90fc5819d46ce44",
-      "sha256": "sha256:589d4149794faf03906f66eb005b0823071041ddd6eec753b7a26c0fc340b075",
+      "sha256": "sha256:7b4e820042a88de644c2d1c292442d8b3f521787d59f0351dbaff181015a0e29",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3429,7 +3429,7 @@
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "29d32026988414a89dd0d9f4dcae45106e6356e6",
-      "sha256": "sha256:c6cb7842040eb138a4ce32c97fb5fa5c4c704a100161a531437d755dd4d414f4",
+      "sha256": "sha256:14a2b20ac6cdadb9dee9b808bf26722339623728078e1b3ccd44c5e2d489eeb7",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5105,7 +5105,7 @@
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "d4c8bdeadcabcdb316bef643b9c896b532e984b7",
-      "sha256": "sha256:d92e28230d658776164d21539a875acbd3ea53f01e958dcde907040043008b91",
+      "sha256": "sha256:0a86db24b2442c93186d8446fdf0e206368af5a45f44be3e35b17df64efc8d11",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5406,5 +5406,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f2775dc245ed1a4d80d882da1ae2c252c7b6ebf035d8940b927c14133b6c103f"
+  "manifest_sha256": "sha256:e08ebd8209c2d821ca7e6d4743429a499dc9364f28535bb97fde68754eabecd8"
 }
