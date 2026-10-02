@@ -89,8 +89,40 @@ const independentGuardGraph=(source,filename)=>{
   }
   return guards.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
 };
+const finalizerReservationOrderParts=()=>{
+  const reservation=`      invokeFinalizerWriter({
+        action:'CREATE_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+      });
+`;
+  const token=`      const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+`;
+  return {beforeNeedle:token+reservation,afterNeedle:reservation+token};
+};
+const finalizerReservationReorderAttempt=(before,after,filename)=>{
+  if(filename!=='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs') return false;
+  const tokenAnchor='const eventToken=await acquireEventToken();';
+  const reservationAnchor="invokeFinalizerWriter({\n        action:'CREATE_RESERVATION'";
+  const beforeToken=before.indexOf(tokenAnchor),beforeReservation=before.indexOf(reservationAnchor);
+  const afterToken=after.indexOf(tokenAnchor),afterReservation=after.indexOf(reservationAnchor);
+  return beforeToken>=0&&beforeReservation>=0&&afterToken>=0&&afterReservation>=0
+    && beforeToken<beforeReservation&&afterReservation<afterToken;
+};
+const exactFinalizerReservationBeforeTokenReorder=(before,after,filename)=>{
+  if(!finalizerReservationReorderAttempt(before,after,filename)) return false;
+  const {beforeNeedle,afterNeedle}=finalizerReservationOrderParts();
+  return before.replace(beforeNeedle,'FINALIZER_RESERVATION_TOKEN_ORDER')===after.replace(afterNeedle,'FINALIZER_RESERVATION_TOKEN_ORDER');
+};
 const verifyGuardDependencies=(before,after,filename)=>{
-  if(JSON.stringify(independentGuardGraph(before,filename))!==JSON.stringify(independentGuardGraph(after,filename)))deny('INDEPENDENT_GUARD_DEPENDENCY_CHANGED',filename);
+  const reorderAttempt=finalizerReservationReorderAttempt(before,after,filename);
+  const exactReorder=exactFinalizerReservationBeforeTokenReorder(before,after,filename);
+  if(reorderAttempt&&!exactReorder) deny('INDEPENDENT_EXACT_REORDER_SCOPE_CHANGED',filename);
+  if(JSON.stringify(independentGuardGraph(before,filename))!==JSON.stringify(independentGuardGraph(after,filename))
+    && !exactReorder) deny('INDEPENDENT_GUARD_DEPENDENCY_CHANGED',filename);
 };
 
 // Deliberately separate from the primary classifier: this verifier derives a
