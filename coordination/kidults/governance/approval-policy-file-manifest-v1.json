@@ -3203,8 +3203,8 @@
     {
       "path": "scripts/kidults/kpmo/canonical-generation-v3.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e34c0f457075134d41c9b682baf62e873b953d9d",
-      "sha256": "sha256:3c4e0c7d0f81ab3eae3c5b65b7ebb8451b6b7735531176fecf02ff01ed7cc33a",
+      "git_blob": "97ab65c1d2d3ae58ab4a6b6a978f3adef307c3d7",
+      "sha256": "sha256:af6a7038883f488854fa66729d0ba0e4b237e27d5977b211e26bc47fd74c341f",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5168,20 +5168,20 @@
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f53632eb8a356cf5871d42d381684806ca7016b4",
-      "sha256": "sha256:96a30fddec211985db76bba98fd653d4bf9f3e99f97eb1e340715a69a376d284"
+      "git_blob": "f5b8b620a995c068035f4da411fa8fc2db7ee3a7",
+      "sha256": "sha256:e5af4afc02ff239473dc9c4227fdb78dee28caa6a43914fd0695715593a6c3ec"
     },
     {
       "path": "tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "063a72195979c53cc335e40e250f8d97f9033bf6",
-      "sha256": "sha256:ae16a4023f6c707ccdfff362e81c07804a97e457b52f8ab7ee46279b909e9136"
+      "git_blob": "a5da8c770c039020fd7ccff51fc5dafb0999b190",
+      "sha256": "sha256:987b4aa8355c63201abdda13ffd5cafb1ea6ec0f2b8ea7a79f9d6fb08bc9b26a"
     },
     {
       "path": "tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e191b62cce53e4f22b6d26c86e857b49a9858f02",
-      "sha256": "sha256:74f1257130688ebdc56fd0f4334118cbb2bcdad699a48a8ed5c6fe11d01b43cf"
+      "git_blob": "2c59a9f6d320ccbea2f6f59efae514f43a533291",
+      "sha256": "sha256:58295a63d6e8ce67ec45def7ca63e10c221f535b1253f60e248018574b31f909"
     },
     {
       "path": "tests/kidults/kpmo/cf-kidults-14501ac-01-approval.test.mjs",
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:415c3993d82e6fb8c66c88844b3e6b59350f8c8d273ded9ca920d286c27190cc"
+  "manifest_sha256": "sha256:3a77d1ef992cbaee49f84e25bfc0fac25f7aed8d0303e133c775819b7eff43c7"
 }
