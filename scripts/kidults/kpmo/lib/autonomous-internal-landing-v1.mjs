@@ -31,7 +31,14 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
     .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
-  const touchedTransitionPath = files.some(value => transitionPaths.has(typeof value === 'string' ? value : value?.filename));
+  const sharedDerivedMetadata = new Set([
+    'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+    'coordination/kidults/governance/approval-policy-inventory-v1.json',
+  ]);
+  const touchedTransitionPath = files.some(value => {
+    const filename = typeof value === 'string' ? value : value?.filename;
+    return transitionPaths.has(filename) && !sharedDerivedMetadata.has(filename);
+  });
   const transitionId = delegatedTransitionId({files, policy});
   if (touchedTransitionPath && !transitionId) {
     fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
