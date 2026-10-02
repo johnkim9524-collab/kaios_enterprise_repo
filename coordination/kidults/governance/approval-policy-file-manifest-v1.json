@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 679
+    "file_count": 684
   },
   "files": [
     {
@@ -2577,6 +2577,36 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "de69685ad30abfaba218b2088eb3693ac2c99763",
       "sha256": "sha256:e3e07790eb0ab529a293a7c1ac812750bcd2596ed79f6f390228904375e06fc3"
+    },
+    {
+      "path": "docs/kidults/governance/autonomous-normal-operations-closure/FINAL_MASTER_SPECIFICATION_PART_1.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "54cc526d7bcbf328bced36f26f6c18f8799d9569",
+      "sha256": "sha256:7d84c4f07f6ca31d3874090d68c3dc813217bca99b25e9491255b4ac4912e6e6"
+    },
+    {
+      "path": "docs/kidults/governance/autonomous-normal-operations-closure/FINAL_MASTER_SPECIFICATION_PART_2.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "aabe952dc3b002daadccd4fd736a52bf1328d620",
+      "sha256": "sha256:0eb76f1c34cd7f78a83c91ea5cc78daec983a8f2e4eaebbe62d2237fe8645eb9"
+    },
+    {
+      "path": "docs/kidults/governance/autonomous-normal-operations-closure/FINAL_MASTER_SPECIFICATION_PART_3.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "c3d84195ad4f366750c95ef10b08896fbb4786b2",
+      "sha256": "sha256:dbf2403bb4f8d60b086c75adce97ad61f40fcf17d2606923365ea4d5afc70fba"
+    },
+    {
+      "path": "docs/kidults/governance/autonomous-normal-operations-closure/FINAL_MASTER_SPECIFICATION_PART_4.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "3220fc5d5d099af1abf25cfadb4c060d1aab6844",
+      "sha256": "sha256:10611e6696f2f85d413e0d34f0f4f6a71928a020799aa9ce763296cdbaa78b31"
+    },
+    {
+      "path": "docs/kidults/governance/autonomous-normal-operations-closure/README.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "4cb625c2a7783be745b7af6ba7686d333152c728",
+      "sha256": "sha256:69cad507f8c9a99e34585bf69c45fae3f65247db7e8d1e66cda2ca1b28d63ad6"
     },
     {
       "path": "docs/kidults/kpmo/canonical-same-main-refresh-v1.md",
@@ -5376,5 +5406,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9f504ddf5f37d466f4e3dea6063144818009b16f1d02fbf661343aea75f3a83e"
+  "manifest_sha256": "sha256:85927bda59738860c80f575244b3ae03bbd0dc34281ed8ebdaa0a40111c209b7"
 }
