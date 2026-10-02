@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 676
+    "file_count": 677
   },
   "files": [
     {
@@ -3357,6 +3357,19 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "8028a7ef0aa9bc6e973ec23ffdcbff89cb987b7a",
+      "sha256": "sha256:069524407218f9396a610b73ab5c0ee9f66a41790d9f3f36c71e728f858a180f",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "bd9c45d92cc5cafec331fb24055e374bc5ed31a0",
@@ -5337,5 +5350,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:db3caf222592809b5c806dc7cbca84ecf9cb47541d5cc7f2c4f18b4a3bf39ead"
+  "manifest_sha256": "sha256:648f78465b7436678680b260d92a6d9abf8561eebfca30509b16711940e70032"
 }
