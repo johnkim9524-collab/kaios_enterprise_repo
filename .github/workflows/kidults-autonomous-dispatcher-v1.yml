@@ -24,6 +24,11 @@ permissions: {}
 
 jobs:
   dispatch-eligible-internal-prs:
+    outputs:
+      stale_recoverable: ${{ steps.discover.outputs.stale_recoverable }}
+      stale_count: ${{ steps.discover.outputs.stale_count }}
+      redundant_prs: ${{ steps.discover.outputs.redundant_prs }}
+      redundant_count: ${{ steps.discover.outputs.redundant_count }}
     if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-DISPATCHER
@@ -57,7 +62,15 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
+          stale_count=$(jq '[.[] | select(.state=="STALE_RECOVERABLE")] | length' out/autonomous-dispatcher-v1/results.json)
+          stale_recoverable=$(jq -c '[.[] | select(.state=="STALE_RECOVERABLE") | .binding] | .[0:4]' out/autonomous-dispatcher-v1/results.json)
+          redundant_count=$(jq '[.[] | select(.state=="STALE_REDUNDANT")] | length' out/autonomous-dispatcher-v1/results.json)
+          redundant_prs=$(jq -c '[.[] | select(.state=="STALE_REDUNDANT") | .binding] | .[0:4]' out/autonomous-dispatcher-v1/results.json)
           echo "eligible_count=$eligible_count" >> "$GITHUB_OUTPUT"
+          echo "stale_count=$stale_count" >> "$GITHUB_OUTPUT"
+          echo "stale_recoverable=$stale_recoverable" >> "$GITHUB_OUTPUT"
+          echo "redundant_count=$redundant_count" >> "$GITHUB_OUTPUT"
+          echo "redundant_prs=$redundant_prs" >> "$GITHUB_OUTPUT"
 
       - name: Mint exact short-lived token and atomically fan out one common role event
         if: steps.discover.outputs.eligible_count != '0'
@@ -119,5 +132,91 @@ jobs:
         with:
           name: kidults-autonomous-dispatcher-${{ github.run_id }}
           path: out/autonomous-dispatcher-v1/
+          if-no-files-found: error
+          retention-days: 90
+
+
+  converge-stale-internal-prs:
+    name: Finalizer-only bounded stale-base convergence
+    needs: dispatch-eligible-internal-prs
+    if: needs.dispatch-eligible-internal-prs.result == 'success' && (needs.dispatch-eligible-internal-prs.outputs.stale_count != '0' || needs.dispatch-eligible-internal-prs.outputs.redundant_count != '0') && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-FINALIZER
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      STALE_RECOVERABLE: ${{ needs.dispatch-eligible-internal-prs.outputs.stale_recoverable }}
+      REDUNDANT_PRS: ${{ needs.dispatch-eligible-internal-prs.outputs.redundant_prs }}
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout protected main policy only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Verify exact Finalizer convergence boundary
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(jq 'length' <<<"$STALE_RECOVERABLE")" -le 4
+          mkdir -p out/autonomous-stale-base-convergence-v1
+          test "$(jq 'length' <<<"$REDUNDANT_PRS")" -le 4
+          jq -c '.[]' <<<"$REDUNDANT_PRS" | while IFS= read -r binding; do
+            pr=$(jq -er '.pull_request' <<<"$binding")
+            current_main=$(jq -er '.current_main_sha' <<<"$binding")
+            expected_head=$(jq -er '.expected_head_sha' <<<"$binding")
+            live_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')
+            live=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
+            test "$live_main" = "$current_main"
+            test "$(jq -r '.state' <<<"$live")" = open
+            test "$(jq -r '.merged' <<<"$live")" = false
+            test "$(jq -r '.head.sha' <<<"$live")" = "$expected_head"
+            test "$(jq -r '.head.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
+            gh api --method PATCH "repos/$GITHUB_REPOSITORY/pulls/$pr" -f state=closed >/tmp/close-pr.json
+            test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq '.state')" = closed
+            jq -n --argjson pr "$pr" --arg main "$current_main" --arg head "$expected_head"               '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}'               >"out/autonomous-stale-base-convergence-v1/pr-$pr-redundant.json"
+          done
+          jq -c '.[]' <<<"$STALE_RECOVERABLE" | while IFS= read -r binding; do
+            pr=$(jq -er '.pull_request' <<<"$binding")
+            old_base=$(jq -er '.old_base_sha' <<<"$binding")
+            current_main=$(jq -er '.current_main_sha' <<<"$binding")
+            expected_head=$(jq -er '.expected_head_sha' <<<"$binding")
+            live_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')
+            live=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
+            test "$live_main" = "$current_main"
+            test "$(jq -r '.state' <<<"$live")" = open
+            test "$(jq -r '.merged' <<<"$live")" = false
+            test "$(jq -r '.base.ref' <<<"$live")" = main
+            test "$(jq -r '.base.sha' <<<"$live")" = "$old_base"
+            test "$(jq -r '.head.sha' <<<"$live")" = "$expected_head"
+            test "$(jq -r '.head.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
+            test "$(jq -r '.base.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
+            gh api --method PUT "repos/$GITHUB_REPOSITORY/pulls/$pr/update-branch" -f expected_head_sha="$expected_head" >/tmp/update-branch.json
+            converged=''
+            for _ in $(seq 1 24); do
+              sleep 5
+              after=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
+              new_head=$(jq -r '.head.sha' <<<"$after")
+              if [[ "$new_head" != "$expected_head" && "$(jq -r '.base.sha' <<<"$after")" = "$current_main" ]]; then
+                commit=$(gh api "repos/$GITHUB_REPOSITORY/commits/$new_head")
+                parents=$(jq -r '[.parents[].sha] | sort | join(",")' <<<"$commit")
+                expected_parents=$(printf '%s\n%s\n' "$expected_head" "$current_main" | sort | paste -sd, -)
+                test "$parents" = "$expected_parents"
+                jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$current_main" --arg old_head "$expected_head" --arg new_head "$new_head"                   '{state:"STALE_BASE_CONVERGED",pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$old_head,new_head_sha:$new_head,fresh_ci_required:true,fresh_authorization_generation_required:true,production:"HOLD",public:"HOLD",g5:"HOLD"}'                   >"out/autonomous-stale-base-convergence-v1/pr-$pr.json"
+                converged=true
+                break
+              fi
+            done
+            test "$converged" = true
+          done
+
+      - name: Upload stale-base convergence receipts
+        uses: actions/upload-artifact@b7c566a772e6b6f49b058ed0dc250532a479d7789f
+        with:
+          name: kidults-autonomous-stale-base-convergence-${{ github.run_id }}
+          path: out/autonomous-stale-base-convergence-v1/
           if-no-files-found: error
           retention-days: 90

@@ -77,6 +77,22 @@ test('repository-wide manual-only workflows are an exact reviewed exception set'
   assert.deepEqual([...actual].sort(),[...reviewed].sort());
 });
 
+test('internal reversible PR lifecycle is autonomous end-to-end, not only approval comments',()=>{
+  const lifecycle=landing.normal_internal_pr_lifecycle;
+  for(const key of ['owner_comment_required','owner_review_required','owner_ready_click_required','owner_merge_click_required','manual_dispatch_required','manual_rebase_or_recut_required','manual_stale_pr_cleanup_required']) assert.equal(lifecycle[key],false,key);
+  assert.equal(lifecycle.draft_to_ready,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.merge,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.postmerge,'EXACT_MERGE_SHA_AUTOMATIC');
+  assert.equal(lifecycle.stale_base,'FINALIZER_BOUNDED_UPDATE_BRANCH');
+  assert.equal(lifecycle.redundant_pr_cleanup,'FINALIZER_EXACT_BLOB_EQUALITY_ONLY');
+  assert.equal(lifecycle.bounded_retry,'AUTOMATIC_FRESH_GENERATION');
+  assert.equal(lifecycle.owner_escalation,'ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED');
+  assert.equal(landing.merge.autonomous_stale_base_convergence.executor,'FINALIZER_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.executor,'FINALIZER_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.close_only_when_all_changed_file_blobs_equal_current_main,true);
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.removed_or_renamed_files_auto_close_forbidden,true);
+});
+
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{
   const safe={filename:'.github/workflows/internal-recovery.yml',patch:'@@ -1 +1,2 @@\n name: recovery\n+concurrency: bounded-recovery'};
   assert.deepEqual(assertAutonomousFileScope({files:[safe],policy:landing}),[safe.filename]);
