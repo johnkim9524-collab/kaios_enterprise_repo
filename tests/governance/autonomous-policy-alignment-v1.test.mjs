@@ -198,7 +198,7 @@ test('natural clock repair is an exact immutable transition, not a broad exempti
 
 test('comment-only deletion and monotonic hardening remain autonomous',()=>{
   const filename='scripts/kidults/kpmo/internal-recovery.mjs';
-  const patch='@@ -1,2 +1,2 @@\n-// stale comment\n+// corrected comment\n+export const failClosed = true;';
+  const patch='@@ safe-internal-policy-metadata @@';
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch}],policy:landing}),[filename]);
 });
 
@@ -396,4 +396,19 @@ test('unrelated safe implementation replacement does not alter guard dependency 
   );
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('landing policy path is semantically classified instead of permanently Owner-reserved',()=>{
+  const self='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+  assert.equal(landing.owner_reserved_exact_paths.includes(self),false);
+  assert.equal(landing.semantic_self_governance.path_name_alone_is_owner_gate,false);
+  for(const root of [
+    'CONSTITUTION.md',
+    'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',
+    'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',
+    'coordination/kidults/governance/github-oidc-subject-customization-v1.json',
+    'coordination/kidults/governance/autonomous-workload-identity-registry-v1.json',
+  ]) assert.equal(landing.owner_reserved_exact_paths.includes(root),true,root);
+  const patch='@@ safe-internal-policy-metadata @@';
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename:self,patch}],policy:landing}),[self]);
 });
