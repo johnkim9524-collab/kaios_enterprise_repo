@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 676
+    "file_count": 677
   },
   "files": [
     {
@@ -3346,8 +3346,21 @@
     {
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d0827db2a595842ca7697e885d22743d85a6ba83",
-      "sha256": "sha256:a022b8e24eb15b2e44a38f255da4eef957ac58c97e9996931c658207f84f5df7",
+      "git_blob": "67f4804c81e9ed12dbfdb8bc78cad01cee8099da",
+      "sha256": "sha256:29d7df26308361a7e776145fd14da4746f4eb31e99bbba46edc9295388b93ee4",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "8028a7ef0aa9bc6e973ec23ffdcbff89cb987b7a",
+      "sha256": "sha256:069524407218f9396a610b73ab5c0ee9f66a41790d9f3f36c71e728f858a180f",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3372,8 +3385,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3f3265bbc740cb7c08a95d9d42dc542b16fcfba2",
-      "sha256": "sha256:094792c83529d284512b93a5365ce07fc9ab25e94ac4dd6d119b571351f9f5e8",
+      "git_blob": "281fc63a80e602e52135e8aab8b145a2d81f04a8",
+      "sha256": "sha256:cd36f358f76ec0557148d20511c0c21e482443af9814d0bb9cc8a5840f044eff",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5048,8 +5061,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a94fd7e356ce12d6865e7683b70dff6566204aaf",
-      "sha256": "sha256:af51e7be7fc4eb590e57b425fe12b2c55be4793ca9d77fe387682163b50e7f5c",
+      "git_blob": "55f35942f30dfc8d6bc63a0a7f5282fbf86e9991",
+      "sha256": "sha256:bf22b38e92e3582f7d23d392d5739a4fdc539bac33511580de73f1b70bcf2b6b",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5337,5 +5350,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:366c5e4cb15fd38db8643365f6c0042f85d6784797239f7dc4831aa3dfc72b67"
+  "manifest_sha256": "sha256:4353c8d481f0c3be8fc50e598c46d91f89aff6866b3670cd07111d1ea7b511aa"
 }
