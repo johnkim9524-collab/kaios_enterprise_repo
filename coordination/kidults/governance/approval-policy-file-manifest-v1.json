@@ -1360,8 +1360,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bc47ee755f7d9fbf9c22c006e52b74d69b4d2cde",
-      "sha256": "sha256:221350da61f5464d9fc9c51a75efa1a8934a03a422de8a9a625ef549169cfc5c",
+      "git_blob": "20a20708e568f01db87851c96db699480f721631",
+      "sha256": "sha256:0d907e1ac5b6fe496ce836a3e7f5599a8db87c47ac9d508303037a5e460a66b1",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5074,8 +5074,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "257cc3f897ac9b803da22b89d7c38884e4dca874",
-      "sha256": "sha256:3e750eea363dd6d9af85b290b7bc9e578946a0307802809cc3d73b0774ce5903",
+      "git_blob": "38203216e91920d425926cec46ec5638634df626",
+      "sha256": "sha256:44255205525429a79b5067db07328424635d0f9e8d1e4a8d18eee07fc57ba3af",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5fe1b24a0b86daf351682d1a60e78a88bc3149cfde4621a6e13e6124d6536cfd"
+  "manifest_sha256": "sha256:f1a87f0177ac23f8555211b097386a6e68ac35c04f4337158cbfb3d9eea91032"
 }
