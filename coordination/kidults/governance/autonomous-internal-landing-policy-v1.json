@@ -315,6 +315,45 @@
           "head_sha256": "sha256:9695e913507ae929b77a2552cdd3805a131f497f6b51903c7dc75c86e20bfd43"
         }
       ]
+    },
+    {
+      "id": "STALE_BASE_LIFECYCLE_FAILURE_HARDENING_V1",
+      "paths": [
+        ".github/workflows/ci-validation.yml",
+        ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
+        "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+        "coordination/kidults/governance/approval-policy-inventory-v1.json",
+        "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs"
+      ],
+      "require_complete_path_set": true,
+      "content_binding": "EXACT_IMMUTABLE_BASE_HEAD_SHA256",
+      "content_digests": [
+        {
+          "path": ".github/workflows/ci-validation.yml",
+          "base_sha256": "sha256:05c6b7bb890bd3f212b11dd609839c7dcf183332f8414a94cc46ee482241ba58",
+          "head_sha256": "sha256:12752d467b9257280cc0d3e41f9f9943f1fefe5a7e75735a5d764f97d696128a"
+        },
+        {
+          "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
+          "base_sha256": "sha256:e3e1be96c4f909b87160fc6a570222b0b44e43f494983b6ceb60a3fb59aa7623",
+          "head_sha256": "sha256:d17c5124c06646f138900a0d86d9cc2f1926ed76b9ad9a683f9e47d85b31ca5b"
+        },
+        {
+          "path": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+          "base_sha256": "sha256:63c725fcb5d2ee5da7eebe32b3c70624ab39df658faf944109c710f35518a4a8",
+          "head_sha256": "sha256:543a70739461b140a15185b08b77df9308e9e1f137b920c40959a884f98a9786"
+        },
+        {
+          "path": "coordination/kidults/governance/approval-policy-inventory-v1.json",
+          "base_sha256": "sha256:45f62e77fa9aea6c776c6de788b107b26027699cec5e5682be36165b3bdebdf4",
+          "head_sha256": "sha256:ea9aafa7b2e872991f964c79cb915ea4cc4e2e2cf7e5807a1e26d2dd3344a074"
+        },
+        {
+          "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
+          "base_sha256": "sha256:c02e451a44a834d9b48895a0d43dfdedde493df411dc09586aa5fcfd15774e4e",
+          "head_sha256": "sha256:c508c52575ae4bd563e7148ff6c31291f3cde5bd74a2d4d3efcca7b1c4eb867a"
+        }
+      ]
     }
   ],
   "automatic_triggers": [
