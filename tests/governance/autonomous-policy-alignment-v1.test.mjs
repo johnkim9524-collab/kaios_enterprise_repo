@@ -254,6 +254,23 @@ test('exact exception policy weakening fails while monotonic evidence addition p
   assert.equal(evaluateSemanticCapabilityDelta({files:[{filename,base_content:base,head_content:strengthened}],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
 });
 
+test('derived approval metadata digest rebinding is autonomous but routing mutation is not',()=>{
+  const manifest='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const inventory='coordination/kidults/governance/approval-policy-inventory-v1.json';
+  const manifestBase=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'a',sha256:'sha256:a',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:old'});
+  const manifestHead=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:new'});
+  const inventoryBase=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
+  const inventoryHead=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
+  for(const [filename,base_content,head_content] of [[manifest,manifestBase,manifestHead],[inventory,inventoryBase,inventoryHead]]){
+    const file={filename,base_content,head_content};
+    assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+    assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  }
+  const routed=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'OWNER_RESERVED'}}],manifest_sha256:'sha256:new'});
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
+});
+
 test('safe monotonic workflow hardening passes both independent models',()=>{
   const file=semanticFile(workflow('    timeout-minutes: 10\n'));
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
