@@ -7,6 +7,8 @@ export const GOVERNED_LANDING_CONTEXT = 'KIDULTS Governed Landing Authorization 
 export const GOVERNED_LANDING_PENDING_DESCRIPTION = 'Ready; operation-specific atomic landing is required';
 export const GOVERNED_LANDING_NORMAL_READY_DESCRIPTION = 'Ready lifecycle verified; operation-specific landing authority required';
 export const READY_GOVERNED_REASON = 'NATIVE_SCOPE_SUCCESS_AND_OPERATION_SPECIFIC_ATOMIC_LANDING_PENDING';
+export const OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE = 'READY_VERIFIED_NON_PROMOTABLE';
+export const OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON = 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING';
 
 export function isAtomicLandingNativeStatusReady(status) {
   const context = String(status?.context || '');
@@ -67,8 +69,22 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
     || receipt.latest_ready_event_actor !== lastReadyEventActor) {
     fail('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH');
   }
-  if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
-  if (receipt.reason !== READY_GOVERNED_REASON) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  if (receipt.state === 'READY_GOVERNED' && receipt.reason !== READY_GOVERNED_REASON) {
+    fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  }
+  if (receipt.state === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE
+    && receipt.reason !== OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON) {
+    fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  }
+  const readyGovernedReceipt = receipt.state === 'READY_GOVERNED'
+    && receipt.reason === READY_GOVERNED_REASON;
+  const ownerReservedPendingReceipt = receipt.state === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE
+    && receipt.reason === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON
+    && receipt.manual_merge_authority === false
+    && receipt.atomic_landing_only === false;
+  if (!readyGovernedReceipt && !ownerReservedPendingReceipt) {
+    fail(`LIFECYCLE_RECEIPT_NOT_ATOMIC_LANDING_CONSUMABLE:${receipt.state || 'missing'}`);
+  }
   if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
   if (receipt.validator_authority !== 'CONTROL_ONLY') fail('LIFECYCLE_RECEIPT_AUTHORITY_INVALID');
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
@@ -109,7 +125,13 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
     exactStatusIdentity = exactStatusIdentity && sameStatusIdentity;
     receiptNativeFloor = Math.max(receiptNativeFloor, actualUpdatedTime);
   }
-  return {receiptNativeFloor, exactStatusIdentity};
+  return {
+    receiptNativeFloor,
+    exactStatusIdentity,
+    lifecycleContractMode: readyGovernedReceipt
+      ? 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL'
+      : 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  };
 }
 
 export function selectAtomicLandingLifecycleAuthority({
@@ -206,7 +228,11 @@ export function selectAtomicLandingLifecycleAuthority({
   if (lifecycleEvaluatedTime < readyEventTime) fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
 
   return {
-    state: 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND',
+    state: nativeBinding.lifecycleContractMode === 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL'
+      ? 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND'
+      : 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+    lifecycle_contract_mode: nativeBinding.lifecycleContractMode,
+    owner_exact_head_approval_required: nativeBinding.lifecycleContractMode !== 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL',
     pull_request: Number(prNumber),
     exact_head_sha: headSha,
     exact_base_sha: baseSha,
