@@ -4,6 +4,8 @@ import {
   GOVERNED_LANDING_CONTEXT,
   GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
   GOVERNED_LANDING_PENDING_DESCRIPTION,
+  OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON,
+  OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE,
   isAtomicLandingNativeStatusReady,
   READY_GOVERNED_REASON,
   SCOPE_AWARE_CONTEXT,
@@ -132,6 +134,32 @@ assert(authority.lifecycle_artifact_digest === `sha256:${'a'.repeat(64)}`, 'POSI
 assert(authority.exact_base_sha === base, 'POSITIVE_BASE_BINDING');
 assert(authority.lifecycle_receipt_reason === READY_GOVERNED_REASON, 'POSITIVE_PENDING_SEMANTICS');
 assert(authority.native_status_binding_mode === 'EXACT_STATUS_IDENTITY', 'POSITIVE_EXACT_STATUS_BINDING');
+
+const normalReadyStatuses = nativeStatuses.map(status => status.context === GOVERNED_LANDING_CONTEXT
+  ? {
+      ...status,
+      id: 13,
+      description: GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
+      creator: {login: 'github-actions[bot]'},
+    }
+  : status);
+const ownerReservedPending = invoke({
+  runs: [green],
+  artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': receipt(200, {
+    state: OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE,
+    reason: OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON,
+    manual_merge_authority: false,
+    atomic_landing_only: false,
+  }, normalReadyStatuses)},
+  statuses: normalReadyStatuses,
+});
+assert(ownerReservedPending.state === 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  'OWNER_RESERVED_PENDING_STATE_NOT_CONSUMABLE');
+assert(ownerReservedPending.lifecycle_contract_mode === 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  'OWNER_RESERVED_PENDING_MODE_INVALID');
+assert(ownerReservedPending.owner_exact_head_approval_required === true,
+  'OWNER_RESERVED_PENDING_MUST_REQUIRE_EXACT_OWNER_APPROVAL');
 
 const newerEquivalentStatuses = nativeStatuses.map(status => status.context === SCOPE_AWARE_CONTEXT
   ? {
@@ -283,7 +311,7 @@ expectReject('LIFECYCLE_EXACT_GENERATION_MISSING', () => invoke({
 expectReject('LIFECYCLE_RECEIPT_BASE_MISMATCH', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {exact_base_sha: '4'.repeat(40)})},
 }));
-expectReject('LIFECYCLE_RECEIPT_NOT_READY_GOVERNED', () => invoke({
+expectReject('LIFECYCLE_RECEIPT_NOT_ATOMIC_LANDING_CONSUMABLE', () => invoke({
   runs: [green], artifactsByRunId: {'200': [artifact(200)]}, receiptsByRunId: {'200': receipt(200, {state: 'READY_NON_PROMOTABLE'})},
 }));
 expectReject('LIFECYCLE_RECEIPT_REASON_INVALID', () => invoke({
