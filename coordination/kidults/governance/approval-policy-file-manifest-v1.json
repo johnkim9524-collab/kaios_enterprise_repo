@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0d50165f962b19b272d57ec015d25cf9048cc9b7",
-      "sha256": "sha256:fc12ddd61e729f66595ca8f409bcfbf0171fa27bd9ba746c159dda029de58b97",
+      "git_blob": "326735d6bb5721ab8035a76ac5674af68303e0fc",
+      "sha256": "sha256:e3e1be96c4f909b87160fc6a570222b0b44e43f494983b6ceb60a3fb59aa7623",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5350,5 +5350,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f821ef15529e1a14d20efe8f67a40df315728ca1bc490e33f7f42f532976e05e"
+  "manifest_sha256": "sha256:f3da16482bcce2b9310ec2d846e5557872544e9674d0612c72885ff349af8392"
 }
