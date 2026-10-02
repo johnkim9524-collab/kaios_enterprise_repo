@@ -5312,8 +5312,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "35be3289f65a993865617aeb96bc9d26cfa6f45d",
-      "sha256": "sha256:2a6d02e45e67ec64d4551262bce54229e0d02d38abee83a67290faa97888b804"
+      "git_blob": "b7e83107256e3491259a3ea4bac420a402dff10d",
+      "sha256": "sha256:81ffdfa1588382137a933cd02dd20538bb8438290e88a24767153ab62ffc8a11"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:263e6439a5e0d7f6a91eebeba1bb072f633bc1134a6ab006e5933d1292e55c5a"
+  "manifest_sha256": "sha256:415c3993d82e6fb8c66c88844b3e6b59350f8c8d273ded9ca920d286c27190cc"
 }
