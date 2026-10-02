@@ -498,20 +498,17 @@ try {
     writeReceipt(approvalReceipt);
     console.log(JSON.stringify(approvalReceipt));
   } else {
-    const approvals=readApprovals();
-    const missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    const quorumDeadline=Date.now()+Number(policy.bounded_recovery?.finalizer_quorum_wait_seconds||90)*1000;
+    let approvals=readApprovals();
+    let missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    while(missing.length && Date.now()<quorumDeadline){
+      await sleep(3000);
+      approvals=readApprovals();
+      missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    }
     if (missing.length) {
-      const waiting = {
-        id:'kidults-autonomous-internal-landing-terminal-receipt-v1',
-        version:'1.0.0',
-        state:'AWAITING_QUORUM',
-        authorization_generation:envelope.authorization_generation,
-        finalizer_workload_id:runtimeWorkload.workload_id,
-        missing_roles:missing,
-        production:'HOLD',public:'HOLD',g5:'HOLD',
-      };
-      writeReceipt(waiting);
-      console.log(JSON.stringify(waiting));
+      const waiting = {id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'AWAITING_QUORUM',authorization_generation:envelope.authorization_generation,finalizer_workload_id:runtimeWorkload.workload_id,missing_roles:missing,production:'HOLD',public:'HOLD',g5:'HOLD'};
+      writeReceipt(waiting); console.log(JSON.stringify(waiting));
     } else {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
@@ -519,21 +516,24 @@ try {
       const eventToken=await acquireEventToken();
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       const finalizerRunId=required('GITHUB_RUN_ID');
-      const reservation=invokeFinalizerWriter({
-        action:'CREATE_RESERVATION',
-        authorization_generation:envelope.authorization_generation,
-        nonce_digest:envelope.nonce_digest,
-        run_id:finalizerRunId,
-        head_sha:envelope.head_sha,
-      });
+      let reservation; let recoveryFinalizer=false;
+      try { reservation=invokeFinalizerWriter({action:'CREATE_RESERVATION',authorization_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,run_id:finalizerRunId,head_sha:envelope.head_sha}); }
+      catch(error){
+        const recoveryPolicy=policy.bounded_recovery?.normal_ops_recovery_finalizer||{};
+        const recoverable=recoveryPolicy.enabled===true && error instanceof AutonomousLandingError && Array.isArray(recoveryPolicy.activation) && recoveryPolicy.activation.includes(error.code) && !(recoveryPolicy.forbidden_activation||[]).includes(error.code);
+        if(!recoverable) throw error;
+        if(required('GITHUB_WORKFLOW')!==recoveryPolicy.elected_workflow){
+          const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_RECOVERY_FOLLOWER',authorization_generation:envelope.authorization_generation,finalizer_run_id:finalizerRunId,writer_failure_code:error.code,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+          writeReceipt(follower); console.log(JSON.stringify(follower)); process.exit(0);
+        }
+        recoveryFinalizer=true; reservation={state:'RECOVERY_VERIFIER_ELECTED',owner_run_id:finalizerRunId};
+      }
       if(reservation?.state==='ALREADY_RESERVED' && String(reservation.owner_run_id)!==finalizerRunId){
         const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_FOLLOWER',authorization_generation:envelope.authorization_generation,reservation_owner_run_id:String(reservation.owner_run_id),finalizer_run_id:finalizerRunId,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
-        writeReceipt(follower);
-        console.log(JSON.stringify(follower));
-        process.exit(0);
+        writeReceipt(follower); console.log(JSON.stringify(follower)); process.exit(0);
       }
-      if(!['RESERVED','ALREADY_RESERVED'].includes(reservation?.state)) throw new AutonomousLandingError('AUTONOMOUS_RESERVATION_STATE_INVALID');
-      await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
+      if(!['RESERVED','ALREADY_RESERVED','RECOVERY_VERIFIER_ELECTED'].includes(reservation?.state)) throw new AutonomousLandingError('AUTONOMOUS_RESERVATION_STATE_INVALID');
+      await publishLandingStatus('pending',recoveryFinalizer?'AI-020 quorum verified; bounded recovery finalizer elected':'AI-020 quorum verified; durable authority reserved');
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
@@ -544,7 +544,7 @@ try {
       const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
       if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
       const postmerge=await waitForExactMergeShaValidation(merge.sha);
-      invokeFinalizerWriter({
+      if(!recoveryFinalizer) invokeFinalizerWriter({
         action:'CONSUME_RESERVATION',
         authorization_generation:envelope.authorization_generation,
         nonce_digest:envelope.nonce_digest,
@@ -552,7 +552,9 @@ try {
         head_sha:envelope.head_sha,
         merge_sha:merge.sha,
       });
-      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
+      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:recoveryFinalizer
+        ? {state:'RECOVERY_CONSUMED',conditional_write:false,backend:'GITHUB_EXACT_HEAD_FAILOVER',primary_writer_failure:true}
+        : {state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
         merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
       const immutableCopy=sealImmutableReceipt(terminal);
       const sealedTerminal={...terminal,immutable_copy:immutableCopy};

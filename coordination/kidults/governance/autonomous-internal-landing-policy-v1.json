@@ -333,7 +333,25 @@
     "draft_ready_rebind": "AUTOMATIC",
     "draft_ready_validation_timeout_seconds": 420,
     "pre_reservation_failure_consumes_authority": false,
-    "reservation_occurs_immediately_before_first_mutation": true
+    "reservation_occurs_immediately_before_first_mutation": true,
+    "finalizer_quorum_wait_seconds": 90,
+    "normal_ops_recovery_finalizer": {
+      "enabled": true,
+      "elected_workflow": "KIDULTS Autonomous Independent Verification V1",
+      "activation": [
+        "AUTONOMOUS_LEDGER_WRITER_FUNCTION_ERROR",
+        "AUTONOMOUS_LEDGER_WRITER_FAILURE"
+      ],
+      "forbidden_activation": [
+        "AUTONOMOUS_LEDGER_WRITER_REJECTED"
+      ],
+      "requires_exact_head": true,
+      "requires_three_role_quorum": true,
+      "owner_boundary_bypass": false,
+      "production": "HOLD",
+      "public": "HOLD",
+      "g5": "HOLD"
+    }
   },
   "durable_single_use": {
     "backend": "AWS_DYNAMODB_CONDITIONAL_WRITE",
