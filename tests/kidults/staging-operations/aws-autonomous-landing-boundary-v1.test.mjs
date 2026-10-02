@@ -58,3 +58,13 @@ test('writer verifies KMS signatures and runner rejects caller-supplied workload
   assert.match(runner,/KIDULTS_AUTONOMOUS_WORKFLOW_REF/);
   assert.equal(runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'),false);
 });
+
+test('finalizer reservation is a single-winner lease and followers exit without merge authority', () => {
+  const code=template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
+  for(const marker of ['reserve_once','ReturnValuesOnConditionCheckFailure','ConditionalCheckFailedException','ALREADY_RESERVED','owner_run_id','RESERVATION_CONFLICT_INVALID']) assert.match(code,new RegExp(marker));
+  assert.match(runner,/state:'FINALIZER_FOLLOWER'/);
+  assert.match(runner,/reservation_owner_run_id/);
+  assert.match(runner,/process\.exit\(0\)/);
+  assert.match(runner,/String\(reservation\.owner_run_id\)!==finalizerRunId/);
+  assert.match(code,/ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head'/);
+});

@@ -518,13 +518,21 @@ try {
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       const eventToken=await acquireEventToken();
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-      invokeFinalizerWriter({
+      const finalizerRunId=required('GITHUB_RUN_ID');
+      const reservation=invokeFinalizerWriter({
         action:'CREATE_RESERVATION',
         authorization_generation:envelope.authorization_generation,
         nonce_digest:envelope.nonce_digest,
-        run_id:required('GITHUB_RUN_ID'),
+        run_id:finalizerRunId,
         head_sha:envelope.head_sha,
       });
+      if(reservation?.state==='ALREADY_RESERVED' && String(reservation.owner_run_id)!==finalizerRunId){
+        const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_FOLLOWER',authorization_generation:envelope.authorization_generation,reservation_owner_run_id:String(reservation.owner_run_id),finalizer_run_id:finalizerRunId,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+        writeReceipt(follower);
+        console.log(JSON.stringify(follower));
+        process.exit(0);
+      }
+      if(!['RESERVED','ALREADY_RESERVED'].includes(reservation?.state)) throw new AutonomousLandingError('AUTONOMOUS_RESERVATION_STATE_INVALID');
       await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
