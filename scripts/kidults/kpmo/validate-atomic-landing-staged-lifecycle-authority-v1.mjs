@@ -99,6 +99,20 @@ assert(positive.latest_ready_event_id === 9001, 'POSITIVE_READY_BINDING_INVALID'
 assert(positive.readiness_authority === 'LIFECYCLE_ONLY', 'POSITIVE_READY_AUTHORITY_INVALID');
 assert(positive.ready_state_grants_authorization === false, 'POSITIVE_READY_AUTHORIZATION_INVALID');
 
+const ownerReserved = invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+}));
+assert(ownerReserved.state === 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  'OWNER_RESERVED_STATE_INVALID');
+assert(ownerReserved.lifecycle_contract_mode === 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  'OWNER_RESERVED_CONTRACT_MODE_INVALID');
+assert(ownerReserved.owner_exact_head_approval_required === true,
+  'OWNER_RESERVED_APPROVAL_FLAG_INVALID');
+
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_ID_INVALID', () => invoke(receipt({id: 'wrong'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_VERSION_INVALID', () => invoke(receipt({version: '1.0.0'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_REPOSITORY_MISMATCH', () => invoke(receipt({repository: 'other/repo'})));
@@ -106,6 +120,19 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_PR_MISMATCH', () => invoke(receipt({pull_r
 expectReject('ATOMIC_STAGED_LIFECYCLE_HEAD_MISMATCH', () => invoke(receipt({exact_head_sha: 'd'.repeat(40)})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_BASE_MISMATCH', () => invoke(receipt({exact_base_sha: 'e'.repeat(40)})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_STATE_INVALID', () => invoke(receipt({state: 'READY_NON_PROMOTABLE'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_OWNER_APPROVAL_REQUIRED', () => invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_CONTRACT_MODE_INVALID', () => invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_EVALUATION_PRECEDES_READY', () =>
   invoke(receipt({lifecycle_evaluated_at: '2026-09-02T04:19:59Z'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_CHECK_PRECEDES_EVALUATION', () =>
