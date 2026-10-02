@@ -133,8 +133,10 @@ assert.match(dispatcherWorkflow,/AUTONOMOUS_REDUNDANT_PR_HYGIENE/);
 assert.match(dispatcherWorkflow,/permission_profile:\$profile/);
 assert.match(dispatcherWorkflow,/pulls\/\$pr\/update-branch/);
 assert.match(dispatcherWorkflow,/expected_head_sha:\$h/);
+assert.match(dispatcherWorkflow,/LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_/);
 assert.match(dispatcherWorkflow,/http_code.*422[\s\S]*QUARANTINE_NO_MUTATION_RETRY/);
-assert.match(dispatcherWorkflow,/test "\$http_code" = 202[\s\S]*for _ in \$\(seq 1 24\)/);
+assert.match(dispatcherWorkflow,/STALE_BASE_UPDATE_HTTP_[\s\S]*github_message/);
+assert.match(dispatcherWorkflow,/http_code.*!= 202[\s\S]*for _ in \$\(seq 1 24\)/);
 assert.match(dispatcherWorkflow,/new_head.*!=.*head[\s\S]*new_base.*=.*main/);
 assert.match(dispatcherWorkflow,/expected_parents[\s\S]*STALE_BASE_CONVERGED/);
 assert.match(dispatcherWorkflow,/fresh_ci_required:true,fresh_authorization_generation_required:true/);
@@ -189,7 +191,7 @@ for(const workflowPath of oidcWorkflowPaths){
     assert.doesNotMatch(workflow,/kidults\.(?:track|kpmo|independent)\.(?:authorization|verification)\.v1/);
   }
   const sessions=(workflow.match(/read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length;
-  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -r/g)||[]).length;
+  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -e?r/g)||[]).length;
   assert.ok(sessions>0,`expected OIDC session blocks in ${workflowPath}`);
   assert.equal((workflow.match(/echo "::add-mask::\$AWS_ACCESS_KEY_ID"/g)||[]).length,sessions);
   assert.equal((workflow.match(/echo "::add-mask::\$AWS_SECRET_ACCESS_KEY"/g)||[]).length,sessions);

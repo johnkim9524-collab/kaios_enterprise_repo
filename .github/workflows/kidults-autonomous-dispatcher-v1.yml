@@ -128,8 +128,16 @@ jobs:
 
           mint_lifecycle_token() {
             local binding="$1" profile="$2" generation="$3"
-            OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-            OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+            oidc_body=$(mktemp)
+            oidc_code=$(curl --silent --show-error -o "$oidc_body" -w '%{http_code}' -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com" || true)
+            if [[ "$oidc_code" != 200 ]]; then
+              echo "::error::LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_${oidc_code}" >&2
+              rm -f "$oidc_body"
+              return 1
+            fi
+            OIDC_JSON=$(cat "$oidc_body")
+            rm -f "$oidc_body"
+            OIDC_TOKEN=$(jq -er '.value' <<<"$OIDC_JSON")
             echo "::add-mask::$OIDC_TOKEN" >&2
             CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-lifecycle-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
             read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
@@ -168,13 +176,18 @@ jobs:
             main=$(jq -er '.current_main_sha' <<<"$binding")
             token=$(mint_lifecycle_token "$binding" AUTONOMOUS_STALE_BASE_CONVERGENCE "stale-pr-${pr}-${head:0:12}")
             update_payload=$(jq -cn --arg h "$head" '{expected_head_sha:$h}')
-            if http_code=$(curl --fail --silent --show-error -o /tmp/update-branch.json -w '%{http_code}' -X PUT -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr/update-branch" --data-binary "$update_payload"); then
-              test "$http_code" = 202
-            else
-              test "$http_code" = 422
+            http_code=$(curl --silent --show-error -o /tmp/update-branch.json -w '%{http_code}' -X PUT -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr/update-branch" --data-binary "$update_payload" || true)
+            if [[ "$http_code" = 422 ]]; then
               jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$main" --arg head "$head" '{state:"QUARANTINE_NO_MUTATION_RETRY",failure_code:"STALE_BASE_UPDATE_422",pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$head,force_push:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
               unset token
               continue
+            fi
+            if [[ "$http_code" != 202 ]]; then
+              api_message=$(jq -r '.message // "UNAVAILABLE"' /tmp/update-branch.json 2>/dev/null || printf 'UNAVAILABLE')
+              jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$main" --arg head "$head" --arg code "$http_code" --arg message "$api_message" '{state:"QUARANTINE_NO_MUTATION_RETRY",failure_code:("STALE_BASE_UPDATE_HTTP_"+$code),github_message:$message,pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$head,force_push:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
+              echo "::error::STALE_BASE_UPDATE_HTTP_${http_code}: ${api_message}" >&2
+              unset token
+              exit 1
             fi
             converged=''
             for _ in $(seq 1 24); do
