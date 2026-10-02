@@ -136,7 +136,7 @@ test('manifest binds bootstrap and bounded STAGING validator as execution author
   }
 });
 
-test('deployment workflow is owner/exact-main/manual/OIDC bound and does not expose a generic command surface', () => {
+test('deployment workflow auto-converges bounded STAGING deltas while preserving Owner recovery and OIDC bounds', () => {
   for (const marker of [
     "github.ref == 'refs/heads/main'",
     'github.actor == github.repository_owner',
@@ -157,6 +157,8 @@ test('deployment workflow is owner/exact-main/manual/OIDC bound and does not exp
     'finalizer_allowed_kms_action',
     'desired-template.compact.json',
     'if: always()',
+    'push:',
+    'AUTO-STAGING-AUTONOMOUS-LANDING-',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.doesNotMatch(workflow, /aws cloudformation get-template --stack-name \\\"\\$STACK_NAME\\\" --template-stage Original --query TemplateBody --output json > \\\"\\$RUNNER_TEMP\\\/current-template\\.json\\\"/);
   assert.ok(!workflow.includes('workflow_run:'));

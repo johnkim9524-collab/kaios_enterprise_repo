@@ -1,7 +1,11 @@
 name: KIDULTS Natural Clock STAGING Deploy V1
-run-name: KIDULTS Natural Clock STAGING Deploy ${{ inputs.main_sha }}
+run-name: KIDULTS Natural Clock STAGING Deploy ${{ github.sha }}
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs
   workflow_dispatch:
     inputs:
       main_sha:
@@ -21,7 +25,7 @@ permissions: {}
 
 jobs:
   deploy-and-verify:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor == github.repository_owner && github.sha == inputs.main_sha
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
     runs-on: ubuntu-24.04
     environment: KIDULTS-NATURAL-CLOCK-DEPLOYER
     timeout-minutes: 20
@@ -35,6 +39,18 @@ jobs:
       ARTIFACT_BUCKET: kidults-natural-clock-artifacts-528314240275-ap-northeast-2
       STACK_NAME: kidults-natural-clock-staging-v1
     steps:
+      - name: Derive exact bounded deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          else
+            echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
@@ -44,8 +60,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$GITHUB_SHA" = "${{ inputs.main_sha }}"
-          test "${{ inputs.authorization_id }}" = "DEPLOY-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}"
+          test "$GITHUB_SHA" = "$DEPLOY_MAIN_SHA"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}"
+          else
+            test "$AUTHORIZATION_ID" = "AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          fi
           node --test tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs tests/kidults/staging-operations/natural-clock-deployer-v1.test.mjs
 
       - name: Configure exact workflow-scoped AWS OIDC credential process
@@ -72,6 +92,10 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$GITHUB_APP_ID" && test -n "$GITHUB_INSTALLATION_ID" && test -n "$GITHUB_PRIVATE_KEY_SECRET_ARN"
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-natural-clock-template.json"
+            node scripts/governance/validate-staging-no-authority-expansion-v1.mjs --current "$RUNNER_TEMP/current-natural-clock-template.json" --desired infrastructure/aws/staging/natural-clock-dispatcher-v1.json
+          fi
           package_dir=$(mktemp -d)
           cp infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs "$package_dir/index.cjs"
           (cd "$package_dir" && zip -q natural-clock.zip index.cjs)
@@ -105,7 +129,7 @@ jobs:
           aws lambda invoke --function-name kidults-natural-clock-dispatcher-staging-v1 --cli-binary-format raw-in-base64-out --payload '{"source":"manual","slot":"P0B"}' /tmp/natural-clock-deny.json >/tmp/natural-clock-invoke.json
           set -e
           test "$(jq -r '.errorMessage' /tmp/natural-clock-deny.json)" = NATURAL_CLOCK_EVENT_DENIED
-          jq -n --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" --arg code_sha "$deployed_sha" --arg authorization_id "${{ inputs.authorization_id }}" '{id:"kidults-natural-clock-staging-deploy-receipt-v1",state:"VERIFIED_PASS",exact_main_sha:$sha,run_id:$run_id,authorization_id:$authorization_id,stack:"kidults-natural-clock-staging-v1",lambda_code_sha256:$code_sha,schedules:{pooling:"ENABLED",p0b:"ENABLED",reserve:"ENABLED",sentinel:"ENABLED",assurance:"ENABLED"},ledger:{table:"ACTIVE",ttl:"ENABLED",pitr:"ENABLED"},negative_canary:"PASS",production:"HOLD",public:"HOLD",g5:"HOLD"}' > out/natural-clock-deploy-v1/receipt.json
+          jq -n --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" --arg code_sha "$deployed_sha" --arg authorization_id "$AUTHORIZATION_ID" '{id:"kidults-natural-clock-staging-deploy-receipt-v1",state:"VERIFIED_PASS",exact_main_sha:$sha,run_id:$run_id,authorization_id:$authorization_id,stack:"kidults-natural-clock-staging-v1",lambda_code_sha256:$code_sha,schedules:{pooling:"ENABLED",p0b:"ENABLED",reserve:"ENABLED",sentinel:"ENABLED",assurance:"ENABLED"},ledger:{table:"ACTIVE",ttl:"ENABLED",pitr:"ENABLED"},negative_canary:"PASS",production:"HOLD",public:"HOLD",g5:"HOLD"}' > out/natural-clock-deploy-v1/receipt.json
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:

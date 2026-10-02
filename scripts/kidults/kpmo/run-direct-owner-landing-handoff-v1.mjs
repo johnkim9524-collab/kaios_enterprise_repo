@@ -153,6 +153,7 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
     && comment.updated_at === comment.created_at);
   if (!directOwnerMarked.length) {
     if (marked.some(comment => comment?.performed_via_github_app != null)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
+    if (marked.some(comment => comment?.user?.login === repositoryOwner && comment?.user?.type === 'User' && comment.updated_at !== comment.created_at)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
     fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
   }
   const currentGeneration = directOwnerMarked.filter(comment => {

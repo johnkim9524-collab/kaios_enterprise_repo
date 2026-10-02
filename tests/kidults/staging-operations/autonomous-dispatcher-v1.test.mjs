@@ -116,7 +116,8 @@ const governedWorkflow=fs.readFileSync('.github/workflows/kidults-governed-landi
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
 assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
-assert.doesNotMatch(deployWorkflow,/\n  push:/);
+assert.match(deployWorkflow,/\n  push:/);
+assert.match(deployWorkflow,/validate-staging-no-authority-expansion-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/^  pull_request_target:/m);
 assert.match(dispatcherWorkflow,/cron: '17 \* \* \* \*'/);
 assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[KIDULTS Scope-Aware Authoritative Status V1\][\s\S]*types: \[completed\]/);
@@ -174,8 +175,9 @@ const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-inter
 assert.match(finalizerSource,/const eventToken=await acquireEventToken\(\);\s*await validateLiveCandidate\([^;]+;\s*invokeFinalizerWriter\(\{\s*action:'CREATE_RESERVATION'/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 
-assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{\{ inputs\.change_set_name \}\}"/);
-assert.doesNotMatch(deployWorkflow,/expected_authorization_id=[^\n]*GITHUB_RUN_ID/);
+assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{CHANGE_SET_NAME\}"/);
+assert.match(deployWorkflow,/AUTO-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{GITHUB_RUN_ID\}/);
+assert.match(deployWorkflow,/if \[ "\$GITHUB_EVENT_NAME" = workflow_dispatch \]/);
 
 assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
 assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,1);

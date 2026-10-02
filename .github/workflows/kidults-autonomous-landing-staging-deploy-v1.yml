@@ -1,10 +1,12 @@
 name: KIDULTS Autonomous Landing STAGING Deploy V1
-# OWNER_RESERVED_STAGING_INFRA_CHANGE: CloudFormation deployment can alter IAM/OIDC/KMS authority surfaces.
-# Manual dispatch is intentional until an exact no-permission-expansion change-set verifier delegates this operation.
-run-name: KIDULTS Autonomous Landing STAGING Deploy ${{ inputs.main_sha }}
-# OWNER_RESERVED_STAGING_INFRA_CHANGE: CloudFormation deployment can alter IAM/OIDC/KMS authority surfaces.
-
+# Normal STAGING bounded template convergence auto-deploys only when the existing exact delta verifier proves no authority expansion.
+# Manual dispatch remains recovery-only; Production/Public/G5 and authority expansion remain Owner-bound.
+run-name: KIDULTS Autonomous Landing STAGING Deploy ${{ github.sha }}
 on:
+  push:
+    branches: [main]
+    paths:
+      - infrastructure/aws/staging/autonomous-internal-landing-v1.json
   workflow_dispatch:
     inputs:
       main_sha:
@@ -28,7 +30,7 @@ permissions: {}
 
 jobs:
   deploy-and-verify:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.actor == github.repository_owner && github.sha == inputs.main_sha
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-LANDING-DEPLOYER
     timeout-minutes: 20
@@ -41,6 +43,21 @@ jobs:
       STACK_NAME: kidults-autonomous-internal-landing-staging-v1
       TEMPLATE_PATH: infrastructure/aws/staging/autonomous-internal-landing-v1.json
     steps:
+      - name: Derive exact bounded deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_template_sha=$(sha256sum "$TEMPLATE_PATH" | awk '{print $1}')
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "TEMPLATE_SHA256=$actual_template_sha" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=AUTO-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          else
+            echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
+            echo "TEMPLATE_SHA256=${{ inputs.template_sha256 }}" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
+          fi
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
@@ -50,10 +67,14 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$GITHUB_SHA" = "${{ inputs.main_sha }}"
+          test "$GITHUB_SHA" = "$DEPLOY_MAIN_SHA"
           actual_template_sha=$(sha256sum "$TEMPLATE_PATH" | awk '{print $1}')
-          test "$actual_template_sha" = "${{ inputs.template_sha256 }}"
-          test "${{ inputs.authorization_id }}" = "DEPLOY-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}"
+          test "$actual_template_sha" = "$TEMPLATE_SHA256"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}"
+          else
+            test "$AUTHORIZATION_ID" = "AUTO-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}-${GITHUB_RUN_ID}"
+          fi
           node scripts/governance/validate-autonomous-landing-aws-template-v1.mjs
           node --test tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
 
@@ -187,8 +208,8 @@ jobs:
           jq -n \
             --arg exact_main_sha "$GITHUB_SHA" \
             --arg run_id "$GITHUB_RUN_ID" \
-            --arg authorization_id "${{ inputs.authorization_id }}" \
-            --arg template_sha256 "${{ inputs.template_sha256 }}" \
+            --arg authorization_id "$AUTHORIZATION_ID" \
+            --arg template_sha256 "$TEMPLATE_SHA256" \
             --arg mode "${{ steps.preflight.outputs.mode }}" \
             --arg change_set "${{ steps.changeset.outputs.name }}" \
             '{id:"kidults-autonomous-landing-staging-deploy-receipt-v1",version:"1.0.0",state:"DEPLOYED_VERIFIED",environment:"STAGING",exact_main_sha:$exact_main_sha,run_id:$run_id,authorization_id:$authorization_id,template_sha256:$template_sha256,deployment_mode:$mode,change_set:(if $change_set=="" then null else $change_set end),stack:"kidults-autonomous-internal-landing-staging-v1",bounded_roles:["kidults-autonomous-track-staging-role","kidults-autonomous-kpmo-staging-role","kidults-autonomous-verifier-staging-role"],allowed_action:"dynamodb:Query",allowed_kms_action:"kms:Decrypt",allowed_kms_resource:"arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",allowed_leading_key:"AUTH#*",dynamodb_write_actions:"DENIED",writer_role:"kidults-autonomous-ledger-writer-staging-role",writer_allowed_kms_action:"kms:Decrypt",finalizer_role:"kidults-autonomous-finalizer-staging-role",finalizer_allowed_kms_action:"kms:Decrypt",production:"HOLD",public:"HOLD",g5:"HOLD",provider_activation:"HOLD"}' \

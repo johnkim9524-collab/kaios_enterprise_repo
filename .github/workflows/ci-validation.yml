@@ -92,6 +92,12 @@ jobs:
       - name: Validate root governance scope registry
         run: node --test tests/kidults/kpmo/scope-aware-root-policy-v1.test.mjs
 
+      - name: Enforce STAGING normal-operations autonomy
+        run: |
+          node scripts/governance/validate-staging-normal-ops-autonomy-v1.mjs
+          node --test tests/governance/staging-normal-ops-autonomy-v1.test.mjs
+          node --test tests/governance/staging-no-authority-expansion-v1.test.mjs
+
       - name: Enforce dependency bootstrap locks
         run: |
           set -euo pipefail
