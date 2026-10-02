@@ -82,7 +82,11 @@ jobs:
         run: |
           set -euo pipefail
           current_receipt=''
+          current_lifecycle_receipt=''
           mark_failed() {
+            if [[ -n "${current_lifecycle_receipt:-}" && ! -s "$current_lifecycle_receipt" ]]; then
+              write_lifecycle_failure "${lifecycle_failure_code:-LIFECYCLE_EXECUTION_FAILED}" || true
+            fi
             if [[ -n "$current_receipt" && -f "$current_receipt" ]]; then
               node scripts/kidults/kpmo/manage-autonomous-dispatch-fanout-v1.mjs --phase failed --receipt "$current_receipt" --failure_code DISPATCH_STEP_FAILED || true
             fi
@@ -126,56 +130,120 @@ jobs:
             unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
           done < <(jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json)
 
+          write_lifecycle_failure() {
+            local code="$1"
+            jq -n --arg code "$code" --arg message "${2:-UNAVAILABLE}" --argjson pr "$pr" --arg old_base "$old_base" --arg main "$main" --arg head "$head" --arg mutation "${lifecycle_mutation_state:-NOT_ATTEMPTED}" '{state:"QUARANTINE_NO_MUTATION_RETRY",failure_code:$code,github_message:$message,pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$head,mutation_state:$mutation,force_push:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"$current_lifecycle_receipt" || return 1
+            echo "::error::$code" >&2
+            return 1
+          }
+
           mint_lifecycle_token() {
-            local binding="$1" profile="$2" generation="$3"
-            OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-            OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+            local binding="$1" profile="$2" generation="$3" pr_number oidc_result oidc_code
+            local OIDC_JSON OIDC_TOKEN CREDS request response token extra
+            pr_number=$(jq -er '.pull_request | select(type=="number" and .>0 and floor==.)' <<<"$binding") || return 1
+            fail_lifecycle_mint() {
+              local failure_code="$1"
+              jq -n --argjson b "$binding" --arg profile "$profile" --arg code "$failure_code" '$b + {state:"LIFECYCLE_TOKEN_REJECTED",permission_profile:$profile,failure_code:$code,token_accepted:false,repository_mutation_attempted:false,retry_without_reconciliation:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr_number-token-failure.json"
+              echo "::error::$failure_code" >&2
+              return 1
+            }
+            oidc_result=$(curl --silent --show-error -w '\n%{http_code}' -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com") || { fail_lifecycle_mint LIFECYCLE_OIDC_TOKEN_REQUEST_TRANSPORT; return 1; }
+            oidc_code=${oidc_result##*$'\n'}
+            if [[ ! "$oidc_code" =~ ^[0-9]{3}$ ]]; then
+              fail_lifecycle_mint LIFECYCLE_OIDC_TOKEN_REQUEST_INVALID_HTTP_STATUS
+              return 1
+            fi
+            if [[ "$oidc_code" != 200 ]]; then
+              fail_lifecycle_mint "LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_${oidc_code}"
+              return 1
+            fi
+            OIDC_JSON=${oidc_result%$'\n'*}
+            unset oidc_result
+            OIDC_TOKEN=$(jq -er '.value | select(type=="string" and length>0)' <<<"$OIDC_JSON" 2>/dev/null) || { fail_lifecycle_mint LIFECYCLE_OIDC_TOKEN_INVALID; return 1; }
             echo "::add-mask::$OIDC_TOKEN" >&2
-            CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-lifecycle-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
-            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+            CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-lifecycle-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text) || { fail_lifecycle_mint LIFECYCLE_STS_FAILED; return 1; }
+            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN extra <<<"$CREDS" || { fail_lifecycle_mint LIFECYCLE_STS_RESPONSE_INVALID; return 1; }
+            if [[ -z "$AWS_ACCESS_KEY_ID" || -z "$AWS_SECRET_ACCESS_KEY" || -z "$AWS_SESSION_TOKEN" || -n "$extra" || "$AWS_ACCESS_KEY_ID" = None || "$AWS_SECRET_ACCESS_KEY" = None || "$AWS_SESSION_TOKEN" = None ]]; then
+              fail_lifecycle_mint LIFECYCLE_STS_RESPONSE_INVALID
+              return 1
+            fi
             echo "::add-mask::$AWS_ACCESS_KEY_ID" >&2
             echo "::add-mask::$AWS_SECRET_ACCESS_KEY" >&2
             echo "::add-mask::$AWS_SESSION_TOKEN" >&2
             trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
             export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
-            request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" --arg generation "$generation" --argjson b "$binding"               '{action:"MINT_INSTALLATION_TOKEN",repository:$repo,repository_id:$rid,pull_request:$b.pull_request,base_sha:$b.old_base_sha,head_sha:$b.expected_head_sha,current_main_sha:$b.current_main_sha,authorization_generation:$generation,permission_profile:$profile}')
-            response=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /dev/stderr 2>&1 >/dev/null)
-            token=$(jq -er '.token' <<<"$response")
+            request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" --arg generation "$generation" --argjson b "$binding" '{action:"MINT_INSTALLATION_TOKEN",repository:$repo,repository_id:$rid,pull_request:$b.pull_request,base_sha:$b.old_base_sha,head_sha:$b.expected_head_sha,current_main_sha:$b.current_main_sha,authorization_generation:$generation,permission_profile:$profile}') || { fail_lifecycle_mint LIFECYCLE_BROKER_REQUEST_INVALID; return 1; }
+            response=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /dev/stderr 2>&1 >/dev/null) || { fail_lifecycle_mint LIFECYCLE_BROKER_INVOKE_FAILED; return 1; }
+            token=$(jq -er --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" 'select(.ok==true and .token_type=="GITHUB_APP_INSTALLATION" and .repository==$repo and (.repository_id|tostring)==$rid and .permission_profile==$profile) | .token | select(type=="string" and length>=20 and test("^[A-Za-z0-9_]+$"))' <<<"$response" 2>/dev/null) || { fail_lifecycle_mint LIFECYCLE_BROKER_RESPONSE_DENIED_OR_INVALID; return 1; }
             echo "::add-mask::$token" >&2
             unset CREDS OIDC_JSON OIDC_TOKEN response AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
             printf '%s' "$token"
           }
 
           mkdir -p out/autonomous-dispatcher-v1/lifecycle
-          jq -c '.[] | select(.state=="STALE_REDUNDANT") | .binding' out/autonomous-dispatcher-v1/results.json | head -n 4 | while IFS= read -r binding; do
-            pr=$(jq -er '.pull_request' <<<"$binding")
-            head=$(jq -er '.expected_head_sha' <<<"$binding")
-            main=$(jq -er '.current_main_sha' <<<"$binding")
-            token=$(mint_lifecycle_token "$binding" AUTONOMOUS_REDUNDANT_PR_HYGIENE "hygiene-pr-${pr}-${head:0:12}")
-            live=$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr")
-            test "$(jq -r '.state' <<<"$live")" = open
-            test "$(jq -r '.head.sha' <<<"$live")" = "$head"
-            test "$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -r '.commit.sha')" = "$main"
-            curl --fail --silent --show-error -X PATCH -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr" -d '{"state":"closed"}' >/dev/null
-            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
-            unset token
-          done
-
-          jq -c '.[] | select(.state=="STALE_RECOVERABLE") | .binding' out/autonomous-dispatcher-v1/results.json | head -n 4 | while IFS= read -r binding; do
+          while IFS= read -r binding; do
             pr=$(jq -er '.pull_request' <<<"$binding")
             old_base=$(jq -er '.old_base_sha' <<<"$binding")
             head=$(jq -er '.expected_head_sha' <<<"$binding")
             main=$(jq -er '.current_main_sha' <<<"$binding")
-            token=$(mint_lifecycle_token "$binding" AUTONOMOUS_STALE_BASE_CONVERGENCE "stale-pr-${pr}-${head:0:12}")
+            current_lifecycle_receipt="out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
+            lifecycle_mutation_state=NOT_ATTEMPTED
+            lifecycle_failure_code=LIFECYCLE_EXECUTION_FAILED
+            if ! token=$(mint_lifecycle_token "$binding" AUTONOMOUS_REDUNDANT_PR_HYGIENE "hygiene-pr-${pr}-${head:0:12}"); then
+              unset token
+              exit 1
+            fi
+            live=$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr")
+            test "$(jq -r '.state' <<<"$live")" = open
+            test "$(jq -r '.head.sha' <<<"$live")" = "$head"
+            test "$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -r '.commit.sha')" = "$main"
+            lifecycle_mutation_state=UNKNOWN
+            curl --fail --silent --show-error -X PATCH -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr" -d '{"state":"closed"}' >/dev/null
+            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
+            current_lifecycle_receipt=''
+            unset token
+          done < <(jq -c '[.[] | select(.state=="STALE_REDUNDANT") | .binding] | .[:4][]' out/autonomous-dispatcher-v1/results.json)
+
+          while IFS= read -r binding; do
+            pr=$(jq -er '.pull_request' <<<"$binding")
+            old_base=$(jq -er '.old_base_sha' <<<"$binding")
+            head=$(jq -er '.expected_head_sha' <<<"$binding")
+            main=$(jq -er '.current_main_sha' <<<"$binding")
+            current_lifecycle_receipt="out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
+            lifecycle_mutation_state=NOT_ATTEMPTED
+            lifecycle_failure_code=LIFECYCLE_EXECUTION_FAILED
+            if ! token=$(mint_lifecycle_token "$binding" AUTONOMOUS_STALE_BASE_CONVERGENCE "stale-pr-${pr}-${head:0:12}"); then
+              unset token
+              exit 1
+            fi
             update_payload=$(jq -cn --arg h "$head" '{expected_head_sha:$h}')
-            if http_code=$(curl --fail --silent --show-error -o /tmp/update-branch.json -w '%{http_code}' -X PUT -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr/update-branch" --data-binary "$update_payload"); then
-              test "$http_code" = 202
+            update_body=$(mktemp) || { write_lifecycle_failure LIFECYCLE_TEMPFILE_FAILED; exit 1; }
+            lifecycle_mutation_state=UNKNOWN
+            if http_code=$(curl --fail-with-body --silent --show-error -o "$update_body" -w '%{http_code}' -X PUT -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr/update-branch" --data-binary "$update_payload"); then
+              curl_status=0
             else
-              test "$http_code" = 422
+              curl_status=$?
+            fi
+            api_message=UNAVAILABLE
+            if [[ "$http_code" != 000 && ( "$curl_status" = 0 || "$curl_status" = 22 ) ]]; then
+              api_message=$(jq -r '.message | select(.=="Bad credentials" or .=="Requires authentication" or .=="Resource not accessible by integration" or .=="Validation Failed")' "$update_body" 2>/dev/null || true)
+              api_message=${api_message:-UNAVAILABLE}
+            fi
+            rm -f "$update_body"
+            if [[ "$http_code" = 422 && "$curl_status" = 22 ]]; then
               jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$main" --arg head "$head" '{state:"QUARANTINE_NO_MUTATION_RETRY",failure_code:"STALE_BASE_UPDATE_422",pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$head,force_push:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
+              current_lifecycle_receipt=''
               unset token
               continue
             fi
+            if [[ "$http_code" != 202 || "$curl_status" != 0 ]]; then
+              write_lifecycle_failure "STALE_BASE_UPDATE_HTTP_${http_code:-000}" "$api_message" || true
+              unset token
+              exit 1
+            fi
+            test "$http_code" = 202
+            lifecycle_mutation_state=UPDATE_ACCEPTED
+            lifecycle_failure_code=STALE_BASE_CONVERGENCE_READBACK_FAILED
             converged=''
             for _ in $(seq 1 24); do
               sleep 5
@@ -186,15 +254,19 @@ jobs:
                 commit=$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/commits/$new_head")
                 parents=$(jq -r '[.parents[].sha] | sort | join(",")' <<<"$commit")
                 expected_parents=$(printf '%s\n%s\n' "$head" "$main" | sort | paste -sd, -)
+                lifecycle_failure_code=STALE_BASE_CONVERGENCE_PARENT_MISMATCH
+                test "$(jq -c '[.parents[].sha]' <<<"$commit")" = "$(jq -cn --arg old "$head" --arg main "$main" '[$old,$main]')"
                 test "$parents" = "$expected_parents"
                 jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$main" --arg old_head "$head" --arg new_head "$new_head" '{state:"STALE_BASE_CONVERGED",pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$old_head,new_head_sha:$new_head,ordered_parent_set_verified:true,fresh_ci_required:true,fresh_authorization_generation_required:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
                 converged=true
                 break
               fi
             done
+            lifecycle_failure_code=STALE_BASE_CONVERGENCE_TIMEOUT
             test "$converged" = true
+            current_lifecycle_receipt=''
             unset token
-          done
+          done < <(jq -c '[.[] | select(.state=="STALE_RECOVERABLE") | .binding] | .[:4][]' out/autonomous-dispatcher-v1/results.json)
 
       - name: Upload bounded scan and terminal fanout evidence
         if: ${{ always() }}
