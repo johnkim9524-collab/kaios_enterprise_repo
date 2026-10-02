@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c811b8ea144d46a271267c9aa504fcb74aab0233",
-      "sha256": "sha256:fddd55a17be5d01c4fade2b1246d5ba1ac5e4266bcef69c36081ff8b25eb8c54",
+      "git_blob": "3624fbd1c3fbc1c563979bc351d8cbe189b4dbb5",
+      "sha256": "sha256:e6d99d9bd86a9ca5dc4608d2dbe3316f37815e68fe8e680f80291415cff7c4f6",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -5113,8 +5113,8 @@
     {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
-      "sha256": "sha256:0d2e35aace3e59b977e2096ff12045744fe22c63784d76aefb30248a2d2db182",
+      "git_blob": "a6070247cb8a711897ec53de11e92264a0ca0a39",
+      "sha256": "sha256:feba7adce4968b50fefd9b990b98f4ae18a41a57c00fc77df4d047635be060c0",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:394cc09dd633cbc1825e35d205d953d3ed80da3756b891cd19e1462d41feb75c"
+  "manifest_sha256": "sha256:f6a6dadb3eaf31743fd3c61c565399bb816a5752a69408472d440ac89bc85e2e"
 }
