@@ -88,7 +88,30 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
   if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
   if (receipt.validator_authority !== 'CONTROL_ONLY') fail('LIFECYCLE_RECEIPT_AUTHORITY_INVALID');
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
-  if (receipt.native_status_evidence.length !== boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
+  if (receipt.native_status_evidence.length < boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
+  const boundNativeContexts = new Set(boundNative.map(status => status.context));
+  const allowedReceiptOnlyContexts = new Set([GOVERNED_LANDING_CONTEXT]);
+  for (const item of receipt.native_status_evidence) {
+    const context = String(item?.context || '');
+    if (!boundNativeContexts.has(context) && !allowedReceiptOnlyContexts.has(context)) {
+      fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_UNEXPECTED:${context || 'missing'}`);
+    }
+  }
+  const receiptOnlyGoverned = receipt.native_status_evidence
+    .filter(item => item?.context === GOVERNED_LANDING_CONTEXT && !boundNativeContexts.has(GOVERNED_LANDING_CONTEXT));
+  if (receiptOnlyGoverned.length > 1) {
+    fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_CARDINALITY:${GOVERNED_LANDING_CONTEXT}:${receiptOnlyGoverned.length}`);
+  }
+  if (receiptOnlyGoverned.length === 1) {
+    const governedState = String(receiptOnlyGoverned[0]?.state || 'missing');
+    const governedDescription = String(receiptOnlyGoverned[0]?.description || '');
+    const governedReady = governedState === 'pending'
+      && (governedDescription === GOVERNED_LANDING_PENDING_DESCRIPTION
+        || governedDescription === GOVERNED_LANDING_NORMAL_READY_DESCRIPTION);
+    if (!governedReady) {
+      fail(`LIFECYCLE_RECEIPT_GOVERNED_STATUS_NOT_LANDING_READY:${governedState}`);
+    }
+  }
 
   let receiptNativeFloor = 0;
   let exactStatusIdentity = true;
