@@ -25,7 +25,7 @@ export function classifyStaleBaseCandidate({pr,mainSha,files,policy}) {
   evaluateSemanticCapabilityDelta({files,policy});
   independentlyVerifyCapabilityDelta({files,policy});
   const convergence=policy.merge?.autonomous_stale_base_convergence;
-  if(convergence?.enabled!==true || convergence.executor!=='FINALIZER_ONLY'
+  if(convergence?.enabled!==true || convergence.executor!=='DISPATCHER_BROKERED_GITHUB_APP_ONLY'
     || convergence.method!=='GITHUB_UPDATE_BRANCH_EXPECTED_HEAD_SHA'
     || convergence.preclassification_against_original_base_required!==true
     || convergence.same_repository_head_required!==true
@@ -133,7 +133,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed}
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
       const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
       if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
-        results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
+        results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
       }
       const files=await attachImmutableContents({repository,baseSha:pr.base.sha,headSha:pr.head.sha,files:fileRecords,token});

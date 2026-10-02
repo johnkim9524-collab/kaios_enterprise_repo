@@ -73,7 +73,7 @@ jobs:
           echo "redundant_prs=$redundant_prs" >> "$GITHUB_OUTPUT"
 
       - name: Mint exact short-lived token and atomically fan out one common role event
-        if: steps.discover.outputs.eligible_count != '0'
+        if: steps.discover.outputs.eligible_count != '0' || steps.discover.outputs.stale_count != '0' || steps.discover.outputs.redundant_count != '0'
         env:
           AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN }}
           BROKER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION }}
@@ -100,12 +100,12 @@ jobs:
             request_path=$(jq -er '.request_path' <<<"$initialized")
             OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
             OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-            echo "::add-mask::$OIDC_TOKEN"
+            echo "::add-mask::$OIDC_TOKEN" >&2
             CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-dispatcher-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
             read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-            echo "::add-mask::$AWS_ACCESS_KEY_ID"
-            echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-            echo "::add-mask::$AWS_SESSION_TOKEN"
+            echo "::add-mask::$AWS_ACCESS_KEY_ID" >&2
+            echo "::add-mask::$AWS_SECRET_ACCESS_KEY" >&2
+            echo "::add-mask::$AWS_SESSION_TOKEN" >&2
             export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
             export AWS_REGION=ap-northeast-2
             unset CREDS OIDC_JSON OIDC_TOKEN
@@ -126,97 +126,57 @@ jobs:
             unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
           done < <(jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json)
 
+          mint_lifecycle_token() {
+            local binding="$1" profile="$2" generation="$3"
+            OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+            OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+            echo "::add-mask::$OIDC_TOKEN" >&2
+            CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-lifecycle-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+            read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+            echo "::add-mask::$AWS_ACCESS_KEY_ID" >&2
+            echo "::add-mask::$AWS_SECRET_ACCESS_KEY" >&2
+            echo "::add-mask::$AWS_SESSION_TOKEN" >&2
+            trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+            export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
+            request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" --arg generation "$generation" --argjson b "$binding"               '{action:"MINT_INSTALLATION_TOKEN",repository:$repo,repository_id:$rid,pull_request:$b.pull_request,base_sha:$b.old_base_sha,head_sha:$b.expected_head_sha,current_main_sha:$b.current_main_sha,authorization_generation:$generation,permission_profile:$profile}')
+            response=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /dev/stderr 2>&1 >/dev/null)
+            token=$(jq -er '.token' <<<"$response")
+            echo "::add-mask::$token" >&2
+            unset CREDS OIDC_JSON OIDC_TOKEN response AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
+            printf '%s' "$token"
+          }
+
+          mkdir -p out/autonomous-dispatcher-v1/lifecycle
+          jq -c '.[] | select(.state=="STALE_REDUNDANT") | .binding' out/autonomous-dispatcher-v1/results.json | head -n 4 | while IFS= read -r binding; do
+            pr=$(jq -er '.pull_request' <<<"$binding")
+            head=$(jq -er '.expected_head_sha' <<<"$binding")
+            main=$(jq -er '.current_main_sha' <<<"$binding")
+            token=$(mint_lifecycle_token "$binding" AUTONOMOUS_REDUNDANT_PR_HYGIENE "hygiene-pr-${pr}-${head:0:12}")
+            live=$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr")
+            test "$(jq -r '.state' <<<"$live")" = open
+            test "$(jq -r '.head.sha' <<<"$live")" = "$head"
+            test "$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -r '.commit.sha')" = "$main"
+            curl --fail --silent --show-error -X PATCH -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr" -d '{"state":"closed"}' >/dev/null
+            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
+            unset token
+          done
+
+          jq -c '.[] | select(.state=="STALE_RECOVERABLE") | .binding' out/autonomous-dispatcher-v1/results.json | head -n 4 | while IFS= read -r binding; do
+            pr=$(jq -er '.pull_request' <<<"$binding")
+            head=$(jq -er '.expected_head_sha' <<<"$binding")
+            main=$(jq -er '.current_main_sha' <<<"$binding")
+            token=$(mint_lifecycle_token "$binding" AUTONOMOUS_STALE_BASE_CONVERGENCE "stale-pr-${pr}-${head:0:12}")
+            update_payload=$(jq -cn --arg h "$head" '{expected_head_sha:$h}')
+            curl --fail --silent --show-error -X PUT -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr/update-branch" --data-binary "$update_payload" >/dev/null
+            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" '{state:"STALE_BASE_UPDATE_ACCEPTED",pull_request:$pr,current_main_sha:$main,old_head_sha:$head,fresh_ci_required:true,fresh_authorization_generation_required:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-convergence.json"
+            unset token
+          done
+
       - name: Upload bounded scan and terminal fanout evidence
         if: ${{ always() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: kidults-autonomous-dispatcher-${{ github.run_id }}
           path: out/autonomous-dispatcher-v1/
-          if-no-files-found: error
-          retention-days: 90
-
-
-  converge-stale-internal-prs:
-    name: Finalizer-only bounded stale-base convergence
-    needs: dispatch-eligible-internal-prs
-    if: needs.dispatch-eligible-internal-prs.result == 'success' && (needs.dispatch-eligible-internal-prs.outputs.stale_count != '0' || needs.dispatch-eligible-internal-prs.outputs.redundant_count != '0') && github.run_attempt == 1
-    runs-on: ubuntu-24.04
-    environment: KIDULTS-AUTONOMOUS-FINALIZER
-    timeout-minutes: 10
-    permissions:
-      contents: write
-      pull-requests: write
-    env:
-      STALE_RECOVERABLE: ${{ needs.dispatch-eligible-internal-prs.outputs.stale_recoverable }}
-      REDUNDANT_PRS: ${{ needs.dispatch-eligible-internal-prs.outputs.redundant_prs }}
-      GITHUB_TOKEN: ${{ github.token }}
-    steps:
-      - name: Checkout protected main policy only
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-
-      - name: Verify exact Finalizer convergence boundary
-        run: |
-          set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(jq 'length' <<<"$STALE_RECOVERABLE")" -le 4
-          mkdir -p out/autonomous-stale-base-convergence-v1
-          test "$(jq 'length' <<<"$REDUNDANT_PRS")" -le 4
-          jq -c '.[]' <<<"$REDUNDANT_PRS" | while IFS= read -r binding; do
-            pr=$(jq -er '.pull_request' <<<"$binding")
-            current_main=$(jq -er '.current_main_sha' <<<"$binding")
-            expected_head=$(jq -er '.expected_head_sha' <<<"$binding")
-            live_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')
-            live=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
-            test "$live_main" = "$current_main"
-            test "$(jq -r '.state' <<<"$live")" = open
-            test "$(jq -r '.merged' <<<"$live")" = false
-            test "$(jq -r '.head.sha' <<<"$live")" = "$expected_head"
-            test "$(jq -r '.head.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
-            gh api --method PATCH "repos/$GITHUB_REPOSITORY/pulls/$pr" -f state=closed >/tmp/close-pr.json
-            test "$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr" --jq '.state')" = closed
-            jq -n --argjson pr "$pr" --arg main "$current_main" --arg head "$expected_head"               '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}'               >"out/autonomous-stale-base-convergence-v1/pr-$pr-redundant.json"
-          done
-          jq -c '.[]' <<<"$STALE_RECOVERABLE" | while IFS= read -r binding; do
-            pr=$(jq -er '.pull_request' <<<"$binding")
-            old_base=$(jq -er '.old_base_sha' <<<"$binding")
-            current_main=$(jq -er '.current_main_sha' <<<"$binding")
-            expected_head=$(jq -er '.expected_head_sha' <<<"$binding")
-            live_main=$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')
-            live=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
-            test "$live_main" = "$current_main"
-            test "$(jq -r '.state' <<<"$live")" = open
-            test "$(jq -r '.merged' <<<"$live")" = false
-            test "$(jq -r '.base.ref' <<<"$live")" = main
-            test "$(jq -r '.base.sha' <<<"$live")" = "$old_base"
-            test "$(jq -r '.head.sha' <<<"$live")" = "$expected_head"
-            test "$(jq -r '.head.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
-            test "$(jq -r '.base.repo.full_name' <<<"$live")" = "$GITHUB_REPOSITORY"
-            gh api --method PUT "repos/$GITHUB_REPOSITORY/pulls/$pr/update-branch" -f expected_head_sha="$expected_head" >/tmp/update-branch.json
-            converged=''
-            for _ in $(seq 1 24); do
-              sleep 5
-              after=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$pr")
-              new_head=$(jq -r '.head.sha' <<<"$after")
-              if [[ "$new_head" != "$expected_head" && "$(jq -r '.base.sha' <<<"$after")" = "$current_main" ]]; then
-                commit=$(gh api "repos/$GITHUB_REPOSITORY/commits/$new_head")
-                parents=$(jq -r '[.parents[].sha] | sort | join(",")' <<<"$commit")
-                expected_parents=$(printf '%s\n%s\n' "$expected_head" "$current_main" | sort | paste -sd, -)
-                test "$parents" = "$expected_parents"
-                jq -n --argjson pr "$pr" --arg old_base "$old_base" --arg main "$current_main" --arg old_head "$expected_head" --arg new_head "$new_head"                   '{state:"STALE_BASE_CONVERGED",pull_request:$pr,old_base_sha:$old_base,current_main_sha:$main,old_head_sha:$old_head,new_head_sha:$new_head,fresh_ci_required:true,fresh_authorization_generation_required:true,production:"HOLD",public:"HOLD",g5:"HOLD"}'                   >"out/autonomous-stale-base-convergence-v1/pr-$pr.json"
-                converged=true
-                break
-              fi
-            done
-            test "$converged" = true
-          done
-
-      - name: Upload stale-base convergence receipts
-        uses: actions/upload-artifact@b7c566a772e6b6f49b058ed0dc250532a479d7789f
-        with:
-          name: kidults-autonomous-stale-base-convergence-${{ github.run_id }}
-          path: out/autonomous-stale-base-convergence-v1/
           if-no-files-found: error
           retention-days: 90

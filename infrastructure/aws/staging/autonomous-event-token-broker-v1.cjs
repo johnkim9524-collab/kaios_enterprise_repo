@@ -8,13 +8,15 @@ const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url')
 function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
   return async event => {
     if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail();
-    const {repository, repository_id, pull_request, base_sha, head_sha, authorization_generation,
+    const {repository, repository_id, pull_request, base_sha, head_sha, current_main_sha, authorization_generation,
       permission_profile='AUTONOMOUS_EVENT_DISPATCH'} = event || {};
+    const supportedProfiles=new Set(['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE','AUTONOMOUS_REDUNDANT_PR_HYGIENE']);
     if (event?.action !== 'MINT_INSTALLATION_TOKEN'
       || repository !== config.repository || String(repository_id) !== String(config.repositoryId)
       || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
       || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha
-      || permission_profile!=='AUTONOMOUS_EVENT_DISPATCH'
+      || !supportedProfiles.has(permission_profile)
+      || (permission_profile!=='AUTONOMOUS_EVENT_DISPATCH' && (!sha(current_main_sha)||current_main_sha===base_sha))
       || typeof authorization_generation !== 'string'
       || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();
     const issued = Math.floor(now()/1000);
@@ -51,10 +53,11 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       api(`/repos/${repository}/pulls/${pull_request}`,readonly.token),
       api(`/repos/${repository}/branches/main`,readonly.token),
     ]);
+    const expectedMain=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'?base_sha:current_main_sha;
     if (pr.number!==Number(pull_request) || pr.state!=='open'
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
-      || main.commit?.sha!==base_sha) fail();
+      || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail();
     const writePermissions={contents:'write',pull_requests:'write'};
     const minted=await mint(writePermissions);
     if (!validScope(minted,writePermissions)) fail();
