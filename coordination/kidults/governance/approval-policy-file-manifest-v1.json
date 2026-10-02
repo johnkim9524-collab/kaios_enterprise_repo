@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 684
+    "file_count": 685
   },
   "files": [
     {
@@ -3296,6 +3296,19 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "1ebde415636850c56568c5e391036f0f4519158e",
+      "sha256": "sha256:db2cb8f72ffe7737d0a87f779b9147820e7feaa65fb70fbb4f52b464d439fa01",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/lib/atomic-landing-staged-lifecycle-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "0ea599f66490f2f0f4558dcefd94bda45f6c4f32",
@@ -3623,8 +3636,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-atomic-landing-lifecycle-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4310abc6cb80a6c08154d3a76db9a8938944bcf1",
-      "sha256": "sha256:db198efa934ad03115fd53346ad201bb6975767e9215c787ceac0c487faa8127",
+      "git_blob": "96b98c13b9fdf61de74e182ed0fc950a800e5a58",
+      "sha256": "sha256:176f995247e0189b8da25f504d8dada9a93d9b64f415245f7be0fa9158548feb",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5406,5 +5419,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:98a2edc18665cc059ae46a1ddccfc951c5f1278ee0b0edd71aa5024c45499cc7"
+  "manifest_sha256": "sha256:19158b2580119e2e7701b9ec8c68b0c761e17d8224bab600574d1a10e67d081a"
 }
