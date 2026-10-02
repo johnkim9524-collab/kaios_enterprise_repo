@@ -1,3 +1,6 @@
+import {spawnSync} from 'node:child_process';
+import os from 'node:os';
+import path from 'node:path';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
@@ -229,3 +232,89 @@ const independentError=new Error('INDEPENDENT_SECURITY_CAPABILITY_ADDED');indepe
 assert.equal(isCandidateRejection(independentError),true);
 assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_OPEN')),true);
 assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);
+
+// Execute the committed workflow function against offline shell mocks. No real
+// AWS/GitHub calls or credentials are used, including on failure paths.
+const lifecycleFunction=dispatcherWorkflow.match(/^          mint_lifecycle_token\(\) \{\n[\s\S]*?^          \}/m)?.[0];
+assert.ok(lifecycleFunction,'lifecycle token function must remain testable');
+const lifecycleBinding={pull_request:2462,old_base_sha:sha('a'),expected_head_sha:sha('b'),current_main_sha:sha('c')};
+const lifecycleProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+const validBroker={ok:true,token_type:'GITHUB_APP_INSTALLATION',repository:pr.head.repo.full_name,repository_id:'1281328888',permission_profile:lifecycleProfile,token:'ghs_OFFLINE_FIXTURE_TOKEN_NOT_A_CREDENTIAL'};
+const lifecycleCases=[
+  {name:'valid'},
+  {name:'oidc_transport',code:'LIFECYCLE_OIDC_TOKEN_REQUEST_TRANSPORT'},
+  {name:'oidc_http',http:'401',code:'LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_401'},
+  {name:'oidc_bad_json',oidc:'not-json',code:'LIFECYCLE_OIDC_TOKEN_INVALID'},
+  {name:'oidc_null',oidc:'{"value":null}',code:'LIFECYCLE_OIDC_TOKEN_INVALID'},
+  {name:'sts_failed',code:'LIFECYCLE_STS_FAILED'},
+  {name:'sts_partial',creds:'OFFLINE_KEY\tOFFLINE_SECRET',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
+  {name:'sts_extra',creds:'OFFLINE_KEY\tOFFLINE_SECRET\tOFFLINE_SESSION\tEXTRA',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
+  {name:'sts_none',creds:'None\tNone\tNone',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
+  {name:'invoke_failed',code:'LIFECYCLE_BROKER_INVOKE_FAILED'},
+  {name:'broker_denied',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED'}},
+  {name:'broker_bad_json',raw:'not-json'},
+  {name:'broker_null',body:{...validBroker,token:null}},
+  {name:'broker_short',body:{...validBroker,token:'null'}},
+  {name:'broker_wrong_profile',body:{...validBroker,permission_profile:'OTHER'}},
+  {name:'broker_wrong_repo',body:{...validBroker,repository:'other/repository'}},
+  {name:'broker_wrong_id',body:{...validBroker,repository_id:'1'}},
+  {name:'broker_wrong_type',body:{...validBroker,token_type:'OTHER'}},
+  {name:'broker_not_ok',body:{...validBroker,ok:false}},
+  {name:'broker_header_injection',body:{...validBroker,token:validBroker.token+'\nX-Other: value'}},
+];
+lifecycleCases.push({name:'valid_hygiene',profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',body:{...validBroker,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'}});
+const lifecycleMocks=String.raw`set -euo pipefail
+curl() {
+  [[ "$MOCK_CASE" != oidc_transport ]] || return 7
+  printf '%s\n%s' "$MOCK_OIDC_BODY" "$MOCK_HTTP_STATUS"
+}
+aws() {
+  if [[ "$1" == sts ]]; then
+    [[ "$MOCK_CASE" != sts_failed ]] || return 255
+    printf '%s\n' "$MOCK_CREDS"
+  else
+    [[ "$MOCK_CASE" != invoke_failed ]] || return 255
+    printf '%s' "$MOCK_BROKER_RESPONSE" >&2
+    printf '{"StatusCode":200}\n'
+  fi
+}
+`;
+let lifecycleCaseCount=0;
+for(const caller of ['assignment','conditional']) for(const fixture of lifecycleCases){
+  const root=fs.mkdtempSync(path.join(os.tmpdir(),'kidults-lifecycle-mock-'));
+  fs.mkdirSync(path.join(root,'out/autonomous-dispatcher-v1/lifecycle'),{recursive:true});
+  try {
+    const call='token=$(mint_lifecycle_token "$MOCK_BINDING" "$MOCK_PROFILE" offline-generation-2462)';
+    const tail=caller==='conditional'?`if ${call}; then printf 'MUTATION_ALLOWED'; else exit 42; fi`:`${call}\nprintf 'MUTATION_ALLOWED'`;
+    const run=spawnSync(process.env.KIDULTS_TEST_BASH||'bash',['--noprofile','--norc','-s'],{
+      cwd:root,encoding:'utf8',timeout:15000,
+      input:`${lifecycleMocks}\n${lifecycleFunction}\n${tail}\n`,
+      env:{PATH:process.env.PATH,SystemRoot:process.env.SystemRoot,WINDIR:process.env.WINDIR,TEMP:os.tmpdir(),TMP:os.tmpdir(),
+        ACTIONS_ID_TOKEN_REQUEST_TOKEN:'OFFLINE',ACTIONS_ID_TOKEN_REQUEST_URL:'https://offline.invalid',AWS_ROLE_ARN:'OFFLINE',GITHUB_RUN_ID:'1',GITHUB_REPOSITORY:pr.head.repo.full_name,GITHUB_REPOSITORY_ID:'1281328888',BROKER_FUNCTION:'OFFLINE',
+        MOCK_CASE:fixture.name,MOCK_BINDING:JSON.stringify(lifecycleBinding),MOCK_PROFILE:fixture.profile||lifecycleProfile,MOCK_OIDC_BODY:fixture.oidc||'{"value":"OFFLINE_OIDC"}',MOCK_HTTP_STATUS:fixture.http||'200',MOCK_CREDS:fixture.creds||'OFFLINE_KEY\tOFFLINE_SECRET\tOFFLINE_SESSION',MOCK_BROKER_RESPONSE:fixture.raw||JSON.stringify(fixture.body||validBroker)},
+    });
+    assert.equal(run.error,undefined,`${caller}/${fixture.name}: local shell execution`);
+    assert.equal(run.signal,null,`${caller}/${fixture.name}: local shell timeout`);
+    const receiptPath=path.join(root,'out/autonomous-dispatcher-v1/lifecycle/pr-2462-token-failure.json');
+    if(fixture.name.startsWith('valid')) {
+      assert.equal(run.status,0,`${caller}/${fixture.name}: valid response rejected`);
+      assert.equal(run.stdout,'MUTATION_ALLOWED');
+      assert.equal(fs.existsSync(receiptPath),false);
+    } else {
+      assert.notEqual(run.status,0,`${caller}/${fixture.name}: failed mint escaped as success`);
+      assert.doesNotMatch(run.stdout,/MUTATION_ALLOWED/);
+      const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+      assert.equal(receipt.state,'LIFECYCLE_TOKEN_REJECTED');
+      assert.equal(receipt.failure_code,fixture.code||'LIFECYCLE_BROKER_RESPONSE_DENIED_OR_INVALID');
+      assert.equal(receipt.repository_mutation_attempted,false);
+      assert.equal(receipt.token_accepted,false);
+      assert.equal(receipt.expected_head_sha,lifecycleBinding.expected_head_sha);
+      assert.equal(receipt.current_main_sha,lifecycleBinding.current_main_sha);
+      assert.equal(receipt.permission_profile,lifecycleProfile);
+      for(const boundary of ['production','public','g5']) assert.equal(receipt[boundary],'HOLD');
+    }
+    assert.ok(!run.stdout.includes(validBroker.token),'token must not escape into test output');
+    lifecycleCaseCount++;
+  } finally { fs.rmSync(root,{recursive:true,force:true}); }
+}
+console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'lifecycle-failure-propagation-offline',cases:lifecycleCaseCount,real_network:false,real_credentials:false}));
