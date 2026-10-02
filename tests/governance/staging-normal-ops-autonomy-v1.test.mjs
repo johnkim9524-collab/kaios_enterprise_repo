@@ -6,14 +6,14 @@ const wf = name => fs.readFileSync(`.github/workflows/${name}`, 'utf8');
 
 test('broker normal STAGING updates are natural and authority bounded', () => {
   const x=wf('kidults-autonomous-event-broker-deploy-v1.yml');
-  assert.match(x,/push:[\s\S]*autonomous-event-token-broker-v1\.cjs[\s\S]*autonomous-event-token-broker-v1\.json/);
+  assert.match(x,/push:[\s\S]*autonomous-event-token-broker-v1\.cjs[\s\S]*autonomous-event-token-broker-v1\.json[\s\S]*kidults-autonomous-event-broker-deploy-v1\.yml/);
   assert.match(x,/validate-staging-no-authority-expansion-v1\.mjs/);
   assert.match(x,/AUTO-STAGING-BROKER/);
   assert.match(x,/workflow_dispatch:/);
 });
 test('autonomous landing uses existing exact delta verifier on natural main updates', () => {
   const x=wf('kidults-autonomous-landing-staging-deploy-v1.yml');
-  assert.match(x,/push:[\s\S]*autonomous-internal-landing-v1\.json/);
+  assert.match(x,/push:[\s\S]*autonomous-internal-landing-v1\.json[\s\S]*kidults-autonomous-landing-staging-deploy-v1\.yml/);
   assert.match(x,/validate-autonomous-landing-staging-deployment-v1\.mjs/);
   assert.match(x,/AUTO-STAGING-AUTONOMOUS-LANDING/);
 });
@@ -21,6 +21,7 @@ test('natural clock auto deploy is code-only and template changes remain owner b
   const x=wf('kidults-natural-clock-deploy-v1.yml');
   const push=x.slice(x.indexOf('  push:'),x.indexOf('  workflow_dispatch:'));
   assert.match(push,/natural-clock-dispatcher-v1\.cjs/);
+  assert.match(push,/kidults-natural-clock-deploy-v1\.yml/);
   assert.doesNotMatch(push,/natural-clock-dispatcher-v1\.json/);
   assert.match(x,/validate-staging-no-authority-expansion-v1\.mjs/);
   assert.match(x,/AUTO-STAGING-NATURAL-CLOCK/);

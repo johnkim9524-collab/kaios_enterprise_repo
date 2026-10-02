@@ -8,6 +8,7 @@ on:
     paths:
       - infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs
       - infrastructure/aws/staging/autonomous-event-token-broker-v1.json
+      - .github/workflows/kidults-autonomous-event-broker-deploy-v1.yml
   workflow_dispatch:
     inputs:
       main_sha:
