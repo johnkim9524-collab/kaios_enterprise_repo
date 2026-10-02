@@ -16,6 +16,7 @@ test('autonomous landing uses existing exact delta verifier on natural main upda
   assert.match(x,/push:[\s\S]*autonomous-internal-landing-v1\.json[\s\S]*kidults-autonomous-landing-staging-deploy-v1\.yml/);
   assert.match(x,/validate-autonomous-landing-staging-deployment-v1\.mjs/);
   assert.match(x,/AUTO-STAGING-AUTONOMOUS-LANDING/);
+  assert.ok(x.indexOf('actions/checkout@') < x.indexOf('Derive exact bounded deployment inputs'), 'checkout must precede template hashing');
 });
 test('natural clock auto deploy is code-only and template changes remain owner bounded', () => {
   const x=wf('kidults-natural-clock-deploy-v1.yml');
