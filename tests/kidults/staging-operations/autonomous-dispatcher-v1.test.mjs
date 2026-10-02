@@ -138,7 +138,8 @@ assert.match(dispatcherWorkflow,/pulls\/\$pr\/update-branch/);
 assert.match(dispatcherWorkflow,/expected_head_sha:\$h/);
 assert.match(dispatcherWorkflow,/LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_/);
 assert.match(dispatcherWorkflow,/http_code.*422[\s\S]*QUARANTINE_NO_MUTATION_RETRY/);
-assert.match(dispatcherWorkflow,/STALE_BASE_UPDATE_HTTP_[\s\S]*github_message/);
+assert.match(dispatcherWorkflow,/STALE_BASE_UPDATE_HTTP_/);
+assert.match(dispatcherWorkflow,/github_message:/);
 assert.match(dispatcherWorkflow,/http_code.*!= 202[\s\S]*for _ in \$\(seq 1 24\)/);
 assert.match(dispatcherWorkflow,/new_head.*!=.*head[\s\S]*new_base.*=.*main/);
 assert.match(dispatcherWorkflow,/expected_parents[\s\S]*STALE_BASE_CONVERGED/);
@@ -318,3 +319,158 @@ for(const caller of ['assignment','conditional']) for(const fixture of lifecycle
   } finally { fs.rmSync(root,{recursive:true,force:true}); }
 }
 console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'lifecycle-failure-propagation-offline',cases:lifecycleCaseCount,real_network:false,real_credentials:false}));
+
+const mockedLifecycleShell = [
+  "set -euo pipefail",
+  "export TMPDIR=\"$PWD/tmp\"",
+  "mkdir -p \"$TMPDIR\"",
+  "export GITHUB_REPOSITORY=johnkim9524-collab/kaios_enterprise_repo GITHUB_REPOSITORY_ID=1281328888 GITHUB_RUN_ID=900001",
+  "export AWS_ROLE_ARN=fixture-role BROKER_FUNCTION=fixture-broker KIDULTS_AUTONOMOUS_DISPATCH_EVENT=kidults.authorization.generation.v1",
+  "export ACTIONS_ID_TOKEN_REQUEST_TOKEN=fixture-request-token ACTIONS_ID_TOKEN_REQUEST_URL=https://oidc.invalid/token?fixture=1",
+  "sleep() { :; }",
+  "curl() {",
+  "  local out='' url='' verb=GET arg pn",
+  "  while (( $# )); do",
+  "    case \"$1\" in",
+  "      -o) out=\"$2\"; shift 2;;",
+  "      -X) verb=\"$2\"; shift 2;;",
+  "      -H|-w|--data-binary) shift 2;;",
+  "      *) arg=\"$1\"; if [[ \"$arg\" == https:* ]]; then url=\"$arg\"; fi; shift;;",
+  "    esac",
+  "  done",
+  "  if [[ \"$url\" == https://oidc.invalid/* ]]; then",
+  "    echo oidc >> trace",
+  "    case \"$FIXTURE_CASE\" in",
+  "      oidc_http) echo 401; return 22;;",
+  "      oidc_network) echo 000; return 6;;",
+  "      oidc_json) echo invalid >\"$out\";;",
+  "      oidc_null) echo '{\"value\":null}' >\"$out\";;",
+  "      *) echo '{\"value\":\"fixture_oidc_token_0123456789\"}' >\"$out\";;",
+  "    esac",
+  "    echo 200; return 0",
+  "  fi",
+  "  if [[ \"$verb\" = PUT ]]; then",
+  "    [[ \"$url\" =~ /pulls/([0-9]+)/update-branch$ ]] || return 91",
+  "    pn=\"${BASH_REMATCH[1]}\"",
+  "    echo \"update:$pn:$out\" >> trace",
+  "    case \"$FIXTURE_CASE:$pn\" in",
+  "      update_422:*|response_isolation:42) echo '{\"message\":\"Validation Failed\"}' >\"$out\"; echo 422; return 22;;",
+  "      update_401:*) echo '{\"message\":\"Bad credentials\"}' >\"$out\"; echo 401; return 22;;",
+  "      response_isolation:43) echo 000; return 6;;",
+  "      *) echo '{\"message\":\"accepted\"}' >\"$out\"; echo 202; return 0;;",
+  "    esac",
+  "  fi",
+  "  if [[ \"$url\" == */pulls/* ]]; then",
+  "    [[ \"$FIXTURE_CASE\" != readback_failure ]] || return 22",
+  "    if [[ \"$FIXTURE_CASE\" = convergence_timeout ]]; then",
+  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{head:{sha:$h},base:{sha:$b}}'",
+  "    else",
+  "      jq -n --arg h \"$NEW_HEAD\" --arg b \"$CURRENT_MAIN\" '{head:{sha:$h},base:{sha:$b}}'",
+  "    fi",
+  "    return 0",
+  "  fi",
+  "  if [[ \"$url\" == */commits/* ]]; then",
+  "    if [[ \"$FIXTURE_CASE\" = reversed_parents ]]; then",
+  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{parents:[{sha:$b},{sha:$h}]}'",
+  "    else",
+  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{parents:[{sha:$h},{sha:$b}]}'",
+  "    fi",
+  "    return 0",
+  "  fi",
+  "  echo unexpected_curl >&2; return 90",
+  "}",
+  "aws() {",
+  "  if [[ \"$1\" = sts ]]; then",
+  "    echo sts >> trace",
+  "    [[ \"$FIXTURE_CASE\" != sts_failure ]] || return 7",
+  "    if [[ \"$FIXTURE_CASE\" = sts_incomplete ]]; then echo incomplete; else echo 'fixture_key fixture_secret fixture_session'; fi",
+  "    return 0",
+  "  fi",
+  "  [[ \"$1\" = lambda ]] || return 92",
+  "  echo invoke >> trace",
+  "  [[ \"$FIXTURE_CASE\" != invoke_failure ]] || return 8",
+  "  local out=\"${@: -1}\" payload=''",
+  "  while (( $# )); do",
+  "    if [[ \"$1\" = --payload ]]; then payload=\"$2\"; break; fi",
+  "    shift",
+  "  done",
+  "  local profile",
+  "  profile=$(jq -r '.permission_profile' <<<\"$payload\")",
+  "  jq -n --arg repo \"$GITHUB_REPOSITORY\" --arg rid \"$GITHUB_REPOSITORY_ID\" --arg profile \"$profile\" '{ok:true,token_type:\"GITHUB_APP_INSTALLATION\",repository:$repo,repository_id:$rid,permission_profile:$profile,token:\"ghs_synthetic_fixture_0123456789\"}' >\"$out\"",
+  "  case \"$FIXTURE_CASE\" in",
+  "    function_error) echo '{\"errorMessage\":\"EVENT_TOKEN_BROKER_DENIED\"}' >\"$out\"; echo '{\"StatusCode\":200,\"FunctionError\":\"Unhandled\"}'; return 0;;",
+  "    metadata_invalid) echo invalid; return 0;;",
+  "    body_invalid) echo invalid >\"$out\";;",
+  "    token_null) jq '.token=null' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "    token_short) jq '.token=\"null\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "    token_malformed) jq '.token=\"ghs_bad token_with_space_0000000\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "    wrong_profile) jq '.permission_profile=\"UNKNOWN\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "    wrong_repository) jq '.repository=\"other/repo\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "    ok_false) jq '.ok=false' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
+  "  esac",
+  "  echo '{\"StatusCode\":200}'",
+  "}"
+].join(String.fromCharCode(10));
+const lifecycleShellCases = [
+  ["happy", null],
+  ["update_422", "STALE_BASE_UPDATE_422"],
+  ["update_401", "STALE_BASE_UPDATE_HTTP_401"],
+  ["response_isolation", "STALE_BASE_UPDATE_HTTP_000"],
+  ["readback_failure", "STALE_BASE_CONVERGENCE_READBACK_FAILED"],
+  ["reversed_parents", "STALE_BASE_CONVERGENCE_PARENT_MISMATCH"],
+  ["convergence_timeout", "STALE_BASE_CONVERGENCE_TIMEOUT"]
+];
+// Execute the actual lifecycle loops with real jq and offline network mocks.
+// Mint is mocked here and tested separately by the 42-case propagation suite above.
+const shellStart=dispatcherWorkflow.indexOf("          current_receipt=''");
+const shellEnd=dispatcherWorkflow.indexOf('      - name: Upload bounded scan and terminal fanout evidence',shellStart);
+assert.ok(shellStart>0&&shellEnd>shellStart);
+let workflowShell=dispatcherWorkflow.slice(shellStart,shellEnd).split(String.fromCharCode(10)).map(line=>line.slice(10)).join(String.fromCharCode(10));
+const tokenFunction=workflowShell.match(/^mint_lifecycle_token\(\) \{[\s\S]*?^\}/m)?.[0]; assert.ok(tokenFunction);
+workflowShell=workflowShell.replace(tokenFunction, "mint_lifecycle_token() { printf %s ghs_synthetic_fixture_0123456789; }");
+const bash=process.platform==='win32'?path.join(process.env.ProgramFiles||'C:/Program Files','Git','bin','bash.exe'):'bash';
+const fixtureRoot=fs.mkdtempSync(path.join(os.tmpdir(),'kidults-lifecycle-shell-'));
+let shellCasesPassed=0;
+try {
+  for(const [name,failureCode] of lifecycleShellCases){
+    const cwd=path.join(fixtureRoot,name);fs.mkdirSync(cwd);
+    fs.mkdirSync(path.join(cwd,'out/autonomous-dispatcher-v1'),{recursive:true});
+    const binding=n=>({state:'STALE_RECOVERABLE',binding:{pull_request:n,old_base_sha:'a'.repeat(40),expected_head_sha:'b'.repeat(40),current_main_sha:'c'.repeat(40)}});
+    fs.writeFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/results.json'),JSON.stringify(name==='response_isolation'?[binding(42),binding(43)]:[binding(42)]));
+    const env={PATH:process.env.PATH,SYSTEMROOT:process.env.SYSTEMROOT||'',TEMP:process.env.TEMP||os.tmpdir(),TMP:process.env.TMP||os.tmpdir(),FIXTURE_CASE:name,OLD_HEAD:'b'.repeat(40),CURRENT_MAIN:'c'.repeat(40),NEW_HEAD:'d'.repeat(40)};
+    const jqMode=process.platform==='win32'?'jq() { command jq -b "$@"; }'+String.fromCharCode(10):'';
+    fs.writeFileSync(path.join(cwd,'fixture.sh'),jqMode+mockedLifecycleShell+String.fromCharCode(10)+workflowShell);
+    const result=spawnSync(bash,['--noprofile','--norc','fixture.sh'],{cwd,env,encoding:'utf8',timeout:30000});
+    assert.ifError(result.error);
+    const receiptPath=path.join(cwd,'out/autonomous-dispatcher-v1/lifecycle',`pr-${name==='response_isolation'?43:42}-convergence.json`);
+    assert.ok(fs.existsSync(receiptPath),`${name}: missing terminal receipt; ${result.stderr}`);
+    const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+    const trace=fs.readFileSync(path.join(cwd,'trace'),'utf8').trim().split(String.fromCharCode(10)).map(x=>x.trim());
+    const mutations=trace.filter(x=>x.startsWith('update:'));
+    if(failureCode){
+      assert.equal(receipt.state,'QUARANTINE_NO_MUTATION_RETRY',name);
+      assert.equal(receipt.failure_code,failureCode,name);
+      if(name==='update_422') assert.equal(result.status,0,result.stderr); else assert.notEqual(result.status,0,`${name}: failure escaped as success`);
+      if(name.startsWith('oidc_')||name.startsWith('sts_')||['invoke_failure','function_error','metadata_invalid','body_invalid','token_null','token_short','token_malformed','wrong_profile','wrong_repository','ok_false'].includes(name)){
+        assert.equal(mutations.length,0,`${name}: invalid token reached mutation`);
+        assert.equal(receipt.mutation_state,'NOT_ATTEMPTED',name);
+      }
+    }else{
+      assert.equal(result.status,0,result.stderr);
+      assert.equal(receipt.state,'STALE_BASE_CONVERGED');
+      assert.equal(receipt.ordered_parent_set_verified,true);
+      assert.equal(receipt.new_head_sha,'d'.repeat(40));
+      assert.equal(mutations.length,1);
+    }
+    if(name==='response_isolation'){
+      assert.equal(receipt.github_message,'UNAVAILABLE');
+      assert.equal(receipt.mutation_state,'UNKNOWN');
+      assert.equal(mutations.length,2);
+      assert.notEqual(mutations[0].split(':').slice(2).join(':'),mutations[1].split(':').slice(2).join(':'));
+    }
+    assert.ok(!JSON.stringify(receipt).includes('synthetic_fixture'));
+    assert.deepEqual(fs.readdirSync(path.join(cwd,'tmp')),[],`${name}: token response tempfile leaked`);
+    shellCasesPassed++;
+  }
+} finally {fs.rmSync(fixtureRoot,{recursive:true,force:true});}
+console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'actual-lifecycle-loop-offline',cases:shellCasesPassed,live_network_calls:0,real_credentials_used:false}));

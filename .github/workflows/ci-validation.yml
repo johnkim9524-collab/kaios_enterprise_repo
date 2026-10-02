@@ -136,7 +136,11 @@ jobs:
           test -d tests
 
       - name: Run tests
-        run: pytest -q
+        run: |
+          set -euo pipefail
+          pytest -q
+          node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
+          node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
 
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test
