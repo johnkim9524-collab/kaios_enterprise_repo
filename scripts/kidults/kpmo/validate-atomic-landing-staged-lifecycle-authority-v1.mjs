@@ -164,6 +164,10 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
   invoke(receipt({readiness_authority: 'PROGRAM_OWNER'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
   invoke(receipt({ready_state_grants_authorization: true})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({readiness_authority: null})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({ready_state_grants_authorization: null})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_type: 'created_ready_or_never_drafted'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
