@@ -7,6 +7,7 @@ on:
     branches: [main]
     paths:
       - infrastructure/aws/staging/autonomous-internal-landing-v1.json
+      - .github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml
   workflow_dispatch:
     inputs:
       main_sha:

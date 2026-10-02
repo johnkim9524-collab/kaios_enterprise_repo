@@ -106,8 +106,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-event-broker-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3adf2454cf44d0b76778702caffbe0eeccd71894",
-      "sha256": "sha256:372005f6503f1f8e1b5ccc344f30fa469b4af189ecd90354e57daf673bd02f5e",
+      "git_blob": "eff77e49a66c2a8f3361e36bca44095a4a5c3a83",
+      "sha256": "sha256:8d972446cc04a172b32ac01a1ccc2c58f84b409ab596fbb343e4701b2330bc09",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "de73bb3f635e87b464e4c252bffcb74a9032b642",
-      "sha256": "sha256:5f4c1eb34ce023f4031e2332749b4b21969cd56ce994fd5cf08bb84848b0b80e",
+      "git_blob": "c811b8ea144d46a271267c9aa504fcb74aab0233",
+      "sha256": "sha256:fddd55a17be5d01c4fade2b1246d5ba1ac5e4266bcef69c36081ff8b25eb8c54",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -535,8 +535,8 @@
     {
       "path": ".github/workflows/kidults-natural-clock-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fdad532ef2ad360055ae6523394b3e2fea5cacbc",
-      "sha256": "sha256:235cf55ad5e7d94f17e9d7cd3b3a7e76964b88527bb125356b84840d4df846e9",
+      "git_blob": "594a696fa83ddedd660c7ad9ec9ce91ab32b839f",
+      "sha256": "sha256:de3129a288f91860aef9f965ae63e715f3f90e55a8a8996ef5dc547f8adce91d",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5113,8 +5113,8 @@
     {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "918c33d096ef8da692ea478b6827a6f2446d5015",
-      "sha256": "sha256:664d2306cc05b29c2ffc3a64912b78d4dfc7140b77819482a9d1cf23757d37fa",
+      "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
+      "sha256": "sha256:0d2e35aace3e59b977e2096ff12045744fe22c63784d76aefb30248a2d2db182",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:8b82d7bb298f33d8334ec8653240c9f6defb20829cb532c55b010cd3f97fc5bc"
+  "manifest_sha256": "sha256:394cc09dd633cbc1825e35d205d953d3ed80da3756b891cd19e1462d41feb75c"
 }
