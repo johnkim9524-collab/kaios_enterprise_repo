@@ -140,7 +140,9 @@ test('capability expansion fails before dispatch while replacements reach semant
 });
 
 test('exact exceptions are classified and cannot weaken routing coverage',()=>{
-  const filename='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  // Use an exact-path exception that is not also a member of an immutable
+  // multi-file transition contract; touching one transition member alone must fail closed.
+  const filename='AGENTS.md';
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1,2 +1 @@\n-  "authorization_routing": {"route":"CANONICAL_ENVELOPE"}\n+  "state":"updated"'}],policy:landing}),[filename]);
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1,2 @@\n {\n+  "verification_evidence": "monotonic-hardening"'}],policy:landing}),[filename]);
 });
