@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6eb52af59d1e1c38482a0ad48149ed528a349861",
-      "sha256": "sha256:e6c4bdfbd334b90c7c6566f15f36b329ec9456b1d199ca0ccc6bf4b7c3147827",
+      "git_blob": "46dcad8d103f6245a17377913d7bd9714e19ebd6",
+      "sha256": "sha256:483e2241e7e2f6c70957963cfd6a914c3f448701a86f1fa763c816d77fbff688",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c811b8ea144d46a271267c9aa504fcb74aab0233",
-      "sha256": "sha256:fddd55a17be5d01c4fade2b1246d5ba1ac5e4266bcef69c36081ff8b25eb8c54",
+      "git_blob": "cd669a01ce7468acf229a6dd5d5cba695f433a68",
+      "sha256": "sha256:0bba7a1cac687c385fb3c17be88435121addada2f1f51786c0e008a34a4bbcab",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -1360,8 +1360,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "20a20708e568f01db87851c96db699480f721631",
-      "sha256": "sha256:0d907e1ac5b6fe496ce836a3e7f5599a8db87c47ac9d508303037a5e460a66b1",
+      "git_blob": "bd8015774b3ed83644427d796e8fd189f5b176db",
+      "sha256": "sha256:425e57bcd5b58b8c80817ddcd8956360ce782712d8a3ad0ac9ba6a63481f8d88",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3489,8 +3489,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "74fc28dd07cc4d16fae655dbff7f267f7ef68b6b",
-      "sha256": "sha256:db3079a7412fdb34532407c9c226f27cda1ee7f0d93be6cdf0644f66d41c9ff0",
+      "git_blob": "bca385689a2da590ec835262c13f6feebe7bc7c7",
+      "sha256": "sha256:feac7af8eecf4d71652cccb9d8342e4939572ed8f718c20203562b54909e651a",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5312,8 +5312,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "fabaef2adaa84453f11c6fec1121cea3fcbfc1e8",
-      "sha256": "sha256:e84b13a8861bb47d838956f5ea55d9002dec395327ccbbd0da607a6146eb2c92"
+      "git_blob": "efe1792e85bcc4fb4f9c07bd0f07439256256e55",
+      "sha256": "sha256:8f0e37443558cec8e5dbfc0c25bf362d2e42b93d7bdec86221456b11130473a1"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5324,8 +5324,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1c8a98b4b5af40dfc531c4741bf440ec73c4bdcf",
-      "sha256": "sha256:bdd5ad42ea3b6884e718720f4c9d0a1f9720b65a4b1337a9b35b947c53ddf828"
+      "git_blob": "ceeb716ddacd2055f8a31f2bb96657984947b4e5",
+      "sha256": "sha256:1a63678a7a77ba8f3b6964cbf2ac688851d79c453d9540719d315bce64e43d5f"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
@@ -5342,8 +5342,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e0d5d2fdd1101f92aebd7e107502b7dc726d3e64",
-      "sha256": "sha256:91d6df37eaf1d0e00d6053ab4860f6307b4e893d484300630589a8a8085f5b38"
+      "git_blob": "ed0b7d7f628d50a13847831859b30b09d4bc270c",
+      "sha256": "sha256:daa2deaba9b8e3eaec6a639c87f4a402b1d2e533a80c169cc61df3271e6fc9ad"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f1a87f0177ac23f8555211b097386a6e68ac35c04f4337158cbfb3d9eea91032"
+  "manifest_sha256": "sha256:9f504ddf5f37d466f4e3dea6063144818009b16f1d02fbf661343aea75f3a83e"
 }
