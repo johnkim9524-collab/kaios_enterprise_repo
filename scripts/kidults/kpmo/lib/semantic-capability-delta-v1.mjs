@@ -198,32 +198,14 @@ const assertJsonMonotonic=(before,after,filename)=>{
   for(const [path,value] of right) if(!left.has(path)&&riskyValue.test(`${path}:${value}`)) fail('CAPABILITY_EXPANSION',`${filename}:${path}`);
 };
 
-const workflowRunCapabilityPatterns=Object.freeze([
-  ['network-curl',/\bcurl\b/i],['network-wget',/\bwget\b/i],['github-api',/\bgh\s+api\b/i],
-  ['aws-cli',/\baws\s+/i],['gcloud-cli',/\bgcloud\s+/i],['azure-cli',/\baz\s+/i],
-  ['terraform',/\bterraform\b/i],['kubectl',/\bkubectl\b/i],['http-url',/https?:\/\//i],
-  ['secret-context',/secrets\./i],['vars-context',/vars\./i],['github-env',/GITHUB_ENV/i],
-]);
-const workflowRunCapabilities=value=>new Set(workflowRunCapabilityPatterns.filter(([,pattern])=>pattern.test(String(value))).map(([name])=>name));
-const workflowRunFailClosedScore=value=>(String(value).match(/set -euo pipefail|--fail(?:-with-body)?|\bexit 1\b|\breturn 1\b|\btest\s+|jq\s+-[^\n]*e/g)||[]).length;
-const safeWorkflowRunReplacement=(before,after)=>{
-  const left=workflowRunCapabilities(before),right=workflowRunCapabilities(after);
-  return [...right].every(value=>left.has(value))&&workflowRunFailClosedScore(after)>=workflowRunFailClosedScore(before);
-};
-const workflowRunPath=path=>/jobs\.[^.]+\.steps\[\d+\]\.run$/.test(path);
-
 const assertWorkflowDelta=(before,after,filename)=>{
   const left=yamlModel(before||''); const right=yamlModel(after||'');
   for(const [path,value] of left) {
     const sensitive=/^(on|permissions|jobs\.[^.]+\.(if|environment|permissions|secrets)|jobs\.[^.]+\.steps\.)/.test(path)||riskyValue.test(`${path}:${value}`);
-    if(sensitive&&(!right.has(path)||right.get(path)!==value)) {
-      if(workflowRunPath(path)&&right.has(path)&&safeWorkflowRunReplacement(value,right.get(path))) continue;
-      fail('CAPABILITY_GUARD_WEAKENED',`${filename}:${path}`);
-    }
+    if(sensitive&&(!right.has(path)||right.get(path)!==value)) fail('CAPABILITY_GUARD_WEAKENED',`${filename}:${path}`);
   }
   for(const [path,value] of right) {
     if(left.has(path)&&left.get(path)===value) continue;
-    if(workflowRunPath(path)&&left.has(path)&&safeWorkflowRunReplacement(left.get(path),value)) continue;
     if(/^on(?:\.|$)/.test(path)||/\.environment$/.test(path)||/\.secrets(?:\.|$)/.test(path)||riskyValue.test(`${path}:${value}`)) fail('CAPABILITY_EXPANSION',`${filename}:${path}`);
     const permission=path.match(/(?:^|\.)permissions\.([^.]+)$/);
     if(permission&&writeKey.test(permission[1])&&/^write$/i.test(value)) fail('CAPABILITY_PERMISSION_EXPANSION',`${filename}:${path}`);
