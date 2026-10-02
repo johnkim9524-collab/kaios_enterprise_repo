@@ -1360,8 +1360,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f2f1cd7943a1f257633391c91fc09884b90cad51",
-      "sha256": "sha256:90842e7161e6c32e7e11432e8edd033ec6f282cb318ff4d5734fbdd87d02fc1a",
+      "git_blob": "bc47ee755f7d9fbf9c22c006e52b74d69b4d2cde",
+      "sha256": "sha256:221350da61f5464d9fc9c51a75efa1a8934a03a422de8a9a625ef549169cfc5c",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3489,8 +3489,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f5902e1031017e2e2ab92f07ae9243fc16ee6f07",
-      "sha256": "sha256:29c0412652a815ceb81d8690247d6ccf3b8e618ae0984d6c523ed91aaaaf81b7",
+      "git_blob": "74fc28dd07cc4d16fae655dbff7f267f7ef68b6b",
+      "sha256": "sha256:db3079a7412fdb34532407c9c226f27cda1ee7f0d93be6cdf0644f66d41c9ff0",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5342,8 +5342,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0c8c65688b66a790ca4148016762d1818c6eea66",
-      "sha256": "sha256:64676d705859df1e75f2258ae44fbdd311d096c1f63e8b72f8c921446a588358"
+      "git_blob": "e0d5d2fdd1101f92aebd7e107502b7dc726d3e64",
+      "sha256": "sha256:91d6df37eaf1d0e00d6053ab4860f6307b4e893d484300630589a8a8085f5b38"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3a77d1ef992cbaee49f84e25bfc0fac25f7aed8d0303e133c775819b7eff43c7"
+  "manifest_sha256": "sha256:0e5b4c627c52e5de26b5483c27d2b08753057aa168dd7302522916af24e6a8cf"
 }
