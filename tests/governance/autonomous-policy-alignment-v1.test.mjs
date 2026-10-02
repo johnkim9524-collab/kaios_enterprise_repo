@@ -287,6 +287,18 @@ test('safe internal implementation replacement is autonomous in both independent
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
 
+test('exact Finalizer reservation-before-token reorder passes independent verifier without broad reorder exemption',()=>{
+  const filename='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs';
+  const prefix="if (!authorized) throw new Error('AUTHORIZATION_REQUIRED');\n";
+  const reservation="      invokeFinalizerWriter({\n        action:'CREATE_RESERVATION',\n        authorization_generation:envelope.authorization_generation,\n        nonce_digest:envelope.nonce_digest,\n        run_id:required('GITHUB_RUN_ID'),\n        head_sha:envelope.head_sha,\n      });\n";
+  const token="      const eventToken=await acquireEventToken();\n      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});\n";
+  const base_content=prefix+token+reservation;
+  const head_content=prefix+reservation+token;
+  assert.equal(independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  const mutated=prefix+reservation.replace("head_sha:envelope.head_sha","head_sha:'unbound'")+token;
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:mutated}],policy:landing}),/INDEPENDENT_(?:GUARD_DEPENDENCY_CHANGED|EXACT_REORDER_SCOPE_CHANGED)/);
+});
+
 test('fail-closed guard replacement remains Owner-reserved',()=>{
   const file={
     filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
