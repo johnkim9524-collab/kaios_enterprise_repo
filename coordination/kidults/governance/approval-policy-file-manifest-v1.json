@@ -2809,8 +2809,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "64f77117b53f24002f545cfd66a8a45cf4214dbb",
-      "sha256": "sha256:cb1265f34cafdbc773e384aa813464e0cbd784c63f946dc6d0f9e2e8198261c9"
+      "git_blob": "533b0e6389dad76d08409c1bc8f301f8908f1dc3",
+      "sha256": "sha256:081cdcc74ce1db7166244bc941f1cf23caa1a49f8339effa6d5c4db0a8b4552a"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -3489,8 +3489,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "93d88f1dd5d480ac98279142fe7195eb66642659",
-      "sha256": "sha256:9d5987427c8a45ed5f75eb9bb561003696d412cc913b259b4c1a976494885817",
+      "git_blob": "f5902e1031017e2e2ab92f07ae9243fc16ee6f07",
+      "sha256": "sha256:29c0412652a815ceb81d8690247d6ccf3b8e618ae0984d6c523ed91aaaaf81b7",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5074,8 +5074,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "37a0a020f8b58987c31027f0c3c961b11e7c0bb3",
-      "sha256": "sha256:1f2a0d18448283dd445c10008b727853875589ac7350573830af557220683269",
+      "git_blob": "257cc3f897ac9b803da22b89d7c38884e4dca874",
+      "sha256": "sha256:3e750eea363dd6d9af85b290b7bc9e578946a0307802809cc3d73b0774ce5903",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5342,8 +5342,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4415b1c5c75ce254f1bae1619695ad92ee766cbe",
-      "sha256": "sha256:d606768e00a17db679af8de093807f8029f94ec537b00b4ccab1578124583f15"
+      "git_blob": "0c8c65688b66a790ca4148016762d1818c6eea66",
+      "sha256": "sha256:64676d705859df1e75f2258ae44fbdd311d096c1f63e8b72f8c921446a588358"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -5376,5 +5376,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:394cc09dd633cbc1825e35d205d953d3ed80da3756b891cd19e1462d41feb75c"
+  "manifest_sha256": "sha256:263e6439a5e0d7f6a91eebeba1bb072f633bc1134a6ab006e5933d1292e55c5a"
 }
