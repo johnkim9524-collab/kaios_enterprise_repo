@@ -3,8 +3,6 @@ name: KIDULTS Autonomous Landing STAGING Deploy V1
 # Manual dispatch remains recovery-only; Production/Public/G5 and authority expansion remain Owner-bound.
 run-name: KIDULTS Autonomous Landing STAGING Deploy ${{ github.sha }}
 on:
-  schedule:
-    - cron: '17,47 * * * *'
   push:
     branches: [main]
     paths:
@@ -33,7 +31,7 @@ permissions: {}
 
 jobs:
   deploy-and-verify:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-LANDING-DEPLOYER
     timeout-minutes: 20
@@ -56,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           actual_template_sha=$(sha256sum "$TEMPLATE_PATH" | awk '{print $1}')
-          if [ "$GITHUB_EVENT_NAME" = push ] || [ "$GITHUB_EVENT_NAME" = schedule ]; then
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
             echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
             echo "TEMPLATE_SHA256=$actual_template_sha" >> "$GITHUB_ENV"
             echo "AUTHORIZATION_ID=AUTO-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
