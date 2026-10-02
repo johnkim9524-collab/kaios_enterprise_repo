@@ -314,33 +314,13 @@ test('exact Finalizer reservation-before-token reorder passes independent verifi
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:mutated}],policy:landing}),/INDEPENDENT_(?:GUARD_DEPENDENCY_CHANGED|EXACT_REORDER_SCOPE_CHANGED)/);
 });
 
-test('finalizer Ready evidence preservation exception is exact and mutation-sensitive',()=>{
+test('consumed finalizer Ready transition exception cannot match the hardened single-winner finalizer',()=>{
   const filename='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs';
-  const base_content=fs.readFileSync(filename,'utf8');
-  let head_content=base_content;
-  const reservation=`      invokeFinalizerWriter({
-        action:'CREATE_RESERVATION',
-        authorization_generation:envelope.authorization_generation,
-        nonce_digest:envelope.nonce_digest,
-        run_id:required('GITHUB_RUN_ID'),
-        head_sha:envelope.head_sha,
-      });
-`;
-  const token=`      const eventToken=await acquireEventToken();
-      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-`;
-  for(const [before,after] of [
-    [token+reservation,reservation+token],
-    ['const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true}={}) => {','const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true,preserveDraftDevelopmentEvidence=false}={}) => {'],
-    ['liveRequiredChecks({includeLandingStatus,draftDevelopment:requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true})','liveRequiredChecks({includeLandingStatus,draftDevelopment:preserveDraftDevelopmentEvidence||(requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true)})'],
-    ['const waitForReadyCandidate = async () => {','const waitForReadyCandidate = async ({preserveDraftDevelopmentEvidence=false}={}) => {'],
-    ['validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false})','validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false,preserveDraftDevelopmentEvidence})'],
-    ['await waitForReadyCandidate();','await waitForReadyCandidate({preserveDraftDevelopmentEvidence:candidate.pr.draft===true});'],
-  ]){assert.ok(head_content.includes(before));head_content=head_content.replace(before,after)}
-  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content,head_content}),true);
-  assert.equal(evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
-  assert.equal(independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
-  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content,head_content:head_content.replace('candidate.pr.draft===true','true')}),false);
+  const current=fs.readFileSync(filename,'utf8');
+  assert.match(current,/state:'FINALIZER_FOLLOWER'/);
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:current,head_content:current}),false);
+  const weakened=current.replace("String(reservation.owner_run_id)!==finalizerRunId","true");
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:current,head_content:weakened}),false);
 });
 
 test('fail-closed guard replacement remains Owner-reserved',()=>{
