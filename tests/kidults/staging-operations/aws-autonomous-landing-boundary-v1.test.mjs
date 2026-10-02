@@ -5,6 +5,7 @@ import test from 'node:test';
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
 const oidc = JSON.parse(fs.readFileSync('coordination/kidults/governance/github-oidc-subject-customization-v1.json','utf8'));
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+const landingPolicy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const roles = [
   ['Track','TrackEnvironment','TrackWorkflowRef','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.authorization.generation.v1'],
   ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.authorization.generation.v1'],
@@ -67,4 +68,18 @@ test('finalizer reservation is a single-winner lease and followers exit without 
   assert.match(runner,/process\.exit\(0\)/);
   assert.match(runner,/String\(reservation\.owner_run_id\)!==finalizerRunId/);
   assert.match(code,/ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head'/);
+});
+
+test('normal-ops finalization is verifier-only, writer-bound, and bounded', () => {
+  const recovery=landingPolicy.bounded_recovery.normal_ops_finalizer;
+  assert.equal(recovery.elected_workflow,'KIDULTS Autonomous Independent Verification V1');
+  assert.equal(recovery.track_kpmo_finalizer_behavior,'SUCCESSFUL_NON_MERGING_FOLLOWER');
+  assert.equal(recovery.writer_policy_rejection_retry,false);
+  assert.equal(recovery.persistent_writer_failure,'FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL');
+  assert.match(runner,/finalizer_quorum_wait_seconds\|\|90/);
+  assert.match(runner,/state:'FINALIZER_ROLE_FOLLOWER'/);
+  assert.match(runner,/required\('GITHUB_WORKFLOW'\)!==electedWorkflow/);
+  assert.match(runner,/writer_retry_attempts\|\|3/);
+  assert.match(runner,/error\.code!==?'?AUTONOMOUS_LEDGER_WRITER_FAILURE'?/);
+  assert.doesNotMatch(runner,/RECOVERY_VERIFIER_ELECTED|GITHUB_EXACT_HEAD_FAILOVER|primary_writer_failure/);
 });

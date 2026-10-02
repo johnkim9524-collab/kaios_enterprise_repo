@@ -498,8 +498,14 @@ try {
     writeReceipt(approvalReceipt);
     console.log(JSON.stringify(approvalReceipt));
   } else {
-    const approvals=readApprovals();
-    const missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    const quorumDeadline=Date.now()+Number(policy.bounded_recovery?.finalizer_quorum_wait_seconds||90)*1000;
+    let approvals=readApprovals();
+    let missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    while(missing.length && Date.now()<quorumDeadline){
+      await sleep(3000);
+      approvals=readApprovals();
+      missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    }
     if (missing.length) {
       const waiting = {
         id:'kidults-autonomous-internal-landing-terminal-receipt-v1',
@@ -515,17 +521,34 @@ try {
     } else {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
+      const finalizerRunId=required('GITHUB_RUN_ID');
+      const electedWorkflow=policy.bounded_recovery?.normal_ops_finalizer?.elected_workflow;
+      if(required('GITHUB_WORKFLOW')!==electedWorkflow){
+        const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_ROLE_FOLLOWER',authorization_generation:envelope.authorization_generation,finalizer_run_id:finalizerRunId,elected_workflow:electedWorkflow,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+        writeReceipt(follower);
+        console.log(JSON.stringify(follower));
+        process.exit(0);
+      }
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       const eventToken=await acquireEventToken();
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-      const finalizerRunId=required('GITHUB_RUN_ID');
-      const reservation=invokeFinalizerWriter({
-        action:'CREATE_RESERVATION',
-        authorization_generation:envelope.authorization_generation,
-        nonce_digest:envelope.nonce_digest,
-        run_id:finalizerRunId,
-        head_sha:envelope.head_sha,
-      });
+      let reservation;
+      const writerAttempts=Number(policy.bounded_recovery?.normal_ops_finalizer?.writer_retry_attempts||3);
+      for(let attempt=1;attempt<=writerAttempts;attempt+=1){
+        try {
+          reservation=invokeFinalizerWriter({
+            action:'CREATE_RESERVATION',
+            authorization_generation:envelope.authorization_generation,
+            nonce_digest:envelope.nonce_digest,
+            run_id:finalizerRunId,
+            head_sha:envelope.head_sha,
+          });
+          break;
+        } catch(error) {
+          if(!(error instanceof AutonomousLandingError) || error.code!=='AUTONOMOUS_LEDGER_WRITER_FAILURE' || attempt===writerAttempts) throw error;
+          await sleep(Number(policy.bounded_recovery?.normal_ops_finalizer?.writer_retry_delay_seconds||5)*1000);
+        }
+      }
       if(reservation?.state==='ALREADY_RESERVED' && String(reservation.owner_run_id)!==finalizerRunId){
         const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_FOLLOWER',authorization_generation:envelope.authorization_generation,reservation_owner_run_id:String(reservation.owner_run_id),finalizer_run_id:finalizerRunId,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
         writeReceipt(follower);

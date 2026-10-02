@@ -88,7 +88,7 @@ jobs:
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
           echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 1200 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
           read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
           echo "::add-mask::$AWS_ACCESS_KEY_ID"
           echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
@@ -112,7 +112,7 @@ jobs:
     if: needs.record-role-approval.result == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-FINALIZER
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       actions: read
       checks: read

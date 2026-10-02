@@ -44,6 +44,11 @@ jobs:
       STACK_NAME: kidults-autonomous-internal-landing-staging-v1
       TEMPLATE_PATH: infrastructure/aws/staging/autonomous-internal-landing-v1.json
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
       - name: Derive exact bounded deployment inputs
         shell: bash
         run: |
@@ -58,11 +63,6 @@ jobs:
             echo "TEMPLATE_SHA256=${{ inputs.template_sha256 }}" >> "$GITHUB_ENV"
             echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
           fi
-
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
 
       - name: Validate exact-main authorization and deployment controls
         run: |
