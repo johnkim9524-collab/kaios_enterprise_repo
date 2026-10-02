@@ -3311,8 +3311,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/atomic-landing-staged-lifecycle-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6ff635adeab4f277d52ea9ec59bb17dc86d83ab7",
-      "sha256": "sha256:389169f1960982afe7a5ebb7dc5ed32f9b95acc076b9233369918fee03deee42",
+      "git_blob": "78a96d6b5cfe31bab11e3ba037e41a046f046a5a",
+      "sha256": "sha256:8d777fc0c02547937ee76ef29555d804157c6baf37bef14b2423bb8d12d36056",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3662,8 +3662,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-atomic-landing-staged-lifecycle-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ac4b850a9a8a8e6f6353e4068978ac4fae9362d4",
-      "sha256": "sha256:3689024ddbca2ae9b73c77873255101066078ac851d7de16ef21f15d73f953f6",
+      "git_blob": "8a24379d712648fa4d56f65dd9321d6835bbcc24",
+      "sha256": "sha256:59fc753e035561239dde242210fe8dbc99873f7cea431632913181cc61b75a0a",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5419,5 +5419,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:78c9d54fe9f05bcc10f83fe8b8ba04aa8a0484383bb74218dbab41254f68dc01"
+  "manifest_sha256": "sha256:eeaa2b63290ccffe21aade7ffff1aeea8cba668512e44e577e343268e105a9ea"
 }
