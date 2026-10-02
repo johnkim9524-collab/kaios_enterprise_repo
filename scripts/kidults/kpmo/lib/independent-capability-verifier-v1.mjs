@@ -9,6 +9,56 @@ const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
 const normalizedScript=value=>String(value).replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim();
+const independentRunPatterns=Object.freeze([
+  ['network-curl',/\bcurl\b/i],['network-wget',/\bwget\b/i],['github-api',/\bgh\s+api\b/i],
+  ['aws-cli',/\baws\s+/i],['gcloud-cli',/\bgcloud\s+/i],['azure-cli',/\baz\s+/i],
+  ['terraform',/\bterraform\b/i],['kubectl',/\bkubectl\b/i],['http-url',/https?:\/\//i],
+  ['secret-context',/secrets\./i],['vars-context',/vars\./i],['github-env',/GITHUB_ENV/i],
+]);
+const independentRunCaps=value=>new Set(independentRunPatterns.filter(([,pattern])=>pattern.test(String(value))).map(([name])=>name));
+const independentRunStops=value=>(String(value).match(/set -euo pipefail|--fail(?:-with-body)?|\bexit 1\b|\breturn 1\b|\btest\s+|jq\s+-[^\n]*e/g)||[]).length;
+const workflowRunBodies=source=>{
+  const lines=String(source).split('\n'),bodies=[];
+  for(let index=0;index<lines.length;index+=1){
+    const match=lines[index].match(/^(\s*)(?:-\s+)?run:\s*(.*)$/);
+    if(!match) continue;
+    const indent=match[1].length,header=match[2].trim(),body=[];
+    if(header&&!/^[>|][+-]?$/.test(header)){bodies.push(header);continue}
+    while(index+1<lines.length){
+      const next=lines[index+1],nextIndent=(next.match(/^ */)||[''])[0].length;
+      if(next.trim()&&nextIndent<=indent) break;
+      body.push(next);index+=1;
+    }
+    bodies.push(body.join('\n'));
+  }
+  return bodies;
+};
+const workflowWithoutRunBodies=source=>{
+  const lines=String(source).split('\n'),out=[];
+  for(let index=0;index<lines.length;index+=1){
+    const match=lines[index].match(/^(\s*)(?:-\s+)?run:\s*(.*)$/);
+    if(!match){out.push(lines[index]);continue}
+    const indent=match[1].length,header=match[2].trim();out.push(lines[index]);
+    if(header&&!/^[>|][+-]?$/.test(header)) continue;
+    while(index+1<lines.length){
+      const next=lines[index+1],nextIndent=(next.match(/^ */)||[''])[0].length;
+      if(next.trim()&&nextIndent<=indent) break;
+      index+=1;
+    }
+  }
+  return out.join('\n');
+};
+const verifyWorkflowReplacement=(before,after,filename)=>{
+  const leftBodies=workflowRunBodies(before),rightBodies=workflowRunBodies(after);
+  if(leftBodies.length!==rightBodies.length) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',filename);
+  for(let index=0;index<leftBodies.length;index+=1){
+    const left=independentRunCaps(leftBodies[index]),right=independentRunCaps(rightBodies[index]);
+    if(![...right].every(value=>left.has(value))||independentRunStops(rightBodies[index])<independentRunStops(leftBodies[index])) deny('INDEPENDENT_WORKFLOW_RUN_CAPABILITY_CHANGED',`${filename}:${index}`);
+  }
+  const beforeSecurity=normalize(workflowWithoutRunBodies(before)).filter(line=>securityLine.test(line));
+  const afterSecurity=normalize(workflowWithoutRunBodies(after)).filter(line=>securityLine.test(line));
+  if(JSON.stringify(beforeSecurity)!==JSON.stringify(afterSecurity)) deny('INDEPENDENT_WORKFLOW_CONTROL_CHANGED',filename);
+};
 const derivedApprovalMetadataPaths=new Set([
   'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
   'coordination/kidults/governance/approval-policy-inventory-v1.json',
@@ -146,8 +196,11 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
     if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
-    for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
-    for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+    if(file.filename.endsWith('.yml')||file.filename.endsWith('.yaml')) verifyWorkflowReplacement(file.base_content,file.head_content,file.filename);
+    else {
+      for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
+      for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+    }
     if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)) {
       verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename);
     } else if(file.filename.endsWith('.json')) {

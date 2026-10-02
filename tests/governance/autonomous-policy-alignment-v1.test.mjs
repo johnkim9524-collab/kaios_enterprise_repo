@@ -293,6 +293,17 @@ test('safe monotonic workflow hardening passes both independent models',()=>{
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
 
+test('workflow run-body replacement is autonomous only when capability surface does not expand',()=>{
+  const base='name: hardening\non:\n  pull_request:\npermissions:\n  contents: read\njobs:\n  validate:\n    runs-on: ubuntu-24.04\n    steps:\n      - name: Bound\n        run: |\n          set -euo pipefail\n          curl --fail https://api.github.com/example >/dev/null\n          aws sts get-caller-identity >/dev/null\n';
+  const hardened=base.replace('          curl --fail https://api.github.com/example >/dev/null\n','          tmp=$(mktemp)\n          curl --fail-with-body https://api.github.com/example >"$tmp"\n          jq -e . "$tmp" >/dev/null\n          rm -f "$tmp"\n');
+  const file={filename:'.github/workflows/internal.yml',base_content:base,head_content:hardened};
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  const expanded={...file,head_content:hardened.replace('          rm -f "$tmp"\n','          gh api repos/example/example >/dev/null\n          rm -f "$tmp"\n')};
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[expanded],policy:landing}),/CAPABILITY_EXPANSION|CAPABILITY_GUARD_WEAKENED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[expanded],policy:landing}),/INDEPENDENT_WORKFLOW_RUN_CAPABILITY_CHANGED/);
+});
+
 test('safe internal implementation replacement is autonomous in both independent models',()=>{
   const file={
     filename:'scripts/kidults/kpmo/internal-normalizer.mjs',
