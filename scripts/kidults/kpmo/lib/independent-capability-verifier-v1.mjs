@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 const hash=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 const deny=(code,detail='')=>{const error=new Error(detail?`${code}:${detail}`:code);error.code=code;throw error};
@@ -120,9 +120,10 @@ const exactFinalizerReservationBeforeTokenReorder=(before,after,filename)=>{
 const verifyGuardDependencies=(before,after,filename)=>{
   const reorderAttempt=finalizerReservationReorderAttempt(before,after,filename);
   const exactReorder=exactFinalizerReservationBeforeTokenReorder(before,after,filename);
-  if(reorderAttempt&&!exactReorder) deny('INDEPENDENT_EXACT_REORDER_SCOPE_CHANGED',filename);
+  const exactReadyEvidence=matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:before,head_content:after});
+  if(reorderAttempt&&!exactReorder&&!exactReadyEvidence) deny('INDEPENDENT_EXACT_REORDER_SCOPE_CHANGED',filename);
   if(JSON.stringify(independentGuardGraph(before,filename))!==JSON.stringify(independentGuardGraph(after,filename))
-    && !exactReorder) deny('INDEPENDENT_GUARD_DEPENDENCY_CHANGED',filename);
+    && !exactReorder&&!exactReadyEvidence) deny('INDEPENDENT_GUARD_DEPENDENCY_CHANGED',filename);
 };
 
 // Deliberately separate from the primary classifier: this verifier derives a

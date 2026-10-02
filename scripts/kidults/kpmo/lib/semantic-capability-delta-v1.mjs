@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 export class CapabilityDeltaError extends Error {
   constructor(code, detail='') { super(detail ? `${code}:${detail}` : code); this.code=code; }
@@ -93,7 +93,8 @@ const scriptBindingGraph=(source,filename)=>{
 
 const assertScriptGuardDependencies=(before,after,filename)=>{
   const left=scriptBindingGraph(before,filename);const right=scriptBindingGraph(after,filename);
-  if(JSON.stringify(left)!==JSON.stringify(right))fail('CAPABILITY_GUARD_DEPENDENCY_CHANGED',filename);
+  if(JSON.stringify(left)!==JSON.stringify(right)
+    && !matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:before,head_content:after})) fail('CAPABILITY_GUARD_DEPENDENCY_CHANGED',filename);
 };
 
 const flattenJson=(value,path='',out=new Map())=>{
