@@ -100,6 +100,16 @@ test('internal workflow strengthening is autonomous while added authority is Own
   }
 });
 
+test('authority-bearing self-governance fields remain Owner-bound after bootstrap',()=>{
+  const filename='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+  const before=JSON.stringify(landing);
+  const changed=structuredClone(landing);
+  changed.delegated_internal_transition_exceptions=[...(changed.delegated_internal_transition_exceptions||[]),{id:'UNREVIEWED',paths:['CONSTITUTION.md']}];
+  const file={filename,base_content:before,head_content:JSON.stringify(changed)};
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_AUTHORITY_POLICY_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_AUTHORITY_POLICY_CHANGED/);
+});
+
 test('trust roots and external-effect surfaces remain Owner-reserved',()=>{
   for(const filename of [
     'CONSTITUTION.md',

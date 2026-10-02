@@ -36,6 +36,13 @@ const verifyDerivedApprovalMetadata=(before,after,filename)=>{
   if(JSON.stringify(normalizedDerivedApprovalMetadata(before,filename))!==JSON.stringify(normalizedDerivedApprovalMetadata(after,filename))) deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };
 
+const autonomousPolicyAuthorityFields=['owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
+const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
+  if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
+  let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',filename)}
+  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])) deny('INDEPENDENT_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+};
+
 // Independent structural recomputation. Unlike the primary token graph, this
 // walks balanced source spans and reconstructs predicate bindings directly
 // from immutable source text. Unsupported or ambiguous balance fails closed.
@@ -144,6 +151,7 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename);
     if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
