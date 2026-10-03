@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
+import {SPECS as SENTINEL_HEALTH_SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
@@ -38,6 +39,17 @@ for(const [name,mutate] of [
  assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},p));
 });
 test('Requirement producer accepts explicit exact-SHA workflow dispatch evidence',()=>assert.ok(PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Requirement-to-Adapter Coverage v1').events.includes('workflow_dispatch')));
+
+test('producer completion events stay aligned with sentinel health resolver selection',()=>{
+ const byName=new Map(PRODUCER_COMPLETIONS.map((x)=>[x.name,x]));
+ const healthByPath=new Map(SENTINEL_HEALTH_SPECS.map((x)=>[x.path,x]));
+ for(const name of ['KIDULTS ASI SHADOW Operating Evidence v1','KIDULTS ASI Requirement-to-Adapter Coverage v1','KIDULTS ASI Sharded Source Reserve v1']){
+  const completion=byName.get(name);
+  const health=healthByPath.get(completion.path);
+  assert.ok(health,`missing health spec for ${name}`);
+  for(const event of completion.events)assert.ok(health.events.includes(event),`${name} completion event ${event} must be selectable by health resolver`);
+ }
+});
 
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
