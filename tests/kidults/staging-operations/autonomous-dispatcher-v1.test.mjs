@@ -174,6 +174,7 @@ assert.match(dispatcherWorkflow,/if: \$\{\{ always\(\) \}\}[\s\S]*Upload bounded
 const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 assert.match(finalizerSource,/const finalizerRunId=required\('GITHUB_RUN_ID'\);[\s\S]*state:'FINALIZER_ROLE_FOLLOWER'[\s\S]*const eventToken=await acquireEventToken\(\);[\s\S]*let reservation;[\s\S]*writerAttempts[\s\S]*action:'CREATE_RESERVATION'/);
 assert.match(finalizerSource,/state:'FINALIZER_FOLLOWER'[\s\S]*merge_performed:false[\s\S]*process\.exit\(0\)/);
+assert.match(finalizerSource,/publishLandingStatus\('success','AI-020 exact-head internal reversible landing authorized'\)[\s\S]*await waitForLandingAuthorizedCandidate\(\)[\s\S]*\/pulls\/\$\{envelope\.pull_request\}\/merge/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 
 assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{CHANGE_SET_NAME\}"/);
