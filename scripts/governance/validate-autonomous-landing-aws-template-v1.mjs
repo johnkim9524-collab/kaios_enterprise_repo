@@ -129,7 +129,7 @@ const driftStatus = finalizerStatements.find(value => (value.Action || []).inclu
 assert.equal(driftStatus.Resource, '*');
 
 const writerActions = writerRole.Policies[0].PolicyDocument.Statement.flatMap(value => value.Action || []);
-for (const action of ['dynamodb:PutItem','dynamodb:UpdateItem','kms:Verify']) assert.ok(writerActions.includes(action));
+for (const action of ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem','kms:Verify']) assert.ok(writerActions.includes(action));
 assert.equal(writerActions.includes('kms:Sign'), false);
 assert.equal(writerFunction.Runtime, 'python3.12');
 const code = writerFunction.Code.ZipFile;
