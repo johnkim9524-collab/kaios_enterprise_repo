@@ -25,7 +25,8 @@
     "coordination/kidults/security/",
     "coordination/kidults/provider/",
     "coordination/kidults/runtime/",
-    "infra/"
+    "infra/",
+    "infrastructure/aws/"
   ],
   "governed_exact_paths": [
     "wrangler.toml",
