@@ -32,6 +32,19 @@ const currentTemplate = () => {
   }
   return current;
 };
+
+const legacyWriterZipFromDesired = desiredZip => {
+  const reserveBlock = "\ndef reserve_once(item):\n    try:\n        ddb.put_item(\n            TableName=TABLE,\n            Item=item,\n            ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)',\n            ReturnValuesOnConditionCheckFailure='ALL_OLD'\n        )\n        return {'state': 'RESERVED', 'owner_run_id': item['run_id']['S']}\n    except ClientError as error:\n        if error.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':\n            raise\n        prior = error.response.get('Item') or {}\n        owner_run_id = prior.get('run_id', {}).get('S', '')\n        prior_head_sha = prior.get('head_sha', {}).get('S', '')\n        prior_state = prior.get('state', {}).get('S', '')\n        if prior_state != 'RESERVED' or prior_head_sha != item['head_sha']['S'] or not RUN_ID.fullmatch(owner_run_id):\n            raise ValueError('RESERVATION_CONFLICT_INVALID')\n        return {'state': 'ALREADY_RESERVED', 'owner_run_id': owner_run_id}\n";
+  const desiredReservation = "        reservation = reserve_once({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk, **reservation}";
+  const legacyReservation = "        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}";
+  return desiredZip.replace('from botocore.exceptions import ClientError\n', '').replace(reserveBlock, '').replace(desiredReservation, legacyReservation);
+};
+const legacyWriterTemplate = () => {
+  const current = structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile =
+    legacyWriterZipFromDesired(desired.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile);
+  return current;
+};
 const withFixture = (files, callback) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-autonomous-landing-deployer-'));
   try {
@@ -259,6 +272,47 @@ test('template validator accepts exact CloudFormation dynamic dependency fanout 
       '--changeset', path.join(directory, 'changeset'),
     ], {encoding: 'utf8'});
     assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+});
+
+
+test('template validator accepts exact legacy ledger-writer code recovery and Lambda code change set', () => {
+  const current = legacyWriterTemplate();
+  const dynamic = (LogicalResourceId, ResourceType, Name, CausingEntity) => ({ResourceChange: {
+    Action: 'Modify', LogicalResourceId, ResourceType, Replacement: 'False',
+    Details: [{Target: {Attribute: 'Properties', Name}, Evaluation: 'Dynamic',
+      ChangeSource: 'ResourceAttribute', CausingEntity}],
+  }});
+  const changeSet = {
+    Status: 'CREATE_COMPLETE',
+    Changes: [
+      {ResourceChange: {
+        Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterFunction', ResourceType: 'AWS::Lambda::Function', Replacement: 'False',
+        Details: [{Target: {Attribute: 'Properties', Name: 'Code'}, ChangeSource: 'DirectModification'}],
+      }},
+      dynamic('FinalizerRole', 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn'),
+      ...roleIds.map(logicalId => dynamic(logicalId, 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn')),
+    ],
+  };
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+});
+
+test('template validator rejects unclassified ledger-writer code drift', () => {
+  const current = structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile += '\n# unreviewed code drift';
+  withFixture({current, desired}, directory => {
+    const result = spawnSync('node', [validator,
+      '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
+    ], {encoding: 'utf8'});
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_READ_OR_LEGACY_VERIFIER_READ/);
   });
 });
 

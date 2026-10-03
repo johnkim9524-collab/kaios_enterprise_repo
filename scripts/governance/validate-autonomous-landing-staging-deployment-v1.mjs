@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 const APPROVAL_ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
 const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
+const WRITER_FUNCTION_ID = 'AutonomousLedgerWriterFunction';
 const FINALIZER_ROLE_ID = 'FinalizerRole';
 const ROLE_IDS = [...APPROVAL_ROLE_IDS, WRITER_ROLE_ID, FINALIZER_ROLE_ID];
 const QUERY_STATEMENT = {
@@ -20,6 +21,32 @@ const LEDGER_DECRYPT_STATEMENT = {
   Effect: 'Allow',
   Action: ['kms:Decrypt'],
   Resource: {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']},
+};
+
+const expectedLegacyWriterZipFromDesired = desiredZip => {
+  const reserveBlock = "\ndef reserve_once(item):\n    try:\n        ddb.put_item(\n            TableName=TABLE,\n            Item=item,\n            ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)',\n            ReturnValuesOnConditionCheckFailure='ALL_OLD'\n        )\n        return {'state': 'RESERVED', 'owner_run_id': item['run_id']['S']}\n    except ClientError as error:\n        if error.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':\n            raise\n        prior = error.response.get('Item') or {}\n        owner_run_id = prior.get('run_id', {}).get('S', '')\n        prior_head_sha = prior.get('head_sha', {}).get('S', '')\n        prior_state = prior.get('state', {}).get('S', '')\n        if prior_state != 'RESERVED' or prior_head_sha != item['head_sha']['S'] or not RUN_ID.fullmatch(owner_run_id):\n            raise ValueError('RESERVATION_CONFLICT_INVALID')\n        return {'state': 'ALREADY_RESERVED', 'owner_run_id': owner_run_id}\n";
+  const desiredReservation = "        reservation = reserve_once({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk, **reservation}";
+  const legacyReservation = "        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}";
+  assert.ok(desiredZip.includes('from botocore.exceptions import ClientError'), 'WRITER_CODE_EXPECTED_CLIENT_ERROR_IMPORT');
+  assert.ok(desiredZip.includes(reserveBlock), 'WRITER_CODE_EXPECTED_RESERVE_ONCE');
+  assert.ok(desiredZip.includes(desiredReservation), 'WRITER_CODE_EXPECTED_RESERVATION_RETURN');
+  return desiredZip
+    .replace('from botocore.exceptions import ClientError\n', '')
+    .replace(reserveBlock, '')
+    .replace(desiredReservation, legacyReservation);
+};
+const isAllowedLegacyWriterCodeRecovery = (current, desired) => {
+  const currentFunction = current?.Resources?.[WRITER_FUNCTION_ID];
+  const desiredFunction = desired?.Resources?.[WRITER_FUNCTION_ID];
+  if (currentFunction?.Type !== 'AWS::Lambda::Function' || desiredFunction?.Type !== 'AWS::Lambda::Function') return false;
+  const currentZip = currentFunction.Properties?.Code?.ZipFile;
+  const desiredZip = desiredFunction.Properties?.Code?.ZipFile;
+  if (typeof currentZip !== 'string' || typeof desiredZip !== 'string' || currentZip === desiredZip) return false;
+  const currentWithoutCode = structuredClone(currentFunction);
+  const desiredWithoutCode = structuredClone(desiredFunction);
+  delete currentWithoutCode.Properties.Code.ZipFile;
+  delete desiredWithoutCode.Properties.Code.ZipFile;
+  return equal(currentWithoutCode, desiredWithoutCode) && currentZip === expectedLegacyWriterZipFromDesired(desiredZip);
 };
 
 const args = process.argv.slice(2);
@@ -86,8 +113,11 @@ function withoutBoundedRead(template) {
   return copy;
 }
 
-function normalizeAllowedRecoveryState(template) {
+function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
+  if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
+    copy.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile = desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile;
+  }
   for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
     assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
@@ -128,7 +158,7 @@ function validateTemplates(current, desired) {
   assertDesiredBoundary(desired);
   if (equal(current, desired)) return 'ALREADY_APPLIED';
   assert.ok(
-    equal(normalizeAllowedRecoveryState(current), withoutBoundedRead(desired)),
+    equal(normalizeAllowedRecoveryState(current, desired), withoutBoundedRead(desired)),
     'TEMPLATE_DELTA_EXCEEDS_BOUNDED_LEDGER_READ_OR_LEGACY_VERIFIER_READ',
   );
   return 'CHANGE_REQUIRED';
@@ -139,9 +169,11 @@ function validateChangeSet(changeSet, current, desired) {
   const changes = changeSet?.Changes;
   assert.ok(Array.isArray(changes), 'CHANGE_SET_CHANGES_INVALID');
   const expectedChanged = ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId]));
-  assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
+  if (isAllowedLegacyWriterCodeRecovery(current, desired)) expectedChanged.push(WRITER_FUNCTION_ID);
+  assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length + 1, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
 
   const writerChanged = expectedChanged.includes(WRITER_ROLE_ID);
+  const writerFunctionChanged = expectedChanged.includes(WRITER_FUNCTION_ID);
   const dynamicDependencies = new Map([
     ['AutonomousLedgerWriterFunction', {
       resourceType: 'AWS::Lambda::Function',
@@ -174,14 +206,19 @@ function validateChangeSet(changeSet, current, desired) {
     for (const detail of details) {
       assert.equal(detail?.Target?.Attribute, 'Properties', 'CHANGE_SET_ATTRIBUTE_INVALID');
       if (detail?.ChangeSource === 'DirectModification') {
-        assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
         assert.ok(expectedChanged.includes(change?.LogicalResourceId), 'CHANGE_SET_DIRECT_LOGICAL_ID_INVALID');
-        assert.equal(detail?.Target?.Name, 'Policies', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');
+        if (change?.LogicalResourceId === WRITER_FUNCTION_ID) {
+          assert.equal(change?.ResourceType, 'AWS::Lambda::Function', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
+          assert.equal(detail?.Target?.Name, 'Code', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');
+        } else {
+          assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
+          assert.equal(detail?.Target?.Name, 'Policies', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');
+        }
         directObserved.add(change.LogicalResourceId);
         continue;
       }
 
-      assert.ok(writerChanged, 'CHANGE_SET_DYNAMIC_WITHOUT_WRITER_CHANGE');
+      assert.ok(writerChanged || writerFunctionChanged, 'CHANGE_SET_DYNAMIC_WITHOUT_WRITER_OR_FUNCTION_CHANGE');
       assert.equal(detail?.ChangeSource, 'ResourceAttribute', 'CHANGE_SET_SOURCE_INVALID');
       assert.equal(detail?.Evaluation, 'Dynamic', 'CHANGE_SET_DYNAMIC_EVALUATION_INVALID');
       const allowed = dynamicDependencies.get(change?.LogicalResourceId);
