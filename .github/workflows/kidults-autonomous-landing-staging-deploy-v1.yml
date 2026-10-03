@@ -186,6 +186,7 @@ jobs:
             jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/${role}-policy.json" >/dev/null
             jq -e '[.Statement[].Action] | flatten | map(select(.=="dynamodb:PutItem" or .=="dynamodb:UpdateItem" or .=="dynamodb:DeleteItem" or .=="dynamodb:BatchWriteItem")) | length == 0' "$RUNNER_TEMP/${role}-policy.json" >/dev/null
           done
+          aws lambda get-function --function-name "kidults-autonomous-ledger-writer-staging" --query Configuration.FunctionName --output text > "$RUNNER_TEMP/ledger-writer-function-name.txt"
           aws iam get-role-policy --role-name "kidults-autonomous-ledger-writer-staging-role" --policy-name "kidults-autonomous-ledger-conditional-writes" --query PolicyDocument --output json > "$RUNNER_TEMP/writer-policy.json"
           jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/writer-policy.json" >/dev/null
           jq -e '[.Statement[].Action] | flatten | map(select(startswith("kms:"))) | sort == ["kms:Decrypt","kms:Verify"]' "$RUNNER_TEMP/writer-policy.json" >/dev/null

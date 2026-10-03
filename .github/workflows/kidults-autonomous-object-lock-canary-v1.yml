@@ -13,6 +13,11 @@ on:
         description: Exact protected main SHA to bind; defaults to the triggering main SHA
         required: false
         type: string
+      durable_canonical_claim_canary:
+        description: Exercise the signed DynamoDB canonical claim/commit/alias path in STAGING
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: kidults-object-lock-assurance-${{ inputs.expected_main_sha || github.sha }}
@@ -98,6 +103,26 @@ jobs:
             echo 'AWS_PROFILE=kidults-oidc'
             echo 'AWS_REGION=ap-northeast-2'
           } >> "$GITHUB_ENV"
+
+      - name: Exercise durable canonical claim ledger canary
+        if: github.event_name == 'workflow_dispatch' && inputs.durable_canonical_claim_canary
+        env:
+          KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          KIDULTS_AUTONOMOUS_ENVIRONMENT: KIDULTS-AUTONOMOUS-FINALIZER
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-durable-canonical-ledger-canary-v1.mjs
+
+      - name: Preserve durable canonical claim ledger canary receipt
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.durable_canonical_claim_canary
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-durable-canonical-ledger-canary-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/durable-canonical-ledger-canary-v1/receipt.json
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Read back FINALIZER IAM OIDC and CloudFormation drift
         env:
