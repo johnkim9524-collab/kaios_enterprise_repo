@@ -226,6 +226,30 @@ class RecoveryLedger:
         config = self.roles.get(envelope.get('role')) if 'role' in envelope else self.finalizer
         require(config is not None, 'RECOVERY_ROLE_FORBIDDEN')
         envelope = self.verify(event, config)
+        if envelope.get('mode') == 'DISCOVER_PINNED_CONTEXT_ONLY':
+            fields = {'id', 'action', 'mode', 'source_sha', 'run_id', 'workload'}
+            if 'role' in envelope:
+                fields.add('role')
+            require(set(envelope) == fields
+                    and envelope['id'] == 'kidults-postmerge-recovery-context-v1'
+                    and envelope['action'] == 'READ_POSTMERGE_RECOVERY_CONTEXT'
+                    and isinstance(envelope['run_id'], str) and RUN.fullmatch(envelope['run_id'])
+                    and isinstance(envelope['source_sha'], str) and SHA.fullmatch(envelope['source_sha']),
+                    'RECOVERY_DISCOVERY_BINDING')
+            item = self.get(self.original_key())
+            require(item.get('run_id', {}).get('S') == INCIDENT['original_run_id']
+                    and item.get('head_sha', {}).get('S') == INCIDENT['original_head_sha'], 'RECOVERY_RESERVATION_BINDING')
+            state = item.get('state', {}).get('S')
+            require(state in ('RESERVED', 'CONSUMED'), 'RECOVERY_RESERVATION_STATE')
+            pinned = item.get('recovery_request_json', {}).get('S')
+            if pinned is not None:
+                request = json.loads(pinned)
+                validate_request(request, self.now(), False)
+                # An unconsumed incident cannot acquire authority on a later
+                # main. Consumed historical sealing is checked by GitHub ancestry.
+                if state == 'RESERVED':
+                    require(request['source_sha'] == envelope['source_sha'], 'RECOVERY_SOURCE_DRIFT')
+            return self.context_result(item, envelope.get('role'))
         expected_fields = {'id', 'action', 'request', 'request_digest', 'run_id', 'workload'}
         if 'role' in envelope:
             expected_fields.add('role')
@@ -239,7 +263,22 @@ class RecoveryLedger:
         item = self.reservation(request)
         require(item.get('state', {}).get('S') in ('RESERVED', 'CONSUMED'), 'RECOVERY_RESERVATION_STATE')
         # Deliberately no approval/consumption side effect from an expired read.
-        return {'state': 'SIGNED_RECOVERY_CONTEXT_READ', 'reservation': item, 'write_performed': False}
+        return self.context_result(item, envelope.get('role'))
+
+    def context_result(self, item, role):
+        result = {'state': 'SIGNED_RECOVERY_CONTEXT_READ', 'reservation': item, 'write_performed': False}
+        if role and item.get('recovery_request_json', {}).get('S'):
+            request = json.loads(item['recovery_request_json']['S'])
+            row = self.get({'pk': {'S': 'AUTH#' + request['recovery_generation']}, 'sk': {'S': 'ROLE#' + role}})
+            if row:
+                envelope = self.approval(json.loads(row.get('signed_event_json', {}).get('S', '{}')), fresh=False)
+                require(envelope['role'] == role and canonical(envelope['request']) == canonical(request)
+                        and canonical(envelope['evidence_snapshot']) == item.get('recovery_evidence_snapshot_json', {}).get('S'),
+                        'RECOVERY_CONTEXT_APPROVAL_BINDING')
+                result['role_approval'] = {'approval_run_id': envelope['approval_run_id'],
+                    'request_digest': envelope['request_digest'], 'evidence_digest': envelope['evidence_digest'],
+                    'signature_verified_by_ledger': True}
+        return result
 
     def read_authority(self, event):
         envelope = self.finalizer_envelope(event, 'READ_RECOVERY_AUTHORITY', [], True)

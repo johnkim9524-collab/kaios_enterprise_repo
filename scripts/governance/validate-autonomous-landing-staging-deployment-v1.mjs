@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const APPROVAL_ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
 const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
@@ -38,6 +39,18 @@ const expectedLegacyWriterZipFromDesired = desiredZip => {
 };
 const PRE_CANONICAL_WRITER_SHA256 = '26d2928e70666e2b4d6be65ef9be4bdc53ca83e7d7848ecf796f7c165b6ae89d';
 const sha256Hex = value => createHash('sha256').update(value).digest('hex');
+const RECOVERY_BASE_WRITER_SHA256 = '2d8ffee622929b322de4b75957122ca44928cef08bad38a63a34b39d907e1b72';
+const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
+  const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
+  const source=from?.Properties?.Code?.ZipFile;
+  if(typeof source!=='string'||sha256Hex(source)!==RECOVERY_BASE_WRITER_SHA256)return false;
+  const expected=structuredClone(from);
+  expected.Properties.Code.ZipFile=JSON.parse(execFileSync('python3',[
+    'scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py','--emit-code-from-stdin'],
+    {input:JSON.stringify(source),encoding:'utf8',timeout:10000,maxBuffer:262144,stdio:['pipe','pipe','pipe']}));
+  expected.Properties.Environment.Variables.RECEIPT_KEY_ARN={'Fn::GetAtt':['AutonomousReceiptKey','Arn']};
+  return equal(expected,to);
+};
 const isBoundedCanonicalWriterUpgrade = (currentZip, desiredZip) =>
   sha256Hex(currentZip) === PRE_CANONICAL_WRITER_SHA256 &&
   ['CREATE_CANONICAL_CLAIM','TAKEOVER_CANONICAL_CLAIM','COMMIT_CANONICAL_CLAIM','CREATE_CANONICAL_ALIAS',
@@ -134,7 +147,9 @@ const isExactWriterGetItemUpgrade = (currentStatement, desiredStatement) => {
 
 function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
-  if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
+  if(isExactPostmergeRecoveryWriterUpgrade(copy,desired)){
+    copy.Resources[WRITER_FUNCTION_ID]=structuredClone(desired.Resources[WRITER_FUNCTION_ID]);
+  }else if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
     copy.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile = desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile;
   }
   for (const logicalId of APPROVAL_ROLE_IDS) {
@@ -192,7 +207,8 @@ function validateChangeSet(changeSet, current, desired) {
   const changes = changeSet?.Changes;
   assert.ok(Array.isArray(changes), 'CHANGE_SET_CHANGES_INVALID');
   const expectedChanged = ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId]));
-  if (isAllowedLegacyWriterCodeRecovery(current, desired)) expectedChanged.push(WRITER_FUNCTION_ID);
+  const recoveryWriterUpgrade=isExactPostmergeRecoveryWriterUpgrade(current,desired);
+  if (recoveryWriterUpgrade||isAllowedLegacyWriterCodeRecovery(current, desired)) expectedChanged.push(WRITER_FUNCTION_ID);
   assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length + 1, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
 
   const writerChanged = expectedChanged.includes(WRITER_ROLE_ID);
@@ -232,7 +248,7 @@ function validateChangeSet(changeSet, current, desired) {
         assert.ok(expectedChanged.includes(change?.LogicalResourceId), 'CHANGE_SET_DIRECT_LOGICAL_ID_INVALID');
         if (change?.LogicalResourceId === WRITER_FUNCTION_ID) {
           assert.equal(change?.ResourceType, 'AWS::Lambda::Function', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
-          assert.equal(detail?.Target?.Name, 'Code', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');
+          assert.ok((recoveryWriterUpgrade?['Code','Environment']:['Code']).includes(detail?.Target?.Name),'CHANGE_SET_DIRECT_PROPERTY_INVALID');
         } else {
           assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
           assert.equal(detail?.Target?.Name, 'Policies', 'CHANGE_SET_DIRECT_PROPERTY_INVALID');

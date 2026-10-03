@@ -32,6 +32,12 @@ const currentTemplate = () => {
   }
   return current;
 };
+const preRecoveryTemplate=()=>{
+  const current=structuredClone(desired),properties=current.Resources.AutonomousLedgerWriterFunction.Properties;
+  properties.Code.ZipFile=properties.Code.ZipFile.split('\n# BEGIN BOUNDED POSTMERGE RECOVERY LEDGER V1\n')[0];
+  delete properties.Environment.Variables.RECEIPT_KEY_ARN;
+  return current;
+};
 
 const legacyWriterZipFromDesired = desiredZip => {
   const reserveBlock = "\ndef reserve_once(item):\n    try:\n        ddb.put_item(\n            TableName=TABLE,\n            Item=item,\n            ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)',\n            ReturnValuesOnConditionCheckFailure='ALL_OLD'\n        )\n        return {'state': 'RESERVED', 'owner_run_id': item['run_id']['S']}\n    except ClientError as error:\n        if error.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':\n            raise\n        prior = error.response.get('Item') or {}\n        owner_run_id = prior.get('run_id', {}).get('S', '')\n        prior_head_sha = prior.get('head_sha', {}).get('S', '')\n        prior_state = prior.get('state', {}).get('S', '')\n        if prior_state != 'RESERVED' or prior_head_sha != item['head_sha']['S'] or not RUN_ID.fullmatch(owner_run_id):\n            raise ValueError('RESERVATION_CONFLICT_INVALID')\n        return {'state': 'ALREADY_RESERVED', 'owner_run_id': owner_run_id}\n";
@@ -371,5 +377,26 @@ test('template validator recognizes an already applied exact template without cr
       '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
     ], {encoding: 'utf8'});
     assert.equal(JSON.parse(output).mode, 'ALREADY_APPLIED');
+  });
+});
+
+test('historic exact writer upgrades only code and bounded receipt-key environment without replacement',()=>{
+  const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:['Code','Environment'].map(Name=>({Target:{Attribute:'Properties',Name},ChangeSource:'DirectModification'}))}}]};
+  withFixture({current:preRecoveryTemplate(),desired,changeset},directory=>{
+    const output=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),'--changeset',path.join(directory,'changeset')],{encoding:'utf8'});
+    assert.equal(JSON.parse(output).mode,'CHANGE_REQUIRED');
+  });
+  assert.ok(Buffer.byteLength(JSON.stringify(desired))<=51200,'CloudFormation inline template must fit existing route');
+});
+for(const [name,mutate] of [
+  ['legacy writer mutation',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# unexpected';}],
+  ['extra environment',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='unexpected';}],
+  ['writer memory',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.MemorySize=1024;}],
+  ['extra role authority',d=>{d.Resources.TrackApprovalRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['dynamodb:PutItem'],Resource:'*'});}],
+])test(`terminal recovery deploy rejects ${name}`,()=>{
+  const changed=structuredClone(desired);mutate(changed);
+  withFixture({current:preRecoveryTemplate(),desired:changed},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+    assert.notEqual(result.status,0);
   });
 });

@@ -360,6 +360,60 @@ class RecoveryLedgerTests(unittest.TestCase):
         self.assertFalse(self.ledger.read_context(self.sign(envelope))['write_performed'])
         self.assertEqual(self.ddb.writes, [])
 
+    def discovery(self):
+        return {'id': 'kidults-postmerge-recovery-context-v1', 'action': 'READ_POSTMERGE_RECOVERY_CONTEXT',
+                'mode': 'DISCOVER_PINNED_CONTEXT_ONLY', 'source_sha': self.request['source_sha'], 'run_id': '101',
+                'role': M.ROLES[0], 'workload': self.roles[M.ROLES[0]]}
+
+    def test_discovery_without_request_does_not_create_generation(self):
+        result = self.ledger.read_context(self.sign(self.discovery()))
+        self.assertFalse(result['write_performed'])
+        self.assertNotIn('recovery_request_json', result['reservation'])
+        self.assertEqual(self.ddb.writes, [])
+
+    def test_discovery_reuses_exact_pinned_request_after_expiry_without_write(self):
+        self.quorum()
+        before = len(self.ddb.writes)
+        self.now += 3600
+        result = self.ledger.read_context(self.sign(self.discovery()))
+        self.assertEqual(json.loads(result['reservation']['recovery_request_json']['S']), self.request)
+        self.assertEqual(len(self.ddb.writes), before)
+
+    def test_discovery_unconsumed_source_drift_rejected(self):
+        self.quorum()
+        envelope = self.discovery()
+        envelope['source_sha'] = 'f' * 40
+        before = len(self.ddb.writes)
+        with self.assertRaisesRegex(ValueError, 'RECOVERY_SOURCE_DRIFT'):
+            self.ledger.read_context(self.sign(envelope))
+        self.assertEqual(len(self.ddb.writes), before)
+
+    def test_discovery_cannot_smuggle_new_request(self):
+        envelope = self.discovery()
+        envelope['request'] = self.request
+        with self.assertRaisesRegex(ValueError, 'RECOVERY_DISCOVERY_BINDING'):
+            self.ledger.read_context(self.sign(envelope))
+        self.assertEqual(self.ddb.writes, [])
+
+    def test_discovery_reverifies_existing_role_authority_without_recreating_it(self):
+        self.quorum()
+        before = len(self.ddb.writes)
+        result = self.ledger.read_context(self.sign(self.discovery()))
+        self.assertTrue(result['role_approval']['signature_verified_by_ledger'])
+        self.assertEqual(result['role_approval']['evidence_digest'], M.digest(self.terminal['evidence']))
+        self.assertEqual(len(self.ddb.writes), before)
+
+    def test_discovery_rejects_tampered_signed_role_row(self):
+        self.quorum()
+        key = ('AUTH#' + self.request['recovery_generation'], 'ROLE#' + M.ROLES[0])
+        event = json.loads(self.ddb.rows[key]['signed_event_json']['S'])
+        event['envelope']['evidence_digest'] = 'sha256:' + 'f' * 64
+        self.ddb.rows[key]['signed_event_json']['S'] = M.canonical(event)
+        before = len(self.ddb.writes)
+        with self.assertRaisesRegex(ValueError, 'SIGNATURE_INVALID'):
+            self.ledger.read_context(self.sign(self.discovery()))
+        self.assertEqual(len(self.ddb.writes), before)
+
     def test_authority_is_derived_from_reverified_signed_rows(self):
         self.quorum(); count = len(self.ddb.writes)
         authority = self.ledger.read_authority(self.final('READ_RECOVERY_AUTHORITY'))

@@ -44,6 +44,40 @@ test('finalizer cannot mint a role approval',async()=>{
 test('approval workload cannot enter finalizer',async()=>{
   const f=fixture();await assert.rejects(f.workload('KPMO').finalizePinned({request:f.request,recoveryRunId:'9001'}),/FINALIZER_ROLE/);
 });
+test('resume consumes an existing cryptographically verified role approval without signing again',async()=>{
+  const f=fixture();f.reservation.role_approval={signature_verified_by_ledger:true,approval_run_id:'100',
+    request_digest:sha256(canonicalJson(f.request)),evidence_digest:sha256(canonicalJson(f.snapshot.evidence))};
+  f.ledger.discoverContext=async()=>f.reservation;
+  const result=await f.workload('KPMO').resumeApproval();
+  assert.equal(result.state,'EXISTING_SIGNED_RECOVERY_APPROVAL');assert.equal(result.write_performed,false);
+  assert.equal(f.calls.approval,0);assert.equal(f.calls.verify,0);
+});
+test('non-Track role cannot select a new request or snapshot',async()=>{
+  const f=fixture();delete f.reservation.recovery_request;delete f.reservation.recovery_snapshot;
+  f.ledger.discoverContext=async()=>f.reservation;
+  const result=await f.workload('KPMO').resumeApproval({newRequest:f.request});
+  assert.equal(result.state,'WAITING_PINNED_RECOVERY_REQUEST');assert.equal(result.write_performed,false);
+  assert.equal(f.calls.approval,0);
+});
+test('resume uses the root pinned request even if caller offers a replacement',async()=>{
+  const f=fixture();f.ledger.discoverContext=async()=>f.reservation;
+  await f.workload('KPMO').resumeApproval({newRequest:{invalid:true}});assert.equal(f.calls.approval,1);
+});
+test('existing approval cannot claim another evidence digest',async()=>{
+  const f=fixture();f.reservation.role_approval={signature_verified_by_ledger:true,request_digest:sha256(canonicalJson(f.request)),evidence_digest:'sha256:'+'f'.repeat(64)};
+  f.ledger.discoverContext=async()=>f.reservation;
+  await assert.rejects(f.workload('KPMO').resumeApproval(),/EXISTING_APPROVAL_BINDING/);assert.equal(f.calls.approval,0);
+});
+test('consumed but unsealed incident elects a later finalizer without new approval',async()=>{
+  const f=fixture();Object.assign(f.reservation,{state:'CONSUMED',recovery_run_id:'9001',recovery_terminal:{stored:true}});
+  f.ledger.discoverContext=async()=>f.reservation;
+  const pending=await f.workload('ACCOUNTABLE_TRACK_AGENT').resumeApproval();
+  assert.equal(pending.state,'RECOVERY_CONSUMED_SEAL_PENDING');assert.equal(pending.approval_run_id,'9001');
+  assert.equal(f.calls.approval,0);assert.equal(f.calls.verify,0);
+  f.reservation.recovery_immutable={stored:true};
+  const complete=await f.workload('ACCOUNTABLE_TRACK_AGENT').resumeApproval();
+  assert.equal(complete.state,'RECOVERY_ALREADY_CONSUMED_NO_APPROVAL');assert.equal(f.calls.approval,0);
+});
 test('finalizer consumes pinned evidence once; expired resume reads stored immutable terminal',async()=>{
   const f=fixture();let clock=NOW,object=null,consumes=0,authorityReads=0,seals=0;
   f.ledger.readAuthority=async()=>{authorityReads++;return {backend:'AUTHENTICATED_SIGNED_LEDGER_V1',operation:f.request.operation,

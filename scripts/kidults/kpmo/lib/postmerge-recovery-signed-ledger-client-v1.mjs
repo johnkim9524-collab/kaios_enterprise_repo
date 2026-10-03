@@ -64,9 +64,7 @@ export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourc
     return invoke({id:'kidults-postmerge-recovery-finalizer-v1',action,...requestBinding(request,fresh),
       run_id:env.GITHUB_RUN_ID,workload,...extra});
   };
-  const readContext=async request=>{
-    const response=await invoke({id:'kidults-postmerge-recovery-context-v1',action:'READ_POSTMERGE_RECOVERY_CONTEXT',
-      ...requestBinding(request,false),run_id:env.GITHUB_RUN_ID,workload,...(role==='FINALIZER'?{}:{role})});
+  const parseContext=response=>{
     assert(response.state==='SIGNED_RECOVERY_CONTEXT_READ','RECOVERY_CLIENT_CONTEXT_RESPONSE');
     const item=response.reservation;
     assert(item?.pk?.S===`RESERVE#${I.original_generation}`&&item.sk?.S===`NONCE#${I.original_nonce_digest}`,'RECOVERY_CLIENT_RESERVATION_KEY');
@@ -76,8 +74,13 @@ export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourc
       ...(item.recovery_request_json?{recovery_request:JSON.parse(item.recovery_request_json.S)}:{}),
       ...(item.recovery_evidence_snapshot_json?{recovery_snapshot:JSON.parse(item.recovery_evidence_snapshot_json.S)}:{}),
       ...(item.recovery_terminal_json?{recovery_terminal:JSON.parse(item.recovery_terminal_json.S)}:{}),
-      ...(item.recovery_immutable_json?{recovery_immutable:JSON.parse(item.recovery_immutable_json.S)}:{})};
+      ...(item.recovery_immutable_json?{recovery_immutable:JSON.parse(item.recovery_immutable_json.S)}:{}),
+      ...(response.role_approval?{role_approval:response.role_approval}:{})};
   };
+  const readContext=async request=>parseContext(await invoke({id:'kidults-postmerge-recovery-context-v1',action:'READ_POSTMERGE_RECOVERY_CONTEXT',
+    ...requestBinding(request,false),run_id:env.GITHUB_RUN_ID,workload,...(role==='FINALIZER'?{}:{role})}));
+  const discoverContext=async()=>parseContext(await invoke({id:'kidults-postmerge-recovery-context-v1',action:'READ_POSTMERGE_RECOVERY_CONTEXT',
+    mode:'DISCOVER_PINNED_CONTEXT_ONLY',source_sha:sourceSha,run_id:env.GITHUB_RUN_ID,workload,...(role==='FINALIZER'?{}:{role})}));
   const createApproval=async({request,snapshot})=>{
     assert(role!=='FINALIZER','RECOVERY_CLIENT_APPROVAL_ROLE_REQUIRED');
     requestBinding(request,true);
@@ -92,7 +95,7 @@ export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourc
       &&input.recoveryRunId===env.GITHUB_RUN_ID,'RECOVERY_CLIENT_CONSUME_FENCE');
     return finalizer('CONSUME_RECOVERY_RESERVATION',input.request,{terminal:input.terminal});
   };
-  return {readContext,createApproval,consumeOnce,
+  return {readContext,discoverContext,createApproval,consumeOnce,
     readAuthority:request=>finalizer('READ_RECOVERY_AUTHORITY',request),
     acknowledgeImmutable:({request,terminal,immutable})=>finalizer('ACK_RECOVERY_IMMUTABLE_RECEIPT',request,
       {terminal_digest:terminal.receipt_digest,immutable:recoveryImmutableAckFields(immutable)},false)};

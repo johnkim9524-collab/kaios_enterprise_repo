@@ -1,6 +1,9 @@
 """Deterministically bundle the reviewed component; never deploy to AWS."""
 import argparse
+import base64
 import json
+import sys
+import zlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -14,7 +17,8 @@ def bundled(source):
     # original writer digest accepts strings. Never override the old helpers.
     prefix = source.split(MARKER)[0]
     component = COMPONENT.read_text()
-    return prefix + MARKER + "_recovery_namespace = {'__name__': 'bounded_postmerge_recovery'}\nexec(" + repr(component) + ", _recovery_namespace)\n" + '''
+    packed = base64.b64encode(zlib.compress(component.encode('utf-8'), 9)).decode('ascii')
+    return prefix + MARKER + "import base64 as _recovery_base64, zlib as _recovery_zlib\n_recovery_namespace = {'__name__': 'bounded_postmerge_recovery'}\nexec(_recovery_zlib.decompress(_recovery_base64.b64decode(" + repr(packed) + ")).decode('utf-8'), _recovery_namespace)\n" + '''
 _original_landing_handler = handler
 
 def handler(event, context):
@@ -52,12 +56,23 @@ def handler(event, context):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--write', action='store_true')
+    parser.add_argument('--emit-code-from-stdin', action='store_true')
     args = parser.parse_args()
+    if args.emit_code_from_stdin:
+        if args.write:
+            raise SystemExit('RECOVERY_BUNDLE_MODE_CONFLICT')
+        print(json.dumps(bundled(json.load(sys.stdin))))
+        return
     template = json.loads(TEMPLATE.read_text())
     properties = template['Resources']['AutonomousLedgerWriterFunction']['Properties']
     code = bundled(properties['Code']['ZipFile'])
     compile(code, '<bundled-ledger>', 'exec')
     receipt_key = {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']}
+    checked = json.loads(json.dumps(template))
+    checked['Resources']['AutonomousLedgerWriterFunction']['Properties']['Code']['ZipFile'] = code
+    checked['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables']['RECEIPT_KEY_ARN'] = receipt_key
+    if len(json.dumps(checked, separators=(',', ':')).encode('utf-8')) > 51200:
+        raise SystemExit('RECOVERY_CLOUDFORMATION_INLINE_TEMPLATE_BOUND')
     if args.write:
         properties['Code']['ZipFile'] = code
         properties['Environment']['Variables']['RECEIPT_KEY_ARN'] = receipt_key

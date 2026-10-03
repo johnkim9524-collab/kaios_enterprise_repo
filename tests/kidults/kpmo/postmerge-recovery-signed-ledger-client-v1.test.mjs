@@ -56,6 +56,17 @@ test('signed context response is checked against fixed original key',async()=>{
   const client=await f.client(),context=await client.readContext(f.request);assert.equal(context.run_id,I.original_run_id);
   f.response.reservation.pk.S='RESERVE#foreign';await assert.rejects(client.readContext(f.request),/RESERVATION_KEY/);
 });
+test('signed discovery reads the existing pinned request without minting another generation',async()=>{
+  const f=fixture();f.response={ok:true,state:'SIGNED_RECOVERY_CONTEXT_READ',reservation:{
+    pk:{S:`RESERVE#${I.original_generation}`},sk:{S:`NONCE#${I.original_nonce_digest}`},run_id:{S:I.original_run_id},
+    head_sha:{S:I.original_head_sha},state:{S:'RESERVED'},recovery_request_json:{S:canonicalJson(f.request)},
+    recovery_evidence_snapshot_json:{S:canonicalJson(f.snapshot)}}};
+  const context=await (await f.client()).discoverContext();
+  assert.deepEqual(context.recovery_request,f.request);assert.deepEqual(context.recovery_snapshot,f.snapshot);
+  assert.equal(f.lastEnvelope.mode,'DISCOVER_PINNED_CONTEXT_ONLY');assert.equal(f.lastEnvelope.source_sha,SHA);
+  assert.equal(f.lastEnvelope.action,'READ_POSTMERGE_RECOVERY_CONTEXT');assert.equal('request' in f.lastEnvelope,false);
+  assert.deepEqual(f.calls.map(x=>x[0]),['sts','kms','lambda']);
+});
 test('Lambda failure is surfaced without invoking again',async()=>{
   const f=fixture();f.metadata.FunctionError='Unhandled';const client=await f.client();
   await assert.rejects(client.createApproval({request:f.request,snapshot:f.snapshot}),/LEDGER_TRANSPORT/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);

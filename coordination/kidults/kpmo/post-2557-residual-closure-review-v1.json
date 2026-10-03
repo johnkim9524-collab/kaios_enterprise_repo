@@ -82,29 +82,31 @@
         "github_observation": "scripts/kidults/kpmo/lib/postmerge-recovery-github-observation-v1.mjs",
         "signed_workload_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
         "exact_main_evidence": "scripts/kidults/kpmo/lib/postmerge-recovery-exact-main-evidence-v1.mjs",
-        "workload_composition": "scripts/kidults/kpmo/lib/postmerge-recovery-workload-v1.mjs"
+        "workload_composition": "scripts/kidults/kpmo/lib/postmerge-recovery-workload-v1.mjs",
+        "protected_runtime_entrypoint": "scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs"
       },
       "local_validation": {
         "engine_cases": 30,
-        "real_local_ecdsa_and_actual_embedded_writer_cases": 35,
+        "real_local_ecdsa_and_actual_embedded_writer_cases": 41,
         "immutable_transport_cases": 16,
         "existing_iam_oidc_boundary_cases": 8,
         "aws_runtime_proof": false,
         "github_observation_cases": 16,
-        "signed_workload_transport_cases": 16,
+        "signed_workload_transport_cases": 17,
         "exact_main_evidence_negative_cases": 11,
         "authority_gate_archive_cases": 9,
-        "workload_composition_cases": 7
+        "workload_composition_cases": 12,
+        "protected_workflow_boundary_cases": 7,
+        "bounded_staging_deployer_cases": 20,
+        "combined_recovery_native_artifact_and_iam_cases": 238
       },
       "original_owner_preserved": true,
       "recovery_root_request_budget": 1,
       "pending": [
-        "PROTECTED_WORKFLOW_SIGNED_APPROVAL_AND_FINALIZER_ENTRYPOINTS",
         "EXACT_HEAD_INDEPENDENT_VERIFICATION",
         "ADDITIONAL_CORRECTIVE_PR_BUDGET_EXCEPTION_IF_REQUIRED",
         "AUTHORIZED_EXACT_MAIN_STAGING_DEPLOYMENT",
-        "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK",
-        "DISTINCT_FINALIZER_RUN_WITHIN_EXISTING_OIDC_WORKFLOW_TRUST"
+        "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK"
       ],
       "existing_required_negative_case_disposition": {
         "RESERVATION_ALREADY_CONSUMED": "No second consume; reuse exact stored payload for sealing only.",
@@ -137,6 +139,24 @@
         "ledger_write_performed": false,
         "runtime_authority_granted": false,
         "mission_terminal_receipt": false
+      },
+      "protected_runtime_integration": "LOCALLY_IMPLEMENTED_NOT_EXTERNAL_MAIN_OR_AWS_VERIFIED",
+      "runtime_chain": {
+        "trigger": "Existing successful natural Success Authority Gate workflow_run; no new manual dispatch.",
+        "approvals": "Three existing role workflows run in parallel using one root-pinned request/snapshot.",
+        "first_role": "Only Track may pin the first request; other roles wait with bounded signed reads.",
+        "finalizer": "Only Track workflow on a later natural Gate, using existing Track approval from a different run; backend separately requires run distinct from all three approval runs.",
+        "interruption": "Existing role approvals are cryptographically reverified and reused. CONSUMED but seal-pending resumes stored payload without new approval/consume.",
+        "expiry": "No replacement of pinned unconsumed request after expiry.",
+        "workflow_run_chain_depth": 3
+      },
+      "deployment_contract": {
+        "baseline_writer_sha256": "2d8ffee622929b322de4b75957122ca44928cef08bad38a63a34b39d907e1b72",
+        "compact_template_bytes": 48418,
+        "inline_template_max_bytes": 51200,
+        "bundle": "Deterministic zlib/base64 of reviewed protected component; isolated namespace; original writer prefix unchanged.",
+        "delta": "Exact generated writer Code and one exact receipt-key Environment variable; no IAM/OIDC/resource expansion.",
+        "runtime_verified": false
       }
     },
     {
@@ -163,8 +183,36 @@
         "NO_RESOURCE_REPLACEMENT"
       ],
       "existing_changesets": 0,
-      "changeset_created": false,
-      "deployment_performed": false
+      "changeset_created": true,
+      "deployment_performed": true,
+      "provenance_recheck": {
+        "stored_template_equal": true,
+        "effective_policy_equal_to_desired": true,
+        "only_stored_policy_difference": false,
+        "live_oidc_trust_equal_to_exact_main": true,
+        "attached_managed_policies": [],
+        "changeset": "kpmo-bootstrap-provenance-1d7981f6c09e",
+        "changeset_id": "4c643de0-6ebb-4627-bcbc-e9882acf981c",
+        "executed": true,
+        "missing_statements": []
+      },
+      "changeset": "kpmo-bootstrap-provenance-1d7981f6c09e",
+      "state": "CLOSED_EXTERNAL_VERIFIED",
+      "execution_evidence": {
+        "changeset_id": "4c643de0-6ebb-4627-bcbc-e9882acf981c",
+        "resource": "DeployerRole",
+        "property": "Policies",
+        "replacement": false,
+        "effective_authority_expansion": false,
+        "stack_update_started": "2026-10-03T23:46:23.423000+00:00",
+        "stack_status": "UPDATE_COMPLETE",
+        "stored_template_equality": true,
+        "effective_policy_equality": true,
+        "oidc_trust_unchanged": true,
+        "no_added_managed_policy": true,
+        "resource_replacement": false,
+        "receipt_readback_process": 37972
+      }
     }
   ],
   "promotion_eligible": false,
@@ -201,5 +249,17 @@
       37159013583
     ],
     "later_success_authority_gate": 37159050311
+  },
+  "reviewable_bundle_state": "LOCAL_FULL_CORRECTIVE_BUNDLE_VERIFIED_AWAITING_EXPLICIT_PR_BUDGET_EXCEPTION",
+  "external_effects_this_chunk": {
+    "bootstrap_changeset_created_once": "kpmo-bootstrap-provenance-1d7981f6c09e",
+    "bootstrap_changeset_executed_once": "4c643de0-6ebb-4627-bcbc-e9882acf981c",
+    "effective_authority_expansion": false,
+    "runtime_recovery_writer_deployed": false,
+    "repository_push": false,
+    "additional_pr_created": false,
+    "workflow_dispatch": false,
+    "new_approval_recorded": false,
+    "reservation_consumed": false
   }
 }
