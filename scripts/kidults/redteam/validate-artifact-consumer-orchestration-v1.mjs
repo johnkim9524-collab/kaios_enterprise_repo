@@ -117,6 +117,12 @@ assert(supersession.includes('.github/workflows/kidults-atomic-governed-landing-
 assert(supersession.includes("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_MISSING');
 assert(supersession.includes("generation_bridge_runs_retained:$generation_bridge_retained"), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RECEIPT_MISSING');
 assert(supersession.includes('[[ "${run_event}" == "workflow_dispatch" ]] || return 1'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_EVENT_BINDING_MISSING');
+assert(supersession.includes('[[ "${run_event}" == "repository_dispatch" ]] || return 1'), 'EXACT_HEAD_SUPERSESSION_AUTONOMOUS_EVENT_BINDING_MISSING');
+for (const role of ['track', 'kpmo', 'independent-verification']) {
+  assert(supersession.includes(`.github/workflows/kidults-autonomous-${role}-authorization-v1.yml`), 'EXACT_HEAD_SUPERSESSION_AUTONOMOUS_ROLE_RETENTION_MISSING');
+}
+const autonomousGuard = supersession.indexOf('if retain_autonomous_landing "${run_event}" "${workflow_path}"; then');
+assert(autonomousGuard >= 0 && autonomousGuard < supersession.indexOf('/actions/runs/${run_id}/cancel', autonomousGuard), 'EXACT_HEAD_SUPERSESSION_AUTONOMOUS_GUARD_ORDER_INVALID');
 assert(supersession.includes('.workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv'), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_RUN_FIELDS_MISSING');
 assert(supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then") < supersession.indexOf('/actions/runs/${run_id}/cancel', supersession.indexOf("if retain_generation_bridge \"${run_event}\" \"${workflow_path}\"; then")), 'EXACT_HEAD_SUPERSESSION_GENERATION_BRIDGE_GUARD_ORDER_INVALID');
 assert(!snapshot.includes(globalArtifactListing), 'SNAPSHOT_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');

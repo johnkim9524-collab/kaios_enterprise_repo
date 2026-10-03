@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 690
+    "file_count": 694
   },
   "files": [
     {
@@ -667,6 +667,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "ef00b033868ccbdac9714295334f54b8b5d2a7e9",
       "sha256": "sha256:62a3532dedd3f2554bd27244c7dd5477a6fd31ea08e8fa55950ae0507a9bf7a3",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/kpmo-exact-head-ci-supersession-v1.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "126e2da4fd46585fe24c058e73fe216ea2fc7b58",
+      "sha256": "sha256:a86d9f0b11fbc5ab903788fdb27d9a6e7b12f942e62c52468276517428991c49",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1360,8 +1373,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bd8015774b3ed83644427d796e8fd189f5b176db",
-      "sha256": "sha256:425e57bcd5b58b8c80817ddcd8956360ce782712d8a3ad0ac9ba6a63481f8d88",
+      "git_blob": "42738c23e5d998efd5c58fee2dec533721c2e894",
+      "sha256": "sha256:5fdd793efd9356f3556e223fc20287e1216b23b60775c88292e3c0726416adaf",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -1913,6 +1926,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "dcb3e941d395c853342effc3eae039a54728b15f",
       "sha256": "sha256:0424010015216b19dc5c11e42d44222d71892e7f15f4c9e2fd63457a175803cd",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/normal-ops-finalizer-terminal-closure-set-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "d06a6b8a434b69222eb9bd91c7508325eaf92832",
+      "sha256": "sha256:75537273cd2d48670874f077fa433caab8aefdd2365008fd99156d9de95c6d55",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3558,8 +3584,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9cb66a03f9557bda64d8a5bdfc379d47d6ab0763",
-      "sha256": "sha256:cc9c688b0ef500daaa2449ad54f20af42a05627e293ebaf65ade1c3a12713481",
+      "git_blob": "2095e55c4939b8cd5625f952a56dd4153bee1cbb",
+      "sha256": "sha256:bc84e805e56d7eec80712013e00b237e253af519c1f9dad0e1b85a77c6e21a93",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4225,6 +4251,12 @@
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "0a83a1699076ccb2961722d0c76f02531562c24e",
       "sha256": "sha256:da78eb9d9c23ee509bc8f22a44181c8f2d00ce0c2191c74dfb3304039aece930"
+    },
+    {
+      "path": "scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "339ac35db0fb3257d2c0a2a44c13d2d15548a605",
+      "sha256": "sha256:775c14de31222de663b27a9d4deac63cddfb2a4781c2c9bbd06a74893be7f6e6"
     },
     {
       "path": "scripts/kidults/redteam/validate-enterprise-workspace-cutover-v1.mjs",
@@ -5387,6 +5419,12 @@
       "sha256": "sha256:7a2c2c4058489c8f2b81784f7917ea2faaa894a8ad0a13205cf707059bfe5319"
     },
     {
+      "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "dd82d44495af112dc8ff46d707d5137fd58bcc4d",
+      "sha256": "sha256:e4e806150c7ac80c573e1c64956d99ef90868761d10139c80faa69bcbd6237cf"
+    },
+    {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "d3edc3145bda6a0674e94d632d6abec6aab21853",
@@ -5477,5 +5515,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5bb021a115ede71445e84308dfbcbe0d1e28e085cf81cdcbcedc1f138ef8bc1f"
+  "manifest_sha256": "sha256:0b4c445f7493981a940e518e6ee51b0222bb9df0fdb699ce5faa4eb0a9ef558d"
 }

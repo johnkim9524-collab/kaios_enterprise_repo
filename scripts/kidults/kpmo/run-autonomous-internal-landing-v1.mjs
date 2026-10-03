@@ -19,6 +19,7 @@ import {
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
+import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -340,19 +341,23 @@ const publishLandingStatus = async (state, description) => {
   statusTouched=true;
 };
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-const waitForExactMergeShaValidation = async mergeSha => {
+const waitForExactMergeShaValidation = async (mergeSha, mergedAt) => {
+  const suitePolicy = JSON.parse(fs.readFileSync(policy.merge.postmerge_push_suite_policy, 'utf8'));
   const timeoutSeconds=Number(policy.merge.postmerge_validation_timeout_seconds||420);
   const deadline=Date.now()+timeoutSeconds*1000;
   while (Date.now()<deadline) {
-    const checks=await api(`/commits/${mergeSha}/check-runs?filter=latest&per_page=100`);
-    const runs=(checks.check_runs||[]).filter(value=>value.name!=='KIDULTS Autonomous Internal Landing V1');
-    const hasNaturalGeneration=runs.some(value=>value.head_sha===mergeSha);
-    const pending=runs.some(value=>value.status!=='completed');
-    const failed=runs.some(value=>value.status==='completed'&&!['success','neutral','skipped'].includes(value.conclusion));
-    if (failed) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_CHECK_FAILED');
-    if (hasNaturalGeneration&&runs.length>0&&!pending) {
-      return {state:'VERIFIED_PASS',merge_sha:mergeSha,check_run_ids:runs.map(value=>value.id).sort((a,b)=>a-b)};
+    const runs = [];
+    let exhausted = false;
+    for (let page = 1; page <= suitePolicy.max_pages; page += 1) {
+      const payload = await api(`/actions/runs?branch=main&head_sha=${mergeSha}&per_page=100&page=${page}`);
+      if (!Array.isArray(payload.workflow_runs)) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_RUNS_INVALID');
+      runs.push(...payload.workflow_runs);
+      if (payload.workflow_runs.length < 100) { exhausted = true; break; }
     }
+    if (!exhausted) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_PAGINATION_LIMIT');
+    const result = evaluateAutonomousPostmerge(runs, suitePolicy, mergeSha, mergedAt);
+    if (result.state === 'VERIFIED_FAIL') throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_CHECK_FAILED');
+    if (result.state === 'VERIFIED_PASS') return result;
     await sleep(5000);
   }
   throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_CHECK_TIMEOUT');
@@ -584,7 +589,7 @@ try {
       mergeSha=merge.sha;
       const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
       if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
-      const postmerge=await waitForExactMergeShaValidation(merge.sha);
+      const postmerge=await waitForExactMergeShaValidation(merge.sha, mergedPr.merged_at);
       invokeFinalizerWriter({
         action:'CONSUME_RESERVATION',
         authorization_generation:envelope.authorization_generation,

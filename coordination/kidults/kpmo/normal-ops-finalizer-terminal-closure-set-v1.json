@@ -1,0 +1,53 @@
+{
+  "id": "kpmo-normal-ops-finalizer-terminal-closure-set-v1",
+  "state": "CORRECTIVE_IMPLEMENTATION_PENDING_PROTECTED_LANDING",
+  "protected_main_sha": "35d8fc1589e6dbcf39347999bdbbdcd871bfe2dc",
+  "prior_pull_request": 2556,
+  "corrective_pr_limit": 1,
+  "exception": "Prior PR is merged. Newly verified finalizer cancellation and postmerge evidence selection defects cannot be included in immutable PR 2556.",
+  "root_incident_id": "AUTONOMOUS_FINALIZER_POSTMERGE_TERMINAL_GAP",
+  "observed_at": "2026-10-03T13:59:00Z",
+  "external_evidence": {
+    "merged_pr": 2555,
+    "merge_sha": "ad1bae34fd785cea4aecb00046ca0c5a7323b085",
+    "elected_finalizer_run_id": 37123641239,
+    "elected_finalizer_conclusion": "cancelled",
+    "postmerge_supersession_run_id": 37123688849,
+    "supersession_stale_runs_cancelled": 3,
+    "ledger_reservation_state": "RESERVED",
+    "ledger_reservation_owner_run_id": "37123641239",
+    "authorization_generation": "pr-2555-6a88733e40fc42290053-12cede9977fcc0d7",
+    "immutable_generation_receipt_present": false,
+    "core_four_sentinel_verified_pass_run_id": 37127734948,
+    "natural_assurance_success_run_ids": [37127760529, 37127976354],
+    "natural_success_authority_gate_run_ids": [37127791377, 37128009543]
+  },
+  "root_causes": [
+    "Protected-main supersession does not retain repository_dispatch autonomous authorization workflows during postmerge finalizer consumption.",
+    "Finalizer reads arbitrary commit check runs instead of the governed exact-main push suite and ordered canonical convergence, allowing asynchronous producer startup HOLD to trigger rollback."
+  ],
+  "closure_set": [
+    "Retain only the three exact autonomous authorization workflow paths for repository_dispatch; preserve bounded workflow timeouts and all signed authority gates.",
+    "Consume existing exact-main push suite policy with all six required workflows successful and canonical producer-before-consumer success; retain separate fail-closed producer health gate.",
+    "Behavioral retention tests, adversarial postmerge tests, permanent red-team contract, regenerated approval inventory."
+  ],
+  "authority_readback": {
+    "primary_capability_model": "CAPABILITY_GUARD_WEAKENED",
+    "independent_capability_model": "INDEPENDENT_SECURITY_CAPABILITY_ADDED",
+    "autonomous_self_approval_permitted": false,
+    "owner_reserved_boundary": "Existing classifiers require exact Owner authority for this cancellation and postmerge guard replacement.",
+    "classifier_or_policy_bypass_performed": false
+  },
+  "rollback": "Revert the corrective merge through governed PR; do not reset main or rewrite the existing reservation.",
+  "remaining_verification": [
+    "Protected corrective landing under existing exact-head authority gate.",
+    "Natural elected finalizer consumes reservation and seals immutable terminal receipt.",
+    "At least two natural generations on the final unchanged protected-main implementation.",
+    "Final zero-base audit and immutable final closure evidence."
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD",
+  "completion_declared": false
+}

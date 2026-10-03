@@ -154,6 +154,9 @@ jobs:
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
 
+      - name: Verify autonomous finalizer exact postmerge evidence selection
+        run: node --test tests/kidults/kpmo/autonomous-postmerge-validation-v1.test.mjs
+
       - name: Validate global SOLD source registry persistence controls
         run: |
           set -euo pipefail
