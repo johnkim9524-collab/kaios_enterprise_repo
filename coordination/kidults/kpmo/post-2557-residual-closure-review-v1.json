@@ -18,18 +18,29 @@
       "local_test_cases_passed": 17,
       "existing_provenance_negative_cases_passed": 13,
       "external_main_reflection": false,
-      "preserved": ["TWO_DISTINCT_EXACT_MAIN_CYCLES", "EXACT_TRIGGERING_RUN", "ARTIFACT_DIGEST", "GATE2_SAFE_POOL_BOUNDARY", "GATE3_GATE2_BOUNDARY", "NO_CONTENT_RIGHTS_PROMOTION", "PUBLIC_PRODUCTION_HOLD"]
+      "preserved": [
+        "TWO_DISTINCT_EXACT_MAIN_CYCLES",
+        "EXACT_TRIGGERING_RUN",
+        "ARTIFACT_DIGEST",
+        "GATE2_SAFE_POOL_BOUNDARY",
+        "GATE3_GATE2_BOUNDARY",
+        "NO_CONTENT_RIGHTS_PROMOTION",
+        "PUBLIC_PRODUCTION_HOLD"
+      ]
     },
     {
       "code": "MERGED_FINALIZER_RESERVATION_RECOVERY_PATH_ABSENT",
-      "implementation_state": "PLANNED_NOT_IMPLEMENTED",
+      "implementation_state": "LOCAL_COMPONENTS_VERIFIED_NOT_ACTIVATED",
       "original_generation": "pr-2555-6a88733e40fc42290053-12cede9977fcc0d7",
       "original_run": 37123641239,
       "original_run_actual_state": "COMPLETED_CANCELLED",
       "original_pr": 2555,
       "original_merge": "ad1bae34fd785cea4aecb00046ca0c5a7323b085",
-      "current_main_descends_from_original_merge": {"github_compare_status":"ahead","ahead_by":8,"behind_by":0},
-      "live_reservation": "RESERVED",
+      "current_main_descends_from_original_merge": {
+        "github_compare_status": "ahead",
+        "ahead_by": 8,
+        "behind_by": 0
+      },
       "existing_authorization": "EXPIRED",
       "proposed_operation": "POSTMERGE_TERMINAL_RECOVERY_ONLY",
       "required_preflight": [
@@ -44,18 +55,78 @@
         "Allow consumption and immutable receipt sealing only; prohibit PR merge, Ready transition and new landing authorization.",
         "Read back the consumed reservation, immutable object version/checksum/retention and exact-main receipt bindings before declaring recovery verified."
       ],
-      "required_negative_cases": ["ORIGINAL_RUN_NONTERMINAL", "ORIGINAL_RUN_ATTEMPT_REPLAY", "PR_NOT_MERGED", "MERGE_PARENT_OR_TREE_DRIFT", "CURRENT_MAIN_NOT_DESCENDANT", "QUORUM_MISSING_OR_EXPIRED", "SIGNER_ROLE_COLLISION", "ORIGINAL_RESERVATION_OWNER_DRIFT", "RESERVATION_ALREADY_CONSUMED", "CONCURRENT_RECOVERY_WINNER", "S3_RECEIPT_ALREADY_EXISTS", "RECOVERY_ATTEMPTS_NEW_MERGE", "HOLD_BOUNDARY_WEAKENED"],
+      "required_negative_cases": [
+        "ORIGINAL_RUN_NONTERMINAL",
+        "ORIGINAL_RUN_ATTEMPT_REPLAY",
+        "PR_NOT_MERGED",
+        "MERGE_PARENT_OR_TREE_DRIFT",
+        "CURRENT_MAIN_NOT_DESCENDANT",
+        "QUORUM_MISSING_OR_EXPIRED",
+        "SIGNER_ROLE_COLLISION",
+        "ORIGINAL_RESERVATION_OWNER_DRIFT",
+        "RESERVATION_ALREADY_CONSUMED",
+        "CONCURRENT_RECOVERY_WINNER",
+        "S3_RECEIPT_ALREADY_EXISTS",
+        "RECOVERY_ATTEMPTS_NEW_MERGE",
+        "HOLD_BOUNDARY_WEAKENED"
+      ],
       "runtime_identity_and_deployment_review_required": true,
-      "runtime_write_performed": false
+      "runtime_write_performed": false,
+      "last_observed_reservation": "RESERVED",
+      "current_reservation_state": "UNKNOWN_AWS_SSO_TOKEN_EXPIRED",
+      "local_components": {
+        "engine": "scripts/kidults/kpmo/lib/autonomous-postmerge-recovery-v1.mjs",
+        "signed_ledger": "scripts/kidults/kpmo/lib/autonomous_postmerge_recovery_ledger_v1.py",
+        "immutable_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-immutable-store-v1.mjs",
+        "writer_bundle": "infrastructure/aws/staging/autonomous-internal-landing-v1.json"
+      },
+      "local_validation": {
+        "engine_cases": 30,
+        "real_local_ecdsa_and_actual_embedded_writer_cases": 32,
+        "immutable_transport_cases": 16,
+        "existing_iam_oidc_boundary_cases": 8,
+        "aws_runtime_proof": false
+      },
+      "original_owner_preserved": true,
+      "recovery_root_request_budget": 1,
+      "pending": [
+        "PROTECTED_WORKFLOW_SIGNED_APPROVAL_AND_FINALIZER_ENTRYPOINTS",
+        "AUTHENTICATED_CURRENT_GITHUB_EVIDENCE_ADAPTER",
+        "EXACT_HEAD_INDEPENDENT_VERIFICATION",
+        "ADDITIONAL_CORRECTIVE_PR_BUDGET_EXCEPTION_IF_REQUIRED",
+        "AUTHORIZED_EXACT_MAIN_STAGING_DEPLOYMENT",
+        "AWS_SSO_AUTHENTICATION_RESTORED_AND_LIVE_RECONCILIATION",
+        "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK"
+      ],
+      "existing_required_negative_case_disposition": {
+        "RESERVATION_ALREADY_CONSUMED": "No second consume; reuse exact stored payload for sealing only.",
+        "S3_RECEIPT_ALREADY_EXISTS": "Read exact stored version; no repeated approval/generation/put.",
+        "RECOVERY_ATTEMPTS_NEW_MERGE": "Rejected by closed action/field set."
+      }
     },
     {
       "code": "BOOTSTRAP_STACK_STORED_TEMPLATE_PROVENANCE_DRIFT",
       "desired_template": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
       "stack": "kidults-autonomous-landing-deployer-bootstrap-staging-v1",
       "effective_iam_policy_already_contains_desired_bounded_lambda_actions": true,
-      "stored_template_missing_statement": {"Effect":"Allow","Action":["lambda:GetFunction","lambda:UpdateFunctionCode"],"Resource":"arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging"},
+      "stored_template_missing_statement": {
+        "Effect": "Allow",
+        "Action": [
+          "lambda:GetFunction",
+          "lambda:UpdateFunctionCode"
+        ],
+        "Resource": "arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging"
+      },
       "proposed_action": "Reconcile the stored bootstrap template with exact-main desired template while preserving current effective IAM scope and OIDC trust.",
-      "required_readback": ["STACK_UPDATE_COMPLETE", "STORED_TEMPLATE_EQUALITY", "EFFECTIVE_IAM_POLICY_EQUALITY", "OIDC_TRUST_UNCHANGED", "NO_ADDED_MANAGED_POLICY", "STAGING_ONLY", "NO_RESOURCE_REPLACEMENT"],
+      "required_readback": [
+        "STACK_UPDATE_COMPLETE",
+        "STORED_TEMPLATE_EQUALITY",
+        "EFFECTIVE_IAM_POLICY_EQUALITY",
+        "OIDC_TRUST_UNCHANGED",
+        "NO_ADDED_MANAGED_POLICY",
+        "STAGING_ONLY",
+        "NO_RESOURCE_REPLACEMENT"
+      ],
       "existing_changesets": 0,
       "changeset_created": false,
       "deployment_performed": false
@@ -71,5 +142,20 @@
   "autonomous_effect": "Remove the demonstrated cardinality failure without manual run substitution; define bounded original-reservation recovery.",
   "global_effect": "Retain all observed discovery candidates and explicitly account for the enrichment queue without admitting new providers.",
   "irreplaceable_value_effect": "Preserve owned candidate identity, original authorization lineage and immutable terminal evidence.",
-  "transparency_effect": "Keep local draft, planned recovery and external deployed evidence distinct; do not claim complete closure."
+  "transparency_effect": "Preserve distinct local component tests, undeployed writer bundle, natural GitHub recovery and unavailable current AWS evidence; no completion claim.",
+  "resumption_observation": {
+    "protected_main": "1d7981f6c09e2b7ad52fe5a819c59a54ea01525c",
+    "sentinel_failure": 37157258851,
+    "requirement_failure": 37156328090,
+    "arl_failure": 37156229932,
+    "root_evidence": "GitHub HTTP 503 while reading protected main; classification artifact absent.",
+    "disposition": "TRANSIENT_NATURALLY_RECOVERED",
+    "natural_requirement_recovery": 37157585428,
+    "natural_sentinel_recovery": 37157789876,
+    "sentinel_digest": "sha256:8ec9124c4ba0e5b224b654257ba6b8f9c928c65680300e92783c9df6c15071ca",
+    "natural_assurance": 37157820894,
+    "natural_gate": 37157864870,
+    "aws_current_state": "UNKNOWN_SSO_TOKEN_EXPIRED_REFRESH_FAILED",
+    "external_write_performed": false
+  }
 }
