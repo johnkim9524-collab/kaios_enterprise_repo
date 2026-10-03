@@ -48,6 +48,10 @@ test('Coverage content validator keeps event-specific source and manual display-
  assert.ok(source.includes('`KIDULTS Coverage / manual-${run.id}`'));
  assert.ok(source.includes('`KIDULTS Coverage / source-${sourceSha}`'));
  assert.doesNotMatch(source,/run\.display_title===`KIDULTS Coverage \/ source-\$\{sourceSha\}`/);
+ assert.ok(source.includes('const manualRecovery=Boolean(guard&&!leader)'));
+ assert.ok(source.includes('COVERAGE_GUARD_MANUAL_EVENT'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_MANIFEST_REQUIRED'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_BINDING_REQUIRED'));
 });
 function replace(f,name,mutate){
  const entries=f.entries.map(([n,t])=>[n,t]);const i=entries.findIndex(([n])=>n===name);const x=JSON.parse(entries[i][1]);mutate(x);entries[i][1]=text(x);
