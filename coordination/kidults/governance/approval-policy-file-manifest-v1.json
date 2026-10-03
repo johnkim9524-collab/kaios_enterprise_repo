@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3624fbd1c3fbc1c563979bc351d8cbe189b4dbb5",
-      "sha256": "sha256:e6d99d9bd86a9ca5dc4608d2dbe3316f37815e68fe8e680f80291415cff7c4f6",
+      "git_blob": "e9970f2bd1c796de1327eb05214c0d06fd10e72e",
+      "sha256": "sha256:19e38878f6fee9c541fea7e385c51a453af7d7e1bab7cc6815b9380abcf63ad6",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -2845,8 +2845,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b1ae1299c5d99f6f8585bc62845da121e87a6e33",
-      "sha256": "sha256:9bf4fbda0e511c7c99ab1035440e6c8ef04968924cdb051416948404423690bf",
+      "git_blob": "c8fa76deee90329d49e7a3f3b867dccff264fd02",
+      "sha256": "sha256:e83fe23e04319f146a89e3f8f193f43ba81e8d7215deb54d39bdc67524fe000f",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -5367,8 +5367,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "91ddf39ea720aaeb5241fd8191c7e765ec05b480",
-      "sha256": "sha256:c21e00fc734e236720c7527ef829e26381b0622cff0d07a74617b1731ae64ad5"
+      "git_blob": "37e11dec02e27ac31f8ead71e94acec28d35042e",
+      "sha256": "sha256:f2197807d6ab160ead7c03360cee8a0b2226abea043ae82c146696cdd688684e"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
@@ -5419,5 +5419,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:29d1ee8da96beb1f1f430907dabe96104b08100840e08de8168adfd31f6e5c20"
+  "manifest_sha256": "sha256:badc7a091758dea6e9910d1bb192d14d05db4789d341a2a353d5e7d87131ddc4"
 }
