@@ -39,6 +39,12 @@ for(const [name,mutate] of [
  assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},p));
 });
 test('Requirement producer accepts explicit exact-SHA workflow dispatch evidence',()=>assert.ok(PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Requirement-to-Adapter Coverage v1').events.includes('workflow_dispatch')));
+test('Reserve completion accepts natural repository_dispatch producer provenance',()=>{
+ const reserve=PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Sharded Source Reserve v1');
+ assert.ok(reserve.events.includes('repository_dispatch'));
+ const p=event(reserve);p.workflow_run.event='repository_dispatch';
+ assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
+});
 
 test('producer completion events stay aligned with sentinel health resolver selection',()=>{
  const byName=new Map(PRODUCER_COMPLETIONS.map((x)=>[x.name,x]));
