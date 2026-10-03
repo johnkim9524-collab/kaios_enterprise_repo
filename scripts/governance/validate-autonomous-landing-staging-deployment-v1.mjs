@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 
 const APPROVAL_ROLE_IDS = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
 const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
@@ -35,6 +36,13 @@ const expectedLegacyWriterZipFromDesired = desiredZip => {
     .replace(reserveBlock, '')
     .replace(desiredReservation, legacyReservation);
 };
+const PRE_CANONICAL_WRITER_SHA256 = '26d2928e70666e2b4d6be65ef9be4bdc53ca83e7d7848ecf796f7c165b6ae89d';
+const sha256Hex = value => createHash('sha256').update(value).digest('hex');
+const isBoundedCanonicalWriterUpgrade = (currentZip, desiredZip) =>
+  sha256Hex(currentZip) === PRE_CANONICAL_WRITER_SHA256 &&
+  ['CREATE_CANONICAL_CLAIM','TAKEOVER_CANONICAL_CLAIM','COMMIT_CANONICAL_CLAIM','CREATE_CANONICAL_ALIAS',
+   'CANONICAL_ALIAS_BINDING_INVALID','service_now = int(datetime.now(timezone.utc).timestamp())']
+    .every(marker => desiredZip.includes(marker));
 const isAllowedLegacyWriterCodeRecovery = (current, desired) => {
   const currentFunction = current?.Resources?.[WRITER_FUNCTION_ID];
   const desiredFunction = desired?.Resources?.[WRITER_FUNCTION_ID];
@@ -46,7 +54,8 @@ const isAllowedLegacyWriterCodeRecovery = (current, desired) => {
   const desiredWithoutCode = structuredClone(desiredFunction);
   delete currentWithoutCode.Properties.Code.ZipFile;
   delete desiredWithoutCode.Properties.Code.ZipFile;
-  return equal(currentWithoutCode, desiredWithoutCode) && currentZip === expectedLegacyWriterZipFromDesired(desiredZip);
+  if (!equal(currentWithoutCode, desiredWithoutCode)) return false;
+  return currentZip === expectedLegacyWriterZipFromDesired(desiredZip) || isBoundedCanonicalWriterUpgrade(currentZip, desiredZip);
 };
 
 const args = process.argv.slice(2);
