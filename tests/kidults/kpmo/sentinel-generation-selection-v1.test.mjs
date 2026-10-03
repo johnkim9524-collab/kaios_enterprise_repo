@@ -83,18 +83,21 @@ test('generation index: Canonical V3 workflow_run supersedes the startup-race pu
  const selection=selectProducerGeneration([pushFailure,regenerated],canonical,sourceSha,observed);
  assert.equal(selection.latest.id,21);
 });
-test('generation index: recovery dispatch cannot supersede natural Reserve evidence',()=>{
+test('generation index: Reserve recovery dispatch and completion edges supersede stale natural evidence',()=>{
  const reserve=SPECS.find(candidate=>candidate.id==='RESERVE');
  const base={run_attempt:1,repository:{full_name:REPOSITORY},path:reserve.path,head_branch:'main',head_sha:sourceSha,status:'completed'};
  const natural={...base,id:30,event:'repository_dispatch',conclusion:'success',created_at:'2026-09-05T10:00:00Z'};
  const manualFailure={...base,id:31,event:'workflow_dispatch',conclusion:'failure',created_at:'2026-09-05T10:01:00Z'};
  const workflowRunFailure={...base,id:32,event:'workflow_run',conclusion:'failure',created_at:'2026-09-05T10:02:00Z'};
  const selection=selectProducerGeneration([natural,manualFailure,workflowRunFailure],reserve,sourceSha,observed);
- assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30]);
- assert.equal(selection.latest.id,30);
+ assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30,31,32]);
+ assert.equal(selection.latest.id,32);
 });
-test('generation index: only Requirement admits the exact-SHA workflow_dispatch recovery root',()=>{
- for(const producer of SPECS)assert.equal(producer.events.includes('workflow_dispatch'),producer.id==='REQUIREMENT',producer.id);
+test('generation index: core producers admit exact-SHA workflow_dispatch recovery roots',()=>{
+ for(const producer of SPECS){
+  const expected=['SHADOW','REQUIREMENT','RESERVE'].includes(producer.id);
+  assert.equal(producer.events.includes('workflow_dispatch'),expected,producer.id);
+ }
 });
 test('generation index: exact Requirement workflow_dispatch can supersede a non-authoritative workflow_run failure',()=>{
  const requirement=SPECS.find(candidate=>candidate.id==='REQUIREMENT');
