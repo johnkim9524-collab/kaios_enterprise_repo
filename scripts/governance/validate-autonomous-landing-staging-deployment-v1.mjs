@@ -122,6 +122,16 @@ function withoutBoundedRead(template) {
   return copy;
 }
 
+const isExactWriterGetItemUpgrade = (currentStatement, desiredStatement) => {
+  if (!currentStatement || !desiredStatement) return false;
+  const currentActions = currentStatement.Action;
+  const desiredActions = desiredStatement.Action;
+  if (!Array.isArray(currentActions) || !Array.isArray(desiredActions)) return false;
+  if (!equal([...currentActions].sort(), ['dynamodb:PutItem','dynamodb:UpdateItem'].sort())) return false;
+  if (!equal([...desiredActions].sort(), ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'].sort())) return false;
+  return equal({...currentStatement,Action:desiredActions}, desiredStatement);
+};
+
 function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
   if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
@@ -155,7 +165,11 @@ function normalizeAllowedRecoveryState(template, desired) {
   copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
     finalizerStatements.filter(statement => !equal(statement, LEDGER_DECRYPT_STATEMENT));
   const writerStatements = copy.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
-  assert.ok(Array.isArray(writerStatements), 'CURRENT_WRITER_ROLE_POLICY_STATEMENTS_INVALID');
+  const desiredWriterStatements = desired.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  assert.ok(Array.isArray(writerStatements) && Array.isArray(desiredWriterStatements), 'CURRENT_WRITER_ROLE_POLICY_STATEMENTS_INVALID');
+  const currentDdb = writerStatements.find(statement => Array.isArray(statement.Action) && statement.Action.includes('dynamodb:PutItem'));
+  const desiredDdb = desiredWriterStatements.find(statement => Array.isArray(statement.Action) && statement.Action.includes('dynamodb:PutItem'));
+  if (isExactWriterGetItemUpgrade(currentDdb, desiredDdb)) currentDdb.Action = [...desiredDdb.Action];
   const writerDecryptCount = writerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
   assert.ok(writerDecryptCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_WRITER_LEDGER_DECRYPT');
   copy.Resources[WRITER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
@@ -255,7 +269,7 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   mode,
   allowed_logical_ids: ROLE_IDS,
-  allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
+  allowed_actions: ['dynamodb:Query', 'dynamodb:GetItem', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
   writer_allowed_kms_action: 'kms:Decrypt',
   finalizer_allowed_kms_action: 'kms:Decrypt',
