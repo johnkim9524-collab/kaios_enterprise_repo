@@ -93,8 +93,17 @@ test('generation index: recovery dispatch cannot supersede natural Reserve evide
  assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[30]);
  assert.equal(selection.latest.id,30);
 });
-test('generation index: manual producer generations are excluded from every terminal producer',()=>{
- for(const producer of SPECS)assert.equal(producer.events.includes('workflow_dispatch'),false,producer.id);
+test('generation index: only Requirement admits the exact-SHA workflow_dispatch recovery root',()=>{
+ for(const producer of SPECS)assert.equal(producer.events.includes('workflow_dispatch'),producer.id==='REQUIREMENT',producer.id);
+});
+test('generation index: exact Requirement workflow_dispatch can supersede a non-authoritative workflow_run failure',()=>{
+ const requirement=SPECS.find(candidate=>candidate.id==='REQUIREMENT');
+ const base={run_attempt:1,repository:{full_name:REPOSITORY},path:requirement.path,head_branch:'main',head_sha:sourceSha,status:'completed'};
+ const workflowRunFailure={...base,id:40,event:'workflow_run',conclusion:'failure',created_at:'2026-09-05T10:00:00Z'};
+ const recoveryDispatch={...base,id:41,event:'workflow_dispatch',conclusion:'success',created_at:'2026-09-05T10:01:00Z'};
+ const selection=selectProducerGeneration([workflowRunFailure,recoveryDispatch],requirement,sourceSha,observed);
+ assert.deepEqual(selection.candidates.map(candidate=>candidate.id),[40,41]);
+ assert.equal(selection.latest.id,41);
 });
 for(const [label,rows] of [
  ['duplicate newer pending attempt before old PASS',[run(10,{run_attempt:2,status:'in_progress',conclusion:null}),good]],

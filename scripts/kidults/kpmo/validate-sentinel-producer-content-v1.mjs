@@ -239,7 +239,10 @@ function coverage(packet,run,sourceSha){
   req(x.source_sha===sourceSha&&x.consumer_sha===sourceSha&&Array.isArray(x.evidence_refs)&&x.evidence_refs.filter(r=>r===`workflow_run:${run.id}`).length===1,'COVERAGE_CONTENT_IDENTITY');
   req(v.id==='kidults-asi-requirement-adapter-coverage-canonical-leader-receipt-v1'&&v.version==='1.0.0'&&v.state==='VERIFIED_PASS_EPHEMERAL_CANONICAL_LEADER','COVERAGE_LEADER_STATE');
   req(v.repository===REPOSITORY&&v.source_sha===sourceSha&&v.canonical_workflow_run_id===run.id&&v.canonical_workflow_run_attempt===run.run_attempt&&v.coverage_run_head_sha===sourceSha&&v.coverage_consumer_sha===sourceSha&&v.trigger_event===run.event,'COVERAGE_LEADER_IDENTITY');
-  req(v.coverage_run_display_title===run.display_title&&run.display_title===`KIDULTS Coverage / source-${sourceSha}`,'COVERAGE_DISPLAY_BINDING');
+  const expectedCoverageDisplayTitle=run.event==='workflow_dispatch'
+    ? `KIDULTS Coverage / manual-${run.id}`
+    : `KIDULTS Coverage / source-${sourceSha}`;
+  req(v.coverage_run_display_title===run.display_title&&run.display_title===expectedCoverageDisplayTitle,'COVERAGE_DISPLAY_BINDING');
   req(v.coverage_kpmo_receipt_digest===m.sha256&&v.semantic_input_receipt_digest===s.sha256,'COVERAGE_MEMBER_DIGEST');
   req(si.id==='kidults-asi-requirement-adapter-coverage-semantic-input-receipt-v1'&&si.version==='1.0.0'&&si.state==='VERIFIED_PASS_SEMANTIC_INPUT_BOUND'&&si.canonical_input_digest===digest(stable(si.material))&&si.canonical_input_digest===v.canonical_input_digest,'COVERAGE_SEMANTIC_INPUT');
   const nativeBindings=coverageNativeMaterial(si,v,sourceSha);
