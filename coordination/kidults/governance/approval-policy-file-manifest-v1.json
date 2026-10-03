@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 689
+    "file_count": 690
   },
   "files": [
     {
@@ -93,8 +93,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "455ad205e8888259b250ffe55ca3b77e7ed77a5f",
-      "sha256": "sha256:f459ca58be4580b3262d76a746d10233c37ab6c7d47291b518141e9df009cef3",
+      "git_blob": "2c918a8af3d00d15870ea6906ba4c457ca4e84cb",
+      "sha256": "sha256:c6cc6c8f53df9c12e198cb707d371fee67624c131191045906a254c3898aa4ec",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1830,6 +1830,19 @@
       }
     },
     {
+      "path": "coordination/kidults/kpmo/closure-batching-policy-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "f582126d2dd0bd2bd07f64f0a5ba2d553e37197a",
+      "sha256": "sha256:5fe2cdad4f93af473f34c96d67893c40a17992fe479a27df51bf73f1616c70ca",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "coordination/kidults/kpmo/direct-owner-handoff-post-window-ttl-canary-2026-09-05-v2.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "a62ef9cdc1d9c4bb8ec43fb3c4ce77ad6eaac375",
@@ -2833,8 +2846,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "2a5012729a00413713bd646ecdf0f973cb1ed880",
-      "sha256": "sha256:7ed02e8d858618a254b8912ea45ed782a39022174d4192729ef5eb7a3394714f"
+      "git_blob": "fc6ad2db34b161f0410991034406b0b8a4a3ba26",
+      "sha256": "sha256:23188b8a7e0395868af5293984b2fe17c2cf91288238775444f5452aefb27051"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -5464,5 +5477,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f6773d8124c8039a8e0edc8403870cc2eed01b4774ee40aada68173e02e6d7ec"
+  "manifest_sha256": "sha256:1d9ff14c890ae2c3b6db59362cb2be5fe64f3e5d1b44d6a5a60bc9e8658692ce"
 }
