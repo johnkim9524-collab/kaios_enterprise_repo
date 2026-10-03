@@ -176,10 +176,10 @@ function validateAuthorizationComment(comment,expectedBody,runStartedAt){
 async function verifyWriteAuthority(snapshotValue,run,attempt){
   if(process.env.GITHUB_ACTIONS!=='true')die('WRITE_REQUIRES_GITHUB_ACTIONS');
   if(process.env.GITHUB_REF!=='refs/heads/main')die('WRITE_REQUIRES_MAIN_REF');
-  if(process.env.GITHUB_EVENT_NAME!=='schedule'&&process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
-  if(attempt!==1)die('WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED');
   const event=process.env.GITHUB_EVENT_NAME;
   if(!['workflow_dispatch','push','schedule'].includes(event))die('WRITE_EVENT_NOT_AUTHORIZED');
+  if(event==='workflow_dispatch'&&process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
+  if(attempt!==1)die('WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED');
 
   const runEnvelope=await api(`/actions/runs/${run}`);
   if(runEnvelope?.id!==run||runEnvelope?.run_attempt!==attempt)die('WRITER_RUN_IDENTITY_MISMATCH');
@@ -279,7 +279,7 @@ function selfTest(){
     "GITHUB_ACTIONS!=='true'",
     "!['workflow_dispatch','push','schedule'].includes(event)",
     "GITHUB_REF!=='refs/heads/main'",
-    "GITHUB_EVENT_NAME!=='schedule'&&process.env.GITHUB_ACTOR!==OWNER",
+    "event==='workflow_dispatch'&&process.env.GITHUB_ACTOR!==OWNER",
     "attempt!==1",
     'runEnvelope?.triggering_actor?.login!==process.env.GITHUB_ACTOR',
     'runEnvelope?.run_started_at',
@@ -330,7 +330,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,protected_main_schedule_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,owner_actor_required_for_manual_and_push:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,schedule_write_authority_added:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,protected_main_schedule_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,owner_actor_required_for_manual_only:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,schedule_write_authority_added:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
 }
 
 try{
