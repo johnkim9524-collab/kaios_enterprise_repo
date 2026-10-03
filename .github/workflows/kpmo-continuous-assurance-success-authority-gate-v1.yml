@@ -151,12 +151,20 @@ jobs:
             > "$GATE_DIR/upstream-assurance-run.json"
           UPSTREAM_CREATED_AT=$(jq -r '.created_at // empty' "$GATE_DIR/upstream-assurance-run.json")
           test -n "$UPSTREAM_CREATED_AT"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100" \
-            > "$GATE_DIR/sentinel-runs.json"
-          node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" \
-            > "$GATE_DIR/sentinel-selection.json"
+          deadline=$((SECONDS + 180))
+          while :; do
+            gh api -H 'Accept: application/vnd.github+json'               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100"               > "$GATE_DIR/sentinel-runs.json"
+            OBSERVED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs               "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$OBSERVED_AT" "$GITHUB_REPOSITORY"               > "$GATE_DIR/sentinel-selection.json"
+            state=$(jq -r '.state' "$GATE_DIR/sentinel-selection.json")
+            if [ "$state" = VERIFIED_PASS ]; then break; fi
+            if [ "$state" = VERIFIED_FAIL ]; then
+              latest_created=$(jq -r '.latest.created_at // empty' "$GATE_DIR/sentinel-selection.json")
+              if [ -n "$latest_created" ] && [[ "$latest_created" > "$UPSTREAM_CREATED_AT" ]]; then exit 1; fi
+            fi
+            if [ "$SECONDS" -ge "$deadline" ]; then echo "SENTINEL_CONVERGENCE_TIMEOUT" >&2; exit 1; fi
+            sleep 5
+          done
           jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
           SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_RUN_ATTEMPT=$(jq -r '.run_attempt // empty' "$GATE_DIR/selected-sentinel-run.json")
