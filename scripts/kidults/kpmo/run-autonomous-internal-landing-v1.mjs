@@ -464,6 +464,23 @@ const waitForReadyCandidate = async () => {
   }
   throw new AutonomousLandingError('AUTONOMOUS_DRAFT_READY_CHECK_TIMEOUT');
 };
+const mergeReadinessReadyStates = new Set(['clean','unstable']);
+const waitForGovernedLandingMergeReadiness = async () => {
+  const timeoutSeconds=Number(policy.bounded_recovery?.normal_ops_finalizer?.merge_readiness_timeout_seconds||180);
+  const pollMs=Number(policy.bounded_recovery?.normal_ops_finalizer?.merge_readiness_poll_ms||5000);
+  const deadline=Date.now()+timeoutSeconds*1000;
+  let last={state:'NOT_CHECKED'};
+  while (Date.now()<deadline) {
+    const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:true,requireEnvelopeBinding:false});
+    const mergeableState=String(candidate.pr.mergeable_state||'unknown').toLowerCase();
+    last={state:'WAITING',mergeable:Object.hasOwn(candidate.pr,'mergeable')?candidate.pr.mergeable:null,mergeable_state:mergeableState,draft:candidate.pr.draft===true,pr_state:candidate.pr.state};
+    if(candidate.pr.state==='open'&&candidate.pr.draft!==true&&candidate.pr.mergeable===true&&mergeReadinessReadyStates.has(mergeableState)) {
+      return {state:'MERGE_READY',mergeable_state:mergeableState};
+    }
+    await sleep(pollMs);
+  }
+  throw new AutonomousLandingError('AUTONOMOUS_MERGE_READINESS_TIMEOUT',canonicalJson(last).slice(0,500));
+};
 const rebindDraftReady = async before => {
   if (before.draft!==true) return {state:'ALREADY_READY',head_sha:envelope.head_sha};
   await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id});
@@ -560,8 +577,7 @@ try {
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
-      await sleep(Number(policy.bounded_recovery?.normal_ops_finalizer?.merge_readiness_delay_ms||8000));
-      await validateLiveCandidate({allowDraft:true,includeLandingStatus:true,requireEnvelopeBinding:false});
+      await waitForGovernedLandingMergeReadiness();
       const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${eventToken}`},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
       if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
       mergePerformed=true;
