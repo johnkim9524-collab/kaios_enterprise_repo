@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import {execFileSync,spawnSync} from "node:child_process";
+import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
 import fs from "node:fs";
 import {EXPLICIT_EXECUTION_CONTROLS,routeAuthorizationControl} from "./lib/approval-policy-routing-v1.mjs";
@@ -21,22 +21,10 @@ const classify = file => {
   if (/^(docs\/|coordination\/)/.test(file)) return "DOMAIN_ADJUDICATION_OR_DOCUMENTATION";
   return "REFERENCE_OR_IMPLEMENTATION";
 };
-const tree = new Map(git(["ls-tree","-r",revision]).trim().split("\n").filter(Boolean).map(line=>{
-  const [meta,file]=line.split("\t"); return [file,meta.split(" ")[2]];
-}));
-const blobShas = paths.map(file=>{ const blob=tree.get(file); if(!blob) throw new Error(`MISSING_GIT_BLOB:${file}`); return blob; });
-const batch = spawnSync("git",["cat-file","--batch"],{cwd:root,input:`${blobShas.join("\n")}\n`,maxBuffer:256*1024*1024});
-if(batch.status!==0) throw new Error(`GIT_CAT_FILE_BATCH_FAILED:${batch.stderr?.toString("utf8")||batch.status}`);
-let cursor=0; const blobBytes=new Map();
-for(const expected of blobShas){
-  const nl=batch.stdout.indexOf(10,cursor); if(nl<0) throw new Error("GIT_CAT_FILE_BATCH_HEADER_MISSING");
-  const [sha,type,sizeText]=batch.stdout.subarray(cursor,nl).toString("utf8").split(" ");
-  const size=Number(sizeText); if(sha!==expected||type!=="blob"||!Number.isSafeInteger(size)) throw new Error(`GIT_CAT_FILE_BATCH_HEADER_INVALID:${expected}`);
-  const start=nl+1,end=start+size; blobBytes.set(sha,batch.stdout.subarray(start,end)); cursor=end+1;
-}
-const files = paths.map((file,index) => {
-  const git_blob=blobShas[index], bytes=blobBytes.get(git_blob), classification=classify(file);
-  return {path:file, classification, git_blob, sha256:sha256(bytes),
+const files = paths.map(file => {
+  const bytes = execFileSync("git", ["show", `${revision}:${file}`], {cwd:root, maxBuffer:64*1024*1024});
+  const classification=classify(file);
+  return {path:file, classification, git_blob:git(["rev-parse", `${revision}:${file}`]).trim(), sha256:sha256(bytes),
     ...(classification==="EXECUTION_AUTHORIZATION_CONTROL"?{authorization_routing:routeAuthorizationControl(file,bytes.toString("utf8"))}:{})};
 });
 const payload = {

@@ -2846,8 +2846,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "2a5012729a00413713bd646ecdf0f973cb1ed880",
-      "sha256": "sha256:7ed02e8d858618a254b8912ea45ed782a39022174d4192729ef5eb7a3394714f"
+      "git_blob": "fc6ad2db34b161f0410991034406b0b8a4a3ba26",
+      "sha256": "sha256:23188b8a7e0395868af5293984b2fe17c2cf91288238775444f5452aefb27051"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -2890,8 +2890,8 @@
     {
       "path": "scripts/governance/generate-approval-policy-inventory-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c5aaf9c6f3f5504fd5be8594d051736c44a38b84",
-      "sha256": "sha256:0d4ec1d8ef8aca1ec23d87c0b375c5025fe435614846b6084474523ee853916d",
+      "git_blob": "37ed8f4ad116f01f73eac1623710d8e65e5fe091",
+      "sha256": "sha256:1214354045f4b047bb521b721867fdfa98e8fcef4bd4fcc1bbf00876ca4f3399",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5477,5 +5477,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f5a225ccc178b1ae9f562b1217acf69eb294ff2676000057760009ddb4ae9b13"
+  "manifest_sha256": "sha256:1d9ff14c890ae2c3b6db59362cb2be5fe64f3e5d1b44d6a5a60bc9e8658692ce"
 }

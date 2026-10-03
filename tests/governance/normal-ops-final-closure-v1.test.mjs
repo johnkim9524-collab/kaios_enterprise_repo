@@ -19,6 +19,8 @@ test('snapshot provider receipt is conditional on an actually generated pair',()
   assert.match(snapshot,/steps\.snapshot_pair\.outputs\.generated == 'true'/);
 });
 
-test('broker does not expand IAM merely for optional CloudWatch telemetry',()=>{
-  assert.equal(broker.Resources.BrokerRole.Properties.ManagedPolicyArns,undefined);
+test('broker has bounded Lambda execution telemetry authority',()=>{
+  assert.deepEqual(broker.Resources.BrokerRole.Properties.ManagedPolicyArns,[
+    'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+  ]);
 });
