@@ -233,9 +233,9 @@ function coverage(packet,run,sourceSha){
     req(positive(a.canonical_artifact_id)&&positive(a.canonical_workflow_run_id)&&positive(a.canonical_workflow_run_attempt)&&DIGEST.test(a.canonical_artifact_digest||''),'COVERAGE_ALIAS_TARGET');
     return {state:'VERIFIED_HOLD',failure_class:'COVERAGE_ALIAS_LEADER_CONTENT_REQUIRED',semantic_scope:'COVERAGE_ALIAS_ONLY',members:[alias],alias:a,inner_run_identity_present:true};
   }
-  const m=json(packet,'kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json'),leader=json(packet,'coverage-canonical-leader-receipt-v1.json',true),guard=json(packet,'coverage-canonical-guard-receipt-v1.json',true),s=json(packet,'coverage-semantic-input-receipt-v1.json');
-  req((leader?1:0)+(guard?1:0)===1,'COVERAGE_AUTHORITY_RECEIPT_CARDINALITY');
-  const manualRecovery=Boolean(guard),l=leader||guard;
+  const m=json(packet,'kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json'),leader=json(packet,'coverage-canonical-leader-receipt-v1.json',true),guard=json(packet,'coverage-canonical-guard-receipt-v1.json',true),s=json(packet,'coverage-semantic-input-receipt-v1.json'),upstreamBinding=json(packet,'autonomous-resolution-artifact-binding-v1.json',true);
+  req(Boolean(leader)||Boolean(guard),'COVERAGE_AUTHORITY_RECEIPT_CARDINALITY');
+  const manualRecovery=Boolean(guard&&!leader),l=leader||guard;
   const x=m.value,v=l.value,si=s.value;selfDigest(v);hold(x);hold(v);hold(si);
   req(x.id==='kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1'&&x.version==='1.3.0'&&x.state==='VERIFIED_PASS_INTERNAL_QUEUE_ACCOUNTABLE_EXTERNAL_ACTIVATION_HOLD','COVERAGE_CONTENT_STATE');
   req(x.source_sha===sourceSha&&x.consumer_sha===sourceSha&&Array.isArray(x.evidence_refs)&&x.evidence_refs.filter(r=>r===`workflow_run:${run.id}`).length===1,'COVERAGE_CONTENT_IDENTITY');
@@ -252,6 +252,7 @@ function coverage(packet,run,sourceSha){
   };
   const guardProof=()=>{
     req(v.id==='kidults-asi-requirement-adapter-coverage-canonical-guard-receipt-v1'&&v.version==='1.0.0'&&v.state==='MANUAL_RECOVERY_FULL_VALIDATION_NON_LEADER','COVERAGE_GUARD_STATE');
+    req(run.event==='workflow_dispatch'&&v.current_trigger_event==='workflow_dispatch'&&v.trigger_event==='workflow_dispatch','COVERAGE_GUARD_MANUAL_EVENT');
     req(v.repository===REPOSITORY&&v.source_sha===sourceSha&&v.current_workflow_run_id===run.id&&v.current_workflow_run_attempt===run.run_attempt&&v.current_trigger_event===run.event&&v.coverage_run_head_sha===sourceSha&&v.coverage_consumer_sha===sourceSha&&v.trigger_event===run.event,'COVERAGE_GUARD_IDENTITY');
     req(v.coverage_execution_disposition==='EXECUTE_FULL_COVERAGE_NON_CANONICAL_RECOVERY'&&v.detail?.manual_recovery_alias_allowed===false&&v.readback?.state==='BYPASS'&&v.readback?.total_count===0,'COVERAGE_GUARD_RECOVERY_BOUNDARY');
     req(/^kidults-asi-requirement-adapter-coverage-canonical-[a-f0-9]{64}$/.test(v.canonical_artifact_name||''),'COVERAGE_GUARD_CANONICAL_NAME');
@@ -269,8 +270,16 @@ function coverage(packet,run,sourceSha){
   return {...nativeBindings,state:'VERIFIED_PASS',semantic_scope:'COVERAGE_INTERNAL_CONTROL_EXTERNAL_ACTIVATION_HOLD',members:[m,l,s,...(manifest?[manifest]:[])],leader:v,inner_run_identity_present:true};
   };
   const manualScope='COVERAGE_MANUAL_RECOVERY_FULL_VALIDATION_NON_LEADER';
-  manifest ? req(manifest.sha256===x.manifest_digest,'COVERAGE_MANIFEST_DIGEST') : true;
-  const manualReturn=()=>({...nativeBindings,state:'VERIFIED_PASS',semantic_scope:manualScope,members:[m,l,s,...(manifest?[manifest]:[])],leader:v,inner_run_identity_present:true});
+  const manualReturn=()=>{
+    req(manifest,'COVERAGE_MANUAL_RECOVERY_MANIFEST_REQUIRED');
+    req(upstreamBinding,'COVERAGE_MANUAL_RECOVERY_BINDING_REQUIRED');
+    const b=upstreamBinding.value;
+    req(manifest.sha256===x.manifest_digest,'COVERAGE_MANIFEST_DIGEST');
+    same(x.results,manifest.value.results,'COVERAGE_MANIFEST_RESULTS');
+    for(const key of ['upstream_workflow_run_id','upstream_artifact_id','upstream_artifact_digest','upstream_binding_digest']) same(v[key],b[key],`COVERAGE_GUARD_UPSTREAM_BINDING:${key}`);
+    req(positive(b.upstream_workflow_run_id)&&positive(b.upstream_artifact_id)&&DIGEST.test(b.upstream_artifact_digest||'')&&DIGEST.test(b.upstream_binding_digest||''),'COVERAGE_GUARD_UPSTREAM_BINDING_SHAPE');
+    return {...nativeBindings,state:'VERIFIED_PASS',semantic_scope:manualScope,members:[m,l,s,manifest,upstreamBinding],leader:v,inner_run_identity_present:true};
+  };
   // A canonical leader artifact intentionally contains no full output manifest.
   // Its raw KPMO payload and semantic material are still required and bound.
   const baseline=JSON.parse(fs.readFileSync(path.join(ROOT,'coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json'),'utf8')).expected_current_main_baseline;
