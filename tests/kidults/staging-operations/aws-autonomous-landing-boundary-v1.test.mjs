@@ -52,6 +52,14 @@ test('finalizer trusts the three role workflows and the isolated canary, with no
   assert.equal(actions.includes('dynamodb:UpdateItem'),false);
 });
 
+test('writer has exact-table read/write authority required by canonical alias binding', () => {
+  const statements=template.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement;
+  const ddb=statements.find(s=>Array.isArray(s.Action)&&s.Action.includes('dynamodb:PutItem'));
+  assert.deepEqual(ddb.Action,['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem']);
+  assert.deepEqual(ddb.Resource,{'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
+  assert.equal(ddb.Action.includes('dynamodb:Scan'),false);
+});
+
 test('writer verifies KMS signatures and runner rejects caller-supplied workload identity', () => {
   const code=template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
   for(const marker of ['verify_approval_signature','verify_finalizer_signature','APPROVAL_SIGNATURE_INVALID','FINALIZER_SIGNATURE_INVALID']) assert.match(code,new RegExp(marker));

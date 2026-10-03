@@ -2839,8 +2839,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "8d4ca67ffd85e4374c915513bff389f41c4381ed",
-      "sha256": "sha256:85f52aa261c4c6ce15a4e3e1df3dc664d6cd73270d9308175379f8c4986eda75"
+      "git_blob": "2277207094f70c75837ff2f3903623216338b160",
+      "sha256": "sha256:917630fa9e7743d1a995be13f44cf338c55e15a9bea3eb238c62bcf689cb3b4d"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -2957,8 +2957,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "84934e4e0c3d17d36bd94eee5908f7cd3c0c89dd",
-      "sha256": "sha256:05c70242c71fdb1ed2310a7129c9090abf4a4298bda2b59bbbfe39de89c00c72",
+      "git_blob": "9ce2ba90d09da599891cde3df148c397b7ef0bde",
+      "sha256": "sha256:e6498e62d2d6de3454ff123d122f0929028dd369675a4e2a0383ab70a02cda8f",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5417,8 +5417,8 @@
     {
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ed0b7d7f628d50a13847831859b30b09d4bc270c",
-      "sha256": "sha256:daa2deaba9b8e3eaec6a639c87f4a402b1d2e533a80c169cc61df3271e6fc9ad"
+      "git_blob": "2780f239d7213448668ad3067abff90d71030d8b",
+      "sha256": "sha256:3b79b5b9f0ddf8605041652670227b772cf2ae5c6ac6e731e706cddd30f9ea0c"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -5451,5 +5451,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:89ed71ee2196037d4145633a569870bb6f6d82fd3af213b474dc8f1047edf961"
+  "manifest_sha256": "sha256:fab2c669efbe8f1c34a037e031910a6eac6df182d68b4c76c3f040512517138b"
 }
