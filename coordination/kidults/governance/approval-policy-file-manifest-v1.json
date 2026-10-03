@@ -2970,8 +2970,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "421d70e4f3f84bb507dd0acad55418193a0c167b",
-      "sha256": "sha256:5d4bd1980294ce96e04966b4d2c527a571e2885498ff057697e9ef926083f628",
+      "git_blob": "2c2f480ca117e3333cf31f8f90356df4e427985c",
+      "sha256": "sha256:18e4bf88f5ec466efa11a1a49e992adcecefe11aab23ce66272c003e3f757f17",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5367,8 +5367,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4bd1b3784a4d9a5e9d2f27bdefebbc17ac8b2613",
-      "sha256": "sha256:dc015b52c0d00c05b8ccfb15ac460acce781b6c9b63d048dcf2cd4c2a622766a"
+      "git_blob": "7e0a4783ad3e9ae3b2a80286d309389df69960dc",
+      "sha256": "sha256:09055abb74fa16c5ed854d5c2220f5d6a3f895be64639b54e884de610345754b"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
@@ -5419,5 +5419,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:195e0e4864ab4f9777100fb0dea183e0e813e938893410cb6f50642875100337"
+  "manifest_sha256": "sha256:7d6ec45bf09a34d30967a21b7e5bed238307448b26ed06d8a7803e85cb6738e5"
 }
