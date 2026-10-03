@@ -29,7 +29,8 @@ test('eligible Draft is evaluated without a pre-Ready mutation and finalizer own
   assert.doesNotMatch(dispatcherWorkflow, /markPullRequestReadyForReview|validateDraftReadyBrokerResponse|DRAFT_READY_TRANSITION|transition_draft/);
   const finalizer=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
   assert.match(finalizer, /action:'CREATE_RESERVATION'[\s\S]*await rebindDraftReady\(candidate\.pr\)[\s\S]*await publishLandingStatus\('success'/);
-  assert.match(finalizer, /merge_readiness_delay_ms[\s\S]*includeLandingStatus:true[\s\S]*\/pulls\/\$\{envelope\.pull_request\}\/merge/);
+  assert.match(finalizer, /waitForGovernedLandingMergeReadiness[\s\S]*mergeable_state/);
+  assert.match(finalizer, /await waitForGovernedLandingMergeReadiness\(\)[\s\S]*\/pulls\/\$\{envelope\.pull_request\}\/merge/);
   assert.match(finalizer, /allowDraft:true,includeLandingStatus:false/);
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
 });
