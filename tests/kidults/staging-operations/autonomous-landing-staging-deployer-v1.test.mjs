@@ -278,12 +278,21 @@ test('template validator accepts exact CloudFormation dynamic dependency fanout 
 
 test('template validator accepts exact legacy ledger-writer code recovery and Lambda code change set', () => {
   const current = legacyWriterTemplate();
+  const dynamic = (LogicalResourceId, ResourceType, Name, CausingEntity) => ({ResourceChange: {
+    Action: 'Modify', LogicalResourceId, ResourceType, Replacement: 'False',
+    Details: [{Target: {Attribute: 'Properties', Name}, Evaluation: 'Dynamic',
+      ChangeSource: 'ResourceAttribute', CausingEntity}],
+  }});
   const changeSet = {
     Status: 'CREATE_COMPLETE',
-    Changes: [{ResourceChange: {
-      Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterFunction', ResourceType: 'AWS::Lambda::Function', Replacement: 'False',
-      Details: [{Target: {Attribute: 'Properties', Name: 'Code'}, ChangeSource: 'DirectModification'}],
-    }}],
+    Changes: [
+      {ResourceChange: {
+        Action: 'Modify', LogicalResourceId: 'AutonomousLedgerWriterFunction', ResourceType: 'AWS::Lambda::Function', Replacement: 'False',
+        Details: [{Target: {Attribute: 'Properties', Name: 'Code'}, ChangeSource: 'DirectModification'}],
+      }},
+      dynamic('FinalizerRole', 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn'),
+      ...roleIds.map(logicalId => dynamic(logicalId, 'AWS::IAM::Role', 'Policies', 'AutonomousLedgerWriterFunction.Arn')),
+    ],
   };
   withFixture({current, desired, changeset: changeSet}, directory => {
     const output = execFileSync('node', [validator,
