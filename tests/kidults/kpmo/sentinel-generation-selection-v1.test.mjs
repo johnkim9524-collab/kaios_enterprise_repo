@@ -292,3 +292,12 @@ test('canonical convergence: runtime wait budget stays bound to the post-merge p
  assert.equal(CANONICAL_CONVERGENCE_MAX_WAIT_MS,policy.max_wait_seconds*1000);
  assert.equal(CANONICAL_CONVERGENCE_POLL_MS,policy.poll_interval_seconds*1000);
 });
+
+test('Gate cutoff remains strict when an unbounded API response includes a natural success one second later',()=>{
+ const cutoff='2026-10-03T23:45:00Z';
+ const prior=sentinelRun(37162202754,{createdAt:'2026-10-03T23:30:00Z'});
+ const later=sentinelRun(37162751746,{event:'workflow_run',createdAt:'2026-10-03T23:45:01Z'});
+ assert.throws(()=>selectLatestNaturalSentinelRun([prior,later],{sourceSha,repository:REPOSITORY,observedAt:cutoff}),/SENTINEL_SELECTION_TIME_INVALID/);
+ const result=selectLatestNaturalSentinelRun([prior],{sourceSha,repository:REPOSITORY,observedAt:cutoff});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,prior.id);
+});

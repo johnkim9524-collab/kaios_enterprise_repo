@@ -148,7 +148,7 @@
         "finalizer": "Only Track workflow on a later natural Gate, using existing Track approval from a different run; backend separately requires run distinct from all three approval runs.",
         "interruption": "Existing role approvals are cryptographically reverified and reused. CONSUMED but seal-pending resumes stored payload without new approval/consume.",
         "expiry": "No replacement of pinned unconsumed request after expiry.",
-        "workflow_run_chain_depth": 3
+        "workflow_run_chain_depth": "No role-to-role workflow_run chain; independent Assurance clock Gate -> recovery depth 2, Sentinel clock Gate -> recovery depth 3. Deeper Reserve-origin chains may not trigger recovery; existing independent clocks remain the recovery authority."
       },
       "deployment_contract": {
         "baseline_writer_sha256": "2d8ffee622929b322de4b75957122ca44928cef08bad38a63a34b39d907e1b72",
@@ -213,6 +213,40 @@
         "resource_replacement": false,
         "receipt_readback_process": 37972
       }
+    },
+    {
+      "code": "SUCCESS_AUTHORITY_GATE_AS_OF_QUERY_CUTOFF_MISMATCH",
+      "state": "LOCAL_FIX_AND_AUTHENTICATED_READ_ONLY_API_VERIFIED_NOT_EXTERNAL_WORKFLOW_APPLIED",
+      "failure_run": 37162786796,
+      "failure_artifact": 11288327356,
+      "failure_artifact_digest": "sha256:389a9761af045a70c4380d5e5c82392ab87c1c17f2345d7ccb210297c33980fd",
+      "native_error": "SENTINEL_LATEST_RUN_SELECTION_FAILED",
+      "root_cause": "An unbounded Sentinel run query included natural success created one second after the bound upstream Assurance start. The strict native selector correctly rejected that out-of-scope candidate.",
+      "upstream_assurance_run": 37162751697,
+      "cutoff": "2026-10-03T23:45:00Z",
+      "later_candidate": {
+        "run": 37162751746,
+        "created_at": "2026-10-03T23:45:01Z",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      "other_candidate_identity_drift": false,
+      "subsequent_successful_gates": [
+        37162821414,
+        37162853747
+      ],
+      "fix": "Authenticated GET created<=upstream-created-at query; preserve strict selector, exact SHA/path/attempt checks and newest in-scope FAIL/HOLD semantics.",
+      "authenticated_read_only_api_and_native_selection": {
+        "state": "VERIFIED_PASS",
+        "selected_run": 37162202754,
+        "future_candidates": 0,
+        "process": 49484,
+        "workflow_dispatch_performed": false,
+        "ledger_write_performed": false
+      },
+      "selector_regression_cases_passed": 51,
+      "workflow_file": ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml",
+      "external_main_reflection": false
     }
   ],
   "promotion_eligible": false,
@@ -261,5 +295,9 @@
     "workflow_dispatch": false,
     "new_approval_recorded": false,
     "reservation_consumed": false
-  }
+  },
+  "reference_docs": [
+    "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows",
+    "https://docs.github.com/en/rest/actions/workflow-runs"
+  ]
 }
