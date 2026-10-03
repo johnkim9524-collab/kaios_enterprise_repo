@@ -12,6 +12,9 @@ test('AWS ledger writer implements all durable canonical state transitions',()=>
   assert.match(source,/ConditionExpression='#s=:leased AND run_id=:run AND head_sha=:head AND lease_epoch=:epoch AND lease_expires_at_epoch >= :now'/);
   assert.match(source,/ConsistentRead=True/);
   assert.match(source,/CANONICAL_ALIAS_BINDING_INVALID/);
+  assert.match(source,/service_now = int\(datetime\.now\(timezone\.utc\)\.timestamp\(\)\)/);
+  assert.match(source,/abs\(now_epoch - service_now\) > 30/);
+  assert.match(source,/lease_expires_at < service_now \+ 60 or lease_expires_at > service_now \+ 900/);
 });
 
 test('canonical mutation fields are covered by the signed finalizer core',()=>{
