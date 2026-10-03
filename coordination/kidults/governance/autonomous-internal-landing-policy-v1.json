@@ -399,6 +399,7 @@
     "live_main_tree_parent_revalidation_required": true,
     "explicit_completion_event": "kidults.internal_landing.completed.v1",
     "postmerge_exact_sha_checks_required": true,
+    "postmerge_push_suite_policy": "coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json",
     "postmerge_validation_timeout_seconds": 420
   },
   "evidence_resolution": {

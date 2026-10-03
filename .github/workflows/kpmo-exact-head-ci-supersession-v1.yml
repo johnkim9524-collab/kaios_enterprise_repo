@@ -72,6 +72,16 @@ jobs:
             esac
           }
 
+          retain_autonomous_landing() {
+            local run_event="$1"
+            local workflow_path="$2"
+            [[ "${run_event}" == "repository_dispatch" ]] || return 1
+            case "${workflow_path}" in
+              ".github/workflows/kidults-autonomous-track-authorization-v1.yml"|".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml"|".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml") return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+
           read_run_terminal() {
             local target_run_id="$1"
             local max_attempts="${2:-8}"
@@ -152,6 +162,15 @@ jobs:
               [[ "${status}" == "queued" || "${status}" == "in_progress" || "${status}" == "waiting" || "${status}" == "pending" ]] || continue
 
               if retain_generation_bridge "${run_event}" "${workflow_path}"; then
+                generation_bridge_retained=$((generation_bridge_retained + 1))
+                continue
+              fi
+
+              # A successful landing advances main while its elected finalizer
+              # still consumes post-merge checks and seals the durable receipt.
+              # Each retained workflow independently validates signed authority
+              # and has a bounded timeout; retention grants no merge authority.
+              if retain_autonomous_landing "${run_event}" "${workflow_path}"; then
                 generation_bridge_retained=$((generation_bridge_retained + 1))
                 continue
               fi
