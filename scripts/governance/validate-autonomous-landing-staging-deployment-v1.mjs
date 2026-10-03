@@ -173,6 +173,7 @@ function validateChangeSet(changeSet, current, desired) {
   assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length + 1, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
 
   const writerChanged = expectedChanged.includes(WRITER_ROLE_ID);
+  const writerFunctionChanged = expectedChanged.includes(WRITER_FUNCTION_ID);
   const dynamicDependencies = new Map([
     ['AutonomousLedgerWriterFunction', {
       resourceType: 'AWS::Lambda::Function',
@@ -217,7 +218,7 @@ function validateChangeSet(changeSet, current, desired) {
         continue;
       }
 
-      assert.ok(writerChanged, 'CHANGE_SET_DYNAMIC_WITHOUT_WRITER_CHANGE');
+      assert.ok(writerChanged || writerFunctionChanged, 'CHANGE_SET_DYNAMIC_WITHOUT_WRITER_OR_FUNCTION_CHANGE');
       assert.equal(detail?.ChangeSource, 'ResourceAttribute', 'CHANGE_SET_SOURCE_INVALID');
       assert.equal(detail?.Evaluation, 'Dynamic', 'CHANGE_SET_DYNAMIC_EVALUATION_INVALID');
       const allowed = dynamicDependencies.get(change?.LogicalResourceId);
