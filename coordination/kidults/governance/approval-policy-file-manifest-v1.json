@@ -2970,8 +2970,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2bed0d49b002f52b218aaec9e0704338b5cc400e",
-      "sha256": "sha256:40696fbb6d1deaabce6c2420d1e54712f38dfbfd6e0f453bbdf8e9a10ba83fd4",
+      "git_blob": "f16413a3671ffaed35c3345431955366ee1993d3",
+      "sha256": "sha256:4f810bb08d1238743648fb65fcdd9159526a7c963c88507f08df4cc9a9bacd16",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5451,5 +5451,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a716efb5b97740f37095f3db5c64f52bf68f234e6194bfdaa05ce1ce31f09dd5"
+  "manifest_sha256": "sha256:89ed71ee2196037d4145633a569870bb6f6d82fd3af213b474dc8f1047edf961"
 }
