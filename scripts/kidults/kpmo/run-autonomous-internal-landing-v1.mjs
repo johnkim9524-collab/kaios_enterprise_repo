@@ -560,6 +560,8 @@ try {
       const lifecycle=await rebindDraftReady(candidate.pr);
       await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
+      await sleep(Number(policy.bounded_recovery?.normal_ops_finalizer?.merge_readiness_delay_ms||8000));
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:true,requireEnvelopeBinding:false});
       const merge=await api(`/pulls/${envelope.pull_request}/merge`,{method:'PUT',headers:{'Content-Type':'application/json',Authorization:`Bearer ${eventToken}`},body:JSON.stringify({sha:envelope.head_sha,merge_method:'merge',commit_title:`Autonomous internal landing PR #${envelope.pull_request}`})});
       if (merge?.merged!==true||!/^[0-9a-f]{40}$/.test(merge.sha||'')) throw new AutonomousLandingError('AUTONOMOUS_MERGE_REJECTED');
       mergePerformed=true;

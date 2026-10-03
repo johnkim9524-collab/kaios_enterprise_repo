@@ -3532,8 +3532,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bca385689a2da590ec835262c13f6feebe7bc7c7",
-      "sha256": "sha256:feac7af8eecf4d71652cccb9d8342e4939572ed8f718c20203562b54909e651a",
+      "git_blob": "c64c305474d9d5ac9721b2933b370aa1434a91a2",
+      "sha256": "sha256:b365544234dd945dfcde26f8ee08cc1be9d82f6ce400899946bcb96970a2818d",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5277,8 +5277,8 @@
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9b8e3d46bd6d53360103fabdf42fa54e55c14d89",
-      "sha256": "sha256:bd5825d2c8ce946384bba20d33694525f26448b8e26fe07091067412636709bc"
+      "git_blob": "f9a33d37383b2a1ea46f2b49bd08b30bcfde6702",
+      "sha256": "sha256:f20733c35253cf577974cfd8563da8afc12f995ccc8cce539732050635ebdcb7"
     },
     {
       "path": "tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs",
@@ -5419,5 +5419,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:29d1ee8da96beb1f1f430907dabe96104b08100840e08de8168adfd31f6e5c20"
+  "manifest_sha256": "sha256:2e74e525c7aac8eb643016589033217138333a4600b0f51afb9298fae59b673e"
 }
