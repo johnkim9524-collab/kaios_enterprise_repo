@@ -117,6 +117,10 @@ class RecoveryLedgerTests(unittest.TestCase):
 
     def setUp(self):
         self.request, self.terminal = copy.deepcopy(self.base['request']), copy.deepcopy(self.base['terminal'])
+        core = {'id': 'kidults-postmerge-recovery-evidence-snapshot-v1', 'version': '1.0.0',
+                'source_sha': self.request['source_sha'], 'selected_at': self.request['issued_at'],
+                'evidence': self.terminal['evidence'], 'scope': 'ORIGINAL_LANDING_TERMINAL_RECOVERY_ONLY_NOT_WHOLE_PLATFORM', **M.HOLD}
+        self.snapshot = {**core, 'snapshot_digest': M.digest(core)}
         self.roles = {role: {'workload_id': 'workload-' + str(i), 'signing_key_arn': 'role-key-' + str(i), 'environment': 'env-' + str(i)} for i, role in enumerate(M.ROLES)}
         self.finalizer = {'workload_id': 'finalizer', 'signing_key_arn': 'finalizer-key', 'environment': 'finalizer-env'}
         self.keys = {c['signing_key_arn']: ec.generate_private_key(ec.SECP256R1()) for c in [*self.roles.values(), self.finalizer]}
@@ -137,7 +141,8 @@ class RecoveryLedgerTests(unittest.TestCase):
         envelope = {'id': 'kidults-postmerge-recovery-approval-v1', 'action': 'CREATE_RECOVERY_APPROVAL',
                     'request': self.request, 'request_digest': M.digest(self.request), 'role': role, 'decision': 'APPROVED',
                     'approval_run_id': str(101 + M.ROLES.index(role)), 'approval_run_attempt': 1,
-                    'workload': self.roles[role], 'evidence_digest': M.digest(self.terminal['evidence']), **changes}
+                    'workload': self.roles[role], 'evidence_digest': M.digest(self.terminal['evidence']),
+                    'evidence_snapshot': self.snapshot, **changes}
         return self.sign(envelope)
 
     def final(self, action='CONSUME_RECOVERY_RESERVATION', **extras):
@@ -227,6 +232,9 @@ class RecoveryLedgerTests(unittest.TestCase):
         self.request['issued_at'] = '2026-10-03T15:00:01.000Z'
         core = {k: v for k, v in self.request.items() if k != 'recovery_generation'}
         self.request['recovery_generation'] = 'postmerge-2555-' + M.digest(core)[7:39]
+        self.snapshot['selected_at'] = self.request['issued_at']
+        snapshot_core = {k: v for k, v in self.snapshot.items() if k != 'snapshot_digest'}
+        self.snapshot['snapshot_digest'] = M.digest(snapshot_core)
         with self.assertRaisesRegex(ValueError, 'ROOT_REQUEST_CONFLICT'):
             self.ledger.create_approval(self.approval(M.ROLES[1]))
         self.assertEqual(len(self.ddb.writes), count)
@@ -236,6 +244,28 @@ class RecoveryLedgerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'THREE_ROLE_QUORUM'):
             self.consume()
         self.ledger.reservation(self.request, 'RESERVED')
+
+    def test_three_roles_reuse_one_pinned_snapshot(self):
+        self.quorum()
+        row = self.ledger.reservation(self.request)
+        self.assertEqual(row['recovery_evidence_snapshot_json']['S'], M.canonical(self.snapshot))
+        pins = [a for _, a in self.ddb.writes if 'SET recovery_request_json' in a.get('UpdateExpression', '')]
+        self.assertEqual(len(pins), 1)
+
+    def test_role_cannot_rebind_snapshot_to_newer_natural_success(self):
+        self.ledger.create_approval(self.approval(M.ROLES[0]))
+        self.snapshot['evidence']['sentinel']['run_id'] = '999'
+        core = {k: v for k, v in self.snapshot.items() if k != 'snapshot_digest'}
+        self.snapshot['snapshot_digest'] = M.digest(core)
+        with self.assertRaisesRegex(ValueError, 'PINNED_SNAPSHOT_CONFLICT'):
+            self.ledger.create_approval(self.approval(M.ROLES[1]))
+
+    def test_rehashed_terminal_evidence_cannot_differ_from_pinned_snapshot(self):
+        self.quorum(); self.terminal['evidence']['sentinel']['run_id'] = '999'
+        core = {k: v for k, v in self.terminal.items() if k != 'receipt_digest'}
+        self.terminal['receipt_digest'] = M.digest(core)
+        with self.assertRaisesRegex(ValueError, 'PINNED_TERMINAL_EVIDENCE'):
+            self.consume()
 
     def test_tampered_stored_approval_reverified(self):
         self.quorum()
@@ -252,10 +282,8 @@ class RecoveryLedgerTests(unittest.TestCase):
         self.assertEqual(self.ddb.writes, [])
 
     def test_quorum_evidence_mismatch_rejected(self):
-        for role in M.ROLES:
-            self.ledger.create_approval(self.approval(role, evidence_digest='sha256:' + 'b' * 64))
-        with self.assertRaisesRegex(ValueError, 'QUORUM_BINDING'):
-            self.consume()
+        with self.assertRaisesRegex(ValueError, 'SNAPSHOT_EVIDENCE_DIGEST'):
+            self.ledger.create_approval(self.approval(M.ROLES[0], evidence_digest='sha256:' + 'b' * 64))
         self.ledger.reservation(self.request, 'RESERVED')
 
     def test_duplicate_approval_run_rejected(self):

@@ -6,7 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {canonicalJson,sha256} from './autonomous-internal-landing-v1.mjs';
-import {POSTMERGE_RECOVERY_INCIDENT as I,validatePostmergeRecoveryRequest} from './autonomous-postmerge-recovery-v1.mjs';
+import {POSTMERGE_RECOVERY_INCIDENT as I,validatePostmergeRecoveryRequest,validateRecoveryEvidenceSnapshot} from './autonomous-postmerge-recovery-v1.mjs';
 import {recoveryImmutableAckFields} from './postmerge-recovery-immutable-store-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
@@ -74,14 +74,17 @@ export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourc
       run_id:item.run_id?.S,head_sha:item.head_sha?.S,state:item.state?.S,
       ...(item.recovery_run_id?{recovery_run_id:item.recovery_run_id.S}:{}),
       ...(item.recovery_request_json?{recovery_request:JSON.parse(item.recovery_request_json.S)}:{}),
+      ...(item.recovery_evidence_snapshot_json?{recovery_snapshot:JSON.parse(item.recovery_evidence_snapshot_json.S)}:{}),
       ...(item.recovery_terminal_json?{recovery_terminal:JSON.parse(item.recovery_terminal_json.S)}:{}),
       ...(item.recovery_immutable_json?{recovery_immutable:JSON.parse(item.recovery_immutable_json.S)}:{})};
   };
-  const createApproval=async({request,evidence})=>{
+  const createApproval=async({request,snapshot})=>{
     assert(role!=='FINALIZER','RECOVERY_CLIENT_APPROVAL_ROLE_REQUIRED');
+    requestBinding(request,true);
+    validateRecoveryEvidenceSnapshot(snapshot,request,{now:now()});
     return invoke({id:'kidults-postmerge-recovery-approval-v1',action:'CREATE_RECOVERY_APPROVAL',
       ...requestBinding(request,true),role,decision:'APPROVED',approval_run_id:env.GITHUB_RUN_ID,
-      approval_run_attempt:1,workload,evidence_digest:sha256(canonicalJson(evidence))});
+      approval_run_attempt:1,workload,evidence_digest:sha256(canonicalJson(snapshot.evidence)),evidence_snapshot:snapshot});
   };
   const consumeOnce=async input=>{
     assert(input.expected_original_run_id===I.original_run_id&&input.expected_original_head_sha===I.original_head_sha

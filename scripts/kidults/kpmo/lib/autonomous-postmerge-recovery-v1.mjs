@@ -130,6 +130,20 @@ export function validateStoredRecoveryTerminal(terminal,request){
   return terminal;
 }
 
+export function validateRecoveryEvidenceSnapshot(snapshot,request,{now=Date.now()}={}){
+  const evidence=snapshot?.evidence;
+  buildPostmergeRecoveryTerminal({request,recoveryRunId:'1',evidence});
+  const selected=Date.parse(snapshot.selected_at);
+  assert(Number.isFinite(selected)&&selected>=Date.parse(request.issued_at)&&selected<Date.parse(request.expires_at)
+    &&selected<=now,'RECOVERY_SNAPSHOT_TIME_BINDING');
+  const core={id:'kidults-postmerge-recovery-evidence-snapshot-v1',version:'1.0.0',source_sha:request.source_sha,
+    selected_at:snapshot.selected_at,evidence,scope:'ORIGINAL_LANDING_TERMINAL_RECOVERY_ONLY_NOT_WHOLE_PLATFORM',
+    production:'HOLD',public:'HOLD',g5:'HOLD'};
+  assert(equal(snapshot,{...core,snapshot_digest:sha256(canonicalJson(core))}),'RECOVERY_SNAPSHOT_BINDING');
+  assert(Buffer.byteLength(canonicalJson(snapshot),'utf8')<=49152,'RECOVERY_PAYLOAD_BOUND');
+  return snapshot;
+}
+
 export const recoveryObjectKey=request=>`receipts/${request.original_generation}/postmerge-recovery-v1/${request.original_merge_sha}.json`;
 
 export async function runPostmergeTerminalRecovery({request,recoveryRunId,adapter,now=()=>Date.now()}){

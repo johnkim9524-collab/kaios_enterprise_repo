@@ -24,10 +24,15 @@ function fixture(role='KPMO'){
     assert.ok(f.signed.at(-1).equals(Buffer.from(sha256(canonicalJson(event.envelope)).slice(7),'hex')));
     f.lastEnvelope=event.envelope;fs.writeFileSync(args.at(-1),JSON.stringify(f.response));return f.metadata;
   };
+  const hold={production:'HOLD',public:'HOLD',g5:'HOLD'};
+  const node=run_id=>({state:'VERIFIED_PASS',source_sha:SHA,run_id,receipt_digest:'sha256:'+'a'.repeat(64),...hold});
+  const evidence={state:'VERIFIED_PASS',source_sha:SHA,...hold,push_suite:{...node('1'),required_success_count:6,required_failure_count:0},canonical_truth:node('2'),sentinel:{...node('3'),producers:['SHADOW','REQUIREMENT','RESERVE','CANONICAL_TRUTH'].map(id=>({id,state:'VERIFIED_PASS'})),failed_producers:[],waiting_producers:[]},success_authority_gate:node('4')};
+  const core={id:'kidults-postmerge-recovery-evidence-snapshot-v1',version:'1.0.0',source_sha:SHA,selected_at:request.issued_at,evidence,scope:'ORIGINAL_LANDING_TERMINAL_RECOVERY_ONLY_NOT_WHOLE_PLATFORM',...hold};
+  f.snapshot={...core,snapshot_digest:sha256(canonicalJson(core))};
   f.client=()=>createRecoverySignedLedgerClient({role,signingKeyArn:key,sourceSha:SHA,env:f.env,aws:f.aws,now:()=>NOW});return f;
 }
 test('protected workload signs canonical envelope digest and invokes only existing writer',async()=>{
-  const f=fixture(),client=await f.client();await client.createApproval({request:f.request,evidence:{state:'VERIFIED_PASS'}});
+  const f=fixture(),client=await f.client();await client.createApproval({request:f.request,snapshot:f.snapshot});
   assert.equal(f.lastEnvelope.action,'CREATE_RECOVERY_APPROVAL');assert.equal(f.lastEnvelope.workload.workload_id,'kidults-kpmo-v1');
   assert.deepEqual(f.calls.map(x=>x[0]),['sts','kms','lambda']);
 });
@@ -44,7 +49,7 @@ for(const [name,mutate,code] of [
 test('role approval client cannot consume reservation',async()=>{
   const f=fixture(),client=await f.client();await assert.rejects(client.consumeOnce({request:f.request,recoveryRunId:'9001',expected_original_run_id:I.original_run_id,expected_original_head_sha:I.original_head_sha,expected_state:'RESERVED',preserve_original_owner:true,terminal:{}}),/FINALIZER_REQUIRED/);assert.equal(f.signed.length,0);
 });
-test('finalizer cannot mint role approval',async()=>{const f=fixture('FINALIZER'),client=await f.client();await assert.rejects(client.createApproval({request:f.request,evidence:{}}),/APPROVAL_ROLE_REQUIRED/);assert.equal(f.signed.length,0);});
+test('finalizer cannot mint role approval',async()=>{const f=fixture('FINALIZER'),client=await f.client();await assert.rejects(client.createApproval({request:f.request,snapshot:f.snapshot}),/APPROVAL_ROLE_REQUIRED/);assert.equal(f.signed.length,0);});
 test('owner fence mismatch rejects without signing',async()=>{const f=fixture('FINALIZER'),client=await f.client();await assert.rejects(client.consumeOnce({request:f.request,expected_original_run_id:'9'}),/CONSUME_FENCE/);assert.equal(f.signed.length,0);});
 test('signed context response is checked against fixed original key',async()=>{
   const f=fixture();f.response={ok:true,state:'SIGNED_RECOVERY_CONTEXT_READ',reservation:{pk:{S:`RESERVE#${I.original_generation}`},sk:{S:`NONCE#${I.original_nonce_digest}`},run_id:{S:I.original_run_id},head_sha:{S:I.original_head_sha},state:{S:'RESERVED'}}};
@@ -53,12 +58,12 @@ test('signed context response is checked against fixed original key',async()=>{
 });
 test('Lambda failure is surfaced without invoking again',async()=>{
   const f=fixture();f.metadata.FunctionError='Unhandled';const client=await f.client();
-  await assert.rejects(client.createApproval({request:f.request,evidence:{}}),/LEDGER_TRANSPORT/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
+  await assert.rejects(client.createApproval({request:f.request,snapshot:f.snapshot}),/LEDGER_TRANSPORT/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
 });
 test('wrong signing key output rejects before Lambda',async()=>{
-  const f=fixture();f.signature.KeyId+='-foreign';const client=await f.client();await assert.rejects(client.createApproval({request:f.request,evidence:{}}),/CLIENT_SIGNATURE/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,0);
+  const f=fixture();f.signature.KeyId+='-foreign';const client=await f.client();await assert.rejects(client.createApproval({request:f.request,snapshot:f.snapshot}),/CLIENT_SIGNATURE/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,0);
 });
 test('foreign request source cannot produce a fresh approval',async()=>{
   const f=fixture(),client=await f.client();const request=buildPostmergeRecoveryRequest({sourceSha:'b'.repeat(40),issuedAt:f.request.issued_at,expiresAt:f.request.expires_at});
-  await assert.rejects(client.createApproval({request,evidence:{}}),/SOURCE_BINDING/);assert.equal(f.signed.length,0);
+  await assert.rejects(client.createApproval({request,snapshot:f.snapshot}),/SOURCE_BINDING/);assert.equal(f.signed.length,0);
 });

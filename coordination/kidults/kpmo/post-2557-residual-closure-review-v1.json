@@ -80,27 +80,30 @@
         "immutable_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-immutable-store-v1.mjs",
         "writer_bundle": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
         "github_observation": "scripts/kidults/kpmo/lib/postmerge-recovery-github-observation-v1.mjs",
-        "signed_workload_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs"
+        "signed_workload_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
+        "exact_main_evidence": "scripts/kidults/kpmo/lib/postmerge-recovery-exact-main-evidence-v1.mjs",
+        "workload_composition": "scripts/kidults/kpmo/lib/postmerge-recovery-workload-v1.mjs"
       },
       "local_validation": {
         "engine_cases": 30,
-        "real_local_ecdsa_and_actual_embedded_writer_cases": 32,
+        "real_local_ecdsa_and_actual_embedded_writer_cases": 35,
         "immutable_transport_cases": 16,
         "existing_iam_oidc_boundary_cases": 8,
         "aws_runtime_proof": false,
         "github_observation_cases": 16,
-        "signed_workload_transport_cases": 16
+        "signed_workload_transport_cases": 16,
+        "exact_main_evidence_negative_cases": 11,
+        "authority_gate_archive_cases": 9,
+        "workload_composition_cases": 7
       },
       "original_owner_preserved": true,
       "recovery_root_request_budget": 1,
       "pending": [
         "PROTECTED_WORKFLOW_SIGNED_APPROVAL_AND_FINALIZER_ENTRYPOINTS",
-        "AUTHENTICATED_CURRENT_GITHUB_EVIDENCE_ADAPTER",
         "EXACT_HEAD_INDEPENDENT_VERIFICATION",
         "ADDITIONAL_CORRECTIVE_PR_BUDGET_EXCEPTION_IF_REQUIRED",
         "AUTHORIZED_EXACT_MAIN_STAGING_DEPLOYMENT",
         "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK",
-        "SHARED_IMMUTABLE_EVIDENCE_SNAPSHOT_BINDING_BEFORE_THREE_ROLE_APPROVAL",
         "DISTINCT_FINALIZER_RUN_WITHIN_EXISTING_OIDC_WORKFLOW_TRUST"
       ],
       "existing_required_negative_case_disposition": {
@@ -114,7 +117,27 @@
         "Finalizer run must differ from all three approval runs, including verifier; preserve existing exact-workflow OIDC trust.",
         "Provisioning-admin SSO identity must not sign role approvals or manufacture consumption authority.",
         "Stored consumed payload may be sealed after authority expiry; no new approval or consume."
-      ]
+      ],
+      "shared_snapshot_state": "LOCAL_PINNING_AND_AUTHENTICATED_EXTERNAL_READ_VERIFIED_NOT_ACTIVATED",
+      "authenticated_read_only_snapshot": {
+        "digest": "sha256:6969e2996184ad761215fa13bfdb607e119e59913933effc1210fb06fab50129",
+        "source_sha": "1d7981f6c09e2b7ad52fe5a819c59a54ea01525c",
+        "sentinel_run": 37161161377,
+        "gate_run": 37161224275,
+        "push_successes": 6,
+        "producer_runs": {
+          "SHADOW": 37129827254,
+          "REQUIREMENT": 37160979822,
+          "RESERVE": 37161115334,
+          "CANONICAL_TRUTH": 37156163519
+        },
+        "original_snapshot_process": 54144,
+        "pinned_reverification_process": 29716,
+        "pinned_reverification_state": "EXISTING_PINNED_SNAPSHOT_REVERIFIED",
+        "ledger_write_performed": false,
+        "runtime_authority_granted": false,
+        "mission_terminal_receipt": false
+      }
     },
     {
       "code": "BOOTSTRAP_STACK_STORED_TEMPLATE_PROVENANCE_DRIFT",
@@ -154,7 +177,7 @@
   "autonomous_effect": "Remove the demonstrated cardinality failure without manual run substitution; define bounded original-reservation recovery.",
   "global_effect": "Retain all observed discovery candidates and explicitly account for the enrichment queue without admitting new providers.",
   "irreplaceable_value_effect": "Preserve owned candidate identity, original authorization lineage and immutable terminal evidence.",
-  "transparency_effect": "Preserve distinct local component tests, undeployed writer bundle, natural GitHub recovery and unavailable current AWS evidence; no completion claim.",
+  "transparency_effect": "Distinguish local verified undeployed components, authenticated read-only external snapshot verification, and still RESERVED original ledger; no completion claim.",
   "resumption_observation": {
     "protected_main": "1d7981f6c09e2b7ad52fe5a819c59a54ea01525c",
     "sentinel_failure": 37157258851,

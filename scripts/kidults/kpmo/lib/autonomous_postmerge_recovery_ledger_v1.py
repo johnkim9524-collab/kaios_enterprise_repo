@@ -67,11 +67,8 @@ def validate_request(request, now, fresh=True):
     return digest(request)
 
 
-def validate_terminal(terminal, request, run_id):
-    require(isinstance(terminal, dict), 'RECOVERY_TERMINAL')
-    require(isinstance(run_id, str) and RUN.fullmatch(run_id)
-            and run_id != INCIDENT['original_run_id'], 'RECOVERY_RUN_ID')
-    evidence = terminal.get('evidence', {})
+def validate_evidence(evidence, request):
+    require(isinstance(evidence, dict), 'RECOVERY_EXACT_MAIN_EVIDENCE')
     require(evidence.get('state') == 'VERIFIED_PASS'
             and evidence.get('source_sha') == request['source_sha'], 'RECOVERY_EXACT_MAIN_EVIDENCE')
     for node in [evidence] + [evidence.get(k, {}) for k in
@@ -93,6 +90,28 @@ def validate_terminal(terminal, request, run_id):
             and sorted(p.get('id', '') for p in producers) == ['CANONICAL_TRUTH', 'REQUIREMENT', 'RESERVE', 'SHADOW']
             and sentinel.get('failed_producers') == [] and sentinel.get('waiting_producers') == [],
             'RECOVERY_SENTINEL_CORE_FOUR')
+
+
+def validate_snapshot(snapshot, request, now):
+    require(isinstance(snapshot, dict), 'RECOVERY_EVIDENCE_SNAPSHOT')
+    evidence = snapshot.get('evidence', {})
+    validate_evidence(evidence, request)
+    selected_at = snapshot.get('selected_at')
+    require(epoch(request['issued_at']) <= epoch(selected_at) < epoch(request['expires_at'])
+            and epoch(selected_at) <= now, 'RECOVERY_SNAPSHOT_TIME_BINDING')
+    core = {'id': 'kidults-postmerge-recovery-evidence-snapshot-v1', 'version': '1.0.0',
+            'source_sha': request['source_sha'], 'selected_at': selected_at, 'evidence': evidence,
+            'scope': 'ORIGINAL_LANDING_TERMINAL_RECOVERY_ONLY_NOT_WHOLE_PLATFORM', **HOLD}
+    require(canonical(snapshot) == canonical({**core, 'snapshot_digest': digest(core)}), 'RECOVERY_SNAPSHOT_BINDING')
+    require(len(canonical(snapshot).encode('utf-8')) <= 49152, 'RECOVERY_PAYLOAD_BOUND')
+
+
+def validate_terminal(terminal, request, run_id):
+    require(isinstance(terminal, dict), 'RECOVERY_TERMINAL')
+    require(isinstance(run_id, str) and RUN.fullmatch(run_id)
+            and run_id != INCIDENT['original_run_id'], 'RECOVERY_RUN_ID')
+    evidence = terminal.get('evidence', {})
+    validate_evidence(evidence, request)
     core = {
         'id': 'kidults-postmerge-terminal-recovery-receipt-v1', 'version': '1.0.0',
         'state': 'RECOVERED_CONSUMED_TERMINAL',
@@ -164,7 +183,7 @@ class RecoveryLedger:
         require(role in self.roles, 'RECOVERY_ROLE_FORBIDDEN')
         envelope = self.verify(event, self.roles[role])
         require(set(envelope) == {'id', 'action', 'request', 'request_digest', 'role', 'decision',
-                                 'approval_run_id', 'approval_run_attempt', 'workload', 'evidence_digest'},
+                                 'approval_run_id', 'approval_run_attempt', 'workload', 'evidence_digest', 'evidence_snapshot'},
                 'RECOVERY_APPROVAL_FIELDS')
         require(envelope['id'] == 'kidults-postmerge-recovery-approval-v1'
                 and envelope['action'] == 'CREATE_RECOVERY_APPROVAL' and envelope['decision'] == 'APPROVED'
@@ -173,19 +192,23 @@ class RecoveryLedger:
                 and DIGEST.fullmatch(str(envelope['evidence_digest'])), 'RECOVERY_APPROVAL_BINDING')
         require(validate_request(envelope['request'], self.now(), fresh) == envelope['request_digest'],
                 'RECOVERY_REQUEST_DIGEST')
+        validate_snapshot(envelope['evidence_snapshot'], envelope['request'], self.now())
+        require(envelope['evidence_digest'] == digest(envelope['evidence_snapshot']['evidence']), 'RECOVERY_SNAPSHOT_EVIDENCE_DIGEST')
         return envelope
 
     def create_approval(self, event):
         envelope = self.approval(event)
         request = envelope['request']
         item = self.reservation(request, 'RESERVED')
+        snapshot_json = canonical(envelope['evidence_snapshot'])
+        require(item.get('recovery_evidence_snapshot_json', {}).get('S') in (None, snapshot_json), 'RECOVERY_PINNED_SNAPSHOT_CONFLICT')
         # Pin the incident once; no fresh generations after expiry or interruption.
         if 'recovery_request_json' not in item:
             self.ddb.update_item(TableName=self.table, Key=self.original_key(),
-                UpdateExpression='SET recovery_request_json=:request',
+                UpdateExpression='SET recovery_request_json=:request, recovery_evidence_snapshot_json=:snapshot',
                 ConditionExpression='#s=:reserved AND run_id=:owner AND head_sha=:head AND attribute_not_exists(recovery_request_json)',
                 ExpressionAttributeNames={'#s': 'state'}, ExpressionAttributeValues={
-                    ':request': {'S': canonical(request)}, ':reserved': {'S': 'RESERVED'},
+                    ':request': {'S': canonical(request)}, ':snapshot': {'S': snapshot_json}, ':reserved': {'S': 'RESERVED'},
                     ':owner': {'S': INCIDENT['original_run_id']}, ':head': {'S': INCIDENT['original_head_sha']}})
         key = {'pk': {'S': 'AUTH#' + request['recovery_generation']},
                'sk': {'S': 'ROLE#' + envelope['role']}}
@@ -221,13 +244,16 @@ class RecoveryLedger:
     def read_authority(self, event):
         envelope = self.finalizer_envelope(event, 'READ_RECOVERY_AUTHORITY', [], True)
         request = envelope['request']
-        self.reservation(request, 'RESERVED')
+        reservation = self.reservation(request, 'RESERVED')
+        pinned_snapshot = reservation.get('recovery_evidence_snapshot_json', {}).get('S')
+        require(pinned_snapshot is not None, 'RECOVERY_SNAPSHOT_UNPINNED')
         roles, evidence_digests, run_ids = [], set(), set()
         for role in ROLES:
             row = self.get({'pk': {'S': 'AUTH#' + request['recovery_generation']}, 'sk': {'S': 'ROLE#' + role}})
             require('signed_event_json' in row, 'RECOVERY_THREE_ROLE_QUORUM')
             approval = self.approval(json.loads(row['signed_event_json']['S']))
             require(approval['role'] == role and approval['request'] == request, 'RECOVERY_QUORUM_BINDING')
+            require(canonical(approval['evidence_snapshot']) == pinned_snapshot, 'RECOVERY_PINNED_SNAPSHOT_CONFLICT')
             run_ids.add(approval['approval_run_id'])
             evidence_digests.add(approval['evidence_digest'])
             roles.append({'role': role, **self.roles[role], 'signature_verified_by_ledger': True,
@@ -256,6 +282,9 @@ class RecoveryLedger:
         validate_terminal(terminal, request, envelope['run_id'])
         item = self.reservation(request, 'RESERVED')
         require(item.get('recovery_request_json', {}).get('S') == canonical(request), 'RECOVERY_ROOT_UNPINNED')
+        pinned_snapshot = item.get('recovery_evidence_snapshot_json', {}).get('S')
+        require(pinned_snapshot is not None, 'RECOVERY_SNAPSHOT_UNPINNED')
+        require(json.loads(pinned_snapshot)['evidence'] == terminal['evidence'], 'RECOVERY_PINNED_TERMINAL_EVIDENCE')
         approvals = []
         for role in ROLES:
             row = self.get({'pk': {'S': 'AUTH#' + request['recovery_generation']}, 'sk': {'S': 'ROLE#' + role}})
@@ -263,6 +292,7 @@ class RecoveryLedger:
             approval = self.approval(json.loads(row['signed_event_json']['S']))
             require(approval['role'] == role and approval['request'] == request
                     and approval['evidence_digest'] == digest(terminal['evidence']), 'RECOVERY_QUORUM_BINDING')
+            require(canonical(approval['evidence_snapshot']) == pinned_snapshot, 'RECOVERY_PINNED_SNAPSHOT_CONFLICT')
             approvals.append(approval)
         require(len({a['approval_run_id'] for a in approvals}) == 3, 'RECOVERY_APPROVAL_RUN_COLLISION')
         require(envelope['run_id'] not in {a['approval_run_id'] for a in approvals}, 'RECOVERY_FINALIZER_RUN_COLLISION')
