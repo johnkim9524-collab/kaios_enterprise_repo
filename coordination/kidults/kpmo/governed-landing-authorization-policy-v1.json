@@ -20,6 +20,7 @@
     "scripts/kidults/kpmo/",
     "scripts/kidults/redteam/",
     "scripts/kidults/portal/runtime/",
+    "scripts/governance/",
     "coordination/kidults/kpmo/",
     "coordination/kidults/audit/",
     "coordination/kidults/security/",

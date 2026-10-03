@@ -11,6 +11,12 @@ test('AWS infrastructure is always governed landing scope',()=>{
   assert.equal(occurrences.length,2);
 });
 
+test('governance validators themselves are governed scope',()=>{
+  assert.ok(policy.governed_path_prefixes.includes('scripts/governance/'));
+  const occurrences=workflow.match(/'scripts\/governance\/'/g)||[];
+  assert.equal(occurrences.length,2);
+});
+
 test('AWS security changes cannot be classified as ordinary non-governed readiness',()=>{
   assert.match(workflow,/READY_PENDING_ATOMIC_LANDING/);
   assert.match(workflow,/atomic_landing_required:true/);
