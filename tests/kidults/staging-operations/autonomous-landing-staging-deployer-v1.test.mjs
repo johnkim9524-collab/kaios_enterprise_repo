@@ -84,6 +84,12 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
     'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
   ]);
   assert.doesNotMatch(JSON.stringify(auxiliaryRoleRead), /iam:PutRolePolicy/);
+  const ledgerWriterCodeUpdate = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
+    statement => Array.isArray(statement.Action) && statement.Action.includes('lambda:UpdateFunctionCode'),
+  );
+  assert.deepEqual(ledgerWriterCodeUpdate?.Action, ['lambda:GetFunction', 'lambda:UpdateFunctionCode']);
+  assert.equal(ledgerWriterCodeUpdate?.Resource, 'arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging');
+  assert.doesNotMatch(JSON.stringify(ledgerWriterCodeUpdate), /Resource":"\*"/);
   const deployerSelfRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
     statement => Array.isArray(statement.Action) && statement.Action.length === 1 && statement.Action[0] === 'iam:GetRolePolicy'
       && statement.Resource === 'arn:aws:iam::528314240275:role/kidults-autonomous-landing-deployer-staging-v1',
