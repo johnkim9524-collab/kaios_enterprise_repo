@@ -73,19 +73,23 @@
       "runtime_identity_and_deployment_review_required": true,
       "runtime_write_performed": false,
       "last_observed_reservation": "RESERVED",
-      "current_reservation_state": "UNKNOWN_AWS_SSO_TOKEN_EXPIRED",
+      "current_reservation_state": "RESERVED_LIVE_RECONFIRMED_AFTER_SSO_REAUTH",
       "local_components": {
         "engine": "scripts/kidults/kpmo/lib/autonomous-postmerge-recovery-v1.mjs",
         "signed_ledger": "scripts/kidults/kpmo/lib/autonomous_postmerge_recovery_ledger_v1.py",
         "immutable_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-immutable-store-v1.mjs",
-        "writer_bundle": "infrastructure/aws/staging/autonomous-internal-landing-v1.json"
+        "writer_bundle": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
+        "github_observation": "scripts/kidults/kpmo/lib/postmerge-recovery-github-observation-v1.mjs",
+        "signed_workload_transport": "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs"
       },
       "local_validation": {
         "engine_cases": 30,
         "real_local_ecdsa_and_actual_embedded_writer_cases": 32,
         "immutable_transport_cases": 16,
         "existing_iam_oidc_boundary_cases": 8,
-        "aws_runtime_proof": false
+        "aws_runtime_proof": false,
+        "github_observation_cases": 16,
+        "signed_workload_transport_cases": 16
       },
       "original_owner_preserved": true,
       "recovery_root_request_budget": 1,
@@ -95,14 +99,22 @@
         "EXACT_HEAD_INDEPENDENT_VERIFICATION",
         "ADDITIONAL_CORRECTIVE_PR_BUDGET_EXCEPTION_IF_REQUIRED",
         "AUTHORIZED_EXACT_MAIN_STAGING_DEPLOYMENT",
-        "AWS_SSO_AUTHENTICATION_RESTORED_AND_LIVE_RECONCILIATION",
-        "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK"
+        "LIVE_CONSUME_AND_IMMUTABLE_RECEIPT_READBACK",
+        "SHARED_IMMUTABLE_EVIDENCE_SNAPSHOT_BINDING_BEFORE_THREE_ROLE_APPROVAL",
+        "DISTINCT_FINALIZER_RUN_WITHIN_EXISTING_OIDC_WORKFLOW_TRUST"
       ],
       "existing_required_negative_case_disposition": {
         "RESERVATION_ALREADY_CONSUMED": "No second consume; reuse exact stored payload for sealing only.",
         "S3_RECEIPT_ALREADY_EXISTS": "Read exact stored version; no repeated approval/generation/put.",
         "RECOVERY_ATTEMPTS_NEW_MERGE": "Rejected by closed action/field set."
-      }
+      },
+      "activation_constraints": [
+        "One pinned recovery request per original incident; no replacement generation after expiry.",
+        "Three role signatures bind the same exact evidence snapshot digest; immutable run/artifact selection must be shared before approval.",
+        "Finalizer run must differ from all three approval runs, including verifier; preserve existing exact-workflow OIDC trust.",
+        "Provisioning-admin SSO identity must not sign role approvals or manufacture consumption authority.",
+        "Stored consumed payload may be sealed after authority expiry; no new approval or consume."
+      ]
     },
     {
       "code": "BOOTSTRAP_STACK_STORED_TEMPLATE_PROVENANCE_DRIFT",
@@ -155,7 +167,16 @@
     "sentinel_digest": "sha256:8ec9124c4ba0e5b224b654257ba6b8f9c928c65680300e92783c9df6c15071ca",
     "natural_assurance": 37157820894,
     "natural_gate": 37157864870,
-    "aws_current_state": "UNKNOWN_SSO_TOKEN_EXPIRED_REFRESH_FAILED",
-    "external_write_performed": false
+    "aws_current_state": "SSO_RESTORED_ACCOUNT_528314240275_VERIFIED",
+    "external_write_performed": false,
+    "original_reservation_current_state": "RESERVED",
+    "original_receipt_key_count": 0,
+    "landing_stack_status": "UPDATE_COMPLETE",
+    "landing_stack_updated": "2026-10-03T11:35:15.149000+00:00",
+    "later_sentinel_successes": [
+      37158609362,
+      37159013583
+    ],
+    "later_success_authority_gate": 37159050311
   }
 }
