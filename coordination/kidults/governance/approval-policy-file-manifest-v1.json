@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 688
+    "file_count": 689
   },
   "files": [
     {
@@ -483,8 +483,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1bf27cc0b52e00588a9c64948b93db05ba403b34",
-      "sha256": "sha256:fcabf466ef25aae06e3a232c56b0d58e7b92b60e253788a184778293aedc2ae8",
+      "git_blob": "c165aadafc5fda8b38f4005db84bc1b838fec785",
+      "sha256": "sha256:7266df144dcf26fcab5feb7a215ba6665111a08f34e0365a6d1b68df478a2060",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -1884,8 +1884,8 @@
     {
       "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bcdede102d1399b0c30258927a98081b011e0ad4",
-      "sha256": "sha256:ba06e5ddf360bd2dce751f9f55e7688797e8ea6a663da566a1140826589348fb",
+      "git_blob": "3bf68f3c3835464c93a042f8a77914e2d9328410",
+      "sha256": "sha256:9688d2fcfaa86eaf218d0fac236e5519a4debdefe399dd05fc3b90c0cbcd752a",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5180,6 +5180,19 @@
       }
     },
     {
+      "path": "tests/governance/governed-aws-security-scope-v1.test.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "c33f7bca29822ecfbcdcb0be02e06b326ea85a5b",
+      "sha256": "sha256:2b63e67b0a39ba25255920cb7d1f7014aa33838c25b59e215f895d35fd30a8ca",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
@@ -5451,5 +5464,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:fab2c669efbe8f1c34a037e031910a6eac6df182d68b4c76c3f040512517138b"
+  "manifest_sha256": "sha256:2a122d6197dcc82bee9343e073d49fc4e520cadf0294d7fd768c25c75377534e"
 }
