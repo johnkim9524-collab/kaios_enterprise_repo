@@ -105,10 +105,13 @@ const attachImmutableContents=async files=>Promise.all(files.map(async file=>{
     head_content:await immutableContent(file.filename,envelope.head_sha),
   };
 }));
-const graphql = async (query, variables) => {
+const graphql = async (query, variables, mutationToken) => {
+  if(mode!=='FINALIZE'||typeof mutationToken!=='string'||!mutationToken||mutationToken===token) {
+    throw new AutonomousLandingError('AUTONOMOUS_READY_EVENT_TOKEN_REQUIRED');
+  }
   const response = await fetch('https://api.github.com/graphql',{
     method:'POST',redirect:'error',
-    headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'kidults-autonomous-internal-landing-v1'},
+    headers:{Authorization:`Bearer ${mutationToken}`,Accept:'application/vnd.github+json','Content-Type':'application/json','User-Agent':'kidults-autonomous-internal-landing-v1'},
     body:JSON.stringify({query,variables}),
   });
   const payload=await response.json().catch(()=>null);
@@ -486,9 +489,9 @@ const waitForGovernedLandingMergeReadiness = async () => {
   }
   throw new AutonomousLandingError('AUTONOMOUS_MERGE_READINESS_TIMEOUT',canonicalJson(last).slice(0,500));
 };
-const rebindDraftReady = async before => {
+const rebindDraftReady = async (before, mutationToken) => {
   if (before.draft!==true) return {state:'ALREADY_READY',head_sha:envelope.head_sha};
-  await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id});
+  await graphql('mutation($pullRequestId:ID!){markPullRequestReadyForReview(input:{pullRequestId:$pullRequestId}){pullRequest{id number isDraft state headRefOid baseRefOid}}}',{pullRequestId:before.node_id},mutationToken);
   const after=await api(`/pulls/${envelope.pull_request}`);
   return validateDraftReadyRebind({before,after,envelope,policy});
 };
@@ -579,7 +582,7 @@ try {
       }
       if(!['RESERVED','ALREADY_RESERVED'].includes(reservation?.state)) throw new AutonomousLandingError('AUTONOMOUS_RESERVATION_STATE_INVALID');
       await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
-      const lifecycle=await rebindDraftReady(candidate.pr);
+      const lifecycle=await rebindDraftReady(candidate.pr,eventToken);
       await waitForReadyCandidate();
       await publishLandingStatus('success','AI-020 exact-head internal reversible landing authorized');
       await waitForGovernedLandingMergeReadiness();

@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './autonomous-ready-event-token-v1.test.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {evaluateAutonomousPostmerge} from '../../../scripts/kidults/kpmo/lib/autonomous-postmerge-validation-v1.mjs';

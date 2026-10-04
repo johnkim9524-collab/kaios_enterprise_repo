@@ -158,7 +158,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'assertDraftReadyTransitionCandidate',
     'steps.transition_draft.outputs.performed',
   ]) require(!dispatcherWorkflow.includes(retired), `+'DISPATCHER_RETIRED_READY_STAGE_PRESENT:${retired}'+`);
-  require(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8').includes('await rebindDraftReady(candidate.pr)'),
+  require(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8').includes('await rebindDraftReady(candidate.pr,eventToken)'),
     'FINALIZER_ATOMIC_READY_TRANSITION_MISSING');
 
   for (const marker of [

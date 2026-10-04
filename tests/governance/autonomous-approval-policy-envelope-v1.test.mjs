@@ -65,7 +65,7 @@ test("draft lifecycle is UI-only and finalizer atomically readies after reservat
   const finalizer=source.slice(source.indexOf("const candidate=await validateLiveCandidate"));
   const ordered=[
     "action:'CREATE_RESERVATION'",
-    "await rebindDraftReady(candidate.pr)",
+    "await rebindDraftReady(candidate.pr,eventToken)",
     "await waitForReadyCandidate()",
     "await publishLandingStatus('success'",
     "method:'PUT'",
