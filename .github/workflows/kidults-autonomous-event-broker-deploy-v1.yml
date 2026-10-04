@@ -111,18 +111,26 @@ jobs:
           # Normal STAGING operation may update Lambda code or reduce IAM authority.
           # Any trust expansion, new resource, permission expansion, or unrelated infrastructure delta fails closed.
           aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > /tmp/current-broker-template.json
+          desired_template=infrastructure/aws/staging/autonomous-event-token-broker-v1.json
+          resume_parameters=()
+          # After the separately authorized bootstrap, retain its table and cutover.
+          # This selector cannot bootstrap the new authority on a normal push.
+          if jq -e '(if type=="string" then fromjson else . end).Resources.ResumeOperationTable' /tmp/current-broker-template.json >/dev/null; then
+            desired_template=infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json
+            resume_parameters=(ParameterKey=ResumeActivationRunFloor,UsePreviousValue=true)
+          fi
           node scripts/governance/validate-staging-no-authority-expansion-v1.mjs \
             --current /tmp/current-broker-template.json \
-            --desired infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
+            --desired "$desired_template" \
             --allow-lambda-code-change
 
           aws cloudformation create-change-set \
             --stack-name "$STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
             --change-set-type UPDATE \
-            --template-body file://infrastructure/aws/staging/autonomous-event-token-broker-v1.json \
+            --template-body "file://$desired_template" \
             --capabilities CAPABILITY_NAMED_IAM \
-            --parameters ParameterKey=GitHubAppId,ParameterValue="$GITHUB_APP_ID" ParameterKey=GitHubInstallationId,ParameterValue="$GITHUB_INSTALLATION_ID" ParameterKey=GitHubPrivateKeySecretArn,ParameterValue="$GITHUB_PRIVATE_KEY_SECRET_ARN" ParameterKey=GitHubRepositoryId,ParameterValue="$GITHUB_REPOSITORY_ID" ParameterKey=GitHubRepository,ParameterValue="$GITHUB_REPOSITORY" ParameterKey=GitHubOidcProviderArn,ParameterValue="$GITHUB_OIDC_PROVIDER_ARN" >/dev/null
+            --parameters ParameterKey=GitHubAppId,ParameterValue="$GITHUB_APP_ID" ParameterKey=GitHubInstallationId,ParameterValue="$GITHUB_INSTALLATION_ID" ParameterKey=GitHubPrivateKeySecretArn,ParameterValue="$GITHUB_PRIVATE_KEY_SECRET_ARN" ParameterKey=GitHubRepositoryId,ParameterValue="$GITHUB_REPOSITORY_ID" ParameterKey=GitHubRepository,ParameterValue="$GITHUB_REPOSITORY" ParameterKey=GitHubOidcProviderArn,ParameterValue="$GITHUB_OIDC_PROVIDER_ARN" "${resume_parameters[@]}" >/dev/null
           set +e
           aws cloudformation wait change-set-create-complete --stack-name "$STACK_NAME" --change-set-name "$CHANGE_SET_NAME"
           wait_status=$?

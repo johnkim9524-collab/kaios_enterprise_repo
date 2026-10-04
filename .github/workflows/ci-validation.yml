@@ -13,6 +13,42 @@ permissions:
   contents: read
 
 jobs:
+  verify-resume-postgres:
+    name: Verify resume on disposable PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kaios
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kaios"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Verify real database claim and response-loss reconciliation
+        env:
+          KIDULTS_RESUME_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node tests/kidults/staging-operations/resume-postgres-v1.integration.mjs
   validate:
     name: Validate KAIOS Foundation
     runs-on: ubuntu-24.04
@@ -149,6 +185,12 @@ jobs:
           pytest -q
           node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+
+      - name: Verify resume reconciliation and retained authority guards
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs tests/kidults/staging-operations/dynamodb-operation-ledger-v1.test.mjs tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
 
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test

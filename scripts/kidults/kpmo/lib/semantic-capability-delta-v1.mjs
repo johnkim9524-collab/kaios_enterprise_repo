@@ -241,7 +241,10 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename);
     else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename); assertJsonMonotonic(file.base_content,file.head_content,filename); }
     else {
-      assertScriptGuardDependencies(file.base_content,file.head_content,filename);
+      // Markdown is prose, including apostrophes and fenced examples. Do not
+      // interpret it as JavaScript. The text guard and capability checks below
+      // still apply, as does the separately computed independent verifier.
+      if(!filename.endsWith('.md')) assertScriptGuardDependencies(file.base_content,file.head_content,filename);
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));
       const removedGuard=before.find(line=>!after.has(line)&&failClosedGuard.test(line));
