@@ -5,7 +5,7 @@ import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/autonomous
 import {buildPostmergeRecoveryRequest,buildPostmergeRecoveryTerminal,recoveryObjectKey} from '../../../scripts/kidults/kpmo/lib/autonomous-postmerge-recovery-v1.mjs';
 import {createRecoveryImmutableStore,recoveryImmutableAckFields} from '../../../scripts/kidults/kpmo/lib/postmerge-recovery-immutable-store-v1.mjs';
 
-function fixture(){
+function fixture({wholeSeconds=false}={}){
   const request=buildPostmergeRecoveryRequest({sourceSha:'1d7981f6c09e2b7ad52fe5a819c59a54ea01525c',issuedAt:'2026-10-03T15:00:00.000Z',expiresAt:'2026-10-03T15:20:00.000Z'});
   const hold={production:'HOLD',public:'HOLD',g5:'HOLD'};
   const node=run_id=>({state:'VERIFIED_PASS',source_sha:request.source_sha,run_id,receipt_digest:'sha256:'+'a'.repeat(64),...hold});
@@ -31,16 +31,22 @@ function fixture(){
       return {VersionId:f.object.version,ContentLength:f.object.body.length,ChecksumSHA256:Buffer.from(sha256(f.object.body).slice(7),'hex').toString('base64'),ServerSideEncryption:'aws:kms',SSEKMSKeyId:keyArn,...f.headOverride};
     }
     assert.equal(get('--version-id'),f.object.version);
-    if(args[1]==='get-object-retention')return {Retention:{Mode:'COMPLIANCE',RetainUntilDate:f.object.retention,...f.retentionOverride}};
+    if(args[1]==='get-object-retention')return {Retention:{Mode:'COMPLIANCE',RetainUntilDate:wholeSeconds?new Date(Math.floor(Date.parse(f.object.retention)/1000)*1000).toISOString():f.object.retention,...f.retentionOverride}};
     assert.equal(args[1],'get-object');fs.writeFileSync(args.at(-1),f.bodyOverride||f.object.body);return {};
   };
-  f.store=createRecoveryImmutableStore({bucket:'kidults-autonomous-receipts-test',keyArn,aws,now:()=>new Date('2026-10-03T15:01:00Z')});
+  f.store=createRecoveryImmutableStore({bucket:'kidults-autonomous-receipts-test',keyArn,aws,now:()=>new Date('2026-10-03T15:01:00.944Z')});
   f.input={key,terminal,if_none_match:'*',object_lock_mode:'COMPLIANCE',retention_years:10};return f;
 }
 test('conditional immutable write verifies actual body, exact version, checksum and retention',async()=>{
   const f=fixture(),record=await f.store.sealIfAbsent(f.input);assert.equal(record.state,'OBJECT_LOCK_COMPLIANCE_VERIFIED');
   assert.equal(record.checksum_sha256,sha256(Buffer.from(canonicalJson(f.terminal))));assert.equal(f.puts,1);
   assert.equal(record.version_id,'immutable-1');assert.equal(Object.keys(recoveryImmutableAckFields(record)).length,7);
+});
+test('recovery sends an upward-rounded deadline to the whole-second S3 transport',async()=>{
+  const f=fixture({wholeSeconds:true});const record=await f.store.sealIfAbsent(f.input);
+  assert.equal(record.retain_until,'2036-10-03T15:01:01.000Z');
+  assert.equal((await f.store.readImmutable(f.input)).version_id,record.version_id);
+  assert.equal(f.puts,1);
 });
 test('existing immutable version is consumed by read without another put',async()=>{
   const f=fixture();await f.store.sealIfAbsent(f.input);const record=await f.store.readImmutable(f.input);

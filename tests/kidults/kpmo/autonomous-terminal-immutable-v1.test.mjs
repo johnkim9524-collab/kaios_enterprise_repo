@@ -10,7 +10,7 @@ const core={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',state:'
   durable_reservation:{state:'CONSUMED',conditional_write:true},postmerge:{state:'VERIFIED_PASS'},
   created_at:'2026-10-04T11:00:00.000Z',production:'HOLD',public:'HOLD',g5:'HOLD'};
 const receipt={...core,receipt_digest:sha256(canonicalJson(core))};
-function fixture({lost=false,tamper=false}={}){
+function fixture({lost=false,tamper=false,wholeSeconds=false,shortRetention=false}={}){
   let object,puts=0,versions=0;
   const value=(args,key)=>args[args.indexOf(key)+1];
   const aws=args=>{
@@ -18,6 +18,8 @@ function fixture({lost=false,tamper=false}={}){
       puts++;assert.equal(value(args,'--if-none-match'),'*');
       if(object)throw Error('PreconditionFailed');
       object={bytes:fs.readFileSync(value(args,'--body')),checksum:value(args,'--checksum-sha256'),retain:value(args,'--object-lock-retain-until-date')};versions++;
+      if(wholeSeconds)object.retain=new Date(Math.floor(Date.parse(object.retain)/1000)*1000).toISOString();
+      if(shortRetention)object.retain=new Date(Date.parse(object.retain)-1000).toISOString();
       if(lost)throw Error('lost response');return {VersionId:'one-version'};
     }
     if(!object)throw Error('403');
@@ -58,4 +60,14 @@ test('invalid generation and unconsumed reservation fail before AWS',()=>{
   assert.throws(()=>terminalObjectKey({...receipt,binding:{authorization_generation:'../escape'}}),/GENERATION/);
   let calls=0;const changed={...core,durable_reservation:{state:'RESERVED'}};
   assert.throws(()=>sealAutonomousTerminal({receipt:{...changed,receipt_digest:sha256(canonicalJson(changed))},bucket,keyArn,tempRoot:os.tmpdir(),aws:()=>{calls++;}}),/RESERVATION/);assert.equal(calls,0);
+});
+test('S3 whole-second retention preserves a fractional ten-year deadline and original version reuse',()=>{
+  const fractional={...core,created_at:'2026-10-04T23:49:18.944Z'};
+  const bound={...fractional,receipt_digest:sha256(canonicalJson(fractional))};
+  const f=fixture({wholeSeconds:true});
+  const first=f.seal(bound),second=f.seal(bound);
+  assert.equal(first.retain_until,'2036-10-04T23:49:19.000Z');
+  assert.equal(second.reused_existing_version,true);
+  assert.deepEqual(f.counts(),{puts:1,versions:1});
+  assert.throws(()=>fixture({wholeSeconds:true,shortRetention:true}).seal(bound),/IMMUTABLE_RETENTION/);
 });

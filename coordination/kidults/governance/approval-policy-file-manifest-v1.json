@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 721
+    "file_count": 722
   },
   "files": [
     {
@@ -1937,8 +1937,8 @@
     {
       "path": "coordination/kidults/kpmo/normal-ops-finalizer-terminal-closure-set-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "22abffc0cbcd2e932082f01a5a6c29594e67a4b5",
-      "sha256": "sha256:6bb6527a34a9eb8cd5beb2363326acdbbbdf238192afcfd2ad991cca9e211632",
+      "git_blob": "c949b679bc9fa2bd1fd669ac6c39a1a4ac2aadf5",
+      "sha256": "sha256:571d8c9014871b8ae607d1e0fefd460d60f63982aa59d3e18944e640501fb8dc",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2482,6 +2482,12 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "c5eb926a5a59f3af7c72b753bf83237c2fffcc0a",
       "sha256": "sha256:6a082e25f9b0334029d35d16b7024455a89b9a8bd8ac2d7fed89f2421ab5cc36"
+    },
+    {
+      "path": "docs/canary/autonomous-terminal-final-20260930.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "61ca8e88cf56d306563447d310d98bb89d427977",
+      "sha256": "sha256:0404beae22bb43795829c23a787ca456c11475687b249b6d3f673fb162bc3a63"
     },
     {
       "path": "docs/canary/autonomous-terminal-proof-final-20260930.md",
@@ -3473,8 +3479,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4d3583a94de29a733368656a9210a1ae06277eb0",
-      "sha256": "sha256:31956077cd4e7b2d460623fd639e37fe55267af997ab7ad509c3be31b1a20795",
+      "git_blob": "9e5452c7930036533c910935d8cf1c622e248f92",
+      "sha256": "sha256:18c887c04910dcbe1aa2da75194f13158a8dc20b5d099ea2e754d8fc9e0d6e24",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5501,8 +5507,8 @@
     {
       "path": "tests/kidults/kpmo/autonomous-terminal-immutable-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "7dd90b245c12f90af6e947c4fa0abfa39c1e0446",
-      "sha256": "sha256:4483a9229be2f4490d861762d90638218b62fed8f6f6cde4fdd0c15199278382"
+      "git_blob": "8f6f4b45e7c268df20e354ad0c516a01166d2367",
+      "sha256": "sha256:a5febd6a828c05ecf25818727dc77bcbca0d2590e2d4e2ff0f9fecc2d25b8c7e"
     },
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
@@ -5775,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:cf0cf7b2f3d97a14ff4a88a81c00bbabcc99f312053c1537bc17a1aefeca1131"
+  "manifest_sha256": "sha256:6a25283eecf378698160e1084ac5b6679c00dd46c8f3320b9a2799c7f7b9e16c"
 }

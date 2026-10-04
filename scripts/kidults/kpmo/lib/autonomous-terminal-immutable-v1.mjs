@@ -25,6 +25,9 @@ export function sealAutonomousTerminal({receipt,bucket,keyArn,aws,tempRoot}){
   requireProof(bytes.length<=49152,'PAYLOAD_BOUND');
   const checksum=Buffer.from(sha256(bytes).slice(7),'hex').toString('base64');
   const retain=new Date(receipt.created_at);requireProof(Number.isFinite(retain.getTime())&&retain.toISOString()===receipt.created_at,'CREATED_AT');retain.setUTCFullYear(retain.getUTCFullYear()+10);
+  // S3 stores Object Lock dates at whole-second precision. Round the requested
+  // deadline up so serialization cannot shorten the ten-year minimum.
+  retain.setTime(Math.ceil(retain.getTime()/1000)*1000);
   const directory=fs.mkdtempSync(path.join(tempRoot,'kidults-terminal-'));fs.chmodSync(directory,0o700);
   const file=path.join(directory,'body.json');fs.writeFileSync(file,bytes,{mode:0o600,flag:'wx'});
   const call=args=>aws([...args,'--region','ap-northeast-2','--output','json']);
