@@ -1,3 +1,6 @@
 # Direct CI/test dependencies. Compile with Python 3.11 for the governed hashed lock.
 pytest>=8.0.0
 jsonschema==4.26.0
+# Deterministic recovery contract tests; no runtime AWS dependency.
+cryptography==50.0.2
+PyYAML==6.0.3

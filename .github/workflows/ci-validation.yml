@@ -24,6 +24,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.EXPECTED_SHA }}
+          # Bounded history includes the fixed protected-main IAM comparison base.
+          fetch-depth: 16
           persist-credentials: false
 
       - name: Verify exact source SHA
@@ -153,6 +155,15 @@ jobs:
 
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
+
+      - name: Independently verify bounded postmerge terminal recovery at exact head
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/kpmo/autonomous-postmerge-recovery-v1.test.mjs tests/kidults/kpmo/postmerge-recovery-*.test.mjs tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
+          python -m pytest -q tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py tests/kidults/kpmo/test_authority_gate_archive_v1.py
+          python scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py
+          node scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs
 
       - name: Verify autonomous finalizer exact postmerge evidence selection
         run: node --test tests/kidults/kpmo/autonomous-postmerge-validation-v1.test.mjs
