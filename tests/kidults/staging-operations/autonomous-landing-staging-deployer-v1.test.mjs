@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync, spawnSync} from 'node:child_process';
@@ -118,7 +119,9 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
 });
 
 test('configuration permission is the sole bootstrap delta from landed recovery source', () => {
-  const before = JSON.parse(execFileSync('git', ['show', 'e23e9d031ccd4bbda950e3de23ad103ddea41665:infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json'], {encoding:'utf8'}));
+  // SHA-256 of canonical JSON from the exact landed e23e9d031ccd4bbda950e3de23ad103ddea41665 bootstrap.
+  // Keep provenance verification independent of the runner checkout's history depth.
+  const beforeDigest = '4e6fd5c5302522c04a335f2d39f30ae40ae9621b394246b7a0da3ef8b0272067';
   const after = structuredClone(bootstrap);
   const statements = after.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement;
   const configuration = statements.filter(statement => Array.isArray(statement.Action) && statement.Action.includes('lambda:UpdateFunctionConfiguration'));
@@ -126,7 +129,8 @@ test('configuration permission is the sole bootstrap delta from landed recovery 
   assert.equal(configuration[0].Effect, 'Allow');
   assert.equal(configuration[0].Resource, 'arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging');
   configuration[0].Action = configuration[0].Action.filter(action => action !== 'lambda:UpdateFunctionConfiguration');
-  assert.deepEqual(after, before, 'all other permissions, resources, trust, and properties remain exact');
+  const afterDigest = createHash('sha256').update(JSON.stringify(stable(after))).digest('hex');
+  assert.equal(afterDigest, beforeDigest, 'all other permissions, resources, trust, and properties remain exact');
 });
 
 test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {
