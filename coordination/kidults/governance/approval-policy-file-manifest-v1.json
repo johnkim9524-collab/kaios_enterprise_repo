@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "46ab5db26965100e437ddf7537c487d2337e6f16",
+  "revision": "HEAD",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 708
+    "file_count": 710
   },
   "files": [
     {
@@ -2546,6 +2546,19 @@
       }
     },
     {
+      "path": "docs/governance/RESUME_RUNTIME_HARDENING_V1.md",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "198c30c8f719ab82d4ae75eaae690ce27b2ddd1c",
+      "sha256": "sha256:d602fdb1bae7f97aa49b6c521ba8cbd235d7886dc14b17e9da040c64050c487c",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "docs/governance/source-rights-evidence-methodology-contract.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "9a2639e3995b69bb6e3429e73ab448a76db17522",
@@ -3571,8 +3584,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "29d32026988414a89dd0d9f4dcae45106e6356e6",
-      "sha256": "sha256:14a2b20ac6cdadb9dee9b808bf26722339623728078e1b3ccd44c5e2d489eeb7",
+      "git_blob": "1806fae9ff9913092d886aa4dec1c37677783b5a",
+      "sha256": "sha256:5a7ff593c54a32cc8b2cfd8e5e043321445baebf5a7089447d29836b49e91d0d",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5335,6 +5348,19 @@
       }
     },
     {
+      "path": "tests/governance/markdown-capability-format-v1.test.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "30bac1f4c529c5d397379307a01c6c570e0acbf3",
+      "sha256": "sha256:665aa3ee4c58885252d47b33e77461215caa709178e155dc0a481cf95fb493b9",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
@@ -5648,5 +5674,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:e5bbf9839150fc46454591f3f7838e7cbe4776badfae48c76641bf317e03e4d9"
+  "manifest_sha256": "sha256:73c8456c7373135824407008a1401ead9e3639293c5006ef6e03baec13ac7097"
 }
