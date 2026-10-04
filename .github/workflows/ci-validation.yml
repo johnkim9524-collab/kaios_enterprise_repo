@@ -203,7 +203,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --test tests/kidults/kpmo/autonomous-postmerge-recovery-v1.test.mjs tests/kidults/kpmo/postmerge-recovery-*.test.mjs tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
-          node --test tests/kidults/kpmo/autonomous-terminal-immutable-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs tests/kidults/kpmo/whole-platform-runtime-evidence-v1.test.mjs tests/kidults/kpmo/whole-platform-collector-v1.test.mjs
+          node --test tests/kidults/kpmo/autonomous-terminal-immutable-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs tests/kidults/kpmo/whole-platform-runtime-evidence-v1.test.mjs tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/coverage-alias-runtime-name-v1.test.mjs
           python -m pytest -q tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py tests/kidults/kpmo/test_authority_gate_archive_v1.py
           python scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py
           node scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs
