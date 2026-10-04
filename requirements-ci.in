@@ -2,5 +2,5 @@
 pytest>=8.0.0
 jsonschema==4.26.0
 # Deterministic recovery contract tests; no runtime AWS dependency.
-cryptography==46.0.0
+cryptography==50.0.2
 PyYAML==6.0.3

@@ -324,6 +324,26 @@
     "correction_state": "IMPLEMENTED_NOT_EXTERNAL_VERIFIED",
     "independent_test_job": "CI Validation / Validate KAIOS Foundation / Independently verify bounded postmerge terminal recovery at exact head",
     "new_dispatch": false,
-    "new_deployment": false
+    "new_deployment": false,
+    "intermediate_correction_head": "256ff29614c9ea93977630dd15054da035c15596",
+    "recovered_runs": {
+      "approval_policy": 37164874563,
+      "repository_mutation_boundary_redteam": 37164874647,
+      "success_gate_contract": 37164874594,
+      "platform_assurance": 37164874541
+    },
+    "remaining_failures": {
+      "ci": {
+        "run": 37164874659,
+        "reason": "SHALLOW_CHECKOUT_FIXED_IAM_BASE_OBJECT_ABSENT",
+        "fix": "BOUNDED_FETCH_DEPTH_16"
+      },
+      "security": {
+        "run": 37164874492,
+        "reason": "CRYPTOGRAPHY_46_0_0_13_ADVISORY_ENTRIES",
+        "fix": "CRYPTOGRAPHY_50_0_2_EXACT_HASHED_WHEELS",
+        "waiver": false
+      }
+    }
   }
 }

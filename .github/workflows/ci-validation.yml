@@ -24,6 +24,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.EXPECTED_SHA }}
+          # Bounded history includes the fixed protected-main IAM comparison base.
+          fetch-depth: 16
           persist-credentials: false
 
       - name: Verify exact source SHA
