@@ -150,6 +150,12 @@ jobs:
           node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
 
+      - name: Verify resume reconciliation and retained authority guards
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
+
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test
 
