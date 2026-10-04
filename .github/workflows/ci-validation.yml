@@ -13,6 +13,42 @@ permissions:
   contents: read
 
 jobs:
+  verify-resume-postgres:
+    name: Verify resume on disposable PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16@sha256:f1c3376c26f2609ab9f29f71f824103fe2fcd8ee0346485cb6122a4f93df6f94
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kaios
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kaios"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.EXPECTED_SHA }}
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24.19.0"
+          package-manager-cache: false
+      - name: Verify real database claim and response-loss reconciliation
+        env:
+          KIDULTS_RESUME_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node tests/kidults/staging-operations/resume-postgres-v1.integration.mjs
   validate:
     name: Validate KAIOS Foundation
     runs-on: ubuntu-24.04
@@ -24,6 +60,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.EXPECTED_SHA }}
+          # Bounded history includes the fixed protected-main IAM comparison base.
+          fetch-depth: 16
           persist-credentials: false
 
       - name: Verify exact source SHA
@@ -92,6 +130,12 @@ jobs:
       - name: Validate root governance scope registry
         run: node --test tests/kidults/kpmo/scope-aware-root-policy-v1.test.mjs
 
+      - name: Enforce STAGING normal-operations autonomy
+        run: |
+          node scripts/governance/validate-staging-normal-ops-autonomy-v1.mjs
+          node --test tests/governance/staging-normal-ops-autonomy-v1.test.mjs
+          node --test tests/governance/staging-no-authority-expansion-v1.test.mjs
+
       - name: Enforce dependency bootstrap locks
         run: |
           set -euo pipefail
@@ -136,13 +180,36 @@ jobs:
           test -d tests
 
       - name: Run tests
-        run: pytest -q
+        run: |
+          set -euo pipefail
+          pytest -q
+          node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
+          node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+
+      - name: Verify resume reconciliation and retained authority guards
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs tests/kidults/staging-operations/dynamodb-operation-ledger-v1.test.mjs tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
 
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test
 
       - name: Validate source eligibility receipt expiry and producer lineage
         run: node --test tests/kidults/source-intelligence/source-eligibility-receipt-v1.test.mjs
+
+      - name: Independently verify bounded postmerge terminal recovery at exact head
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/kpmo/autonomous-postmerge-recovery-v1.test.mjs tests/kidults/kpmo/postmerge-recovery-*.test.mjs tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
+          node --test tests/kidults/kpmo/autonomous-terminal-immutable-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs tests/kidults/kpmo/whole-platform-runtime-evidence-v1.test.mjs tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/coverage-alias-runtime-name-v1.test.mjs tests/kidults/kpmo/shadow-assurance-runtime-binding-v1.test.mjs
+          python -m pytest -q tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py tests/kidults/kpmo/test_authority_gate_archive_v1.py
+          python scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py
+          node scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs
+
+      - name: Verify autonomous finalizer exact postmerge evidence selection
+        run: node --test tests/kidults/kpmo/autonomous-postmerge-validation-v1.test.mjs
 
       - name: Validate global SOLD source registry persistence controls
         run: |

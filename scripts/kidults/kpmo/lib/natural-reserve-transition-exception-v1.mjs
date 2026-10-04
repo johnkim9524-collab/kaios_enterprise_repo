@@ -67,6 +67,60 @@ const matchesConfiguredTransition = ({files, policy, exceptionId}) => {
   return true;
 };
 
+export const matchesFinalizerReadyEvidenceTransitionFile = ({filename, base_content, head_content}) => {
+  if (filename !== 'scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs') return false;
+  let transformed = String(base_content ?? '');
+  const replacements = [
+    [
+      `      const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+      invokeFinalizerWriter({
+        action:'CREATE_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+      });
+`,
+      `      invokeFinalizerWriter({
+        action:'CREATE_RESERVATION',
+        authorization_generation:envelope.authorization_generation,
+        nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),
+        head_sha:envelope.head_sha,
+      });
+      const eventToken=await acquireEventToken();
+      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+`,
+    ],
+    [
+      'const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true}={}) => {',
+      'const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true,preserveDraftDevelopmentEvidence=false}={}) => {',
+    ],
+    [
+      'liveRequiredChecks({includeLandingStatus,draftDevelopment:requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true})',
+      'liveRequiredChecks({includeLandingStatus,draftDevelopment:preserveDraftDevelopmentEvidence||(requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true)})',
+    ],
+    [
+      'const waitForReadyCandidate = async () => {',
+      'const waitForReadyCandidate = async ({preserveDraftDevelopmentEvidence=false}={}) => {',
+    ],
+    [
+      'validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false})',
+      'validateLiveCandidate({includeLandingStatus:false,requireEnvelopeBinding:false,preserveDraftDevelopmentEvidence})',
+    ],
+    [
+      'await waitForReadyCandidate();',
+      'await waitForReadyCandidate({preserveDraftDevelopmentEvidence:candidate.pr.draft===true});',
+    ],
+  ];
+  for (const [before, after] of replacements) {
+    if (!transformed.includes(before)) return false;
+    transformed = transformed.replace(before, after);
+  }
+  return transformed === String(head_content ?? '');
+};
+
 export const matchesNaturalReserveTransition = ({files, policy}) =>
   matchesConfiguredTransition({files, policy, exceptionId:'NATURAL_RESERVE_CHAIN_REPAIR_V1'});
 

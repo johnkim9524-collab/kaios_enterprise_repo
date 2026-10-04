@@ -1,0 +1,14 @@
+{
+  "id": 37208156514,
+  "run_attempt": 1,
+  "name": "KIDULTS ASI SHADOW Operating Evidence v1",
+  "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+  "event": "push",
+  "head_branch": "main",
+  "head_sha": "ecad2fffdca0192d81770c8abe7d46f6dbf6bbbf",
+  "status": "completed",
+  "conclusion": "success",
+  "repository": {
+    "full_name": "johnkim9524-collab/kaios_enterprise_repo"
+  }
+}

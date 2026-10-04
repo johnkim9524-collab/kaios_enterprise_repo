@@ -26,8 +26,8 @@ test('deployer is bounded to exact STAGING resources and cannot reach production
   for(const denied of ['organizations:','account:','iam:CreateUser','iam:CreateAccessKey']) assert.doesNotMatch(source,new RegExp(denied));
 });
 
-test('deployment is exact-main, owner-dispatched, OIDC-only and enables every schedule',()=>{
-  for(const marker of ["github.actor == github.repository_owner","github.sha == inputs.main_sha","id-token: write",'ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','negative_canary:\"PASS\"']) assert.ok(workflow.includes(marker),marker);
+test('deployment auto-converges code-only exact-main updates while retaining Owner recovery and OIDC bounds',()=>{
+  for(const marker of ["github.actor == github.repository_owner","github.sha == inputs.main_sha","id-token: write",'ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','AUTO-STAGING-NATURAL-CLOCK-','validate-staging-no-authority-expansion-v1.mjs','push:','negative_canary:\"PASS\"']) assert.ok(workflow.includes(marker),marker);
   assert.ok(!workflow.includes('workflow_run:'));
   assert.ok(!workflow.includes('pull_request:'));
   assert.ok(!workflow.includes('secrets.'));

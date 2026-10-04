@@ -6,6 +6,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 import { classifyUpstreamAuditHealth } from './continuous-assurance-upstream-health-v1.mjs';
+import { inventoryWholePlatform } from './lib/whole-platform-operating-proof-v1.mjs';
 
 const root = process.cwd();
 const policyPath = 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json';
@@ -212,6 +213,9 @@ function runEphemeralPair(pair) {
 }
 
 const evidencePaths = [...new Set([
+  'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json',
+  'coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json',
+  'scripts/kidults/kpmo/lib/whole-platform-operating-proof-v1.mjs',
   policyPath,
   canonicalIdentityContractPath,
   'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs',
@@ -321,6 +325,10 @@ try {
     workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1'
   }));
   const stableReceipt = {
+    whole_platform_operating_proof: inventoryWholePlatform(
+      JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json','utf8')),
+      JSON.parse(fs.readFileSync('coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json','utf8')),
+      identity.actual),
     schema_version: '1.0.0',
     receipt_type: 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
     source: {

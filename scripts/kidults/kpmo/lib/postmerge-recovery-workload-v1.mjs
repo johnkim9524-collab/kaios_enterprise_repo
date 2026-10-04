@@ -1,0 +1,85 @@
+// Workload composition only. No CLI, trigger, deployment or credential minting.
+import {canonicalJson,sha256} from './autonomous-internal-landing-v1.mjs';
+import {RECOVERY_ROLES,validatePostmergeRecoveryRequest,validatePostmergeRecoveryObservation,
+  validateRecoveryEvidenceSnapshot,runPostmergeTerminalRecovery} from './autonomous-postmerge-recovery-v1.mjs';
+
+const assert=(ok,code)=>{if(!ok)throw new Error(code);};
+const equal=(a,b)=>canonicalJson(a)===canonicalJson(b);
+
+export function createRecoveryWorkload({role,ledger,github,evidence,immutable,now=()=>Date.now()}){
+  assert(RECOVERY_ROLES.includes(role)||role==='FINALIZER','RECOVERY_WORKLOAD_ROLE');
+  for(const [component,methods] of [[ledger,['readContext']],[github,['observe']],
+    [evidence,['verifySnapshot']]])for(const method of methods)
+    assert(typeof component?.[method]==='function',`RECOVERY_WORKLOAD_COMPONENT:${method}`);
+  const observe=async request=>github.observe(request,await ledger.readContext(request));
+  const resumeApproval=async({newRequest}={})=>{
+    assert(role!=='FINALIZER','RECOVERY_WORKLOAD_APPROVAL_ROLE');
+    const context=await ledger.discoverContext();
+    if(context.state==='CONSUMED'){
+      assert(context.recovery_request,'RECOVERY_WORKLOAD_PINNED_REQUEST_REQUIRED');
+      const observed=await github.observe(context.recovery_request,context);
+      validatePostmergeRecoveryObservation(observed,context.recovery_request,{consumed:true});
+      if(!context.recovery_immutable){
+        assert(context.recovery_run_id&&context.recovery_terminal,'RECOVERY_WORKLOAD_CONSUMED_PAYLOAD_REQUIRED');
+        return {state:'RECOVERY_CONSUMED_SEAL_PENDING',approval_run_id:context.recovery_run_id,write_performed:false};
+      }
+      return {state:'RECOVERY_ALREADY_CONSUMED_NO_APPROVAL',write_performed:false};
+    }
+    assert(context.state==='RESERVED','RECOVERY_RESERVATION_STATE');
+    let request=context.recovery_request,snapshot=context.recovery_snapshot;
+    if(!request){
+      if(role!=='ACCOUNTABLE_TRACK_AGENT')return {state:'WAITING_PINNED_RECOVERY_REQUEST',write_performed:false};
+      assert(newRequest,'RECOVERY_WORKLOAD_FIRST_ROLE_REQUIRED');
+      request=newRequest;
+      validatePostmergeRecoveryRequest(request,{now:now()});
+      validatePostmergeRecoveryObservation(await github.observe(request,context),request);
+      snapshot=await evidence.selectSnapshot(request);
+    }else assert(snapshot,'RECOVERY_WORKLOAD_PINNED_SNAPSHOT_REQUIRED');
+    const approval=context.role_approval;
+    if(approval){
+      assert(approval.signature_verified_by_ledger===true&&approval.request_digest===sha256(canonicalJson(request))
+        &&approval.evidence_digest===sha256(canonicalJson(snapshot.evidence)),'RECOVERY_WORKLOAD_EXISTING_APPROVAL_BINDING');
+      // Existing signed authority is consumed as history, never renewed. The
+      // next role/finalizer still enforces freshness and live native evidence.
+      return {state:'EXISTING_SIGNED_RECOVERY_APPROVAL',approval_run_id:approval.approval_run_id,write_performed:false};
+    }
+    return approvePinned({request,snapshot});
+  };
+  const approvePinned=async({request,snapshot})=>{
+    assert(role!=='FINALIZER','RECOVERY_WORKLOAD_APPROVAL_ROLE');
+    validatePostmergeRecoveryRequest(request,{now:now()});
+    validateRecoveryEvidenceSnapshot(snapshot,request,{now:now()});
+    const observed=await observe(request);
+    validatePostmergeRecoveryObservation(observed,request);
+    const reservation=observed.reservation;
+    if(reservation.recovery_request)assert(equal(reservation.recovery_request,request),'RECOVERY_WORKLOAD_REQUEST_CONFLICT');
+    if(reservation.recovery_snapshot)assert(equal(reservation.recovery_snapshot,snapshot),'RECOVERY_WORKLOAD_SNAPSHOT_CONFLICT');
+    const verified=await evidence.verifySnapshot(request,snapshot);
+    assert(equal(verified,snapshot),'RECOVERY_WORKLOAD_VERIFIED_SNAPSHOT_DRIFT');
+    // A fresh observation immediately precedes signing. Never silently select a
+    // replacement snapshot or generation when a pinned one becomes stale.
+    validatePostmergeRecoveryRequest(request,{now:now()});
+    validatePostmergeRecoveryObservation(await observe(request),request);
+    return ledger.createApproval({request,snapshot});
+  };
+  const finalizePinned=async({request,recoveryRunId})=>{
+    assert(role==='FINALIZER','RECOVERY_WORKLOAD_FINALIZER_ROLE');
+    for(const method of ['readImmutable','sealIfAbsent'])assert(typeof immutable?.[method]==='function',`RECOVERY_WORKLOAD_COMPONENT:${method}`);
+    const adapter={observe,readAuthority:r=>ledger.readAuthority(r),consumeOnce:i=>ledger.consumeOnce(i),
+      readImmutable:i=>immutable.readImmutable(i),sealIfAbsent:i=>immutable.sealIfAbsent(i),
+      acknowledgeImmutable:i=>ledger.acknowledgeImmutable(i),
+      verifyExactMainEvidence:async r=>{
+        const context=await ledger.readContext(r);
+        assert(context.recovery_request&&equal(context.recovery_request,r),'RECOVERY_WORKLOAD_PINNED_REQUEST_REQUIRED');
+        assert(context.recovery_snapshot,'RECOVERY_WORKLOAD_PINNED_SNAPSHOT_REQUIRED');
+        validateRecoveryEvidenceSnapshot(context.recovery_snapshot,r,{now:now()});
+        const verified=await evidence.verifySnapshot(r,context.recovery_snapshot);
+        assert(equal(verified,context.recovery_snapshot),'RECOVERY_WORKLOAD_VERIFIED_SNAPSHOT_DRIFT');
+        return verified.evidence;
+      }};
+    // The engine reuses a durably consumed terminal after expiry. That path
+    // never invokes evidence selection, fresh approval or reservation consume.
+    return runPostmergeTerminalRecovery({request,recoveryRunId,adapter,now});
+  };
+  return {approvePinned,resumeApproval,finalizePinned};
+}

@@ -595,5 +595,11 @@
     "architecture_coverage_counts_as_empirical_global_proof": false,
     "authorized_internal_bottleneck_remediation_required": true,
     "scale_claim_requires_measured_evidence": true
+  },
+  "resume_contract": {
+    "mandatory": true,
+    "path": "coordination/kidults/governance/resume-contract-v1.json",
+    "before_any_task_side_effect": true,
+    "external_enforcement_proven_by_policy_alone": false
   }
 }

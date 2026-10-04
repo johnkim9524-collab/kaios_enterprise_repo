@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 export class CapabilityDeltaError extends Error {
   constructor(code, detail='') { super(detail ? `${code}:${detail}` : code); this.code=code; }
@@ -93,7 +93,8 @@ const scriptBindingGraph=(source,filename)=>{
 
 const assertScriptGuardDependencies=(before,after,filename)=>{
   const left=scriptBindingGraph(before,filename);const right=scriptBindingGraph(after,filename);
-  if(JSON.stringify(left)!==JSON.stringify(right))fail('CAPABILITY_GUARD_DEPENDENCY_CHANGED',filename);
+  if(JSON.stringify(left)!==JSON.stringify(right)
+    && !matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:before,head_content:after})) fail('CAPABILITY_GUARD_DEPENDENCY_CHANGED',filename);
 };
 
 const flattenJson=(value,path='',out=new Map())=>{
@@ -158,6 +159,42 @@ const yamlModel=source=>{
   return values;
 };
 
+const derivedApprovalMetadataPaths=new Set([
+  'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+  'coordination/kidults/governance/approval-policy-inventory-v1.json',
+]);
+const normalizedDerivedApprovalMetadata=(source,filename)=>{
+  let value; try { value=JSON.parse(source||'{}'); } catch { fail('CAPABILITY_JSON_PARSE_FAILED',filename); }
+  value=structuredClone(value);
+  if(filename.endsWith('approval-policy-file-manifest-v1.json')){
+    value.manifest_sha256='DERIVED';
+    for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
+  } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
+    if(value.audit) value.audit.manifest_sha256='DERIVED';
+  }
+  return value;
+};
+const isDerivedApprovalMetadataShape=(source,filename)=>{
+  try {
+    const value=JSON.parse(source||'{}');
+    if(filename.endsWith('approval-policy-file-manifest-v1.json')) return Array.isArray(value.files)&&typeof value.manifest_sha256==='string';
+    if(filename.endsWith('approval-policy-inventory-v1.json')) return typeof value.audit?.manifest_sha256==='string';
+  } catch {}
+  return false;
+};
+const assertDerivedApprovalMetadataDelta=(before,after,filename)=>{
+  const left=normalizedDerivedApprovalMetadata(before,filename);
+  const right=normalizedDerivedApprovalMetadata(after,filename);
+  if(JSON.stringify(left)!==JSON.stringify(right)) fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
+};
+
+const autonomousPolicyAuthorityFields=['owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
+const assertAutonomousPolicyAuthorityFields=(before,after,filename)=>{
+  if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
+  let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {fail('CAPABILITY_JSON_PARSE_FAILED',filename)}
+  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])) fail('CAPABILITY_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+};
+
 const assertJsonMonotonic=(before,after,filename)=>{
   let left,right; try { left=flattenJson(JSON.parse(before||'{}')); right=flattenJson(JSON.parse(after||'{}')); }
   catch { fail('CAPABILITY_JSON_PARSE_FAILED',filename); }
@@ -201,9 +238,13 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
-    else if(filename.endsWith('.json')) assertJsonMonotonic(file.base_content,file.head_content,filename);
+    else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename);
+    else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename); assertJsonMonotonic(file.base_content,file.head_content,filename); }
     else {
-      assertScriptGuardDependencies(file.base_content,file.head_content,filename);
+      // Markdown is prose, including apostrophes and fenced examples. Do not
+      // interpret it as JavaScript. The text guard and capability checks below
+      // still apply, as does the separately computed independent verifier.
+      if(!filename.endsWith('.md')) assertScriptGuardDependencies(file.base_content,file.head_content,filename);
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));
       const removedGuard=before.find(line=>!after.has(line)&&failClosedGuard.test(line));

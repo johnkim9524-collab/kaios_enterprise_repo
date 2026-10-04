@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
+import {EXPLICIT_EXECUTION_CONTROLS,validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
 const root = process.cwd();
 const read = relative => JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
 const fail = code => { throw new Error(code); };
@@ -23,7 +23,8 @@ const manifestExclusions=["coordination/kidults/governance/approval-policy-file-
 if (JSON.stringify(manifest.scan.exclusions)!==JSON.stringify(manifestExclusions)) fail("INVENTORY_MANIFEST_EXCLUSIONS_INVALID");
 if (manifest.manifest_sha256 !== sha256(JSON.stringify(manifest.files))) fail("INVENTORY_MANIFEST_DIGEST_INVALID");
 if (inventory.audit?.approval_related_files_reviewed !== manifest.files.length || inventory.audit?.manifest_sha256 !== manifest.manifest_sha256) fail("INVENTORY_MANIFEST_BINDING_INVALID");
-const livePaths = execFileSync("git",["grep","-Il","-E",manifest.scan.pattern,"HEAD"],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024}).trim().split("\n").filter(Boolean).map(value=>value.replace(/^HEAD:/,"" )).filter(value=>!manifestExclusions.includes(value)).sort();
+const scannedLivePaths = execFileSync("git",["grep","-Il","-E",manifest.scan.pattern,"HEAD"],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024}).trim().split("\n").filter(Boolean).map(value=>value.replace(/^HEAD:/,"" )).filter(value=>!manifestExclusions.includes(value));
+const livePaths = [...new Set([...scannedLivePaths, ...EXPLICIT_EXECUTION_CONTROLS])].sort();
 if (JSON.stringify(livePaths) !== JSON.stringify(manifest.files.map(value=>value.path))) fail("INVENTORY_MANIFEST_PATH_SET_DRIFT");
 for (const entry of manifest.files) {
   const bytes=execFileSync("git",["show",`HEAD:${entry.path}`],{cwd:root,maxBuffer:64*1024*1024});
@@ -53,7 +54,12 @@ for (const operation of stagingExecutor.operations) {
   for (const marker of ["expected_main_sha","id-token: write","object-lock-mode COMPLIANCE","PRODUCTION_STATE","PUBLIC_STATE","G5_STATE"]) if (!workflow.includes(marker)) fail(`STAGING_BOUNDED_WORKFLOW_CONTROL_MISSING:${operation.operation}:${marker}`);
 }
 if (envelope.classes.OWNER_RESERVED.routine_owner_approval !== "REQUIRED_PER_EXACT_ACTION") fail("OWNER_BOUNDARY_WEAKENED");
-if (envelope.classes.UNKNOWN.decision !== "FAIL_CLOSED_OWNER_REQUIRED") fail("UNKNOWN_NOT_FAIL_CLOSED");
+if (envelope.classes.UNKNOWN.decision !== "QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED"
+  || envelope.classes.UNKNOWN.automatic_reclassification_required !== true
+  || envelope.classes.UNKNOWN.automatic_reclassification_max_attempts !== 2
+  || envelope.classes.UNKNOWN.repository_mutation_during_reclassification !== false
+  || envelope.classes.UNKNOWN.owner_escalation_only_after_unresolved_reclassification !== true
+  || envelope.classes.UNKNOWN.final_unresolved_decision !== "FAIL_CLOSED_OWNER_REQUIRED") fail("UNKNOWN_RECLASSIFICATION_BOUNDARY_INVALID");
 for (const field of ["HEAD_TREE_CHANGED", "SCOPE_DIGEST_CHANGED", "RISK_CLASS_CHANGED", "OWNER_RESERVED_BOUNDARY_CROSSED"]) if (!envelope.invalidation.includes(field)) fail(`INVALIDATION_MISSING:${field}`);
 for (const action of delegated.owner_reserved_actions) if (!envelope.owner_reserved_actions.includes(action)) fail(`OWNER_RESERVED_ACTION_MISSING:${action}`);
 for (const policy of [delegated, autonomous]) if (policy.approval_policy_envelope !== envelope.id) fail(`ENVELOPE_BINDING_MISSING:${policy.id}`);

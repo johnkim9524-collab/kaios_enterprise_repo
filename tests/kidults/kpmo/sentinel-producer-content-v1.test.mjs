@@ -37,6 +37,22 @@ function fixture(id,entries){
  return {spec,run,artifact,bytes,entries};
 }
 const check=f=>validateProducerContent(f.spec,f.run,f.artifact,f.bytes,sha,observed);
+test('Requirement producer health consumes the autonomous exact-SHA workflow_dispatch recovery root',()=>{
+ const requirement=SPECS.find(s=>s.id==='REQUIREMENT');
+ assert.ok(requirement.events.includes('workflow_run'));
+ assert.ok(requirement.events.includes('workflow_dispatch'));
+});
+test('Coverage content validator keeps event-specific source and manual display-title bindings',()=>{
+ const source=fs.readFileSync('scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs','utf8');
+ assert.ok(source.includes("run.event==='workflow_dispatch'"));
+ assert.ok(source.includes('`KIDULTS Coverage / manual-${run.id}`'));
+ assert.ok(source.includes('`KIDULTS Coverage / source-${sourceSha}`'));
+ assert.doesNotMatch(source,/run\.display_title===`KIDULTS Coverage \/ source-\$\{sourceSha\}`/);
+ assert.ok(source.includes('const manualRecovery=Boolean(guard&&!leader)'));
+ assert.ok(source.includes('COVERAGE_GUARD_MANUAL_EVENT'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_MANIFEST_REQUIRED'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_BINDING_REQUIRED'));
+});
 function replace(f,name,mutate){
  const entries=f.entries.map(([n,t])=>[n,t]);const i=entries.findIndex(([n])=>n===name);const x=JSON.parse(entries[i][1]);mutate(x);entries[i][1]=text(x);
  const bytes=zip(entries);return {...f,entries,bytes,artifact:{...f.artifact,digest:digest(bytes),size_in_bytes:bytes.length}};
@@ -92,6 +108,20 @@ function coverageFixture(){
  return fixture('REQUIREMENT',[['kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json',text(receipt)],['coverage-canonical-leader-receipt-v1.json',text(leader)],['coverage-semantic-input-receipt-v1.json',text(semantic)]]);
 }
 const coverage=coverageFixture();
+function workflowDispatchCoverageFixture(){
+ const f=coverageFixture();
+ const entries=f.entries.map(([name,value])=>[name,value]);
+ const leaderIndex=entries.findIndex(([name])=>name==='coverage-canonical-leader-receipt-v1.json');
+ const leader=JSON.parse(entries[leaderIndex][1]);
+ leader.trigger_event='workflow_dispatch';
+ leader.coverage_run_display_title=`KIDULTS Coverage / manual-${f.run.id}`;
+ const observedAt=leader.observed_at;delete leader.observed_at;delete leader.receipt_digest;
+ leader.receipt_digest=digest(stable(leader));leader.observed_at=observedAt;
+ entries[leaderIndex][1]=text(leader);
+ const bytes=zip(entries);
+ return {...f,run:{...f.run,event:'workflow_dispatch',display_title:`KIDULTS Coverage / manual-${f.run.id}`},entries,bytes,artifact:{...f.artifact,digest:digest(bytes),size_in_bytes:bytes.length}};
+}
+test('Requirement workflow_dispatch Coverage payload is content-verified with its manual run title',()=>assert.equal(check(workflowDispatchCoverageFixture()).state,'VERIFIED_PASS'));
 function rebindCoverageResults(mutate){
  const entries=coverage.entries.map(([name,value])=>[name,value]);
  const receiptIndex=entries.findIndex(([name])=>name==='kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json');

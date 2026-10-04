@@ -6,7 +6,8 @@ import test from 'node:test';
 import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
-import {delegatedTransitionId} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
+import {routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
@@ -20,6 +21,75 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(governed.routing.routine_owner_reapproval_for_delegated_work,'FORBIDDEN');
   assert.equal(governed.routing.internal_reversible_workflow_and_governance_strengthening,'AI_020_AUTONOMOUS');
   assert.equal(governed.review_policy.manual_independent_review_required_for_ai_020_eligible_work,false);
+  assert.equal(governed.approval_generation_policy.scope,'OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY');
+  assert.equal(governed.approval_generation_policy.delegated_machine_quorum_exempt,true);
+  assert.equal(governed.approval_generation_policy.delegated_finalizer_draft_ready_transition_invalidates_quorum,false);
+  assert.equal(governed.approval_generation_policy.delegated_routine_owner_comment_required,false);
+  const envelope=read('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_generation_policy_applies,false);
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.owner_comment_recovery_fallback_for_normal_path,'FORBIDDEN');
+  assert.equal(envelope.classes.INTERNAL_REVERSIBLE.finalizer_lifecycle_transition_preserves_exact_tuple_quorum,true);
+  assert.equal(envelope.classes.UNKNOWN.decision,'QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED');
+  assert.equal(envelope.classes.UNKNOWN.owner_escalation_only_after_unresolved_reclassification,true);
+});
+
+test('autonomous-named workflows cannot be manual-only unless an explicit Owner-reserved boundary is documented',()=>{
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.startsWith('kidults-autonomous-')&&name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    const hasAutomatic=/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target):/m.test(source);
+    const ownerReserved=/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source);
+    assert.ok(hasAutomatic||ownerReserved,`MANUAL_ONLY_AUTONOMOUS_WORKFLOW_UNCLASSIFIED:${file}`);
+  }
+});
+
+test('explicit Owner-reserved markers remain only on true external authority boundaries',()=>{
+  const file='.github/workflows/kidults-autonomous-smithsonian-sample.yml';
+  const source=fs.readFileSync(file,'utf8');
+  assert.ok(source.includes('OWNER_RESERVED_EXTERNAL_SECRET_CALL'));
+  assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
+  for(const normal of ['kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml']){
+    const workflow=fs.readFileSync(`.github/workflows/${normal}`,'utf8');
+    assert.doesNotMatch(workflow,/OWNER_RESERVED_STAGING_INFRA_CHANGE/);
+    assert.match(workflow,/push:/);
+  }
+});
+
+test('repository-wide manual-only workflows are an exact reviewed exception set',()=>{
+  const reviewed=new Set([
+    'digitalocean-staging-bootstrap-exec.yml','digitalocean-staging-readonly-audit.yml',
+    'kidults-agci-os-candidate-r2-preflight.yml','kidults-atomic-governed-landing-v1.yml',
+    'kidults-autonomous-smithsonian-sample.yml','kidults-cloudflare-pages-boundary-readonly-v1.yml',
+    'kidults-cloudflare-pages-emergency-control-v1.yml','kidults-cloudflare-pages-staging-deploy-v1.yml',
+    'kidults-er-r7k-finalization-boundary.yml','kidults-er-r7k-graded-population.yml',
+    'kidults-graded-authority-probe-gate-v1.yml',
+    'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
+    'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
+    'p0-postgres-target-time-restore-verification.yml','p0-remote-postgres-persistence-pitr.yml',
+  ]);
+  const actual=new Set();
+  for(const file of fs.readdirSync('.github/workflows').filter(name=>name.endsWith('.yml'))){
+    const source=fs.readFileSync(`.github/workflows/${file}`,'utf8');
+    if(!source.includes('workflow_dispatch:')) continue;
+    if(!/^  (schedule|push|repository_dispatch|workflow_run|pull_request|pull_request_target|issues):/m.test(source)) actual.add(file);
+  }
+  assert.deepEqual([...actual].sort(),[...reviewed].sort());
+});
+
+test('internal reversible PR lifecycle is autonomous end-to-end, not only approval comments',()=>{
+  const lifecycle=landing.normal_internal_pr_lifecycle;
+  for(const key of ['owner_comment_required','owner_review_required','owner_ready_click_required','owner_merge_click_required','manual_dispatch_required','manual_rebase_or_recut_required','manual_stale_pr_cleanup_required']) assert.equal(lifecycle[key],false,key);
+  assert.equal(lifecycle.draft_to_ready,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.merge,'FINALIZER_AUTOMATIC');
+  assert.equal(lifecycle.postmerge,'EXACT_MERGE_SHA_AUTOMATIC');
+  assert.equal(lifecycle.stale_base,'BROKERED_BOUNDED_UPDATE_BRANCH');
+  assert.equal(lifecycle.redundant_pr_cleanup,'BROKERED_EXACT_BLOB_EQUALITY_ONLY');
+  assert.equal(lifecycle.bounded_retry,'AUTOMATIC_FRESH_GENERATION');
+  assert.equal(lifecycle.owner_escalation,'ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED');
+  assert.equal(landing.merge.autonomous_stale_base_convergence.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.close_only_when_all_changed_file_blobs_equal_current_main,true);
+  assert.equal(landing.merge.autonomous_redundant_pr_hygiene.removed_or_renamed_files_auto_close_forbidden,true);
 });
 
 test('internal workflow strengthening is autonomous while added authority is Owner-reserved',()=>{
@@ -28,6 +98,16 @@ test('internal workflow strengthening is autonomous while added authority is Own
   for(const line of ['+permissions: write-all','+  id-token: write','+environment: production','+value: ${{ secrets.ADMIN }}','+force: true']){
     assert.throws(()=>assertAutonomousFileScope({files:[{...safe,patch:`@@ -1 +1,2 @@\n name: recovery\n${line}`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
   }
+});
+
+test('authority-bearing self-governance fields remain Owner-bound after bootstrap',()=>{
+  const filename='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+  const before=JSON.stringify(landing);
+  const changed=structuredClone(landing);
+  changed.delegated_internal_transition_exceptions=[...(changed.delegated_internal_transition_exceptions||[]),{id:'UNREVIEWED',paths:['CONSTITUTION.md']}];
+  const file={filename,base_content:before,head_content:JSON.stringify(changed)};
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_AUTHORITY_POLICY_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_AUTHORITY_POLICY_CHANGED/);
 });
 
 test('trust roots and external-effect surfaces remain Owner-reserved',()=>{
@@ -128,7 +208,7 @@ test('natural clock repair is an exact immutable transition, not a broad exempti
 
 test('comment-only deletion and monotonic hardening remain autonomous',()=>{
   const filename='scripts/kidults/kpmo/internal-recovery.mjs';
-  const patch='@@ -1,2 +1,2 @@\n-// stale comment\n+// corrected comment\n+export const failClosed = true;';
+  const patch='@@ safe-internal-policy-metadata @@';
   assert.deepEqual(assertAutonomousFileScope({files:[{filename,patch}],policy:landing}),[filename]);
 });
 
@@ -199,6 +279,23 @@ test('exact exception policy weakening fails while monotonic evidence addition p
   assert.equal(evaluateSemanticCapabilityDelta({files:[{filename,base_content:base,head_content:strengthened}],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
 });
 
+test('derived approval metadata digest rebinding is autonomous but routing mutation is not',()=>{
+  const manifest='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const inventory='coordination/kidults/governance/approval-policy-inventory-v1.json';
+  const manifestBase=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'a',sha256:'sha256:a',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:old'});
+  const manifestHead=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:new'});
+  const inventoryBase=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
+  const inventoryHead=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
+  for(const [filename,base_content,head_content] of [[manifest,manifestBase,manifestHead],[inventory,inventoryBase,inventoryHead]]){
+    const file={filename,base_content,head_content};
+    assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+    assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  }
+  const routed=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'OWNER_RESERVED'}}],manifest_sha256:'sha256:new'});
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
+});
+
 test('safe monotonic workflow hardening passes both independent models',()=>{
   const file=semanticFile(workflow('    timeout-minutes: 10\n'));
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
@@ -213,6 +310,27 @@ test('safe internal implementation replacement is autonomous in both independent
   };
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('exact Finalizer reservation-before-token reorder passes independent verifier without broad reorder exemption',()=>{
+  const filename='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs';
+  const prefix="if (!authorized) throw new Error('AUTHORIZATION_REQUIRED');\n";
+  const reservation="      invokeFinalizerWriter({\n        action:'CREATE_RESERVATION',\n        authorization_generation:envelope.authorization_generation,\n        nonce_digest:envelope.nonce_digest,\n        run_id:required('GITHUB_RUN_ID'),\n        head_sha:envelope.head_sha,\n      });\n";
+  const token="      const eventToken=await acquireEventToken();\n      await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});\n";
+  const base_content=prefix+token+reservation;
+  const head_content=prefix+reservation+token;
+  assert.equal(independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content}],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  const mutated=prefix+reservation.replace("head_sha:envelope.head_sha","head_sha:'unbound'")+token;
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:mutated}],policy:landing}),/INDEPENDENT_(?:GUARD_DEPENDENCY_CHANGED|EXACT_REORDER_SCOPE_CHANGED)/);
+});
+
+test('consumed finalizer Ready transition exception cannot match the hardened single-winner finalizer',()=>{
+  const filename='scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs';
+  const current=fs.readFileSync(filename,'utf8');
+  assert.match(current,/state:'FINALIZER_FOLLOWER'/);
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:current,head_content:current}),false);
+  const weakened=current.replace("String(reservation.owner_run_id)!==finalizerRunId","true");
+  assert.equal(matchesFinalizerReadyEvidenceTransitionFile({filename,base_content:current,head_content:weakened}),false);
 });
 
 test('fail-closed guard replacement remains Owner-reserved',()=>{
@@ -288,4 +406,19 @@ test('unrelated safe implementation replacement does not alter guard dependency 
   );
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('landing policy path is semantically classified instead of permanently Owner-reserved',()=>{
+  const self='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+  assert.equal(landing.owner_reserved_exact_paths.includes(self),false);
+  assert.equal(landing.semantic_self_governance.path_name_alone_is_owner_gate,false);
+  for(const root of [
+    'CONSTITUTION.md',
+    'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',
+    'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',
+    'coordination/kidults/governance/github-oidc-subject-customization-v1.json',
+    'coordination/kidults/governance/autonomous-workload-identity-registry-v1.json',
+  ]) assert.equal(landing.owner_reserved_exact_paths.includes(root),true,root);
+  const patch='@@ safe-internal-policy-metadata @@';
+  assert.deepEqual(assertAutonomousFileScope({files:[{filename:self,patch}],policy:landing}),[self]);
 });

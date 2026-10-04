@@ -35,7 +35,8 @@ on:
         default: '600'
         type: string
   issue_comment:
-    types: [created, edited, deleted]
+    # Creation is a fresh approval event, not a mutation. Only later edits/deletes revoke it.
+    types: [edited, deleted]
 
 concurrency:
   # Revocation must never queue behind the bounded handoff sleeper.

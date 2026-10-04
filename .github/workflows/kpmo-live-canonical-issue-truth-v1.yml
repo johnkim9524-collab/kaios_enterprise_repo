@@ -108,8 +108,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           EXPECTED_PROTECTED_MAIN_SHA: ${{ github.event.pull_request.base.sha || github.event.workflow_run.head_sha || github.sha }}
           ALLOW_MAIN_ADVANCE_DURING_PR_VALIDATION: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
-          CANONICAL_CORRECTION_PR_NUMBER: '1431'
-          EXPECTED_CORRECTION_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.number == 1431 && github.event.pull_request.head.sha || '' }}
           REQUIRE_LIVE_CORRECTION_HEAD_IN_ISSUES: 'false'
           # This is set only for the bounded bootstrap PR after the exact
           # self-heal contract below has been verified from the checked-out
@@ -170,7 +168,8 @@ jobs:
           const bootstrapTransition = outcome === 'success' && validation?.state === 'IMPLEMENTED_NOT_VERIFIED' &&
             validation?.bootstrap_transition === true && validation?.post_landing_refresh_required === true &&
             validation?.authority_model === 'CANONICAL_GENERATION_V3_POST_LANDING_SELF_HEAL_BOOTSTRAP' &&
-            validation?.root_failure_class === 'COMMIT_MISMATCH' && validation?.material_registry_verified === false;
+            ['COMMIT_MISMATCH','LATEST_COMMITTED_GENERATION_STALE'].includes(validation?.root_failure_class) &&
+            validation?.material_registry_verified === false;
           if (outcome === 'success' && !bootstrapTransition) {
             if (validation?.state !== 'VERIFIED_PASS') throw new Error('CANONICAL_VALIDATION_OUTPUT_NOT_PASS');
             if (!/^[0-9a-f]{40}$/i.test(validation?.protected_main_sha || '')) throw new Error('CANONICAL_VALIDATED_MAIN_SHA_INVALID');

@@ -2,9 +2,13 @@ name: KIDULTS Autonomous Independent Verification V1
 run-name: "KIDULTS Autonomous Independent Verification V1 ${{ github.event.action }}"
 
 on:
+  workflow_run:
+    workflows: ['KPMO Continuous Assurance Success Authority Gate V1']
+    types: [completed]
+    branches: [main]
   repository_dispatch:
     types:
-      - kidults.independent.verification.v1
+      - kidults.authorization.generation.v1
 
 concurrency:
   group: kidults-autonomous-independent-verification-${{ github.event.client_payload.envelope.authorization_generation || github.run_id }}
@@ -15,7 +19,7 @@ permissions: {}
 jobs:
   record-role-approval:
     name: Record exact role-scoped autonomous approval
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: github.event_name == 'repository_dispatch' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-VERIFIER
     timeout-minutes: 10
@@ -71,6 +75,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KIDULTS_AUTONOMOUS_MODE: APPROVAL
+          KIDULTS_AUTONOMOUS_APPROVAL_ROLE: INDEPENDENT_VERIFIER
           KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE }}
           KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION: ${{ vars.KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION }}
           KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
@@ -87,7 +92,7 @@ jobs:
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
           echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-autonomous-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 1200 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
           read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
           echo "::add-mask::$AWS_ACCESS_KEY_ID"
           echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
@@ -111,7 +116,7 @@ jobs:
     if: needs.record-role-approval.result == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-FINALIZER
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       actions: read
       checks: read
@@ -195,6 +200,7 @@ jobs:
           node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs
 
       - name: Upload finalizer receipt
+        if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: kidults-autonomous-internal-landing-finalizer-${{ github.run_id }}-${{ github.run_attempt }}
@@ -215,3 +221,61 @@ jobs:
           echo 'PRODUCTION=HOLD'
           echo 'PUBLIC=HOLD'
           echo 'G5=HOLD'
+
+  terminal-recovery-approval:
+    name: Bounded original reservation terminal recovery INDEPENDENT_VERIFIER
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-VERIFIER
+    timeout-minutes: 15
+    outputs:
+      approval_run_id: ${{ steps.recovery.outputs.approval_run_id }}
+      recovery_needed: ${{ steps.recovery.outputs.recovery_needed }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: read
+    steps:
+      - name: Checkout exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Run bounded signed terminal recovery workload
+        id: recovery
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_RECOVERY_ROLE: INDEPENDENT_VERIFIER
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}
+          KIDULTS_PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}
+          KIDULTS_G5_STATE: ${{ vars.KIDULTS_G5_STATE || 'HOLD' }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          test -n "$KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-terminal-recovery-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          node scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs
+      - name: Preserve recovery workload evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-postmerge-terminal-recovery-independent_verifier-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/postmerge-terminal-recovery-v1/*.json
+          if-no-files-found: warn
+          retention-days: 90

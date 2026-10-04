@@ -53,7 +53,8 @@ function loadProductionApprovalParser() {
 
 test('direct-owner handoff separates status authorization from the event-emitting merge', () => {
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /issue_comment:\n    types: \[created, edited, deleted\]/);
+  assert.match(workflow, /issue_comment:\n(?:    #[^\n]*\n)*    types: \[edited, deleted\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*created/);
   assert.match(workflow, /statuses: write/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /pull-requests: read/);

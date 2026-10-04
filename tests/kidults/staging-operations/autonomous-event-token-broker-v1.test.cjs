@@ -9,10 +9,10 @@ const base='a'.repeat(40),head='b'.repeat(40),repo='johnkim9524-collab/kaios_ent
 const event={action:'MINT_INSTALLATION_TOKEN',repository:repo,repository_id:'123',pull_request:42,
   base_sha:base,head_sha:head,authorization_generation:'generation-00001'};
 const config={repository:repo,repositoryId:'123',appId:'55',installationId:'66'};
-test('template embeds reviewed source and limits secret and invoke scopes',()=>{
+test('template embeds reviewed source and limits secret and invoke scopes',async()=>{
   const template=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.json'));
-  assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,
-    fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs','utf8'));
+  const {buildBrokerCode}=await import('../../../scripts/governance/build-resume-broker-template-v1.mjs');
+  assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
   const secret=template.Resources.BrokerRole.Properties.Policies[0].PolicyDocument.Statement;
   assert.deepEqual(secret,[{Effect:'Allow',Action:['secretsmanager:GetSecretValue'],Resource:{Ref:'GitHubPrivateKeySecretArn'}}]);
   const invoker=template.Resources.EventBrokerInvokerRole.Properties;
@@ -38,14 +38,16 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
-          : {contents:'write',pull_requests:'write'});
+          : ['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE'].includes(permissionProfile)
+            ? {contents:'write',pull_requests:'write'}
+            : {pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{...(Object.hasOwn(body.permissions,'contents')
           ? {contents:body.permissions.contents==='read'?readPermission:permission}
           : {}),pull_requests:body.permissions.pull_requests},
         repository_selection:'selected',repositories};
     } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
-      head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase}};
+      head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase,repo:{full_name:repo}}};
     else if(url.endsWith('/branches/main')) value={commit:{sha:mainBase}};
     else throw Error('unexpected request');
     return {ok:true,json:async()=>value};
@@ -58,6 +60,30 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.equal(result.permission_profile,'AUTONOMOUS_EVENT_DISPATCH');
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
+});
+test('mints exact stale-base convergence token with required head contents write scope',async()=>{
+  const current='c'.repeat(40);
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
+  const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
+  assert.equal(result.permission_profile,permissionProfile);
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{contents:'write',pull_requests:'write'});
+});
+test('mints exact redundant-PR hygiene token with pull-request-only write scope',async()=>{
+  const current='c'.repeat(40);
+  const permissionProfile='AUTONOMOUS_REDUNDANT_PR_HYGIENE';
+  const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
+  const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
+  assert.equal(result.permission_profile,permissionProfile);
+  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{pull_requests:'write'});
+});
+test('stale profiles fail closed when current main is absent or equals old base',async()=>{
+  const {handler,calls}=setup();
+  await assert.rejects(handler({...event,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'}),/DENIED/);
+  await assert.rejects(handler({...event,current_main_sha:base,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'}),/DENIED/);
+  assert.equal(calls.length,0);
 });
 test('allows exact open Draft for internal event dispatch without lifecycle authority',async()=>{
   const {handler}=setup({draft:true});
@@ -79,13 +105,13 @@ test('rejects wrong repository before mint',async()=>{
   const {handler,calls}=setup();await assert.rejects(handler({...event,repository_id:'999'}),/DENIED/);
   assert.equal(calls.length,0);
 });
-for(const [name,variation] of [['head drift',{prHead:'c'.repeat(40)}],['main drift',{mainBase:'c'.repeat(40)}],
-  ['base drift',{prBase:'c'.repeat(40)}],
-  ['read permission downgrade',{readPermission:'none'}],
-  ['broader repository scope',{repositories:[{id:123,full_name:repo},{id:456}]}]]) {
+for(const [name,variation,reason] of [['head drift',{prHead:'c'.repeat(40)},'LIVE_TUPLE'],['main drift',{mainBase:'c'.repeat(40)},'LIVE_TUPLE'],
+  ['base drift',{prBase:'c'.repeat(40)},'LIVE_TUPLE'],
+  ['read permission downgrade',{readPermission:'none'},'READ_SCOPE'],
+  ['broader repository scope',{repositories:[{id:123,full_name:repo},{id:456}]},'READ_SCOPE']]) {
   test(`rejects ${name} without minting write token`,async()=>{
     const {handler,calls}=setup(variation);
-    await assert.rejects(handler(event),/DENIED/);
+    await assert.rejects(handler(event),new RegExp(`DENIED:${reason}`));
     assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
   });
 }
@@ -96,11 +122,27 @@ test('rejects invalid authorization generation before requesting any token',asyn
 });
 test('rejects write permission downgrade after one authorized write mint',async()=>{
   const {handler,calls}=setup({permission:'read'});
-  await assert.rejects(handler(event),/DENIED/);
+  await assert.rejects(handler(event),/DENIED:WRITE_SCOPE/);
   assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,1);
 });
 test('rejects unsupported permission profile before requesting any token',async()=>{
   const {handler,calls}=setup();
   await assert.rejects(handler({...event,permission_profile:'INVALID'}),/DENIED/);
   assert.equal(calls.length,0);
+});
+
+for(const [label,variation] of [
+  ['head drift',{prHead:'d'.repeat(40)}],
+  ['old base drift',{prBase:'d'.repeat(40)}],
+  ['current main drift',{mainBase:'d'.repeat(40)}],
+]) test(`stale convergence refuses ${label} before minting contents write`,async()=>{
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler,calls}=setup({mainBase:'c'.repeat(40),permissionProfile,...variation});
+  await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:LIVE_TUPLE/);
+  assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
+});
+test('stale convergence refuses a granted contents downgrade',async()=>{
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler}=setup({mainBase:'c'.repeat(40),permissionProfile,permission:'read'});
+  await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:WRITE_SCOPE/);
 });

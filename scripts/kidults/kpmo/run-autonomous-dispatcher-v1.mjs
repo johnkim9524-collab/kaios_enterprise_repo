@@ -17,7 +17,27 @@ export function assertDelegatedPathScope(changedPaths,policy){
   catch(error){ if(error?.code) throw new DispatcherError(error.code,error.message.split(':').slice(1).join(':')); throw error; }
 }
 
-export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,now=new Date()}) {
+export function classifyStaleBaseCandidate({pr,mainSha,files,policy}) {
+  if (!pr || pr.state!=='open' || pr.merged===true) fail('DISPATCH_PR_NOT_OPEN');
+  if (pr.base?.ref!=='main' || pr.base?.sha===mainSha || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(mainSha))) fail('DISPATCH_STALE_BASE_BINDING_INVALID');
+  if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
+  assertDelegatedPathScope(files,policy);
+  evaluateSemanticCapabilityDelta({files,policy});
+  independentlyVerifyCapabilityDelta({files,policy});
+  const convergence=policy.merge?.autonomous_stale_base_convergence;
+  if(convergence?.enabled!==true || convergence.executor!=='DISPATCHER_BROKERED_GITHUB_APP_ONLY'
+    || convergence.method!=='GITHUB_UPDATE_BRANCH_EXPECTED_HEAD_SHA'
+    || convergence.preclassification_against_original_base_required!==true
+    || convergence.same_repository_head_required!==true
+    || convergence.primary_and_independent_semantic_verifiers_required!==true
+    || convergence.owner_reserved_action_forbidden!==true
+    || convergence.post_update_full_ci_and_fresh_authorization_generation_required!==true
+    || convergence.force_push_forbidden!==true) fail('DISPATCH_STALE_BASE_POLICY_INVALID');
+  return {pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,
+    changed_paths:files.map(x=>x.filename).sort(),state:'STALE_RECOVERABLE'};
+}
+
+export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,generationSeed,now=new Date()}) {
   if (!pr || pr.state!=='open' || pr.merged===true) fail('DISPATCH_PR_NOT_OPEN');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
@@ -47,8 +67,11 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
   const rollbackPlan={source:'GITHUB_LIVE_EXACT_BINDING',strategy:'REVERT_MERGE_COMMIT',verified:true,base_sha:mainSha,head_tree_sha:treeSha};
   const issuedAt=new Date(now); const expiresAt=new Date(issuedAt.getTime()+Number(policy.durable_single_use.maximum_ttl_seconds)*1000);
   const scopeDigest=sha256(changedPaths.join('\n'));
-  const generation=`pr-${pr.number}-${pr.head.sha.slice(0,20)}`;
-  const nonce=crypto.createHash('sha256').update(`${pr.base.repo.id}:${pr.number}:${mainSha}:${pr.head.sha}:${treeSha}:${scopeDigest}`).digest('hex');
+  const seed=String(generationSeed||'');
+  if (!/^[1-9][0-9]{0,19}$/.test(seed)) fail('DISPATCH_GENERATION_SEED_INVALID');
+  const dispatchGenerationDigest=crypto.createHash('sha256').update(`${pr.base.repo.id}:${pr.number}:${mainSha}:${pr.head.sha}:${treeSha}:${scopeDigest}:${seed}`).digest('hex');
+  const generation=`pr-${pr.number}-${pr.head.sha.slice(0,20)}-${dispatchGenerationDigest.slice(0,16)}`;
+  const nonce=crypto.createHash('sha256').update(`${pr.base.repo.id}:${pr.number}:${mainSha}:${pr.head.sha}:${treeSha}:${scopeDigest}:${seed}`).digest('hex');
   return {repository_id:String(pr.base.repo.id),repository:pr.base.repo.full_name,pull_request:Number(pr.number),base_sha:mainSha,
     head_sha:pr.head.sha,head_tree_sha:treeSha,scope_digest:scopeDigest,test_evidence:testEvidence,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_plan:rollbackPlan,rollback_digest:sha256(canonicalJson(rollbackPlan)),
@@ -65,6 +88,21 @@ async function immutableContent(repository,path,ref,token){
   if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
   return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
 }
+async function contentBlobShaOrNull(repository,path,ref,token){
+  const response=await fetch(`https://api.github.com/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
+  if(response.status===404) return null;
+  if(!response.ok) fail('DISPATCH_GITHUB_API',`${response.status}:content-blob`);
+  const payload=await response.json();
+  return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
+}
+async function staleFilesRedundantAgainstMain({repository,mainSha,headSha,files,token}){
+  if(!files.length||files.some(file=>['removed','renamed'].includes(file.status))) return false;
+  const comparisons=await Promise.all(files.map(async file=>{
+    const [head,main]=await Promise.all([contentBlobShaOrNull(repository,file.filename,headSha,token),contentBlobShaOrNull(repository,file.filename,mainSha,token)]);
+    return head!==null&&head===main;
+  }));
+  return comparisons.every(Boolean);
+}
 async function attachImmutableContents({repository,baseSha,headSha,files,token}){
   return Promise.all(files.map(async file=>{
     if(file.status==='removed'||file.status==='renamed') fail('DISPATCH_OWNER_RESERVED_ACTION',`${file.filename}:${file.status.toUpperCase()}`);
@@ -74,7 +112,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
   }));
 }
 
-export async function discover({repository,token,prNumber,policy}){
+export async function discover({repository,token,prNumber,policy,generationSeed}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
@@ -90,8 +128,19 @@ export async function discover({repository,token,prNumber,policy}){
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
   for(const pr of prs){try{
-    if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
+    if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
+      if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
+      const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
+      if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
+        results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
+        continue;
+      }
+      const files=await attachImmutableContents({repository,baseSha:pr.base.sha,headSha:pr.head.sha,files:fileRecords,token});
+      const binding=classifyStaleBaseCandidate({pr,mainSha,files,policy});
+      results.push({state:'STALE_RECOVERABLE',pull_request:pr.number,binding});
+      continue;
+    }
     const requiredChecks=pr.draft===true
       ? baseRequiredChecks.map(x=>x.context==='KIDULTS Scope-Aware Authoritative Status V1'
         ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
@@ -99,14 +148,14 @@ export async function discover({repository,token,prNumber,policy}){
       : baseRequiredChecks;
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
-    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy})});
+    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed})});
   }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy});
+  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,generationSeed:process.env.GITHUB_RUN_ID});
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,skipped:results.filter(x=>x.state==='SKIPPED').length}));
 }

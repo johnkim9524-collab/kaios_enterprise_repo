@@ -1,40 +1,42 @@
 'use strict';
 const {createSign} = require('node:crypto');
 
-const fail = () => { throw new Error('EVENT_TOKEN_BROKER_DENIED'); };
+const fail = code => { throw new Error(`EVENT_TOKEN_BROKER_DENIED:${code || 'UNCLASSIFIED'}`); };
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 
 function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
   return async event => {
-    if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail();
-    const {repository, repository_id, pull_request, base_sha, head_sha, authorization_generation,
+    if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail('INPUT');
+    const {repository, repository_id, pull_request, base_sha, head_sha, current_main_sha, authorization_generation,
       permission_profile='AUTONOMOUS_EVENT_DISPATCH'} = event || {};
+    const supportedProfiles=new Set(['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE','AUTONOMOUS_REDUNDANT_PR_HYGIENE']);
     if (event?.action !== 'MINT_INSTALLATION_TOKEN'
       || repository !== config.repository || String(repository_id) !== String(config.repositoryId)
       || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
       || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha
-      || permission_profile!=='AUTONOMOUS_EVENT_DISPATCH'
+      || !supportedProfiles.has(permission_profile)
+      || (permission_profile!=='AUTONOMOUS_EVENT_DISPATCH' && (!sha(current_main_sha)||current_main_sha===base_sha))
       || typeof authorization_generation !== 'string'
-      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail();
+      || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail('INPUT');
     const issued = Math.floor(now()/1000);
     const key = await getPrivateKey();
-    if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail();
+    if (typeof key !== 'string' || !/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) fail('PRIVATE_KEY');
     const unsigned = `${b64url({alg:'RS256',typ:'JWT'})}.${b64url({iat:issued-30,exp:issued+540,iss:String(config.appId)})}`;
     const signer=createSign('RSA-SHA256'); signer.update(unsigned); signer.end();
     const jwt=`${unsigned}.${signer.sign(key).toString('base64url')}`;
-    const api = async (endpoint, bearer, options={}) => {
+    const api = async (endpoint, bearer, options={}, failureCode='GITHUB_API_HTTP') => {
       const response=await request(`https://api.github.com${endpoint}`,{
         ...options,redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${bearer}`,
           'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-event-broker-v1',...(options.headers||{})},
       });
-      if (!response.ok) fail();
+      if (!response.ok) fail(failureCode);
       return response.json();
     };
-    const mint = permissions => api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
+    const mint = (permissions, phase) => api(`/app/installations/${config.installationId}/access_tokens`,jwt,{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions}),
-    });
+    },`MINT_${phase}_HTTP`);
     const validScope = (minted, permissions) => typeof minted.token==='string' && minted.token.length>=20
       && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
       && ((permissions.contents===undefined && minted.permissions?.contents===undefined) || minted.permissions?.contents===permissions.contents)
@@ -45,34 +47,59 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       && Number(minted.repositories[0]?.id)===Number(config.repositoryId)
       && minted.repositories[0]?.full_name===repository;
     const readPermissions={contents:'read',pull_requests:'read'};
-    const readonly=await mint(readPermissions);
-    if (!validScope(readonly,readPermissions)) fail();
+    const readonly=await mint(readPermissions,'READ');
+    if (!validScope(readonly,readPermissions)) fail('READ_SCOPE');
     const [pr,main]=await Promise.all([
-      api(`/repos/${repository}/pulls/${pull_request}`,readonly.token),
-      api(`/repos/${repository}/branches/main`,readonly.token),
+      api(`/repos/${repository}/pulls/${pull_request}`,readonly.token,{},'PR_READ_HTTP'),
+      api(`/repos/${repository}/branches/main`,readonly.token,{},'MAIN_READ_HTTP'),
     ]);
+    const expectedMain=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'?base_sha:current_main_sha;
     if (pr.number!==Number(pull_request) || pr.state!=='open'
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
-      || main.commit?.sha!==base_sha) fail();
-    const writePermissions={contents:'write',pull_requests:'write'};
-    const minted=await mint(writePermissions);
-    if (!validScope(minted,writePermissions)) fail();
+      || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail('LIVE_TUPLE');
+    // GitHub App update-branch requires contents:write on the head repository.
+    // Hygiene closes PR metadata only and must retain its narrower scope.
+    const needsContentsWrite=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
+      || permission_profile==='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+    const writePermissions=needsContentsWrite
+      ? {contents:'write',pull_requests:'write'}
+      : {pull_requests:'write'};
+    const minted=await mint(writePermissions,'WRITE');
+    if (!validScope(minted,writePermissions)) fail('WRITE_SCOPE');
+    const grantedPermissions=needsContentsWrite
+      ? ['contents:write','pull_requests:write','metadata:read']
+      : ['pull_requests:write','metadata:read'];
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
       app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
-      permissions:['contents:write','pull_requests:write','metadata:read'],
+      permissions:grantedPermissions,
       expires_at:minted.expires_at,token:minted.token};
   };
 }
 
 exports.createHandler=createHandler;
-exports.handler=async event => {
+exports.handler=async (event,context) => {
   const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');
   const client=new SecretsManagerClient({region:process.env.AWS_REGION});
   const getPrivateKey=async () => {
     const value=await client.send(new GetSecretValueCommand({SecretId:process.env.GITHUB_APP_PRIVATE_KEY_SECRET_ARN}));
     return value.SecretString;
   };
+  if(event?.action==='RESUME_AUTHORIZATION_DISPATCH') {
+    const load=typeof __resumeLoad==='function' ? __resumeLoad : async () => import('../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
+    const {brokerResumeDispatch}=await load('scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
+    const {DynamoDBClient}=require('@aws-sdk/client-dynamodb');
+    const {DynamoDBDocumentClient,GetCommand,PutCommand,UpdateCommand}=require('@aws-sdk/lib-dynamodb');
+    const db=DynamoDBDocumentClient.from(new DynamoDBClient({region:process.env.AWS_REGION,maxAttempts:1}));
+    const commands={Get:GetCommand,Put:PutCommand,Update:UpdateCommand};
+    const config={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
+      appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID,
+      operationTable:process.env.RESUME_OPERATION_TABLE,activationRunFloor:process.env.RESUME_ACTIVATION_RUN_FLOOR};
+    const request=(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)});
+    return brokerResumeDispatch({event,config,getPrivateKey,request,owner:context?.awsRequestId,
+      ledgerRequest:(operation,params)=>db.send(new commands[operation](params)),
+      mint:createHandler({getPrivateKey,request,config})});
+  }
   return createHandler({getPrivateKey,config:{repository:process.env.GITHUB_REPOSITORY,
     repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.GITHUB_APP_ID,
     installationId:process.env.GITHUB_APP_INSTALLATION_ID},

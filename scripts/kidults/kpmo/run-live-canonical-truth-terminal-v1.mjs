@@ -33,18 +33,21 @@ function readDiagnostic(file){
 }
 
 function bootstrapTransition(value){
-  if(process.env.CANONICAL_BOOTSTRAP_TRANSITION_VERIFIED!=='true'||identity.event!=='pull_request'||value.failure_class!=='COMMIT_MISMATCH')return null;
+  if(process.env.CANONICAL_BOOTSTRAP_TRANSITION_VERIFIED!=='true'||identity.event!=='pull_request')return null;
   const fields=value.mismatch_fields||[];
-  if(fields.length!==BOOTSTRAP_FIELDS.size||fields.some(field=>!BOOTSTRAP_FIELDS.has(field)))return null;
+  const commitMismatch=value.failure_class==='COMMIT_MISMATCH'
+    && fields.length===BOOTSTRAP_FIELDS.size&&fields.every(field=>BOOTSTRAP_FIELDS.has(field));
+  const staleGeneration=value.failure_class==='LATEST_COMMITTED_GENERATION_STALE'&&fields.length===0;
+  if(!commitMismatch&&!staleGeneration)return null;
   const base=process.env.EXPECTED_PROTECTED_MAIN_SHA;
   if(!/^[0-9a-f]{40}$/.test(base||''))return null;
   const apply=fs.readFileSync('.github/workflows/kpmo-canonical-generation-v3-apply.yml','utf8');
   const writer=fs.readFileSync('scripts/kidults/kpmo/canonical-generation-v3.mjs','utf8');
   const lifecycle=fs.readFileSync('tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs','utf8');
-  for(const marker of ["schedule:\n    - cron: '13,43 * * * *'","CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}"]){if(!apply.includes(marker))return null;}
+  for(const marker of ["schedule:\n    - cron: '13,43 * * * *'","CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}","if test \"$GITHUB_EVENT_NAME\" = 'workflow_dispatch'; then"]){if(!apply.includes(marker))return null;}
   for(const marker of ["!['workflow_dispatch','push','schedule'].includes(event)","authority_type:'PROTECTED_MAIN_SCHEDULE'","CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'"]){if(!writer.includes(marker))return null;}
   if(!lifecycle.includes("'CANONICAL_V3_APPEND_ONLY_REFRESH'"))return null;
-  return {validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',version:'3.2.0',state:'IMPLEMENTED_NOT_VERIFIED',authority_model:'CANONICAL_GENERATION_V3_POST_LANDING_SELF_HEAL_BOOTSTRAP',...identity,protected_main_sha:base,bootstrap_transition:true,post_landing_refresh_required:true,root_failure_class:'COMMIT_MISMATCH',mismatch_fields:fields,material_registry_verified:false,material_defect_count:null,material_defect_issue_numbers:null,material_defect_registry_sha256:null,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+  return {validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',version:'3.2.0',state:'IMPLEMENTED_NOT_VERIFIED',authority_model:'CANONICAL_GENERATION_V3_POST_LANDING_SELF_HEAL_BOOTSTRAP',...identity,protected_main_sha:base,bootstrap_transition:true,post_landing_refresh_required:true,root_failure_class:value.failure_class,mismatch_fields:fields,material_registry_verified:false,material_defect_count:null,material_defect_issue_numbers:null,material_defect_registry_sha256:null,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 let dir;
 try{

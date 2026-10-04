@@ -19,6 +19,7 @@ const assuranceRetainedHoldSteps = [
   'Upload exact-run assurance packet',
   'Preserve control result without promoting overall HOLD',
 ];
+const assuranceWatchCoverageStep = 'Validate SHADOW, Requirement, Reserve, and Canonical Truth watch coverage';
 const assuranceAllowedHoldFailureStep = 'Resolve bounded ephemeral canonical leader or alias';
 
 function codedError(code, details = null) {
@@ -133,7 +134,21 @@ export function evaluatePostMergePushSuite(runs, policy, mergeSha, mergedAt) {
   };
 }
 
-export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
+function isTerminalStep(step) {
+  return step?.status === 'completed' && typeof step?.conclusion === 'string' && step.conclusion.length > 0;
+}
+
+function isStaleUnstartedStepPlaceholder(step) {
+  return step?.status === 'pending' && step?.conclusion == null
+    && step?.started_at == null && step?.completed_at == null;
+}
+
+function successfulNamedStep(steps, name) {
+  const matches = (steps || []).filter(step => step?.name === name);
+  return matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success';
+}
+
+export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId, expectedEvent = 'push') {
   requireCondition(Array.isArray(jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_INVALID');
   requireCondition(shaPattern.test(mergeSha || ''), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_MERGE_SHA_INVALID');
   requireCondition(Number.isInteger(Number(expectedRunId)) && Number(expectedRunId) > 0, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_ID_INVALID');
@@ -155,13 +170,50 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
       return {ok: false, reason: 'ASSURANCE_BINDING_STEP_CARDINALITY_INVALID', step: stepName, count: matches.length};
     }
     const step = matches[0];
-    if (step.status !== 'completed') {
+    if (!isTerminalStep(step) && !isStaleUnstartedStepPlaceholder(step)) {
       return {ok: false, reason: 'ASSURANCE_BINDING_STEP_NOT_TERMINAL', step: stepName, status: step.status || null};
     }
-    bindings.push({name: stepName, status: step.status, conclusion: step.conclusion || null});
+    bindings.push({
+      name: stepName,
+      status: step.status,
+      conclusion: step.conclusion || null,
+      stale_unstarted_placeholder: isStaleUnstartedStepPlaceholder(step),
+    });
   }
 
   const conclusions = bindings.map(item => item.conclusion);
+  const staleBindingCount = bindings.filter(item => item.stale_unstarted_placeholder).length;
+  if (staleBindingCount > 0) {
+    const onlyStaticPushDeferralShape = expectedEvent === 'push'
+      && audit.conclusion === 'success'
+      && bindings.every(item => item.stale_unstarted_placeholder || item.conclusion === 'skipped')
+      && assuranceRetainedHoldSteps.every(name => successfulNamedStep(audit.steps, name))
+      && successfulNamedStep(audit.steps, assuranceWatchCoverageStep);
+    if (onlyStaticPushDeferralShape) {
+      return {
+        ok: true,
+        state: 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH_STALE_STEP_READBACK',
+        structural_run_accepted: true,
+        producer_health_authority: false,
+        exact_merge_sha: mergeSha,
+        run_id: Number(expectedRunId),
+        audit_job_id: Number(audit.id),
+        bindings,
+        stale_binding_step_count: staleBindingCount,
+        static_event_condition: 'EXACT_MAIN_PUSH_BINDING_STEPS_NOT_APPLICABLE',
+        retained_hold_steps: assuranceRetainedHoldSteps,
+        watch_coverage_step: assuranceWatchCoverageStep,
+        required_separate_gate: 'KPMO_CONTINUOUS_ASSURANCE_EXACT_SHA_PRODUCER_HEALTH_SENTINEL_V1',
+      };
+    }
+    return {
+      ok: false,
+      reason: 'ASSURANCE_STALE_BINDING_PLACEHOLDER_NOT_SAFE_PUSH_DEFERRAL_SHAPE',
+      expected_event: expectedEvent,
+      audit_conclusion: audit.conclusion,
+      bindings,
+    };
+  }
   if (audit.conclusion === 'failure') {
     const failedSteps = (audit.steps || []).filter(step => step?.status === 'completed' && step?.conclusion === 'failure');
     const retainedHoldProofValid = assuranceRetainedHoldSteps.every(name => {
@@ -221,6 +273,26 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId) {
     };
   }
   return {ok: false, reason: 'ASSURANCE_BINDING_OUTCOMES_MIXED_OR_UNSAFE', bindings};
+}
+
+export function assuranceJobMetadataSettled(jobs, mergeSha, expectedRunId, expectedEvent = 'push') {
+  if (!Array.isArray(jobs) || !shaPattern.test(mergeSha || '')
+      || !Number.isInteger(Number(expectedRunId)) || Number(expectedRunId) <= 0) return false;
+  const audits = jobs.filter(job => Number(job?.run_id) === Number(expectedRunId)
+    && job?.head_sha === mergeSha && job?.name === 'audit');
+  if (audits.length !== 1) return false;
+  const audit = audits[0];
+  if (audit.status !== 'completed' || !['success', 'failure'].includes(audit.conclusion)
+      || !Array.isArray(audit.steps) || audit.steps.length === 0) return false;
+  const bindings = assuranceBindingSteps.map(name => (audit.steps || []).filter(step => step?.name === name));
+  if (bindings.some(matches => matches.length !== 1)) return false;
+  const bindingSteps = bindings.map(matches => matches[0]);
+  if (bindingSteps.every(isTerminalStep)) return true;
+  return expectedEvent === 'push' && audit.conclusion === 'success'
+    && bindingSteps.every(step => isTerminalStep(step) || isStaleUnstartedStepPlaceholder(step))
+    && bindingSteps.every(step => isStaleUnstartedStepPlaceholder(step) || step.conclusion === 'skipped')
+    && assuranceRetainedHoldSteps.every(name => successfulNamedStep(audit.steps, name))
+    && successfulNamedStep(audit.steps, assuranceWatchCoverageStep);
 }
 
 async function selfTest() {
@@ -285,6 +357,26 @@ async function selfTest() {
   assert.equal(deferred.state, 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH');
   assert.equal(deferred.producer_health_authority, false);
 
+  const stalePushAudit = structuredClone(deferredAudit);
+  for (const step of stalePushAudit.steps) {
+    step.status = 'pending';
+    step.conclusion = null;
+    step.started_at = null;
+    step.completed_at = null;
+  }
+  stalePushAudit.steps.push(
+    {name: assuranceWatchCoverageStep, number: 17, status: 'completed', conclusion: 'success'},
+    ...assuranceRetainedHoldSteps.map((name, index) => ({name, number: 18 + index, status: 'completed', conclusion: 'success'})),
+  );
+  assert.equal(assuranceJobMetadataSettled([stalePushAudit], mergeSha, assuranceRunId, 'push'), true);
+  const stalePush = classifyAssuranceSemantics([stalePushAudit], mergeSha, assuranceRunId, 'push');
+  assert.equal(stalePush.ok, true);
+  assert.equal(stalePush.state, 'ASSURANCE_BINDINGS_DEFERRED_FOR_PROTECTED_MAIN_PUSH_STALE_STEP_READBACK');
+  assert.equal(stalePush.producer_health_authority, false);
+  const unsafeMixedStalePush = structuredClone(stalePushAudit);
+  Object.assign(unsafeMixedStalePush.steps[0], {status: 'completed', conclusion: 'success'});
+  assert.equal(classifyAssuranceSemantics([unsafeMixedStalePush], mergeSha, assuranceRunId, 'push').ok, false);
+
   const retainedHoldAudit = structuredClone(deferredAudit);
   retainedHoldAudit.conclusion = 'failure';
   retainedHoldAudit.steps.push(
@@ -309,7 +401,7 @@ async function selfTest() {
   console.log(JSON.stringify({
     state: 'VERIFIED_PASS',
     contract: 'DIRECT_OWNER_POSTMERGE_PUSH_SUITE_CONSUMER_V1',
-    negative_mutations_rejected: 9,
+    negative_mutations_rejected: 10,
     terminal_failure_preserved_as_evidence: true,
     predecessor_head_proof_reuse_forbidden: true,
     assurance_semantic_classification_required: true,
@@ -374,11 +466,36 @@ async function main() {
 
   const assuranceRun = evaluation.required.find(run => run.path === assuranceWorkflowPath);
   requireCondition(assuranceRun, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_MISSING');
-  const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
-  requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
-  requireCondition(Number(jobsPayload?.total_count) === jobsPayload.jobs.length, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_PAGINATION_REQUIRED');
-  const assuranceSemanticProof = classifyAssuranceSemantics(jobsPayload.jobs, mergeSha, assuranceRun.run_id);
-  requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+  // GitHub's run-jobs listing can remain stale after the individual job read
+  // has terminal step metadata. Use the listing only to bind one audit job,
+  // then classify the exact individual job read. Never reinterpret a settled
+  // unsafe shape as success.
+  const assuranceSettleDeadline = Date.now() + Math.min(waitSeconds, 30) * 1000;
+  let assuranceSemanticProof = null;
+  let latestAssuranceJobs = [];
+  while (true) {
+    const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
+    requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
+    requireCondition(Number(jobsPayload?.total_count) === jobsPayload.jobs.length, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_PAGINATION_REQUIRED');
+    const auditIndex = jobsPayload.jobs.filter(job => Number(job?.run_id) === Number(assuranceRun.run_id)
+      && job?.head_sha === mergeSha && job?.name === 'audit');
+    if (auditIndex.length === 1 && Number.isInteger(Number(auditIndex[0]?.id)) && Number(auditIndex[0].id) > 0) {
+      const exactAudit = await request(`/actions/jobs/${Number(auditIndex[0].id)}`);
+      latestAssuranceJobs = [exactAudit];
+    } else {
+      latestAssuranceJobs = jobsPayload.jobs;
+    }
+    if (assuranceJobMetadataSettled(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event)) {
+      assuranceSemanticProof = classifyAssuranceSemantics(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event);
+      requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+      break;
+    }
+    if (Date.now() >= assuranceSettleDeadline) {
+      assuranceSemanticProof = classifyAssuranceSemantics(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event);
+      throw codedError('DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
+    }
+    await new Promise(resolve => setTimeout(resolve, Math.min(policy.poll_interval_seconds, 1) * 1000));
+  }
 
   // Re-read the selected suite and main immediately before recording consumption.
   // This is a read-back continuity check, not an atomic GitHub snapshot/lease.

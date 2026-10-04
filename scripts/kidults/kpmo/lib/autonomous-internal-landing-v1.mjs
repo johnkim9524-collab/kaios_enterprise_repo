@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import {evaluateSemanticCapabilityDelta} from './semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './independent-capability-verifier-v1.mjs';
 import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
+import {bindRequiredGateEvidence} from './required-gate-evidence-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -120,24 +121,41 @@ export function validateWorkload(workload, registry, expectedRole) {
   return {role: expectedRole, stable_id: workload.workload_id, signing_key_arn: workload.signing_key_arn};
 }
 
-export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = []}) {
+export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = [], headSha = envelope?.head_sha}) {
   if (!ROLE.has(role) || role === 'FINALIZER') fail('AUTONOMOUS_DECISION_ROLE_INVALID');
+  if (!SHA.test(String(headSha || ''))) fail('AUTONOMOUS_DECISION_HEAD_SHA_INVALID');
   if (!Array.isArray(statuses) || !Array.isArray(checks) || (!statuses.length && !checks.length)) fail('AUTONOMOUS_DECISION_EVIDENCE_MISSING');
-  const required=new Set((requiredContexts||[]).map(String));
-  const normalizedStatuses=statuses.map(value=>({context:String(value.context),state:String(value.state)}))
-    .filter(value=>!required.size||required.has(value.context)).sort((a,b)=>a.context.localeCompare(b.context));
-  const normalizedChecks=checks.map(value=>({name:String(value.name),status:String(value.status),conclusion:String(value.conclusion)}))
-    .filter(value=>!required.size||required.has(value.name)).sort((a,b)=>a.name.localeCompare(b.name));
-  if ((!normalizedStatuses.length&&!normalizedChecks.length)
-      || normalizedStatuses.some(value=>value.state!=='success')
-      || normalizedChecks.some(value=>value.status!=='completed'||value.conclusion!=='success')) {
-    fail('AUTONOMOUS_DECISION_EVIDENCE_NOT_GREEN');
+  if (!Array.isArray(requiredContexts) || !requiredContexts.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_SET_EMPTY');
+  const required=requiredContexts.map(value=>typeof value==='string'
+    ? {context:value,integration_id:0}
+    : {context:String(value?.context||''),integration_id:Number(value?.integration_id||0)});
+  if (required.some(value=>!value.context || !Number.isSafeInteger(value.integration_id) || value.integration_id<0)) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_INVALID');
+  if (new Set(required.map(value=>value.context)).size!==required.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_DUPLICATE');
+  for (const binding of required) {
+    const hasStatus=statuses.some(value=>value.context===binding.context && value.sha===headSha);
+    const hasCheck=checks.some(value=>value.name===binding.context && value.head_sha===headSha);
+    if (hasStatus&&hasCheck) fail('AUTONOMOUS_DECISION_EVIDENCE_KIND_AMBIGUOUS',binding.context);
   }
+  const bound=bindRequiredGateEvidence({
+    required,checks,statuses,headSha,
+    fail:(code,context)=>fail('AUTONOMOUS_DECISION_'+code,context),
+  });
+  if (bound.length!==required.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_CARDINALITY');
+  const normalizedStatuses=bound.filter(value=>value.kind==='status').map(binding=>{
+    const value=statuses.find(item=>Number(item.id)===binding.id && item.context===binding.context && item.sha===headSha);
+    if(!value) fail('AUTONOMOUS_DECISION_BOUND_STATUS_MISSING',binding.context);
+    return {id:Number(value.id),context:String(value.context),state:String(value.state),app_id:binding.app_id};
+  }).sort((a,b)=>a.context.localeCompare(b.context));
+  const normalizedChecks=bound.filter(value=>value.kind==='check').map(binding=>{
+    const value=checks.find(item=>Number(item.id)===binding.id && item.name===binding.context && item.head_sha===headSha);
+    if(!value) fail('AUTONOMOUS_DECISION_BOUND_CHECK_MISSING',binding.context);
+    return {id:Number(value.id),name:String(value.name),status:String(value.status),conclusion:String(value.conclusion),app_id:binding.app_id};
+  }).sort((a,b)=>a.name.localeCompare(b.name));
   const testEvidence={
     source:'GITHUB_LIVE_REQUIRED_CHECKS',result:'PASS',
-    statuses:normalizedStatuses,checks:normalizedChecks,
+    statuses:normalizedStatuses,checks:normalizedChecks,required_evidence:bound,
   };
-  testEvidence.artifact_digest=sha256(canonicalJson({statuses:normalizedStatuses,checks:normalizedChecks}));
+  testEvidence.artifact_digest=sha256(canonicalJson({statuses:normalizedStatuses,checks:normalizedChecks,required_evidence:bound}));
   const rollbackPlan={
     source:'GITHUB_LIVE_EXACT_BINDING',strategy:'REVERT_MERGE_COMMIT',verified:true,
     base_sha:envelope.base_sha,head_tree_sha:envelope.head_tree_sha,
@@ -210,8 +228,12 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
 
 export function validateQuorum({track, kpmo, verifier, registry, policy, now = Date.now()}) {
   const envelopes = [track, kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
+  for (const field of ['dispatch_id','dispatch_idempotency_key']) {
+    if (!envelopes.every(value=>DIGEST.test(String(value[field])))) fail('AUTONOMOUS_DISPATCH_BINDING_REQUIRED',field);
+  }
   const tuple = ['repository_id','repository','pull_request','base_sha','head_sha','head_tree_sha','scope_digest',
-    'test_evidence_digest','rollback_digest','authorization_generation','nonce_digest','issued_at','expires_at'];
+    'test_evidence_digest','rollback_digest','authorization_generation','nonce_digest','issued_at','expires_at',
+    'dispatch_id','dispatch_idempotency_key'];
   for (const field of tuple) if (!envelopes.every(value => String(value[field]) === String(envelopes[0][field]))) {
     fail('AUTONOMOUS_QUORUM_BINDING_MISMATCH', field);
   }

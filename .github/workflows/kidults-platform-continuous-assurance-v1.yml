@@ -691,12 +691,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          SHADOW_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
           SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
           SHADOW_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$SHADOW_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_UPSTREAM_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_UPSTREAM_EVENT" =~ ^(push|schedule|workflow_dispatch)$ ]]
           [[ "$SHADOW_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
           test "$SHADOW_UPSTREAM_CONCLUSION" = "success"
           gh api -H 'Accept: application/vnd.github+json' \
@@ -704,15 +708,19 @@ jobs:
             > /tmp/shadow-upstream-run.json
           jq -e \
             --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --argjson attempt "$SHADOW_UPSTREAM_RUN_ATTEMPT" \
+            --arg event "$SHADOW_UPSTREAM_EVENT" \
             --arg sha "$SHADOW_UPSTREAM_SHA" \
             --arg repo "$GITHUB_REPOSITORY" \
             '.id==$run
+             and .run_attempt==$attempt
              and .name=="KIDULTS ASI SHADOW Operating Evidence v1"
              and .path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and .event==$event
+             and (.event=="push" or .event=="schedule" or .event=="workflow_dispatch")
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
@@ -1176,6 +1184,14 @@ jobs:
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+
+      - name: Reconcile whole platform operating receipts without side effects
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
 
       - name: Emit safe remediation packet
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'

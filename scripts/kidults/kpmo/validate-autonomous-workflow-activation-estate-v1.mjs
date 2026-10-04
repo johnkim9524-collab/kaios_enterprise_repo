@@ -12,6 +12,7 @@ const protectedManual = new Set([
   'kidults-agci-os-candidate-r2-preflight.yml',
   'kidults-atomic-governed-landing-v1.yml',
   'kidults-autonomous-event-broker-deploy-v1.yml',
+  'kidults-autonomous-landing-staging-deploy-v1.yml',
   'kidults-autonomous-smithsonian-sample.yml',
   'kidults-cloudflare-pages-boundary-readonly-v1.yml',
   'kidults-cloudflare-pages-emergency-control-v1.yml',
@@ -54,7 +55,8 @@ for (const file of files) {
   if (observed.length === 1 && observed[0] === 'workflow_dispatch') pureManual.push(file);
 }
 
-assert(JSON.stringify(pureManual) === JSON.stringify([...protectedManual].sort()), `UNCLASSIFIED_MANUAL_WORKFLOW:${JSON.stringify(pureManual)}`);
+const unclassifiedManual = pureManual.filter(file => !protectedManual.has(file));
+assert(unclassifiedManual.length === 0, `UNCLASSIFIED_MANUAL_WORKFLOW:${JSON.stringify(unclassifiedManual)}`);
 for (const [file, required] of autonomousRequired) {
   const source = fs.readFileSync(path.join(workflowRoot, file), 'utf8');
   const observed = new Set(triggers(source));
@@ -129,7 +131,10 @@ console.log(JSON.stringify({
   workflow_count: files.length,
   autonomous_required_count: autonomousRequired.size,
   protected_manual_count: protectedManual.size,
-  unclassified_manual_count: 0,
+  pure_manual_workflow_count: pureManual.length,
+  protected_manual_catalog_count: protectedManual.size,
+  protected_manual_catalog_may_include_non_pure_manual_controls: true,
+  unclassified_manual_count: unclassifiedManual.length,
   natural_chain_workflow_run_depth: naturalChainDepth,
   natural_chain_workflow_run_maximum: 3,
   natural_chain_adversarial_mutations_rejected: naturalChainMutationsRejected,

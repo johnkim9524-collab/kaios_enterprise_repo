@@ -109,12 +109,14 @@ jobs:
             'scripts/kidults/kpmo/',
             'scripts/kidults/redteam/',
             'scripts/kidults/portal/runtime/',
+            'scripts/governance/',
             'coordination/kidults/kpmo/',
             'coordination/kidults/audit/',
             'coordination/kidults/security/',
             'coordination/kidults/provider/',
             'coordination/kidults/runtime/',
-            'infra/'
+            'infra/',
+            'infrastructure/aws/'
           ];
           const exact = new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
           const governedFiles = files.map(x=>x.filename).filter(name=>exact.has(name)||prefixes.some(prefix=>name.startsWith(prefix)));
@@ -279,8 +281,28 @@ jobs:
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
             if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
+
+            // Re-read scope at the final exact-head boundary. Non-governed
+            // security/dependency changes use the normal protected-main path;
+            // only governed files require operation-specific atomic landing.
+            const files=[];
+            for(let page=1;page<=5;page++){
+              const values=await api(`/pulls/${number}/files?per_page=100&page=${page}`);
+              if(!Array.isArray(values))throw new GateFailure('FINAL_FILE_SCOPE_RESPONSE_INVALID');
+              files.push(...values);
+              if(values.length<100)break;
+              if(page===5)throw new GateFailure('FINAL_FILE_SCOPE_PAGINATION_BOUND_EXCEEDED');
+            }
+            const governedPrefixes=['.github/','services/kidults-control-plane/','services/kidults-autonomous-intelligence/','scripts/kidults/kpmo/','scripts/kidults/redteam/','scripts/kidults/portal/runtime/','scripts/governance/','coordination/kidults/kpmo/','coordination/kidults/audit/','coordination/kidults/security/','coordination/kidults/provider/','coordination/kidults/runtime/','infra/','infrastructure/aws/'];
+            const governedExact=new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
+            const governedFiles=files.map(x=>x.filename).filter(name=>governedExact.has(name)||governedPrefixes.some(prefix=>name.startsWith(prefix)));
+            if(governedFiles.length===0){
+              assertHoldBoundary();
+              await status('success','Ready lifecycle verified; non-governed scope uses protected-main status path');
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_NON_GOVERNED_SCOPE_VERIFIED',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,governed_files:[],ordinary_readiness_published_success:true,atomic_landing_required:false,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));process.exit(0);
+            }
             await status('pending','Ready lifecycle verified; operation-specific landing authority required');
-            const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ordinary_readiness_published_success:false,atomic_landing_required:true,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+            const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,governed_files:governedFiles,ordinary_readiness_published_success:false,atomic_landing_required:true,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
           } catch(error) {
             failure=error;
             writeReceipt({id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'VERIFIED_FAIL',failure_code:String(error.code||error.message||'GOVERNED_READINESS_FAILED'),repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),atomic_landing_required:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'});
