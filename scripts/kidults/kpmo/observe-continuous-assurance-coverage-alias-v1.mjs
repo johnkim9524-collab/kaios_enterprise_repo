@@ -82,6 +82,11 @@ export function observeCoverageAlias(input) {
     ? sha256(stableJson(semantic.material))
     : null;
   const canonicalRun = input.canonical_run || {};
+  const canonicalTitle = `KIDULTS Coverage / source-${canonicalSourceSha}`;
+  const workflowName = 'KIDULTS ASI Requirement-to-Adapter Coverage v1';
+  // GitHub may expose run-name as name; old leader receipts retain the workflow label.
+  // Both identify the same protected path only with the exact source display title.
+  const normalizedName = name => name === canonicalTitle ? workflowName : name;
   if (alias.id !== 'kidults-asi-requirement-adapter-coverage-canonical-alias-receipt-v1' ||
       alias.state !== 'VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE') fail('COVERAGE_ALIAS_RECEIPT_INVALID');
   if (leader.id !== 'kidults-asi-requirement-adapter-coverage-canonical-leader-receipt-v1' ||
@@ -111,14 +116,14 @@ export function observeCoverageAlias(input) {
       alias.current_coverage_consumer_sha !== coverageRunHeadSha || alias.current_coverage_run_head_sha !== coverageRunHeadSha ||
       alias.current_coverage_run_display_title !== coverageRunDisplayTitle) fail('COVERAGE_ALIAS_CURRENT_OBSERVATION_BINDING_INVALID');
   if (Number(canonicalRun.id) !== leader.canonical_workflow_run_id || Number(canonicalRun.run_attempt) !== leader.canonical_workflow_run_attempt ||
-      canonicalRun.name !== 'KIDULTS ASI Requirement-to-Adapter Coverage v1' ||
+      normalizedName(canonicalRun.name) !== workflowName ||
       canonicalRun.path !== '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' ||
       canonicalRun.repository?.full_name !== repository || canonicalRun.head_branch !== 'main' ||
       canonicalRun.event !== 'workflow_run' || canonicalRun.status !== 'completed' || canonicalRun.conclusion !== 'success') fail('COVERAGE_CANONICAL_RUN_METADATA_INVALID');
   if (!SHA.test(canonicalRun.head_sha || '') || canonicalRun.display_title !== `KIDULTS Coverage / source-${canonicalSourceSha}`) fail('COVERAGE_CANONICAL_RUN_SOURCE_IDENTITY_INVALID');
   if (canonicalRun.head_sha !== leader.coverage_run_head_sha || leader.coverage_consumer_sha !== leader.coverage_run_head_sha ||
       canonicalRun.display_title !== leader.coverage_run_display_title ||
-      leader.coverage_workflow_name !== canonicalRun.name || leader.coverage_workflow_path !== canonicalRun.path ||
+      normalizedName(leader.coverage_workflow_name) !== normalizedName(canonicalRun.name) || leader.coverage_workflow_path !== canonicalRun.path ||
       leader.coverage_repository !== repository) fail('COVERAGE_LEADER_STORED_RUN_METADATA_INVALID');
   if (alias.canonical_coverage_consumer_sha !== leader.coverage_consumer_sha ||
       alias.canonical_coverage_run_head_sha !== leader.coverage_run_head_sha ||

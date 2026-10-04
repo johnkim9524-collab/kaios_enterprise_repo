@@ -126,6 +126,12 @@ jobs:
             # The durable authenticated broker response, including original transport,
             # replaces a locally manufactured acknowledgement.
             jq '.receipt.receipt' "$response_path" > "$current_receipt"
+            # Reconcile the identical operation through its durable success.
+            # A second EXECUTED_VERIFIED response is an idempotency defect.
+            reuse_path="out/autonomous-dispatcher-v1/fanout/pr-$pr_number-protected-reuse.json"
+            reuse_metadata=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-connect-timeout 10 --cli-read-timeout 20 --cli-binary-format raw-in-base64-out --payload "$request" "$reuse_path")
+            test "$(jq -r '.FunctionError // empty' <<<"$reuse_metadata")" = ''
+            node scripts/kidults/kpmo/verify-native-resume-reuse-v1.mjs "$response_path" "$reuse_path" "out/autonomous-dispatcher-v1/fanout/pr-$pr_number-reuse-proof.json"
             current_receipt=''
             unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION
           done < <(jq -c '.[] | select(.state=="ELIGIBLE") | .envelope' out/autonomous-dispatcher-v1/results.json)

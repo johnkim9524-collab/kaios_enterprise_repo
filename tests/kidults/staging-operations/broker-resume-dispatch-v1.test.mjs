@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {brokerResumeDispatch} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
 import {buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
+import {verifyNativeResumeReuse} from '../../../scripts/kidults/kpmo/lib/native-resume-reuse-proof-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
 const time=Date.parse('2026-10-04T10:00:00Z');
@@ -52,13 +53,48 @@ test('lost response is UNKNOWN and never automatically dispatched again',async()
   const s=setup({transport:'lost'});await assert.rejects(s.call(),/lost reply/);
   assert.equal((await s.call(event,'replacement')).state,'HOLD_RECONCILE');assert.equal(s.counts().sends,1);
 });
+test('protected reuse proof consumes the original signed receipt without another mint or send',async()=>{
+  const s=setup();const first=await s.call();const second=await s.call(event,'proof-reader');
+  assert.equal(verifyNativeResumeReuse(first,second).state,'VERIFIED_PASS');
+  assert.deepEqual(s.counts(),{sends:1,mints:1});
+  for(const changed of [ {...second,state:'EXECUTED_VERIFIED'}, {...second,key:'sha256:'+'f'.repeat(64)},
+    {...second,receipt:{...second.receipt,signature:'tampered'}}]) {
+    assert.throws(()=>verifyNativeResumeReuse(first,changed),/NATIVE_RESUME_REUSE/);
+  }
+  const forged=structuredClone(first);forged.receipt.receipt.receipt_digest='sha256:'+'0'.repeat(64);
+  assert.throws(()=>verifyNativeResumeReuse(forged,{...forged,state:'REUSED_SUCCESS'}),/DIGEST/);
+});
 test('non-204 response does not authenticate success',async()=>{
   const s=setup({transport:'bad'});await assert.rejects(s.call(),/DISPATCH_OUTCOME_UNKNOWN/);
   assert.equal((await s.call(event,'replacement')).state,'HOLD_RECONCILE');assert.equal(s.counts().sends,1);
 });
-test('new clock generation cannot dispatch the same exact tuple again',async()=>{
-  const s=setup();await s.call();await assert.rejects(s.call({...event,run_id:'102',envelope:{...envelope,authorization_generation:'generation-000002'}},'clock-2'),/EXACT_TUPLE_ALREADY_CLAIMED/);
-  assert.equal(s.counts().sends,1);
+test('new clock generation consumes the original operation without replacement authority or another send',async()=>{
+  const s=setup();const first=await s.call();const rows=s.rows.size;
+  const reused=await s.call({...event,run_id:'102',envelope:{...envelope,authorization_generation:'generation-000002'}},'clock-2');
+  assert.equal(reused.state,'REUSED_SUCCESS');assert.equal(reused.key,first.key);assert.deepEqual(reused.receipt,first.receipt);
+  assert.deepEqual(s.counts(),{sends:1,mints:1});assert.equal(s.rows.size,rows);
+});
+test('expired clock authority may only read original success and never renew or remint it',async()=>{
+  const s=setup();const first=await s.call();s.dependencies.now=()=>time+7200000;
+  const reused=await s.call({...event,run_id:'103',envelope:{...envelope,authorization_generation:'generation-000003'}},'clock-3');
+  assert.equal(reused.key,first.key);assert.deepEqual(s.counts(),{sends:1,mints:1});
+});
+test('concurrent clock generations create one original operation and mint once',async()=>{
+  const s=setup();const results=await Promise.all(Array.from({length:12},(_,i)=>s.call({...event,run_id:String(101+i),
+    envelope:{...envelope,authorization_generation:`clock-generation-${i}`}},`clock-${i}`)));
+  assert.equal(results.filter(r=>r.state==='EXECUTED_VERIFIED').length,1);
+  assert.deepEqual(s.counts(),{sends:1,mints:1});
+  assert.equal([...s.rows.values()].filter(r=>r.pk.startsWith('RESUME_OPERATION_V1#')).length,1);
+  assert.ok(results.every(r=>['EXECUTED_VERIFIED','HOLD_RECONCILE','REUSED_SUCCESS'].includes(r.state)));
+});
+test('new clock cannot reclaim an original unknown dispatch outcome',async()=>{
+  const s=setup({transport:'lost'});await assert.rejects(s.call(),/lost reply/);const count=s.rows.size;
+  const reused=await s.call({...event,run_id:'102',envelope:{...envelope,authorization_generation:'clock-replacement'}},'replacement');
+  assert.equal(reused.state,'HOLD_RECONCILE');assert.equal(s.rows.size,count);assert.deepEqual(s.counts(),{sends:1,mints:1});
+});
+test('expired authority without original success cannot fence a new candidate',async()=>{
+  const s=setup();s.dependencies.now=()=>time+7200000;
+  await assert.rejects(s.call(),/AUTHORITY_TIME/);assert.equal(s.rows.size,0);assert.deepEqual(s.counts(),{sends:0,mints:0});
 });
 test('invalid stored signature blocks reuse without a second send',async()=>{
   const s=setup();await s.call();const row=[...s.rows.values()].find(r=>r.state==='SUCCESS');row.receipt.signature='AAAA';

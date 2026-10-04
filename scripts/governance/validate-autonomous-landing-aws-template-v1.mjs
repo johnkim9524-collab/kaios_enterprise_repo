@@ -13,6 +13,8 @@ const receiptKey = resources.AutonomousReceiptKey;
 const receiptBucket = resources.AutonomousReceiptBucket;
 const receiptBucketPolicy = resources.AutonomousReceiptBucketPolicy.Properties.PolicyDocument;
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+const immutableStore = fs.readFileSync('scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs','utf8');
+assert.ok(runner.includes("import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs'"));
 
 const approvals = [
   ['Track','TrackEnvironment','TrackWorkflowRef','kidults-autonomous-track-staging-role','TrackApprovalSigningKey','kidults-autonomous-track-authorization-v1.yml','kidults.authorization.generation.v1'],
@@ -135,7 +137,8 @@ assert.equal(writerFunction.Runtime, 'python3.12');
 const code = writerFunction.Code.ZipFile;
 for (const marker of ['CREATE_APPROVAL','CREATE_RESERVATION','CONSUME_RESERVATION','verify_approval_signature','verify_finalizer_signature','FINALIZER_SIGNATURE_INVALID','APPROVAL_SIGNATURE_INVALID']) assert.ok(code.includes(marker), marker);
 
-for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',"mode === 'APPROVAL'","mode === 'FINALIZE'",'invokeFinalizerWriter','KIDULTS_AUTONOMOUS_WORKFLOW_REF','sealImmutableReceipt','OBJECT_LOCK_COMPLIANCE_VERIFIED','KIDULTS_AUTONOMOUS_RECEIPT_BUCKET','KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN','--object-lock-mode','COMPLIANCE','--checksum-sha256']) assert.ok(runner.includes(marker), marker);
+for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',"mode === 'APPROVAL'","mode === 'FINALIZE'",'invokeFinalizerWriter','KIDULTS_AUTONOMOUS_WORKFLOW_REF','sealImmutableReceipt','KIDULTS_AUTONOMOUS_RECEIPT_BUCKET','KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN']) assert.ok(runner.includes(marker), marker);
+for (const marker of ['OBJECT_LOCK_COMPLIANCE_VERIFIED','--object-lock-mode','COMPLIANCE','--checksum-sha256','--if-none-match','get-object','body_readback_verified']) assert.ok(immutableStore.includes(marker), marker);
 assert.equal(runner.includes("dynamodb','put-item"), false);
 assert.equal(runner.includes("dynamodb','update-item"), false);
 

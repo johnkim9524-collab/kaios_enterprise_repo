@@ -1,6 +1,6 @@
 {
   "id": "kidults-post-landing-platform-runtime-terminal-lifecycle-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "classification": "DEFECT_REMEDIATED",
   "defect": "The health sentinel had acquired producer-dispatch and downstream-dispatch authority, allowing the observer to create the evidence it audited and causing generation races. Restore strict observer/producer separation: natural producer paths create evidence; Sentinel only reads, validates, and fails closed.",
   "governance_boundary": {
@@ -21,6 +21,8 @@
     "SHARDED_SOURCE_RESERVE",
     "EXACT_MAIN_HEALTH_SENTINEL",
     "CONTINUOUS_ASSURANCE",
+    "CORE_FOUR_CONTROL_GREEN",
+    "WHOLE_PLATFORM_OPERATING_PROOF",
     "PLATFORM_RUNTIME_GREEN"
   ],
   "authority": {
@@ -34,6 +36,10 @@
     "g5": "HOLD"
   },
   "termination": {
+    "whole_platform_contract": "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json",
+    "whole_platform_green_requires_all_runtime_checks_and_value_chain_receipts": true,
+    "core_four_control_green_is_whole_platform_green": false,
+    "static_scorecard_pass_is_runtime_proof": false,
     "approval_loop_possible": false,
     "canonical_refresh_creates_repository_commit": false,
     "evidence_writes_create_protected_main_sha": false,

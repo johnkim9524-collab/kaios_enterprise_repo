@@ -1177,6 +1177,14 @@ jobs:
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
 
+      - name: Reconcile whole platform operating receipts without side effects
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
+
       - name: Emit safe remediation packet
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-
