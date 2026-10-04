@@ -19,6 +19,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-exact-generation-orchestration-integration-v1.mjs'
       - 'tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs'
       - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
+      - 'tests/kidults/source-intelligence/asi-common-crawl-any-site-fail-soft-v1.test.mjs'
       - '.github/workflows/kidults-asi-common-crawl-gate-chain-binding-v1.yml'
 
 permissions:
@@ -54,6 +55,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-common-crawl-gate-chain-provenance-v1.mjs
           node --test tests/kidults/source-intelligence/asi-exact-generation-orchestration-v1.test.mjs
           node --test tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs
+          node --test tests/kidults/source-intelligence/asi-common-crawl-any-site-fail-soft-v1.test.mjs
       - name: Validate PR fixture orchestration without provider requests
         if: github.event_name == 'pull_request'
         env:
