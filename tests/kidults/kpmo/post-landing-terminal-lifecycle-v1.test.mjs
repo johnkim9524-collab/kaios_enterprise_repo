@@ -23,8 +23,15 @@ test('one Program Owner landing approval has a finite automatic terminal path', 
     'ATOMIC_GOVERNED_LANDING', 'PROTECTED_MAIN_PUSH', 'CANONICAL_V3_APPEND_ONLY_REFRESH',
     'LIVE_CANONICAL_TRUTH', 'NATURAL_EXACT_SHA_PRODUCER_CHAIN', 'SHADOW_OPERATING_EVIDENCE',
     'P0B_P1_ARL_REQUIREMENT_COVERAGE', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
-    'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'PLATFORM_RUNTIME_GREEN',
+    'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'CORE_FOUR_CONTROL_GREEN',
+    'WHOLE_PLATFORM_OPERATING_PROOF', 'PLATFORM_RUNTIME_GREEN',
   ]);
+});
+
+test('core control green cannot certify whole platform runtime',()=>{
+  assert.equal(contract.termination.core_four_control_green_is_whole_platform_green,false);
+  assert.equal(contract.termination.static_scorecard_pass_is_runtime_proof,false);
+  assert.equal(contract.termination.whole_platform_green_requires_all_runtime_checks_and_value_chain_receipts,true);
 });
 
 test('natural Canonical refresh is exact-main, first-attempt, append-only and separate from manual recovery', () => {
