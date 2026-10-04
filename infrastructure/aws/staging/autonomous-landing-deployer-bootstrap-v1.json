@@ -112,7 +112,8 @@
                   "Effect": "Allow",
                   "Action": [
                     "lambda:GetFunction",
-                    "lambda:UpdateFunctionCode"
+                    "lambda:UpdateFunctionCode",
+                    "lambda:UpdateFunctionConfiguration"
                   ],
                   "Resource": "arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging"
                 },
