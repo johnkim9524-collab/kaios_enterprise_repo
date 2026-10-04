@@ -38,7 +38,7 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
-          : permissionProfile==='AUTONOMOUS_EVENT_DISPATCH'
+          : ['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE'].includes(permissionProfile)
             ? {contents:'write',pull_requests:'write'}
             : {pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
@@ -61,14 +61,14 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
-test('mints exact stale-base convergence token with pull-request-only write scope',async()=>{
+test('mints exact stale-base convergence token with required head contents write scope',async()=>{
   const current='c'.repeat(40);
   const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
   const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
   const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
   assert.equal(result.permission_profile,permissionProfile);
-  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
-  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{pull_requests:'write'});
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{contents:'write',pull_requests:'write'});
 });
 test('mints exact redundant-PR hygiene token with pull-request-only write scope',async()=>{
   const current='c'.repeat(40);
@@ -129,4 +129,20 @@ test('rejects unsupported permission profile before requesting any token',async(
   const {handler,calls}=setup();
   await assert.rejects(handler({...event,permission_profile:'INVALID'}),/DENIED/);
   assert.equal(calls.length,0);
+});
+
+for(const [label,variation] of [
+  ['head drift',{prHead:'d'.repeat(40)}],
+  ['old base drift',{prBase:'d'.repeat(40)}],
+  ['current main drift',{mainBase:'d'.repeat(40)}],
+]) test(`stale convergence refuses ${label} before minting contents write`,async()=>{
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler,calls}=setup({mainBase:'c'.repeat(40),permissionProfile,...variation});
+  await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:LIVE_TUPLE/);
+  assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
+});
+test('stale convergence refuses a granted contents downgrade',async()=>{
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler}=setup({mainBase:'c'.repeat(40),permissionProfile,permission:'read'});
+  await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:WRITE_SCOPE/);
 });

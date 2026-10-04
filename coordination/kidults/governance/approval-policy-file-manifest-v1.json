@@ -1937,8 +1937,8 @@
     {
       "path": "coordination/kidults/kpmo/normal-ops-finalizer-terminal-closure-set-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d06a6b8a434b69222eb9bd91c7508325eaf92832",
-      "sha256": "sha256:75537273cd2d48670874f077fa433caab8aefdd2365008fd99156d9de95c6d55",
+      "git_blob": "22abffc0cbcd2e932082f01a5a6c29594e67a4b5",
+      "sha256": "sha256:6bb6527a34a9eb8cd5beb2363326acdbbbdf238192afcfd2ad991cca9e211632",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2905,20 +2905,20 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1406e9af29137d35ba7862548aeaa4a14c6dbd4d",
-      "sha256": "sha256:4654714056f54ef4682f61a8568c189927c611c09cf8abe94007fcb4442d136f"
+      "git_blob": "53f3f6d09d19599aa3f904e4d2051ba6b4478da5",
+      "sha256": "sha256:63471794365a1e91b2fd49557102903f6671a5f2d5a99e72f765f77ec32624c6"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "49c951bae68db35ed714fd8c1fa0b94d2786b84a",
-      "sha256": "sha256:8e86d229ef2a4c9eb6b5faf8564fe21f54635d4340720a983344f14c89f596bd"
+      "git_blob": "44f18b1c46f184999115f3213e45229bbf144bc1",
+      "sha256": "sha256:742acd4f58e09d44def19713441aa3298d618fc1982e5ff94331dab0490a2d38"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5dd033c86f54ad557a99673381fcb5dd83008e48",
-      "sha256": "sha256:e6053f02ef39da504bba90b682f9485a383fcb4fa47425dbdf480634da330116"
+      "git_blob": "0243cc33926d1260ce39f244d40009e1da0e3463",
+      "sha256": "sha256:06ce69075775503f02433736c0db0c303c743167951014968e5c0e47fe6d1a3c"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -5699,8 +5699,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "35744209b4ddac2f8df3afa5f8568d9a2952ca87",
-      "sha256": "sha256:7bca073c1ef38b93d1d3d13d0a7b87824d3c457ee0b30867392866590ecf5063"
+      "git_blob": "eaa3942343e80f978a47a5e029366b11b59fe54a",
+      "sha256": "sha256:843405593d07d6d5daa2140bf482567daffa456246403f975483d30dbb616c31"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
@@ -5775,5 +5775,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c7e8430f2803b17bd7bbc3cac1c79891f24dee1e3897147a6ef8642dfeb367d2"
+  "manifest_sha256": "sha256:cf0cf7b2f3d97a14ff4a88a81c00bbabcc99f312053c1537bc17a1aefeca1131"
 }
