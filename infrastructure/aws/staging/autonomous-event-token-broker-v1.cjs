@@ -58,12 +58,16 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail('LIVE_TUPLE');
-    const writePermissions=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
+    // GitHub App update-branch requires contents:write on the head repository.
+    // Hygiene closes PR metadata only and must retain its narrower scope.
+    const needsContentsWrite=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
+      || permission_profile==='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+    const writePermissions=needsContentsWrite
       ? {contents:'write',pull_requests:'write'}
       : {pull_requests:'write'};
     const minted=await mint(writePermissions,'WRITE');
     if (!validScope(minted,writePermissions)) fail('WRITE_SCOPE');
-    const grantedPermissions=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'
+    const grantedPermissions=needsContentsWrite
       ? ['contents:write','pull_requests:write','metadata:read']
       : ['pull_requests:write','metadata:read'];
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),

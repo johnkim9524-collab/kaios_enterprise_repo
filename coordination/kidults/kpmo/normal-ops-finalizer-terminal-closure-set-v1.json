@@ -19,8 +19,14 @@
     "authorization_generation": "pr-2555-6a88733e40fc42290053-12cede9977fcc0d7",
     "immutable_generation_receipt_present": false,
     "core_four_sentinel_verified_pass_run_id": 37127734948,
-    "natural_assurance_success_run_ids": [37127760529, 37127976354],
-    "natural_success_authority_gate_run_ids": [37127791377, 37128009543]
+    "natural_assurance_success_run_ids": [
+      37127760529,
+      37127976354
+    ],
+    "natural_success_authority_gate_run_ids": [
+      37127791377,
+      37128009543
+    ]
   },
   "root_causes": [
     "Protected-main supersession does not retain repository_dispatch autonomous authorization workflows during postmerge finalizer consumption.",
@@ -49,5 +55,32 @@
   "public": "HOLD",
   "g5": "HOLD",
   "provider_activation": "HOLD",
-  "completion_declared": false
+  "completion_declared": false,
+  "stale_base_broker_scope_followup": {
+    "state": "PLANNED",
+    "root_incident_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+    "source_main_sha": "88c0786e74bc9255bfcd46fac178b8fc0f1c89bd",
+    "failure_evidence": {
+      "dispatcher_run_id": 37229007861,
+      "artifact_id": 11312572823,
+      "pull_request": 2462,
+      "head_sha": "187dbcbfa3a6e8ea4a4872bbf1104632104a6cce",
+      "failure_code": "STALE_BASE_UPDATE_HTTP_403"
+    },
+    "root_cause": "GitHub App update-branch requires contents write on the head repository; the stale convergence profile only mints pull_requests write.",
+    "correction_scope": "Add contents write only to the exact-bound stale convergence profile; preserve hygiene scope, live tuple checks, no force push, and original finalizer reservation owner.",
+    "runtime_state": "NOT_VERIFIED",
+    "exit_criteria": [
+      "Exact-head regression and negative verification",
+      "Governed protected-main landing",
+      "Exact deployed STAGING broker code and deny canary",
+      "Existing #2462 reconciled before one brokered expected-head update",
+      "Real Dispatcher original receipt reuse and finalizer reservation consumption",
+      "Immutable terminal receipt for the original generation",
+      "Two complete natural generations on the unchanged final main"
+    ],
+    "whole_platform_completion_declared": false,
+    "remaining_human_and_value_chain_gates_unchanged": true,
+    "rollback": "Governed revert of the corrective PR; preserve ledger and reservation history."
+  }
 }
