@@ -1976,8 +1976,8 @@
     {
       "path": "coordination/kidults/kpmo/post-2557-residual-closure-review-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6d97ee932a0f13335fdb67fdf2b700245093c433",
-      "sha256": "sha256:251134faecd20a190246dddcccafa2d758d82bfc6839a34c6deef0b86966e486",
+      "git_blob": "4f5fa06ec71e55bad603a878ddc7d8fa6935e6a4",
+      "sha256": "sha256:a4752ac7d4ec687dce316c3b6f5676594b6efa28c9a2d23e8bb621b744fa8517",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5648,5 +5648,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7df5756cf764e72609bebef3e6a1b2ff37a8fab95a94514c107a5902eee1fa78"
+  "manifest_sha256": "sha256:f1e775caf16914ecf2efeaa863362121924fe1a38b5094d9eb661884905a39ef"
 }
