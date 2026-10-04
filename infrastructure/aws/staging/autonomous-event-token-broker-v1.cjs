@@ -74,13 +74,28 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
 }
 
 exports.createHandler=createHandler;
-exports.handler=async event => {
+exports.handler=async (event,context) => {
   const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');
   const client=new SecretsManagerClient({region:process.env.AWS_REGION});
   const getPrivateKey=async () => {
     const value=await client.send(new GetSecretValueCommand({SecretId:process.env.GITHUB_APP_PRIVATE_KEY_SECRET_ARN}));
     return value.SecretString;
   };
+  if(event?.action==='RESUME_AUTHORIZATION_DISPATCH') {
+    const load=typeof __resumeLoad==='function' ? __resumeLoad : async () => import('../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
+    const {brokerResumeDispatch}=await load('scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
+    const {DynamoDBClient}=require('@aws-sdk/client-dynamodb');
+    const {DynamoDBDocumentClient,GetCommand,PutCommand,UpdateCommand}=require('@aws-sdk/lib-dynamodb');
+    const db=DynamoDBDocumentClient.from(new DynamoDBClient({region:process.env.AWS_REGION,maxAttempts:1}));
+    const commands={Get:GetCommand,Put:PutCommand,Update:UpdateCommand};
+    const config={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
+      appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID,
+      operationTable:process.env.RESUME_OPERATION_TABLE,activationRunFloor:process.env.RESUME_ACTIVATION_RUN_FLOOR};
+    const request=(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)});
+    return brokerResumeDispatch({event,config,getPrivateKey,request,owner:context?.awsRequestId,
+      ledgerRequest:(operation,params)=>db.send(new commands[operation](params)),
+      mint:createHandler({getPrivateKey,request,config})});
+  }
   return createHandler({getPrivateKey,config:{repository:process.env.GITHUB_REPOSITORY,
     repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.GITHUB_APP_ID,
     installationId:process.env.GITHUB_APP_INSTALLATION_ID},

@@ -1,5 +1,5 @@
 import {buildDispatchRequest,transitionDispatchReceipt,DISPATCH_EVENT_TYPE} from './autonomous-dispatch-fanout-v1.mjs';
-import {canonicalJson,sha256} from './autonomous-internal-landing-v1.mjs';
+import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {resumeOperation} from '../../staging-operations/lib/resume-operation-v1.mjs';
 
 // Protected wiring: ledger/readExternal/authenticateReceipt/authorize/send

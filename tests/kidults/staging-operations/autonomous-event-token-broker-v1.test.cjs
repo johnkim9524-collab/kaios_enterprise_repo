@@ -9,10 +9,10 @@ const base='a'.repeat(40),head='b'.repeat(40),repo='johnkim9524-collab/kaios_ent
 const event={action:'MINT_INSTALLATION_TOKEN',repository:repo,repository_id:'123',pull_request:42,
   base_sha:base,head_sha:head,authorization_generation:'generation-00001'};
 const config={repository:repo,repositoryId:'123',appId:'55',installationId:'66'};
-test('template embeds reviewed source and limits secret and invoke scopes',()=>{
+test('template embeds reviewed source and limits secret and invoke scopes',async()=>{
   const template=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.json'));
-  assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,
-    fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs','utf8'));
+  const {buildBrokerCode}=await import('../../../scripts/governance/build-resume-broker-template-v1.mjs');
+  assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
   const secret=template.Resources.BrokerRole.Properties.Policies[0].PolicyDocument.Statement;
   assert.deepEqual(secret,[{Effect:'Allow',Action:['secretsmanager:GetSecretValue'],Resource:{Ref:'GitHubPrivateKeySecretArn'}}]);
   const invoker=template.Resources.EventBrokerInvokerRole.Properties;

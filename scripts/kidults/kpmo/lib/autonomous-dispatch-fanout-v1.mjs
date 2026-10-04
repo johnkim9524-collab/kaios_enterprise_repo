@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {canonicalJson, sha256} from './autonomous-internal-landing-v1.mjs';
+import {canonicalJson, sha256} from './canonical-json-v1.mjs';
 
 export const DISPATCH_EVENT_TYPE = 'kidults.authorization.generation.v1';
 export const DISPATCH_ROLES = Object.freeze([
