@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 710
+    "file_count": 713
   },
   "files": [
     {
@@ -2548,8 +2548,8 @@
     {
       "path": "docs/governance/RESUME_RUNTIME_HARDENING_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "198c30c8f719ab82d4ae75eaae690ce27b2ddd1c",
-      "sha256": "sha256:d602fdb1bae7f97aa49b6c521ba8cbd235d7886dc14b17e9da040c64050c487c",
+      "git_blob": "78eb8ae867cff7c2e2b68c4b4046a736a3bf851c",
+      "sha256": "sha256:146f7027f88204779ea4c2a884bdf1ec23d8c5496874253df07481f833932b39",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3573,6 +3573,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "bd9c45d92cc5cafec331fb24055e374bc5ed31a0",
       "sha256": "sha256:befe522e516dbf6b09fe8b3316ec691eb6486e1b02ca4600d318056d201d0d81",
+      "authorization_routing": {
+        "route": "DOMAIN_ADJUDICATION",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/lib/resume-dispatch-fanout-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "d53b833f1d7b0f2f3dc05d6cc5b16268b93c3b80",
+      "sha256": "sha256:5378555f714168d539ea7beb834d4a1f9361603610e1969be55cd717b0fc2a49",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5650,6 +5663,18 @@
       "sha256": "sha256:bce06738eca7af65239b6e1866cff880221dc4bc897f22d813c50725cd4e2b31"
     },
     {
+      "path": "tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "487c058b013e7b966b33d62f047e284ad9cbd811",
+      "sha256": "sha256:0178e8c5673bb170431874d468750142f77bcffd157c298b5458bfe9a91197e2"
+    },
+    {
+      "path": "tests/kidults/staging-operations/resume-postgres-v1.integration.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "749c51fc30dcd6c36954e75af41596450459d396",
+      "sha256": "sha256:ef6578c6a2303db24f01c99c2342cee36815b7c0b3e51edbd7432382fa5bf5f2"
+    },
+    {
       "path": "tests/observability/test_runtime.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "f6410d7df7221c90956ec5eabf76c06ba1fdfb9b",
@@ -5674,5 +5699,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:73c8456c7373135824407008a1401ead9e3639293c5006ef6e03baec13ac7097"
+  "manifest_sha256": "sha256:ef2418be0241e4147030f9fb11cbdd6754922bc12c79afd527f47d2c3ed67ae9"
 }

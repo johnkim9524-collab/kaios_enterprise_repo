@@ -6,6 +6,8 @@ State: IMPLEMENTED_NOT_VERIFIED. This document is not a landing authority or an 
 
 The PostgreSQL adapter has a unique operation key and conditional terminal updates. Its SQL is implementation, not evidence of deployed schema or live database behavior. The JavaScript concurrency test uses an atomic test ledger and proves orchestration behavior only. No cross-system exactly-once guarantee is claimed.
 
+The generation-bound dispatch builder is composed with the executor by `resume-dispatch-fanout-v1.mjs`. Its receipt checks retain exact binding and digest validation and additionally require a protected authenticator. Stable identity excludes workflow run and attempt. This function is not yet called by the normal dispatcher workflow; disposable PostgreSQL CI exercises its concurrency and replacement reuse using explicitly isolated transport fixtures. The token broker remains token-only and the current workflow still performs its direct GitHub request.
+
 ## Integration and acceptance still required
 
 1. Wire protected source-state readers, authority checks, and receipt validators for each push, PR, approval, review request, dispatch, deployment, generation, and reservation consumption adapter. No permissive default callback is allowed.
