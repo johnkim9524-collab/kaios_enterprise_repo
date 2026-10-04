@@ -31,10 +31,11 @@ function fixture(){
     },
     readImmutable:async()=>object&&clone(object),
     sealIfAbsent:async({key,terminal,if_none_match,object_lock_mode,retention_years})=>{
-      assert.equal(object,null,'conditional immutable put conflict');assert.equal(if_none_match,'*');assert.equal(object_lock_mode,'COMPLIANCE');assert.equal(retention_years,10);
+      if(object)return clone(object); // Conditional collision reads the same immutable version.
+      assert.equal(if_none_match,'*');assert.equal(object_lock_mode,'COMPLIANCE');assert.equal(retention_years,10);
       calls.seal++;object={state:'OBJECT_LOCK_COMPLIANCE_VERIFIED',key,version_id:'immutable-version-1',receipt_digest:terminal.receipt_digest,object_lock_mode:'COMPLIANCE',checksum_verified:true,retention_verified:true,encryption_verified:true};return clone(object);
     },
-    acknowledgeImmutable:async()=>{calls.ack++;},
+    acknowledgeImmutable:async({immutable})=>{calls.ack++;observed.reservation.recovery_immutable=clone(immutable);},
     merge:async()=>{calls.merge++;throw new Error('merge must never be called');}
   };
   return {request,observed,authority,evidence,calls,adapter,run:()=>runPostmergeTerminalRecovery({request,recoveryRunId:'9001',adapter,now:()=>NOW})};
@@ -98,4 +99,28 @@ test('ambiguous timezone or normalized invalid date cannot establish recovery au
     const f=fixture();f.request=buildPostmergeRecoveryRequest({sourceSha:SHA,issuedAt,expiresAt:'2026-10-03T15:20:00.000Z'});
     await assert.rejects(runPostmergeTerminalRecovery({request:f.request,recoveryRunId:'9001',adapter:f.adapter,now:()=>NOW}),/RECOVERY_TIMESTAMP/);assert.equal(f.calls.consume,0);
   }
+});
+
+test('absent-object HEAD 403 without ListBucket never becomes an absence assertion',async()=>{
+  const f=fixture(),read=f.adapter.readImmutable;
+  f.adapter.readImmutable=async input=>{
+    if(f.calls.seal===0)throw Object.assign(new Error('HEAD forbidden for absent object'),{aws_code:'403'});
+    return read(input);
+  };
+  const result=await f.run();assert.equal(result.state,'FINALIZER_TERMINAL_RECOVERY_VERIFIED');
+  assert.equal(f.calls.consume,1);assert.equal(f.calls.seal,1);assert.equal(f.calls.ack,1);
+});
+test('recorded ACK reads its exact immutable version without conditional create',async()=>{
+  const f=fixture();await f.run();const read=f.adapter.readImmutable;let version;
+  f.adapter.readImmutable=async input=>{version=input.version_id;return read(input);};
+  f.adapter.sealIfAbsent=async()=>{throw new Error('completed receipt must not attempt a write');};
+  await f.run();assert.equal(version,'immutable-version-1');assert.equal(f.calls.consume,1);assert.equal(f.calls.seal,1);
+});
+test('recorded ACK metadata drift cannot create another object or consume again',async()=>{
+  const f=fixture();await f.run();f.observed.reservation.recovery_immutable.key+='foreign';
+  await assert.rejects(f.run(),/RECOVERY_RECORDED_IMMUTABLE_BINDING/);assert.equal(f.calls.consume,1);assert.equal(f.calls.seal,1);
+});
+test('HEAD 403 after conditional creation remains fail closed and never ACKs',async()=>{
+  const f=fixture();f.adapter.readImmutable=async()=>{throw Object.assign(new Error('HEAD forbidden'),{aws_code:'403'});};
+  await assert.rejects(f.run(),/HEAD forbidden/);assert.equal(f.calls.consume,1);assert.equal(f.calls.seal,1);assert.equal(f.calls.ack,0);
 });

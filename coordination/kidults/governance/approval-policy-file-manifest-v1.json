@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fb098d0d9b6b1cc91069bf244a40d629d4de5359",
+  "revision": "0f190fc63fde0f7500577cee27ef7937f3b251ec",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3415,8 +3415,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-postmerge-recovery-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4a5f99654ce130f2928efe9fa728ebe7d8331f25",
-      "sha256": "sha256:98359f006aa63be15fd91b3a3090c9d45e3bc6be085bc872f1995f97518253a6",
+      "git_blob": "2230e550ff041628dff60481b02154a13a45840b",
+      "sha256": "sha256:554166a13ba8cffd8a7c7fb51a170befb19d99c103f714260ae637f62d10a625",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5392,8 +5392,8 @@
     {
       "path": "tests/kidults/kpmo/autonomous-postmerge-recovery-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "40b419a58dee4b67c841d8e83ac3af6ea75fd53b",
-      "sha256": "sha256:bb8d97ff220929ef65654bc75cf39fb7a61cb5b542b1c8c8d54a9d4a247653d1"
+      "git_blob": "2cf77347fa24d32e42140f2e32959a54ccfb4418",
+      "sha256": "sha256:05061a7b7dc32a5d04a29721d49cf9fb017025cb2ade25ac8294afeea49f1324"
     },
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
@@ -5524,8 +5524,8 @@
     {
       "path": "tests/kidults/kpmo/postmerge-recovery-workload-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ba0893b52d940238ecee16548d65f235848b9760",
-      "sha256": "sha256:99274b4e3352d43d24729e8c8914558a045bcec8d41692e6dab5e22b9a3cc6db"
+      "git_blob": "9fe97d4222b0f2b8e4d16a65388e4c9fb7f49531",
+      "sha256": "sha256:d3e19eef53351297dccf1d5c366bb77000b29fea19e71d1e2cca4e84113d6f1f"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
@@ -5648,5 +5648,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:e1755c5de75e02ed84df733dd567a193031ea0289211841a933598e2574fdfd0"
+  "manifest_sha256": "sha256:66037b27637c3d06216e8c1dbe9c900980dfe677cfac536f971dbca4670105db"
 }

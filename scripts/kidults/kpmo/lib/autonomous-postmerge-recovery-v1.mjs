@@ -178,10 +178,19 @@ export async function runPostmergeTerminalRecovery({request,recoveryRunId,adapte
     assert(observed.reservation.recovery_run_id===terminal.recovery_run_id,'RECOVERY_RECORDED_WINNER');
   }
   const key=recoveryObjectKey(request);
-  let immutable=await adapter.readImmutable({key,terminal});
-  if(immutable===null){
+  const recordedImmutable=observed.reservation.recovery_immutable;
+  let immutable;
+  if(recordedImmutable){
+    assert(recordedImmutable.key===key&&recordedImmutable.receipt_digest===terminal.receipt_digest
+      &&typeof recordedImmutable.version_id==='string'&&recordedImmutable.version_id.length>0,
+      'RECOVERY_RECORDED_IMMUTABLE_BINDING');
+    immutable=await adapter.readImmutable({key,terminal,version_id:recordedImmutable.version_id});
+  }else{
+    // No receipt ACK is stored. Conditional creation does not require a bucket
+    // listing/absence oracle and cannot overwrite an existing immutable version.
+    // sealIfAbsent reconciles a precise 409/412 collision by authenticated read.
     immutable=await adapter.sealIfAbsent({key,terminal,if_none_match:'*',object_lock_mode:'COMPLIANCE',retention_years:10});
-    // The write result is insufficient: verify the stored immutable version.
+    // A write or collision result is insufficient: verify the exact stored version.
     const readback=await adapter.readImmutable({key,terminal,version_id:immutable?.version_id});
     assert(readback!==null,'RECOVERY_IMMUTABLE_READBACK_MISSING');immutable=readback;
   }

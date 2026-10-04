@@ -86,8 +86,8 @@ test('finalizer consumes pinned evidence once; expired resume reads stored immut
       request_digest:sha256(canonicalJson(f.request)),expires_at:f.request.expires_at}))};};
   f.ledger.consumeOnce=async({terminal,recoveryRunId})=>{assert.equal(f.reservation.state,'RESERVED');consumes++;
     Object.assign(f.reservation,{state:'CONSUMED',recovery_run_id:recoveryRunId,recovery_terminal:terminal});};
-  f.ledger.acknowledgeImmutable=async()=>{};
-  const immutable={readImmutable:async()=>object,sealIfAbsent:async({key,terminal})=>{seals++;
+  f.ledger.acknowledgeImmutable=async({immutable})=>{f.reservation.recovery_immutable=structuredClone(immutable);};
+  const immutable={readImmutable:async({version_id})=>{assert.equal(version_id,'version-1');return object;},sealIfAbsent:async({key,terminal})=>{seals++;
     object={state:'OBJECT_LOCK_COMPLIANCE_VERIFIED',key,version_id:'version-1',receipt_digest:terminal.receipt_digest,
       object_lock_mode:'COMPLIANCE',checksum_verified:true,retention_verified:true,encryption_verified:true};return object;}};
   const workload=createRecoveryWorkload({role:'FINALIZER',ledger:f.ledger,github:f.github,evidence:f.collector,immutable,now:()=>clock});
