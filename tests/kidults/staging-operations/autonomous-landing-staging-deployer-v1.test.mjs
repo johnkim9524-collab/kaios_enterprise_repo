@@ -1,3 +1,5 @@
+// Run bounded live-history regression in the existing independent STAGING CI job.
+import '../../../scripts/kidults/supply-chain/restore-exact-github-artifact-history-v1.test.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -118,19 +120,22 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   ]);
 });
 
-test('configuration permission is the sole bootstrap delta from landed recovery source', () => {
-  // SHA-256 of canonical JSON from the exact landed e23e9d031ccd4bbda950e3de23ad103ddea41665 bootstrap.
-  // Keep provenance verification independent of the runner checkout's history depth.
-  const beforeDigest = '4e6fd5c5302522c04a335f2d39f30ae40ae9621b394246b7a0da3ef8b0272067';
+test('PassRole is the sole bootstrap delta from exact landed configuration closure', () => {
+  // Canonical bootstrap JSON at exact main 34ff0ffc48c773d41ad7587233d69ea48b2f3282.
+  const beforeDigest = 'fc59c7104f1f60be71550906972add2e443da66bc12c6c1607dd7bcf86d078f4';
   const after = structuredClone(bootstrap);
   const statements = after.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement;
-  const configuration = statements.filter(statement => Array.isArray(statement.Action) && statement.Action.includes('lambda:UpdateFunctionConfiguration'));
-  assert.equal(configuration.length, 1);
-  assert.equal(configuration[0].Effect, 'Allow');
-  assert.equal(configuration[0].Resource, 'arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging');
-  configuration[0].Action = configuration[0].Action.filter(action => action !== 'lambda:UpdateFunctionConfiguration');
-  const afterDigest = createHash('sha256').update(JSON.stringify(stable(after))).digest('hex');
-  assert.equal(afterDigest, beforeDigest, 'all other permissions, resources, trust, and properties remain exact');
+  const passRole = statements.filter(statement => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('iam:PassRole'));
+  assert.equal(passRole.length, 1);
+  assert.deepEqual(passRole[0], {
+    Effect: 'Allow',
+    Action: ['iam:PassRole'],
+    Resource: 'arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role',
+    Condition: {StringEquals: {'iam:PassedToService': 'lambda.amazonaws.com'}},
+  });
+  statements.splice(statements.indexOf(passRole[0]), 1);
+  assert.equal(createHash('sha256').update(JSON.stringify(stable(after))).digest('hex'), beforeDigest,
+    'all existing permissions, resources, trust, and properties remain exact');
 });
 
 test('all approval roles carry one exact ledger-key decrypt and no KMS decrypt wildcard', () => {

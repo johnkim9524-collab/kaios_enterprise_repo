@@ -378,42 +378,60 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
   validateWorkflowMetadata(workflowMetadata, specification);
 
   const lookbackStart = new Date(Date.now() - specification.lookbackDays * 86_400_000).toISOString();
-  const runQuery = (page) => encodeQuery({
-    branch: specification.branch,
-    status: 'success',
-    created: `>=${lookbackStart}`,
-    per_page: 100,
-    page,
-  });
-  const runReadback = await collectCompletePages({
-    label: 'WORKFLOW_RUN_HISTORY',
-    rowsKey: 'workflow_runs',
-    maxPages: specification.maxPages,
-    fetchPage: (page) => getJson(`${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${runQuery(page)}`),
-  });
+  // PR validation is not a live producer. Reconcile each allowed event before
+  // deciding whether live history exists inside or outside the bounded lookback.
+  const eventReadbacks = [];
+  let pagesFetched = 0;
+  for (const event of specification.allowedEvents) {
+    const remainingPages = specification.maxPages - pagesFetched;
+    if (remainingPages < 1) fail('PAGINATION_BOUND_EXCEEDED', 'ALLOWED_EVENT_HISTORY');
+    const readback = await collectCompletePages({
+      label: `WORKFLOW_RUN_HISTORY_${event}`,
+      rowsKey: 'workflow_runs',
+      maxPages: remainingPages,
+      fetchPage: (page) => getJson(`${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
+        branch: specification.branch, status: 'success', event,
+        created: `>=${lookbackStart}`, per_page: 100, page,
+      })}`),
+    });
+    if (readback.rows.some(run => run?.event !== event)) fail('RUN_EVENT_FILTER_MISMATCH', event);
+    pagesFetched += readback.pagesFetched;
+    eventReadbacks.push(readback);
+  }
+  const runReadback = {
+    rows: eventReadbacks.flatMap(readback => readback.rows),
+    totalCount: eventReadbacks.reduce((total, readback) => total + readback.totalCount, 0),
+    pagesFetched,
+  };
+  if (new Set(runReadback.rows.map(run => run.id)).size !== runReadback.rows.length) {
+    fail('WORKFLOW_RUN_HISTORY_DUPLICATE_ROW_ID');
+  }
   const runs = selectAllowedProducerRuns(runReadback.rows, specification, repository);
 
   if (!runs.length) {
     if (runReadback.totalCount > 0) fail('NO_ALLOWED_PRODUCER_HISTORY', runReadback.totalCount);
     if (!specification.allowNoProducerHistory) fail('NO_PRODUCER_HISTORY');
-    const allHistoryProbe = await getJson(
-      `${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
-        branch: specification.branch,
-        status: 'success',
-        per_page: 1,
-        page: 1,
-      })}`,
-    );
-    const allHistoryTotal = requireNonNegativeInteger(
-      allHistoryProbe?.total_count,
-      'ALL_HISTORY_TOTAL_COUNT_INVALID',
-    );
-    if (!Array.isArray(allHistoryProbe?.workflow_runs) || allHistoryProbe.workflow_runs.length > 1) {
-      fail('ALL_HISTORY_PROBE_INVALID');
+    let allHistoryTotal = 0;
+    let allHistoryRowCount = 0;
+    for (const event of specification.allowedEvents) {
+      const probe = await getJson(`${apiBase}/workflows/${encodeURIComponent(workflowFile)}/runs?${encodeQuery({
+        branch: specification.branch, status: 'success', event, per_page: 1, page: 1,
+      })}`);
+      const total = requireNonNegativeInteger(probe?.total_count, 'ALL_HISTORY_TOTAL_COUNT_INVALID');
+      if (!Array.isArray(probe?.workflow_runs) || probe.workflow_runs.length !== Math.min(total, 1)) {
+        fail('ALL_HISTORY_PROBE_INVALID');
+      }
+      for (const run of probe.workflow_runs) {
+        if (run?.event !== event) fail('RUN_EVENT_FILTER_MISMATCH', event);
+        validateProducerRun(run, specification, repository);
+        if (Date.parse(run.created_at) >= Date.parse(lookbackStart)) fail('ALLOWED_HISTORY_LOOKBACK_INCONSISTENT', run.id);
+      }
+      allHistoryTotal += total;
+      allHistoryRowCount += probe.workflow_runs.length;
     }
     const baselineState = resolveNoProducerHistoryBaselineState(
       allHistoryTotal,
-      allHistoryProbe.workflow_runs.length,
+      Number(allHistoryRowCount > 0),
       specification.allowProducerHistoryOutsideLookbackBaseline,
     );
     const historyExistsOutsideLookback = baselineState === 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY';
