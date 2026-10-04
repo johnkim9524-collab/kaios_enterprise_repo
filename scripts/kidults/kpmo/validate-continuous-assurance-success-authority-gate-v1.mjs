@@ -19,7 +19,9 @@ const requiredWorkflowTokens = [
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
   'Restore latest exact-main natural Sentinel producer-health receipt',
-  'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?branch=main&per_page=100',
+  'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
+  'gh api --method GET',
+  '-f branch=main -f per_page=100 -f "created=<=${UPSTREAM_CREATED_AT}"',
   'select-latest-natural-sentinel-run-v1.mjs',
   'PRODUCER_HEALTH_CONCLUSION',
   'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
@@ -41,6 +43,24 @@ const requiredWorkflowTokens = [
 ];
 for (const token of requiredWorkflowTokens) {
   if (!workflow.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_TOKEN_MISSING:${token}`);
+}
+
+function requireBoundedSentinelQuery(source) {
+  const command = source.match(/gh api --method GET[^\n]*\\\n\s*"\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs"[^\n]*\\\n\s*-f branch=main -f per_page=100 -f "created=<=\$\{UPSTREAM_CREATED_AT\}"/);
+  if (!command) fail('SUCCESS_AUTHORITY_GATE_SENTINEL_QUERY_BOUNDARY');
+}
+requireBoundedSentinelQuery(workflow);
+for (const [before, after] of [
+  ['-f "created=<=${UPSTREAM_CREATED_AT}"', ''],
+  ['-f branch=main', '-f branch=untrusted'],
+  ['gh api --method GET', 'gh api --method POST'],
+  ['-f per_page=100', '-f per_page=1000'],
+]) {
+  const mutated = workflow.replace(before, after);
+  if (mutated === workflow) fail('SUCCESS_AUTHORITY_GATE_QUERY_MUTATION_SETUP');
+  let rejected = false;
+  try { requireBoundedSentinelQuery(mutated); } catch { rejected = true; }
+  if (!rejected) fail('SUCCESS_AUTHORITY_GATE_QUERY_MUTATION_ACCEPTED');
 }
 
 if (workflow.includes('.conclusion=="success"') && workflow.includes('.created_at<=$before')) {

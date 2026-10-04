@@ -284,14 +284,14 @@
     ],
     "later_success_authority_gate": 37159050311
   },
-  "reviewable_bundle_state": "LOCAL_FULL_CORRECTIVE_BUNDLE_VERIFIED_AWAITING_EXPLICIT_PR_BUDGET_EXCEPTION",
+  "reviewable_bundle_state": "PR_2558_DRAFT_EXACT_HEAD_CI_FAILURE_ROOTS_IDENTIFIED",
   "external_effects_this_chunk": {
     "bootstrap_changeset_created_once": "kpmo-bootstrap-provenance-1d7981f6c09e",
     "bootstrap_changeset_executed_once": "4c643de0-6ebb-4627-bcbc-e9882acf981c",
     "effective_authority_expansion": false,
     "runtime_recovery_writer_deployed": false,
-    "repository_push": false,
-    "additional_pr_created": false,
+    "repository_push": true,
+    "additional_pr_created": 2558,
     "workflow_dispatch": false,
     "new_approval_recorded": false,
     "reservation_consumed": false
@@ -299,5 +299,31 @@
   "reference_docs": [
     "https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows",
     "https://docs.github.com/en/rest/actions/workflow-runs"
-  ]
+  ],
+  "additional_corrective_pr_exception": {
+    "approved": true,
+    "consumed_by_pr": 2558,
+    "approved_base": "1d7981f6c09e2b7ad52fe5a819c59a54ea01525c",
+    "approved_head": "ed7262daa30748331eae42180960b95e62d68803",
+    "new_head_owner_authorization_recorded": false
+  },
+  "ci_failure_closure": {
+    "exact_head": "ed7262daa30748331eae42180960b95e62d68803",
+    "failed_runs": [
+      37164246326,
+      37164246399,
+      37164246277,
+      37164246396,
+      37164246340
+    ],
+    "root_causes": [
+      "UNREFRESHED_APPROVAL_POLICY_MANIFEST",
+      "STATIC_WORKFLOW_EVENT_AND_SENTINEL_QUERY_GUARDS_OUT_OF_SYNC",
+      "CI_MISSING_CRYPTOGRAPHY_AND_PYYAML_HASHED_TEST_DEPENDENCIES"
+    ],
+    "correction_state": "IMPLEMENTED_NOT_EXTERNAL_VERIFIED",
+    "independent_test_job": "CI Validation / Validate KAIOS Foundation / Independently verify bounded postmerge terminal recovery at exact head",
+    "new_dispatch": false,
+    "new_deployment": false
+  }
 }
