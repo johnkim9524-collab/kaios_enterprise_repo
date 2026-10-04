@@ -2548,8 +2548,8 @@
     {
       "path": "docs/governance/RESUME_RUNTIME_HARDENING_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "78eb8ae867cff7c2e2b68c4b4046a736a3bf851c",
-      "sha256": "sha256:146f7027f88204779ea4c2a884bdf1ec23d8c5496874253df07481f833932b39",
+      "git_blob": "2ff44d42870718a5489bdc5efd82ec7294d56529",
+      "sha256": "sha256:20aa14222cf6d216b04daccb63295fb17eb8450cdbf235b28a737a504ed7529e",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5699,5 +5699,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ef2418be0241e4147030f9fb11cbdd6754922bc12c79afd527f47d2c3ed67ae9"
+  "manifest_sha256": "sha256:8479bb00be9e165a477e8229ff594535ab9d240d1a02c2acfd7c3af5215932fc"
 }
