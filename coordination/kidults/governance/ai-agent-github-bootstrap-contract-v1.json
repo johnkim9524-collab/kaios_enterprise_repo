@@ -494,5 +494,11 @@
     "EXTERNAL_SPEND",
     "CONTRACTUAL_COMMITMENT",
     "EXPANDED_CREDENTIAL_OR_PERMISSION"
-  ]
+  ],
+  "resume_contract": {
+    "mandatory": true,
+    "path": "coordination/kidults/governance/resume-contract-v1.json",
+    "before_any_task_side_effect": true,
+    "external_enforcement_proven_by_policy_alone": false
+  }
 }

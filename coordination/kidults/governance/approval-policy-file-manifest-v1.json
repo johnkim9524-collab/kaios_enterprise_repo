@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "0f190fc63fde0f7500577cee27ef7937f3b251ec",
+  "revision": "46ab5db26965100e437ddf7537c487d2337e6f16",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -15,8 +15,8 @@
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "79262bf6b606ad0b0c2e6719b90384ab4ae15091",
-      "sha256": "sha256:6adf86dfe53aa4733f3347e64d717683f8cc19ce3c11f1661ed347a3179e166d"
+      "git_blob": "6f32e16d764112cb56b2355b304382e86a6c2bb6",
+      "sha256": "sha256:efbd372a1ec94e02c38d5553b89353d291ccb9bb72c0ad28ce0ee67e3b61b78a"
     },
     {
       "path": ".github/copilot-instructions.md",
@@ -743,8 +743,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "27c73d9a31dcad1b6b5de2065ebc2b940f689d24",
-      "sha256": "sha256:2359549f8e0b551bf1160b44e8b57c3343ea7c08ab92f1ce8fc9f928b55f69f4"
+      "git_blob": "0be7ee25c9e16f4b6752a654ce3981e5a85f15f4",
+      "sha256": "sha256:b2faed3e9f73b5bcb4b4631032dcb9f183649e04d51e736d7981cfa11ce7084b"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1223,8 +1223,8 @@
     {
       "path": "coordination/kidults/bootstrap/README.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "25d210542da20704533c68519c6b83ae8c3326b8",
-      "sha256": "sha256:c99cc881325e704f580638ccab4e0a64f537d45848e6315c8affd09d8613f233"
+      "git_blob": "e2cd1b553a04fadf48f2a779813926016eaf8e90",
+      "sha256": "sha256:e9a3ea031a0cf04c19b85973d5dae2b78d485acd24dcd800a58a0592b0cfde1c"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_C_PORTAL_V502_BOOTSTRAP.md",
@@ -1307,8 +1307,8 @@
     {
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "806d2d6a08fe58cc47c4f5b7649eec811db8f876",
-      "sha256": "sha256:0ea2e83a6d2e0c11da52dacda5075d616175a404e13c22c41603a02bdb521cc0",
+      "git_blob": "a6e45d3b5354121c1be594bbd37c46a6657ddd29",
+      "sha256": "sha256:21508b5956c9c947acbf3cf30156ce74fe6b0cf58c72f4ae518d75cd3a32f66b",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5648,5 +5648,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:66037b27637c3d06216e8c1dbe9c900980dfe677cfac536f971dbca4670105db"
+  "manifest_sha256": "sha256:e5bbf9839150fc46454591f3f7838e7cbe4776badfae48c76641bf317e03e4d9"
 }
