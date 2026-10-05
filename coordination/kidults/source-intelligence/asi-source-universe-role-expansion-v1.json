@@ -1,0 +1,166 @@
+{
+  "id": "kidults-asi-source-universe-role-expansion-v1",
+  "version": "1.0.0",
+  "status": "DESIGN_ONLY_SEPARATE_PROGRAM",
+  "owner": "KPMO",
+  "runtime_owner_after_activation": "ASI",
+  "base_main_sha": "6c166ace6942acc82dd6cabcdb26950a44d8447b",
+  "purpose": "Expand ASI from market-first commercial-site discovery into role-complete global source-universe discovery without changing the active autonomous-operations closure mission or PSA validation path.",
+  "authoritative_inputs": [
+    "coordination/kidults/source-intelligence/asi-sourcing-direction-contract-v2.json",
+    "coordination/kidults/source-intelligence/asi-sourcing-direction-registry-v2.json",
+    "coordination/kidults/source-intelligence/global-source-mesh-contract-v1.json",
+    "coordination/kidults/source-intelligence/autonomous-source-intelligence-program-v1.json"
+  ],
+  "non_conflict_boundary": {
+    "classification": "SEPARATE_PROGRAM",
+    "main_mutation": false,
+    "runtime_mutation": false,
+    "workflow_mutation": false,
+    "aws_mutation": false,
+    "staging_mutation": false,
+    "provider_call": false,
+    "provider_activation": false,
+    "credential_change": false,
+    "external_spend": false,
+    "production": "HOLD",
+    "public_release": "HOLD",
+    "g5": "HOLD",
+    "autonomous_normal_operations_closure_files": "DO_NOT_TOUCH",
+    "psa_validation_files_and_receipts": "DO_NOT_TOUCH",
+    "activation_condition": "ONLY_AFTER_ACTIVE_AUTONOMOUS_CLOSURE_AND_PSA_BOUNDARIES_ARE_RECONCILED_FROM_LIVE_STATE"
+  },
+  "strategy": {
+    "north_star": "GLOBAL_SOURCE_UNIVERSE_DISCOVERY_NOT_COMMERCIAL_SITE_COUNT",
+    "existing_market_first_discovery": "CONTINUE_UNINTERRUPTED",
+    "new_requirement": "PRESERVE_AND_CLASSIFY_ORIGIN_AUTHORITY_DISTRIBUTION_MARKET_TRUST_AND_INTELLIGENCE_CANDIDATES",
+    "discovery_is_not_collection": true,
+    "collection_is_not_admission": true,
+    "admission_is_not_claim": true
+  },
+  "source_layers": [
+    {
+      "layer": "L0_AUTHORITY",
+      "purpose": "Official legal, regulatory, registry and institutional facts.",
+      "maps_to_existing_roles": ["PRIMARY_AUTHORITY", "INDEPENDENT_VERIFICATION"],
+      "candidate_entity_types": ["GOVERNMENT", "REGULATOR", "OFFICIAL_REGISTRY", "STANDARDS_BODY", "INSTITUTION"]
+    },
+    {
+      "layer": "L1_ORIGIN",
+      "purpose": "Canonical product and object origin, release, specification and lifecycle facts.",
+      "maps_to_existing_roles": ["PRIMARY_AUTHORITY", "CATALOG_REFERENCE"],
+      "candidate_entity_types": ["MANUFACTURER", "BRAND", "PUBLISHER", "MINT", "STUDIO", "IP_OWNER", "LICENSEE", "ARTIST_ATELIER"]
+    },
+    {
+      "layer": "L2_DISTRIBUTION",
+      "purpose": "Primary distribution, regional availability, inventory and channel facts.",
+      "maps_to_existing_roles": ["CATALOG_REFERENCE", "LISTING_SUPPLY"],
+      "candidate_entity_types": ["OFFICIAL_DISTRIBUTOR", "AUTHORIZED_RETAILER", "DEALER", "PRIMARY_MARKET"]
+    },
+    {
+      "layer": "L3_MARKET",
+      "purpose": "Listings, sold transactions, auctions, private-sale evidence and liquidity observations.",
+      "maps_to_existing_roles": ["LISTING_SUPPLY", "SOLD_TRANSACTION", "AUCTION_PRIVATE_SALE"],
+      "candidate_entity_types": ["MARKETPLACE", "AUCTION_HOUSE", "EXCHANGE", "DEALER_MARKET", "PRIVATE_SALE_VENUE"]
+    },
+    {
+      "layer": "L4_TRUST",
+      "purpose": "Authentication, grading, certification, population and provenance evidence.",
+      "maps_to_existing_roles": ["AUTHENTICATION_CONDITION", "PROVENANCE_HISTORY", "INDEPENDENT_VERIFICATION"],
+      "candidate_entity_types": ["GRADING_AUTHORITY", "AUTHENTICATOR", "CERTIFICATION_REGISTRY", "POPULATION_CENSUS", "PROVENANCE_REGISTRY"]
+    },
+    {
+      "layer": "L5_INTELLIGENCE",
+      "purpose": "Context, research, specialist databases, cultural attention and independent interpretation.",
+      "maps_to_existing_roles": ["CULTURE_ATTENTION", "MACRO_CONTEXT", "INDEPENDENT_VERIFICATION"],
+      "candidate_entity_types": ["SPECIALIST_DATABASE", "RESEARCH_SOURCE", "TRADE_MEDIA", "COMMUNITY_CONTEXT", "ARCHIVE"]
+    }
+  ],
+  "origin_discovery_policy": {
+    "manufacturer_search_required": true,
+    "manufacturer_is_not_sufficient": true,
+    "expand_to": ["BRAND", "PUBLISHER", "MINT", "STUDIO", "IP_OWNER", "LICENSEE", "OFFICIAL_DISTRIBUTOR"],
+    "canonical_anchor_preference": "OFFICIAL_OR_FACTUAL_ORIGIN_WHERE_LAWFUL_AND_TRACEABLE",
+    "marketplace_may_define_value_observation_but_not_canonical_product_identity": true,
+    "preserve_local_language_and_regional_semantics": true
+  },
+  "coverage_cube": {
+    "dimensions": ["SCOPE", "GEOGRAPHY", "LANGUAGE", "SOURCE_LAYER", "SOURCE_ROLE", "LIFECYCLE_STAGE", "EVIDENCE_CLASS", "TIME"],
+    "completion_metric": "SEMANTIC_EMPIRICAL_COVERAGE_NOT_SITE_COUNT",
+    "required_gap_outputs": [
+      "UNREPRESENTED_ORIGIN_SURFACES",
+      "UNREPRESENTED_AUTHORITY_SURFACES",
+      "UNREPRESENTED_TRUST_SURFACES",
+      "REGIONAL_AND_LANGUAGE_GAPS",
+      "SOURCE_CONCENTRATION_AND_OWNER_FAMILY_GAPS"
+    ]
+  },
+  "candidate_record_minimum": [
+    "SOURCE_IDENTITY",
+    "OWNER_AND_FACTUAL_ORIGIN",
+    "SOURCE_LAYER",
+    "SOURCE_ROLE",
+    "ENTITY_TYPE",
+    "SCOPE",
+    "REGION",
+    "LANGUAGE",
+    "DISCOVERY_METHOD",
+    "SELECTION_REASON",
+    "RIGHTS_STATE",
+    "ACCESS_STATE",
+    "COST_STATE",
+    "FRESHNESS",
+    "CLAIM_CEILING",
+    "PROVENANCE",
+    "CONFIDENCE",
+    "EVIDENCE_REFS"
+  ],
+  "lifecycle": [
+    "DISCOVERED",
+    "CLASSIFIED",
+    "VALIDATED",
+    "CANDIDATE",
+    "RIGHTS_PREFLIGHT",
+    "BOUNDED_CANARY_IF_AUTHORIZED",
+    "PURPOSE_SPECIFIC_ADMISSION",
+    "MONITORED",
+    "REASSESSED",
+    "REPLACED_OR_RETIRED"
+  ],
+  "activation_plan": {
+    "phase_0_now": [
+      "PRESERVE_THIS_CONTRACT_ON_ISOLATED_BRANCH",
+      "NO_RUNTIME_OR_WORKFLOW_CHANGE",
+      "CONTINUE_EXISTING_COMMERCIAL_DISCOVERY",
+      "DO_NOT_DISCARD_ORIGIN_AUTHORITY_OR_TRUST_CANDIDATES"
+    ],
+    "phase_1_after_current_p0": [
+      "ADD_SOURCE_LAYER_CLASSIFICATION_TO_CANDIDATE_COMPILER",
+      "ADD_ORIGIN_AUTHORITY_DISCOVERY_QUERIES",
+      "ADD_COVERAGE_CUBE_LEDGER",
+      "ADD_ROLE_COMPLETE_GAP_REPORT",
+      "VALIDATE_WITHOUT_COLLECTION_OR_PROVIDER_ACTIVATION"
+    ],
+    "phase_2_after_validation": [
+      "BIND_CANONICAL_ENTITY_AND_EVIDENCE_GRAPH",
+      "ADD_EVENT_LIFECYCLE_DISCOVERY",
+      "ADD_AUTONOMOUS_REPRIORITIZATION_FROM_COVERAGE_GAPS"
+    ]
+  },
+  "psa_binding": {
+    "role": "L4_TRUST",
+    "existing_psa_validation_is_unchanged": true,
+    "psa_is_not_program_prerequisite": true,
+    "no_psa_call_from_this_program": true,
+    "no_psa_scope_expansion": true
+  },
+  "acceptance_for_later_activation": [
+    "NO_REGRESSION_TO_EXISTING_ASI_DISCOVERY",
+    "NO_CHANGE_TO_AUTONOMOUS_CLOSURE_AUTHORITY_CHAIN",
+    "NO_CHANGE_TO_PSA_VALIDATION_BOUNDARY",
+    "SOURCE_LAYER_CLASSIFICATION_DETERMINISTIC",
+    "MANUFACTURER_AND_OTHER_ORIGIN_TYPES_DISCOVERABLE",
+    "COVERAGE_REPORTED_BY_ROLE_AND_LAYER_NOT_SITE_COUNT",
+    "DISCOVERY_DOES_NOT_AUTHORIZE_COLLECTION_ADMISSION_OR_CLAIM"
+  ]
+}
