@@ -322,7 +322,7 @@ try {
     writeReceipt(receipt);
     await postHeadStatus('failure', 'Merge rejected or not committed; no landing authority');
     console.log(JSON.stringify(receipt));
-    process.exit(0);
+    process.exit(1);
   }
 
   assert(landingCurrentSoldChanged === 'true' || landingCurrentSoldChanged === 'false', 'ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID');
@@ -398,6 +398,7 @@ try {
     await postHeadStatus('pending', terminalClass);
   }
   console.log(JSON.stringify(receipt));
+  if (state !== 'VERIFIED_PASS') process.exitCode = 1;
 } catch (error) {
   const errorCode = String(error?.code || error?.message || 'ATOMIC_TERMINAL_RECONCILE_FAILED').split(':')[0].slice(0, 120);
   const receipt = baseReceipt('VERIFIED_FAIL', errorCode, {

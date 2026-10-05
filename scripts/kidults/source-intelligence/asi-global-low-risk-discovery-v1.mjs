@@ -30,10 +30,12 @@ async function hydrateIntentFromLatestMainAutobalance(){
    '--branch','main','--archive',zip,'--extract-dir',dir,'--receipt',receipt,
    '--required-basename','asi-throughput-coverage-autobalance-live-v1.json',
    '--max-pages','40','--lookback-days','35','--max-compressed-bytes','4194304',
-   '--allow-no-producer-history'
+   '--allow-no-producer-history',
+   '--allow-producer-history-outside-lookback-baseline',
+   '--allow-producer-history-without-artifact-baseline'
   ],{stdio:'pipe',env:{...process.env,GH_TOKEN:token}});
   const restored=JSON.parse(fs.readFileSync(receipt,'utf8'));
-  if(restored.state==='NO_PRODUCER_HISTORY_BASELINE_ONLY')return 'NO_PRODUCER_HISTORY_BASELINE_ONLY';
+  if(['NO_PRODUCER_HISTORY_BASELINE_ONLY','PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY','PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY'].includes(restored.state))return restored.state;
   if(restored.state!=='VERIFIED_PASS_EXACT_ARTIFACT_SAFE_EXTRACTION'||restored.exact_producer_bound!==true||restored.exact_run_bound!==true||restored.exact_source_sha_bound!==true||restored.exact_artifact_bound!==true||restored.exact_digest_bound!==true||restored.artifact_cardinality!==1||restored.pagination_reconciled_complete!==true||restored.safe_zip_validated_before_extraction!==true)throw new Error('EXACT_AUTOBALANCE_RESTORE_RECEIPT_INVALID');
   const balance=findFile(dir,'asi-throughput-coverage-autobalance-live-v1.json');
   if(!balance)throw new Error('AUTOBALANCE_FILE_NOT_FOUND_AFTER_VERIFIED_RESTORE');

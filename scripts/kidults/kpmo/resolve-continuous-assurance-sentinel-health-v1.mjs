@@ -5,7 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-import {REPOSITORY, MAX_ARCHIVE_BYTES, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
+import {REPOSITORY, MAX_ARCHIVE_BYTES, readArchive, validateProducerContent, validateCoverageAliasClosure} from './validate-sentinel-producer-content-v1.mjs';
 import {readSentinelEvent, validateSentinelTrigger} from './validate-sentinel-trigger-v1.mjs';
 
 const SHA=/^[0-9a-f]{40}$/;
@@ -13,10 +13,14 @@ const DIGEST=/^sha256:[0-9a-f]{64}$/;
 const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
 const SPECS=[
   {id:'SHADOW',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch'],artifacts:['kidults-asi-shadow-operating-evidence-v1']},
-  {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
-  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
-  {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_dispatch','issues'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
+  {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
+  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['repository_dispatch','schedule','workflow_run','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
+  {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
+const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');
+const CANONICAL_GENERATION_SPEC={id:'CANONICAL_GENERATION',workflow:'kpmo-canonical-generation-v3-apply.yml',path:'.github/workflows/kpmo-canonical-generation-v3-apply.yml',events:['push']};
+const CANONICAL_CONVERGENCE_MAX_WAIT_MS=90_000;
+const CANONICAL_CONVERGENCE_POLL_MS=5_000;
 
 const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
 const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(typeof value==='string'?value:stable(value)).digest('hex')}`;
@@ -30,6 +34,26 @@ function sealReceipt(base){
 
 const positiveInteger=value=>Number.isSafeInteger(value)&&value>0;
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
+export const MAX_PRODUCER_COHORT_SPAN_MS=45*60*1000;
+
+export function assessProducerCohort(producers){
+  const complete=Array.isArray(producers)&&producers.length===SPECS.length&&
+    SPECS.every((spec)=>producers.filter((producer)=>producer?.id===spec.id).length===1);
+  if(!complete)return {bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,failure_class:'PRODUCER_COHORT_INCOMPLETE'};
+  const timestamps=producers.map((producer)=>Date.parse(producer.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {
+    bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,
+    failure_class:'PRODUCER_COHORT_TIMESTAMP_INVALID'
+  };
+  const earliest=Math.min(...timestamps),latest=Math.max(...timestamps),span_ms=latest-earliest;
+  const bound=span_ms<=MAX_PRODUCER_COHORT_SPAN_MS;
+  return {
+    bound,span_ms,
+    earliest_created_at:new Date(earliest).toISOString(),
+    latest_created_at:new Date(latest).toISOString(),
+    failure_class:bound?null:'PRODUCER_COHORT_WINDOW_EXCEEDED'
+  };
+}
 
 // Both public evaluation and the authenticated collector use this one selection
 // rule. Ambiguous pages/attempts never become a best-effort older PASS.
@@ -66,6 +90,68 @@ function generationSignature(run){
   return stable(run?[run.id,run.run_attempt,run.repository?.full_name,run.path,
     run.head_branch,run.head_sha,run.event,run.created_at,run.run_started_at??null,
     run.status,run.conclusion]:null);
+}
+
+export function classifyCanonicalConvergence(generationRuns,truthRuns,sourceSha,observedAt){
+  let generationCandidates,truthCandidates;
+  try{
+    ({candidates:generationCandidates}=selectProducerGeneration(generationRuns,CANONICAL_GENERATION_SPEC,sourceSha,observedAt));
+    ({candidates:truthCandidates}=selectProducerGeneration(truthRuns,CANONICAL_TRUTH_SPEC,sourceSha,observedAt));
+  }catch(error){
+    return {state:'VERIFIED_FAIL',failure_class:error.message,generation:null,consumer:null,truth_candidates:[]};
+  }
+  if(!generationCandidates.length)return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_GENERATION',generation:null,consumer:null,truth_candidates:truthCandidates};
+  const generation=generationCandidates.at(-1);
+  if(generation.status!=='completed')return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_GENERATION',generation,consumer:null,truth_candidates:truthCandidates};
+  if(!TERMINAL.has(generation.conclusion))return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_GENERATION_TERMINAL_UNKNOWN_${generation.conclusion||'NULL'}`,generation,consumer:null,truth_candidates:truthCandidates};
+  if(generation.conclusion!=='success')return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_GENERATION_${String(generation.conclusion).toUpperCase()}`,generation,consumer:null,truth_candidates:truthCandidates};
+  const consumers=truthCandidates.filter((run)=>run.event==='workflow_run'&&Date.parse(run.created_at)>=Date.parse(generation.created_at));
+  if(!consumers.length)return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_CONSUMER',generation,consumer:null,truth_candidates:truthCandidates};
+  const consumer=consumers.at(-1);
+  if(consumer.status!=='completed')return {state:'VERIFIED_HOLD',failure_class:'WAITING_FOR_CANONICAL_CONSUMER',generation,consumer,truth_candidates:truthCandidates};
+  if(!TERMINAL.has(consumer.conclusion))return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_CONSUMER_TERMINAL_UNKNOWN_${consumer.conclusion||'NULL'}`,generation,consumer,truth_candidates:truthCandidates};
+  if(consumer.conclusion!=='success')return {state:'VERIFIED_FAIL',failure_class:`CANONICAL_CONSUMER_${String(consumer.conclusion).toUpperCase()}`,generation,consumer,truth_candidates:truthCandidates};
+  const evaluationTruthRuns=truthCandidates.filter((run)=>run.event==='push'||run.id===consumer.id);
+  return {state:'READY_FOR_CONTENT_VALIDATION',failure_class:null,generation,consumer,truth_candidates:truthCandidates,evaluation_truth_runs:evaluationTruthRuns};
+}
+
+function canonicalGenerationIdFromArchive(bytes,artifactDigest){
+  const packet=readArchive(bytes,artifactDigest);
+  const entries=packet.members.filter((member)=>path.posix.basename(member.name)==='canonical-truth-validation-output-v1.json');
+  if(entries.length!==1)fail('CANONICAL_GENERATION_LINEAGE_MEMBER_CARDINALITY');
+  let payload;
+  try{payload=JSON.parse(entries[0].text);}catch{fail('CANONICAL_GENERATION_LINEAGE_JSON_INVALID');}
+  if(typeof payload?.generation_id!=='string')fail('CANONICAL_GENERATION_LINEAGE_ID_MISSING');
+  return payload.generation_id;
+}
+
+export function validateCanonicalGenerationLineage(generationId,generationRun,sourceSha){
+  if(!generationRun||generationRun.status!=='completed'||generationRun.conclusion!=='success')fail('CANONICAL_GENERATION_LINEAGE_SOURCE_INVALID');
+  const expected=`kpmo-canonical-v3-${sourceSha.slice(0,12)}-${generationRun.id}-${generationRun.run_attempt}`;
+  if(generationId!==expected)fail('CANONICAL_GENERATION_LINEAGE_MISMATCH');
+  return true;
+}
+
+const pause=(ms)=>new Promise((resolve)=>setTimeout(resolve,ms));
+
+export async function waitForCanonicalConvergence(repo,sourceSha,token,{
+  maxWaitMs=CANONICAL_CONVERGENCE_MAX_WAIT_MS,
+  pollMs=CANONICAL_CONVERGENCE_POLL_MS,
+  loadRuns=workflowRuns,
+  now=()=>Date.now(),
+  sleep=pause,
+}={}){
+  const started=now();
+  for(;;){
+    const observedAt=new Date(now()).toISOString();
+    const generationRuns=await loadRuns(repo,CANONICAL_GENERATION_SPEC,sourceSha,token);
+    const truthRuns=await loadRuns(repo,CANONICAL_TRUTH_SPEC,sourceSha,token);
+    const classification=classifyCanonicalConvergence(generationRuns,truthRuns,sourceSha,observedAt);
+    if(classification.state==='READY_FOR_CONTENT_VALIDATION')return {...classification,generationRuns,truthRuns};
+    if(classification.state==='VERIFIED_FAIL')fail(classification.failure_class);
+    if(now()-started>=maxWaitMs)fail('CANONICAL_CONVERGENCE_TIMEOUT');
+    await sleep(pollMs);
+  }
 }
 
 function exactArtifact(spec,run,artifacts,observedAt,archivesById={},relatedById={},sourceSha=run.head_sha){
@@ -118,10 +204,16 @@ export function evaluateHealth(input){
   if(!Number.isFinite(Date.parse(observedAt||'')))fail('OBSERVED_AT_INVALID');
   if(!SHA.test(input.source_sha||''))fail('SOURCE_SHA_INVALID');
   const producers=SPECS.map((spec)=>evaluateProducer(spec,input.runs?.[spec.id]||[],input.artifacts_by_run||{},input.source_sha,observedAt,input.archives_by_id||{},input.related_by_id||{}));
+  const cohort=assessProducerCohort(producers);
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
-  const state=failures.length?'VERIFIED_FAIL':holds.length?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const state=failures.length?'VERIFIED_FAIL':holds.length||!cohort.bound?'VERIFIED_HOLD':'VERIFIED_PASS';
+  // `waiting_producers` is an identity list for the four declared producers.
+  // Cohort binding is an independent aggregate guard; never invent a fifth
+  // producer id for that condition because the observation validator must be
+  // able to reconcile this list exactly with `producers`.
+  const waitingProducers=holds.map((p)=>p.id);
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,producer_cohort_bound:cohort.bound,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 
@@ -181,7 +273,8 @@ async function liveInput(){
   const repo=process.env.GITHUB_REPOSITORY||'';
   const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   if(repo!==REPOSITORY||!token)fail('REPOSITORY_OR_TOKEN_MISSING');
-  const triggerPayload=process.env.GITHUB_EVENT_NAME==='workflow_run'?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
+  const eventPayloadRequired=['workflow_run','repository_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
+  const triggerPayload=eventPayloadRequired?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
   const upstreamTrigger=validateSentinelTrigger(process.env,triggerPayload);
   if(process.env.GITHUB_REF!=='refs/heads/main')fail('SENTINEL_MAIN_REF_REQUIRED');
   const observerRun=Number(process.env.GITHUB_RUN_ID),observerAttempt=Number(process.env.GITHUB_RUN_ATTEMPT);
@@ -190,12 +283,19 @@ async function liveInput(){
   const sourceSha=main?.commit?.sha||'';
   if(!SHA.test(sourceSha)||process.env.GITHUB_SHA!==sourceSha||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()!==sourceSha)fail('SENTINEL_EXACT_LIVE_MAIN_MISMATCH');
   // Event payload is an assertion; re-read the named native producer before use.
-  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+  if(upstreamTrigger?.run_id)validateSentinelTrigger(process.env,triggerPayload,
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
+  const canonicalConvergence=process.env.GITHUB_EVENT_NAME==='push'
+    ? await waitForCanonicalConvergence(repo,sourceSha,token)
+    : null;
   const runs={},artifactsByRun={},archivesById={},relatedById={};
   for(const spec of SPECS){
-    runs[spec.id]=await workflowRuns(repo,spec,sourceSha,token);
-    const run=latestApplicable(runs[spec.id],spec,sourceSha);
+    runs[spec.id]=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
+      ? canonicalConvergence.evaluation_truth_runs
+      : await workflowRuns(repo,spec,sourceSha,token);
+    const run=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
+      ? canonicalConvergence.consumer
+      : latestApplicable(runs[spec.id],spec,sourceSha);
     if(!run||run.status!=='completed'||run.conclusion!=='success')continue;
     const value=await api(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/artifacts?per_page=100`,token);
     if(!Array.isArray(value?.artifacts)||value.total_count!==value.artifacts.length)fail('ARTIFACT_INDEX_TRUNCATED');
@@ -204,6 +304,11 @@ async function liveInput(){
     const selected=value.artifacts.filter(a=>expected.includes(a.name));
     if(selected.length!==1)continue;
     const artifact=selected[0];archivesById[artifact.id]=await downloadArtifact(repo,artifact,token);
+    if(spec.id==='CANONICAL_TRUTH'&&canonicalConvergence){
+      validateProducerContent(spec,run,artifact,archivesById[artifact.id],sourceSha,new Date().toISOString());
+      const generationId=canonicalGenerationIdFromArchive(archivesById[artifact.id],artifact.digest);
+      validateCanonicalGenerationLineage(generationId,canonicalConvergence.generation,sourceSha);
+    }
     // Resolve at most one same-source alias target, never recursive/latest fallback.
     if(spec.id==='REQUIREMENT'){
       const content=validateProducerContent(spec,run,artifact,archivesById[artifact.id],sourceSha,new Date().toISOString());
@@ -218,15 +323,32 @@ async function liveInput(){
   }
   // Fail rather than publish an older green if main, run selection or attempt moved.
   for(const spec of SPECS){
+    if(spec.id==='CANONICAL_TRUTH'&&canonicalConvergence){
+      const generationRunsAfter=await workflowRuns(repo,CANONICAL_GENERATION_SPEC,sourceSha,token);
+      const truthRunsAfter=await workflowRuns(repo,CANONICAL_TRUTH_SPEC,sourceSha,token);
+      const after=classifyCanonicalConvergence(generationRunsAfter,truthRunsAfter,sourceSha,new Date().toISOString());
+      if(after.state!=='READY_FOR_CONTENT_VALIDATION'||
+         generationSignature(canonicalConvergence.generation)!==generationSignature(after.generation)||
+         generationSignature(canonicalConvergence.consumer)!==generationSignature(after.consumer)){
+        fail('CANONICAL_CONVERGENCE_CHANGED_DURING_READ');
+      }
+      continue;
+    }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
     const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
-    if(generationSignature(before)!==generationSignature(after))fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    if(generationSignature(before)!==generationSignature(after)){
+      // A different newer run may be re-observed; mutation of an existing run's
+      // attempt or immutable metadata is an integrity failure, never a retry.
+      if(before&&after&&before.id!==after.id&&after.run_attempt===1
+        &&Date.parse(after.created_at)>Date.parse(before.created_at))fail('SENTINEL_GENERATION_ADVANCED_DURING_READ');
+      fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    }
   }
   for(const related of Object.values(relatedById)){
     const fresh=await api(`https://api.github.com/repos/${repo}/actions/runs/${related.run.id}`,token);
     if(generationSignature(fresh)!==generationSignature(related.run)||fresh.head_sha!==sourceSha||fresh.status!=='completed'||fresh.conclusion!=='success')fail('COVERAGE_ALIAS_RUN_CHANGED_DURING_READ');
   }
-  if(upstreamTrigger)validateSentinelTrigger(process.env,triggerPayload,
+  if(upstreamTrigger?.run_id)validateSentinelTrigger(process.env,triggerPayload,
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const afterMain=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   if(afterMain?.commit?.sha!==sourceSha)fail('SENTINEL_MAIN_CHANGED_DURING_READ');
@@ -249,14 +371,27 @@ function selfTest(){
   console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',metadata_only_semantic_pass:false,metadata_only_state:'VERIFIED_HOLD',positive:0,negative:6,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
 }
 
+// Retry only a moving read snapshot. Authority, digest and main failures remain terminal.
+export async function collectStableHealth({readInput=liveInput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maximumAttempts=3}={}){
+  if(!Number.isSafeInteger(maximumAttempts)||maximumAttempts<1||maximumAttempts>3)fail('SENTINEL_SNAPSHOT_RETRY_BOUND');
+  for(let attempt=1;attempt<=maximumAttempts;attempt++){
+    try{return evaluateHealth(await readInput());}
+    catch(error){
+      if(error.message!=='SENTINEL_GENERATION_ADVANCED_DURING_READ'||attempt===maximumAttempts)throw error;
+      await sleep(5000);
+    }
+  }
+}
+
 function outputPath(){const index=process.argv.indexOf('--output');return index>=0?process.argv[index+1]:'';}
 async function main(){
   if(process.argv.includes('--self-test'))return selfTest();
   const out=outputPath();if(!out)fail('OUTPUT_REQUIRED');
-  try{const result=evaluateHealth(await liveInput());fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
+  try{const result=await collectStableHealth();fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
   catch(error){const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state:'VERIFIED_FAIL',coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',repository:process.env.GITHUB_REPOSITORY||null,observer_run_id:process.env.GITHUB_RUN_ID||null,observer_run_attempt:process.env.GITHUB_RUN_ATTEMPT||null,semantic_content_verified:false,runtime_health_proven:false,source_sha:process.env.GITHUB_SHA||null,observed_at:new Date().toISOString(),failure_class:String(error?.message||error),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};const receipt=sealReceipt(base);if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}console.error(error);process.exitCode=1;}
 }
 
 const direct=process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href;
 if(direct)await main();
-export {SPECS};
+export {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,
+  api as authenticatedGithubRead,downloadArtifact,workflowRuns};

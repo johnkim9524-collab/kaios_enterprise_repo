@@ -40,15 +40,20 @@ for (const [key, expected] of Object.entries({
 })) assert(registry.registered_assets?.[key] === expected, `REGISTRY_PATH:${key}`);
 assert(registry.registered_outputs?.length === 5, 'REGISTRY_OUTPUT_COUNT');
 assert(registry.execution_chain?.length === 8, 'REGISTRY_EXECUTION_CHAIN');
-assert(registry.automatic_activation?.main_push === true, 'REGISTRY_MAIN_PUSH');
+assert(registry.automatic_activation?.provider_execution_enabled === true, 'REGISTRY_PROVIDER_EXECUTION');
+assert(registry.automatic_activation?.main_push === false, 'REGISTRY_MAIN_PUSH');
 assert(registry.automatic_activation?.schedule === '37 * * * *', 'REGISTRY_SCHEDULE');
-assert(registry.automatic_activation?.upstream_workflow === 'KIDULTS ASI P0 Mission Consumption v1', 'REGISTRY_UPSTREAM');
+assert(registry.automatic_activation?.delivery_recovery_schedule === '7 * * * *', 'REGISTRY_RECOVERY_SCHEDULE');
+assert(registry.automatic_activation?.schedule_delivery_policy === 'TWO_INDEPENDENT_NATURAL_ROOT_WINDOWS_PER_HOUR_FAIL_CLOSED_EXACT_SHA', 'REGISTRY_SCHEDULE_DELIVERY_POLICY');
+assert(registry.automatic_activation?.upstream_workflow === null, 'REGISTRY_NATURAL_SCHEDULE_ROOT');
+assert(!/^  workflow_run:\s*$/m.test(workflow), 'P0B_NATURAL_CHAIN_DEPTH_EXCEEDED');
 assert(registry.automatic_activation?.manual_dispatch_role === 'RECOVERY_OR_EXPLICIT_REPLAY_ONLY', 'REGISTRY_MANUAL_ROLE');
 assert(registry.next_stage?.id === 'P1_SOURCE_CLASSIFICATION_AND_EVIDENCE_ADMISSION_PREFLIGHT', 'REGISTRY_NEXT_STAGE');
 
 for (const marker of [
-  'workflow_dispatch:', 'schedule:', "cron: '37 * * * *'", 'push:', 'workflow_run:',
-  "'KIDULTS ASI P0 Mission Consumption v1'", 'Execute four governed public-metadata rotations',
+  'workflow_dispatch:', 'schedule:', "cron: '7 * * * *'", "cron: '37 * * * *'",
+  "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
+  'Execute four governed public-metadata rotations',
   'Build P0B source candidate increment', 'Reject source-candidate-as-evidence mutation',
   'Reject region-hint-as-coverage mutation', 'Reject host-as-factual-origin mutation',
   'Reject target-content acquisition mutation', 'Emit fail-closed KPMO P0B discovery receipt'
@@ -91,8 +96,10 @@ console.log(JSON.stringify({
   id: 'kidults-asi-p0b-bounded-discovery-registry-validation-v1',
   version: '1.0.0',
   state: 'VERIFIED_PASS',
-  automatic_main_push: true,
+  provider_execution_enabled: true,
+  automatic_main_push: false,
   automatic_schedule: registry.automatic_activation.schedule,
+  automatic_recovery_schedule: registry.automatic_activation.delivery_recovery_schedule,
   automatic_upstream_workflow: registry.automatic_activation.upstream_workflow,
   bounded_live_lanes: contract.bounded_live_lanes.length,
   scope_rotations: contract.scope_rotation_count,

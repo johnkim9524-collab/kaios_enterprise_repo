@@ -8,7 +8,7 @@ const stable = value => {
   if (value && typeof value === 'object') return `{${Object.keys(value).sort().map(k => `${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`;
   return JSON.stringify(value);
 };
-const fixtureCert = '08178895';
+const fixtureCert = '9'.repeat(8);
 
 function makeReceipt(overrides = {}) {
   const base = {
@@ -44,7 +44,7 @@ const negatives = [
   ['UNAUTHORIZED_COLLECTOR', () => validateSourceReceipt(makeReceipt({ synthetic:false, collector_id:'CALLER_ASSERTED' }), fixtureCert)],
   ['UNAPPROVED_SOURCE_CLASS', () => validateSourceReceipt(makeReceipt({ synthetic:false, source_class:'ARBITRARY_STRING' }), fixtureCert)],
   ['ENUMERATION', () => validateSourceReceipt(makeReceipt({ synthetic:false, enumeration_method:'SEQUENTIAL_SCAN', non_enumeration_verified:false }), fixtureCert)],
-  ['CERT_SUBSTITUTION', () => validateSourceReceipt(makeReceipt({ synthetic:false }), '99999999')],
+  ['CERT_SUBSTITUTION', () => validateSourceReceipt(makeReceipt({ synthetic:false }), '8'.repeat(8))],
   ['RECEIPT_DIGEST_SUBSTITUTION', () => validateSourceReceipt({ ...makeReceipt({ synthetic:false }), receipt_digest: sha256('forged') }, fixtureCert)],
   ['SOURCE_DIGEST_MISSING', () => validateSourceReceipt(makeReceipt({ synthetic:false, source_record_digest:'NONE' }), fixtureCert)]
 ];

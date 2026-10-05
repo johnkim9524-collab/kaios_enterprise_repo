@@ -1,4 +1,5 @@
 import test from 'node:test';
+import './asi-common-crawl-any-site-fail-soft-v1.test.mjs';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';

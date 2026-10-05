@@ -119,7 +119,7 @@ jobs:
             self_review_counts: false,
             exact_head_approval_required: false,
             technical_preflight_is_merge_authorization: false,
-            merge_authorization: 'PROGRAM_OWNER_READY_AND_MERGE_DECISION_REQUIRED',
+            merge_authorization: 'OWNER_RESERVED_EXACT_ACTION_ONLY',
             provider_contact: contract.provider_contact,
             production: contract.production,
             full_320_expansion_allowed: contract.full_320_expansion_allowed

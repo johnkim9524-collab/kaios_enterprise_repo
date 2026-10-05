@@ -49,6 +49,13 @@ const withMutation = (mutator, { rehash = true } = {}) => {
   return next;
 };
 
+// Replay the bounded August observation at its recorded time. This does not
+// renew the rights review: the live-clock rejection is asserted below.
+const liveNow = Date.now;
+const historicalNow = Date.parse(observation.as_of) + 60_000;
+assert.ok(historicalNow < Date.parse(observation.rights.review_due_at));
+Date.now = () => historicalNow;
+
 const positive = await parseStateDepartmentAuctionObservation(observation, contract.authoritative_inputs.observation_projection_sha256);
 const replay = await parseStateDepartmentAuctionObservation(observation, contract.authoritative_inputs.observation_projection_sha256);
 assert.deepEqual(replay, positive);
@@ -224,6 +231,17 @@ for (const mutation of mutations) {
   assert.equal(result.normalized_reference, null, mutation.name);
   assert.ok(result.reason_codes.includes(mutation.expected), `${mutation.name}:${result.reason_codes.join(',')}`);
   mutationResults.push({ name: mutation.name, state: result.decision_state, expected_reason: mutation.expected });
+}
+
+Date.now = liveNow;
+if (liveNow() >= Date.parse(observation.rights.review_due_at)) {
+  const expiredNow = await parseStateDepartmentAuctionObservation(
+    observation,
+    contract.authoritative_inputs.observation_projection_sha256,
+  );
+  assert.equal(expiredNow.decision_state, 'REJECTED_FAIL_CLOSED');
+  assert.equal(expiredNow.normalized_reference, null);
+  assert.ok(expiredNow.reason_codes.includes('RIGHTS_REVIEW_EXPIRED'));
 }
 
 console.log(JSON.stringify({

@@ -1,0 +1,333 @@
+{
+  "observed_at": "2026-10-04T13:12:13.000Z",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "audit_source_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+  "coverage_canonical_source_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+  "workflow_run_id": 37204744865,
+  "workflow_run_attempt": 1,
+  "coverage_upstream_run_id": 37204686580,
+  "coverage_upstream_run_attempt": 1,
+  "coverage_run_head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+  "coverage_run_display_title": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+  "coverage_run_event": "workflow_run",
+  "coverage_artifact_id": 11304396826,
+  "coverage_artifact_digest": "sha256:ace2605dc946e8811ff1b2b5b6abc411e12fb07606f6e763da859f8a8ee4a572",
+  "current_upstream_binding_digest": "sha256:8020b6666d63d5ed4a876c2723807b3885d52ce8113acf491b9517487c7dc104",
+  "canonical_artifact_id": 11302432739,
+  "canonical_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-d108b854788e0e44fb54688282737ec8ccd0098f9c40b349903f026b30724d72",
+  "canonical_artifact_digest": "sha256:5f8e5e32cc171b8f2d349a1cd611c0a9b0460966af7d1f70d25df563b9ec4d4b",
+  "canonical_artifact_workflow_run_id": 37199578176,
+  "canonical_artifact_workflow_run_head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+  "classifier": {
+    "canonical_key": "sha256:65f02361369de5f021cf7947588c5dfd4c11b69dc46e9ba4372b37fdac4f5eee",
+    "canonical_input_digest": "sha256:db3f08ae7c1c5e7997a2bdeb5ebcccd7fc9d8e77792186e0d64f4cd737472d24",
+    "upstream_class": "ASI_REQUIREMENT_COVERAGE",
+    "generation_discriminator": "exact-upstream-run:37204686580:attempt:1",
+    "classifier_contract_digest": "sha256:fd2ba800bc8381466bfffb09e7922f8a99415995bb89379c68794748c68b446b",
+    "classification_receipt_digest": "sha256:f4303a636d573506717cf38ff85c6d776216635a1dc0d807615b2983107a7ab5",
+    "ephemeral_guard_receipt_digest": "sha256:5f599e23ee76a2bd5370059ea2fc740037af8c8d05afa58bfb4cc48c9de6f194"
+  },
+  "alias_receipt": {
+    "id": "kidults-asi-requirement-adapter-coverage-canonical-alias-receipt-v1",
+    "version": "1.0.0",
+    "state": "VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE",
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "source_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "upstream_class": "ASI_AUTONOMOUS_RESOLUTION",
+    "canonical_run_key": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5:ASI_AUTONOMOUS_RESOLUTION",
+    "canonical_input_digest": "sha256:4e53f6c697a8f8561bc8624d649c7089173a0260f3c6a4fe02e643c7df6fcdac",
+    "semantic_input_receipt_digest": "sha256:eccbace9a0f304017a2605f24774317c19a203f58169131ad06f8adfc7b6acf6",
+    "canonical_contract_digest": "sha256:5e20b6578e583396c7f0157247083d4c6816c246fe0aab1e581fe87b66840a1c",
+    "current_workflow_run_id": 37204686580,
+    "current_workflow_run_attempt": 1,
+    "current_trigger_event": "workflow_run",
+    "current_upstream_binding_digest": "sha256:8020b6666d63d5ed4a876c2723807b3885d52ce8113acf491b9517487c7dc104",
+    "current_upstream_workflow_run_id": 37204647695,
+    "current_upstream_artifact_id": 11304755152,
+    "current_upstream_artifact_digest": "sha256:313db0123e84cfb2925a60616126796122d503d36ae9336c5b23aadd1ee7713d",
+    "current_coverage_consumer_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "current_coverage_run_head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "current_coverage_run_display_title": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "canonical_workflow_run_id": 37199578176,
+    "canonical_workflow_run_attempt": 1,
+    "canonical_upstream_binding_digest": "sha256:2c8876e0f7f4c6b401b46bcc62753d55a76e2e23b84d3d861d2c12dbdeed0c0e",
+    "canonical_upstream_workflow_run_id": 37199538645,
+    "canonical_upstream_artifact_id": 11302098141,
+    "canonical_upstream_artifact_digest": "sha256:c110a785c59b3782739004f14183f67f3cabdf2d55f239486127841d0157ad45",
+    "canonical_artifact_id": 11302432739,
+    "canonical_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-d108b854788e0e44fb54688282737ec8ccd0098f9c40b349903f026b30724d72",
+    "canonical_artifact_digest": "sha256:5f8e5e32cc171b8f2d349a1cd611c0a9b0460966af7d1f70d25df563b9ec4d4b",
+    "canonical_artifact_expires_at": "2027-01-02T11:41:17Z",
+    "canonical_receipt_digest": "sha256:9d595ee57912c87cc743de2640c11c1d408f22c5595af9b02e82cf749d124dfe",
+    "canonical_coverage_consumer_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "canonical_coverage_run_head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "canonical_coverage_run_display_title": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "coverage_execution_disposition": "DEDUPED_ALIAS_NO_FULL_COVERAGE",
+    "exact_current_observation_retained": true,
+    "runtime_dedupe_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+    "canonical_execution_claimed": false,
+    "durable_claim_created": false,
+    "claim_scope": "EPHEMERAL_ACTIONS_ARTIFACT_90_DAY",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "observed_at": "2026-10-04T13:11:24.000Z",
+    "receipt_digest": "sha256:4fdde0044309fb380ab550a36ff2ac8ae5be8ffc49b9be6aaf5280cbd60084a6"
+  },
+  "leader_receipt": {
+    "id": "kidults-asi-requirement-adapter-coverage-canonical-leader-receipt-v1",
+    "version": "1.0.0",
+    "state": "VERIFIED_PASS_EPHEMERAL_CANONICAL_LEADER",
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "source_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "upstream_class": "ASI_AUTONOMOUS_RESOLUTION",
+    "canonical_run_key": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5:ASI_AUTONOMOUS_RESOLUTION",
+    "canonical_input_digest": "sha256:4e53f6c697a8f8561bc8624d649c7089173a0260f3c6a4fe02e643c7df6fcdac",
+    "semantic_input_receipt_digest": "sha256:eccbace9a0f304017a2605f24774317c19a203f58169131ad06f8adfc7b6acf6",
+    "canonical_contract_digest": "sha256:5e20b6578e583396c7f0157247083d4c6816c246fe0aab1e581fe87b66840a1c",
+    "canonical_workflow_run_id": 37199578176,
+    "canonical_workflow_run_attempt": 1,
+    "trigger_event": "workflow_run",
+    "coverage_consumer_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "coverage_run_head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "coverage_run_display_title": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "coverage_workflow_name": "KIDULTS ASI Requirement-to-Adapter Coverage v1",
+    "coverage_workflow_path": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+    "coverage_repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "upstream_binding_digest": "sha256:2c8876e0f7f4c6b401b46bcc62753d55a76e2e23b84d3d861d2c12dbdeed0c0e",
+    "upstream_workflow_run_id": 37199538645,
+    "upstream_artifact_id": 11302098141,
+    "upstream_artifact_digest": "sha256:c110a785c59b3782739004f14183f67f3cabdf2d55f239486127841d0157ad45",
+    "archive_validation_receipt_digest": "sha256:69f17be5168f32d0048a9b1ed55a62944dbbd2368bea256c7a4e34b45036e115",
+    "coverage_manifest_digest": "sha256:eab5a2abae0777b7481556589f9c5adfa6e7cba93f380ffb458a64c19ac756c6",
+    "coverage_kpmo_receipt_digest": "sha256:2584db6940a8db94149e36d49e85d65128a869fd76aab605f53e944bba1f6493",
+    "guard_receipt_digest": "sha256:abb45b9ceb373f997c9e4245b090d6a3618d9aa54c7b31b646b50b25121731af",
+    "validations_complete": true,
+    "negative_tests_complete": true,
+    "final_revalidation_complete": true,
+    "runtime_dedupe_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+    "canonical_execution_claimed": false,
+    "durable_claim_created": false,
+    "claim_scope": "EPHEMERAL_ACTIONS_ARTIFACT_90_DAY",
+    "artifact_retention_days": 90,
+    "every_noncanonical_trigger_alias_receipt_guaranteed": false,
+    "pending_replacement_caveat": "GITHUB_CONCURRENCY_ONE_RUNNING_ONE_PENDING_ADDITIONAL_PENDING_MAY_BE_REPLACED",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED",
+    "observed_at": "2026-10-04T11:41:51.000Z",
+    "receipt_digest": "sha256:9d595ee57912c87cc743de2640c11c1d408f22c5595af9b02e82cf749d124dfe"
+  },
+  "semantic_input_receipt": {
+    "id": "kidults-asi-requirement-adapter-coverage-semantic-input-receipt-v1",
+    "version": "1.0.0",
+    "state": "VERIFIED_PASS_SEMANTIC_INPUT_BOUND",
+    "canonical_input_digest": "sha256:4e53f6c697a8f8561bc8624d649c7089173a0260f3c6a4fe02e643c7df6fcdac",
+    "material": {
+      "domain": "KIDULTS_ASI_REQUIREMENT_ADAPTER_COVERAGE_CANONICAL_SEMANTIC_INPUT_V1",
+      "source_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+      "upstream_class": "ASI_AUTONOMOUS_RESOLUTION",
+      "projection_version": "1.0.0",
+      "projection_allowlist": {
+        "manifest": [
+          "id",
+          "version",
+          "results",
+          "input_bindings.contract.digest",
+          "input_bindings.adapter_contract.digest",
+          "input_bindings.adapter_contract.profiles",
+          "input_bindings.frontier.digest",
+          "input_bindings.frontier.records",
+          "input_bindings.crosswalk.digest",
+          "input_bindings.crosswalk.records",
+          "output_files[replacement-source-mission-queue-v1.json].name",
+          "output_files[replacement-source-mission-queue-v1.json].bytes",
+          "output_files[replacement-source-mission-queue-v1.json].sha256"
+        ],
+        "receipt": [
+          "id",
+          "version",
+          "state",
+          "source_sha",
+          "trigger_event",
+          "artifact_role",
+          "authoritative_producer",
+          "downstream_consumable",
+          "canonical_artifact_published",
+          "p1_source_sha",
+          "exact_generation_bound",
+          "exact_triggering_run_bound",
+          "validation_only",
+          "promotion_authority",
+          "artifact_cardinality",
+          "results",
+          "autonomous_effect",
+          "global_effect",
+          "irreplaceable_value_effect",
+          "transparency_effect",
+          "live_target_site_network_requests",
+          "rights_pass_created",
+          "evidence_admitted",
+          "market_events_created",
+          "snapshot_candidates_created",
+          "public_release",
+          "production"
+        ],
+        "replacement_queue": "FULL_DETERMINISTIC_OBJECT"
+      },
+      "arl_semantic_outputs": {
+        "replacement_queue_digest": "sha256:c8e2dde9df489109db2547c408ea2a1ab1c9368ca7182700a8cf3ecff7a90ce3",
+        "manifest_digest": "sha256:2fe1ce3815d4c45bf1a952e39a5889f46156a351e84e8140155d25930c379286",
+        "stable_receipt_digest": "sha256:e87cb4fd7bbc475d347c6cc57073992ad5c1d1edaacdd1a09625b490eaa444f8"
+      },
+      "coverage_contract": {
+        "id": "kidults-asi-requirement-adapter-coverage-contract-v1",
+        "version": "1.3.0",
+        "digest": "sha256:5e20b6578e583396c7f0157247083d4c6816c246fe0aab1e581fe87b66840a1c"
+      },
+      "authoritative_input_digests": {
+        "artifact_binding_schema": {
+          "path": "coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json",
+          "digest": "sha256:58b70fea8a1b0f3949e1b2fe92db1b2f3b8f7f8555fb0038e7b97d1481d40de4"
+        },
+        "bonhams_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-contract-v1.json",
+          "digest": "sha256:a1c690a3328880bed36ad4c738add8795e474e8c775f201ad980dabc5b12c554"
+        },
+        "bonhams_registry": {
+          "path": "coordination/kidults/source-intelligence/asi-bonhams-cars-results-adapter-registry-v1.json",
+          "digest": "sha256:add59abaf6ecbbd1a025fe05e755bda18a8af2b2826564c278fa71c67922e646"
+        },
+        "purpose_rights_preflight": {
+          "path": "coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json",
+          "digest": "sha256:a38b2dd2d4b346e909d33209da943c8ead4ac6a6c661ee9fa30977d160ceb983"
+        },
+        "resolution_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json",
+          "digest": "sha256:b52b24b27efa900075dcb39301f6a8ce92e26a6dbcfeaae7e41c50bd78e6266e"
+        },
+        "runtime_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
+          "digest": "sha256:1681b02f8d8c073602073369fb40fc56ea99e3573a748daecb7750261e8507e7"
+        },
+        "scope_crosswalk": {
+          "path": "coordination/kidults/source-intelligence/scope-registry-v1-to-v2-crosswalk-v1.json",
+          "digest": "sha256:7bf5d25309e1070e68aad130141d09407dfaeedf230ab000e5f412298fca5db9"
+        },
+        "source_frontier": {
+          "path": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
+          "digest": "sha256:a8804af1ee0f716fd4dfd88a2438636d49455a910f62241dbc7764c3dea0923d"
+        },
+        "trigger_compatibility_contract": {
+          "path": "coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json",
+          "digest": "sha256:0c8aea64dc0e9a4de0cc289d9eaafe072a6c0a61c715cb839169d88ebed75dc7"
+        },
+        "wave2_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave2-contract-v1.json",
+          "digest": "sha256:8ff5d1b09adeec5ae39590c0f721b72cb84ac9dd4f52c2d21380240edeeefe6a"
+        },
+        "wave2_registry": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave2-registry-v1.json",
+          "digest": "sha256:f465347236da6052067680f6d74e6c5ebcb6c9ccacd43b6b4e82617db5f0eea4"
+        },
+        "wave3_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave3-contract-v1.json",
+          "digest": "sha256:fbcab4d65d5078283e54bb07071bd0dae1075d8dc60518037c433e32ebe326a9"
+        },
+        "wave3_registry": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave3-registry-v1.json",
+          "digest": "sha256:856108a7b709390445a17fd8d185e5fff6191ed8cf5c4cf9af6589211eade035"
+        },
+        "wave4_contract": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-contract-v1.json",
+          "digest": "sha256:1e620fc5872860a705fc6916660200478d301d19a0f4a03f6c4b767149946ed8"
+        },
+        "wave4_registry": {
+          "path": "coordination/kidults/source-intelligence/asi-source-adapter-wave4-registry-v1.json",
+          "digest": "sha256:abcf557a64adec777eb57823425407af6209049847551e44dd4003995f25e3a8"
+        }
+      },
+      "authoritative_input_constants": {
+        "replacement_queue_file": "replacement-source-mission-queue-v1.json",
+        "replacement_queue_id": "kidults-asi-replacement-source-mission-queue-v1",
+        "resolution_manifest_file": "autonomous-resolution-manifest-v1.json",
+        "resolution_manifest_id": "kidults-asi-autonomous-resolution-manifest-v1",
+        "resolution_receipt_file": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json",
+        "resolution_receipt_id": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1",
+        "resolution_receipt_version": "1.2.0",
+        "upstream_artifact_name": "kidults-asi-autonomous-resolution-layer-v1",
+        "upstream_workflow_name": "KIDULTS ASI Autonomous Resolution Layer v1",
+        "upstream_workflow_path": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml"
+      },
+      "implementation_digests": {
+        "npm-shrinkwrap.json": {
+          "path": "npm-shrinkwrap.json",
+          "digest": "sha256:7d5291ed3b9972543369d11ff91c8d836521c0b3648c3bb92dbaeeb7ec89b899"
+        },
+        "package.json": {
+          "path": "package.json",
+          "digest": "sha256:40672e76e917619035cbebcc986e160e516f31d1b17b5a6c501e44dd36173f8d"
+        },
+        "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs": {
+          "path": "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-semantic-input-v1.mjs",
+          "digest": "sha256:7ef6f5c99108ad3ed88b9ec162aa4dcb5078e01a4393324c8d3afe2458d96450"
+        },
+        "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs": {
+          "path": "scripts/kidults/source-intelligence/build-asi-requirement-adapter-coverage-v1.mjs",
+          "digest": "sha256:f35fa67821034a5d1184f4a37f77cbf7f294de68f97500c862d71d6d87a81641"
+        },
+        "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs": {
+          "path": "scripts/kidults/source-intelligence/lib/source-purpose-rights-gate-v1.mjs",
+          "digest": "sha256:d18ceeccb06676707f49978728560ef78531cfc93cdde13c8d0342a38070df9b"
+        },
+        "scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs": {
+          "path": "scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs",
+          "digest": "sha256:e69bb540c1319067b884eda063ffd4102b317095bd2b19dc465f8cb2b87b6c0b"
+        },
+        "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs": {
+          "path": "scripts/kidults/source-intelligence/validate-asi-requirement-adapter-coverage-v1.mjs",
+          "digest": "sha256:b011650a1d7c2d4415be90fe025812085b32e372547a8aa72ae692c40ae6e241"
+        }
+      },
+      "volatile_provenance_excluded_from_identity": [
+        "manifest.as_of",
+        "manifest.unconsumed_input_bindings",
+        "manifest.non_replacement_queue_output_files",
+        "receipt.producer_workflow_run_id",
+        "receipt.producer_workflow_run_attempt",
+        "receipt.producer_display_title",
+        "receipt.authoritative_generation_key",
+        "receipt.p1_workflow_run_id",
+        "receipt.p1_artifact_id",
+        "receipt.p1_artifact_digest",
+        "receipt.manifest_digest",
+        "receipt.created_at",
+        "receipt.updated_at",
+        "receipt.expires_at"
+      ]
+    },
+    "exact_upstream_provenance_included_in_identity": false,
+    "exact_upstream_provenance_required_in_observation_receipt": true,
+    "runtime_dedupe_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
+    "canonical_execution_claimed": false,
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "semantic_input_receipt_file_digest": "sha256:eccbace9a0f304017a2605f24774317c19a203f58169131ad06f8adfc7b6acf6",
+  "canonical_run": {
+    "id": 37199578176,
+    "run_attempt": 1,
+    "name": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "display_title": "KIDULTS Coverage / source-845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "path": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+    "repository": {
+      "full_name": "johnkim9524-collab/kaios_enterprise_repo"
+    },
+    "head_branch": "main",
+    "head_sha": "845737a99b7756d6fb773d017e4a6cc6b0c2d5b5",
+    "event": "workflow_run",
+    "status": "completed",
+    "conclusion": "success"
+  }
+}

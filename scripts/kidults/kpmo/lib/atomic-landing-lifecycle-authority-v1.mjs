@@ -5,14 +5,20 @@ const WORKFLOW_FILE = 'kpmo-pr-lifecycle-integrity-v1.yml';
 export const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
 export const GOVERNED_LANDING_CONTEXT = 'KIDULTS Governed Landing Authorization V1';
 export const GOVERNED_LANDING_PENDING_DESCRIPTION = 'Ready; operation-specific atomic landing is required';
+export const GOVERNED_LANDING_NORMAL_READY_DESCRIPTION = 'Ready lifecycle verified; operation-specific landing authority required';
 export const READY_GOVERNED_REASON = 'NATIVE_SCOPE_SUCCESS_AND_OPERATION_SPECIFIC_ATOMIC_LANDING_PENDING';
+export const OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE = 'READY_VERIFIED_NON_PROMOTABLE';
+export const OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON = 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING';
 
 export function isAtomicLandingNativeStatusReady(status) {
   const context = String(status?.context || '');
   const state = String(status?.state || 'missing');
   if (context === GOVERNED_LANDING_CONTEXT) {
-    return state === 'pending'
-      && String(status?.description || '') === GOVERNED_LANDING_PENDING_DESCRIPTION;
+    if (state !== 'pending') return false;
+    const description = String(status?.description || '');
+    if (description === GOVERNED_LANDING_PENDING_DESCRIPTION) return true;
+    return description === GOVERNED_LANDING_NORMAL_READY_DESCRIPTION
+      && status?.creator?.login === 'github-actions[bot]';
   }
   if (context === SCOPE_AWARE_CONTEXT) return state === 'success';
   return state === 'success';
@@ -63,24 +69,92 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
     || receipt.latest_ready_event_actor !== lastReadyEventActor) {
     fail('LIFECYCLE_RECEIPT_READY_EVENT_MISMATCH');
   }
-  if (receipt.state !== 'READY_GOVERNED') fail(`LIFECYCLE_RECEIPT_NOT_READY_GOVERNED:${receipt.state || 'missing'}`);
-  if (receipt.reason !== READY_GOVERNED_REASON) fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  if (receipt.state === 'READY_GOVERNED' && receipt.reason !== READY_GOVERNED_REASON) {
+    fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  }
+  if (receipt.state === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE
+    && receipt.reason !== OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON) {
+    fail(`LIFECYCLE_RECEIPT_REASON_INVALID:${receipt.reason || 'missing'}`);
+  }
+  const readyGovernedReceipt = receipt.state === 'READY_GOVERNED'
+    && receipt.reason === READY_GOVERNED_REASON;
+  const ownerReservedPendingReceipt = receipt.state === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_STATE
+    && receipt.reason === OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON
+    && receipt.manual_merge_authority === false
+    && receipt.atomic_landing_only === false;
+  if (!readyGovernedReceipt && !ownerReservedPendingReceipt) {
+    fail(`LIFECYCLE_RECEIPT_NOT_ATOMIC_LANDING_CONSUMABLE:${receipt.state || 'missing'}`);
+  }
   if (receipt.promotion_eligible !== false) fail('LIFECYCLE_RECEIPT_DIRECT_PROMOTION_FORBIDDEN');
   if (receipt.validator_authority !== 'CONTROL_ONLY') fail('LIFECYCLE_RECEIPT_AUTHORITY_INVALID');
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
-  if (receipt.native_status_evidence.length !== boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
+  if (receipt.native_status_evidence.length < boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
+  const boundNativeContexts = new Set(boundNative.map(status => status.context));
+  const allowedReceiptOnlyContexts = new Set([GOVERNED_LANDING_CONTEXT]);
+  for (const item of receipt.native_status_evidence) {
+    const context = String(item?.context || '');
+    if (!boundNativeContexts.has(context) && !allowedReceiptOnlyContexts.has(context)) {
+      fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_UNEXPECTED:${context || 'missing'}`);
+    }
+  }
+  const receiptOnlyGoverned = receipt.native_status_evidence
+    .filter(item => item?.context === GOVERNED_LANDING_CONTEXT && !boundNativeContexts.has(GOVERNED_LANDING_CONTEXT));
+  if (receiptOnlyGoverned.length > 1) {
+    fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_CARDINALITY:${GOVERNED_LANDING_CONTEXT}:${receiptOnlyGoverned.length}`);
+  }
+  if (receiptOnlyGoverned.length === 1) {
+    const governedState = String(receiptOnlyGoverned[0]?.state || 'missing');
+    const governedDescription = String(receiptOnlyGoverned[0]?.description || '');
+    const governedReady = governedState === 'pending'
+      && (governedDescription === GOVERNED_LANDING_PENDING_DESCRIPTION
+        || governedDescription === GOVERNED_LANDING_NORMAL_READY_DESCRIPTION);
+    if (!governedReady) {
+      fail(`LIFECYCLE_RECEIPT_GOVERNED_STATUS_NOT_LANDING_READY:${governedState}`);
+    }
+  }
 
+  let receiptNativeFloor = 0;
+  let exactStatusIdentity = true;
   for (const expected of boundNative) {
     const matches = receipt.native_status_evidence.filter(item => item?.context === expected.context);
     if (matches.length !== 1) fail(`LIFECYCLE_RECEIPT_NATIVE_CONTEXT_CARDINALITY:${expected.context}:${matches.length}`);
     const actual = matches[0];
     if (String(actual.state || '') !== expected.state
-      || String(actual.description || '') !== String(expected.description || '')
-      || String(actual.status_id ?? '') !== String(expected.status_id ?? '')
-      || String(actual.updated_at || '') !== String(expected.updated_at || '')) {
+      || String(actual.description || '') !== String(expected.description || '')) {
       fail(`LIFECYCLE_RECEIPT_NATIVE_STATUS_MISMATCH:${expected.context}`);
     }
+    if (!Number.isInteger(Number(actual.status_id)) || Number(actual.status_id) <= 0) {
+      fail(`LIFECYCLE_RECEIPT_NATIVE_STATUS_ID_INVALID:${expected.context}`);
+    }
+    if (!Number.isInteger(Number(expected.status_id)) || Number(expected.status_id) <= 0) {
+      fail(`LIFECYCLE_NATIVE_STATUS_ID_INVALID:${expected.context}`);
+    }
+    const actualUpdatedAt = actual.updated_at || actual.created_at;
+    const expectedUpdatedAt = expected.updated_at || expected.created_at;
+    const actualUpdatedTime = ms(actualUpdatedAt, `LIFECYCLE_RECEIPT_NATIVE_STATUS_TIME_INVALID:${expected.context}`);
+    const expectedUpdatedTime = ms(expectedUpdatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${expected.context}`);
+    if (expectedUpdatedTime < actualUpdatedTime) {
+      fail(`LIFECYCLE_NATIVE_STATUS_REGRESSED_BEHIND_RECEIPT:${expected.context}`);
+    }
+    // GitHub commit statuses are mutable context projections. A later workflow
+    // may republish the same landing-ready semantic state after the lifecycle
+    // receipt is sealed. Preserve the receipt identity as evidence, accept only
+    // a time-monotonic semantic alias, and continue to reject every state or
+    // description change fail-closed.
+    const sameStatusIdentity = String(actual.status_id) === String(expected.status_id);
+    if (sameStatusIdentity && String(actualUpdatedAt) !== String(expectedUpdatedAt)) {
+      fail(`LIFECYCLE_NATIVE_STATUS_IDENTITY_MUTATED:${expected.context}`);
+    }
+    exactStatusIdentity = exactStatusIdentity && sameStatusIdentity;
+    receiptNativeFloor = Math.max(receiptNativeFloor, actualUpdatedTime);
   }
+  return {
+    receiptNativeFloor,
+    exactStatusIdentity,
+    lifecycleContractMode: readyGovernedReceipt
+      ? 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL'
+      : 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  };
 }
 
 export function selectAtomicLandingLifecycleAuthority({
@@ -106,7 +180,6 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!Array.isArray(nativeStatuses) || nativeStatuses.length === 0) fail('LIFECYCLE_NATIVE_STATUS_SET_EMPTY');
 
   const seenContexts = new Set();
-  let nativeFloor = 0;
   const boundNative = nativeStatuses.map(status => {
     const context = String(status?.context || '');
     if (!context || seenContexts.has(context)) fail('LIFECYCLE_NATIVE_STATUS_CONTEXT_INVALID');
@@ -115,7 +188,7 @@ export function selectAtomicLandingLifecycleAuthority({
       fail(`LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY:${context}:${String(status?.state || 'missing')}`);
     }
     const updatedAt = status.updated_at || status.created_at;
-    nativeFloor = Math.max(nativeFloor, ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`));
+    ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`);
     return {
       context,
       state: String(status.state),
@@ -162,7 +235,7 @@ export function selectAtomicLandingLifecycleAuthority({
   if (!DIGEST.test(String(artifact.digest || ''))) fail('LIFECYCLE_RECEIPT_DIGEST_INVALID');
 
   const receipt = receiptsByRunId?.[String(latest.id)];
-  validateReceiptContent(
+  const nativeBinding = validateReceiptContent(
     receipt,
     latest,
     prNumber,
@@ -174,11 +247,15 @@ export function selectAtomicLandingLifecycleAuthority({
     lastReadyEventActor,
   );
   const lifecycleEvaluatedTime = ms(receipt.lifecycle_evaluated_at, 'LIFECYCLE_RECEIPT_EVALUATED_AT_INVALID');
-  if (lifecycleEvaluatedTime < nativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
+  if (lifecycleEvaluatedTime < nativeBinding.receiptNativeFloor) fail('LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL');
   if (lifecycleEvaluatedTime < readyEventTime) fail('LIFECYCLE_SUCCESS_PRECEDES_LATEST_READY_EVENT');
 
   return {
-    state: 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND',
+    state: nativeBinding.lifecycleContractMode === 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL'
+      ? 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND'
+      : 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+    lifecycle_contract_mode: nativeBinding.lifecycleContractMode,
+    owner_exact_head_approval_required: nativeBinding.lifecycleContractMode !== 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL',
     pull_request: Number(prNumber),
     exact_head_sha: headSha,
     exact_base_sha: baseSha,
@@ -196,6 +273,10 @@ export function selectAtomicLandingLifecycleAuthority({
     lifecycle_artifact_digest: artifact.digest,
     lifecycle_receipt_state: receipt.state,
     lifecycle_receipt_reason: receipt.reason,
+    native_status_binding_mode: nativeBinding.exactStatusIdentity
+      ? 'EXACT_STATUS_IDENTITY'
+      : 'SEMANTICALLY_EQUIVALENT_MONOTONIC_NATIVE_ALIAS',
+    lifecycle_receipt_native_status_evidence: receipt.native_status_evidence,
     native_status_evidence: boundNative,
   };
 }

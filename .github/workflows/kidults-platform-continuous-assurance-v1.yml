@@ -1,6 +1,8 @@
 name: KIDULTS Platform Continuous Assurance V1
 
 on:
+  repository_dispatch:
+    types: [kidults.natural.clock.assurance.v1]
   push:
     branches: [main]
   pull_request:
@@ -33,6 +35,7 @@ on:
       - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI SHADOW Operating Evidence v1'
       - 'KPMO Live Canonical Issue Truth V1'
+      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
     branches: [main]
     types: [completed]
   workflow_dispatch:
@@ -43,6 +46,11 @@ on:
         default: deep
         type: choice
         options: [sentinel, deep]
+      coverage_event:
+        description: Exact event that produced the bound Coverage run
+        required: false
+        default: ''
+        type: string
       coverage_run_id:
         description: Exact successful Coverage run to consume after the workflow_run chain limit
         required: false
@@ -91,6 +99,7 @@ permissions:
 jobs:
   classify-canonical-identity:
     if: >-
+      (github.event_name != 'repository_dispatch' || github.event.client_payload.slot == 'ASSURANCE') &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main')) &&
@@ -115,17 +124,29 @@ jobs:
       special_exact_artifact_class: ${{ steps.classify.outputs.special_exact_artifact_class }}
       ephemeral_actions_alias_eligible: ${{ steps.classify.outputs.ephemeral_actions_alias_eligible }}
       runtime_dedupe_state: ${{ steps.classify.outputs.runtime_dedupe_state }}
+      coverage_execute_full_audit: ${{ steps.coverage-authority.outputs.execute_full_audit }}
     env:
       KPMO_CLASSIFIER_PACKET: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Verify independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: kidults-autonomous-landing-staging[bot]
+          KIDULTS_NATURAL_CLOCK_SLOT: ASSURANCE
+        run: |
+          set -euo pipefail
+          export KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
+          test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Validate canonical classifier and negative cases
         run: |
           set -euo pipefail
@@ -133,12 +154,15 @@ jobs:
           node --check scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
           node --check scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
           node --check scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs
+          node --check scripts/kidults/kpmo/classify-requirement-coverage-observation-v1.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs
           node --test tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs
+          node --test tests/kidults/kpmo/requirement-coverage-observation-v1.test.mjs
       - name: Reject partial forwarded Coverage continuation inputs
         if: github.event_name == 'workflow_dispatch'
         env:
           COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          COVERAGE_EVENT: ${{ inputs.coverage_event }}
           COVERAGE_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt }}
           COVERAGE_SOURCE_SHA: ${{ inputs.coverage_source_sha }}
           COVERAGE_SOURCE_TREE: ${{ inputs.coverage_source_tree }}
@@ -148,7 +172,7 @@ jobs:
           CONTINUATION_KEY: ${{ inputs.coverage_continuation_key }}
         run: |
           set -euo pipefail
-          VALUES=("$COVERAGE_RUN_ID" "$COVERAGE_RUN_ATTEMPT" "$COVERAGE_SOURCE_SHA" "$COVERAGE_SOURCE_TREE" "$COVERAGE_CREATED_AT" "$DISPATCH_ARTIFACT_ID" "$DISPATCH_ARTIFACT_DIGEST" "$CONTINUATION_KEY")
+          VALUES=("$COVERAGE_EVENT" "$COVERAGE_RUN_ID" "$COVERAGE_RUN_ATTEMPT" "$COVERAGE_SOURCE_SHA" "$COVERAGE_SOURCE_TREE" "$COVERAGE_CREATED_AT" "$DISPATCH_ARTIFACT_ID" "$DISPATCH_ARTIFACT_DIGEST" "$CONTINUATION_KEY")
           PRESENT=0
           for VALUE in "${VALUES[@]}"; do
             if [ -n "$VALUE" ]; then PRESENT=$((PRESENT + 1)); fi
@@ -166,6 +190,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          COVERAGE_EVENT: ${{ inputs.coverage_event }}
           COVERAGE_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt }}
           COVERAGE_SOURCE_SHA: ${{ inputs.coverage_source_sha }}
           COVERAGE_SOURCE_TREE: ${{ inputs.coverage_source_tree }}
@@ -195,6 +220,7 @@ jobs:
             fi
             sleep 5
           done
+          test "$COVERAGE_EVENT" = "$(jq -r .event /tmp/kir-forwarded-coverage-run.json)"
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}/artifacts?per_page=100" \
             > /tmp/kir-forwarded-coverage-artifacts.json
@@ -229,11 +255,12 @@ jobs:
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" --arg sha "$COVERAGE_SOURCE_SHA" --arg tree "$COVERAGE_SOURCE_TREE" \
             --arg created "$COVERAGE_CREATED_AT" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
+            --arg event "$COVERAGE_EVENT" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" --argjson artifact "$DISPATCH_ARTIFACT_ID" \
             --argjson prior "$PRIOR_CONSUMPTION_COUNT" --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
             --slurpfile runRecord /tmp/kir-forwarded-coverage-run.json --slurpfile artifactRecord /tmp/kir-forwarded-dispatch-artifact.json \
             --slurpfile receipt "${RECEIPTS[0]}" \
-            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
+            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
             > /tmp/kir-coverage-assurance-consume-input-v1.json
           mkdir -p "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET"
           cp /tmp/kir-forwarded-dispatch-archive-receipt.json "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/"
@@ -245,26 +272,57 @@ jobs:
         id: classify
         env:
           KPMO_EVENT_NAME: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event_name }}
-          KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
+          KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
           KPMO_SCHEDULE_EXPRESSION: ${{ github.event.schedule || '' }}
           KPMO_PR_NUMBER: ${{ github.event.pull_request.number || '' }}
           KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
           KPMO_UPSTREAM_RUN_ID: ${{ inputs.coverage_run_id || github.event.workflow_run.id || '' }}
           KPMO_UPSTREAM_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt || github.event.workflow_run.run_attempt || '' }}
-          KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha) || github.event.workflow_run.name || '' }}
+          KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && (inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id) || format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha)) || github.event.workflow_run.name || '' }}
           KPMO_UPSTREAM_WORKFLOW_PATH: ${{ inputs.coverage_run_id != '' && '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' || github.event.workflow_run.path || '' }}
-          KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event.workflow_run.event || '' }}
+          KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || '' }}
           KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}
           KPMO_UPSTREAM_CREATED_AT: ${{ inputs.coverage_created_at || github.event.workflow_run.created_at || '' }}
+          KPMO_NATURAL_CLOCK_DISPATCH_ID: ${{ github.event.client_payload.dispatch_id || '' }}
+          KPMO_NATURAL_CLOCK_ISSUED_AT: ${{ github.event.client_payload.issued_at || '' }}
         run: >-
           node scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs
           --output "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/canonical-identity-receipt.json"
+      - name: Resolve exact Coverage artifact authority
+        id: coverage-authority
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN_ID: ${{ github.event.workflow_run.id }}
+          COVERAGE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}" > /tmp/coverage-observation-run.json
+          gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${COVERAGE_RUN_ID}/artifacts?per_page=100" > /tmp/coverage-observation-artifacts.json
+          FULL_COUNT=$(jq '[.artifacts[] | select(.name=="kidults-asi-requirement-adapter-coverage-v1" and .expired==false)] | length' /tmp/coverage-observation-artifacts.json)
+          if [ "$FULL_COUNT" -eq 0 ]; then
+            ADMISSION_NAME="kidults-asi-requirement-coverage-admission-v1-${COVERAGE_RUN_ID}-${COVERAGE_RUN_ATTEMPT}"
+            jq -e --arg name "$ADMISSION_NAME" '[.artifacts[] | select(.name==$name and .expired==false)] | length==1' /tmp/coverage-observation-artifacts.json >/dev/null
+            ADMISSION_ID=$(jq -r --arg name "$ADMISSION_NAME" '.artifacts[] | select(.name==$name and .expired==false) | .id' /tmp/coverage-observation-artifacts.json)
+            ADMISSION_DIGEST=$(jq -r --arg name "$ADMISSION_NAME" '.artifacts[] | select(.name==$name and .expired==false) | .digest' /tmp/coverage-observation-artifacts.json)
+            gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ADMISSION_ID}/zip" > /tmp/coverage-admission.zip
+            python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py --archive /tmp/coverage-admission.zip --expected-digest "$ADMISSION_DIGEST" --receipt /tmp/coverage-admission-archive.json --max-compressed-bytes 1048576 --max-entries 1 --max-entry-uncompressed-bytes 1048576 --max-total-uncompressed-bytes 1048576 --max-compression-ratio 100 --required-basename coverage-admission-v1.json
+            mkdir /tmp/coverage-admission
+            unzip -q /tmp/coverage-admission.zip -d /tmp/coverage-admission
+            mapfile -t ADMISSIONS < <(find /tmp/coverage-admission -type f -name coverage-admission-v1.json -print)
+            test "${#ADMISSIONS[@]}" -eq 1
+            ADMISSION_PATH="${ADMISSIONS[0]}"
+          else
+            echo '{}' > /tmp/coverage-admission-not-applicable.json
+            ADMISSION_PATH=/tmp/coverage-admission-not-applicable.json
+          fi
+          node scripts/kidults/kpmo/classify-requirement-coverage-observation-v1.mjs /tmp/coverage-observation-run.json /tmp/coverage-observation-artifacts.json "$ADMISSION_PATH" "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/coverage-observation-receipt.json"
       - name: Upload exact-run canonical classification receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-assurance-canonical-classification-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/${{ env.KPMO_CLASSIFIER_PACKET }}/canonical-identity-receipt.json
+          path: ${{ runner.temp }}/${{ env.KPMO_CLASSIFIER_PACKET }}/
           if-no-files-found: error
           retention-days: 90
       - name: Retain one-time Coverage continuation consumption receipt
@@ -283,9 +341,13 @@ jobs:
     needs: classify-canonical-identity
     if: >-
       needs.classify-canonical-identity.result == 'success' &&
+      needs.classify-canonical-identity.outputs.coverage_execute_full_audit != 'false' &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
-        github.event.workflow_run.head_branch == 'main')) &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
+        github.event.workflow_run.status == 'completed' &&
+        github.event.workflow_run.conclusion == 'success')) &&
       (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
     concurrency:
       group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}
@@ -293,16 +355,16 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
-      KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.sha }}
-      KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
+      KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+      KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'repository_dispatch' && 'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
       KPMO_PR_HEAD_SHA: ${{ github.event.pull_request.head.sha || '' }}
       KPMO_PR_BASE_SHA: ${{ github.event.pull_request.base.sha || '' }}
       KPMO_PR_MERGE_SHA: ${{ github.event_name == 'pull_request' && github.sha || '' }}
       KPMO_UPSTREAM_RUN_ID: ${{ inputs.coverage_run_id || github.event.workflow_run.id || '' }}
       KPMO_UPSTREAM_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt || github.event.workflow_run.run_attempt || '' }}
-      KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha) || github.event.workflow_run.name || '' }}
+      KPMO_UPSTREAM_WORKFLOW_NAME: ${{ inputs.coverage_run_id != '' && (inputs.coverage_event == 'workflow_dispatch' && format('KIDULTS Coverage / manual-{0}', inputs.coverage_run_id) || format('KIDULTS Coverage / source-{0}', inputs.coverage_source_sha)) || github.event.workflow_run.name || '' }}
       KPMO_UPSTREAM_WORKFLOW_PATH: ${{ inputs.coverage_run_id != '' && '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' || github.event.workflow_run.path || '' }}
-      KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && 'workflow_run' || github.event.workflow_run.event || '' }}
+      KPMO_UPSTREAM_EVENT: ${{ inputs.coverage_run_id != '' && inputs.coverage_event || github.event.workflow_run.event || '' }}
       KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}
       KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE: ${{ needs.classify-canonical-identity.outputs.upstream_audit_conclusion_acceptable }}
       KPMO_UPSTREAM_AUDIT_DISPOSITION: ${{ needs.classify-canonical-identity.outputs.upstream_audit_disposition }}
@@ -324,7 +386,7 @@ jobs:
       KPMO_EPHEMERAL_ACTIONS_LEADER: 'false'
       KPMO_AUDIT_EXECUTION_DISPOSITION: EXECUTE_FULL_AUDIT_GUARD_NOT_RESOLVED
       KPMO_EPHEMERAL_GUARD_RECEIPT_DIGEST: UNAVAILABLE
-      KPMO_AUDIT_PROFILE: ${{ github.event_name == 'schedule' && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
+      KPMO_AUDIT_PROFILE: ${{ (github.event_name == 'schedule' || github.event_name == 'repository_dispatch') && 'sentinel' || github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && 'sentinel' || inputs.profile || 'deep' }}
       KPMO_PACKET_SUFFIX: kidults-continuous-assurance-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Initialize fail-closed assurance packet
@@ -465,7 +527,7 @@ jobs:
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$KPMO_SOURCE_SHA" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" \
             --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
-            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.0.0" and .state=="CONSUMED_VERIFIED"
+            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.2.0" and .state=="CONSUMED_VERIFIED"
              and .repository==$repository and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt
              and .consumer_workflow_run_id==$consumer and .consumer_workflow_run_attempt==$consumerAttempt
              and .input_validated==true and .receipt_verified==true and .one_time_consumed==true
@@ -511,7 +573,7 @@ jobs:
             mapfile -t ARTIFACT_ROWS < <(jq -c '.artifacts[]' "$GUARD_WORK_DIR/canonical-artifact-index.json")
             for ARTIFACT_ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ARTIFACT_ROW")
-              EXPIRED=$(jq -r '.expired // true' <<<"$ARTIFACT_ROW")
+              EXPIRED=$(jq -r 'if type == "object" then (.expired != false) else true end' <<<"$ARTIFACT_ROW")
               CANDIDATE_FILE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
               if [ "$EXPIRED" = true ]; then
                 jq -n --argjson artifact "$ARTIFACT_ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE_FILE"
@@ -632,12 +694,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           SHADOW_UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          SHADOW_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}
           SHADOW_UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
           SHADOW_UPSTREAM_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
         shell: bash
         run: |
           set -euo pipefail
           [[ "$SHADOW_UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_UPSTREAM_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$SHADOW_UPSTREAM_EVENT" =~ ^(push|schedule|workflow_dispatch)$ ]]
           [[ "$SHADOW_UPSTREAM_SHA" =~ ^[a-f0-9]{40}$ ]]
           test "$SHADOW_UPSTREAM_CONCLUSION" = "success"
           gh api -H 'Accept: application/vnd.github+json' \
@@ -645,15 +711,19 @@ jobs:
             > /tmp/shadow-upstream-run.json
           jq -e \
             --argjson run "$SHADOW_UPSTREAM_RUN_ID" \
+            --argjson attempt "$SHADOW_UPSTREAM_RUN_ATTEMPT" \
+            --arg event "$SHADOW_UPSTREAM_EVENT" \
             --arg sha "$SHADOW_UPSTREAM_SHA" \
             --arg repo "$GITHUB_REPOSITORY" \
             '.id==$run
+             and .run_attempt==$attempt
              and .name=="KIDULTS ASI SHADOW Operating Evidence v1"
              and .path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and .event==$event
+             and (.event=="push" or .event=="schedule" or .event=="workflow_dispatch")
              and .status=="completed"
              and .conclusion=="success"' \
             /tmp/shadow-upstream-run.json >/dev/null
@@ -716,12 +786,13 @@ jobs:
             --arg conclusion "$REQUIREMENT_UPSTREAM_CONCLUSION" \
             '.id==$run
              and .run_attempt==$attempt
-             and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))
+             and ((.event=="workflow_run" and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name)))
+                  or (.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name))
              and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"
              and .repository.full_name==$repo
              and .head_branch=="main"
              and .head_sha==$sha
-             and .event=="workflow_run"
+             and (.event=="workflow_run" or .event=="workflow_dispatch")
              and .status=="completed"
              and .conclusion==$conclusion' \
             /tmp/requirement-upstream-run.json >/dev/null
@@ -905,7 +976,7 @@ jobs:
              and .conclusion==$conclusion' \
             /tmp/reserve-upstream-run.json >/dev/null
           RESERVE_UPSTREAM_EVENT=$(jq -r '.event' /tmp/reserve-upstream-run.json)
-          [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|workflow_dispatch|schedule)$ ]]
+          [[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|repository_dispatch|workflow_dispatch|schedule)$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100" \
             > /tmp/reserve-upstream-artifacts.json
@@ -959,7 +1030,7 @@ jobs:
               python3 scripts/kidults/kpmo/validate-safe-zip-archive-v1.py \
                 --archive /tmp/reserve-observer.zip --expected-digest "$RESERVE_ARTIFACT_DIGEST" \
                 --receipt /tmp/reserve-observer-archive-validation-v1.json \
-                --max-compressed-bytes 4194304 --max-entries 32 \
+                --max-compressed-bytes 4194304 --max-entries 258 \
                 --max-entry-uncompressed-bytes 2097152 --max-total-uncompressed-bytes 8388608 \
                 --max-compression-ratio 100
               unzip -q -o /tmp/reserve-observer.zip -d /tmp/reserve-observer
@@ -1039,7 +1110,10 @@ jobs:
              and .status=="completed"
              and .conclusion==$conclusion'             /tmp/truth-upstream-run.json >/dev/null
           TRUTH_UPSTREAM_EVENT=$(jq -r '.event' /tmp/truth-upstream-run.json)
-          [[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]
+          # Canonical Truth is normally reached through its exact-main
+          # workflow_run chain. Reject unknown events, but admit that canonical
+          # producer event instead of failing a healthy terminal receipt.
+          [[ "$TRUTH_UPSTREAM_EVENT" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]
           gh api -H 'Accept: application/vnd.github+json'             "/repos/${GITHUB_REPOSITORY}/actions/runs/${TRUTH_UPSTREAM_RUN_ID}/artifacts?per_page=100"             > /tmp/truth-upstream-artifacts.json
           TRUTH_ARTIFACT_NAME="kpmo-live-canonical-issue-truth-v1-${TRUTH_UPSTREAM_RUN_ID}"
           TRUTH_ARTIFACT_COUNT=$(jq             --argjson run "$TRUTH_UPSTREAM_RUN_ID"             --arg sha "$TRUTH_UPSTREAM_SHA"             --arg name "$TRUTH_ARTIFACT_NAME"             '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length'             /tmp/truth-upstream-artifacts.json)
@@ -1113,6 +1187,14 @@ jobs:
           node scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
+
+      - name: Reconcile whole platform operating receipts without side effects
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs
+          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
 
       - name: Emit safe remediation packet
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
@@ -1193,7 +1275,36 @@ jobs:
               /^sha256:[a-f0-9]{64}$/.test(canonical?.canonical_artifact_digest || '') &&
               Number(canonical?.canonical_run_id) > 0 && Number(canonical?.canonical_run_attempt) > 0;
           }
-          if (!baseValid || !branchValid) process.exit(1);
+          if (!baseValid || !branchValid) {
+            console.error(JSON.stringify({
+              assurance_audit_integrity_failure: true,
+              base_valid: baseValid,
+              branch_valid: branchValid,
+              digest_valid: receipt.receipt_digest === digest(stable(unsignedReceipt)),
+              guard_digest_valid: guard.receipt_digest === digest(stable(unsignedGuard)),
+              control_state_valid: receipt.states?.internal_control_state === 'VERIFIED_PASS' && receipt.states?.promotion_eligible === false,
+              remediation_binding_valid: plan.source_receipt_digest === receipt.receipt_digest && !(plan.integrity_findings?.length) && plan.activation?.eligible === false,
+              canonical_binding_valid: canonical?.canonical_key === process.env.KPMO_CANONICAL_KEY &&
+                canonical?.canonical_input_digest === process.env.KPMO_CANONICAL_INPUT_DIGEST &&
+                canonical?.source_sha === process.env.KPMO_SOURCE_SHA &&
+                canonical?.upstream_class === process.env.KPMO_UPSTREAM_CLASS &&
+                canonical?.generation_discriminator === process.env.KPMO_GENERATION_DISCRIMINATOR &&
+                canonical?.classifier_contract_digest === process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST &&
+                canonical?.classification_receipt_digest === process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST &&
+                canonical?.runtime_dedupe_state === 'REMOTE_LEDGER_ACTIVATION_HOLD' &&
+                canonical?.canonical_execution_claimed === false &&
+                canonical?.durable_claim_created === false,
+              receipt_type_valid: receipt.receipt_type === 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
+              alias_valid: canonical?.alias === false,
+              guard_link_valid: canonical?.ephemeral_guard_receipt_digest === guard.receipt_digest,
+              leader_flag_valid: canonical?.ephemeral_actions_leader === (process.env.KPMO_EPHEMERAL_ACTIONS_LEADER === 'true'),
+              guard_state_valid: guard.state !== 'DEDUPED_ALIAS',
+              guard_state: guard.state,
+              receipt_guard_digest: canonical?.ephemeral_guard_receipt_digest,
+              guard_receipt_digest: guard.receipt_digest
+            }, null, 2));
+            process.exit(1);
+          }
           NODE
 
       - name: Publish successful bounded canonical leader artifact

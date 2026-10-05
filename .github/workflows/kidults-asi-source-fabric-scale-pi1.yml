@@ -2,34 +2,6 @@ name: KIDULTS ASI Source Fabric Scale PI1
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '13 */6 * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-discovery-provider-health-circuit-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-discovery-provider-health-circuit-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-seed-frontier-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-host-expansion-v1.mjs'
-      - 'tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs'
-      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
-      - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
-      - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
-      - 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json'
-      - 'coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json'
-      - 'package.json'
-      - 'scripts/governance/bootstrap-ai-agent-from-github-v1.mjs'
-      - 'scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs'
-      - 'scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs'
-      - '.github/workflows/kidults-asi-source-fabric-scale-pi1.yml'
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
@@ -132,7 +104,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-source-fabric-scale-pr-boundary-v1.mjs --self-test
 
   source-fabric-scale-pi1:
-    if: github.event_name != 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
@@ -193,7 +165,7 @@ jobs:
           node - <<'NODE'
           const fs=require('fs');
           const p=fs.readFileSync('.github/workflows/kidults-asi-source-fabric-scale-pi1.yml','utf8');
-          for(const marker of ['workflow_dispatch:','schedule:','push:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          for(const marker of ['workflow_dispatch:','pull_request:',"if: github.event_name == 'workflow_dispatch'"])if(!p.includes(marker))throw new Error(`MISSING_PROVIDER_EXECUTION_CONTROL:${marker}`);
           const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
           if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
           if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');

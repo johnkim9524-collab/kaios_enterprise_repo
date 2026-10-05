@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.5.0';
+const EXPECTED_POLICY_VERSION = '1.9.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -10,6 +10,15 @@ const EXACT_GENERATION_POLICY = Object.freeze({
   same_candidate_blob_different_main_allowed: false,
   stale_canonical_comment_allowed: false,
   terminal_records_are_non_authority: true,
+  final_lifecycle_boundary_required: true,
+  approval_strictly_after_final_lifecycle_boundary: true,
+  later_lifecycle_mutation_invalidates_approval: true,
+  approval_must_precede_landing_attempt: true,
+  single_governed_consumption_required: true,
+  pre_ready_approval_allowed: false,
+  multiple_current_generation_approvals_allowed: false,
+  closed_or_merged_prereadiness_authority_forbidden: true,
+  lifecycle_root_issue: 2028,
   root_issue: 1787,
 });
 
@@ -26,6 +35,12 @@ const EXACT_NEGATIVE_CASES = Object.freeze([
   'MERGE_MAIN_REBOUND',
   'SAME_CANDIDATE_BLOB_DIFFERENT_MAIN',
   'STALE_CANONICAL_COMMENT',
+  'APPROVAL_BEFORE_FINAL_READY',
+  'APPROVAL_AT_FINAL_READY',
+  'LIFECYCLE_MUTATION_AFTER_APPROVAL',
+  'APPROVAL_AFTER_LANDING_ATTEMPT_START',
+  'MULTIPLE_CURRENT_GENERATION_APPROVALS',
+  'APPROVAL_REPLAY',
 ]);
 
 const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
@@ -37,6 +52,8 @@ const EXACT_ATOMIC_REPLAY_POLICY = Object.freeze({
   postmerge_exact_main_tree_and_parent_binding_required: true,
   postmerge_exact_merge_sha_push_suite_required: true,
   terminal_pass_requires_postmerge_success: true,
+  terminal_closed_state: 'CLOSED_TERMINAL_NON_AUTHORIZING',
+  terminal_merged_state: 'MERGED_POST_LANDING_VERIFICATION_REQUIRED',
   failure_revokes_exact_head_status: true,
   immediate_post_status_premerge_reread_required: true,
   external_transport_race_detected_postmerge_fail_closed: true,
@@ -62,7 +79,7 @@ function requireExactArray(actual, expected, code) {
   }
 }
 
-export function assertGovernedLandingAuthorizationPolicyV150(policy) {
+export function assertGovernedLandingAuthorizationPolicyV160(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');
@@ -98,6 +115,19 @@ export function assertGovernedLandingAuthorizationPolicyV150(policy) {
     requireExact(Object.hasOwn(atomic, field), `ATOMIC_REPLAY_FIELD_MISSING:${field}`);
     requireExact(atomic[field] === expected, `ATOMIC_REPLAY_FIELD_INVALID:${field}`);
   }
+
+  const draft = policy.draft_policy;
+  requireExact(draft && typeof draft === 'object' && !Array.isArray(draft), 'DRAFT_POLICY_MISSING');
+  requireExact(draft.ordinary_github_token_ready_mutation_forbidden === true,
+    'DRAFT_POLICY_TOKEN_BOUNDARY_INVALID');
+  requireExact(draft.ready_transition_token_source === 'REPOSITORY_GITHUB_APP_INSTALLATION_BROKER',
+    'DRAFT_POLICY_TOKEN_SOURCE_INVALID');
+  requireExactArray(draft.ready_transition_required_permissions, ['pull_requests:write','metadata:read'],
+    'DRAFT_POLICY_REQUIRED_PERMISSIONS');
+  requireExact(draft.ready_transition_installation_identity_bound === true,
+    'DRAFT_POLICY_INSTALLATION_BINDING_INVALID');
+  requireExact(draft.ready_transition_post_mutation_reread_required === true,
+    'DRAFT_POLICY_POST_MUTATION_REREAD_INVALID');
 
   return {
     policy_version: EXPECTED_POLICY_VERSION,

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 
 const assert = (condition, message) => {
@@ -52,7 +52,7 @@ const merged = ({
   commit_id: commit,
 });
 
-const selected = selectLatestDirectOwnerReadyEvent({
+const selected = selectLatestLifecycleReadyEvent({
   repositoryOwner: owner,
   timeline: [
     ready({id: 102, at: '2026-09-02T00:02:00Z', event: 'convert_to_draft'}),
@@ -66,7 +66,7 @@ assert(selected.performed_via_github_app === null, 'DIRECT_OWNER_APP_NULL_BINDIN
 assert(selected.direct_repository_owner === true, 'DIRECT_OWNER_BOOLEAN_BINDING');
 assert(selected.latest_invalidating_event?.id === 102, 'LATEST_INVALIDATING_EVENT_BINDING');
 
-const tieBrokenByEventId = selectLatestDirectOwnerReadyEvent({
+const tieBrokenByEventId = selectLatestLifecycleReadyEvent({
   repositoryOwner: owner,
   timeline: [
     ready({id: 200, at: '2026-09-02T00:04:00Z'}),
@@ -76,45 +76,85 @@ const tieBrokenByEventId = selectLatestDirectOwnerReadyEvent({
 assert(tieBrokenByEventId.id === 201, 'READY_EVENT_ID_TIE_BREAK');
 
 expectReject('LIFECYCLE_LATEST_READY_EVENT_REQUIRED', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 300, at: '2026-09-02T00:05:00Z'}),
       ready({id: 301, at: '2026-09-02T00:06:00Z', event: 'convert_to_draft'}),
     ],
   }));
-expectReject('LIFECYCLE_READY_EVENT_ACTOR_NOT_REPOSITORY_OWNER', () =>
-  selectLatestDirectOwnerReadyEvent({
+const collaboratorReady = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [ready({id: 400, at: '2026-09-02T00:07:00Z', actor: 'collaborator'})],
+});
+assert(collaboratorReady.direct_repository_owner === false, 'COLLABORATOR_READY_IS_LIFECYCLE_ONLY');
+assert(collaboratorReady.authority === 'LIFECYCLE_ONLY', 'COLLABORATOR_READY_AUTHORITY_INVALID');
+assert(collaboratorReady.grants_authorization === false, 'COLLABORATOR_READY_MUST_NOT_AUTHORIZE');
+
+const appReady = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [ready({id: 500, at: '2026-09-02T00:08:00Z', app: {id: 1144995}})],
+});
+assert(appReady.direct_repository_owner === false, 'APP_READY_IS_NOT_DIRECT_OWNER');
+assert(appReady.performed_via_github_app?.id === 1144995, 'APP_READY_PROVENANCE_MISSING');
+assert(appReady.grants_authorization === false, 'APP_READY_MUST_NOT_AUTHORIZE');
+
+const createdReady = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [],
+  pullRequest: {
+    id: 501,
+    draft: false,
+    created_at: '2026-09-02T00:08:01Z',
+    user: {login: 'collaborator'},
+  },
+});
+assert(createdReady.event === 'created_ready_or_never_drafted', 'CREATED_READY_EVENT_INVALID');
+assert(createdReady.synthetic_lifecycle_boundary === true, 'CREATED_READY_BOUNDARY_NOT_MARKED');
+assert(createdReady.grants_authorization === false, 'CREATED_READY_MUST_NOT_AUTHORIZE');
+const createdReadyNaturalMergedClose = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [
+    merged({id: 503, at: '2026-09-02T00:08:04Z'}),
+    transition({id: 504, at: '2026-09-02T00:08:04Z', event: 'closed'}),
+  ],
+  pullRequest: {
+    id: 501,
+    draft: false,
+    merged: true,
+    created_at: '2026-09-02T00:08:01Z',
+    user: {login: owner},
+  },
+});
+assert(createdReadyNaturalMergedClose.event === 'created_ready_or_never_drafted',
+  'CREATED_READY_MERGED_CLOSE_BOUNDARY_INVALID');
+assert(createdReadyNaturalMergedClose.synthetic_lifecycle_boundary === true,
+  'CREATED_READY_MERGED_CLOSE_NOT_SYNTHETIC');
+assert(createdReadyNaturalMergedClose.latest_invalidating_event === null,
+  'CREATED_READY_NATURAL_MERGED_CLOSE_INVALIDATED');
+expectReject('LIFECYCLE_LATEST_READY_EVENT_REQUIRED', () =>
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
-    timeline: [ready({id: 400, at: '2026-09-02T00:07:00Z', actor: 'collaborator'})],
-  }));
-expectReject('LIFECYCLE_READY_EVENT_APP_MEDIATED', () =>
-  selectLatestDirectOwnerReadyEvent({
-    repositoryOwner: owner,
-    timeline: [ready({id: 500, at: '2026-09-02T00:08:00Z', app: {id: 1144995}})],
-  }));
-expectReject('LIFECYCLE_READY_EVENT_APP_MEDIATED', () =>
-  selectLatestDirectOwnerReadyEvent({
-    repositoryOwner: owner,
-    timeline: [{
-      id: 501,
-      event: 'ready_for_review',
-      created_at: '2026-09-02T00:08:01Z',
-      actor: {login: owner},
-    }],
+    timeline: [],
+    pullRequest: {
+      id: 502,
+      draft: true,
+      created_at: '2026-09-02T00:08:02Z',
+      user: {login: owner},
+    },
   }));
 expectReject('LIFECYCLE_READY_EVENT_ID_INVALID', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [ready({id: 0, at: '2026-09-02T00:09:00Z'})],
   }));
 expectReject('LIFECYCLE_READY_EVENT_TIME_INVALID', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [ready({id: 600, at: 'not-a-time'})],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 700, at: '2026-09-02T00:10:00Z'}),
@@ -123,7 +163,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED', () =>
     ],
   }));
 
-const naturalMergedClose = selectLatestDirectOwnerReadyEvent({
+const naturalMergedClose = selectLatestLifecycleReadyEvent({
   repositoryOwner: owner,
   timeline: [
     ready({id: 710, at: '2026-09-02T00:20:00Z'}),
@@ -134,8 +174,19 @@ const naturalMergedClose = selectLatestDirectOwnerReadyEvent({
 assert(naturalMergedClose.id === 710, 'NATURAL_MERGED_CLOSE_PRESERVES_READY_GENERATION');
 assert(naturalMergedClose.latest_invalidating_event === null, 'NATURAL_MERGED_CLOSE_NOT_INVALIDATING');
 
+const naturalMergedCloseWithGithubTimestampSkew = selectLatestLifecycleReadyEvent({
+  repositoryOwner: owner,
+  timeline: [
+    ready({id: 713, at: '2026-09-02T00:21:10Z'}),
+    merged({id: 714, at: '2026-09-02T00:21:11Z'}),
+    transition({id: 715, at: '2026-09-02T00:21:12Z', event: 'closed'}),
+  ],
+});
+assert(naturalMergedCloseWithGithubTimestampSkew.id === 713, 'NATURAL_MERGED_CLOSE_ALLOWS_ORDERED_TIMESTAMP_SKEW');
+assert(naturalMergedCloseWithGithubTimestampSkew.latest_invalidating_event === null, 'TIMESTAMP_SKEWED_MERGED_CLOSE_NOT_INVALIDATING');
+
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 720, at: '2026-09-02T00:22:00Z'}),
@@ -143,7 +194,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 730, at: '2026-09-02T00:24:00Z'}),
@@ -152,7 +203,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 740, at: '2026-09-02T00:26:00Z'}),
@@ -161,16 +212,16 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 750, at: '2026-09-02T00:28:00Z'}),
-      merged({id: 751, at: '2026-09-02T00:29:00Z'}),
-      transition({id: 752, at: '2026-09-02T00:29:01Z', event: 'closed'}),
+      merged({id: 751, at: '2026-09-02T00:29:01Z'}),
+      transition({id: 752, at: '2026-09-02T00:29:00Z', event: 'closed'}),
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 760, at: '2026-09-02T00:30:00Z'}),
@@ -179,7 +230,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 770, at: '2026-09-02T00:32:00Z'}),
@@ -188,7 +239,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 780, at: '2026-09-02T00:34:00Z'}),
@@ -197,7 +248,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 790, at: '2026-09-02T00:36:00Z'}),
@@ -207,7 +258,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
     ],
   }));
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       merged({id: 800, at: '2026-09-02T00:38:00Z'}),
@@ -217,7 +268,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:closed', () =>
   }));
 
 expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:reopened', () =>
-  selectLatestDirectOwnerReadyEvent({
+  selectLatestLifecycleReadyEvent({
     repositoryOwner: owner,
     timeline: [
       ready({id: 810, at: '2026-09-02T00:39:00Z'}),
@@ -227,7 +278,7 @@ expectReject('LIFECYCLE_READY_GENERATION_INVALIDATED:reopened', () =>
     ],
   }));
 
-const reopenedThenFreshReady = selectLatestDirectOwnerReadyEvent({
+const reopenedThenFreshReady = selectLatestLifecycleReadyEvent({
   repositoryOwner: owner,
   timeline: [
     ready({id: 800, at: '2026-09-02T00:13:00Z'}),
@@ -241,8 +292,8 @@ assert(reopenedThenFreshReady.latest_invalidating_event?.id === 802, 'REOPEN_EVE
 assert(reopenedThenFreshReady.latest_invalidating_event?.event === 'reopened', 'REOPEN_EVENT_TYPE_BOUND');
 
 expectReject('LIFECYCLE_READY_TIMELINE_INVALID', () =>
-  selectLatestDirectOwnerReadyEvent({repositoryOwner: owner, timeline: null}));
+  selectLatestLifecycleReadyEvent({repositoryOwner: owner, timeline: null}));
 expectReject('LIFECYCLE_REPOSITORY_OWNER_INVALID', () =>
-  selectLatestDirectOwnerReadyEvent({repositoryOwner: '', timeline: []}));
+  selectLatestLifecycleReadyEvent({repositoryOwner: '', timeline: []}));
 
-console.log('Direct repository-owner Ready event regression: PASS');
+console.log('Lifecycle-only Ready boundary regression: PASS');

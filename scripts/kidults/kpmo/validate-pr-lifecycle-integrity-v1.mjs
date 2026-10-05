@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+  selectLatestLifecycleReadyEvent,
+} from './lib/direct-owner-ready-event-v1.mjs';
+
+import {
   assertFullApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
 import {
@@ -11,9 +15,6 @@ import {
   SCOPE_AWARE_CONTEXT,
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
-import {
-  selectLatestDirectOwnerReadyEvent,
-} from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA40 = /^[0-9a-f]{40}$/;
 
@@ -74,6 +75,23 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   assert(required.length > 0, 'NATIVE_REQUIRED_CONTEXT_SET_EMPTY');
   const latest = latestByContext(statuses);
   const evidence = required.map(context => latest.get(context) || {context, state: 'missing', description: null});
+  const landing = evidence.find(item => item.context === GOVERNED_LANDING_CONTEXT);
+  const scope = evidence.find(item => item.context === SCOPE_AWARE_CONTEXT);
+  // The normal Ready status is a control result, never an atomic landing grant.
+  // Keep the atomic-only READY_GOVERNED contract below unchanged.
+  if (landing?.state === 'pending'
+    && landing.description === 'Ready lifecycle verified; operation-specific landing authority required'
+    && landing.creator === 'github-actions[bot]'
+    && scope?.state === 'success') {
+    return {
+      ...common,
+      state: 'READY_VERIFIED_NON_PROMOTABLE',
+      reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+      native_status_evidence: evidence,
+      manual_merge_authority: false,
+      atomic_landing_only: false,
+    };
+  }
   const incomplete = evidence.filter(item => !isAtomicLandingNativeStatusReady(item));
   if (incomplete.length) {
     return {
@@ -134,6 +152,41 @@ function runSelfTest() {
     expectedHeadSha: head,
     expectedBaseSha: base,
   }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_GENERIC_SUCCESS_NOT_OPERATION_SIGNAL');
+  const verifiedPending = classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [{
+      ...landingPending('Ready lifecycle verified; operation-specific landing authority required'),
+      creator: {login: 'github-actions[bot]'},
+    }, success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  });
+  assert(verifiedPending.state === 'READY_VERIFIED_NON_PROMOTABLE'
+    && verifiedPending.reason === 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING'
+    && verifiedPending.promotion_eligible === false
+    && verifiedPending.manual_merge_authority === false
+    && verifiedPending.atomic_landing_only === false, 'SELFTEST_NORMAL_PENDING_CONTROL_ONLY');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [landingPending('Ready lifecycle verified; operation-specific landing authority required'), success(SCOPE_AWARE_CONTEXT)],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_UNTRUSTED_PENDING_REJECTED');
+  assert(classifyLifecycle({
+    pr,
+    liveMainSha: base,
+    statuses: [{
+      ...landingPending('Ready lifecycle verified; operation-specific landing authority required'),
+      creator: {login: 'github-actions[bot]'},
+    }, {...success(SCOPE_AWARE_CONTEXT), state: 'pending'}],
+    policy,
+    expectedHeadSha: head,
+    expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_SCOPE_PENDING_REJECTED');
   assert(classifyLifecycle({
     pr,
     liveMainSha: '3'.repeat(40),
@@ -222,10 +275,24 @@ async function main() {
       pages(`/commits/${expectedHeadSha}/statuses`),
       pages(`/issues/${prNumber}/timeline`),
     ]);
-    const latestReadiness = selectLatestDirectOwnerReadyEvent({
-      timeline,
-      repositoryOwner,
-    });
+    const latestReadiness = prInitial.draft === true
+      ? Object.freeze({
+          id: null,
+          event: 'draft_current_state',
+          created_at: prInitial.updated_at || prInitial.created_at,
+          actor: prInitial.user?.login || null,
+          performed_via_github_app: null,
+          direct_repository_owner: false,
+          authority: 'LIFECYCLE_ONLY',
+          grants_authorization: false,
+          synthetic_lifecycle_boundary: true,
+          latest_invalidating_event: null,
+        })
+      : selectLatestLifecycleReadyEvent({
+          timeline,
+          repositoryOwner,
+          pullRequest: prInitial,
+        });
     const [approvalBaseTree, approvalHeadTree] = await Promise.all([
       api(`/git/trees/${prInitial.base.sha}?recursive=1`),
       api(`/git/trees/${prInitial.head.sha}?recursive=1`),
@@ -260,10 +327,14 @@ async function main() {
       event_name: process.env.GITHUB_EVENT_NAME || null,
       lifecycle_evaluated_at: lifecycleEvaluatedAt,
       latest_ready_event_id: latestReadiness.id,
+      latest_ready_event_type: latestReadiness.event,
       latest_ready_event_at: latestReadiness.created_at,
       latest_ready_event_actor: latestReadiness.actor,
       latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
       latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
+      latest_ready_event_synthetic_lifecycle_boundary: latestReadiness.synthetic_lifecycle_boundary,
+      readiness_authority: 'LIFECYCLE_ONLY',
+      ready_state_grants_authorization: false,
       approval_generation_equality: approvalGeneration,
       ...classification,
       final_live_reread: true,

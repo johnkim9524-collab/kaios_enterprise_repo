@@ -6,7 +6,7 @@ const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing
 
 test('required post-merge workflow failure preserves consumed proof but makes handoff terminal RED', () => {
   const consumeIndex = workflow.indexOf('Consume exact merge-SHA protected-main push suite');
-  const failClosedIndex = workflow.indexOf('Fail closed on required post-merge workflow failures');
+  const failClosedIndex = workflow.indexOf('Fail closed on unclassified required post-merge workflow failures');
   const uploadIndex = workflow.indexOf('Upload bounded direct-owner handoff receipt');
   assert.ok(consumeIndex >= 0 && consumeIndex < failClosedIndex && failClosedIndex < uploadIndex);
   assert.match(workflow, /post_merge_push_suite_consumed !== true/);

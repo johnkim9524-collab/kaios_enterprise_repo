@@ -1,0 +1,35 @@
+{
+  "id": "kidults-whole-platform-operating-proof-v1",
+  "version": "1.0.0",
+  "scope": "WHOLE_PLATFORM_OPERATING_SURFACE_WITH_EXPLICIT_RELEASE_HOLDS",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "core_four_is_whole_runtime_proof": false,
+  "minimum_distinct_producer_generations": 2,
+  "maximum_evidence_age_seconds": 108000,
+  "maximum_observer_age_seconds": 7200,
+  "maximum_observation_history": 24,
+  "observer": {"read_only": true, "dispatch": false, "mint": false, "merge": false, "deploy": false},
+  "required_operating_checks": [
+    "CORE_FOUR_CONTENT", "DISTINCT_NATURAL_GENERATIONS", "NATURAL_CHAIN_TERMINALS", "PROTECTED_LANDING",
+    "AWS_CONFIGURATION_AND_IMMUTABILITY", "NATIVE_DISPATCH", "NATIVE_RESUME_REUSE",
+    "FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL", "WHOLE_VALUE_CHAIN_RUNTIME"
+  ],
+  "value_chain_source": "coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json",
+  "runtime_domain_sources": [],
+  "value_chain_dimensions": [
+    "VALUE_TRACEABILITY", "SOURCE_RIGHTS", "ENTITY_RESOLUTION", "MARKET_EVIDENCE", "ASI_EXECUTION",
+    "IMMUTABLE_CANDIDATE", "TRACK_B_VALIDATION", "PROJECTION_TRUTH",
+    "PORTAL_TRANSPARENCY_ACCESSIBILITY", "EOS_FOUNDER_WORKFLOW", "RUNTIME_RELIABILITY",
+    "SECURITY_SUPPLY_CHAIN", "PRIVACY_RETENTION", "INTEGRATION_GATE"
+  ],
+  "completion": {"all_required_operating_checks": "VERIFIED_PASS", "missing_is_pass": false,
+    "static_or_fixture_is_live_runtime": false, "canary_is_mission_terminal": false,
+    "two_observations_of_one_producer_tuple_are_two_generations": false,
+    "whole_platform_authority_does_not_grant_release": true},
+  "recovery": {"owner": "KPMO", "consume_existing_success": true,
+    "unknown_outcome": "RECONCILE_EXISTING_OPERATION_NO_RETRY",
+    "missing_evidence": "RESUME_REGISTERED_PRODUCER_FROM_LAST_INCOMPLETE_STAGE",
+    "rights_or_human_acceptance": "OWNER_RESERVED_SOURCE_ADMISSION_HOLD",
+    "no_automatic_hold_waiver": true},
+  "production": "HOLD", "public": "HOLD", "g5": "HOLD", "provider_activation": "HOLD"
+}

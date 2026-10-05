@@ -18,7 +18,7 @@ export function validateWorkflowText(text) {
     ['bounded polling', '--poll-milliseconds 10000'],
     ['exact producer SHA', '--expected-sha "$EXPECTED_SHA"'],
     ['exact producer branch', '--branch "$TARGET_BRANCH"'],
-    ['bounded automatic schedule', "- cron: '5 * * * *'"],
+    ['explicit execution trigger', '  workflow_dispatch:'],
     ['producer SHA binding', 'EXPECTED_SHA: ${{ github.sha }}'],
     ['producer branch binding', 'TARGET_BRANCH: main'],
     ['exact event checkout', 'ref: ${{ github.event.pull_request.head.sha || github.sha }}'],
@@ -40,6 +40,7 @@ export function validateWorkflowText(text) {
   if (text.includes('/actions/artifacts?per_page=100')) {
     fail('repository-global artifact listing is forbidden');
   }
+  if (text.includes('  schedule:')) fail('automatic provider execution trigger is forbidden');
 
   const directDownload = text.match(/\/actions\/artifacts\/\$\{ART_ID\}\/zip/g) ?? [];
   if (directDownload.length !== 1) {
@@ -56,7 +57,7 @@ if (process.argv.includes('--self-test')) {
   const mutations = [
     ['remove resolver', source.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs')],
     ['remove exact SHA', source.replaceAll('--expected-sha "$EXPECTED_SHA"', '--expected-sha "$PR_BASE_SHA"')],
-    ['remove automatic trigger', source.replace("- cron: '5 * * * *'", "- cron: '5 1 1 1 *'")],
+    ['restore automatic trigger', source.replace('  workflow_dispatch:', '  schedule:')],
     ['remove producer SHA binding', source.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound')],
     ['remove canonical path', source.replaceAll('--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml', '--workflow-path .github/workflows/forged.yml')],
     ['unbound attempts', source.replace('--max-attempts 24', '--max-attempts 240')],

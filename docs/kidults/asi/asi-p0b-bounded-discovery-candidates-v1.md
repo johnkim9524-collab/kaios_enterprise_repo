@@ -73,9 +73,8 @@ Exact regional hints are preferred. Unknown or global hints may remain candidate
 ## Automatic activation
 
 ```text
-Relevant protected-main push
-or hourly schedule at minute 37
-or successful P0 Mission Consumption run
+Hourly natural schedule at minute 37
+(manual workflow_dispatch is recovery only, never natural proof)
         ↓
 Rebuild P0 mission queue
         ↓
@@ -119,3 +118,20 @@ Distinct Host ≠ Distinct Factual Origin
 Discovery Provider ≠ Factual Origin
 Candidate Binding ≠ Admission
 ```
+
+
+## Exact-main natural trigger closure (2026-09-28)
+
+The natural producer root is P0B's existing hourly schedule. Its in-job P0 mission queue rebuild is retained. P1 has no independent schedule. The complete route is:
+
+`P0B(schedule) -> P1(workflow_run) -> ARL(workflow_run) -> Requirement Coverage(workflow_run)`
+
+GitHub limits consecutive workflow_run continuations to three levels after the root event. The former P0 Mission -> P0B workflow_run edge consumed an extra level and suppressed Coverage after a successful ARL. This is an execution-topology defect, not a reason to dispatch a manual Coverage producer or weaken provenance. Reference: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run
+
+At main 5266a4a53bb4d13de20aea264637633a39a2d99b, P0 Mission schedule run 36354709812, P0B workflow_run 36354767001, P1 workflow_run 36354915258, and ARL workflow_run 36354947378 were successful while the exact-SHA Coverage run index was empty. These are intermediate observations, not terminal natural-chain proof.
+
+The deterministic SHADOW producer now runs on every protected-main push, retaining its existing pull-request filter, daily schedule, contents-read permission and all non-Production assertions. A main change outside its former path filter otherwise left the exact-SHA Sentinel waiting for the next daily SHADOW generation. No producer output, semantic validator, artifact digest requirement, provider right, runtime activation or promotion gate is relaxed.
+
+The activation-estate validator binds the P0B schedule root, exact P1/ARL/Coverage upstream names, protected-main completed-event boundaries, the three-level budget and unfiltered protected-main SHADOW push. Six adversarial mutations cover missing roots, excessive depth, a redundant P1 schedule, wrong upstream identity, wrong branch and delayed SHADOW generation. The cancellation-watch validator separately rejects over-depth roots and an unbounded producer event guard.
+
+Manual workflow_dispatch remains recovery only and is never natural-producer evidence. Sharded Reserve must still obtain its own schedule/workflow_run evidence; its Coverage-triggered manual recovery is excluded. KIR continuation consumption, exact-SHA REQUIREMENT/RESERVE health, semantic Continuous Assurance and terminal receipts remain mandatory. PR checks, local tests, a successful merge, or structural push Assurance cannot close the incident. Production/Public/G5 remain HOLD.
