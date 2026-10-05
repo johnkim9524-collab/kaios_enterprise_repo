@@ -57,6 +57,13 @@ test('producer completion events stay aligned with sentinel health resolver sele
  }
 });
 
+test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
+ const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+ assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
+ assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
+ assert.match(s,/SECONDS \+ 900/);
+ assert.match(s,/actions\/runs\?head_sha=\$\{KPMO_SOURCE_SHA\}/);
+});
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
  assert.equal(validateSentinelTrigger(inline),null);
