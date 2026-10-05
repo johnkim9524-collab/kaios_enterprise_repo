@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "c816654104b37f68104b78f531e3ff2f61d0d3db",
+  "revision": "0976e712298a1568bc9e64f1a915809d54b8ff57",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3700,8 +3700,8 @@
     {
       "path": "scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "10da3d7d067cb9003afb56d1ccab078207de9bb5",
-      "sha256": "sha256:e5f3b4c71b245d5fa246ce58245d9d828f2c3deaf942655b0a9155f228514f04",
+      "git_blob": "a3317a5b67f6489887119f810fd1977780485dc6",
+      "sha256": "sha256:cfb0bf2395b5faf0ebc41b5ff3531d05a297be87f9a41808d109974461c71727",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5489,8 +5489,8 @@
     {
       "path": "tests/kidults/kpmo/atomic-landing-one-use-preflight-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "11ee07cb67847fda8c97c90142eabef645947695",
-      "sha256": "sha256:b0c352c08b8cb94d0340202192067fa3a2eeb43a8ecd960acee2b77ab70b3cea"
+      "git_blob": "aba16811c1eb7c2bf6ac360ec9b158830729d1d2",
+      "sha256": "sha256:6274abc4fb66b0ba86b93feb618751f102137bdff9051bab4c04ab2c2569f72c"
     },
     {
       "path": "tests/kidults/kpmo/atomic-landing-postmerge-transport-containment-v1.test.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6f0e9433764222f93347590eb0c2b6331823cabc511068ad3f9154c1987ff5f4"
+  "manifest_sha256": "sha256:1736fb269ab354c7f257656fb72ed22eade213ca1eaff865b24bb742e8e4428e"
 }

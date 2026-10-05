@@ -430,3 +430,23 @@ for (const state of [
       /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
   });
 }
+
+
+test('Atomic final pre-merge call site reuses authoritative current-run reconciliation', async () => {
+  const source = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8').replace(/\r\n/g, '\n');
+  const start = source.indexOf('  const oneUseOptions = {');
+  const end = source.indexOf('\n  const receipt = assertAtomicLandingConsumptionReceipt', start);
+  assert.ok(start >= 0 && end > start, 'final pre-merge production call site missing');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction('workflowRuns', 'currentRun', 'landingRunId',
+    'landingRunAttempt', 'expectedRunName', 'baseSha', 'authorizationApprovedAt',
+    'evaluateAtomicLandingOneUseRunSet', 'reconcileAtomicLandingCurrentRunIndex',
+    `${source.slice(start, end)}\nreturn oneUse;`);
+  const result = await execute(async () => [], run(), runId, 1, expectedRunName, baseSha,
+    null, evaluateAtomicLandingOneUseRunSet, reconcileAtomicLandingCurrentRunIndex);
+  assert.equal(result.matching_run_count, 1);
+  assert.equal(result.matching_run_id, runId);
+  await assert.rejects(execute(async () => [run(), run()], run(), runId, 1,
+    expectedRunName, baseSha, null, evaluateAtomicLandingOneUseRunSet,
+    reconcileAtomicLandingCurrentRunIndex), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
+});
