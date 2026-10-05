@@ -382,3 +382,51 @@ test('terminal receipt persists sanitized one-use consumption evidence', () => {
   assert.match(reconciler, /ATOMIC_TERMINAL_CONSUMPTION_RAW_AUTHORIZATION_LEAK/);
   assert.doesNotMatch(reconciler, /operation_authorization_id:/);
 });
+
+
+const reconciliationOptions = () => ({
+  currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+  protectedMainShaAtDispatch: baseSha,
+});
+
+for (const [field, value] of [
+  ['id', runId + 1], ['run_attempt', 2], ['workflow_id', workflowId + 1],
+  ['event', 'push'], ['head_branch', 'other'], ['display_title', 'wrong'],
+  ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run supplementation rejects direct ${field} mismatch`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([], {...run(), [field]: value},
+      reconciliationOptions()));
+  });
+}
+
+for (const [field, value] of [
+  ['run_attempt', 2], ['workflow_id', workflowId + 1], ['event', 'push'],
+  ['head_branch', 'other'], ['display_title', 'wrong'], ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run reconciliation rejects indexed ${field} conflict`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([{...run(), [field]: value}],
+      run(), reconciliationOptions()), /ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH/);
+  });
+}
+
+test('current-run reconciliation preserves duplicate rejection and input immutability', () => {
+  assert.throws(() => reconcileAtomicLandingCurrentRunIndex([run(), run()], run(),
+    reconciliationOptions()), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
+  const input = [];
+  reconcileAtomicLandingCurrentRunIndex(input, run(), reconciliationOptions());
+  assert.deepEqual(input, []);
+});
+
+for (const state of [
+  {status: 'completed', conclusion: 'success'},
+  {status: 'in_progress', conclusion: null},
+]) {
+  test(`supplementation preserves prior ${state.status}/${state.conclusion} consumption denial`, () => {
+    const prior = {...run(), id: runId - 1, ...state};
+    const reconciled = reconcileAtomicLandingCurrentRunIndex([prior], run(), reconciliationOptions());
+    assert.equal(reconciled.length, 2);
+    assert.throws(() => evaluateAtomicLandingOneUseRunSet(reconciled, reconciliationOptions()),
+      /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  });
+}

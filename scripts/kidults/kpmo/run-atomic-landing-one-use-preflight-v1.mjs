@@ -80,7 +80,19 @@ export function reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
 
   const currentMatches = runs.filter(run => Number(run?.id) === Number(currentRunId));
   assert(currentMatches.length <= 1, 'ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID', String(currentMatches.length));
-  return currentMatches.length === 1 ? runs : [...runs, currentRun];
+  // The direct endpoint is authoritative only for the current run. Never
+  // hide duplicate rows, conflicting immutable fields, or prior consumption.
+  if (currentMatches.length === 1) {
+    const indexed = currentMatches[0];
+    for (const field of ['id', 'run_attempt', 'workflow_id', 'event', 'head_branch', 'display_title', 'head_sha']) {
+      const numeric = ['id', 'run_attempt', 'workflow_id'].includes(field);
+      assert(numeric ? Number(indexed?.[field]) === Number(currentRun[field])
+        : indexed?.[field] === currentRun[field],
+      'ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH', field);
+    }
+    return runs;
+  }
+  return [...runs, currentRun];
 }
 
 export function evaluateAtomicLandingOneUseRunSet(runs, {
@@ -302,29 +314,22 @@ async function main() {
   assert(Number.isInteger(Number(currentRun?.workflow_id)) && Number(currentRun.workflow_id) > 0, 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
 
   const loadWorkflowRuns = async () => {
-    for (let visibilityAttempt = 1; visibilityAttempt <= 4; visibilityAttempt += 1) {
-      const runs = [];
-      for (let page = 1; page <= MAX_WORKFLOW_RUN_PAGES; page += 1) {
-        const payload = await request(
-          `/actions/workflows/${currentRun.workflow_id}/runs?event=${EXPECTED_EVENT}&branch=${EXPECTED_BRANCH}&per_page=100&page=${page}`,
-        );
-        assert(Array.isArray(payload?.workflow_runs), 'ATOMIC_ONE_USE_WORKFLOW_RUNS_SHAPE_INVALID');
-        runs.push(...payload.workflow_runs);
-        if (payload.workflow_runs.length < 100) break;
-        if (page === MAX_WORKFLOW_RUN_PAGES) fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
+    const runs = [];
+    for (let page = 1; page <= MAX_WORKFLOW_RUN_PAGES; page += 1) {
+      const payload = await request(
+        `/actions/workflows/${currentRun.workflow_id}/runs?event=${EXPECTED_EVENT}&branch=${EXPECTED_BRANCH}&per_page=100&page=${page}`,
+      );
+      assert(Array.isArray(payload?.workflow_runs), 'ATOMIC_ONE_USE_WORKFLOW_RUNS_SHAPE_INVALID');
+      runs.push(...payload.workflow_runs);
+      if (payload.workflow_runs.length < 100) {
+        return reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
+          currentRunId: runId,
+          currentRunAttempt: runAttempt,
+          workflowId: currentRun.workflow_id,
+          expectedRunName,
+          protectedMainShaAtDispatch: currentRun.head_sha,
+        });
       }
-      if (runs.some(run => Number(run?.id) === Number(runId))) return runs;
-      if (visibilityAttempt < 4) {
-        await new Promise(resolve => setTimeout(resolve, 250 * visibilityAttempt));
-        continue;
-      }
-      return reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
-        currentRunId: runId,
-        currentRunAttempt: runAttempt,
-        workflowId: currentRun.workflow_id,
-        expectedRunName,
-        protectedMainShaAtDispatch: currentRun.head_sha,
-      });
     }
     fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
   };
