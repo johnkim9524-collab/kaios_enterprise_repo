@@ -57,7 +57,7 @@
   "provider_activation": "HOLD",
   "completion_declared": false,
   "stale_base_broker_scope_followup": {
-    "state": "PLANNED",
+    "state": "STALE_BASE_RECOVERY_VERIFIED",
     "root_incident_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
     "source_main_sha": "88c0786e74bc9255bfcd46fac178b8fc0f1c89bd",
     "failure_evidence": {
@@ -69,7 +69,7 @@
     },
     "root_cause": "GitHub App update-branch requires contents write on the head repository; the stale convergence profile only mints pull_requests write.",
     "correction_scope": "Add contents write only to the exact-bound stale convergence profile; preserve hygiene scope, live tuple checks, no force push, and original finalizer reservation owner.",
-    "runtime_state": "NOT_VERIFIED",
+    "runtime_state": "DISPATCH_REUSE_RESERVATION_CONSUMPTION_VERIFIED_IMMUTABLE_RETENTION_BLOCKED",
     "exit_criteria": [
       "Exact-head regression and negative verification",
       "Governed protected-main landing",
@@ -81,6 +81,48 @@
     ],
     "whole_platform_completion_declared": false,
     "remaining_human_and_value_chain_gates_unchanged": true,
-    "rollback": "Governed revert of the corrective PR; preserve ledger and reservation history."
+    "rollback": "Governed revert of the corrective PR; preserve ledger and reservation history.",
+    "verification_evidence": {
+      "corrective_pr": 2568,
+      "corrective_merge_sha": "795e38b01569555f8a7d866bc60c541fad05ec77",
+      "deployment_run_id": 37244597587,
+      "deployment_artifact_id": 11318627647,
+      "deployed_code_sha256": "LkJLm4XfTgqz+C5r++WI0bWGjCxCN8bbM4JmZXj289A=",
+      "recovery_dispatcher_run_id": 37244806360,
+      "recovery_dispatch_was_natural": false,
+      "convergence_state": "STALE_BASE_CONVERGED",
+      "native_dispatcher_run_id": 37244932995,
+      "native_dispatch_event": "workflow_run",
+      "original_operation_key": "sha256:f243d2e50c0d392c47725efdf36e6cb357b9c3a48ce9a8282f75824994a1cc96",
+      "reuse_state": "REUSED_SUCCESS",
+      "replacement_generation_created": false,
+      "generation": "pr-2462-865a1293ef54674c334d-e617ab9c60d0b95b",
+      "canary_merge_sha": "bc23ad27319b2e3f7d0848d27e11a826beffd254",
+      "reservation_state": "CONSUMED",
+      "elected_finalizer_run_id": 37244958359,
+      "postmerge_state": "VERIFIED_PASS",
+      "immutable_state": "QUARANTINED",
+      "immutable_failure_code": "AUTONOMOUS_IMMUTABLE_RETENTION"
+    }
+  },
+  "immutable_retention_precision_followup": {
+    "state": "CORRECTION_IMPLEMENTED_PENDING_LANDING_AND_OWNER_RESERVED_RECONCILIATION",
+    "root_incident_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+    "observed_finalizer_run_id": 37244958359,
+    "created_at": "2026-10-04T23:49:18.944Z",
+    "minimum_retention": "2036-10-04T23:49:18.944Z",
+    "observed_retention": "2036-10-04T23:49:18Z",
+    "required_whole_second_retention": "2036-10-04T23:49:19Z",
+    "root_cause": "S3 serialized a fractional Object Lock retention deadline to whole seconds; strict ten-year readback rejected the shortened deadline.",
+    "correction": "Round requested retention upward to whole seconds in both native terminal and recovery writers; preserve strict readback, original object, checksum, body, version and reservation identity.",
+    "original_bucket": "kidults-autonomous-interna-autonomousreceiptbucket-udzuswkuo18n",
+    "original_key": "receipts/pr-2462-865a1293ef54674c334d-e617ab9c60d0b95b/bc23ad27319b2e3f7d0848d27e11a826beffd254/terminal.json",
+    "original_version_id": "ng96i.sc2RExqlNLvg6Oc6AOhaXsZgRj",
+    "original_receipt_digest": "sha256:4f732dd63439e58ee8394915dd2c5f23b75ad4b557570025310709ee3beb58cc",
+    "owner_reserved_action": "Extend COMPLIANCE retention only on this exact original version to 2036-10-04T23:49:19Z; do not rewrite the body, create another version, remerge, replace the generation or consume reservation again.",
+    "extension_performed": false,
+    "immutable_terminal_verified": false,
+    "natural_generations_on_final_unchanged_main_verified": 0,
+    "whole_platform_state": "VERIFIED_INCOMPLETE"
   }
 }

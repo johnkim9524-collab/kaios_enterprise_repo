@@ -60,6 +60,8 @@ export function createRecoveryImmutableStore({bucket,keyArn,aws=cli,tempRoot=os.
     assert(if_none_match==='*'&&object_lock_mode==='COMPLIANCE'&&retention_years===10,'RECOVERY_IMMUTABLE_WRITE_BOUNDARY');
     const retain=now();assert(retain instanceof Date&&Number.isFinite(retain.getTime()),'RECOVERY_CLOCK');
     retain.setUTCFullYear(retain.getUTCFullYear()+10);
+    // Preserve the full minimum when S3 serializes retention to whole seconds.
+    retain.setTime(Math.ceil(retain.getTime()/1000)*1000);
     let version;
     try{
       const result=await temporary(async dir=>{
