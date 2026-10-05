@@ -58,26 +58,24 @@ async function pages(url){
   die(`PAGINATION_BOUND:${url}`);
 }
 
+async function listOpenIssues(){
+  const values=await pages('/issues?state=open&sort=created&direction=asc');
+  const issues=values.filter((item)=>!item?.pull_request);
+  if(new Set(issues.map((issue)=>issue.number)).size!==issues.length)die('OPEN_ISSUE_SET_INVALID');
+  return issues;
+}
+
 async function openIssuesAttempt(){
-  const query=encodeURIComponent(`repo:${repo} is:issue is:open`);
-  const out=[];
-  let total=null;
-  for(let page=1;page<=10;page+=1){
-    // Canonical member comments update issue timestamps while a generation is
-    // staged. Ordering search pages by updated_at can therefore move records
-    // between pages as GitHub's search index catches up, producing duplicate or
-    // missing members even when the open-issue set itself did not change.
-    // created_at is immutable, so this ordering is stable under comment writes.
-    const value=await api(`https://api.github.com/search/issues?q=${query}&sort=created&order=asc&per_page=100&page=${page}`);
-    if(value.incomplete_results!==false||!Number.isInteger(value.total_count)||value.total_count>1000||!Array.isArray(value.items))die('OPEN_ISSUE_SEARCH_INVALID');
-    if(total===null)total=value.total_count;
-    if(total!==value.total_count)die('OPEN_ISSUE_CARDINALITY_MOVED');
-    out.push(...value.items);
-    if(out.length>=total)break;
-    if(!value.items.length||page===10)die('OPEN_ISSUE_PAGINATION_TRUNCATED');
-  }
-  if(out.length!==total||out.some((issue)=>issue.pull_request)||new Set(out.map((issue)=>issue.number)).size!==out.length)die('OPEN_ISSUE_SET_INVALID');
-  return out;
+  // Stay inside the repository-scoped Issues read plane. The global search
+  // endpoint can require broader token capabilities even for an is:issue query.
+  // Two immutable-created-order snapshots fail closed if the live open set moves
+  // while pagination is in flight.
+  const first=await listOpenIssues();
+  const second=await listOpenIssues();
+  const left=first.map((issue)=>issue.number);
+  const right=second.map((issue)=>issue.number);
+  if(left.length!==right.length||left.some((number,index)=>number!==right[index]))die('OPEN_ISSUE_CARDINALITY_MOVED');
+  return second;
 }
 
 async function openIssues(){
@@ -134,9 +132,10 @@ async function validateCurrent(snapshotValue,expectedRun=null,{allowMaterialRefr
     const priorRun=await api(`/actions/runs/${commit.writer_run_id}`);
     if(priorRun?.id!==commit.writer_run_id||priorRun?.run_attempt!==commit.writer_run_attempt||
        priorRun?.repository?.full_name!==repo||priorRun?.head_branch!=='main'||priorRun?.head_sha!==snapshotValue.protected_main_sha||
-       priorRun?.path!==WRITER_WORKFLOW||!['workflow_dispatch','push'].includes(priorRun?.event)||
+       priorRun?.path!==WRITER_WORKFLOW||!['workflow_dispatch','push','schedule'].includes(priorRun?.event)||
        priorRun?.status!=='completed'||priorRun?.conclusion!=='success'||
-       priorRun?.actor?.login!==OWNER||priorRun?.triggering_actor?.login!==OWNER)die('REFRESH_PRIOR_WRITER_RUN_INVALID');
+       (priorRun.event!=='schedule'&&(priorRun?.actor?.login!==OWNER||priorRun?.triggering_actor?.login!==OWNER))||
+       (priorRun.event==='schedule'&&(!priorRun?.actor?.login||priorRun?.triggering_actor?.login!==priorRun.actor.login)))die('REFRESH_PRIOR_WRITER_RUN_INVALID');
   }
   const comments=[];
   for(const entry of commit.member_comments)comments.push(await api(`/issues/comments/${entry.comment_id}`));
@@ -177,20 +176,27 @@ function validateAuthorizationComment(comment,expectedBody,runStartedAt){
 async function verifyWriteAuthority(snapshotValue,run,attempt){
   if(process.env.GITHUB_ACTIONS!=='true')die('WRITE_REQUIRES_GITHUB_ACTIONS');
   if(process.env.GITHUB_REF!=='refs/heads/main')die('WRITE_REQUIRES_MAIN_REF');
-  if(process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
-  if(attempt!==1)die('WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED');
   const event=process.env.GITHUB_EVENT_NAME;
-  if(!['workflow_dispatch','push'].includes(event))die('WRITE_EVENT_NOT_AUTHORIZED');
+  if(!['workflow_dispatch','push','schedule'].includes(event))die('WRITE_EVENT_NOT_AUTHORIZED');
+  if(event==='workflow_dispatch'&&process.env.GITHUB_ACTOR!==OWNER)die('WRITE_REQUIRES_OWNER_ACTOR');
+  if(attempt!==1)die('WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED');
 
   const runEnvelope=await api(`/actions/runs/${run}`);
   if(runEnvelope?.id!==run||runEnvelope?.run_attempt!==attempt)die('WRITER_RUN_IDENTITY_MISMATCH');
   if(runEnvelope?.repository?.full_name!==repo||runEnvelope?.head_branch!=='main'||runEnvelope?.head_sha!==snapshotValue.protected_main_sha)die('WRITER_RUN_SOURCE_SCOPE_INVALID');
-  if(runEnvelope?.event!==event||runEnvelope?.path!==WRITER_WORKFLOW||runEnvelope?.actor?.login!==OWNER||runEnvelope?.triggering_actor?.login!==OWNER)die('WRITER_RUN_AUTHORITY_ENVELOPE_INVALID');
+  if(runEnvelope?.event!==event||runEnvelope?.path!==WRITER_WORKFLOW||runEnvelope?.actor?.login!==process.env.GITHUB_ACTOR||runEnvelope?.triggering_actor?.login!==process.env.GITHUB_ACTOR)die('WRITER_RUN_AUTHORITY_ENVELOPE_INVALID');
   if(!runEnvelope?.run_started_at)die('WRITER_RUN_STARTED_AT_MISSING');
 
   if(event==='push'){
     if(process.env.CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY!=='PROTECTED_MAIN_PUSH')die('PROTECTED_MAIN_PUSH_AUTHORITY_MISSING');
     return {authority_type:'PROTECTED_MAIN_PUSH',program_owner_approval_required:false,approval_rebind:false,writer_workflow_path:WRITER_WORKFLOW,writer_run_id:run,writer_run_attempt:attempt,writer_run_started_at:runEnvelope.run_started_at};
+  }
+
+  if(event==='schedule'){
+    if(process.env.CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY!=='PROTECTED_MAIN_SCHEDULE'||process.env.CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *')die('PROTECTED_MAIN_SCHEDULE_AUTHORITY_MISSING');
+    // GitHub assigns schedule.actor to the user who last changed the cron;
+    // the authority is the protected-main workflow and exact first-attempt run.
+    return {authority_type:'PROTECTED_MAIN_SCHEDULE',program_owner_approval_required:false,approval_rebind:false,writer_workflow_path:WRITER_WORKFLOW,writer_run_id:run,writer_run_attempt:attempt,writer_run_started_at:runEnvelope.run_started_at};
   }
 
   if(process.env.CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY!=='AUTHORIZED')die('EXPLICIT_WRITE_AUTHORITY_MISSING');
@@ -205,6 +211,7 @@ async function verifyWriteAuthority(snapshotValue,run,attempt){
 
 async function write(){
   if(!repo||!token)die('REPOSITORY_OR_TOKEN_MISSING_FOR_WRITE');
+  const event=process.env.GITHUB_EVENT_NAME;
   const snapshotValue=await snapshot();
   const target=process.env.TARGET_MAIN_SHA||'';
   const checkout=process.env.GITHUB_SHA||'';
@@ -227,9 +234,9 @@ async function write(){
     validateAuthorizationComment(currentApproval,authorizationBody(authorization.authorization_id,snapshotValue.protected_main_sha),new Date().toISOString());
   }else{
     const currentRun=await api(`/actions/runs/${run}`);
-    if(currentRun?.id!==run||currentRun?.run_attempt!==attempt||currentRun?.event!=='push'||currentRun?.head_branch!=='main'||
+    if(currentRun?.id!==run||currentRun?.run_attempt!==attempt||currentRun?.event!==event||currentRun?.head_branch!=='main'||
        currentRun?.head_sha!==snapshotValue.protected_main_sha||currentRun?.path!==WRITER_WORKFLOW||
-       currentRun?.actor?.login!==OWNER||currentRun?.triggering_actor?.login!==OWNER)die('PROTECTED_MAIN_PUSH_AUTHORITY_REVOKED');
+       currentRun?.actor?.login!==process.env.GITHUB_ACTOR||currentRun?.triggering_actor?.login!==process.env.GITHUB_ACTOR)die('PROTECTED_MAIN_AUTHORITY_REVOKED');
   }
   const id=generationId(snapshotValue.protected_main_sha,run,attempt),generatedAt=new Date().toISOString(),entries=[];
   let aggregate=null;
@@ -270,11 +277,11 @@ function selfTest(){
   for(const marker of [
     "CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY!=='AUTHORIZED'",
     "GITHUB_ACTIONS!=='true'",
-    "!['workflow_dispatch','push'].includes(event)",
+    "!['workflow_dispatch','push','schedule'].includes(event)",
     "GITHUB_REF!=='refs/heads/main'",
-    'GITHUB_ACTOR!==OWNER',
+    "event==='workflow_dispatch'&&process.env.GITHUB_ACTOR!==OWNER",
     "attempt!==1",
-    'runEnvelope?.triggering_actor?.login!==OWNER',
+    'runEnvelope?.triggering_actor?.login!==process.env.GITHUB_ACTOR',
     'runEnvelope?.run_started_at',
     'POST_WRITE_TRUTH_MOVED',
     "const baseHeaders=",
@@ -285,6 +292,8 @@ function selfTest(){
     'GITHUB_API_ORIGIN_INVALID',
     'fetch(githubApiUrl(url)',
     "authority_type:'PROTECTED_MAIN_PUSH'",
+    "authority_type:'PROTECTED_MAIN_SCHEDULE'",
+    "CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'",
     "authority_type:'PROGRAM_OWNER_MANUAL_RECOVERY'",
     "CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY!=='PROTECTED_MAIN_PUSH'",
     'runEnvelope?.path!==WRITER_WORKFLOW',
@@ -292,7 +301,7 @@ function selfTest(){
     'comment.created_at!==comment.updated_at',
     'AUTHORIZATION_COMMENT_CARDINALITY'
   ])if(!active.includes(marker))die(`SELF_TEST_WRITE_AUTHORITY_GUARD_MISSING:${marker}`);
-  if(!active.includes('sort=created&order=asc')||active.includes('sort=updated&order=desc'))die('SELF_TEST_OPEN_ISSUE_ORDER_NOT_IMMUTABLE');
+  if(!active.includes("/issues?state=open&sort=created&direction=asc")||active.includes('/search/issues'))die('SELF_TEST_OPEN_ISSUE_ORDER_NOT_IMMUTABLE');
   const publicHeaders=readHeadersFor(null);
   const authenticatedHeaders=readHeadersFor('self-test-token');
   if(Object.hasOwn(publicHeaders,'Authorization'))die('SELF_TEST_PUBLIC_READ_FALLBACK_AUTH_PRESENT');
@@ -301,7 +310,7 @@ function selfTest(){
   let originRejected=false;
   try{githubApiUrl('https://example.com/exfil');}catch{originRejected=true;}
   if(!originRejected)die('SELF_TEST_EXTERNAL_API_ORIGIN_ESCAPED');
-  if(!githubApiUrl('https://api.github.com/search/issues?q=test').startsWith('https://api.github.com/'))die('SELF_TEST_GITHUB_API_ORIGIN_REJECTED');
+  if(!githubApiUrl('/issues?state=open').startsWith('https://api.github.com/repos/'))die('SELF_TEST_GITHUB_API_ORIGIN_REJECTED');
   const main='a'.repeat(40);
   const id=authorizationId(main,'CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001');
   if(id!=='CANONICAL-V3-aaaaaaaaaaaa-OWNER_NONCE_0001')die('SELF_TEST_AUTHORIZATION_ID');
@@ -321,7 +330,7 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,triggering_actor_owner_required:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,mutation_authority_not_widened:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,protected_main_schedule_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,owner_actor_required_for_manual_only:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,schedule_write_authority_added:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
 }
 
 try{

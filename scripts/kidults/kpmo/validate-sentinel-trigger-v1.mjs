@@ -5,15 +5,32 @@ const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
 const terminal=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
-const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run']);
+const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run','repository_dispatch']);
 export const PRODUCER_COMPLETIONS=Object.freeze([
   {name:'KIDULTS ASI SHADOW Operating Evidence v1',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch']},
-  {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run']},
-  {name:'KIDULTS ASI Sharded Source Reserve v1',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['workflow_run','schedule','workflow_dispatch']},
-  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['push','workflow_run','workflow_dispatch','issues']},
+  {name:'KIDULTS ASI Requirement-to-Adapter Coverage v1',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch']},
+  {name:'KIDULTS ASI Sharded Source Reserve v1',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['repository_dispatch','workflow_run','schedule','workflow_dispatch']},
+  {name:'KPMO Live Canonical Issue Truth V1',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run','workflow_dispatch']},
 ]);
 const fail=code=>{throw new Error(code);};
 const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
+function validateNaturalClockEvent(env,payload,expectedSlot){
+  const expectedAction=`kidults.natural.clock.${expectedSlot.toLowerCase()}.v1`;
+  if(!object(payload)||payload.action!==expectedAction
+    ||payload.repository?.full_name!==REPO)fail('SENTINEL_NATURAL_CLOCK_EVENT_CONTEXT');
+  if(payload.sender?.type!=='Bot'||payload.sender?.login!=='kidults-autonomous-landing-staging[bot]')fail('SENTINEL_NATURAL_CLOCK_SENDER');
+  const clock=payload.client_payload;
+  if(!object(clock)||clock.source!=='AWS_EVENTBRIDGE_SCHEDULER'||clock.slot!==expectedSlot
+    ||clock.exact_main_sha!==env.GITHUB_SHA||!sha.test(clock.exact_main_sha)
+    ||typeof clock.nonce!=='string'||!/^[A-Za-z0-9_-]{32,128}$/.test(clock.nonce)
+    ||clock.dispatch_id!==`kidults-natural-clock-v1:${expectedSlot}:${env.GITHUB_SHA}:${clock.nonce}`
+    ||typeof clock.issued_at!=='string'||!Number.isFinite(Date.parse(clock.issued_at))
+    ||new Date(Date.parse(clock.issued_at)).toISOString()!==clock.issued_at
+    ||Object.keys(clock).sort().join(',')!=='dispatch_id,exact_main_sha,issued_at,nonce,slot,source'){
+    fail('SENTINEL_NATURAL_CLOCK_BINDING_INVALID');
+  }
+  return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
+}
 export function readSentinelEvent(file){
   if(typeof file!=='string'||!file)fail('SENTINEL_EVENT_PATH_MISSING');
   let fd;
@@ -61,13 +78,15 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(env.GITHUB_WORKFLOW!==ASSURANCE_WORKFLOW)fail('SENTINEL_INLINE_ASSURANCE_WORKFLOW_INVALID');
     if(!inlineEvents.has(env.GITHUB_EVENT_NAME))fail('SENTINEL_INLINE_ASSURANCE_EVENT_INVALID');
     if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+    if(env.GITHUB_EVENT_NAME==='repository_dispatch')return validateNaturalClockEvent(env,payload,'ASSURANCE');
     if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
     const run=payload.workflow_run;
     validateBaseRun(run,env.GITHUB_SHA);
     if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
-  if(['schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(env.GITHUB_EVENT_NAME==='repository_dispatch')return validateNaturalClockEvent(env,payload,'SENTINEL');
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;

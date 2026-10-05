@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
+const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8').replace(/\r\n/g, '\n');
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 
 function extractFunction(name) {
@@ -165,7 +165,7 @@ test('newest malformed marked approval still fails closed', () => {
       readyEvent,
       {landingAttemptStartedAt: iso(-1)},
     ),
-    /DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS/,
+    /DIRECT_OWNER_HANDOFF_APPROVAL_SHAPE_INVALID/,
   );
 });
 

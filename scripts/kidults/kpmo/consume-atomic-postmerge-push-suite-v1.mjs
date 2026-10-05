@@ -10,6 +10,11 @@ import {
 
 const SHA = /^[0-9a-f]{40}$/;
 const ASSURANCE_PATH = '.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+const TERMINAL_CONCLUSIONS = new Set([
+  'success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale',
+]);
+const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const positiveInteger = value => Number.isSafeInteger(value) && value > 0;
 const fail = (code, details = null) => {
   const error = new Error(code);
   error.code = code;
@@ -35,13 +40,28 @@ export function buildAtomicPostMergeReceipt({
   repository, baseSha, headSha, headTreeSha, mergeSha, mergedAt, evaluation,
   canonicalConvergence = null, failureCode = null,
 } = {}) {
-  const allTerminal = evaluation?.ready === true;
-  const allSuccess = allTerminal && evaluation?.all_required_success === true;
-  const failures = (evaluation?.required || []).filter(run => run.conclusion === 'failure');
-  const canonicalConverged = canonicalConvergence?.state === 'VERIFIED_PASS';
+  const required = Array.isArray(evaluation?.required) ? evaluation.required : [];
+  const waiting = Array.isArray(evaluation?.waiting)
+    ? evaluation.waiting : ['ATOMIC_POSTMERGE_WAITING_SHAPE_INVALID'];
+  const invalid = Array.isArray(evaluation?.invalid)
+    ? evaluation.invalid : ['ATOMIC_POSTMERGE_INVALID_SHAPE_INVALID'];
+  const rowsValid = required.length > 0 && required.every(run => isRecord(run)
+    && typeof run.path === 'string' && run.path.length > 0
+    && positiveInteger(run.run_id) && positiveInteger(run.run_attempt)
+    && TERMINAL_CONCLUSIONS.has(run.conclusion))
+    && new Set(required.map(run => run.path)).size === required.length
+    && new Set(required.map(run => run.run_id)).size === required.length;
+  const allTerminal = evaluation?.ready === true && rowsValid;
+  // Native evaluator owns policy coverage; receipt summaries may not contradict its rows.
+  const allSuccess = allTerminal && waiting.length === 0 && invalid.length === 0
+    && evaluation?.all_required_success === true
+    && required.every(run => run.conclusion === 'success');
+  const failures = required.filter(run => run?.conclusion === 'failure');
+  const canonicalConverged = canonicalConvergence?.state === 'VERIFIED_PASS'
+    && SHA.test(mergeSha || '') && canonicalConvergence.exact_merge_sha === mergeSha;
   const convergedStartup = allTerminal && canonicalConverged
     && failures.length === 1 && failures[0].path === ASSURANCE_PATH;
-  const state = !failureCode && canonicalConverged && (allSuccess || convergedStartup)
+  const state = !failureCode && canonicalConverged && allSuccess
     ? 'VERIFIED_PASS' : 'VERIFIED_FAIL';
   return {
     id: 'kidults-atomic-postmerge-push-suite-receipt-v1', version: '1.0.0', state,
@@ -51,14 +71,14 @@ export function buildAtomicPostMergeReceipt({
     repository, exact_base_sha: baseSha, exact_head_sha: headSha,
     exact_head_tree_sha: headTreeSha, exact_merge_sha: mergeSha, merged_at: mergedAt,
     event: 'push', branch: 'main',
-    all_required_present: allTerminal && evaluation.waiting.length === 0,
+    all_required_present: rowsValid && waiting.length === 0,
     all_required_terminal: allTerminal,
     all_required_success: allSuccess,
-    required_workflows: evaluation?.required || [],
+    required_workflows: required,
     canonical_convergence: canonicalConvergence,
     startup_race_preserved_as_evidence: convergedStartup,
-    waiting: evaluation?.waiting || [],
-    invalid: evaluation?.invalid || [],
+    waiting,
+    invalid,
     predecessor_head_proof_reused: false,
     terminal_pass_before_postmerge_success: false,
     promotion_eligible: false,
@@ -140,7 +160,7 @@ async function selfTest() {
   assuranceFailure.find(run => run.path === ASSURANCE_PATH).conclusion = 'failure';
   const convergedFailure = evaluatePostMergePushSuite(assuranceFailure, policy, mergeSha, mergedAt);
   assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: convergedFailure,
-    canonicalConvergence: convergence}).state, 'VERIFIED_PASS');
+    canonicalConvergence: convergence}).state, 'VERIFIED_FAIL');
   assert.equal(buildAtomicPostMergeReceipt({...base, evaluation: convergedFailure,
     canonicalConvergence: {state: 'WAITING'}}).state, 'VERIFIED_FAIL');
   assert.equal(evaluateCanonicalConvergence([producer, {...consumer, head_sha: 'e'.repeat(40)}],

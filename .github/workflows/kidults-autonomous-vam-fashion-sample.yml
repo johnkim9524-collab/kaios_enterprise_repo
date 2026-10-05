@@ -2,6 +2,8 @@ name: KIDULTS Autonomous V&A Fashion Sample
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '45 22 * * *'
 
 permissions:
   contents: read

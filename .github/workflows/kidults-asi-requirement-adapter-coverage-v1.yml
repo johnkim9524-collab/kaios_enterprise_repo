@@ -120,6 +120,7 @@ jobs:
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-contract-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-requirement-adapter-coverage-registry-v1.json','utf8'))"
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json','utf8'))"
+          node --test tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
       - name: Validate requirement coverage registry and automatic continuation
         run: |
           set -euo pipefail
@@ -171,7 +172,7 @@ jobs:
           const x=JSON.parse(fs.readFileSync('/tmp/arl-runs.json','utf8'));
           const target=process.env.TARGET_SOURCE_SHA;
           const expectedBranch=process.env.EXPECTED_HEAD_BRANCH;
-          const artifactProducingEvents=new Set(['workflow_run']);
+          const artifactProducingEvents=new Set(['workflow_run','workflow_dispatch']);
           const runs=(x.workflow_runs||[])
             .filter((run)=>nativeWorkflowRunNameMatches(run,'KIDULTS ASI Autonomous Resolution Layer v1','.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml')&&
               run.repository?.full_name===process.env.GITHUB_REPOSITORY&&run.head_repository?.full_name===process.env.GITHUB_REPOSITORY&&
@@ -247,6 +248,7 @@ jobs:
             --run /tmp/arl-run.json \
             --receipt /tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json \
             --source-sha "$TARGET_SOURCE_SHA" --head-branch "$EXPECTED_HEAD_BRANCH" \
+            --event "$(jq -r .event /tmp/arl-run.json)" \
             --output /tmp/coverage-exact-upstream-producer-receipt-v1.json
           AUTHORITATIVE_PRODUCER_CARDINALITY=$(jq -r '.authoritative_producer_cardinality' /tmp/coverage-exact-upstream-producer-receipt-v1.json)
           test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1
@@ -266,13 +268,13 @@ jobs:
           const executionSha=process.env.EXECUTION_SHA;
           if(run.head_sha!==expectedSourceSha||run.head_sha!==process.env.PRODUCER_HEAD_SHA)throw new Error('AUTONOMOUS_RESOLUTION_SOURCE_SHA_SCOPE');
           if(run.head_branch!==expectedHeadBranch)throw new Error('AUTONOMOUS_RESOLUTION_HEAD_BRANCH_SCOPE');
-          if(run.event!=='workflow_run')throw new Error(`AUTONOMOUS_RESOLUTION_NONAUTHORITATIVE_PRODUCER_EVENT:${run.event}`);
+          if(!['workflow_run','workflow_dispatch'].includes(run.event))throw new Error(`AUTONOMOUS_RESOLUTION_NONAUTHORITATIVE_PRODUCER_EVENT:${run.event}`);
           if(!['MAIN','PULL_REQUEST_HEAD'].includes(validationScope))throw new Error('AUTONOMOUS_RESOLUTION_VALIDATION_SCOPE');
           const receipt=JSON.parse(fs.readFileSync('/tmp/arl-input/kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json','utf8'));
           if(receipt.producer_workflow_run_id!==run.id||receipt.producer_display_title!==run.display_title)throw new Error('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH');
           const upstreamClass='ASI_AUTONOMOUS_RESOLUTION';
           const canonicalRunKey=`${run.head_sha}:${upstreamClass}`;
-          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.3.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_event:run.event,consumer_event:process.env.GITHUB_EVENT_NAME,workflow_name:'KIDULTS ASI Autonomous Resolution Layer v1',workflow_path:run.path,producer_display_title:run.display_title,authoritative_generation_key:receipt.authoritative_generation_key,authoritative_producer_cardinality:Number(process.env.AUTHORITATIVE_PRODUCER_CARDINALITY),upstream_class:upstreamClass,canonical_run_key:canonicalRunKey,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,main_scope_validated:validationScope==='MAIN',production_authorized:false,exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run',authoritative_producer_event:run.event==='workflow_run',source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
+          const binding={id:'kidults-asi-autonomous-resolution-artifact-binding-v1',version:'1.4.0',artifact_id:artifact.id,artifact_name:artifact.name,expired:artifact.expired,workflow_run_id:run.id,workflow_event:run.event,consumer_event:process.env.GITHUB_EVENT_NAME,workflow_name:'KIDULTS ASI Autonomous Resolution Layer v1',workflow_path:run.path,producer_display_title:run.display_title,authoritative_generation_key:receipt.authoritative_generation_key,authoritative_producer_cardinality:Number(process.env.AUTHORITATIVE_PRODUCER_CARDINALITY),upstream_class:upstreamClass,canonical_run_key:canonicalRunKey,head_branch:run.head_branch,expected_head_branch:expectedHeadBranch,head_sha:run.head_sha,expected_source_sha:expectedSourceSha,execution_sha:executionSha,consumer_sha:process.env.CONSUMER_SHA,validation_scope:validationScope,main_scope_validated:validationScope==='MAIN',production_authorized:false,exact_triggering_run_bound:true,authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event),source_sha_ancestor_of_consumer:true,execution_sha_ancestor_of_consumer:true,status:run.status,conclusion:run.conclusion,created_at:artifact.created_at,expires_at:artifact.expires_at};
           fs.writeFileSync('/tmp/arl-input/autonomous-resolution-artifact-binding-v1.json',JSON.stringify(binding,null,2)+'\n');
           NODE
           echo "ARL_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
@@ -335,7 +337,7 @@ jobs:
             for ROW in "${ARTIFACT_ROWS[@]}"; do
               ARTIFACT_ID=$(jq -r '.id // 0' <<<"$ROW")
               CANDIDATE="$CANDIDATE_DIR/candidate-${ARTIFACT_ID}.json"
-              if [ "$(jq -r '.expired // true' <<<"$ROW")" = true ]; then
+              if [ "$(jq -r 'if type == "object" then (.expired != false) else true end' <<<"$ROW")" = true ]; then
                 jq -n --argjson artifact "$ROW" '{artifact:$artifact,run:null,receipt:null}' > "$CANDIDATE"
                 continue
               fi
@@ -762,7 +764,7 @@ jobs:
   dispatch-kir-coverage-assurance:
     needs: [classify-upstream-arl-generation, verify-requirement-adapter-coverage]
     if: >-
-      always() && github.event_name == 'workflow_run' &&
+      always() && (github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch') &&
       needs.classify-upstream-arl-generation.result == 'success' &&
       needs.classify-upstream-arl-generation.outputs.should_run == 'true' &&
       needs.verify-requirement-adapter-coverage.result == 'success'
@@ -794,9 +796,10 @@ jobs:
             > /tmp/kir-coverage-run.json
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" \
+            --arg event "$GITHUB_EVENT_NAME" \
             --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
             --slurpfile runRecord /tmp/kir-coverage-run.json \
-            '{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_run_id:$run,coverage_run_attempt:$attempt,run:$runRecord[0]}' \
+            '{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,run:$runRecord[0]}' \
             > /tmp/kir-coverage-assurance-issue-input-v1.json
           node scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs issue \
             --input /tmp/kir-coverage-assurance-issue-input-v1.json \
@@ -823,14 +826,24 @@ jobs:
           fi
           [[ "$DISPATCH_ARTIFACT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
           SOURCE_TREE=$(jq -r .source_tree /tmp/kir-coverage-assurance-continuation-v1.json)
+          COVERAGE_EVENT=$(jq -r .coverage_event /tmp/kir-coverage-assurance-continuation-v1.json)
           COVERAGE_CREATED_AT=$(jq -r .coverage_created_at /tmp/kir-coverage-assurance-continuation-v1.json)
           CONTINUATION_KEY=$(jq -r .continuation_key /tmp/kir-coverage-assurance-continuation-v1.json)
-          jq -n --arg ref main --arg profile sentinel \
+          jq -n --arg ref main --arg profile sentinel --arg coverage_event "$COVERAGE_EVENT" \
             --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
             --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" --arg created "$COVERAGE_CREATED_AT" \
             --arg artifact "$DISPATCH_ARTIFACT_ID" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
-            '{ref:$ref,inputs:{profile:$profile,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_source_sha:$sha,coverage_source_tree:$tree,coverage_created_at:$created,coverage_dispatch_artifact_id:$artifact,coverage_dispatch_artifact_digest:$digest,coverage_continuation_key:$key}}' \
+            '{ref:$ref,inputs:{profile:$profile,coverage_event:$coverage_event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_source_sha:$sha,coverage_source_tree:$tree,coverage_created_at:$created,coverage_dispatch_artifact_id:$artifact,coverage_dispatch_artifact_digest:$digest,coverage_continuation_key:$key}}' \
             > /tmp/kir-coverage-assurance-dispatch-request-v1.json
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \
             --input /tmp/kir-coverage-assurance-dispatch-request-v1.json
+
+          # A Coverage continuation proves the exact Requirement artifact, but
+          # it is not itself the CORE FOUR terminal. Start a fresh Reserve
+          # generation on protected main so its workflow_run Assurance emits
+          # the authoritative CORE FOUR health receipt without a manual retry.
+          jq -n --arg ref main '{ref:$ref}' > /tmp/kir-core-four-terminal-reserve-dispatch-v1.json
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches" \
+            --input /tmp/kir-core-four-terminal-reserve-dispatch-v1.json

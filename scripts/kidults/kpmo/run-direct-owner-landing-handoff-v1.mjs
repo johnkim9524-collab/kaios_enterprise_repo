@@ -7,7 +7,7 @@ import {
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {evaluateAtomicLandingOneUseRunSet} from './run-atomic-landing-one-use-preflight-v1.mjs';
-import {selectLatestDirectOwnerReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
+import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -99,6 +99,20 @@ const publish = (state, description) => request(`/statuses/${expectedHeadSha}`, 
   body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
 });
 
+function assertInternalPullRequestOrigin(pr, expectedRepository) {
+  // Change origin is provenance only. Landing authority is independently
+  // established by the Owner-bound controls in selectApproval and the live
+  // dispatch/run checks. External fork heads remain forbidden.
+  if (!expectedRepository || pr?.head?.repo?.full_name !== expectedRepository) {
+    fail('DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED');
+  }
+  return {
+    actor: pr?.user?.login || null,
+    actor_type: pr?.user?.type || null,
+    head_repository: pr.head.repo.full_name,
+  };
+}
+
 const approvalKeys = [
   'repository', 'pull_request', 'exact_base_sha', 'exact_head_sha', 'expected_head_tree_sha', 'operation', 'transport',
   'authorization_id', 'nonce', 'expires_at', 'purpose', 'scope', 'approval_rebind',
@@ -119,10 +133,8 @@ function parseApproval(body) {
 }
 
 function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
-  phase = 'pre_window',
   landingAttemptStartedAt,
 } = {}) {
-  if (!['pre_window', 'post_window'].includes(phase)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_PHASE_INVALID');
   const finalLifecycleBoundaryAt = parseTime(
     readyEvent?.created_at,
     'DIRECT_OWNER_HANDOFF_READY_TIME_INVALID',
@@ -133,18 +145,33 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
       - parseTime(a.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID')
       || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  const currentGeneration = marked.filter(comment => parseTime(
-    comment.created_at,
-    'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID',
-  ) > finalLifecycleBoundaryAt);
+  const directOwnerMarked = marked.filter(comment =>
+    comment?.user?.login === repositoryOwner
+    && comment?.author_association === 'OWNER'
+    && comment?.user?.type === 'User'
+    && comment?.performed_via_github_app == null
+    && comment.updated_at === comment.created_at);
+  if (!directOwnerMarked.length) {
+    if (marked.some(comment => comment?.performed_via_github_app != null)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
+    if (marked.some(comment => comment?.user?.login === repositoryOwner && comment?.user?.type === 'User' && comment.updated_at !== comment.created_at)) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
+  }
+  const currentGeneration = directOwnerMarked.filter(comment => {
+    if (parseTime(comment.created_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_TIME_INVALID') <= finalLifecycleBoundaryAt) return false;
+    const fields = parseApproval(comment?.body);
+    return fields?.repository === repository
+      && fields?.pull_request === prNumber
+      && fields?.exact_base_sha === expectedBaseSha
+      && fields?.exact_head_sha === expectedHeadSha
+      && fields?.expected_head_tree_sha === expectedHeadTreeSha
+      && fields?.authorization_id === authorizationId
+      && fields?.purpose === purpose;
+  });
   if (!currentGeneration.length) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_AFTER_FINAL_LIFECYCLE_BOUNDARY');
   if (currentGeneration.length !== 1) fail('DIRECT_OWNER_HANDOFF_MULTIPLE_CURRENT_GENERATION_APPROVALS');
   const comment = currentGeneration[0];
   const fields = parseApproval(comment?.body);
   if (!fields) fail('DIRECT_OWNER_HANDOFF_APPROVAL_MISSING');
-  if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_INVALID');
-  if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) fail('DIRECT_OWNER_HANDOFF_APPROVAL_APP_MEDIATED');
-  if (comment.updated_at !== comment.created_at) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EDITED');
   if (fields.repository !== repository || fields.pull_request !== prNumber) fail('DIRECT_OWNER_HANDOFF_APPROVAL_REPOSITORY_PR_MISMATCH');
   if (fields.exact_base_sha !== expectedBaseSha || fields.exact_head_sha !== expectedHeadSha
       || fields.expected_head_tree_sha !== expectedHeadTreeSha) fail('DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH');
@@ -166,8 +193,8 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
   if (approvedAt >= attemptStartedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_WINDOW_INVALID');
   if (now < approvedAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_NOT_YET_VALID');
-  if (phase === 'pre_window' && now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
-  if (phase === 'pre_window' && expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
+  if (now > expiresAt) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRED');
+  if (expiresAt - now < handoffWindowSeconds * 1000) fail('DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRES_BEFORE_WINDOW');
 
   return {
     comment_id: Number(comment.id),
@@ -180,6 +207,22 @@ function selectApproval(comments, repositoryOwner, pr, headCommit, readyEvent, {
     final_lifecycle_boundary_at: readyEvent.created_at,
     landing_attempt_started_at: landingAttemptStartedAt,
   };
+}
+
+function assertApprovalCommentUnchanged(comments, repositoryOwner, approval) {
+  const comment = comments.find(value => Number(value?.id) === approval.comment_id);
+  if (!comment) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DELETED_AFTER_WINDOW');
+  if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_ACTOR_DRIFT_AFTER_WINDOW');
+  }
+  if (comment?.user?.type !== 'User' || comment?.performed_via_github_app != null) {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_TRANSPORT_DRIFT_AFTER_WINDOW');
+  }
+  if (comment.updated_at !== comment.created_at || comment.created_at !== approval.comment_created_at) {
+    fail('DIRECT_OWNER_HANDOFF_APPROVAL_TIME_DRIFT_AFTER_WINDOW');
+  }
+  const bodySha256 = `sha256:${crypto.createHash('sha256').update(String(comment.body || '')).digest('hex')}`;
+  if (bodySha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_BODY_DRIFT_AFTER_WINDOW');
 }
 
 function writeReceipt(receipt) {
@@ -242,7 +285,7 @@ try {
   if (headCommit?.sha !== expectedHeadSha || headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_MISMATCH');
   }
-  if (pr.user?.login !== owner || pr.head?.repo?.full_name !== repository) fail('DIRECT_OWNER_HANDOFF_PR_OWNER_BINDING_INVALID');
+  const changeOrigin = assertInternalPullRequestOrigin(pr, repository);
   if (pr.base?.sha !== expectedBaseSha || main?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_BASE_NOT_CURRENT_MAIN');
   if (pr.mergeable !== true || !['clean', 'unstable', 'blocked', 'has_hooks'].includes(pr.mergeable_state)) fail('DIRECT_OWNER_HANDOFF_PR_NOT_SERVER_MERGEABLE');
   if (!Array.isArray(files) || files.length !== Number(pr.changed_files || 0)) fail('DIRECT_OWNER_HANDOFF_CHANGED_FILE_PAGINATION_INVALID');
@@ -255,16 +298,17 @@ try {
     || currentRun?.triggering_actor?.login !== owner) {
     fail('DIRECT_OWNER_HANDOFF_CURRENT_RUN_BINDING_INVALID');
   }
+  const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
+  const readyEvent = selectLatestLifecycleReadyEvent({timeline, repositoryOwner: owner, pullRequest: pr});
+  const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
   const oneUse = evaluateAtomicLandingOneUseRunSet(await workflowRuns(currentRun.workflow_id), {
     currentRunId: runId,
     currentRunAttempt: runAttempt,
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: expectedBaseSha,
+    authorizationApprovedAt: approval.comment_created_at,
   });
-  const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
-  const readyEvent = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner: owner});
-  const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
   const protect = rulesets.find(value => value.name === 'Protect main' && value.enforcement === 'active');
@@ -297,8 +341,8 @@ try {
     fail('DIRECT_OWNER_HANDOFF_FINAL_HEAD_TREE_DRIFT');
   }
   if (finalPr.base?.sha !== expectedBaseSha || finalMain?.commit?.sha !== expectedBaseSha) fail('DIRECT_OWNER_HANDOFF_FINAL_BASE_DRIFT');
-  const finalReady = selectLatestDirectOwnerReadyEvent({timeline: finalTimeline, repositoryOwner: owner});
-  if (finalReady.id !== readyEvent.id || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
+  const finalReady = selectLatestLifecycleReadyEvent({timeline: finalTimeline, repositoryOwner: owner, pullRequest: finalPr});
+  if (finalReady.id !== readyEvent.id || finalReady.event !== readyEvent.event || finalReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT');
   const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady, {landingAttemptStartedAt});
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
 
@@ -314,14 +358,19 @@ try {
     exact_head_sha: expectedHeadSha,
     expected_head_tree_sha: expectedHeadTreeSha,
     direct_owner: owner,
+    change_origin_actor: changeOrigin.actor,
+    change_origin_actor_type: changeOrigin.actor_type,
+    change_origin_head_repository: changeOrigin.head_repository,
     transport: TRANSPORT,
     purpose,
     authorization_id_sha256: approval.authorization_id_sha256,
     approval_comment_id: approval.comment_id,
+    approval_comment_created_at: approval.comment_created_at,
     approval_comment_body_sha256: approval.comment_body_sha256,
     approval_nonce_sha256: approval.nonce_sha256,
     approval_expires_at: approval.expires_at,
     latest_ready_event_id: readyEvent.id,
+    latest_ready_event: readyEvent.event,
     latest_ready_event_at: readyEvent.created_at,
     landing_workflow_run_id: Number(runId),
     landing_workflow_run_attempt: runAttempt,
@@ -346,13 +395,13 @@ try {
   if (afterHeadCommit?.sha !== expectedHeadSha || afterHeadCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
     fail('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
   }
-  const afterReady = selectLatestDirectOwnerReadyEvent({timeline: afterTimeline, repositoryOwner: owner});
-  if (afterReady.id !== readyEvent.id || afterReady.created_at !== readyEvent.created_at) fail('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
-  const afterApproval = selectApproval(afterComments, owner, after, afterHeadCommit, afterReady, {
-    phase: 'post_window',
-    landingAttemptStartedAt,
-  });
-  if (afterApproval.comment_id !== approval.comment_id || afterApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
+  // The pre-merge trusted implementation owns immutable transport, SHA, tree,
+  // parent, actor, time-window, and approval-comment checks.  It deliberately
+  // does not reinterpret the post-merge lifecycle: a PR may be correcting that
+  // interpreter, so doing so here would execute stale pre-merge semantics and
+  // create a self-hosting deadlock.  Exact landed-main performs the semantic
+  // lifecycle verification in the next workflow step.
+  assertApprovalCommentUnchanged(afterComments, owner, approval);
 
   if (after?.merged === true) {
     if (after?.head?.sha !== expectedHeadSha) fail('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');

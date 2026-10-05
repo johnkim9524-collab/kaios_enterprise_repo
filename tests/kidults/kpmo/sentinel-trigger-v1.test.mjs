@@ -5,20 +5,62 @@ import os from 'node:os';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
+import {SPECS as SENTINEL_HEALTH_SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
+function naturalEvent(slot='SENTINEL'){
+ const nonce='A'.repeat(32);
+ return {action:`kidults.natural.clock.${slot.toLowerCase()}.v1`,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
+}
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
-for(const name of ['schedule','workflow_dispatch'])test(`existing ${name} observer remains valid`,()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:name}),null));
+test('manual recovery observer remains valid',()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'}),null));
+test('natural Sentinel dispatch accepts the authenticated exact-main clock binding',()=>{
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
+ assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
+});
+test('inline Assurance accepts only its exact natural-clock slot',()=>{
+ const inline={...env,GITHUB_EVENT_NAME:'repository_dispatch',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
+ assert.equal(validateSentinelTrigger(inline,naturalEvent('ASSURANCE')).slot,'ASSURANCE');
+ assert.throws(()=>validateSentinelTrigger(inline,naturalEvent('SENTINEL')),/SENTINEL_NATURAL_CLOCK_EVENT_CONTEXT/);
+});
+for(const [name,mutate] of [
+ ['wrong sender',p=>p.sender.login='untrusted[bot]'],
+ ['wrong slot',p=>p.client_payload.slot='RESERVE'],
+ ['wrong main SHA',p=>p.client_payload.exact_main_sha='b'.repeat(40)],
+ ['dispatch identity drift',p=>p.client_payload.dispatch_id='forged'],
+ ['extra payload field',p=>p.client_payload.unexpected=true],
+])test(`natural Sentinel dispatch rejects ${name}`,()=>{
+ const p=naturalEvent();mutate(p);
+ assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},p));
+});
+test('Requirement producer accepts explicit exact-SHA workflow dispatch evidence',()=>assert.ok(PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Requirement-to-Adapter Coverage v1').events.includes('workflow_dispatch')));
+test('Reserve completion accepts natural repository_dispatch producer provenance',()=>{
+ const reserve=PRODUCER_COMPLETIONS.find((x)=>x.name==='KIDULTS ASI Sharded Source Reserve v1');
+ assert.ok(reserve.events.includes('repository_dispatch'));
+ const p=event(reserve);p.workflow_run.event='repository_dispatch';
+ assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
+});
 
-test('inline Assurance health gate accepts exact protected-main push context',()=>{
+test('producer completion events stay aligned with sentinel health resolver selection',()=>{
+ const byName=new Map(PRODUCER_COMPLETIONS.map((x)=>[x.name,x]));
+ const healthByPath=new Map(SENTINEL_HEALTH_SPECS.map((x)=>[x.path,x]));
+ for(const name of ['KIDULTS ASI SHADOW Operating Evidence v1','KIDULTS ASI Requirement-to-Adapter Coverage v1','KIDULTS ASI Sharded Source Reserve v1']){
+  const completion=byName.get(name);
+  const health=healthByPath.get(completion.path);
+  assert.ok(health,`missing health spec for ${name}`);
+  for(const event of completion.events)assert.ok(health.events.includes(event),`${name} completion event ${event} must be selectable by health resolver`);
+ }
+});
+
+test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
  assert.equal(validateSentinelTrigger(inline),null);
- assert.equal(inlineProducerHealthRequired(inline),true);
+ assert.equal(inlineProducerHealthRequired(inline),false);
 });
 
 test('inline Assurance health gate accepts exact same-main non-core workflow_run after remote re-read',()=>{
@@ -35,13 +77,16 @@ test('inline Assurance health gate rejects workflow impersonation and unsafe eve
  assert.throws(()=>validateSentinelTrigger({...base,GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',GITHUB_EVENT_NAME:'pull_request'}));
 });
 
-test('Assurance guard only requires producer health for live full-audit guard states',()=>{
+test('Assurance guard requires producer health only for an ephemeral canonical leader',()=>{
  const live={...env,GITHUB_EVENT_NAME:'schedule',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1'};
  assert.equal(inlineProducerHealthRequired(live),true);
  assert.equal(inlineProducerHealthRequired({...live,GITHUB_EVENT_NAME:'pull_request'}),false);
  assert.equal(inlineProducerHealthRequired({...live,GITHUB_REF:'refs/heads/feature'}),false);
  assert.equal(guardRequiresProducerHealth({state:'EPHEMERAL_CANONICAL_LEADER_SELECTED'}),true);
- assert.equal(guardRequiresProducerHealth({state:'FULL_AUDIT_BYPASS_NON_ALIASABLE'}),true);
+ // A non-aliasable manual continuation has no canonical leader artifact by
+ // contract. It still runs the full audit, but cannot be made dependent on the
+ // unrelated core-four producer convergence gate.
+ assert.equal(guardRequiresProducerHealth({state:'FULL_AUDIT_BYPASS_NON_ALIASABLE'}),false);
  assert.equal(guardRequiresProducerHealth({state:'DEDUPED_ALIAS'}),false);
  assert.equal(guardRequiresProducerHealth({state:'INPUT_DIVERGENCE_HOLD'}),false);
 });
@@ -71,7 +116,7 @@ for(const [name,mutate] of [
  ['changed conclusion',r=>r.conclusion='failure'],['different head repository ID',r=>r.head_repository.id=99],
  ['missing native repository ID',r=>delete r.repository.id],
 ])test(`native re-read refuses ${name}`,()=>{const p=event(),r=structuredClone(p.workflow_run);mutate(r);assert.throws(()=>validateSentinelTrigger(env,p,r));});
-for(const changes of [{GITHUB_EVENT_NAME:'push'},{GITHUB_REF:'refs/heads/feature'},{GITHUB_SHA:'main'},{GITHUB_REPOSITORY:'other/repo'}])test(`observer environment remains bounded ${JSON.stringify(changes)}`,()=>assert.throws(()=>validateSentinelTrigger({...env,...changes},event())));
+for(const changes of [{GITHUB_EVENT_NAME:'pull_request'},{GITHUB_REF:'refs/heads/feature'},{GITHUB_SHA:'main'},{GITHUB_REPOSITORY:'other/repo'}])test(`observer environment remains bounded ${JSON.stringify(changes)}`,()=>assert.throws(()=>validateSentinelTrigger({...env,...changes},event())));
 test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
  const d=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-'));try{
   const p=path.join(d,'event.json');fs.writeFileSync(p,JSON.stringify(event()));assert.deepEqual(readSentinelEvent(p),event());
@@ -81,12 +126,15 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
-test('completion collection reuses existing Assurance edges and keeps strict sentinel gate',()=>{
+test('completion collection serializes Reserve into the strict sentinel gate',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
- assert.doesNotMatch(s,/^  workflow_run:/m);
+ assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(s,/^  push:/m);
+ assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
  for(const x of PRODUCER_COMPLETIONS)assert.ok(a.includes(`      - '${x.name}'`));
+ assert.ok(a.includes("      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'"));
  assert.match(a,/types: \[completed\]/);assert.match(a,/branches: \[main\]/);
  assert.ok(s.includes('tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'));
  const job=a.slice(a.indexOf('  observe-core-producer-content:'));
@@ -102,12 +150,12 @@ test('completion collection reuses existing Assurance edges and keeps strict sen
 import {spawnSync} from 'node:child_process';
 function resolverCli(scenario){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-cli-'));
- const payload=event();
+ const payload=scenario==='natural'?naturalEvent():event();
  if(scenario==='fork')payload.workflow_run.head_repository.full_name='other/repo';
  const eventPath=path.join(dir,'event.json'),output=path.join(dir,'receipt.json'),trace=path.join(dir,'trace.json');
  fs.writeFileSync(eventPath,scenario==='malformed-json'?'{bad':JSON.stringify(payload));
  const hook=`import fs from 'node:fs';import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';
-const p=${JSON.stringify(event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
+const p=${JSON.stringify(scenario==='natural'?naturalEvent():event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
 const exec=cp.execFileSync;cp.execFileSync=(f,a,o)=>f==='git'&&a.join(' ')==='rev-parse HEAD'?process.env.GITHUB_SHA+'\\n':exec(f,a,o);syncBuiltinESMExports();
 process.on('exit',()=>fs.writeFileSync(process.env.TRACE,JSON.stringify(calls)));
 globalThis.fetch=async(url,options)=>{
@@ -126,7 +174,7 @@ globalThis.fetch=async(url,options)=>{
 };`;
  try{
   const preload=path.join(dir,'hook.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
+  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_EVENT_NAME:scenario==='natural'?'repository_dispatch':env.GITHUB_EVENT_NAME,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
   assert.equal(result.error,undefined,result.stderr);
   const r=JSON.parse(fs.readFileSync(output,'utf8')),calls=JSON.parse(fs.readFileSync(trace,'utf8'));
   assert.equal(r.promotion_eligible,false);assert.equal(r.semantic_content_verified,false);
@@ -140,6 +188,10 @@ globalThis.fetch=async(url,options)=>{
 test('actual completion observer reads native trigger twice and keeps missing producers HOLD',()=>{
  const x=resolverCli('valid');assert.equal(x.receipt.state,'VERIFIED_HOLD',x.result.stderr);
  assert.equal(x.calls.filter(v=>v.path.endsWith('/actions/runs/100')).length,2);
+});
+test('actual natural Sentinel observer reads and validates its repository_dispatch payload',()=>{
+ const x=resolverCli('natural');assert.equal(x.receipt.state,'VERIFIED_HOLD',x.result.stderr);
+ assert.notEqual(x.receipt.failure_class,'SENTINEL_NATURAL_CLOCK_EVENT_CONTEXT');
 });
 for(const scenario of ['fork','malformed-json','native-attempt','native-repository','readback-drift'])test(`actual completion observer durably rejects ${scenario}`,()=>{
  const x=resolverCli(scenario);assert.equal(x.receipt.state,'VERIFIED_FAIL');assert.notEqual(x.result.status,0);

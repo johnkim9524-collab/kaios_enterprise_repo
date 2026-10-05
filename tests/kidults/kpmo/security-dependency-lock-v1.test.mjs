@@ -1,15 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {validateDependencyLock, versionAtLeast, WRANGLER_VERSION} from '../../../scripts/kidults/kpmo/security-dependency-lock-v1.mjs';
+import {validateDependencyLock, versionAtLeast, WRANGLER_VERSION, UNDICI_VERSION} from '../../../scripts/kidults/kpmo/security-dependency-lock-v1.mjs';
 const node = (name, version, dependencies = {}) => ({version, dependencies,
   resolved: `https://registry.npmjs.org/${name}/-/${name}-${version}.tgz`, integrity: `sha512-${'A'.repeat(86)}==`});
-const fixture = () => ({manifest: {packageManager: 'npm@11.17.0', devDependencies: {wrangler: WRANGLER_VERSION}},
+const fixture = () => ({manifest: {packageManager: 'npm@11.17.0', overrides: {undici: UNDICI_VERSION}, devDependencies: {wrangler: WRANGLER_VERSION}},
   lock: {lockfileVersion: 3, packages: {
     '': {packageManager: 'npm@11.17.0', devDependencies: {wrangler: WRANGLER_VERSION}},
     'node_modules/wrangler': node('wrangler', WRANGLER_VERSION, {miniflare: '5.20260901.0-alpha'}),
-    'node_modules/miniflare': node('miniflare', '5.20260901.0-alpha', {sharp: '0.35.4'}),
+    'node_modules/miniflare': node('miniflare', '5.20260901.0-alpha', {sharp: '0.35.4', undici: '7.29.0'}),
     'node_modules/sharp': node('sharp', '0.35.4'),
+    'node_modules/undici': node('undici', UNDICI_VERSION),
   }}});
 test('pure policy accepts a patched graph without changing its input', () => {
   const x = fixture(), before = JSON.stringify(x), out = validateDependencyLock(x.manifest, x.lock);
@@ -18,6 +19,17 @@ test('pure policy accepts a patched graph without changing its input', () => {
   assert.equal(JSON.stringify(x), before); assert.ok(Object.isFrozen(out));
 });
 const mutations = [
+  ['missing undici override', x => delete x.manifest.overrides],
+  ['floating undici override', x => x.manifest.overrides.undici = '^7.29.1'],
+  ['missing undici', x => delete x.lock.packages['node_modules/undici']],
+  ['missing undici parent edge', x => delete x.lock.packages['node_modules/miniflare'].dependencies.undici],
+  ['unpatched undici root', x => x.lock.packages['node_modules/undici'] = node('undici', '7.29.0')],
+  ['unpatched undici nested', x => x.lock.packages['node_modules/other/node_modules/undici'] = node('undici', '7.29.0')],
+  ['unpatched undici alias', x => x.lock.packages['node_modules/alias'] = {...node('undici', '7.29.0'), name:'undici'}],
+  ['unapproved undici major', x => x.lock.packages['node_modules/undici'] = node('undici', '8.0.0')],
+  ['undici missing integrity', x => delete x.lock.packages['node_modules/undici'].integrity],
+  ['undici wrong registry', x => x.lock.packages['node_modules/undici'].resolved = 'https://example.invalid/undici.tgz'],
+
   ['npm pin', x => x.manifest.packageManager = 'npm@latest'],
   ['lock npm pin missing after regeneration', x => delete x.lock.packages[''].packageManager],
   ['manifest range', x => x.manifest.devDependencies.wrangler = '^4.131.2'],

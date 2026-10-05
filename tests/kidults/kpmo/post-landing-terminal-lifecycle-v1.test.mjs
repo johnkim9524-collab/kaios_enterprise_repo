@@ -21,16 +21,26 @@ test('one Program Owner landing approval has a finite automatic terminal path', 
   assert.equal(contract.termination.approval_loop_possible, false);
   assert.deepEqual(contract.terminal_sequence, [
     'ATOMIC_GOVERNED_LANDING', 'PROTECTED_MAIN_PUSH', 'CANONICAL_V3_APPEND_ONLY_REFRESH',
-    'LIVE_CANONICAL_TRUTH', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
-    'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'PLATFORM_RUNTIME_GREEN',
+    'LIVE_CANONICAL_TRUTH', 'NATURAL_EXACT_SHA_PRODUCER_CHAIN', 'SHADOW_OPERATING_EVIDENCE',
+    'P0B_P1_ARL_REQUIREMENT_COVERAGE', 'ANY_SITE_EXACT_MAIN_DISCOVERY', 'SHARDED_SOURCE_RESERVE',
+    'EXACT_MAIN_HEALTH_SENTINEL', 'CONTINUOUS_ASSURANCE', 'CORE_FOUR_CONTROL_GREEN',
+    'WHOLE_PLATFORM_OPERATING_PROOF', 'PLATFORM_RUNTIME_GREEN',
   ]);
+});
+
+test('core control green cannot certify whole platform runtime',()=>{
+  assert.equal(contract.termination.core_four_control_green_is_whole_platform_green,false);
+  assert.equal(contract.termination.static_scorecard_pass_is_runtime_proof,false);
+  assert.equal(contract.termination.whole_platform_green_requires_all_runtime_checks_and_value_chain_receipts,true);
 });
 
 test('natural Canonical refresh is exact-main, first-attempt, append-only and separate from manual recovery', () => {
   assert.match(apply, /^  push:\n    branches: \[main\]/m);
+  assert.match(apply, /^  schedule:\n    - cron: '13,43 \* \* \* \*'/m);
   assert.match(apply, /issues:\s*write/);
   assert.match(apply, /github\.event_name == 'push'.*PROTECTED_MAIN_PUSH/);
-  assert.match(writer, /\['workflow_dispatch','push'\]\.includes\(event\)/);
+  assert.match(writer, /\['workflow_dispatch','push','schedule'\]\.includes\(event\)/);
+  assert.match(writer, /authority_type:'PROTECTED_MAIN_SCHEDULE'/);
   assert.match(writer, /attempt!==1/);
   assert.match(writer, /authority_type:'PROTECTED_MAIN_PUSH'/);
   assert.match(writer, /authority_type:'PROGRAM_OWNER_MANUAL_RECOVERY'/);
@@ -40,16 +50,22 @@ test('natural Canonical refresh is exact-main, first-attempt, append-only and se
 
 test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assurance without another approval', () => {
   assert.match(truth, /workflow_run:\n    workflows: \['KPMO Canonical Generation V3 Apply'\]/);
+  assert.doesNotMatch(truth, /^  push:/m);
   assert.match(truth, /github\.event\.workflow_run\.head_sha/);
-  assert.match(sentinelTrigger, /KPMO Live Canonical Issue Truth V1'.*events:\['push','workflow_run','workflow_dispatch','issues'\]/);
+  assert.match(sentinelTrigger, /KPMO Live Canonical Issue Truth V1'.*events:\['workflow_run','workflow_dispatch'\]/);
   assert.equal(discovery.match(/coordination\/kidults\/product\/representative-anchor-input-manifest-v1\.json/g)?.length, 2);
   assert.match(reserve, /workflow_run:\n    workflows:\n      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'/);
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
   assert.match(assurance, /- 'KPMO Live Canonical Issue Truth V1'/);
-  assert.match(sentinel, /actions:\s*write/);
-  assert.match(sentinel, /Dispatch exact-main terminal Continuous Assurance/);
-  assert.match(sentinel, /gh workflow run kidults-platform-continuous-assurance-v1\.yml/);
-  assert.match(sentinel, /branches\/main.*--jq '\.commit\.sha'/);
+  assert.match(sentinel, /actions:\s*read/);
+  assert.match(sentinel, /^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.doesNotMatch(sentinel, /^  push:/m);
+  assert.doesNotMatch(sentinel, /^  schedule:/m);
+  assert.doesNotMatch(sentinel, /Run exact-SHA producer auto-convergence/);
+  assert.doesNotMatch(sentinel, /Dispatch exact-main terminal Continuous Assurance/);
+  assert.doesNotMatch(sentinel, /gh workflow run kidults-platform-continuous-assurance-v1\.yml/);
+  assert.match(assurance, /- 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
+  assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
 });
 
 test('automatic closure preserves the protected HOLD boundary', () => {
@@ -59,4 +75,12 @@ test('automatic closure preserves the protected HOLD boundary', () => {
   assert.equal(contract.authority.production, 'HOLD');
   assert.equal(contract.authority.public, 'HOLD');
   assert.equal(contract.authority.g5, 'HOLD');
+  assert.equal(contract.termination.sentinel_read_only, true);
+  assert.equal(contract.termination.sentinel_actions_permission, 'read');
+  assert.equal(contract.termination.sentinel_dispatches_producers, false);
+  assert.equal(contract.termination.sentinel_dispatches_terminal_continuous_assurance, false);
+  assert.equal(contract.termination.natural_exact_sha_producer_evidence_required, true);
+  assert.equal(contract.termination.manual_dispatch_not_terminal_natural_proof, true);
+  assert.equal(contract.termination.producer_mutation_recovery_separate_from_assurance, true);
+  assert.equal(contract.termination.main_sha_drift_fails_closed, true);
 });

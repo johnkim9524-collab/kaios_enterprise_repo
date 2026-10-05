@@ -81,13 +81,14 @@ jobs:
           const wrapper=fs.readFileSync(wrapperPath,'utf8');
           const trigger=s.slice(s.indexOf('\non:\n')+1,s.indexOf('\npermissions:\n'));
           if(!trigger.startsWith('on:\n')) throw new Error('CANONICAL_V3_APPLY_TRIGGER_SECTION_INVALID');
-          for(const forbidden of [/^  pull_request:/m,/^  issues:/m,/^  schedule:/m,/^  workflow_run:/m]) {
+          for(const forbidden of [/^  pull_request:/m,/^  issues:/m,/^  workflow_run:/m]) {
             if(forbidden.test(trigger)) throw new Error(`CANONICAL_V3_APPLY_FORBIDDEN_TRIGGER:${forbidden}`);
           }
           if(/\$\{\{[^}]*secrets/i.test(s)) throw new Error('CANONICAL_V3_APPLY_SECRET_REFERENCE_FORBIDDEN');
           const requiredPatterns=[
             /^  workflow_dispatch:/m,
             /^  push:\n    branches: \[main\]/m,
+            /^  schedule:\n    - cron: '13,43 \* \* \* \*'/m,
             /contents:\s*read/,
             /issues:\s*write/,
             /actions:\s*read/,
@@ -95,6 +96,7 @@ jobs:
             /target_main_sha:/,
             /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:.*'AUTHORIZED'/,
             /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:.*PROTECTED_MAIN_PUSH/,
+            /CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:.*PROTECTED_MAIN_SCHEDULE/,
             /cancel-in-progress:\s*false/,
             /if:\s*always\(\)/,
             /COMMITTED_EVENTUAL_READBACK_RECOVERED/,

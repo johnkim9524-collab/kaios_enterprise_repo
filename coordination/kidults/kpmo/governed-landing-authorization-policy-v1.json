@@ -1,8 +1,15 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.6.0",
+  "version": "1.9.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
+  "routing": {
+    "eligible_internal_reversible": "kidults-autonomous-approval-policy-envelope-v1",
+    "normal_owner_exact_head_path": "OWNER_RESERVED_OR_RECOVERY_ONLY",
+    "routine_owner_reapproval_for_delegated_work": "FORBIDDEN",
+    "internal_reversible_workflow_and_governance_strengthening": "AI_020_AUTONOMOUS",
+    "unknown_or_conflicting_classification": "FAIL_CLOSED_OWNER_REQUIRED"
+  },
   "issue": 1281,
   "required_status_context": "KIDULTS Governed Landing Authorization V1",
   "scope_aware_required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
@@ -13,12 +20,14 @@
     "scripts/kidults/kpmo/",
     "scripts/kidults/redteam/",
     "scripts/kidults/portal/runtime/",
+    "scripts/governance/",
     "coordination/kidults/kpmo/",
     "coordination/kidults/audit/",
     "coordination/kidults/security/",
     "coordination/kidults/provider/",
     "coordination/kidults/runtime/",
-    "infra/"
+    "infra/",
+    "infrastructure/aws/"
   ],
   "governed_exact_paths": [
     "wrangler.toml",
@@ -42,6 +51,7 @@
     "single_governed_consumption_required": true,
     "pre_ready_approval_allowed": false,
     "multiple_current_generation_approvals_allowed": false,
+    "closed_or_merged_prereadiness_authority_forbidden": true,
     "lifecycle_root_issue": 2028,
     "enforcement_points": [
       "PR_LIFECYCLE_CLASSIFICATION",
@@ -62,9 +72,16 @@
       "MULTIPLE_CURRENT_GENERATION_APPROVALS",
       "APPROVAL_REPLAY"
     ],
-    "root_issue": 1787
+    "root_issue": 1787,
+    "scope": "OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY",
+    "delegated_machine_quorum_exempt": true,
+    "delegated_machine_quorum_authority": "EXACT_TUPLE_TRACK_KPMO_INDEPENDENT_VERIFIER_QUORUM",
+    "delegated_finalizer_draft_ready_transition_invalidates_quorum": false,
+    "delegated_routine_owner_comment_required": false
   },
   "review_policy": {
+    "manual_independent_review_required_for_ai_020_eligible_work": false,
+    "automated_machine_verification_required_for_ai_020_eligible_work": true,
     "minimum_non_author_approvals": 0,
     "self_review_counts": false,
     "approval_must_bind_exact_head_sha": true,
@@ -81,13 +98,25 @@
     "changes_requested_on_exact_head_blocks": true,
     "solo_owner_author_must_match_repository_owner": true,
     "same_repository_head_required": true,
-    "ready_state_by_owner_is_authorization": true,
+    "ready_state_by_owner_is_authorization": false,
+    "ready_state_is_lifecycle_only": true,
     "optional_external_review_must_bind_exact_head": true
   },
   "draft_policy": {
     "draft_is_promotable": false,
+    "eligible_draft_to_ready_transition": "AUTOMATED_AFTER_EXACT_HEAD_GOVERNANCE_PREFLIGHT",
+    "ready_transition_requires_human_approval": false,
+    "automated_transition_grants_landing_authority": false,
     "ready_state_must_be_observable": true,
-    "ready_actor_and_time_must_be_receipted": true
+    "ready_actor_and_time_must_be_receipted": true,
+    "ordinary_github_token_ready_mutation_forbidden": true,
+    "ready_transition_token_source": "REPOSITORY_GITHUB_APP_INSTALLATION_BROKER",
+    "ready_transition_required_permissions": [
+      "pull_requests:write",
+      "metadata:read"
+    ],
+    "ready_transition_installation_identity_bound": true,
+    "ready_transition_post_mutation_reread_required": true
   },
   "no_merge_policy": {
     "closed_pull_request_blocks": true,
@@ -109,12 +138,24 @@
     "readiness_status": "pending",
     "operation_specific_dispatch_required": true,
     "live_dispatch_actor_must_equal_repository_owner": true,
+    "live_dispatch_actor_guard_scope": "OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY",
+    "delegated_internal_dispatch_actor": "REGISTERED_AUTONOMOUS_FINALIZER_GITHUB_APP",
+    "delegated_internal_repository_owner_actor_required": false,
     "expected_head_sha_required": true,
     "initial_live_pull_request_read_required": true,
     "final_live_pull_request_reread_required": true,
     "final_state_must_equal_open": true,
+    "terminal_closed_state": "CLOSED_TERMINAL_NON_AUTHORIZING",
+    "terminal_merged_state": "MERGED_POST_LANDING_VERIFICATION_REQUIRED",
     "repository_github_token_merge_forbidden": true,
     "event_emitting_transport": "DIRECT_OWNER_GITHUB_UI",
+    "event_emitting_transport_scope": "OWNER_RESERVED_OR_LEGACY_RECOVERY_ONLY",
+    "delegated_internal_normal_transport": "AUTONOMOUS_FINALIZER_GITHUB_APP",
+    "delegated_internal_owner_ui_transport_required": false,
+    "delegated_internal_owner_comment_required": false,
+    "canonical_postmerge_refresh": "PROTECTED_MAIN_PUSH_ONE_SHOT",
+    "canonical_schedule_role": "WATCHDOG_FALLBACK_ONLY",
+    "canonical_schedule_max_wait_is_not_normal_path": true,
     "event_emitting_transport_availability_before_consumption": true,
     "expected_base_sha_required": true,
     "expected_head_sha_required": true,

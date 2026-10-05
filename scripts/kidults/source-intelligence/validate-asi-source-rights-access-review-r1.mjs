@@ -284,7 +284,7 @@ const futureEvidencePackage = futureEvidenceOutput.review_observations
   .flatMap(source => source.purpose_packages)
   .find(pkg => pkg.decision === "PASS");
 futureEvidencePackage.evidence_observed_at_max = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-08-19T12:00:00Z"),
+assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-09-22T12:00:00Z"),
   /PASS evidence observation is after the runtime validation clock/,
   "Runtime clock must reject a future PASS evidence observation");
 negativeControls.push("runtime-clock-rejects-future-evidence-observation");
@@ -518,8 +518,13 @@ expectOutputFailure("stale-output-cannot-pass-current-input-fingerprint-check", 
 expectOutputFailure("hold-package-cannot-emit-pass-binding", output => {
   const injected = structuredClone(output.purpose_eligibility_bindings[0]);
   const heldId = [...nonPassPackageIds].sort()[0];
+  const heldPackage = output.review_observations
+    .flatMap(source => source.purpose_packages)
+    .find(pkg => pkg.package_id === heldId);
   injected.binding_id = `${injected.binding_id}_hold`;
   injected.package_id = heldId;
+  injected.evidence_observed_at_max = heldPackage.evidence_observed_at_max;
+  injected.normalized_claim_record_recorded_at_max = heldPackage.normalized_claim_record_recorded_at_max;
   resignBinding(injected);
   output.purpose_eligibility_bindings.push(injected);
   output.summary.purpose_policy_preflight_pass_binding_count += 1;

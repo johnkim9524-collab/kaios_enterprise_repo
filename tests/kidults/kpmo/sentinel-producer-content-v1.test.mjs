@@ -37,6 +37,22 @@ function fixture(id,entries){
  return {spec,run,artifact,bytes,entries};
 }
 const check=f=>validateProducerContent(f.spec,f.run,f.artifact,f.bytes,sha,observed);
+test('Requirement producer health consumes the autonomous exact-SHA workflow_dispatch recovery root',()=>{
+ const requirement=SPECS.find(s=>s.id==='REQUIREMENT');
+ assert.ok(requirement.events.includes('workflow_run'));
+ assert.ok(requirement.events.includes('workflow_dispatch'));
+});
+test('Coverage content validator keeps event-specific source and manual display-title bindings',()=>{
+ const source=fs.readFileSync('scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs','utf8');
+ assert.ok(source.includes("run.event==='workflow_dispatch'"));
+ assert.ok(source.includes('`KIDULTS Coverage / manual-${run.id}`'));
+ assert.ok(source.includes('`KIDULTS Coverage / source-${sourceSha}`'));
+ assert.doesNotMatch(source,/run\.display_title===`KIDULTS Coverage \/ source-\$\{sourceSha\}`/);
+ assert.ok(source.includes('const manualRecovery=Boolean(guard&&!leader)'));
+ assert.ok(source.includes('COVERAGE_GUARD_MANUAL_EVENT'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_MANIFEST_REQUIRED'));
+ assert.ok(source.includes('COVERAGE_MANUAL_RECOVERY_BINDING_REQUIRED'));
+});
 function replace(f,name,mutate){
  const entries=f.entries.map(([n,t])=>[n,t]);const i=entries.findIndex(([n])=>n===name);const x=JSON.parse(entries[i][1]);mutate(x);entries[i][1]=text(x);
  const bytes=zip(entries);return {...f,entries,bytes,artifact:{...f.artifact,digest:digest(bytes),size_in_bytes:bytes.length}};
@@ -45,7 +61,7 @@ const shadow=fixture('SHADOW',[['asi-shadow-operating-evidence-run-1.json',fs.re
 function canonicalFixture(){
  const records=buildMaterialRegistry([{number:2015,state:'open',title:'[P1] SYNTHETIC material issue',labels:['P1']}]);
  const output={validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',version:'3.1.0',authority_model:'CANONICAL_GENERATION_V3_ONLY',generation_id:generationId(sha,123,1),aggregate_comment_id:456,canonical_issues:[...MEMBERS],active_baseline_trust_root_defects:[],canonical_main_policy:'EXACT_CURRENT_MAIN_COMMITTED_V3_GENERATION',dynamic_query_pagination_verified:true,dynamic_query_cardinality_verified:true,dynamic_query_incomplete_results_rejected:true,dynamic_new_defect_discovery_mutation_rejected:true,dynamic_defect_omission_mutation_rejected:true,canonical_main_ancestry_verified:true,legacy_v2_body_authority:false,state:'VERIFIED_PASS',protected_main_sha:sha,material_defect_count:1,material_defects:records,material_defect_registry_sha256:materialRegistryDigest(records),material_defect_query_cardinality:{P0:0,P1:1},empirical_promotion:false,whole_platform_closure:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
- const receipt={receipt_id:'kpmo-live-canonical-issue-truth-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',validation_outcome:'success',failure_class:null,repository:REPOSITORY,head_sha:sha,run_id:13,run_attempt:1,event:'push',workflow_name:'KPMO Live Canonical Issue Truth V1',workflow_path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',validation_output_sha256:digest(text(output)),validation_output_state:'VERIFIED_PASS',validated_protected_main_sha:sha,material_defect_issue_numbers:[2015],material_defect_count:1,material_defect_registry_sha256:materialRegistryDigest(records),material_defect_query_cardinality:{P0:0,P1:1},promotion_eligible:false,production:'HOLD',public:'HOLD'};
+ const receipt={receipt_id:'kpmo-live-canonical-issue-truth-receipt-v1',version:'1.1.0',state:'VERIFIED_PASS',validation_outcome:'success',failure_class:null,repository:REPOSITORY,head_sha:sha,run_id:13,run_attempt:1,event:'workflow_run',workflow_name:'KPMO Live Canonical Issue Truth V1',workflow_path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',validation_output_sha256:digest(text(output)),validation_output_state:'VERIFIED_PASS',validated_protected_main_sha:sha,material_defect_issue_numbers:[2015],material_defect_count:1,material_defect_registry_sha256:materialRegistryDigest(records),material_defect_query_cardinality:{P0:0,P1:1},promotion_eligible:false,production:'HOLD',public:'HOLD'};
  return fixture('CANONICAL_TRUTH',[['canonical-truth-receipt-v1.json',text(receipt)],['canonical-truth-validation-output-v1.json',text(output)]]);
 }
 const canonical=canonicalFixture();
@@ -92,6 +108,20 @@ function coverageFixture(){
  return fixture('REQUIREMENT',[['kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json',text(receipt)],['coverage-canonical-leader-receipt-v1.json',text(leader)],['coverage-semantic-input-receipt-v1.json',text(semantic)]]);
 }
 const coverage=coverageFixture();
+function workflowDispatchCoverageFixture(){
+ const f=coverageFixture();
+ const entries=f.entries.map(([name,value])=>[name,value]);
+ const leaderIndex=entries.findIndex(([name])=>name==='coverage-canonical-leader-receipt-v1.json');
+ const leader=JSON.parse(entries[leaderIndex][1]);
+ leader.trigger_event='workflow_dispatch';
+ leader.coverage_run_display_title=`KIDULTS Coverage / manual-${f.run.id}`;
+ const observedAt=leader.observed_at;delete leader.observed_at;delete leader.receipt_digest;
+ leader.receipt_digest=digest(stable(leader));leader.observed_at=observedAt;
+ entries[leaderIndex][1]=text(leader);
+ const bytes=zip(entries);
+ return {...f,run:{...f.run,event:'workflow_dispatch',display_title:`KIDULTS Coverage / manual-${f.run.id}`},entries,bytes,artifact:{...f.artifact,digest:digest(bytes),size_in_bytes:bytes.length}};
+}
+test('Requirement workflow_dispatch Coverage payload is content-verified with its manual run title',()=>assert.equal(check(workflowDispatchCoverageFixture()).state,'VERIFIED_PASS'));
 function rebindCoverageResults(mutate){
  const entries=coverage.entries.map(([name,value])=>[name,value]);
  const receiptIndex=entries.findIndex(([name])=>name==='kidults-asi-requirement-adapter-coverage-kpmo-receipt-v1.json');
@@ -108,7 +138,7 @@ function reserveFixture(){
   fs.writeFileSync(path.join(tmp,'input.json'),text({candidates:[{endpoint_url:'https://synthetic.example.invalid/item',observed_at:'2026-09-05T10:00:00Z',discovery_provider:'SYNTHETIC_CONTROL'}]}));
   const out=path.join(tmp,'out');const child=spawnSync(process.execPath,['scripts/kidults/source-intelligence/build-asi-sharded-source-reserve-v1.mjs',path.join(tmp,'input.json'),path.join(tmp,'absent'),out],{encoding:'utf8',timeout:5000,env:{PATH:process.env.PATH,LANG:'C.UTF-8'}});assert.equal(child.status,0,child.stderr);
   const manifest=JSON.parse(fs.readFileSync(path.join(out,'asi-sharded-source-reserve-manifest-v1.json')));
-  const r={id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:'workflow_run',discovery_producer_run_id:500,discovery_producer_head_sha:sha,discovery_artifact_id:600,exact_generation_bound:true,validation_only:false,promotion_authority:false,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
+  const r={id:'kidults-asi-sharded-source-reserve-activation-receipt-v1',state:'VERIFIED_PASS',trigger_event:'repository_dispatch',discovery_producer_run_id:500,discovery_producer_head_sha:sha,discovery_artifact_id:600,exact_generation_bound:true,validation_only:false,promotion_authority:false,reserve_is_not_safe_pool:true,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
   for(const [a,b] of Object.entries({reserve_cycle:'cycle_number',reserve_unique_candidates:'unique_candidate_count',reserve_unique_hosts:'unique_host_count',reserve_new_candidates:'new_candidate_count',reserve_updated_candidates:'updated_candidate_count',reserve_nonempty_shards:'nonempty_shard_count',reserve_design_capacity:'design_capacity_minimum_candidates'}))r[a]=manifest[b];
   return fixture('RESERVE',[['asi-sharded-source-reserve-activation-receipt-v1.json',text(r)],['reserve/asi-sharded-source-reserve-manifest-v1.json',text(manifest)],...manifest.shards.map(s=>[`reserve/${s.path}`,fs.readFileSync(path.join(out,s.path),'utf8')])]);
  }finally{fs.rmSync(tmp,{recursive:true,force:true});}
@@ -128,10 +158,39 @@ test('Coverage rejects a missing public result field',()=>assert.throws(()=>chec
 test('Coverage rejects reintroduced non-public baseline fields',()=>assert.throws(()=>check(rebindCoverageResults(x=>{x.results.pending_source_adapters=0;})),/COVERAGE_PUBLIC_RESULT_KEYS/));
 test('Reserve native validator rejects tampered shard bytes',()=>{const f={...reserve};f.entries=reserve.entries.map(([n,t])=>[n,n.endsWith('.ndjson')&&t?t.replace('UNASSESSED','ALLOW'):t]);f.bytes=zip(f.entries);f.artifact={...f.artifact,size_in_bytes:f.bytes.length,digest:digest(f.bytes)};assert.throws(()=>check(f),/RESERVE_NATIVE/);});
 test('Reserve validates WAITING payload but never promotes it',()=>{
- const r={id:'kidults-asi-sharded-source-reserve-waiting-receipt-v1',state:'WAITING_FOR_EXACT_DISCOVERY_PRODUCER',trigger_event:'workflow_run',discovery_producer_head_sha:sha,exact_generation_bound:false,artifact_cardinality:0,promotion_eligible:false,completion_claim_allowed:false,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
+ const r={id:'kidults-asi-sharded-source-reserve-waiting-receipt-v1',state:'WAITING_FOR_EXACT_DISCOVERY_PRODUCER',trigger_event:'repository_dispatch',discovery_producer_head_sha:sha,exact_generation_bound:false,artifact_cardinality:0,promotion_eligible:false,completion_claim_allowed:false,content_acquisition_authorized:false,collection_right_created:false,public_release:'HOLD',production:'HOLD'};
  const f=fixture('RESERVE',[['asi-sharded-source-reserve-waiting-receipt-v1.json',text(r)]]);f.artifact.name=f.spec.waitingArtifact;assert.equal(check(f).state,'VERIFIED_HOLD');
 });
 for(const [name,entries] of [['traversal',[['../receipt.json','{}']]],['duplicate members',[['receipt.json','{}'],['receipt.json','{}']]],['duplicate JSON keys',[['receipt.json','{"state":"FAIL","state":"PASS"}']]],['nonfinite JSON',[['receipt.json','{"n":NaN}']]],['absolute',[['/tmp/x','x']]],['backslash',[['x\\x.json','{}']]],['member expansion',[['x.txt','0'.repeat(100000)]]]])test(`safe ZIP reader rejects ${name}`,()=>{const bytes=zip(entries);assert.throws(()=>readArchive(bytes,digest(bytes)));});
+test('safe ZIP reader validates a bounded nested candidate ZIP against its extraction sidecar',()=>{
+ const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const packet=readArchive(outer,digest(outer),{coverageCandidate:true});
+ const nested=packet.members.find(member=>member.name==='candidates/artifact-123.zip');
+ assert.equal(nested.encoding,'zip');assert.equal(nested.sha256,digest(inner));assert.equal(nested.nested_member_count,1);
+ assert.equal(packet.members.find(member=>member.name==='candidates/extract-123/receipt.json').encoding,'utf-8');
+});
+test('safe ZIP reader rejects a nested ZIP whose extracted sidecar differs',()=>{
+ const inner=zip([['receipt.json','{"state":"VERIFIED_PASS"}\n']]);
+ const outer=zip([['candidates/artifact-123.zip',inner],['candidates/extract-123/receipt.json','{"state":"VERIFIED_FAIL"}\n']]);
+ assert.throws(()=>readArchive(outer,digest(outer),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+test('safe ZIP reader rejects non-ZIP opaque binary members',()=>{
+ const bytes=zip([['opaque.bin',Buffer.from([0,0x85,0xff,0x10])]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const name of ['artifact-123.ZIP','other.zip'])test(`safe ZIP reader rejects noncanonical nested ${name}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([[name,inner]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes),{coverageCandidate:true}),/ARCHIVE_CONTENT_REJECTED/);
+});
+for(const producer of ['SHADOW','RESERVE','CANONICAL'])test(`safe ZIP reader rejects nested ZIP for ${producer}`,()=>{
+ const inner=zip([['receipt.json','{}']]);const bytes=zip([['artifact-123.zip',inner],['extract-123/receipt.json','{}']]);
+ assert.throws(()=>readArchive(bytes,digest(bytes)),/ARCHIVE_CONTENT_REJECTED/);
+});
+test('safe ZIP reader rejects malformed nested ZIP bytes',()=>{
+ const bytes=zip([['candidates/artifact-123.zip',Buffer.from([0,0x85,0xff])]]);
+ assert.throws(()=>readArchive(bytes,digest(bytes)),/ARCHIVE_CONTENT_REJECTED/);
+});
 for(const url of ['http://x.blob.core.windows.net/x','https://evil.example/x','https://x.blob.core.windows.net.evil.example/x','https://user:secret@x.blob.core.windows.net/x','https://x.blob.core.windows.net:8443/x','https://api.github.com/x'])test(`artifact redirect rejects ${url.split('/')[2]}`,()=>assert.throws(()=>allowedArtifactRedirect(url)));
 test('artifact redirect accepts HTTPS signed storage without credentials',()=>assert.equal(allowedArtifactRedirect('https://example.blob.core.windows.net/artifact?sig=test').hostname,'example.blob.core.windows.net'));
 function healthInput(){const input={repository:REPOSITORY,source_sha:sha,observed_at:observed,observer_run_id:900,observer_run_attempt:1,runs:{},artifacts_by_run:{},archives_by_id:{}};for(const f of [shadow,coverage,reserve,canonical]){input.runs[f.spec.id]=[f.run];input.artifacts_by_run[f.run.id]=[f.artifact];input.archives_by_id[f.artifact.id]=f.bytes;}return input;}

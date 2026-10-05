@@ -1,0 +1,51 @@
+{
+  "id": "kidults-closure-batching-policy-v1",
+  "version": "1.0.0",
+  "state": "ACTIVE",
+  "principle": "DIAGNOSE_WHOLE_SURFACE_BEFORE_CORRECTIVE_PR",
+  "execution": {
+    "work_unit": "CHUNK",
+    "report_every_chunks": 3,
+    "on_defect": [
+      "DO_NOT_IMMEDIATELY_CREATE_FOLLOWUP_PR",
+      "REREAD_EXTERNAL_ACTUAL_STATE",
+      "CONSUME_EXISTING_BRANCH_COMMIT_PR_RUN_ARTIFACT_RECEIPT",
+      "ENUMERATE_RELATED_AUTHORITY_AND_RUNTIME_SURFACES",
+      "RUN_POSITIVE_NEGATIVE_DEPLOYMENT_AND_GOVERNANCE_SIMULATION",
+      "BATCH_CONFIRMED_DEFECTS_INTO_ONE_CLOSURE_SET"
+    ],
+    "corrective_pr_limit_per_closure_set": 1,
+    "exception": "A_NEW_PR_IS_ALLOWED_ONLY_WHEN_THE_EXISTING_PR_IS_ALREADY_MERGED_OR_IMMUTABLE_AND_A_NEWLY_OBSERVABLE_DEFECT_CANNOT_BE_SAFELY_INCLUDED;THE_EXCEPTION_MUST_BE_RECORDED_IN_THE_CLOSURE_RECEIPT",
+    "duplicate_forbidden": [
+      "PUSH",
+      "PR",
+      "APPROVAL",
+      "WORKFLOW_DISPATCH",
+      "DEPLOYMENT"
+    ]
+  },
+  "pre_pr_required_surfaces": [
+    "IMPLEMENTATION",
+    "TESTS",
+    "GOVERNANCE_CLASSIFICATION",
+    "APPROVAL_POLICY_MANIFEST",
+    "AWS_IAM_OIDC_KMS_CLOUDFORMATION_IF_APPLICABLE",
+    "DEPLOYMENT_VALIDATOR_IF_APPLICABLE",
+    "POSITIVE_PATH",
+    "NEGATIVE_REPLAY_OR_FORGERY_PATH"
+  ],
+  "automation_requirements": {
+    "approval_policy_manifest": "REFRESH_AND_VALIDATE_BEFORE_REMOTE_PR_HEAD_IS_DECLARED_READY",
+    "governed_surface_inventory": "CANONICAL_POLICY_IS_SOURCE_OF_TRUTH;WORKFLOW_COPIES_MUST_BE_EQUALITY_TESTED",
+    "migration_contract": "VERSIONED_EXACT_BOUNDED_TRANSITIONS_ONLY"
+  },
+  "completion_gate": {
+    "minimum_consecutive_natural_generations_without_corrective_change": 2,
+    "require_actual_staging_e2e": true,
+    "require_durable_ledger_positive_and_negative": true,
+    "require_sentinel_assurance_terminal": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}

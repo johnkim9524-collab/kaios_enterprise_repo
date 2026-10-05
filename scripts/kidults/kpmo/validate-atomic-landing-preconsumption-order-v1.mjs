@@ -15,6 +15,10 @@ const oneUsePreflight = fs.readFileSync(
   'scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs',
   'utf8',
 );
+const landingRunner = fs.readFileSync(
+  'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs',
+  'utf8',
+);
 const assert = (condition, code) => {
   if (!condition) throw new Error(code);
 };
@@ -112,10 +116,18 @@ assert(lifecycleApprovalTokens.every(token => lifecyclePreflight.includes(token)
   'ATOMIC_LANDING_COMPLETE_OWNER_APPROVAL_PREFLIGHT_MISSING');
 
 const approvalSelection = oneUsePreflight.indexOf('const programOwnerApproval = selectExactHeadProgramOwnerApproval');
+const retryEvaluation = oneUsePreflight.indexOf('const oneUse = evaluateAtomicLandingOneUseRunSet');
 const receiptValidation = oneUsePreflight.lastIndexOf('assertAtomicLandingConsumptionReceipt(receipt, {');
 const receiptWrite = oneUsePreflight.lastIndexOf('writeReceipt(receipt, receiptPath);');
-assert(approvalSelection >= 0 && receiptValidation > approvalSelection && receiptWrite > receiptValidation,
+assert(approvalSelection >= 0 && retryEvaluation > approvalSelection
+  && receiptValidation > retryEvaluation && receiptWrite > receiptValidation,
   'ATOMIC_LANDING_CONSUMPTION_WRITTEN_BEFORE_COMPLETE_VALIDATION');
+assert(oneUsePreflight.includes('authorizationApprovedAt: programOwnerApproval.comment_created_at'),
+  'ATOMIC_LANDING_APPROVAL_SCOPED_RETRY_ACCOUNTING_MISSING');
+assert(landingRunner.includes('authorizationApprovedAt')
+  && landingRunner.includes('programOwnerApproval.comment_created_at')
+  && landingRunner.includes('ATOMIC_LANDING_CONSUMPTION_APPROVAL_TIME_DRIFT'),
+  'ATOMIC_LANDING_LIVE_APPROVAL_SCOPED_RETRY_RECHECK_MISSING');
 assert(oneUsePreflight.includes('complete_owner_approval_contract_validated_before_consumption: true')
   && oneUsePreflight.includes('ATOMIC_ONE_USE_PR_DRIFT_DURING_CONSUMPTION')
   && oneUsePreflight.includes('ATOMIC_ONE_USE_MAIN_DRIFT_DURING_CONSUMPTION'),
@@ -135,6 +147,7 @@ console.log(JSON.stringify({
   lifecycle_authority_precedes_one_use_consumption: true,
   authorization_not_burned_by_missing_lifecycle: true,
   complete_owner_approval_contract_precedes_one_use_consumption: true,
+  retry_accounting_scoped_to_immutable_owner_approval: true,
   invalid_approval_not_recorded_as_consumed: true,
   consumption_receipt_written_after_final_pr_main_reread: true,
   complete_approval_authority_inputs_paginated: true,

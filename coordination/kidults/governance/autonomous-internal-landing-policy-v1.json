@@ -1,0 +1,526 @@
+{
+  "id": "kidults-autonomous-internal-landing-policy-v1",
+  "version": "1.13.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
+  "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
+  "manual_owner_path": "RECOVERY_ONLY",
+  "delegated_operation": "INTERNAL_REVERSIBLE_LANDING",
+  "normal_internal_pr_lifecycle": {
+    "owner_comment_required": false,
+    "owner_review_required": false,
+    "owner_ready_click_required": false,
+    "owner_merge_click_required": false,
+    "manual_dispatch_required": false,
+    "manual_rebase_or_recut_required": false,
+    "manual_stale_pr_cleanup_required": false,
+    "draft_to_ready": "FINALIZER_AUTOMATIC",
+    "merge": "FINALIZER_AUTOMATIC",
+    "postmerge": "EXACT_MERGE_SHA_AUTOMATIC",
+    "stale_base": "BROKERED_BOUNDED_UPDATE_BRANCH",
+    "redundant_pr_cleanup": "BROKERED_EXACT_BLOB_EQUALITY_ONLY",
+    "bounded_retry": "AUTOMATIC_FRESH_GENERATION",
+    "owner_escalation": "ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED"
+  },
+  "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
+  "state_model": [
+    "SCOPE_GRANTED",
+    "KPMO_AUTHORIZED",
+    "TRACK_AUTHORIZED",
+    "INDEPENDENT_VERIFIED",
+    "LANDING_RESERVED",
+    "MERGED_EVENT_EMITTED",
+    "TARGET_REVALIDATED",
+    "RECEIPT_SEALED"
+  ],
+  "terminal_failure_states": [
+    "DENIED",
+    "EXPIRED",
+    "DRIFTED",
+    "QUARANTINED",
+    "MERGED_QUARANTINED",
+    "OWNER_HOLD"
+  ],
+  "approval_quorum": {
+    "minimum": 2,
+    "required_roles": [
+      "ACCOUNTABLE_TRACK_AGENT",
+      "KPMO"
+    ],
+    "manual_independent_review_required": false,
+    "automated_machine_verifier_required": true,
+    "machine_verifier_distinct_from_approvers": true,
+    "self_approval_forbidden": true,
+    "identity_model": "ROLE_SCOPED_OIDC_KMS_WORKLOAD_V2_FINALIZER_SPLIT",
+    "distinct_stable_workload_ids_required": true,
+    "distinct_signing_keys_required": true,
+    "approval_workloads_may_finalize": false,
+    "finalizer_distinct_from_approvers": true
+  },
+  "exact_binding_fields": [
+    "repository_id",
+    "repository",
+    "pull_request",
+    "base_sha",
+    "head_sha",
+    "head_tree_sha",
+    "scope_digest",
+    "test_evidence_digest",
+    "rollback_digest",
+    "authorization_generation",
+    "nonce_digest",
+    "issued_at",
+    "expires_at"
+  ],
+  "eligible_all_required": [
+    "REPOSITORY_INTERNAL",
+    "REVERSIBLE",
+    "ROLLBACK_BOUND",
+    "NO_EXTERNAL_SIDE_EFFECT",
+    "NO_OWNER_RESERVED_ACTION",
+    "REQUIRED_CHECKS_GREEN",
+    "HEAD_TREE_SCOPE_STABLE",
+    "TRACK_AND_KPMO_QUORUM",
+    "AUTOMATED_MACHINE_VERIFIER_PASS",
+    "DURABLE_NONCE_RESERVATION_PASS"
+  ],
+  "owner_reserved_actions": [
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "EXTERNAL_COMMUNICATION",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "LEGAL_POLICY_EXCEPTION",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "CREDENTIAL_OR_PERMISSION_EXPANSION",
+    "SECRET_CREATE_READ_ROTATE_EXPORT",
+    "TRUST_ROOT_OR_RULESET_WEAKENING",
+    "DESTRUCTIVE_DATA_OPERATION",
+    "PROTECTED_PROMOTION_OR_RELEASE"
+  ],
+  "owner_reserved_path_prefixes": [
+    "secrets/",
+    "production/",
+    "public/",
+    "g5/"
+  ],
+  "owner_reserved_exact_paths": [
+    "CONSTITUTION.md",
+    "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
+    "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
+    "coordination/kidults/governance/autonomous-workload-identity-registry-v1.json"
+  ],
+  "delegated_internal_path_prefixes": [
+    ".github/workflows/",
+    "coordination/kidults/governance/",
+    "coordination/kidults/kpmo/",
+    "scripts/kidults/kpmo/"
+  ],
+  "owner_reserved_added_patch_patterns": [
+    "environment:[ ]*(production|public|g5)",
+    "^[ \\t]*environment:",
+    "^[ \\t]*(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events):[ ]*write",
+    "uses:[ ]*aws-actions/configure-aws-credentials",
+    "id-token:[ ]*write",
+    "secrets\\.",
+    "permissions:[ ]*(write-all|admin)",
+    "^[ \\t]*on:[ \\t]*$",
+    "^[ \\t]*(workflow_dispatch|repository_dispatch|schedule|push|pull_request_target):",
+    "^[ \\t]*(run|uses):.*(curl|wget|gh api|aws |gcloud |az |terraform|kubectl|http://|https://)",
+    "--admin-bypass",
+    "force:[ ]*true"
+  ],
+  "scope_classification": {
+    "path_alone_makes_internal_work_owner_reserved": false,
+    "governance_or_workflow_strengthening_is_delegable": true,
+    "owner_reserved_decision_basis": "EXACT_PATH_OR_CAPABILITY_EXPANSION_OR_MATERIAL_DELETION",
+    "material_deletion": "SEMANTIC_DUAL_VERIFIER_CLASSIFICATION_REQUIRED",
+    "exact_path_exceptions_require_effect_classification": true,
+    "unknown_or_unavailable_patch": "FAIL_CLOSED_OWNER_REQUIRED"
+  },
+  "delegated_internal_exact_path_exceptions": [
+    ".github/AI_AGENT_OPERATING_RULES.md",
+    ".github/workflows/kpmo-canonical-generation-v3-apply.yml",
+    ".github/workflows/kpmo-canonical-generation-v3.yml",
+    "AGENTS.md",
+    "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
+    "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+    "coordination/kidults/governance/approval-policy-inventory-v1.json",
+    "scripts/kidults/kpmo/canonical-generation-v3.mjs"
+  ],
+  "delegated_internal_transition_exceptions": [
+    {
+      "id": "NATURAL_RESERVE_CHAIN_REPAIR_V1",
+      "paths": [
+        ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
+        ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+        ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        ".github/workflows/kidults-platform-continuous-assurance-v1.yml"
+      ],
+      "require_complete_path_set": true,
+      "allow_comment_only_additions": true,
+      "changes": [
+        {
+          "path": ".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml",
+          "removed": [
+            "if: github.event_name == 'workflow_dispatch'"
+          ],
+          "added": [
+            "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
+          ]
+        },
+        {
+          "path": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+          "removed": [],
+          "added": [
+            "- cron: '7 * * * *'"
+          ]
+        },
+        {
+          "path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+          "removed": [],
+          "added": [
+            "- cron: '14 * * * *'",
+            "- cron: '44 * * * *'"
+          ]
+        },
+        {
+          "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+          "removed": [
+            "[[ \"$TRUTH_UPSTREAM_EVENT\" =~ ^(push|issues|workflow_dispatch|pull_request)$ ]]"
+          ],
+          "added": [
+            "[[ \"$TRUTH_UPSTREAM_EVENT\" =~ ^(push|issues|workflow_dispatch|pull_request|workflow_run)$ ]]"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "NATURAL_CLOCK_DUAL_SOURCE_REPAIR_V1",
+      "paths": [
+        ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+        ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+        ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+        "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
+        "coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json",
+        "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
+        "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
+        "scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs",
+        "scripts/kidults/kpmo/lib/natural-clock-dispatch-v1.mjs",
+        "scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs",
+        "scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs",
+        "scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs",
+        "scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs",
+        "tests/kidults/kpmo/natural-clock-dispatch-v1.test.mjs",
+        "tests/kidults/kpmo/natural-clock-intake-v1.test.mjs",
+        "tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs",
+        "tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs"
+      ],
+      "require_complete_path_set": true,
+      "allow_comment_only_additions": false,
+      "content_binding": "EXACT_IMMUTABLE_BASE_HEAD_SHA256",
+      "content_digests": [
+        {
+          "path": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
+          "base_sha256": "sha256:16dcd618db6206191ec66f268979e391389762694c859d4a68d1bcb765a1d0a0",
+          "head_sha256": "sha256:cd802073cc440a8ff4c7ed92299af39486e0ba7f8b47efb035ee9494853a608e"
+        },
+        {
+          "path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+          "base_sha256": "sha256:91505ac3c07413c2faad3a376f4c6886b4fad4dd3133ad63e90a9f68d10adeec",
+          "head_sha256": "sha256:fb6d444be7bd11a8b2146ff8a32d422fdd9f72ccaf1b20e71e468b05c505a3ad"
+        },
+        {
+          "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+          "base_sha256": "sha256:65d4a51127e2abc01fa31f94057d037f3b66f57cd29aa05f9fd568d74625deac",
+          "head_sha256": "sha256:4feb299ddece4c75f49df315bcd583096d514997f5e3c92d672e53175f2784f9"
+        },
+        {
+          "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+          "base_sha256": "sha256:ad5aa5725c543f95d1497d3241ff864c4a5bea612cb720480010bfe834369dd2",
+          "head_sha256": "sha256:21dc7e9c514f3d030bf1da9122ad2b579f5c893203e38e169174a750c300e862"
+        },
+        {
+          "path": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
+          "base_sha256": "sha256:d04a556b0066886f7cf31208d3297c295006b2bd9a816398bb9b7a848aa463aa",
+          "head_sha256": "sha256:623ed61754b4e53473f576e5a58d0f065b6375c741f1dbe8a314218e42c8f89d"
+        },
+        {
+          "path": "coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:f785654f3319a508d3f7d299380ab54ea774c7e494c9beca22eea58e11d345b3"
+        },
+        {
+          "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:2bea72ecc9f09bbe35fd155e9e14c3649590d80bdc6efbdb9c9e1bf8b54d6070"
+        },
+        {
+          "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:4f368bf273e551757e334bac268970a0cdb00573e696240a00230242d84160a7"
+        },
+        {
+          "path": "scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs",
+          "base_sha256": "sha256:db9d83609abff5aab3c6d0657d4ad82a732f1169315f85199ec63cf856d9e4cc",
+          "head_sha256": "sha256:af069bc6e7ac001be15169500d43732d9327822b7a4d9a488307eac219f3dcf0"
+        },
+        {
+          "path": "scripts/kidults/kpmo/lib/natural-clock-dispatch-v1.mjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:a1e57b45396aacd0d077ee156737ee8bd66c17a2d90ab708eec026affae19b45"
+        },
+        {
+          "path": "scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs",
+          "base_sha256": "sha256:2ca0f12ab3c516bd99c0a3bb81cb30ba3b7ef4effc0e21fe1077849641616d51",
+          "head_sha256": "sha256:907dce03ac632a87730338c83dd720366d5e99192007e6d02afbeb8cccfeb1e0"
+        },
+        {
+          "path": "scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:3f7f224780ca5c63dcbc05ca6530e53c16d4ca7e3ce82087b2d70bd971f5149b"
+        },
+        {
+          "path": "scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs",
+          "base_sha256": "sha256:7c561759e1cd6799c5b00cb576d5f02c036330e317c644c10c9e6304af242f18",
+          "head_sha256": "sha256:64cc14d678decf716e053037e4ef3d3559a6dbd8fba267f8b8ed16f334e938e7"
+        },
+        {
+          "path": "scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs",
+          "base_sha256": "sha256:958298df67d67a983f456c5a52965e1c50b335ce40efbcd74096fa22a5ed0ff9",
+          "head_sha256": "sha256:98069b5f65ae2c511e1b162e70f95f3817893aafa28eb22a6db9f24d9a6dfb79"
+        },
+        {
+          "path": "tests/kidults/kpmo/natural-clock-dispatch-v1.test.mjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:1e76a4cd919e4d2be14ab71f23269afe84dc830e7d2490d47dcabfa46c007d89"
+        },
+        {
+          "path": "tests/kidults/kpmo/natural-clock-intake-v1.test.mjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:792a45ce07e9e568f3550f97202f1a7d650267f913e7544a70cc4d1c978e8d85"
+        },
+        {
+          "path": "tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:640f39b59acc7263ce894b8454ab7722303d56ceb06ab696350b231b29250820"
+        },
+        {
+          "path": "tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs",
+          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "head_sha256": "sha256:9695e913507ae929b77a2552cdd3805a131f497f6b51903c7dc75c86e20bfd43"
+        }
+      ]
+    }
+  ],
+  "automatic_triggers": [
+    "pull_request_target:opened|synchronize|reopened|ready_for_review",
+    "schedule:kidults-autonomous-dispatcher-v1",
+    "repository_dispatch:kidults.authorization.generation.v1"
+  ],
+  "manual_trigger": "RECOVERY_ONLY_NEW_AUTHORIZATION_GENERATION_REQUIRED",
+  "bounded_recovery": {
+    "maximum_attempts": 3,
+    "maximum_lifetime_seconds": 7200,
+    "same_head_tree_required": true,
+    "same_scope_digest_required": true,
+    "empty_commit_must_be_non_force": true,
+    "head_sha_generations_must_be_receipted": true,
+    "draft_ready_rebind": "AUTOMATIC",
+    "draft_ready_validation_timeout_seconds": 420,
+    "pre_reservation_failure_consumes_authority": false,
+    "reservation_occurs_immediately_before_first_mutation": true,
+    "finalizer_quorum_wait_seconds": 90,
+    "normal_ops_finalizer": {
+      "elected_workflow": "KIDULTS Autonomous Independent Verification V1",
+      "track_kpmo_finalizer_behavior": "SUCCESSFUL_NON_MERGING_FOLLOWER",
+      "writer_retry_attempts": 3,
+      "writer_retry_delay_seconds": 5,
+      "writer_policy_rejection_retry": false,
+      "persistent_writer_failure": "FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL",
+      "requires_exact_head": true,
+      "requires_three_role_quorum": true,
+      "production": "HOLD",
+      "public": "HOLD",
+      "g5": "HOLD"
+    }
+  },
+  "durable_single_use": {
+    "backend": "AWS_DYNAMODB_CONDITIONAL_WRITE",
+    "table_variable": "KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE",
+    "workload_role_arn_variable": "KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN",
+    "signing_key_arn_variable": "KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN",
+    "region": "ap-northeast-2",
+    "transition": "UNUSED_TO_RESERVED_TO_CONSUMED",
+    "reservation_and_consume_require_finalizer_kms_signature": true,
+    "github_artifact_alone_is_sufficient": false,
+    "rerun_reuses_authority": false,
+    "maximum_ttl_seconds": 7200
+  },
+  "merge": {
+    "method": "merge",
+    "expected_head_sha_required": true,
+    "force_push_forbidden": true,
+    "admin_bypass_forbidden": true,
+    "manual_update_branch_forbidden": true,
+    "autonomous_stale_base_convergence": {
+      "enabled": true,
+      "executor": "DISPATCHER_BROKERED_GITHUB_APP_ONLY",
+      "method": "GITHUB_UPDATE_BRANCH_EXPECTED_HEAD_SHA",
+      "preclassification_against_original_base_required": true,
+      "same_repository_head_required": true,
+      "mutation_token_source": "EXACT_BOUND_GITHUB_APP_BROKER",
+      "github_actions_default_token_write_forbidden": true,
+      "broker_permission_profile": "AUTONOMOUS_STALE_BASE_CONVERGENCE",
+      "no_new_github_app_permissions": true,
+      "primary_and_independent_semantic_verifiers_required": true,
+      "owner_reserved_action_forbidden": true,
+      "maximum_prs_per_run": 4,
+      "post_update_full_ci_and_fresh_authorization_generation_required": true,
+      "conflict_or_422_state": "QUARANTINE_NO_MUTATION_RETRY",
+      "force_push_forbidden": true
+    },
+    "autonomous_redundant_pr_hygiene": {
+      "enabled": true,
+      "executor": "DISPATCHER_BROKERED_GITHUB_APP_ONLY",
+      "mutation_token_source": "EXACT_BOUND_GITHUB_APP_BROKER",
+      "github_actions_default_token_write_forbidden": true,
+      "broker_permission_profile": "AUTONOMOUS_REDUNDANT_PR_HYGIENE",
+      "no_new_github_app_permissions": true,
+      "close_only_when_all_changed_file_blobs_equal_current_main": true,
+      "removed_or_renamed_files_auto_close_forbidden": true,
+      "maximum_prs_per_run": 4,
+      "reopen_is_reversible": true,
+      "owner_comment_required": false
+    },
+    "live_main_tree_parent_revalidation_required": true,
+    "explicit_completion_event": "kidults.internal_landing.completed.v1",
+    "postmerge_exact_sha_checks_required": true,
+    "postmerge_push_suite_policy": "coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json",
+    "postmerge_validation_timeout_seconds": 420
+  },
+  "evidence_resolution": {
+    "approval_decisions_must_be_derived_from_live_github_state": true,
+    "caller_supplied_pass_conclusions_are_authoritative": false,
+    "test_evidence_object_required": true,
+    "rollback_plan_object_required": true,
+    "canonical_json_digest_recomputed": true
+  },
+  "failure_recovery": {
+    "automatic_downstream_quarantine": true,
+    "automatic_revert_pr_required_after_postmerge_failure": true,
+    "force_reset_forbidden": true,
+    "revert_conflict_state": "OWNER_HOLD",
+    "agent_violation_state": "AGENT_QUARANTINED",
+    "replacement_requires_fresh_bootstrap_and_generation": true
+  },
+  "evidence": {
+    "terminal_receipt_required": true,
+    "digest_chain_required": true,
+    "aws_object_lock_copy_required": true,
+    "aws_object_lock_mode": "COMPLIANCE",
+    "retention_years": 10,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "usb_copy_a": "PENDING_PHYSICAL_MEDIA"
+  },
+  "semantic_capability_delta": {
+    "immutable_base_head_contents_required": true,
+    "patch_only_classification_forbidden": true,
+    "deleted_or_renamed_governed_file": "FAIL_CLOSED_OWNER_REQUIRED",
+    "modified_line_replacement": "AUTONOMOUS_WHEN_PRIMARY_AND_INDEPENDENT_CAPABILITY_VERIFIERS_PASS",
+    "unknown_yaml_or_json_syntax": "FAIL_CLOSED_OWNER_REQUIRED",
+    "guard_removal_or_relaxation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "script_guard_dependency_binding": "PRIMARY_STRUCTURAL_TOKEN_GRAPH_AND_INDEPENDENT_BALANCED_SOURCE_GRAPH_REQUIRED",
+    "predicate_constant_helper_alias_or_indirection_mutation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "mixed_safe_and_guard_dependency_mutation": "FAIL_CLOSED_OWNER_REQUIRED",
+    "granular_write_permission_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
+    "trigger_environment_secret_oidc_network_provider_expansion": "FAIL_CLOSED_OWNER_REQUIRED",
+    "exact_path_exception_policy": "SCHEMA_MONOTONIC_ADDITION_ONLY",
+    "primary_classifier": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
+    "independent_recomputation": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
+    "independent_implementation_required": true,
+    "classification_before_credential_acquisition_or_dispatch": true
+  },
+  "principles": {
+    "autonomous_effect": "Eligible reversible internal landing runs from governed agent events without routine Owner orchestration.",
+    "global_effect": "One repository-wide authority model applies to every Track and internal workflow.",
+    "irreplaceable_value_effect": "Authorization, rollback and evidence knowledge remain platform-owned and replayable.",
+    "transparency_effect": "Every transition binds exact Git objects, role-scoped GitHub OIDC subject identity, KMS signing key, evidence digests and immutable receipts."
+  },
+  "workload_identity": {
+    "required": [
+      "workload_id",
+      "environment",
+      "workflow_ref",
+      "workflow_sha",
+      "repository_id",
+      "signing_key_arn"
+    ],
+    "separation_key": "WORKLOAD_ID_AND_KMS_SIGNING_KEY",
+    "runtime_allowlist_source": "KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON",
+    "role_signature_required": true,
+    "signature_algorithm": "ECDSA_SHA_256",
+    "oidc_trust_conditions_required": [
+      "aud",
+      "sub"
+    ],
+    "github_sender_id_is_authority": false,
+    "caller_supplied_workload_identity_allowed": false,
+    "unknown_workload": "QUARANTINE",
+    "approval_roles": [
+      "ACCOUNTABLE_TRACK_AGENT",
+      "KPMO",
+      "INDEPENDENT_VERIFIER"
+    ],
+    "legacy_role_semantics": {
+      "INDEPENDENT_VERIFIER": "AUTOMATED_MACHINE_VERIFIER_NOT_HUMAN_REVIEW"
+    },
+    "finalizer": {
+      "role": "FINALIZER",
+      "environment": "KIDULTS-AUTONOMOUS-FINALIZER",
+      "distinct_workload_id_required": true,
+      "distinct_signing_key_required": true,
+      "only_stage_allowed_github_write": true,
+      "approval_stage_github_write_forbidden": true
+    },
+    "oidc_subject_customization": {
+      "required": true,
+      "repository_setting_path": "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
+      "include_claim_keys": [
+        "repo",
+        "context",
+        "workflow_ref"
+      ],
+      "aws_custom_claim_condition_keys_forbidden": true,
+      "role_workflow_ref_must_be_distinct": true,
+      "finalizer_may_trust_only_role_workflow_refs": true
+    }
+  },
+  "lifecycle": {
+    "draft_state_is_ui_only_not_authority": true,
+    "prelanding_draft_ready_transition_required": false,
+    "dispatcher_may_evaluate_open_draft": true,
+    "finalizer_owns_atomic_ready_transition": true,
+    "finalizer_ready_transition_occurs_after_durable_quorum_and_reservation": true,
+    "landing_status_is_result_not_precondition": true
+  },
+  "semantic_self_governance": {
+    "classification": "IMMUTABLE_BASE_HEAD_CAPABILITY_DELTA",
+    "routine_internal_recovery_policy_changes": "SEMANTICALLY_CLASSIFIED",
+    "owner_gate_required_for": [
+      "OWNER_RESERVED_SET_WEAKENING_BEYOND_SELF_BOOTSTRAP",
+      "PRODUCTION_PUBLIC_G5_AUTHORITY",
+      "OIDC_TRUST_EXPANSION",
+      "WORKLOAD_IDENTITY_EXPANSION",
+      "DELEGATED_AUTHORITY_EXPANSION",
+      "SECRET_OR_CREDENTIAL_AUTHORITY",
+      "RULESET_OR_SECURITY_BOUNDARY_WEAKENING"
+    ],
+    "path_name_alone_is_owner_gate": false
+  }
+}
