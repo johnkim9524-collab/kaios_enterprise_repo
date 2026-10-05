@@ -1373,8 +1373,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "42738c23e5d998efd5c58fee2dec533721c2e894",
-      "sha256": "sha256:5fdd793efd9356f3556e223fc20287e1216b23b60775c88292e3c0726416adaf",
+      "git_blob": "f9a5429d4734167f4c720aa28094b145da838eb7",
+      "sha256": "sha256:4c08b2d6096b4fb35ff6f65dd32bcd0de6a8fd474486c722ae06aa4330801a9a",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:036803800ee16bb50b30c264461aac8dcee3e67b0715fad7c4cf2826b87f6f12"
+  "manifest_sha256": "sha256:7c92841afabd851a7e6be7e3b3b0fab404c6476307ae024749d6ef1818239edb"
 }
