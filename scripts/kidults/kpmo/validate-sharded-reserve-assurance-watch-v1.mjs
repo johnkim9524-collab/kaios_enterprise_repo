@@ -72,7 +72,7 @@ function validateAssurance(source) {
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`ASSURANCE_MARKER_MISSING:${marker}`);
   if (block.includes('{status:"VERIFIED_PASS"')) fail('RESERVE_HARD_CODED_PASS_FORBIDDEN');
-  const header = text.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
+  const header = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
   const hasSuccessOnlyGate = /workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header);
   const hasExactSentinelGate = header.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'");
   if (hasSuccessOnlyGate && !hasExactSentinelGate) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
