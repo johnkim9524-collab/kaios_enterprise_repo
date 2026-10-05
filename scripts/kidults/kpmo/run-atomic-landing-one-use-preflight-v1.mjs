@@ -56,6 +56,33 @@ export function assertAtomicLandingDispatchAuthority(currentRun, repositoryOwner
   };
 }
 
+export function reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
+  currentRunId,
+  currentRunAttempt,
+  workflowId,
+  expectedRunName,
+  protectedMainShaAtDispatch,
+} = {}) {
+  assert(Array.isArray(runs), 'ATOMIC_ONE_USE_RUN_SET_INVALID');
+  assert(currentRun && typeof currentRun === 'object' && !Array.isArray(currentRun), 'ATOMIC_ONE_USE_CURRENT_RUN_INVALID');
+  assert(/^\d+$/.test(String(currentRunId || '')), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_INVALID');
+  assert(Number(currentRunAttempt) === 1, 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
+  assert(/^\d+$/.test(String(workflowId || '')), 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
+  assert(typeof expectedRunName === 'string' && expectedRunName.length > 0, 'ATOMIC_ONE_USE_RUN_NAME_INVALID');
+  assert(SHA_PATTERN.test(protectedMainShaAtDispatch || ''), 'ATOMIC_ONE_USE_DISPATCH_MAIN_SHA_INVALID');
+  assert(Number(currentRun?.id) === Number(currentRunId), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_MISMATCH');
+  assert(Number(currentRun?.run_attempt) === Number(currentRunAttempt), 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
+  assert(Number(currentRun?.workflow_id) === Number(workflowId), 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
+  assert(currentRun?.event === EXPECTED_EVENT, 'ATOMIC_ONE_USE_CURRENT_RUN_EVENT_INVALID');
+  assert(currentRun?.head_branch === EXPECTED_BRANCH, 'ATOMIC_ONE_USE_CURRENT_RUN_BRANCH_INVALID');
+  assert(currentRun?.display_title === expectedRunName, 'ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
+  assert(currentRun?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
+
+  const currentMatches = runs.filter(run => Number(run?.id) === Number(currentRunId));
+  assert(currentMatches.length <= 1, 'ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID', String(currentMatches.length));
+  return currentMatches.length === 1 ? runs : [...runs, currentRun];
+}
+
 export function evaluateAtomicLandingOneUseRunSet(runs, {
   currentRunId,
   currentRunAttempt,
@@ -287,9 +314,19 @@ async function main() {
         if (page === MAX_WORKFLOW_RUN_PAGES) fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
       }
       if (runs.some(run => Number(run?.id) === Number(runId))) return runs;
-      await new Promise(resolve => setTimeout(resolve, 250 * visibilityAttempt));
+      if (visibilityAttempt < 4) {
+        await new Promise(resolve => setTimeout(resolve, 250 * visibilityAttempt));
+        continue;
+      }
+      return reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
+        currentRunId: runId,
+        currentRunAttempt: runAttempt,
+        workflowId: currentRun.workflow_id,
+        expectedRunName,
+        protectedMainShaAtDispatch: currentRun.head_sha,
+      });
     }
-    fail('ATOMIC_LANDING_CURRENT_RUN_NOT_DISCOVERABLE');
+    fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
   };
 
   const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([

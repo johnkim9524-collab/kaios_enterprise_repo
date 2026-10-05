@@ -6,6 +6,7 @@ import {
   buildAtomicLandingRunName,
   assertAtomicLandingDispatchAuthority,
   evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
   assertAtomicLandingConsumptionReceipt,
 } from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
@@ -54,6 +55,35 @@ test('dispatch and triggering actors must both be the repository owner', () => {
     'ATOMIC_ONE_USE_DISPATCH_ACTOR_NOT_OWNER');
   code(() => assertAtomicLandingDispatchAuthority(run({triggering_actor: {login: 'automation-bot'}}), repositoryOwner),
     'ATOMIC_ONE_USE_TRIGGERING_ACTOR_NOT_OWNER');
+});
+
+test('current run is supplemented exactly once when workflow index omits it', () => {
+  const reconciled = reconcileAtomicLandingCurrentRunIndex([], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(reconciled.length, 1);
+  assert.equal(reconciled[0].id, runId);
+  const result = evaluateAtomicLandingOneUseRunSet(reconciled, {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(result.matching_run_count, 1);
+
+  const unchanged = reconcileAtomicLandingCurrentRunIndex([run()], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(unchanged.length, 1);
 });
 
 test('first exact matching dispatch is uniquely admitted', () => {
