@@ -3156,10 +3156,10 @@
       "sha256": "sha256:f1cb458daae54e59eee1bd48b90e0e0a6b0590447af1852c19074f68a288a072"
     },
     {
-      "path": "scripts/kidults/engine-v2/validate-candidate-r2-preflight.mjs",
+      "path": "scripts/kidults/engine-v2/validate-candidate-r2-preflight-structure.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "adbc776891b0ee372c7e0cd2520442b5c323e503",
-      "sha256": "sha256:f769a3e9e6da36992456c19cad9b5f8821f3fadb7a6490ec541e3744ca9926f2"
+      "git_blob": "149c05655fb2da7a6606b85a08b8420cdbafd1a9",
+      "sha256": "sha256:df23a92b3a8cfba47082b05fedf4e22aeaa5c767209ebec1b6990847237727de"
     },
     {
       "path": "scripts/kidults/entity-resolution/build-pressing-hardnegative-expansion-r2.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:64bb19931b7b732f8b55fe6eaacd1b70fdcfec585f125e67956b556e5abd73f1"
+  "manifest_sha256": "sha256:25711d53c85989e3d900e5209b49a1bf547fe1aea5e3817e688895d0a671b19a"
 }
