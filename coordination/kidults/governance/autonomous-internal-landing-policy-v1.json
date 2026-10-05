@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.13.0",
+  "version": "1.13.1",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -116,7 +116,9 @@
     ".github/workflows/",
     "coordination/kidults/governance/",
     "coordination/kidults/kpmo/",
-    "scripts/kidults/kpmo/"
+    "scripts/kidults/kpmo/",
+    "tests/kidults/kpmo/",
+    "tests/kidults/staging-operations/"
   ],
   "owner_reserved_added_patch_patterns": [
     "environment:[ ]*(production|public|g5)",
