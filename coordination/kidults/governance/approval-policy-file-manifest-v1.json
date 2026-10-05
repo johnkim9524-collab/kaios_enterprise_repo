@@ -704,8 +704,8 @@
     {
       "path": ".github/workflows/p0-postgres-target-time-restore-verification.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "483a6594502043893d587448216c6b500fc02ea5",
-      "sha256": "sha256:7129f90592ed0447b03e7776328f31b0942171f84fc10f1a80020b284ca6eb3f",
+      "git_blob": "3da197a8912b4a0de6bd703f97a8ef82c5de10a5",
+      "sha256": "sha256:c02f2b879d3ebec4dc2062de77a27b4b6c66d0f4163f57ea5de9940a1c833394",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -717,8 +717,8 @@
     {
       "path": ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1544195ed8b8cef4fdbc9b926c8f6bd9bf673765",
-      "sha256": "sha256:608381105972efe9f551f3334d60097ccafa93bbcbd12011048910d4bbf2e53b",
+      "git_blob": "a6c87f0954549d0c5f8de756d5f3b73e4360944f",
+      "sha256": "sha256:c3bc85183ed3e5fbfc1e0762fad1a1732262caeaf3553b3d812a94deb5487650",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -1079,8 +1079,8 @@
     {
       "path": "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4629b1880da5cf36a4c771befb0d650173f447ed",
-      "sha256": "sha256:4b00799039fb06f98f1962e491c00f991b6656127dcfc596f5ed7583b6c37224"
+      "git_blob": "365be4404409677cfbb0f03c8081242f43daea1e",
+      "sha256": "sha256:ef5fb8a60d0d9e0dffe1afea36987af67f9765260479da63c339a05bdbeea86a"
     },
     {
       "path": "artifacts/audit/evidence-pack.txt",
@@ -3336,8 +3336,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "da671d2a60ccb23bfee1fbf0e8954ff9f0f96b88",
-      "sha256": "sha256:af64519560f2cb1d7ff937ec915e7b6b2aa7d4f04cf22f8cbc3cede0014d1044",
+      "git_blob": "8432f936853a3d6c7a3834bd6d5b2b477fd2c715",
+      "sha256": "sha256:5c307bcbf5e07b995ce66cde698d3bb5c5319c8f503b227669b17880d575c2b1",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3596,8 +3596,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/postmerge-recovery-github-observation-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "13cce9e971d865700ac959a02056e7afb2e6d0ca",
-      "sha256": "sha256:188d4eee34d700fc04a907aed23b3e38385b731c6c618ffc9e3817f7cc9524a3",
+      "git_blob": "16ae96c10d5f088024a65a91773430e65cb384e6",
+      "sha256": "sha256:29f3fea8240b8ecdedfa6f780f1a51b9eddcf433a12e0ee0d803c73eaf804c2e",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5627,8 +5627,8 @@
     {
       "path": "tests/kidults/kpmo/postmerge-recovery-github-observation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e0effb4d53cd4affba7e165497e58163a08b5755",
-      "sha256": "sha256:f16b1223acc80594b3f0f469408f10f7e0017d6128c335a80117fe021b62d837"
+      "git_blob": "9e7d57d32929682aa96274f96c709a8389b98c0b",
+      "sha256": "sha256:af9ad751c93334064c3215f887d17180ca76ecaef8a301e86346ed730b6fa3d0"
     },
     {
       "path": "tests/kidults/kpmo/postmerge-recovery-signed-ledger-client-v1.test.mjs",
@@ -5669,8 +5669,8 @@
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "d3edc3145bda6a0674e94d632d6abec6aab21853",
-      "sha256": "sha256:69f0cd6d6646dd53608ff55d92f831148fb742d39a3d26a81f939320de94fe72"
+      "git_blob": "5a8a212451f6cfc1fb52cfd87ebaafa82c78acc4",
+      "sha256": "sha256:f4a79a026900ec1c6829f7ef3204ac032a67fefbfc2aa6742cad761fceb02c64"
     },
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6a25283eecf378698160e1084ac5b6679c00dd46c8f3320b9a2799c7f7b9e16c"
+  "manifest_sha256": "sha256:74d8219fd6819ce356a226134d5de82da31ced53b2eea0013a3c8bd2a475126a"
 }
