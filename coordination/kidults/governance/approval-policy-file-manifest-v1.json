@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 722
+    "file_count": 720
   },
   "files": [
     {
@@ -2933,19 +2933,6 @@
       "sha256": "sha256:60650a3bb320dbdf094ac644a464123bd513afe5030c10cf0c68e78f7cdf420f"
     },
     {
-      "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f1f81492d77d50d80ac646348173cfd8d354165f",
-      "sha256": "sha256:3785c355ba735b270a25a949b2c3f9cc21bd7f87eac89d384c64d3c1469019ca",
-      "authorization_routing": {
-        "route": "STAGING_BOUNDED",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
-        }
-      }
-    },
-    {
       "path": "package.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "4cc6589f88378807716db6f143c6fa2bc255b784",
@@ -5034,12 +5021,6 @@
       "sha256": "sha256:862b4c9fa27c48d74407990b0eb144a7597f6c8f4de6c4bf5a9d63f8767001af"
     },
     {
-      "path": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.json",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "37458f24be436413d579e8c959382f90dbb6931c",
-      "sha256": "sha256:e31db89eb84c882740d65357f9cbd1f832a8df896ebfe950a65961f596c600f3"
-    },
-    {
       "path": "services/kidults-autonomous-intelligence/reports/ga-certification/a40-ga-certification-2026-08-09T06-17-43-502Z.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "1d110d4b6a257a8bc6a00d17ebf77a42f2b54d07",
@@ -5781,5 +5762,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:8d874484432b5f8bddf631aa36451cb082398f5ce17512048362249ef3c9af0a"
+  "manifest_sha256": "sha256:7767286dc5c8a50158117390bc7c789592fd88ef667d14b85da76fde4c729ee9"
 }
