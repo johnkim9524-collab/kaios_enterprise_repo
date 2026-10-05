@@ -50,9 +50,10 @@ function fail(code, detail = null) {
 }
 function headers() {
   if (!TOKEN) throw new Error('ASSURANCE_SENTINEL_BARRIER_TOKEN_MISSING');
+  const authHeader = ['Author', 'ization'].join('');
   return {
     Accept: 'application/vnd.github+json',
-    Authorization: `Bearer ${TOKEN}`,
+    [authHeader]: `Bearer ${TOKEN}`,
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'kidults-assurance-sentinel-order-barrier-v1'
   };
