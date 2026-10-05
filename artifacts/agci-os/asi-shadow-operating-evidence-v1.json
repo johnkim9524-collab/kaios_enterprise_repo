@@ -530,7 +530,7 @@
     },
     "shadow_evidence_workflow": {
       "path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
-      "sha256": "sha256:5df6ec7093af0ab8d1dc55f8231d767c9f64fbe5235f201421ee9d23f0c8813c",
+      "sha256": "sha256:e711ee0fba033545a34937ef83f80d3e21838372136e224d90752c387c10d453",
       "byte_count": 11397
     },
     "root_package_manifest": {
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:df3e8dc05dfce63efee66a8fef7429f63cb69782a095cf6cd0779e6907e53551"
+  "evidence_fingerprint": "sha256:fa7e0483be76e712d0791515b023fc47f5b92da5d46f84258f074d7b6bb88577"
 }

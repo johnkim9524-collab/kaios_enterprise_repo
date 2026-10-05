@@ -37,7 +37,18 @@ export function validateSentinelObservation(r,env){
     const failures=r.producers.filter(p=>p.state==='VERIFIED_FAIL').map(p=>p.id);
     const waiting=r.producers.filter(p=>p.state==='VERIFIED_HOLD').map(p=>p.id);
     assert.deepEqual(r.failed_producers,failures);assert.deepEqual(r.waiting_producers,waiting);
-    assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length?'VERIFIED_HOLD':'VERIFIED_PASS');
+    // Cohort binding is an aggregate guard, not a producer identity. A
+    // complete four-producer receipt can therefore be VERIFIED_HOLD with an
+    // empty waiting_producers list when the selected generations do not form a
+    // bounded cohort. Preserve fail-closed semantics without accepting a
+    // synthetic `PRODUCER_COHORT` producer id.
+    if(Object.hasOwn(r,'producer_cohort_bound')){
+      assert.equal(typeof r.producer_cohort_bound,'boolean');
+      if(r.producer_cohort_bound)assert.equal(r.producer_cohort_failure_class,null);
+      else assert.equal(typeof r.producer_cohort_failure_class,'string');
+    }
+    const cohortWaiting=Object.hasOwn(r,'producer_cohort_bound')&&r.producer_cohort_bound===false;
+    assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length||cohortWaiting?'VERIFIED_HOLD':'VERIFIED_PASS');
     if(r.state==='VERIFIED_PASS')assert.ok(r.producers.every(p=>p.artifact_content_validated===true));
   }else{
     assert.equal(r.state,'VERIFIED_FAIL');assert.equal(typeof r.failure_class,'string');assert.ok(r.failure_class.length>0);

@@ -1,6 +1,10 @@
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
+} from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
 const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
@@ -301,4 +305,45 @@ test('post-merge consumer rejects PR-head reuse, nonterminal, cancelled and ambi
   assert.match(postMergeConsumer, /state: 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE'/);
   assert.match(postMergeConsumer, /post_merge_push_suite_consumed: true/);
   assert.match(postMergeConsumer, /promotion_eligible: false/);
+});
+
+
+// Execute the actual production call site, not a duplicate of its wiring.
+function productionHandoffRunSet(index) {
+  const start = runner.indexOf('  const oneUseOptions = {');
+  const end = runner.indexOf('\n  const solo = ', start);
+  assert.ok(start >= 0 && end > start, 'production reconciliation call site missing');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction('workflowRuns', 'reconcileAtomicLandingCurrentRunIndex',
+    'evaluateAtomicLandingOneUseRunSet', 'currentRun', 'runId', 'runAttempt',
+    'expectedRunName', 'expectedBaseSha', 'approval',
+    `${runner.slice(start, end)}\nreturn oneUse;`);
+  const currentRun = {
+    id: 37328881683, run_attempt: 1, workflow_id: 350643082,
+    event: 'workflow_dispatch', head_branch: 'main',
+    display_title: 'KIDULTS Direct Owner Handoff PR #2575 @ ' + 'a'.repeat(40) + ' / DIRECT-PR-2575-aaaaaaaaaaaa',
+    head_sha: 'b'.repeat(40), status: 'in_progress', conclusion: null,
+    created_at: '2026-10-05T14:57:09Z',
+  };
+  return execute(async () => index(currentRun), reconcileAtomicLandingCurrentRunIndex,
+    evaluateAtomicLandingOneUseRunSet, currentRun, currentRun.id, 1,
+    currentRun.display_title, currentRun.head_sha, {comment_created_at: '2026-10-05T14:50:00Z'});
+}
+
+test('Direct Owner production call site admits exactly one current run when the index omits it', async () => {
+  const result = await productionHandoffRunSet(() => []);
+  assert.equal(result.matching_run_count, 1);
+  assert.equal(result.matching_run_id, 37328881683);
+  assert.equal(result.bounded_attempt_ordinal, 1);
+});
+
+test('Direct Owner production call site rejects conflicting index identity', async () => {
+  await assert.rejects(productionHandoffRunSet(current => [{...current, event: 'push'}]),
+    /ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH/);
+});
+
+test('Direct Owner production call site keeps prior successful authorization consumed', async () => {
+  await assert.rejects(productionHandoffRunSet(current => [{...current,
+    id: current.id - 1, status: 'completed', conclusion: 'success'}]),
+  /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
 });

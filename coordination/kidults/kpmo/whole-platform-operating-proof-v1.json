@@ -10,7 +10,7 @@
   "maximum_observation_history": 24,
   "observer": {"read_only": true, "dispatch": false, "mint": false, "merge": false, "deploy": false},
   "required_operating_checks": [
-    "CORE_FOUR_CONTENT", "DISTINCT_NATURAL_GENERATIONS", "PROTECTED_LANDING",
+    "CORE_FOUR_CONTENT", "DISTINCT_NATURAL_GENERATIONS", "NATURAL_CHAIN_TERMINALS", "PROTECTED_LANDING",
     "AWS_CONFIGURATION_AND_IMMUTABILITY", "NATIVE_DISPATCH", "NATIVE_RESUME_REUSE",
     "FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL", "WHOLE_VALUE_CHAIN_RUNTIME"
   ],

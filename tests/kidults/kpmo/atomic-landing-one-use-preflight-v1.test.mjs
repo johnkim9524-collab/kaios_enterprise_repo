@@ -6,6 +6,7 @@ import {
   buildAtomicLandingRunName,
   assertAtomicLandingDispatchAuthority,
   evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
   assertAtomicLandingConsumptionReceipt,
 } from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
@@ -54,6 +55,35 @@ test('dispatch and triggering actors must both be the repository owner', () => {
     'ATOMIC_ONE_USE_DISPATCH_ACTOR_NOT_OWNER');
   code(() => assertAtomicLandingDispatchAuthority(run({triggering_actor: {login: 'automation-bot'}}), repositoryOwner),
     'ATOMIC_ONE_USE_TRIGGERING_ACTOR_NOT_OWNER');
+});
+
+test('current run is supplemented exactly once when workflow index omits it', () => {
+  const reconciled = reconcileAtomicLandingCurrentRunIndex([], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(reconciled.length, 1);
+  assert.equal(reconciled[0].id, runId);
+  const result = evaluateAtomicLandingOneUseRunSet(reconciled, {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(result.matching_run_count, 1);
+
+  const unchanged = reconcileAtomicLandingCurrentRunIndex([run()], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(unchanged.length, 1);
 });
 
 test('first exact matching dispatch is uniquely admitted', () => {
@@ -351,4 +381,72 @@ test('terminal receipt persists sanitized one-use consumption evidence', () => {
   assert.match(reconciler, /landing_workflow_run_attempt: Number\(landingRunAttempt\)/);
   assert.match(reconciler, /ATOMIC_TERMINAL_CONSUMPTION_RAW_AUTHORIZATION_LEAK/);
   assert.doesNotMatch(reconciler, /operation_authorization_id:/);
+});
+
+
+const reconciliationOptions = () => ({
+  currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+  protectedMainShaAtDispatch: baseSha,
+});
+
+for (const [field, value] of [
+  ['id', runId + 1], ['run_attempt', 2], ['workflow_id', workflowId + 1],
+  ['event', 'push'], ['head_branch', 'other'], ['display_title', 'wrong'],
+  ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run supplementation rejects direct ${field} mismatch`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([], {...run(), [field]: value},
+      reconciliationOptions()));
+  });
+}
+
+for (const [field, value] of [
+  ['run_attempt', 2], ['workflow_id', workflowId + 1], ['event', 'push'],
+  ['head_branch', 'other'], ['display_title', 'wrong'], ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run reconciliation rejects indexed ${field} conflict`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([{...run(), [field]: value}],
+      run(), reconciliationOptions()), /ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH/);
+  });
+}
+
+test('current-run reconciliation preserves duplicate rejection and input immutability', () => {
+  assert.throws(() => reconcileAtomicLandingCurrentRunIndex([run(), run()], run(),
+    reconciliationOptions()), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
+  const input = [];
+  reconcileAtomicLandingCurrentRunIndex(input, run(), reconciliationOptions());
+  assert.deepEqual(input, []);
+});
+
+for (const state of [
+  {status: 'completed', conclusion: 'success'},
+  {status: 'in_progress', conclusion: null},
+]) {
+  test(`supplementation preserves prior ${state.status}/${state.conclusion} consumption denial`, () => {
+    const prior = {...run(), id: runId - 1, ...state};
+    const reconciled = reconcileAtomicLandingCurrentRunIndex([prior], run(), reconciliationOptions());
+    assert.equal(reconciled.length, 2);
+    assert.throws(() => evaluateAtomicLandingOneUseRunSet(reconciled, reconciliationOptions()),
+      /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  });
+}
+
+
+test('Atomic final pre-merge call site reuses authoritative current-run reconciliation', async () => {
+  const source = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8').replace(/\r\n/g, '\n');
+  const start = source.indexOf('  const oneUseOptions = {');
+  const end = source.indexOf('\n  const receipt = assertAtomicLandingConsumptionReceipt', start);
+  assert.ok(start >= 0 && end > start, 'final pre-merge production call site missing');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction('workflowRuns', 'currentRun', 'landingRunId',
+    'landingRunAttempt', 'expectedRunName', 'baseSha', 'authorizationApprovedAt',
+    'evaluateAtomicLandingOneUseRunSet', 'reconcileAtomicLandingCurrentRunIndex',
+    `${source.slice(start, end)}\nreturn oneUse;`);
+  const result = await execute(async () => [], run(), runId, 1, expectedRunName, baseSha,
+    null, evaluateAtomicLandingOneUseRunSet, reconcileAtomicLandingCurrentRunIndex);
+  assert.equal(result.matching_run_count, 1);
+  assert.equal(result.matching_run_id, runId);
+  await assert.rejects(execute(async () => [run(), run()], run(), runId, 1,
+    expectedRunName, baseSha, null, evaluateAtomicLandingOneUseRunSet,
+    reconcileAtomicLandingCurrentRunIndex), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
 });

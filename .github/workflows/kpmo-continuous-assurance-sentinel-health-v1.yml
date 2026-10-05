@@ -6,6 +6,9 @@ on:
   workflow_run:
     workflows:
       - 'KIDULTS ASI Sharded Source Reserve v1'
+      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
+      - 'KPMO Live Canonical Issue Truth V1'
+      - 'KIDULTS ASI SHADOW Operating Evidence v1'
     branches: [main]
     types: [completed]
   pull_request:
@@ -22,6 +25,11 @@ on:
       - 'scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs'
       - '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'
       - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs'
+      - 'tests/kidults/kpmo/whole-platform-*.test.mjs'
+      - 'scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs'
+      - 'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
       - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
       - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
@@ -72,7 +80,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kpmo-continuous-assurance-sentinel-health-${{ github.event_name }}-${{ github.event.pull_request.head.sha || github.sha }}
+  group: kpmo-continuous-assurance-sentinel-health-${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -97,7 +105,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
     if: >-
@@ -105,7 +113,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'SENTINEL') ||
        (github.event_name == 'workflow_run' &&
-        github.event.workflow_run.name == 'KIDULTS ASI Sharded Source Reserve v1' &&
+        github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
         github.event.workflow_run.status == 'completed' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_branch == 'main' &&
@@ -168,6 +176,37 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Wait for exact-SHA producer cohort before Sentinel resolution
+        if: github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          deadline=$((SECONDS + 900))
+          while :; do
+            gh api -H 'Accept: application/vnd.github+json' \
+              "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${KPMO_SOURCE_SHA}&per_page=100" \
+              > "$RUNNER_TEMP/kpmo-exact-main-producer-runs.json"
+            if jq -e --arg sha "$KPMO_SOURCE_SHA" '
+              def ok($path): any(.workflow_runs[];
+                .path==$path and .head_branch=="main" and .head_sha==$sha and
+                .status=="completed" and .conclusion=="success");
+              ok(".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml") and
+              ok(".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml") and
+              ok(".github/workflows/kidults-asi-sharded-source-reserve-v1.yml") and
+              ok(".github/workflows/kpmo-live-canonical-issue-truth-v1.yml")
+            ' "$RUNNER_TEMP/kpmo-exact-main-producer-runs.json" >/dev/null; then
+              echo "EXACT_SHA_PRODUCER_COHORT_READY=$KPMO_SOURCE_SHA"
+              break
+            fi
+            if (( SECONDS >= deadline )); then
+              echo "EXACT_SHA_PRODUCER_COHORT_TIMEOUT=$KPMO_SOURCE_SHA" >&2
+              exit 1
+            fi
+            sleep 15
+          done
       - name: Resolve latest applicable exact-SHA producer health
         id: resolve
         continue-on-error: true

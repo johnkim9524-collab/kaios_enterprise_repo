@@ -308,7 +308,7 @@ export function validateProducerContent(spec,run,artifact,bytes,sourceSha,observ
   else if(spec.id==='REQUIREMENT')result=coverage(packet,run,sourceSha);
   else throw new Error('PRODUCER_CONTENT_SPEC_UNKNOWN');
   if(spec.id==='REQUIREMENT'&&coverageCanonicalName.test(artifact.name))req(
-    artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${result.leader.canonical_run_key}:${result.leader.canonical_input_digest}`).slice(7)}`,
+    artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${result.leader.canonical_run_key}:${result.leader.canonical_input_digest}:${result.leader.upstream_workflow_run_id}`).slice(7)}`,
     'COVERAGE_CANONICAL_ARTIFACT_NAME');
   for(const member of result.members){const x=member.value;if(x.observed_at)time(x.observed_at,observedAt);if(x.as_of)time(x.as_of,observedAt);}
   // Private member bytes are absent, not undefined: terminal digests must bind
@@ -325,7 +325,11 @@ export function validateCoverageAliasClosure(aliasProof,leaderProof,run,artifact
   req(a.canonical_workflow_run_id===run.id&&a.canonical_workflow_run_attempt===run.run_attempt&&a.canonical_artifact_id===artifact.id&&a.canonical_artifact_name===artifact.name&&a.canonical_artifact_digest===artifact.digest,'COVERAGE_ALIAS_TARGET_BINDING');
   req(a.canonical_receipt_digest===l.receipt_digest&&a.canonical_coverage_run_head_sha===run.head_sha&&a.canonical_coverage_consumer_sha===run.head_sha,'COVERAGE_ALIAS_LEADER_BINDING');
   for(const key of ['source_sha','repository','canonical_run_key','canonical_input_digest','canonical_contract_digest','semantic_input_receipt_digest'])same(a[key],l[key],`COVERAGE_ALIAS_DIVERGENCE:${key}`);
-  req(artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${a.canonical_run_key}:${a.canonical_input_digest}`).slice(7)}`,'COVERAGE_ALIAS_ARTIFACT_NAME');
+  for(const key of ['upstream_workflow_run_id','upstream_artifact_id','upstream_artifact_digest','upstream_binding_digest']){
+    same(a[`canonical_${key}`],l[key],`COVERAGE_ALIAS_CANONICAL_UPSTREAM:${key}`);
+    same(a[`current_${key}`],l[key],`COVERAGE_ALIAS_CURRENT_UPSTREAM:${key}`);
+  }
+  req(artifact.name===`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${a.canonical_run_key}:${a.canonical_input_digest}:${l.upstream_workflow_run_id}`).slice(7)}`,'COVERAGE_ALIAS_ARTIFACT_NAME');
   const {alias,...publicAlias}=aliasProof;
   return {...publicAlias,state:'VERIFIED_PASS',failure_class:null,semantic_scope:'COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION',
     static_source_bindings_verified:true,verified_authoritative_input_count:leaderProof.verified_authoritative_input_count,verified_implementation_count:leaderProof.verified_implementation_count,upstream_payload_recomputed:false,

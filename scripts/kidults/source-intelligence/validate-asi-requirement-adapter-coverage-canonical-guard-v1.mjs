@@ -124,10 +124,6 @@ assert.equal(leaderSelection.guard.every_noncanonical_trigger_alias_receipt_guar
 const leaderCurrent = {
   ...baseCurrent,
   run_id: 100,
-  upstream_binding_digest: `sha256:${'5'.repeat(64)}`,
-  upstream_workflow_run_id: 45,
-  upstream_artifact_id: 55,
-  upstream_artifact_digest: `sha256:${'6'.repeat(64)}`,
   coverage_consumer_sha: leaderCoverageSha,
   coverage_run_head_sha: leaderCoverageSha,
 };
@@ -140,7 +136,7 @@ const leaderReceipt = finalizeCoverageCanonicalLeader({
   guard_receipt_digest: `sha256:${'9'.repeat(64)}`,
 });
 const artifactName = leaderSelection.guard.canonical_artifact_name;
-assert.equal(artifactName, `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${baseCurrent.canonical_run_key}:${baseCurrent.canonical_input_digest}`).slice(7)}`);
+assert.equal(artifactName, `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${baseCurrent.canonical_run_key}:${baseCurrent.canonical_input_digest}:${baseCurrent.upstream_workflow_run_id}`).slice(7)}`);
 const candidate = {
   run: {
     id: 100,
@@ -180,9 +176,9 @@ assert.equal(alias.guard.state, 'DEDUPED_ALIAS');
 assert.equal(alias.alias_receipt.state, 'VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE');
 assert.equal(alias.alias_receipt.current_upstream_binding_digest, baseCurrent.upstream_binding_digest);
 assert.equal(alias.alias_receipt.canonical_upstream_binding_digest, leaderReceipt.upstream_binding_digest);
-assert.notEqual(alias.alias_receipt.current_upstream_binding_digest, alias.alias_receipt.canonical_upstream_binding_digest);
-assert.notEqual(alias.alias_receipt.current_upstream_workflow_run_id, alias.alias_receipt.canonical_upstream_workflow_run_id);
-assert.notEqual(alias.alias_receipt.current_upstream_artifact_id, alias.alias_receipt.canonical_upstream_artifact_id);
+assert.equal(alias.alias_receipt.current_upstream_binding_digest, alias.alias_receipt.canonical_upstream_binding_digest);
+assert.equal(alias.alias_receipt.current_upstream_workflow_run_id, alias.alias_receipt.canonical_upstream_workflow_run_id);
+assert.equal(alias.alias_receipt.current_upstream_artifact_id, alias.alias_receipt.canonical_upstream_artifact_id);
 const displayTitleApiInput = structuredClone(aliasInput);
 displayTitleApiInput.candidates[0].run.name = displayTitleApiInput.candidates[0].run.display_title;
 const displayTitleApiAlias = resolveCoverageCanonicalGuard(displayTitleApiInput);
@@ -288,6 +284,15 @@ const distinctSemanticGeneration = resolveCoverageCanonicalGuard({
 });
 assert.equal(distinctSemanticGeneration.execute_full_coverage, true);
 assert.notEqual(distinctSemanticGeneration.guard.canonical_artifact_name, artifactName);
+
+const distinctUpstreamGeneration = resolveCoverageCanonicalGuard({
+  ...emptyInput,
+  current: {...baseCurrent, upstream_workflow_run_id: baseCurrent.upstream_workflow_run_id + 1},
+  readback: {state: 'COMPLETE', total_count: 0, returned_count: 0, prior_success_count: 0, reason_codes: []},
+  candidates: [],
+});
+assert.equal(distinctUpstreamGeneration.execute_full_coverage, true);
+assert.notEqual(distinctUpstreamGeneration.guard.canonical_artifact_name, artifactName);
 
 const manualCurrent = { ...baseCurrent, trigger_event: 'workflow_dispatch', coverage_run_display_title: 'KIDULTS Coverage / manual-200' };
 const manual = resolveCoverageCanonicalGuard({
