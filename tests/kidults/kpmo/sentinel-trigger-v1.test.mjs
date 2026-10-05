@@ -204,3 +204,15 @@ for(const scenario of ['fork','malformed-json','native-attempt','native-reposito
  const x=resolverCli(scenario);assert.equal(x.receipt.state,'VERIFIED_FAIL');assert.notEqual(x.result.status,0);
  if(['fork','malformed-json'].includes(scenario))assert.equal(x.calls.length,0);
 });
+
+test('Assurance natural slots are hard-barriered behind a terminal exact-SHA Sentinel receipt',()=>{
+ const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+ const barrier=fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs','utf8');
+ assert.match(assurance,/Enforce Sentinel terminal before Assurance/);
+ assert.match(assurance,/github\.event_name == 'repository_dispatch' \|\| github\.event_name == 'schedule'/);
+ assert.match(assurance,/wait-for-natural-sentinel-terminal-v1\.mjs/);
+ assert.match(barrier,/SENTINEL_TERMINAL_BEFORE_ASSURANCE/);
+ assert.match(barrier,/state !== 'completed'/);
+ assert.match(barrier,/receipt\.state !== 'VERIFIED_PASS'/);
+ assert.match(barrier,/producer_cohort_bound !== true/);
+});
