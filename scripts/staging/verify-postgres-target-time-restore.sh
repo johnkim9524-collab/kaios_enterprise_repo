@@ -15,7 +15,7 @@ export LC_ALL=C
 [[ "$KAIOS_PRODUCTION_PROMOTION_AUTHORIZED" == 'false' ]] || { echo 'production promotion must remain false' >&2; exit 64; }
 [[ "$KAIOS_PITR_BEFORE_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid BEFORE digest' >&2; exit 64; }
 [[ "$KAIOS_PITR_AFTER_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid AFTER digest' >&2; exit 64; }
-for command_name in psql pg_isready; do
+for command_name in psql; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
@@ -28,7 +28,6 @@ datetime.datetime.fromisoformat(value[:-1] + '+00:00')
 PY
 
 export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
-pg_isready >/dev/null
 
 probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
