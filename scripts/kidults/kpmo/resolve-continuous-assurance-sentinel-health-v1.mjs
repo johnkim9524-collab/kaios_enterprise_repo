@@ -208,7 +208,11 @@ export function evaluateHealth(input){
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
   const state=failures.length?'VERIFIED_FAIL':holds.length||!cohort.bound?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const waitingProducers=[...holds.map((p)=>p.id),...(!cohort.bound?['PRODUCER_COHORT']:[])];
+  // `waiting_producers` is an identity list for the four declared producers.
+  // Cohort binding is an independent aggregate guard; never invent a fifth
+  // producer id for that condition because the observation validator must be
+  // able to reconcile this list exactly with `producers`.
+  const waitingProducers=holds.map((p)=>p.id);
   const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,producer_cohort_bound:cohort.bound,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
