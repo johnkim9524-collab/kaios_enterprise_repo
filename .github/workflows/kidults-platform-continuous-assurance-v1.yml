@@ -1275,7 +1275,36 @@ jobs:
               /^sha256:[a-f0-9]{64}$/.test(canonical?.canonical_artifact_digest || '') &&
               Number(canonical?.canonical_run_id) > 0 && Number(canonical?.canonical_run_attempt) > 0;
           }
-          if (!baseValid || !branchValid) process.exit(1);
+          if (!baseValid || !branchValid) {
+            console.error(JSON.stringify({
+              assurance_audit_integrity_failure: true,
+              base_valid: baseValid,
+              branch_valid: branchValid,
+              digest_valid: receipt.receipt_digest === digest(stable(unsignedReceipt)),
+              guard_digest_valid: guard.receipt_digest === digest(stable(unsignedGuard)),
+              control_state_valid: receipt.states?.internal_control_state === 'VERIFIED_PASS' && receipt.states?.promotion_eligible === false,
+              remediation_binding_valid: plan.source_receipt_digest === receipt.receipt_digest && !(plan.integrity_findings?.length) && plan.activation?.eligible === false,
+              canonical_binding_valid: canonical?.canonical_key === process.env.KPMO_CANONICAL_KEY &&
+                canonical?.canonical_input_digest === process.env.KPMO_CANONICAL_INPUT_DIGEST &&
+                canonical?.source_sha === process.env.KPMO_SOURCE_SHA &&
+                canonical?.upstream_class === process.env.KPMO_UPSTREAM_CLASS &&
+                canonical?.generation_discriminator === process.env.KPMO_GENERATION_DISCRIMINATOR &&
+                canonical?.classifier_contract_digest === process.env.KPMO_CLASSIFIER_CONTRACT_DIGEST &&
+                canonical?.classification_receipt_digest === process.env.KPMO_CLASSIFICATION_RECEIPT_DIGEST &&
+                canonical?.runtime_dedupe_state === 'REMOTE_LEDGER_ACTIVATION_HOLD' &&
+                canonical?.canonical_execution_claimed === false &&
+                canonical?.durable_claim_created === false,
+              receipt_type_valid: receipt.receipt_type === 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
+              alias_valid: canonical?.alias === false,
+              guard_link_valid: canonical?.ephemeral_guard_receipt_digest === guard.receipt_digest,
+              leader_flag_valid: canonical?.ephemeral_actions_leader === (process.env.KPMO_EPHEMERAL_ACTIONS_LEADER === 'true'),
+              guard_state_valid: guard.state !== 'DEDUPED_ALIAS',
+              guard_state: guard.state,
+              receipt_guard_digest: canonical?.ephemeral_guard_receipt_digest,
+              guard_receipt_digest: guard.receipt_digest
+            }, null, 2));
+            process.exit(1);
+          }
           NODE
 
       - name: Publish successful bounded canonical leader artifact
