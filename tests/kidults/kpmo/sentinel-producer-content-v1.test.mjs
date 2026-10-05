@@ -205,9 +205,10 @@ test('workflow exercises content suite and checks content-bound terminal identit
 
 function aliasFixture(){
  const leader=check(coverage).leader;
- const artifact={...coverage.artifact,name:`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${leader.canonical_run_key}:${leader.canonical_input_digest}`).slice(7)}`};
+ const artifact={...coverage.artifact,name:`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${leader.canonical_run_key}:${leader.canonical_input_digest}:${leader.upstream_workflow_run_id}`).slice(7)}`};
  const a={id:'kidults-asi-requirement-adapter-coverage-canonical-alias-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE',repository:REPOSITORY,source_sha:sha,current_workflow_run_id:21,current_workflow_run_attempt:1,current_trigger_event:'workflow_run',current_coverage_consumer_sha:sha,current_coverage_run_head_sha:sha,canonical_workflow_run_id:11,canonical_workflow_run_attempt:1,canonical_artifact_id:artifact.id,canonical_artifact_name:artifact.name,canonical_artifact_digest:artifact.digest,canonical_receipt_digest:leader.receipt_digest,canonical_coverage_run_head_sha:sha,canonical_coverage_consumer_sha:sha,canonical_execution_claimed:false,durable_claim_created:false,public:'HOLD',production:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'};
  for(const key of ['canonical_run_key','canonical_input_digest','canonical_contract_digest','semantic_input_receipt_digest'])a[key]=leader[key];
+ for(const key of ['upstream_workflow_run_id','upstream_artifact_id','upstream_artifact_digest','upstream_binding_digest']){a[`canonical_${key}`]=leader[key];a[`current_${key}`]=leader[key];}
  a.receipt_digest=digest(stable(a));a.observed_at='2026-09-05T10:01:00Z';
  const f=fixture('REQUIREMENT',[['coverage-canonical-alias-receipt-v1.json',text(a)]]);f.run={...f.run,id:21};f.artifact={...f.artifact,id:121,workflow_run:{...f.artifact.workflow_run,id:21}};
  return {f,artifact};
@@ -361,4 +362,10 @@ for(const [name,mutate] of [
  const {f,artifact}=aliasFixture();
  const alias=check(f),leader=check({...coverage,artifact});mutate(leader);
  assert.throws(()=>validateCoverageAliasClosure(alias,leader,coverage.run,artifact),/COVERAGE_ALIAS_NATIVE_PROOF_REQUIRED/);
+});
+
+test('Coverage alias cannot substitute a different exact upstream execution even with a sealed alias',()=>{
+ const {f,artifact}=aliasFixture(),proof=check(f),leaderProof=check({...coverage,artifact});
+ const alias={...proof.alias,current_upstream_workflow_run_id:proof.alias.current_upstream_workflow_run_id+1};
+ assert.throws(()=>validateCoverageAliasClosure({...proof,alias},leaderProof,coverage.run,artifact),/COVERAGE_ALIAS_CURRENT_UPSTREAM/);
 });

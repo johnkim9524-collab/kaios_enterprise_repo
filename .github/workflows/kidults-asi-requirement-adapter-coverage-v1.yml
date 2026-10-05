@@ -307,7 +307,7 @@ jobs:
           CANONICAL_INPUT_DIGEST=$(jq -r '.canonical_input_digest' "$GUARD_DIR/coverage-semantic-input-receipt-v1.json")
           SEMANTIC_INPUT_RECEIPT_DIGEST="sha256:$(sha256sum "$GUARD_DIR/coverage-semantic-input-receipt-v1.json" | cut -d ' ' -f1)"
           [[ "$CANONICAL_INPUT_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
-          CANONICAL_ARTIFACT_IDENTITY="${CANONICAL_RUN_KEY}:${CANONICAL_INPUT_DIGEST}"
+          CANONICAL_ARTIFACT_IDENTITY="${CANONICAL_RUN_KEY}:${CANONICAL_INPUT_DIGEST}:${ARL_RUN_ID}"
           CANONICAL_ARTIFACT_DIGEST=$(CANONICAL_ARTIFACT_IDENTITY="$CANONICAL_ARTIFACT_IDENTITY" node -e "const c=require('crypto');process.stdout.write(c.createHash('sha256').update(process.env.CANONICAL_ARTIFACT_IDENTITY).digest('hex'))")
           CANONICAL_ARTIFACT_NAME="kidults-asi-requirement-adapter-coverage-canonical-${CANONICAL_ARTIFACT_DIGEST}"
           READBACK_STATE=BYPASS

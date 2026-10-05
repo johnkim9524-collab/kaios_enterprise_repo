@@ -2,7 +2,7 @@ name: KIDULTS ASI SHADOW Operating Evidence v1
 
 on:
   schedule:
-    - cron: "17 3 * * *"
+    - cron: "17 * * * *"
   pull_request:
     paths:
       - "coordination/kidults/source-intelligence/**"
