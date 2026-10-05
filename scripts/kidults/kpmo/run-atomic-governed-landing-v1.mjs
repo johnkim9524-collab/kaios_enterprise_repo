@@ -19,6 +19,7 @@ import {
   assertAtomicLandingConsumptionReceipt,
   buildAtomicLandingRunName,
   evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
 } from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {
   assertChangedApprovalGenerationEquality,
@@ -328,14 +329,20 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner, authorizati
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
   if (currentRun?.head_sha !== baseSha) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_BASE_MISMATCH');
-  const oneUse = evaluateAtomicLandingOneUseRunSet(await workflowRuns(currentRun.workflow_id), {
+  const oneUseOptions = {
     currentRunId: landingRunId,
     currentRunAttempt: landingRunAttempt,
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: baseSha,
     authorizationApprovedAt,
-  });
+  };
+  const oneUse = evaluateAtomicLandingOneUseRunSet(
+    reconcileAtomicLandingCurrentRunIndex(
+      await workflowRuns(currentRun.workflow_id), currentRun, oneUseOptions,
+    ),
+    oneUseOptions,
+  );
   const receipt = assertAtomicLandingConsumptionReceipt(readConsumptionReceipt(), {
     repository,
     repositoryOwner,
