@@ -107,7 +107,7 @@ for (const [from, to] of mutations) {
 const successOnlyMutation = text.replaceAll(
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
-).replace(
+).replaceAll(
   "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
   "UNTRUSTED SUCCESS-ONLY WORKFLOW"
 );
