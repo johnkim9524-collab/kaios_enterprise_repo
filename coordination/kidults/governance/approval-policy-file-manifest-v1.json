@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 723
+    "file_count": 722
   },
   "files": [
     {
@@ -4218,12 +4218,6 @@
       }
     },
     {
-      "path": "scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "359b4ae3b0960a5289b0c4d597c12f2dc0e859b9",
-      "sha256": "sha256:d0074533c91cee65242b8e34c2ef9f100e28ca4b4d72bec247cae09e8c22ea02"
-    },
-    {
       "path": "scripts/kidults/market/atomic-terminal-recovery-finalization-v1-policy.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "3b000ffe060e75a8853fbf93996b63a88d550ff9",
@@ -5787,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5fec23f4c693b650498b64664148eba4fb86a3f6efd3c90dbd62021dd778bf3a"
+  "manifest_sha256": "sha256:2e57e1e583e7aa2d207fa21bc56238970ef01d5b28639d881b3a47f61cbbb1e5"
 }
