@@ -1,5 +1,5 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
-import {SPECS} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 export function verifyHealthReceipt(health,run,sourceSha){
@@ -11,11 +11,13 @@ export function verifyHealthReceipt(health,run,sourceSha){
   requireEvidence(Array.isArray(health.producers)&&health.producers.length===4,'HEALTH_COVERAGE');
   requireEvidence(SPECS.every(s=>health.producers.filter(p=>p.id===s.id).length===1),'HEALTH_PRODUCER_IDS');
   requireEvidence(health.producers.every(p=>p.state==='VERIFIED_PASS'&&p.artifact_content_validated===true&&p.artifact_transport_verified===true),'HEALTH_CONTENT');
+  requireEvidence(health.producer_cohort_bound===true&&Number.isSafeInteger(health.producer_cohort_span_ms)&&health.producer_cohort_span_ms>=0&&health.producer_cohort_span_ms<=MAX_PRODUCER_COHORT_SPAN_MS&&health.producer_cohort_failure_class===null,'HEALTH_COHORT');
   requireEvidence(health.production==='HOLD'&&health.public==='HOLD'&&health.g5==='HOLD'&&health.promotion_eligible===false,'HEALTH_HOLD');
   return health;
 }
 export function distinctNaturalGenerations(healths){
   if(healths.length<2)return false;
+  if(healths.some((health)=>health.producer_cohort_bound!==true||!Number.isSafeInteger(health.producer_cohort_span_ms)||health.producer_cohort_span_ms<0||health.producer_cohort_span_ms>MAX_PRODUCER_COHORT_SPAN_MS||health.producer_cohort_failure_class!==null))return false;
   const [newer,older]=healths;
   if(!newer.source_sha||newer.source_sha!==older.source_sha)return false;
   // Observer IDs and a changed single producer are not a second whole chain.

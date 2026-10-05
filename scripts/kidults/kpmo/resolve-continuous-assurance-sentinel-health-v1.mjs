@@ -34,6 +34,26 @@ function sealReceipt(base){
 
 const positiveInteger=value=>Number.isSafeInteger(value)&&value>0;
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
+export const MAX_PRODUCER_COHORT_SPAN_MS=45*60*1000;
+
+export function assessProducerCohort(producers){
+  const complete=Array.isArray(producers)&&producers.length===SPECS.length&&
+    SPECS.every((spec)=>producers.filter((producer)=>producer?.id===spec.id).length===1);
+  if(!complete)return {bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,failure_class:'PRODUCER_COHORT_INCOMPLETE'};
+  const timestamps=producers.map((producer)=>Date.parse(producer.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {
+    bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,
+    failure_class:'PRODUCER_COHORT_TIMESTAMP_INVALID'
+  };
+  const earliest=Math.min(...timestamps),latest=Math.max(...timestamps),span_ms=latest-earliest;
+  const bound=span_ms<=MAX_PRODUCER_COHORT_SPAN_MS;
+  return {
+    bound,span_ms,
+    earliest_created_at:new Date(earliest).toISOString(),
+    latest_created_at:new Date(latest).toISOString(),
+    failure_class:bound?null:'PRODUCER_COHORT_WINDOW_EXCEEDED'
+  };
+}
 
 // Both public evaluation and the authenticated collector use this one selection
 // rule. Ambiguous pages/attempts never become a best-effort older PASS.
@@ -184,10 +204,12 @@ export function evaluateHealth(input){
   if(!Number.isFinite(Date.parse(observedAt||'')))fail('OBSERVED_AT_INVALID');
   if(!SHA.test(input.source_sha||''))fail('SOURCE_SHA_INVALID');
   const producers=SPECS.map((spec)=>evaluateProducer(spec,input.runs?.[spec.id]||[],input.artifacts_by_run||{},input.source_sha,observedAt,input.archives_by_id||{},input.related_by_id||{}));
+  const cohort=assessProducerCohort(producers);
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
-  const state=failures.length?'VERIFIED_FAIL':holds.length?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const state=failures.length?'VERIFIED_FAIL':holds.length||!cohort.bound?'VERIFIED_HOLD':'VERIFIED_PASS';
+  const waitingProducers=[...holds.map((p)=>p.id),...(!cohort.bound?['PRODUCER_COHORT']:[])];
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,producer_cohort_bound:cohort.bound,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 
