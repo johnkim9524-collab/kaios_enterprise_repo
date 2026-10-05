@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 722
+    "file_count": 723
   },
   "files": [
     {
@@ -3162,6 +3162,12 @@
       "sha256": "sha256:f769a3e9e6da36992456c19cad9b5f8821f3fadb7a6490ec541e3744ca9926f2"
     },
     {
+      "path": "scripts/kidults/engine-v2/validate-candidate-r2-preflight-structure.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "149c05655fb2da7a6606b85a08b8420cdbafd1a9",
+      "sha256": "sha256:df23a92b3a8cfba47082b05fedf4e22aeaa5c767209ebec1b6990847237727de"
+    },
+    {
       "path": "scripts/kidults/entity-resolution/build-pressing-hardnegative-expansion-r2.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "8da8e033fc2fc9e99e311367a985d00968e64e2a",
@@ -5781,5 +5787,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:2e57e1e583e7aa2d207fa21bc56238970ef01d5b28639d881b3a47f61cbbb1e5"
+  "manifest_sha256": "sha256:29e076fcd0a5e3baf436162e5c918c5878016eb3aa46b5e70f6bdcc3412fd1b2"
 }
