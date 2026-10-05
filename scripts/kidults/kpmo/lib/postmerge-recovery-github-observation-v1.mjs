@@ -28,7 +28,9 @@ export function createRecoveryGitHubObservation({token,fetchImpl=globalThis.fetc
     catch{throw new Error('RECOVERY_GITHUB_INVALID_JSON');}
   };
   const compare=async(base,head)=>{
-    const result=await get(`compare/${base}...${head}`);
+    // Ancestry uses comparison metadata only. Page two omits first-page file
+    // patches and bounds commit expansion without increasing the byte ceiling.
+    const result=await get(`compare/${base}...${head}?per_page=1&page=2`);
     // GitHub's compare response has no head_sha field. Bind it to the exact
     // requested HTTPS route; main is read again after all observations.
     return {...result,head_sha:head};

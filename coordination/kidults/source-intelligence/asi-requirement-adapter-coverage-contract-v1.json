@@ -162,7 +162,8 @@
         "canonical_artifact_must_embed_semantic_receipt": true,
         "semantic_receipt_exact_file_digest_readback_required": true
       },
-      "exact_upstream_observation_binding": "Retain exact upstream run, artifact, archive digest, and binding digest in leader or alias receipt; distinct run identity may alias only when the semantic input digest is byte-identical",
+      "execution_artifact_identity": "canonical_run_key:canonical_input_digest:upstream_workflow_run_id; semantic input identity continues to exclude volatile provenance",
+      "exact_upstream_observation_binding": "Retain exact upstream run, artifact, archive digest, and binding digest in leader or alias receipt; distinct Coverage consumer runs may alias only for the same exact upstream run and bindings with byte-identical semantic input. A new upstream execution requires a new full Coverage validation.",
       "prior_leader_cardinality": "ZERO_SELECTS_LEADER_ONE_EXACT_MATCH_EMITS_ALIAS_MORE_THAN_ONE_FAILS_CLOSED",
       "readback_failure_or_tamper": "INPUT_DIVERGENCE_HOLD",
       "manual_recovery": "NON_DEDUPABLE_NON_LEADER_FULL_VALIDATION",

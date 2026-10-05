@@ -310,7 +310,13 @@ async function liveInput(){
     }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
     const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
-    if(generationSignature(before)!==generationSignature(after))fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    if(generationSignature(before)!==generationSignature(after)){
+      // A different newer run may be re-observed; mutation of an existing run's
+      // attempt or immutable metadata is an integrity failure, never a retry.
+      if(before&&after&&before.id!==after.id&&after.run_attempt===1
+        &&Date.parse(after.created_at)>Date.parse(before.created_at))fail('SENTINEL_GENERATION_ADVANCED_DURING_READ');
+      fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    }
   }
   for(const related of Object.values(relatedById)){
     const fresh=await api(`https://api.github.com/repos/${repo}/actions/runs/${related.run.id}`,token);
@@ -339,11 +345,23 @@ function selfTest(){
   console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',metadata_only_semantic_pass:false,metadata_only_state:'VERIFIED_HOLD',positive:0,negative:6,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
 }
 
+// Retry only a moving read snapshot. Authority, digest and main failures remain terminal.
+export async function collectStableHealth({readInput=liveInput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maximumAttempts=3}={}){
+  if(!Number.isSafeInteger(maximumAttempts)||maximumAttempts<1||maximumAttempts>3)fail('SENTINEL_SNAPSHOT_RETRY_BOUND');
+  for(let attempt=1;attempt<=maximumAttempts;attempt++){
+    try{return evaluateHealth(await readInput());}
+    catch(error){
+      if(error.message!=='SENTINEL_GENERATION_ADVANCED_DURING_READ'||attempt===maximumAttempts)throw error;
+      await sleep(5000);
+    }
+  }
+}
+
 function outputPath(){const index=process.argv.indexOf('--output');return index>=0?process.argv[index+1]:'';}
 async function main(){
   if(process.argv.includes('--self-test'))return selfTest();
   const out=outputPath();if(!out)fail('OUTPUT_REQUIRED');
-  try{const result=evaluateHealth(await liveInput());fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
+  try{const result=await collectStableHealth();fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
   catch(error){const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state:'VERIFIED_FAIL',coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',repository:process.env.GITHUB_REPOSITORY||null,observer_run_id:process.env.GITHUB_RUN_ID||null,observer_run_attempt:process.env.GITHUB_RUN_ATTEMPT||null,semantic_content_verified:false,runtime_health_proven:false,source_sha:process.env.GITHUB_SHA||null,observed_at:new Date().toISOString(),failure_class:String(error?.message||error),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};const receipt=sealReceipt(base);if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}console.error(error);process.exitCode=1;}
 }
 

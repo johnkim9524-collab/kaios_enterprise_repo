@@ -22,6 +22,11 @@ on:
       - 'scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs'
       - '.github/workflows/kpmo-live-canonical-issue-truth-v1.yml'
       - 'tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs'
+      - 'tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs'
+      - 'tests/kidults/kpmo/whole-platform-*.test.mjs'
+      - 'scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs'
+      - 'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'
       - 'scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs'
       - 'scripts/kidults/source-intelligence/native-workflow-run-identity-v1.mjs'
       - 'tests/kidults/source-intelligence/semantic-chain-native-run-identity-v1.test.mjs'
@@ -97,7 +102,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
     if: >-

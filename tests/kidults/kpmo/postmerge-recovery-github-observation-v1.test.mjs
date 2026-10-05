@@ -21,7 +21,9 @@ function fixture(){
     assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,'Bearer fixture-token');
     assert.equal(options.headers['X-GitHub-Api-Version'],'2022-11-28');
     const prefix=`https://api.github.com/repos/${I.repository}`;assert.ok(url===prefix||url.startsWith(prefix+'/'));
-    const route=url.slice(prefix.length).replace(/^\//,'');f.calls.push(route);
+    const fullRoute=url.slice(prefix.length).replace(/^\//,'');f.calls.push(fullRoute);
+    if(fullRoute.startsWith('compare/'))assert.ok(fullRoute.endsWith('?per_page=1&page=2'));
+    const route=fullRoute.split('?')[0];
     if(route==='branches/main')f.branchReads++;
     const data=route==='branches/main'&&f.branchReads===2&&f.secondMain?f.secondMain:f.responses[route];
     assert.ok(data,'unexpected route '+route);
