@@ -344,7 +344,10 @@ jobs:
       needs.classify-canonical-identity.outputs.coverage_execute_full_audit != 'false' &&
       (github.event_name != 'workflow_run' ||
        (github.event.workflow_run.repository.full_name == github.repository &&
-        github.event.workflow_run.head_branch == 'main')) &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
+        github.event.workflow_run.status == 'completed' &&
+        github.event.workflow_run.conclusion == 'success')) &&
       (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
     concurrency:
       group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}
