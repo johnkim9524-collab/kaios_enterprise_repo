@@ -212,7 +212,7 @@ test('Assurance natural slots are hard-barriered behind a terminal exact-SHA Sen
  assert.match(assurance,/github\.event_name == 'repository_dispatch' \|\| github\.event_name == 'schedule'/);
  assert.match(assurance,/wait-for-natural-sentinel-terminal-v1\.mjs/);
  assert.match(barrier,/SENTINEL_TERMINAL_BEFORE_ASSURANCE/);
- assert.match(barrier,/state !== 'completed'/);
+ assert.match(barrier,/latest\.status !== 'completed'/);
  assert.match(barrier,/receipt\.state !== 'VERIFIED_PASS'/);
  assert.match(barrier,/producer_cohort_bound !== true/);
 });
