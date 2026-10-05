@@ -6,7 +6,10 @@ import {
   assertPromotablePullRequest,
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
-import {evaluateAtomicLandingOneUseRunSet} from './run-atomic-landing-one-use-preflight-v1.mjs';
+import {
+  evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
+} from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
@@ -301,14 +304,20 @@ try {
   const landingAttemptStartedAt = currentRun.run_started_at || currentRun.created_at;
   const readyEvent = selectLatestLifecycleReadyEvent({timeline, repositoryOwner: owner, pullRequest: pr});
   const approval = selectApproval(comments, owner, pr, headCommit, readyEvent, {landingAttemptStartedAt});
-  const oneUse = evaluateAtomicLandingOneUseRunSet(await workflowRuns(currentRun.workflow_id), {
+  const oneUseOptions = {
     currentRunId: runId,
     currentRunAttempt: runAttempt,
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: expectedBaseSha,
     authorizationApprovedAt: approval.comment_created_at,
-  });
+  };
+  const oneUse = evaluateAtomicLandingOneUseRunSet(
+    reconcileAtomicLandingCurrentRunIndex(
+      await workflowRuns(currentRun.workflow_id), currentRun, oneUseOptions,
+    ),
+    oneUseOptions,
+  );
 
   const solo = rulesets.find(value => value.name === 'KAIOS Solo Owner Preflight' && value.enforcement === 'active');
   const protect = rulesets.find(value => value.name === 'Protect main' && value.enforcement === 'active');
