@@ -5,6 +5,7 @@ import {
   stableJson,
 } from './classify-continuous-assurance-canonical-identity-v1.mjs';
 import {
+  inlineProducerHealthRequired,
   resolveEphemeralGuard,
   receiptDigestWithoutObservation,
   sha256,
@@ -241,6 +242,15 @@ for (const fixture of bypassFixtures) {
   }, contract);
   assert(result.state === 'FULL_AUDIT_BYPASS_NON_ALIASABLE' && result.execute_full_audit === true && !result.alias_receipt, `BYPASS_FAILED:${fixture.upstream_class}`);
 }
+
+const protectedMainEnv = {
+  GITHUB_WORKFLOW: 'KIDULTS Platform Continuous Assurance V1',
+  GITHUB_REF: 'refs/heads/main',
+};
+assert(inlineProducerHealthRequired({ ...protectedMainEnv, GITHUB_EVENT_NAME: 'push' }) === false,
+  'PROTECTED_MAIN_PUSH_MUST_NOT_REQUIRE_PREEXISTING_ASYNC_TERMINAL_ARTIFACTS');
+assert(inlineProducerHealthRequired({ ...protectedMainEnv, GITHUB_EVENT_NAME: 'workflow_run' }) === true,
+  'TERMINAL_WORKFLOW_RUN_MUST_RETAIN_INLINE_PRODUCER_HEALTH_GATE');
 
 process.stdout.write(`${JSON.stringify({
   id: 'kidults-continuous-assurance-ephemeral-guard-validation-v1',

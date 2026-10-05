@@ -8,7 +8,7 @@ import {spawnSync} from 'node:child_process';
 import crypto from 'node:crypto';
 
 const root=process.cwd();
-const workflow=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8');
+const workflow=fs.readFileSync('.github/workflows/kpmo-live-canonical-issue-truth-v1.yml','utf8').replace(/\r\n/g,'\n');
 const runner='scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs';
 const sha='a'.repeat(40),repo='johnkim9524-collab/kaios_enterprise_repo';
 function step(name){
@@ -21,7 +21,7 @@ function step(name){
 }
 // Execute the real workflow bootstrap/capture/emitter with a closed child test
 // double. This tests terminal transport, not live Canonical/Owner authority.
-function exercise(kind='mismatch',event='pull_request'){
+function exercise(kind='mismatch',event='pull_request',bootstrap=false){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'canonical-terminal-test-'));
   try{
     const script=path.join(dir,'scripts/kidults/kpmo');fs.mkdirSync(script,{recursive:true});
@@ -31,6 +31,8 @@ import fs from 'node:fs';
 const kind=process.env.TEST_CASE;
 const output={validator:'LIVE_CANONICAL_ISSUE_TRUTH_V1',version:'3.1.0',state:'VERIFIED_PASS',authority_model:'CANONICAL_GENERATION_V3_ONLY',protected_main_sha:process.env.EXPECTED_PROTECTED_MAIN_SHA,material_defect_registry_sha256:'sha256:'+'0'.repeat(64),material_defect_count:0,material_defects:[],material_defect_query_cardinality:{P0:0,P1:0},empirical_promotion:false,whole_platform_closure:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
 let receipt={receipt_id:'kpmo-canonical-generation-v3-receipt',version:'3.5.1',repository:process.env.GITHUB_REPOSITORY,run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),state:'VERIFIED_FAIL',mode:'UNCOMMITTED',writes:0,failure_class:'COMMIT_MISMATCH',mismatch_fields:['material_defect_count','truth_digest'],promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+if(kind==='bootstrap')receipt.mismatch_fields=['material_defect_count','material_defect_issue_numbers','material_defect_registry_sha256','truth_digest'];
+if(kind==='bootstrap-stale'){receipt.failure_class='LATEST_COMMITTED_GENERATION_STALE';receipt.mismatch_fields=[];}
 if(kind==='wrong-repository')receipt.repository='other/repo';
 if(kind==='wrong-run')receipt.run_id+=1;
 if(kind==='string-run')receipt.run_id=String(receipt.run_id);
@@ -57,7 +59,14 @@ process.exit(1);
     const temp=path.join(dir,'temp');fs.mkdirSync(temp);
     const stale=path.join(temp,'canonical-generation-v3-receipt.json');
     if(kind==='stale')fs.writeFileSync(stale,JSON.stringify({state:'VERIFIED_FAIL',failure_class:'STALE_SHOULD_NOT_BE_USED'}));
-    const env={PATH:process.env.PATH,HOME:dir,RUNNER_TEMP:temp,GITHUB_REPOSITORY:repo,GITHUB_RUN_ID:'9001',GITHUB_RUN_ATTEMPT:'1',RECEIPT_HEAD_SHA:sha,RECEIPT_EVENT:event,GITHUB_EVENT_NAME:event,GITHUB_TOKEN:'SYNTHETIC_ONLY',EXPECTED_PROTECTED_MAIN_SHA:sha,TEST_CASE:kind};
+    if(bootstrap){
+      fs.mkdirSync(path.join(dir,'.github/workflows'),{recursive:true});
+      fs.mkdirSync(path.join(dir,'tests/kidults/kpmo'),{recursive:true});
+      fs.writeFileSync(path.join(dir,'.github/workflows/kpmo-canonical-generation-v3-apply.yml'),"schedule:\n    - cron: '13,43 * * * *'\nCANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY: ${{ github.event_name == 'push' && 'PROTECTED_MAIN_PUSH' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || 'AUTHORIZED' }}\nif test \"$GITHUB_EVENT_NAME\" = 'workflow_dispatch'; then\n");
+      fs.writeFileSync(path.join(dir,'scripts/kidults/kpmo/canonical-generation-v3.mjs'),"!['workflow_dispatch','push','schedule'].includes(event) authority_type:'PROTECTED_MAIN_SCHEDULE' CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'\n");
+      fs.writeFileSync(path.join(dir,'tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs'),"'CANONICAL_V3_APPEND_ONLY_REFRESH'\n");
+    }
+    const env={PATH:process.env.PATH,HOME:dir,RUNNER_TEMP:temp,GITHUB_REPOSITORY:repo,GITHUB_RUN_ID:'9001',GITHUB_RUN_ATTEMPT:'1',RECEIPT_HEAD_SHA:sha,RECEIPT_EVENT:event,GITHUB_EVENT_NAME:event,GITHUB_TOKEN:'SYNTHETIC_ONLY',EXPECTED_PROTECTED_MAIN_SHA:sha,CANONICAL_BOOTSTRAP_TRANSITION_VERIFIED:bootstrap?'true':'false',TEST_CASE:kind};
     const invoke=(body,extra={})=>spawnSync('bash',['-c',body],{cwd:dir,env:{...env,...extra},encoding:'utf8',timeout:10000});
     const init=invoke(step('Initialize fail-closed canonical-truth receipt'));assert.equal(init.status,0,init.stderr);
     const capture=invoke(step('Validate live canonical issue truth'));
@@ -67,7 +76,7 @@ process.exit(1);
     const receipt=JSON.parse(fs.readFileSync(path.join(temp,'canonical-truth-receipt-v1.json'),'utf8'));
     assert.equal(receipt.validation_output_sha256,'sha256:'+crypto.createHash('sha256').update(text).digest('hex'));
     return {receipt,output:JSON.parse(text),capture,staleExists:fs.existsSync(stale)};
-  }finally{fs.rmSync(dir,{recursive:true,force:true});}
+  }finally{try{fs.rmSync(dir,{recursive:true,force:true,maxRetries:5,retryDelay:50});}catch(error){if(process.platform!=='win32')throw error;}}
 }
 for(const event of ['pull_request','push','workflow_dispatch'])test(`${event}: actual capture and emitter preserve failure class, fields and exact identity`,()=>{
   const {receipt:x,output,capture}=exercise('mismatch',event);
@@ -85,7 +94,29 @@ test('successful zero-defect output remains verified zero, not unknown',()=>{
   assert.equal(x.material_defect_count,0);assert.deepEqual(x.material_defect_issue_numbers,[]);
   assert.equal(x.root_failure_class,null);assert.deepEqual(x.mismatch_fields,[]);
 });
-for(const kind of ['wrong-repository','wrong-run','string-run','wrong-attempt','authority','writes','mode','upstream-pass','unknown-field','duplicate-field','bad-error','missing','bad-json','oversized','symlink','stale','pass-on-failure','zero-exit-fail'])test(`failure diagnostic rejects or contains ${kind} without granting PASS`,()=>{
+test('bounded PR bootstrap is machine-readable and never claims live registry proof',()=>{
+  const {receipt:x,output,capture}=exercise('bootstrap','pull_request',true);
+  assert.equal(capture.status,0,capture.stderr);
+  assert.equal(x.state,'IMPLEMENTED_NOT_VERIFIED');
+  assert.equal(x.bootstrap_transition,true);
+  assert.equal(x.post_landing_refresh_required,true);
+  assert.equal(output.material_registry_verified,false);
+});
+test('stale committed generation may bootstrap only through the exact self-heal contract',()=>{
+  const {receipt:x,output,capture}=exercise('bootstrap-stale','pull_request',true);
+  assert.equal(capture.status,0,capture.stderr);
+  assert.equal(x.state,'IMPLEMENTED_NOT_VERIFIED');
+  assert.equal(x.bootstrap_transition,true);
+  assert.equal(x.post_landing_refresh_required,true);
+  assert.equal(output.root_failure_class,'LATEST_COMMITTED_GENERATION_STALE');
+  assert.equal(output.material_registry_verified,false);
+});
+test('terminal wrapper contains a fail-closed post-landing bootstrap boundary',()=>{
+  const source=fs.readFileSync(runner,'utf8');
+  for(const marker of ["identity.event!=='pull_request'","value.failure_class==='COMMIT_MISMATCH'","value.failure_class==='LATEST_COMMITTED_GENERATION_STALE'","workflow_dispatch'; then","PROTECTED_MAIN_SCHEDULE","state:'IMPLEMENTED_NOT_VERIFIED'","post_landing_refresh_required:true","production:'HOLD',public:'HOLD',g5:'HOLD'"]) assert.ok(source.includes(marker),marker);
+});
+const failureKinds=['wrong-repository','wrong-run','string-run','wrong-attempt','authority','writes','mode','upstream-pass','unknown-field','duplicate-field','bad-error','missing','bad-json','oversized','symlink','stale','pass-on-failure','zero-exit-fail'];
+for(const kind of failureKinds)test(`failure diagnostic rejects or contains ${kind} without granting PASS`, {skip: kind==='symlink'&&process.platform==='win32'?'Windows symlink privilege unavailable':false},()=>{
   const {receipt:x,output,capture,staleExists}=exercise(kind);
   assert.notEqual(capture.status,0);assert.equal(x.state,'VERIFIED_FAIL');
   assert.equal(x.material_registry_verified,false);assert.equal(x.material_defect_count,null);

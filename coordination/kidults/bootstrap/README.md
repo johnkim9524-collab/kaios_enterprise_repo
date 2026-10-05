@@ -117,3 +117,11 @@ next reporting time
 ```
 
 Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution
+
+## Mandatory RESUME CONTRACT — every Work execution
+
+Before any task side effect, and again after interruption, stream error, session replacement or prolonged review stall, read authoritative external state; identify existing branches, commits, PRs, approvals, runs, artifacts, receipts, deployments, generations and reservations; verify stage terminal receipts; consume completed-stage outputs; resume only the last incomplete stage. Receipt existence alone is insufficient: authenticate the protected producer, validate digest/schema, successful terminal state, mission/stage/source/authority bindings and explicit supersession where applicable. A completed stage never proves whole-mission completion.
+
+Before each side effect, reconcile live state and atomically claim a stable idempotency key in a durable protected operation ledger. Bind the key to repository, root mission, stage, operation, exact target and canonical payload digest, never to session or retry number. Reuse an existing success; observe an in-flight operation; reconcile an ambiguous result before retry. Preserve exclusive-writer fencing, original reservation owner, budgets and existing approval bindings. If the provider lacks atomic idempotency, reconcile under the fence and fail closed on ambiguity; do not claim cross-system exactly-once execution. Duplicate push, PR, approval, review request, dispatch, deployment, generation and reservation consumption are forbidden.
+
+The machine contract is `coordination/kidults/governance/resume-contract-v1.json`. Bootstrap verification remains mandatory before task dispatch. This rule does not grant new authority or prove external ChatGPT/Codex launcher enforcement. Production/Public/G5, Provider activation, PAT and ruleset bypass remain HOLD.

@@ -83,6 +83,7 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   prCreatedAt,
   headCommittedAt,
   latestReadyAt,
+  landingAttemptStartedAt,
   evaluationTime,
 } = {}) {
   if (!Array.isArray(comments)) fail('PROGRAM_OWNER_APPROVAL_COMMENT_SET_INVALID');
@@ -91,17 +92,33 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     || !SHA_PATTERN.test(headSha || '') || !SHA_PATTERN.test(baseSha || '')) {
     fail('PROGRAM_OWNER_APPROVAL_BINDING_INVALID');
   }
+  exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID');
   const marked = comments
-    .map(comment => ({comment, fields: parseExactHeadApprovalBody(comment?.body)}))
-    .filter(item => item.fields)
-    .sort((a, b) => exactTime(b.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      - exactTime(a.comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
-      || Number(b.comment.id || 0) - Number(a.comment.id || 0));
+    .filter(comment => String(comment?.body || '').trim().split(/\r?\n/)[0] === EXACT_HEAD_APPROVAL_MARKER)
+    .sort((a, b) => exactTime(b.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      - exactTime(a.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID')
+      || Number(b.id || 0) - Number(a.id || 0));
   if (!marked.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-
-  // The newest structured approval is authoritative. An older exact approval may
-  // never mask a later stale-head, edited, app-mediated, or self-rebinding comment.
-  const {comment, fields} = marked[0];
+  const candidates = marked.flatMap(comment => {
+    try {
+      const fields = parseExactHeadApprovalBody(comment?.body);
+      return fields?.repository === repository
+        && fields?.pull_request === String(prNumber)
+        && fields?.exact_head_sha === headSha
+        && fields?.exact_base_sha === baseSha
+        && fields?.authorization_id === authorizationId
+        ? [{comment, fields}]
+        : [];
+    } catch {
+      return [];
+    }
+  });
+  if (!candidates.length) fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
+  const eligible = candidates.filter(({comment}) => comment?.user?.login === repositoryOwner
+    && comment?.author_association === 'OWNER'
+    && comment?.performed_via_github_app == null
+    && comment?.updated_at === comment?.created_at);
+  const {comment, fields} = eligible[0] || candidates[0];
   if (comment?.user?.login !== repositoryOwner || comment?.author_association !== 'OWNER') {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_ACTOR_INVALID');
   }
@@ -120,15 +137,17 @@ export function selectExactHeadProgramOwnerApproval(comments, {
   const approvedAt = exactTime(comment.created_at, 'PROGRAM_OWNER_APPROVAL_TIME_INVALID');
   const expiresAt = exactTime(fields.expires_at, 'PROGRAM_OWNER_APPROVAL_EXPIRY_INVALID');
   const evaluatedAt = exactTime(evaluationTime, 'PROGRAM_OWNER_APPROVAL_EVALUATION_TIME_INVALID');
+  const attemptStartedAt = exactTime(
+    landingAttemptStartedAt,
+    'PROGRAM_OWNER_LANDING_ATTEMPT_TIME_INVALID',
+  );
   if (approvedAt < exactTime(prCreatedAt, 'PROGRAM_OWNER_APPROVAL_PR_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_PR');
   }
   if (approvedAt < exactTime(headCommittedAt, 'PROGRAM_OWNER_APPROVAL_HEAD_TIME_INVALID')) {
     fail('PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
   }
-  if (approvedAt > exactTime(latestReadyAt, 'PROGRAM_OWNER_APPROVAL_READY_TIME_INVALID')) {
-    fail('PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
-  }
+  if (approvedAt >= attemptStartedAt) fail('PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
   if (expiresAt <= approvedAt || expiresAt - approvedAt > MAX_APPROVAL_LIFETIME_MS) {
     fail('PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');
   }
@@ -153,6 +172,8 @@ export function selectExactHeadProgramOwnerApproval(comments, {
     raw_authorization_persisted: false,
     raw_nonce_persisted: false,
     app_mediated: false,
+    final_lifecycle_boundary_at: latestReadyAt,
+    landing_attempt_started_at: landingAttemptStartedAt,
   };
 }
 
@@ -197,6 +218,125 @@ export function assertPromotablePullRequest(pr, {
   };
 }
 
+export function assertTerminalNonAuthorizingPullRequest(pr, {
+  repository,
+  expectedHeadSha,
+  expectedBase = 'main',
+} = {}) {
+  if (!pr || typeof pr !== 'object') fail('PULL_REQUEST_SNAPSHOT_REQUIRED');
+  if (!SHA_PATTERN.test(expectedHeadSha || '')) fail('EXPECTED_HEAD_SHA_REQUIRED');
+  if (pr.state !== 'closed') fail('PULL_REQUEST_TERMINAL_STATE_REQUIRED', String(pr.state ?? 'missing'));
+  if (pr.base?.ref !== expectedBase) fail('PULL_REQUEST_BASE_MISMATCH', String(pr.base?.ref ?? 'missing'));
+  if (pr.head?.sha !== expectedHeadSha) fail('PULL_REQUEST_HEAD_CHANGED', String(pr.head?.sha ?? 'missing'));
+  if (repository && pr.head?.repo?.full_name !== repository) fail('PULL_REQUEST_HEAD_REPOSITORY_MISMATCH');
+  if (pr.merged === true && !SHA_PATTERN.test(pr.merge_commit_sha || '')) fail('PULL_REQUEST_MERGE_SHA_INVALID');
+  return {
+    number: Number(pr.number),
+    head_sha: pr.head.sha,
+    base_ref: pr.base.ref,
+    state: pr.state,
+    merged: pr.merged === true,
+    draft: pr.draft === true,
+    merge_commit_sha: pr.merged === true ? pr.merge_commit_sha : null,
+    updated_at: pr.updated_at ?? null,
+    blocker_count: 0,
+  };
+}
+
+export function assertDraftReadyTransitionCandidate(pr, {
+  repository,
+  expectedPullRequestNumber,
+  expectedHeadSha,
+  expectedBaseSha,
+  expectedBase = 'main',
+  expectedTriggerDraft = true,
+} = {}) {
+  if (!pr || typeof pr !== 'object') fail('PULL_REQUEST_SNAPSHOT_REQUIRED');
+  if (!/^\d+$/.test(String(expectedPullRequestNumber || ''))) fail('DRAFT_READY_PR_NUMBER_REQUIRED');
+  if (!SHA_PATTERN.test(expectedHeadSha || '')) fail('EXPECTED_HEAD_SHA_REQUIRED');
+  if (!SHA_PATTERN.test(expectedBaseSha || '')) fail('DRAFT_READY_BASE_SHA_REQUIRED');
+  if (expectedTriggerDraft !== true) fail('DRAFT_READY_TRIGGER_DRAFT_REQUIRED');
+  if (Number(pr.number) !== Number(expectedPullRequestNumber)) fail('DRAFT_READY_PR_NUMBER_MISMATCH');
+  if (pr.state !== 'open' || pr.merged === true || pr.draft !== true) fail('DRAFT_READY_FINAL_REREAD_INVALID');
+  if (pr.base?.ref !== expectedBase || pr.base?.sha !== expectedBaseSha) fail('DRAFT_READY_BASE_DRIFT');
+  if (pr.head?.sha !== expectedHeadSha) fail('DRAFT_READY_HEAD_DRIFT');
+  if (repository && pr.head?.repo?.full_name !== repository) fail('DRAFT_READY_HEAD_REPOSITORY_MISMATCH');
+  if (!pr.node_id) fail('DRAFT_READY_NODE_ID_MISSING');
+  return {
+    number: Number(pr.number),
+    node_id: pr.node_id,
+    head_sha: pr.head.sha,
+    base_sha: pr.base.sha,
+    base_ref: pr.base.ref,
+    repository: pr.head.repo.full_name,
+  };
+}
+
+export function validateDraftReadyBrokerResponse(response, {
+  repository,
+  repositoryId,
+  appId,
+  installationId,
+  githubToken,
+} = {}) {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) fail('DRAFT_READY_TOKEN_UNAVAILABLE');
+  const permissions = Array.isArray(response.permissions) ? [...response.permissions].sort() : null;
+  if (response.ok !== true
+    || response.token_type !== 'GITHUB_APP_INSTALLATION'
+    || response.permission_profile !== 'DRAFT_READY_TRANSITION'
+    || typeof response.token !== 'string'
+    || response.token.length < 20) {
+    fail('DRAFT_READY_TOKEN_UNAVAILABLE');
+  }
+  if (response.token === githubToken) fail('DRAFT_READY_GITHUB_TOKEN_SUBSTITUTION_FORBIDDEN');
+  if (!Number.isFinite(Date.parse(response.expires_at || ''))) fail('DRAFT_READY_TOKEN_UNAVAILABLE');
+  if (response.repository !== repository
+    || String(response.repository_id) !== String(repositoryId)
+    || String(response.app_id) !== String(appId)
+    || String(response.installation_id) !== String(installationId)) {
+    fail('DRAFT_READY_INSTALLATION_REPOSITORY_MISMATCH');
+  }
+  if (!permissions
+    || permissions.length !== 2
+    || permissions[0] !== 'metadata:read'
+    || permissions[1] !== 'pull_requests:write') {
+    fail('DRAFT_READY_INSTALLATION_PERMISSION_INSUFFICIENT');
+  }
+  return {
+    token: response.token,
+    expires_at: response.expires_at,
+    repository: response.repository,
+    repository_id: String(response.repository_id),
+    app_id: String(response.app_id),
+    installation_id: String(response.installation_id),
+    permission_profile: response.permission_profile,
+    permissions,
+  };
+}
+
+export function assertDraftReadyPostMutation(before, after, {
+  repository,
+  expectedHeadSha,
+  expectedBaseSha,
+  expectedBase = 'main',
+} = {}) {
+  if (!before || typeof before !== 'object' || !after || typeof after !== 'object') fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (after.state !== 'open' || after.merged === true || after.draft !== false) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (Number(after.number) !== Number(before.number)) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (!after.node_id || after.node_id !== before.node_id) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (after.base?.ref !== expectedBase || after.base?.sha !== expectedBaseSha) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (after.head?.sha !== expectedHeadSha) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  if (repository && after.head?.repo?.full_name !== repository) fail('DRAFT_READY_POST_MUTATION_DRIFT');
+  return {
+    number: Number(after.number),
+    node_id: after.node_id,
+    head_sha: after.head.sha,
+    base_sha: after.base.sha,
+    base_ref: after.base.ref,
+    draft: false,
+  };
+}
+
 export function assertStableFinalReread(initial, final, options) {
   const before = assertPromotablePullRequest(initial, options);
   const after = assertPromotablePullRequest(final, options);
@@ -204,6 +344,70 @@ export function assertStableFinalReread(initial, final, options) {
   if (before.head_sha !== after.head_sha) fail('PULL_REQUEST_HEAD_CHANGED_DURING_AUTHORIZATION');
   if (before.base_ref !== after.base_ref) fail('PULL_REQUEST_BASE_CHANGED_DURING_AUTHORIZATION');
   return {initial: before, final: after, stable_exact_head: true};
+}
+
+export function assertExactOwnerMergeDuringFinalReread(initial, merged, {
+  repository,
+  repositoryOwner,
+  expectedHeadSha,
+  expectedBaseSha,
+  noMergePolicy,
+  notBefore,
+  notAfter,
+} = {}) {
+  const before = assertPromotablePullRequest(initial, {
+    repository,
+    expectedHeadSha,
+    noMergePolicy,
+  });
+  if (!merged || typeof merged !== 'object') fail('FINAL_REREAD_MERGED_SNAPSHOT_REQUIRED');
+  if (!repositoryOwner) fail('FINAL_REREAD_REPOSITORY_OWNER_REQUIRED');
+  if (!SHA_PATTERN.test(expectedBaseSha || '')) fail('FINAL_REREAD_EXPECTED_BASE_SHA_REQUIRED');
+  if (merged.number !== initial.number || Number(merged.number) !== before.number) {
+    fail('FINAL_REREAD_PULL_REQUEST_NUMBER_CHANGED');
+  }
+  if (merged.base?.ref !== 'main' || merged.base?.sha !== expectedBaseSha) {
+    fail('FINAL_REREAD_MERGED_BASE_MISMATCH');
+  }
+  if (merged.head?.sha !== expectedHeadSha) fail('FINAL_REREAD_MERGED_HEAD_MISMATCH');
+  if (repository && merged.head?.repo?.full_name !== repository) {
+    fail('FINAL_REREAD_MERGED_HEAD_REPOSITORY_MISMATCH');
+  }
+  if (merged.state !== 'closed' || merged.merged !== true || merged.draft === true) {
+    fail('FINAL_REREAD_EXACT_MERGE_NOT_OBSERVED');
+  }
+  if (merged.merged_by?.login !== repositoryOwner) fail('FINAL_REREAD_MERGED_BY_NON_OWNER');
+  if (!SHA_PATTERN.test(merged.merge_commit_sha || '')) fail('FINAL_REREAD_MERGE_SHA_INVALID');
+  const policyWithoutTerminalState = {
+    ...(noMergePolicy || {}),
+    closed_pull_request_blocks: false,
+    merged_pull_request_blocks: false,
+  };
+  const semanticBlockers = noMergeBlockers(merged, policyWithoutTerminalState);
+  if (semanticBlockers.length) fail('FINAL_REREAD_NO_MERGE_BLOCKED', semanticBlockers.join(','));
+  const mergedAt = Date.parse(String(merged.merged_at || ''));
+  const lowerBound = Date.parse(String(notBefore || ''));
+  const upperBound = Date.parse(String(notAfter || ''));
+  if (!Number.isFinite(mergedAt) || !Number.isFinite(lowerBound) || !Number.isFinite(upperBound)) {
+    fail('FINAL_REREAD_MERGE_TIME_INVALID');
+  }
+  if (mergedAt < lowerBound || mergedAt > upperBound) fail('FINAL_REREAD_MERGE_OUTSIDE_AUTHORIZED_WINDOW');
+  return {
+    initial: before,
+    final: {
+      number: Number(merged.number),
+      head_sha: merged.head.sha,
+      base_ref: merged.base.ref,
+      base_sha: merged.base.sha,
+      state: merged.state,
+      merged: true,
+      merged_by: repositoryOwner,
+      merged_at: merged.merged_at,
+      merge_commit_sha: merged.merge_commit_sha,
+    },
+    stable_exact_head: true,
+    exact_owner_merge_observed_during_final_reread: true,
+  };
 }
 
 function scopeMatches(filename, rule) {

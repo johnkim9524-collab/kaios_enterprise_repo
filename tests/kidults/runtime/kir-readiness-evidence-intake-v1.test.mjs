@@ -32,11 +32,16 @@ for(const [name,mutate] of [
 test('rehashed unsafe staging delta fails semantics rather than only digest verification',()=>withFixture((d,f)=>{changeMember(d,f,'staging-production-delta.json',x=>x.evidence.viewer_export_exposed=true);assert.throws(()=>inspect(d),/TECHNICAL_GATE_REJECTED/);}));
 test('rehashed auxiliary source drift fails member identity',()=>withFixture((d,f)=>{changeMember(d,f,'production-audit.json',x=>x.source_sha='b'.repeat(40));assert.throws(()=>inspect(d),/TECHNICAL_GATE_REJECTED/);}));
 test('mutated raw member is rejected even while declared summary stays PASS',()=>withFixture(d=>{fs.appendFileSync(path.join(d,'production-audit.json'),' ');assert.throws(()=>inspect(d),/TECHNICAL_GATE_REJECTED/);}));
-test('symlink input and injected caller capability fail closed',()=>withFixture(d=>{
- const f=path.join(d,'production-audit.json');fs.renameSync(f,f+'.real');fs.symlinkSync(f+'.real',f);assert.throws(()=>inspect(d),/TECHNICAL_GATE_REJECTED/);
+test('symlink input and injected caller capability fail closed',t=>withFixture(d=>{
+ const f=path.join(d,'production-audit.json');fs.renameSync(f,f+'.real');
+ try{fs.symlinkSync(f+'.real',f);}catch(error){if(error?.code==='EPERM'&&process.platform==='win32'){t.skip('Windows symlink privilege unavailable');return;}throw error;}
+ assert.throws(()=>inspect(d),/TECHNICAL_GATE_REJECTED/);
  assert.throws(()=>inspectKirReadinessEvidence({identity,evidenceDirectory:d,promotion_eligible:true}),/KIR_READINESS_INPUT/);
 }));
-test('unsafe evidence directory cannot enter production gate',()=>withFixture(d=>{fs.chmodSync(d,0o755);assert.throws(()=>inspect(d),/PRIVATE_DIRECTORY/);}));
+test('unsafe evidence directory cannot enter production gate',t=>withFixture(d=>{
+ if(process.platform==='win32'){t.skip('Windows fs.Stat does not expose enforceable POSIX directory mode bits');return;}
+ fs.chmodSync(d,0o755);assert.throws(()=>inspect(d),/PRIVATE_DIRECTORY/);
+}));
 
 test('actual composer and actual member gate complete a bounded KIR control probe',async()=>{
  const {runKirReadinessControlProbe}=await import('./kir-readiness-control-probe-v1.mjs');

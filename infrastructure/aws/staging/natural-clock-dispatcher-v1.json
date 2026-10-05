@@ -1,0 +1,78 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "STAGING dual-source natural clock dispatcher. Activation remains governed and fail-closed.",
+  "Parameters": {
+    "ArtifactBucket": {"Type": "String"},
+    "ArtifactKey": {"Type": "String"},
+    "GitHubAppId": {"Type": "String", "AllowedPattern": "^[0-9]+$"},
+    "GitHubInstallationId": {"Type": "String", "AllowedPattern": "^[0-9]+$"},
+    "GitHubPrivateKeySecretArn": {"Type": "String"},
+    "GitHubRepositoryId": {"Type": "String", "AllowedPattern": "^[0-9]+$"},
+    "GitHubRepository": {"Type": "String", "Default": "johnkim9524-collab/kaios_enterprise_repo"},
+    "ScheduleState": {"Type": "String", "Default": "DISABLED", "AllowedValues": ["ENABLED", "DISABLED"]}
+  },
+  "Resources": {
+    "Ledger": {
+      "Type": "AWS::DynamoDB::Table",
+      "Properties": {
+        "TableName": "kidults-natural-clock-ledger-staging-v1",
+        "BillingMode": "PAY_PER_REQUEST",
+        "AttributeDefinitions": [{"AttributeName": "dispatch_id", "AttributeType": "S"}],
+        "KeySchema": [{"AttributeName": "dispatch_id", "KeyType": "HASH"}],
+        "TimeToLiveSpecification": {"AttributeName": "expires_at", "Enabled": true},
+        "PointInTimeRecoverySpecification": {"PointInTimeRecoveryEnabled": true},
+        "SSESpecification": {"SSEEnabled": true}
+      }
+    },
+    "DispatcherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-natural-clock-dispatcher-staging-v1",
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "Policies": [{"PolicyName": "exact-natural-clock-boundary", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+          {"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": {"Ref": "GitHubPrivateKeySecretArn"}},
+          {"Effect": "Allow", "Action": "dynamodb:PutItem", "Resource": {"Fn::GetAtt": ["Ledger", "Arn"]}},
+          {"Effect": "Allow", "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], "Resource": "*"}
+        ]}}]
+      }
+    },
+    "Dispatcher": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "kidults-natural-clock-dispatcher-staging-v1",
+        "Runtime": "nodejs22.x",
+        "Handler": "index.handler",
+        "Timeout": 30,
+        "MemorySize": 128,
+        "Role": {"Fn::GetAtt": ["DispatcherRole", "Arn"]},
+        "Code": {"S3Bucket": {"Ref": "ArtifactBucket"}, "S3Key": {"Ref": "ArtifactKey"}},
+        "Environment": {"Variables": {
+          "GITHUB_APP_PRIVATE_KEY_SECRET_ARN": {"Ref": "GitHubPrivateKeySecretArn"},
+          "GITHUB_APP_ID": {"Ref": "GitHubAppId"},
+          "GITHUB_APP_INSTALLATION_ID": {"Ref": "GitHubInstallationId"},
+          "GITHUB_REPOSITORY_ID": {"Ref": "GitHubRepositoryId"},
+          "GITHUB_REPOSITORY": {"Ref": "GitHubRepository"},
+          "NATURAL_CLOCK_LEDGER_TABLE": {"Ref": "Ledger"}
+        }}
+      }
+    },
+    "SchedulerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-natural-clock-scheduler-staging-v1",
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "scheduler.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "Policies": [{"PolicyName": "invoke-natural-clock-only", "PolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "lambda:InvokeFunction", "Resource": {"Fn::GetAtt": ["Dispatcher", "Arn"]}}]}}]
+      }
+    },
+    "PoolingSchedule": {"Type": "AWS::Scheduler::Schedule", "Properties": {"Name": "kidults-natural-pooling-staging-v1", "State": {"Ref": "ScheduleState"}, "FlexibleTimeWindow": {"Mode": "OFF"}, "ScheduleExpression": "cron(2,32 * * * ? *)", "ScheduleExpressionTimezone": "UTC", "Target": {"Arn": {"Fn::GetAtt": ["Dispatcher", "Arn"]}, "RoleArn": {"Fn::GetAtt": ["SchedulerRole", "Arn"]}, "Input": "{\"source\":\"aws.scheduler\",\"slot\":\"POOLING\"}", "RetryPolicy": {"MaximumEventAgeInSeconds": 300, "MaximumRetryAttempts": 2}}}},
+    "P0BSchedule": {"Type": "AWS::Scheduler::Schedule", "Properties": {"Name": "kidults-natural-p0b-staging-v1", "State": {"Ref": "ScheduleState"}, "FlexibleTimeWindow": {"Mode": "OFF"}, "ScheduleExpression": "cron(7,37 * * * ? *)", "ScheduleExpressionTimezone": "UTC", "Target": {"Arn": {"Fn::GetAtt": ["Dispatcher", "Arn"]}, "RoleArn": {"Fn::GetAtt": ["SchedulerRole", "Arn"]}, "Input": "{\"source\":\"aws.scheduler\",\"slot\":\"P0B\"}", "RetryPolicy": {"MaximumEventAgeInSeconds": 300, "MaximumRetryAttempts": 2}}}},
+    "ReserveSchedule": {"Type": "AWS::Scheduler::Schedule", "Properties": {"Name": "kidults-natural-reserve-staging-v1", "State": {"Ref": "ScheduleState"}, "FlexibleTimeWindow": {"Mode": "OFF"}, "ScheduleExpression": "cron(14,44 * * * ? *)", "ScheduleExpressionTimezone": "UTC", "Target": {"Arn": {"Fn::GetAtt": ["Dispatcher", "Arn"]}, "RoleArn": {"Fn::GetAtt": ["SchedulerRole", "Arn"]}, "Input": "{\"source\":\"aws.scheduler\",\"slot\":\"RESERVE\"}", "RetryPolicy": {"MaximumEventAgeInSeconds": 300, "MaximumRetryAttempts": 2}}}},
+    "SentinelSchedule": {"Type": "AWS::Scheduler::Schedule", "Properties": {"Name": "kidults-natural-sentinel-staging-v1", "State": {"Ref": "ScheduleState"}, "FlexibleTimeWindow": {"Mode": "OFF"}, "ScheduleExpression": "cron(23,53 * * * ? *)", "ScheduleExpressionTimezone": "UTC", "Target": {"Arn": {"Fn::GetAtt": ["Dispatcher", "Arn"]}, "RoleArn": {"Fn::GetAtt": ["SchedulerRole", "Arn"]}, "Input": "{\"source\":\"aws.scheduler\",\"slot\":\"SENTINEL\"}", "RetryPolicy": {"MaximumEventAgeInSeconds": 300, "MaximumRetryAttempts": 2}}}},
+    "AssuranceSchedule": {"Type": "AWS::Scheduler::Schedule", "Properties": {"Name": "kidults-natural-assurance-staging-v1", "State": {"Ref": "ScheduleState"}, "FlexibleTimeWindow": {"Mode": "OFF"}, "ScheduleExpression": "cron(27,57 * * * ? *)", "ScheduleExpressionTimezone": "UTC", "Target": {"Arn": {"Fn::GetAtt": ["Dispatcher", "Arn"]}, "RoleArn": {"Fn::GetAtt": ["SchedulerRole", "Arn"]}, "Input": "{\"source\":\"aws.scheduler\",\"slot\":\"ASSURANCE\"}", "RetryPolicy": {"MaximumEventAgeInSeconds": 300, "MaximumRetryAttempts": 2}}}}
+  },
+  "Outputs": {
+    "DispatcherArn": {"Value": {"Fn::GetAtt": ["Dispatcher", "Arn"]}},
+    "LedgerName": {"Value": {"Ref": "Ledger"}},
+    "ActivationDefault": {"Value": "DISABLED"}
+  }
+}

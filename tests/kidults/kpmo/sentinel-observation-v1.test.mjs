@@ -44,11 +44,11 @@ test('repository-wide fanout stays inside unchanged limits with existing mutatio
  const p=spawnSync(process.execPath,['scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'],{encoding:'utf8',timeout:15000});
  assert.equal(p.status,0,p.stderr);const report=JSON.parse(p.stdout);
  assert.ok(report.workflow_run_consumers<=16);
- assert.ok(report.execution_workflow_run_edges<=29);assert.ok(report.control_observer_edges<=19);
+ assert.ok(report.execution_workflow_run_edges<=29);assert.ok(report.control_observer_edges<=20);
  const budget=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'));
  assert.equal(budget.budgets.workflow_run_consumers_max,16);
  assert.equal(budget.budgets.execution_workflow_run_edges_max,29);
- assert.equal(budget.budgets.control_observer_edges_max,19);
+ assert.equal(budget.budgets.control_observer_edges_max,20);
 });
 test('observer records RED/HOLD without changing the independent strict gate',()=>{
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
@@ -59,8 +59,10 @@ test('observer records RED/HOLD without changing the independent strict gate',()
  assert.ok(job.includes('retention-days: 90'));
  assert.ok(!job.includes('actions: write')&&!job.includes('secrets.')&&!job.includes('needs:'));
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- assert.ok(!/^  workflow_run:/m.test(s));
- for(const marker of ['schedule:', 'workflow_dispatch:', 'Enforce fail-closed producer health after receipt retention','.state=="VERIFIED_PASS"','.semantic_content_verified==true'])assert.ok(s.includes(marker));
+ assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(s,/^  push:/m);
+ assert.doesNotMatch(s,/^  schedule:/m);
+ for(const marker of ['workflow_dispatch:', 'Enforce fail-closed producer health after receipt retention','.state=="VERIFIED_PASS"','.semantic_content_verified==true'])assert.ok(s.includes(marker));
 });
 
 import os from 'node:os';

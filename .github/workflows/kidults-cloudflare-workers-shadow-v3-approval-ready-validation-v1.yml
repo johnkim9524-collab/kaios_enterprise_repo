@@ -25,6 +25,10 @@ on:
       - 'tests/kidults/kpmo/cloudflare-consumed-workflow-v1.test.mjs'
       - '.github/workflows/kidults-cloudflare-credential-identity-preflight-v1.yml'
       - 'scripts/kidults/kpmo/inventory-secret-bearing-workflow-dispatch-v1.mjs'
+      - 'scripts/kidults/kpmo/security-dependency-lock-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-security-dependency-lock-v1.mjs'
+      - 'services/kidults-autonomous-intelligence/package.json'
+      - 'services/kidults-autonomous-intelligence/package-lock.json'
       - 'tooling/kidults-cloudflare-workers-shadow/package.json'
       - 'tooling/kidults-cloudflare-workers-shadow/package-lock.json'
       - 'apps/kidults-enterprise-staging/public/portal/**'
@@ -86,10 +90,23 @@ jobs:
           WRANGLER_SEND_METRICS: 'false'
         run: |
           set -euo pipefail
-          test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "4.127.1"
+          test "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/node_modules/wrangler/package.json").version')" = "$(node -p 'require("./tooling/kidults-cloudflare-workers-shadow/package.json").devDependencies.wrangler')"
           OUT="$RUNNER_TEMP/kidults-cloudflare-workers-shadow-v3-consumed-dry-run"
           ./tooling/kidults-cloudflare-workers-shadow/node_modules/.bin/wrangler deploy \
             --dry-run \
             --config infrastructure/cloudflare/workers/kidults-public-portal-shadow/wrangler.jsonc \
             --outdir "$OUT"
           test -d "$OUT"
+
+      - name: Validate service tooling without provider credentials
+        env:
+          WRANGLER_SEND_METRICS: 'false'
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/validate-security-dependency-lock-v1.mjs
+          SERVICE="$RUNNER_TEMP/kir-service-compatibility"
+          cp -a services/kidults-autonomous-intelligence "$SERVICE"
+          npm ci --ignore-scripts --no-audit --no-fund --prefix "$SERVICE"
+          npm run typecheck --prefix "$SERVICE"
+          "$SERVICE/node_modules/.bin/wrangler" deploy --dry-run --config "$SERVICE/wrangler.jsonc" --outdir "$RUNNER_TEMP/kir-service-dry-run"
+          git diff --exit-code

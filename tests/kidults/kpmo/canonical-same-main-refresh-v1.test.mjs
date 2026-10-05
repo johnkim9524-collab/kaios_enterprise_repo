@@ -67,7 +67,7 @@ globalThis.fetch=async (url,opts={})=>{
  const p=u.pathname.replace('/repos/'+repo,'');requests.push({method,path:p});
  let value;
  if(method==='GET'&&p==='/branches/main'){mainReads++;value={commit:{sha:o.mainDrift&&mainReads>1?'b'.repeat(40):main}};}
- else if(method==='GET'&&u.pathname==='/search/issues'){searches++;const items=o.liveDrift&&searches>1?[...live,issue(11)]:live;value={items,incomplete_results:false,total_count:items.length};}
+ else if(method==='GET'&&p==='/issues'){searches++;const items=o.liveDrift&&searches%2===0?[...live,issue(11)]:live;value=items;}
  else if(method==='GET'&&p==='/issues/344/comments')value=[aggregate];
  else if(method==='GET'&&p==='/issues/1713/comments')value=o.noApproval?[]:[approval];
  else if(method==='GET'&&p.startsWith('/issues/comments/')){
@@ -100,5 +100,14 @@ test('unchanged current generation remains idempotent with zero posts',()=>{cons
 test('read-only validation never silently repairs or accepts same-main stale truth',()=>{const x=exercise({read:true});assert.equal(x.status,1);assert.equal(x.posts.length,0);assert.equal(x.receipt.failure_class,'COMMIT_MISMATCH');assert.ok(x.receipt.mismatch_fields.includes('material_defect_count'));});
 const corruptionCodes={repository:'REFRESH_NON_MATERIAL_DRIFT',hold:'REFRESH_NON_MATERIAL_DRIFT',count:'REFRESH_PRIOR_MATERIAL_SET_INVALID',version:'REFRESH_PRIOR_VERSION_OR_RUN_INVALID',digest:'REFRESH_PRIOR_DIGEST_INVALID','duplicate-defects':'REFRESH_PRIOR_MATERIAL_SET_INVALID',baseline:'REFRESH_PRIOR_BASELINE_INVALID','member-count':'COMMIT_PAYLOAD_INVALID','member-digest':'MEMBER_COMMENT_235_IDENTITY_INVALID','canonical-count':'REFRESH_NON_MATERIAL_DRIFT','canonical-membership':'REFRESH_NON_MATERIAL_DRIFT','committed-time':'REFRESH_PRIOR_TIME_INVALID','member-extra-field':'COMMIT_MEMBER_FIELDS_MISMATCH','extra-field':'REFRESH_PRIOR_FIELDS_MISMATCH','aggregate-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','aggregate-author':'AGGREGATE_COMMENT_IDENTITY_INVALID','aggregate-app':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-mutated':'REFRESH_PRIOR_COMMENT_MUTATED_OR_UNTRUSTED','member-body':'MEMBER_COMMENT_235_IDENTITY_INVALID','member-version':'REFRESH_PRIOR_MEMBER_VERSION_INVALID'};
 for(const corrupt of Object.keys(corruptionCodes))test(`refresh rejects damaged prior ${corrupt} before writes`,()=>{const x=exercise({corrupt});assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,corruptionCodes[corrupt],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
-const boundaryCodes=['EXPLICIT_WRITE_AUTHORITY_MISSING','AUTHORIZATION_COMMENT_CARDINALITY:0','AUTHORIZATION_APP_MEDIATED_FORBIDDEN','WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED','AUTHORIZATION_BODY_MISMATCH','PRE_WRITE_TRUTH_MOVED','PRE_WRITE_TRUTH_MOVED','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID'];
+const boundaryCodes=['EXPLICIT_WRITE_AUTHORITY_MISSING','AUTHORIZATION_COMMENT_CARDINALITY:0','AUTHORIZATION_APP_MEDIATED_FORBIDDEN','WRITER_RERUN_FORBIDDEN_FRESH_DISPATCH_REQUIRED','AUTHORIZATION_BODY_MISMATCH','PRE_WRITE_TRUTH_MOVED','OPEN_ISSUE_CARDINALITY_MOVED','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID','REFRESH_PRIOR_WRITER_RUN_INVALID'];
 for(const [index,[name,o]] of [['missing authority',{noAuthority:true}],['missing Owner comment',{noApproval:true}],['App-mediated approval',{authApp:true}],['rerun',{retry:true}],['revoked approval during prior read',{revoked:true}],['main changed before first write',{mainDrift:true}],['truth changed before first write',{liveDrift:true}],['prior failed writer',{priorFailed:true}],['prior retried writer',{priorRetry:true}],['prior writer source drift',{priorWrongSource:true}]].entries())test(`same-main refresh preserves ${name} fail-closed boundary`,()=>{const x=exercise(o);assert.equal(x.status,1,x.stderr);assert.equal(x.receipt?.failure_class,boundaryCodes[index],x.stderr);assert.equal(x.posts.length,0);assert.equal(x.receipt.state,'VERIFIED_FAIL');});
+
+test('latest-block validation consumes canonical generation instead of racing push or issue fan-out',()=>{
+ const workflow=fs.readFileSync('.github/workflows/kpmo-canonical-latest-block-scope-v1.yml','utf8');
+ assert.match(workflow,/^  workflow_run:\r?\n    workflows: \['KPMO Canonical Generation V3 Apply'\]/m);
+ assert.doesNotMatch(workflow,/^  pull_request:/m);
+ assert.doesNotMatch(workflow,/^  push:/m);
+ assert.doesNotMatch(workflow,/\n  issues:\r?\n    types:/);
+ assert.match(workflow,/github\.event\.workflow_run\.head_sha/);
+});

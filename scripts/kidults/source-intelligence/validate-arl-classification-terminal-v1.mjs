@@ -6,7 +6,10 @@ const COVERAGE_PATH = '.github/workflows/kidults-asi-requirement-adapter-coverag
 const TERMINAL_BLOCK = `      - name: Preserve non-authoritative or invalid trigger RED after receipt retention
         if: steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'
         run: exit 1`;
-const PRODUCER_GUARD = "if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'";
+const PRODUCER_GUARD = `if: >-
+      always() && (github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')) &&
+      needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'`;
 const COVERAGE_GUARD = "if: needs.classify-upstream-arl-generation.outputs.should_run == 'true'";
 const CLASSIFICATION_UPLOAD = 'name: kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}';
 const occurrences = (source, needle) => source.split(needle).length - 1;

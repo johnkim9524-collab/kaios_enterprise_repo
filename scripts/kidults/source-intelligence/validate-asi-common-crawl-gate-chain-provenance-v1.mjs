@@ -17,7 +17,7 @@ function violations(text) {
     '--poll-milliseconds 10000',
     '--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml',
     '--artifact-name kidults-asi-global-any-site-discovery-v2',
-    "- cron: '9 * * * *'",
+    '  workflow_dispatch:',
     'ref: ${{ github.event.pull_request.head.sha || github.sha }}',
     "if: github.event_name != 'pull_request'",
     "if: always() && github.event_name != 'pull_request'",
@@ -31,6 +31,7 @@ function violations(text) {
   for (const needle of mustInclude) {
     if (!text.includes(needle)) failures.push(`MISSING:${needle}`);
   }
+  if (text.includes('  schedule:')) failures.push('AUTOMATIC_PROVIDER_EXECUTION_TRIGGER');
   if (text.includes("if(runs.length)fs.writeFileSync('/tmp/any-site-run.json',JSON.stringify(runs[0],null,2));") &&
       !text.includes('run.head_sha===expectedSha')) {
     failures.push('LATEST_BRANCH_RUN_WITHOUT_EXACT_SHA');
@@ -46,7 +47,7 @@ if (pristine.length) {
 
 const mutations = [
   ['DROP_EXPECTED_SHA', t => t.replaceAll('EXPECTED_SHA: ${{ github.sha }}', 'EXPECTED_SHA: unbound')],
-  ['DROP_PRODUCER_TRIGGER', t => t.replace("- cron: '9 * * * *'", "- cron: '9 1 1 1 *'")],
+  ['RESTORE_AUTOMATIC_TRIGGER', t => t.replace('  workflow_dispatch:', '  schedule:')],
   ['DROP_RESOLVER', t => t.replaceAll('resolve-asi-exact-generation-orchestration-v1.mjs', 'unbound-resolver.mjs')],
   ['DROP_CANONICAL_PATH', t => t.replaceAll('--workflow-path .github/workflows/kidults-asi-global-open-market-discovery-v1.yml', '--workflow-path .github/workflows/forged.yml')],
   ['DROP_BOUND', t => t.replace('--max-attempts 24', '--max-attempts 240')],

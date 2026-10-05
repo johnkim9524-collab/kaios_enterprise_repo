@@ -36,6 +36,7 @@ const RECEIPT_ALLOWLIST = [
 ];
 const AUTHORITATIVE_INPUT_FILE_KEYS = [
   'artifact_binding_schema',
+  'trigger_compatibility_contract',
   'resolution_contract',
   'runtime_contract',
   'source_frontier',

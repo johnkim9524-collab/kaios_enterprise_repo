@@ -1,0 +1,28 @@
+{
+  "id": "kidults-staging-vertical-cycle-policy-v1",
+  "version": "1.0.0",
+  "environment": "STAGING",
+  "default_broker_mode": "SHADOW_NO_FETCH",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "maximum_attempts": 3,
+  "lease_ttl_ms": 1000,
+  "approval_roles": ["TRACK_A", "TRACK_Z"],
+  "approval_reuse_allowed": false,
+  "external_network_allowed": false,
+  "success_requires": [
+    "DUAL_APPROVAL",
+    "CURRENT_RIGHTS",
+    "SINGLE_ACTIVE_LEASE",
+    "BROKER_ONLY_ROUTE",
+    "LEDGER_EVIDENCE_ONE_TO_ONE",
+    "DURABILITY_READBACK_VERIFIED"
+  ],
+  "constitutional_effects": {
+    "autonomous_effect": "BOUNDED_RETRY_RECOVERY_AND_RECEIPT_LOOP",
+    "global_effect": "PROVIDER_NEUTRAL_VERSIONED_EVENT_CONTRACT",
+    "irreplaceable_value_effect": "OWNED_POLICY_LINEAGE_AND_EVIDENCE_BINDING",
+    "transparency_effect": "EVERY_TRANSITION_AND_FAILURE_IS_RECEIPTED"
+  }
+}

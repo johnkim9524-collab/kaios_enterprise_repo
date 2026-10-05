@@ -1,0 +1,226 @@
+name: KIDULTS Autonomous Landing STAGING Deploy V1
+# Normal STAGING bounded template convergence auto-deploys only when the existing exact delta verifier proves no authority expansion.
+# Manual dispatch remains recovery-only; Production/Public/G5 and authority expansion remain Owner-bound.
+run-name: KIDULTS Autonomous Landing STAGING Deploy ${{ github.sha }}
+on:
+  push:
+    branches: [main]
+    paths:
+      - infrastructure/aws/staging/autonomous-internal-landing-v1.json
+      - .github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml
+  workflow_dispatch:
+    inputs:
+      main_sha:
+        description: Exact protected-main SHA authorized for this STAGING deployment
+        required: true
+        type: string
+      template_sha256:
+        description: SHA-256 of the exact autonomous landing CloudFormation template
+        required: true
+        type: string
+      authorization_id:
+        description: DEPLOY-STAGING-AUTONOMOUS-LANDING-<main12>-<template12>
+        required: true
+        type: string
+
+concurrency:
+  group: kidults-autonomous-landing-staging-deploy
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  deploy-and-verify:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-LANDING-DEPLOYER
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-northeast-2
+      AWS_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-autonomous-landing-deployer-staging-v1
+      STACK_NAME: kidults-autonomous-internal-landing-staging-v1
+      TEMPLATE_PATH: infrastructure/aws/staging/autonomous-internal-landing-v1.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Derive exact bounded deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_template_sha=$(sha256sum "$TEMPLATE_PATH" | awk '{print $1}')
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "TEMPLATE_SHA256=$actual_template_sha" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=AUTO-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          else
+            echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
+            echo "TEMPLATE_SHA256=${{ inputs.template_sha256 }}" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
+          fi
+
+      - name: Validate exact-main authorization and deployment controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$DEPLOY_MAIN_SHA"
+          actual_template_sha=$(sha256sum "$TEMPLATE_PATH" | awk '{print $1}')
+          test "$actual_template_sha" = "$TEMPLATE_SHA256"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}"
+          else
+            test "$AUTHORIZATION_ID" = "AUTO-STAGING-AUTONOMOUS-LANDING-${GITHUB_SHA:0:12}-${actual_template_sha:0:12}-${GITHUB_RUN_ID}"
+          fi
+          node scripts/governance/validate-autonomous-landing-aws-template-v1.mjs
+          node --test tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
+
+      - name: Configure exact workflow-scoped AWS OIDC credentials
+        run: |
+          set -euo pipefail
+          profile_path="$RUNNER_TEMP/kidults-autonomous-landing-oidc-${GITHUB_RUN_ID}.ini"
+          {
+            echo '[profile kidults-autonomous-landing-oidc]'
+            echo "credential_process = bash $GITHUB_WORKSPACE/scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh $AWS_ROLE_ARN kidults-autonomous-landing-${GITHUB_RUN_ID}"
+            echo "region = $AWS_REGION"
+          } > "$profile_path"
+          chmod 600 "$profile_path"
+          {
+            echo "AWS_CONFIG_FILE=$profile_path"
+            echo 'AWS_PROFILE=kidults-autonomous-landing-oidc'
+            echo 'AWS_SDK_LOAD_CONFIG=1'
+          } >> "$GITHUB_ENV"
+
+      - name: Verify governed deployer bootstrap prerequisite
+        run: |
+          set -euo pipefail
+          aws iam get-role-policy \
+            --role-name "kidults-autonomous-landing-deployer-staging-v1" \
+            --policy-name "deploy-exact-autonomous-landing-stack" \
+            --query PolicyDocument --output json > "$RUNNER_TEMP/deployer-policy.json"
+          jq -e '
+            ([.Statement[]
+              | select((.Action | if type=="array" then . else [.] end) | index("iam:PutRolePolicy"))
+              | .Resource] | flatten | sort)
+            ==
+            ([
+              "arn:aws:iam::528314240275:role/kidults-autonomous-finalizer-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-ledger-writer-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-track-staging-role",
+              "arn:aws:iam::528314240275:role/kidults-autonomous-verifier-staging-role"
+            ] | sort)
+          ' "$RUNNER_TEMP/deployer-policy.json" >/dev/null
+
+      - name: Prove deployed-template delta is exactly the bounded Query grant
+        id: preflight
+        run: |
+          set -euo pipefail
+          mkdir -p out/autonomous-landing-staging-deploy-v1
+          stack_status="$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text)"
+          stack_status_reason="$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatusReason' --output text)"
+          echo "::notice::STAGING CloudFormation stack status=$stack_status reason=$stack_status_reason"
+          test "$stack_status" = UPDATE_COMPLETE -o "$stack_status" = UPDATE_ROLLBACK_COMPLETE -o "$stack_status" = CREATE_COMPLETE
+          aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-template.json"
+          validation=$(node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs --current "$RUNNER_TEMP/current-template.json" --desired "$TEMPLATE_PATH")
+          mode=$(jq -er '.mode' <<<"$validation")
+          test "$mode" = CHANGE_REQUIRED -o "$mode" = ALREADY_APPLIED
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$validation" > out/autonomous-landing-staging-deploy-v1/template-delta-validation.json
+
+      - name: Create and validate exact bounded CloudFormation change set
+        if: steps.preflight.outputs.mode == 'CHANGE_REQUIRED'
+        id: changeset
+        run: |
+          set -euo pipefail
+          change_set="kidults-autonomous-landing-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          aws cloudformation describe-stacks --stack-name "$STACK_NAME" --output json \
+            | jq '[.Stacks[0].Parameters[] | {ParameterKey,UsePreviousValue:true}]' > "$RUNNER_TEMP/parameters.json"
+          jq -c . "$TEMPLATE_PATH" > "$RUNNER_TEMP/desired-template.compact.json"
+          test "$(wc -c < "$RUNNER_TEMP/desired-template.compact.json")" -le 51200
+          aws cloudformation create-change-set \
+            --stack-name "$STACK_NAME" \
+            --change-set-name "$change_set" \
+            --change-set-type UPDATE \
+            --template-body "file://$RUNNER_TEMP/desired-template.compact.json" \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameters "file://$RUNNER_TEMP/parameters.json" >/dev/null
+          aws cloudformation wait change-set-create-complete --stack-name "$STACK_NAME" --change-set-name "$change_set"
+          aws cloudformation describe-change-set --stack-name "$STACK_NAME" --change-set-name "$change_set" --output json > "$RUNNER_TEMP/change-set.json"
+          node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs \
+            --current "$RUNNER_TEMP/current-template.json" \
+            --desired "$TEMPLATE_PATH" \
+            --changeset "$RUNNER_TEMP/change-set.json" \
+            > out/autonomous-landing-staging-deploy-v1/change-set-validation.json
+          echo "name=$change_set" >> "$GITHUB_OUTPUT"
+
+      - name: Execute exact bounded CloudFormation change set
+        if: steps.preflight.outputs.mode == 'CHANGE_REQUIRED'
+        run: |
+          set -euo pipefail
+          aws cloudformation execute-change-set --stack-name "$STACK_NAME" --change-set-name "${{ steps.changeset.outputs.name }}"
+          set +e
+          aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"
+          wait_exit=$?
+          set -e
+          if [ "$wait_exit" -ne 0 ]; then
+            aws cloudformation describe-stack-events --stack-name "$STACK_NAME" --max-items 50 --output json               > out/autonomous-landing-staging-deploy-v1/cloudformation-stack-events-failure.json || true
+            cat out/autonomous-landing-staging-deploy-v1/cloudformation-stack-events-failure.json || true
+            exit "$wait_exit"
+          fi
+
+      - name: Read back exact role policies and emit terminal receipt
+        run: |
+          set -euo pipefail
+          test "$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query 'Stacks[0].StackStatus' --output text)" = UPDATE_COMPLETE
+          roles=(track kpmo verifier)
+          for role in "${roles[@]}"; do
+            role_name="kidults-autonomous-${role}-staging-role"
+            policy_name="kidults-autonomous-${role}-approval"
+            aws iam get-role-policy --role-name "$role_name" --policy-name "$policy_name" --query PolicyDocument --output json > "$RUNNER_TEMP/${role}-policy.json"
+            jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["dynamodb:Query"] or .Action=="dynamodb:Query") and .Resource=="arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger" and .Condition["ForAllValues:StringLike"]["dynamodb:LeadingKeys"]==["AUTH#*"])] | length == 1' "$RUNNER_TEMP/${role}-policy.json" >/dev/null
+            jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/${role}-policy.json" >/dev/null
+            jq -e '[.Statement[].Action] | flatten | map(select(.=="dynamodb:PutItem" or .=="dynamodb:UpdateItem" or .=="dynamodb:DeleteItem" or .=="dynamodb:BatchWriteItem")) | length == 0' "$RUNNER_TEMP/${role}-policy.json" >/dev/null
+          done
+          aws lambda get-function --function-name "kidults-autonomous-ledger-writer-staging" --query Configuration.FunctionName --output text > "$RUNNER_TEMP/ledger-writer-function-name.txt"
+          aws iam get-role-policy --role-name "kidults-autonomous-ledger-writer-staging-role" --policy-name "kidults-autonomous-ledger-conditional-writes" --query PolicyDocument --output json > "$RUNNER_TEMP/writer-policy.json"
+          jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/writer-policy.json" >/dev/null
+          jq -e '[.Statement[].Action] | flatten | map(select(startswith("kms:"))) | sort == ["kms:Decrypt","kms:Verify"]' "$RUNNER_TEMP/writer-policy.json" >/dev/null
+          aws iam get-role-policy --role-name "kidults-autonomous-finalizer-staging-role" --policy-name "kidults-autonomous-finalizer" --query PolicyDocument --output json > "$RUNNER_TEMP/finalizer-policy.json"
+          jq -e '[.Statement[] | select(.Effect=="Allow" and (.Action==["kms:Decrypt"] or .Action=="kms:Decrypt") and .Resource=="arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0")] | length == 1' "$RUNNER_TEMP/finalizer-policy.json" >/dev/null
+          jq -e '
+            ([.Statement[]
+              | select(.Effect=="Allow")
+              | select((.Action | if type=="array" then . else [.] end) | index("kms:Decrypt"))
+              | .Resource] | flatten | sort)
+            ==
+            ([
+              "arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",
+              "arn:aws:kms:ap-northeast-2:528314240275:key/088c00e6-bfc3-4aea-8dbf-b9e98ac2e8c7"
+            ] | sort)
+          ' "$RUNNER_TEMP/finalizer-policy.json" >/dev/null
+          deployed_template_sha=$(aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json \
+            | jq -S -c . | sha256sum | awk '{print $1}')
+          desired_template_sha=$(jq -S -c . "$TEMPLATE_PATH" | sha256sum | awk '{print $1}')
+          test "$deployed_template_sha" = "$desired_template_sha"
+          jq -n \
+            --arg exact_main_sha "$GITHUB_SHA" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg authorization_id "$AUTHORIZATION_ID" \
+            --arg template_sha256 "$TEMPLATE_SHA256" \
+            --arg mode "${{ steps.preflight.outputs.mode }}" \
+            --arg change_set "${{ steps.changeset.outputs.name }}" \
+            '{id:"kidults-autonomous-landing-staging-deploy-receipt-v1",version:"1.0.0",state:"DEPLOYED_VERIFIED",environment:"STAGING",exact_main_sha:$exact_main_sha,run_id:$run_id,authorization_id:$authorization_id,template_sha256:$template_sha256,deployment_mode:$mode,change_set:(if $change_set=="" then null else $change_set end),stack:"kidults-autonomous-internal-landing-staging-v1",bounded_roles:["kidults-autonomous-track-staging-role","kidults-autonomous-kpmo-staging-role","kidults-autonomous-verifier-staging-role"],allowed_action:"dynamodb:Query",allowed_kms_action:"kms:Decrypt",allowed_kms_resource:"arn:aws:kms:ap-northeast-2:528314240275:key/03d855ac-8e8c-4465-9984-bbf92987c6a0",allowed_leading_key:"AUTH#*",dynamodb_write_actions:"DENIED",writer_role:"kidults-autonomous-ledger-writer-staging-role",writer_allowed_kms_action:"kms:Decrypt",finalizer_role:"kidults-autonomous-finalizer-staging-role",finalizer_allowed_kms_action:"kms:Decrypt",production:"HOLD",public:"HOLD",g5:"HOLD",provider_activation:"HOLD"}' \
+            > out/autonomous-landing-staging-deploy-v1/terminal-receipt.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        if: always()
+        with:
+          name: kidults-autonomous-landing-staging-deploy-${{ github.run_id }}
+          path: out/autonomous-landing-staging-deploy-v1
+          if-no-files-found: error
+          retention-days: 90

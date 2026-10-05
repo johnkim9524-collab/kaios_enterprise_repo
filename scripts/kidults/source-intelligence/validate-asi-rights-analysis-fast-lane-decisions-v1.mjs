@@ -118,6 +118,7 @@ function validate(fastLane,document,snapshots,validationTime){
   assert(JSON.stringify(document.pass_scope_requirements?.required_rights_atoms)===JSON.stringify(atoms)&&JSON.stringify(document.pass_scope_requirements?.required_product_rights)===JSON.stringify(productRights)&&JSON.stringify(document.pass_scope_requirements?.required_operating_scope)===JSON.stringify(operatingScopes)&&JSON.stringify(document.pass_scope_requirements?.required_lifecycle_rights)===JSON.stringify(lifecycleRights)&&document.pass_scope_requirements?.pass_value==='ALLOW'&&document.pass_scope_requirements?.unknown_or_missing_is_hold===true,'PASS_SCOPE_CONTRACT');
   assert(document.records.length===fastLane.items.length&&document.records.length>0&&new Set(decisionIds).size===document.records.length,'DECISION_SET_DEDUPE');
   assert(JSON.stringify(fastIds)===JSON.stringify(decisionIds),'FAST_LANE_DECISION_SET_DRIFT');
+  const staleFailClosedExclusions=[];
   for(const record of document.records){
     const expectedProviderId=sourceProvider.get(record.source_id);
     assert(record.provider_id===expectedProviderId,`SOURCE_PROVIDER_BINDING:${record.source_id}`);
@@ -143,7 +144,22 @@ function validate(fastLane,document,snapshots,validationTime){
     const reviewedAt=Date.parse(evidence.reviewed_at);const recheckDueAt=Date.parse(evidence.recheck_due_at);
     assert(validationTime.getTime()>=reviewedAt,`EVIDENCE_REVIEWED_IN_FUTURE:${record.source_id}`);
     assert(recheckDueAt>reviewedAt&&recheckDueAt-reviewedAt<=31*24*60*60*1000,`EVIDENCE_RECHECK_WINDOW:${record.source_id}`);
-    assert(validationTime.getTime()<=recheckDueAt,`EVIDENCE_RECHECK_OVERDUE:${record.source_id}`);
+    const evidenceOverdue=validationTime.getTime()>recheckDueAt;
+    if(evidenceOverdue){
+      // An expired positive decision must never retain authority.  An expired
+      // HOLD/NO_GO decision already denies every rights atom, so keeping the
+      // source excluded is fail-closed and must not take the discovery control
+      // plane offline.  Preserve that distinction as an explicit receipt for
+      // downstream audit instead of converting stale negative evidence into
+      // either authority or a fleet-wide outage.
+      assert(!promotableDecisions.has(record.decision),`EVIDENCE_RECHECK_OVERDUE_PROMOTABLE:${record.source_id}`);
+      staleFailClosedExclusions.push({
+        source_id:record.source_id,
+        decision:record.decision,
+        recheck_due_at:evidence.recheck_due_at,
+        state:'STALE_FAIL_CLOSED_EXCLUSION'
+      });
+    }
     assert(evidence.review_method==='OFFICIAL_PAGE_TERMS_TRIAGE',`EVIDENCE_REVIEW_METHOD:${record.source_id}`);
     assert(['MANIFEST_BOUND_SOURCE_CONTENT_SNAPSHOT_PENDING','SOURCE_CONTENT_SNAPSHOT_BOUND'].includes(evidence.snapshot_state),`EVIDENCE_SNAPSHOT_STATE:${record.source_id}`);
     assert(evidence.binding_digest===evidenceDigest(record,document),`EVIDENCE_BINDING_DIGEST:${record.source_id}`);
@@ -164,7 +180,7 @@ function validate(fastLane,document,snapshots,validationTime){
   assert(document.summary.rights_clear_for_current_sold===counts.PASS,'RIGHTS_CLEAR_PASS_COUNT_DRIFT');
   assert(document.summary.active_adapters<=document.summary.rights_clear_for_current_sold,'ADAPTER_WITHOUT_RIGHTS_CLEAR_SOURCE');
   assert(document.truth_boundary.official_page_visibility_is_permission===false&&document.truth_boundary.acquisition_authorized===false&&document.truth_boundary.production_authorized===false,'TRUTH_BOUNDARY');
-  return {decisionCounts:counts,snapshotCounts:validateSnapshots(document,snapshots)};
+  return {decisionCounts:counts,snapshotCounts:validateSnapshots(document,snapshots),staleFailClosedExclusions};
 }
 
 const validated=validate(f,d,s,asOf);const counts=validated.decisionCounts;
@@ -182,9 +198,12 @@ dynamicSnapshot.retention_and_deletion_class='PENDING_RIGHTS_APPROVED_CAPTURE_CL
 dynamicSnapshots.summary.reference_only_not_captured_due_restriction--;
 dynamicSnapshots.summary.capture_permission_evidence_pending++;
 validate(f,dynamicCandidate,dynamicSnapshots,asOf);
-const expectFailure=(code,mutate,time=asOf)=>{const candidate=clone(d);const snapshotCandidate=clone(s);mutate(candidate,snapshotCandidate);let error=null;try{validate(f,candidate,snapshotCandidate,time)}catch(caught){error=caught}assert(error?.message?.startsWith(code),`NEGATIVE_TEST_DID_NOT_FAIL:${code}:${error?.message||'NONE'}`);};
+const freshEvidenceTime=new Date(Math.min(...d.records.map(record=>Date.parse(record.evidence_binding.recheck_due_at)))-1);
+const expectFailure=(code,mutate,time=freshEvidenceTime)=>{const candidate=clone(d);const snapshotCandidate=clone(s);mutate(candidate,snapshotCandidate);let error=null;try{validate(f,candidate,snapshotCandidate,time)}catch(caught){error=caught}assert(error?.message?.startsWith(code),`NEGATIVE_TEST_DID_NOT_FAIL:${code}:${error?.message||'NONE'}`);};
 expectFailure('EVIDENCE_BINDING_DIGEST:',candidate=>{candidate.records[0].rights.collect='ALLOW'});
-expectFailure('EVIDENCE_RECHECK_OVERDUE:',()=>{},new Date('2026-09-29T00:00:00.001Z'));
+const staleNegativeValidation=validate(f,d,s,new Date('2026-09-29T00:00:00.001Z'));
+assert(staleNegativeValidation.staleFailClosedExclusions.length===d.records.length,'STALE_NEGATIVE_EXCLUSION_SET_INCOMPLETE');
+expectFailure('EVIDENCE_RECHECK_OVERDUE_PROMOTABLE:',candidate=>{candidate.records[0].decision='CONDITIONAL'},new Date('2026-09-29T00:00:00.001Z'));
 expectFailure('PROMOTION_WITHOUT_SOURCE_SNAPSHOT:',candidate=>{const record=candidate.records.find(item=>item.decision==='HOLD');record.decision='CONDITIONAL';candidate.summary.hold--;candidate.summary.conditional++;record.evidence_binding.binding_digest=evidenceDigest(record,candidate)});
 expectFailure('SNAPSHOT_EVIDENCE_URL_DRIFT:',(_candidate,snapshots)=>{snapshots.records[0].official_evidence_urls[0]='https://example.invalid/forged'});
 expectFailure('SNAPSHOT_RETRIEVED_AT:',(_candidate,snapshots)=>{const record=snapshots.records.find(item=>item.capture_state==='CAPTURE_PERMISSION_EVIDENCE_PENDING');record.capture_state='SOURCE_CONTENT_SNAPSHOT_BOUND';record.capture_authorized=true;record.decision_promotion_eligible=true;snapshots.summary.capture_permission_evidence_pending--;snapshots.summary.source_content_snapshot_bound++;snapshots.summary.promotion_eligible++});
@@ -192,4 +211,4 @@ expectFailure('PENDING_OR_REFERENCE_PROMOTION:',(_candidate,snapshots)=>{snapsho
 expectFailure('COMMUNICATION_STATE_DRIFT:',candidate=>{candidate.records.find(record=>record.source_id==='mecum-auction-results').communication_state='NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY'});
 expectFailure('COMMUNICATION_EVIDENCE_REF_INVALID:',candidate=>{candidate.records.find(record=>record.source_id==='broad-arrow-results').communication_evidence_refs=['coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#fabricated']});
 expectFailure('FALSE_PASS_SCOPE:',(candidate,snapshots)=>{const record=candidate.records.find(item=>item.decision==='HOLD');record.decision='PASS';record.rights={collect:'ALLOW',store:'ALLOW',derive:'ALLOW',commercial_use:'ALLOW'};record.evidence_binding.snapshot_state='SOURCE_CONTENT_SNAPSHOT_BOUND';candidate.summary.hold--;candidate.summary.pass++;candidate.summary.rights_clear_for_current_sold++;record.evidence_binding.binding_digest=evidenceDigest(record,candidate);const snapshot=snapshots.records.find(item=>item.source_id===record.source_id);snapshot.capture_state='SOURCE_CONTENT_SNAPSHOT_BOUND';snapshot.capture_authorized=true;snapshot.decision_promotion_eligible=true;snapshot.retrieved_at='2026-08-30T00:00:00Z';snapshot.final_url=snapshot.official_evidence_urls[0];snapshot.http_status=200;snapshot.document_version='test-version-v1';snapshot.precise_locator='section:test';snapshot.source_content_sha256=`sha256:${'a'.repeat(64)}`;snapshot.governed_object_ref='governed-object:test';snapshot.retention_and_deletion_class='TEST_BOUND';snapshots.summary.capture_permission_evidence_pending--;snapshots.summary.source_content_snapshot_bound++;snapshots.summary.promotion_eligible++});
-console.log(JSON.stringify({suite:'KIDULTS_ASI_RIGHTS_ANALYSIS_FAST_LANE_DECISIONS_V1',result:'PASS',sources:d.records.length,decisions:counts,snapshots:validated.snapshotCounts,dynamic_decision_counts_verified:true,evidence_bindings:d.records.length,stale_evidence_fail_closed:true,digest_tamper_fail_closed:true,promotion_without_snapshot_fail_closed:true,snapshot_url_drift_fail_closed:true,false_snapshot_binding_fail_closed:true,reference_only_promotion_fail_closed:true,four_atom_only_pass_rejected:true,rights_clear_for_current_sold:d.summary.rights_clear_for_current_sold,production:d.truth_boundary.production}));
+console.log(JSON.stringify({suite:'KIDULTS_ASI_RIGHTS_ANALYSIS_FAST_LANE_DECISIONS_V1',result:'PASS',sources:d.records.length,decisions:counts,snapshots:validated.snapshotCounts,dynamic_decision_counts_verified:true,evidence_bindings:d.records.length,stale_fail_closed_exclusions:validated.staleFailClosedExclusions,stale_negative_evidence_is_non_authorizing_exclusion:true,stale_promotable_evidence_fail_closed:true,digest_tamper_fail_closed:true,promotion_without_snapshot_fail_closed:true,snapshot_url_drift_fail_closed:true,false_snapshot_binding_fail_closed:true,reference_only_promotion_fail_closed:true,four_atom_only_pass_rejected:true,rights_clear_for_current_sold:d.summary.rights_clear_for_current_sold,production:d.truth_boundary.production}));

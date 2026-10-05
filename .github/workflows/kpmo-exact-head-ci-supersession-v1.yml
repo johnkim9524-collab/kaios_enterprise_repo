@@ -72,13 +72,28 @@ jobs:
             esac
           }
 
+          retain_autonomous_landing() {
+            local run_event="$1"
+            local workflow_path="$2"
+            [[ "${run_event}" == "repository_dispatch" ]] || return 1
+            case "${workflow_path}" in
+              ".github/workflows/kidults-autonomous-track-authorization-v1.yml"|".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml"|".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml") return 0 ;;
+              *) return 1 ;;
+            esac
+          }
+
           read_run_terminal() {
             local target_run_id="$1"
+            local max_attempts="${2:-8}"
             local readback_code=""
             local latest_status=""
             local latest_conclusion=""
             local attempts=0
-            for readback_attempt in $(seq 1 8); do
+            [[ "${max_attempts}" =~ ^[1-9][0-9]*$ ]] && [[ "${max_attempts}" -le 30 ]] || {
+              echo "Invalid terminal read-back bound ${max_attempts}" >&2
+              return 1
+            }
+            for readback_attempt in $(seq 1 "${max_attempts}"); do
               attempts="${readback_attempt}"
               readback_code="$(curl --silent --show-error --output /tmp/run-readback.json --write-out '%{http_code}' \
                 -H "Authorization: Bearer ${GH_TOKEN}" \
@@ -151,6 +166,15 @@ jobs:
                 continue
               fi
 
+              # A successful landing advances main while its elected finalizer
+              # still consumes post-merge checks and seals the durable receipt.
+              # Each retained workflow independently validates signed authority
+              # and has a bounded timeout; retention grants no merge authority.
+              if retain_autonomous_landing "${run_event}" "${workflow_path}"; then
+                generation_bridge_retained=$((generation_bridge_retained + 1))
+                continue
+              fi
+
               if [[ "${head_sha}" == "${EXACT_HEAD_SHA}" ]]; then
                 exact_head_retained=$((exact_head_retained + 1))
                 continue
@@ -177,7 +201,7 @@ jobs:
               done
 
               if [[ "${code}" == "202" || "${code}" == "409" || "${code}" == "429" || "${code}" =~ ^5[0-9][0-9]$ ]]; then
-                readback_result="$(read_run_terminal "${run_id}")"
+                readback_result="$(read_run_terminal "${run_id}" 12)"
                 latest_status="$(jq -r '.status' <<<"${readback_result}")"
                 latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
                 readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"
@@ -198,7 +222,7 @@ jobs:
                 force_cancel_attempts=$((force_cancel_attempts + force_attempts))
 
                 if [[ "${force_code}" == "202" || "${force_code}" == "409" || "${force_code}" == "429" || "${force_code}" =~ ^5[0-9][0-9]$ ]]; then
-                  readback_result="$(read_run_terminal "${run_id}")"
+                  readback_result="$(read_run_terminal "${run_id}" 30)"
                   latest_status="$(jq -r '.status' <<<"${readback_result}")"
                   latest_conclusion="$(jq -r '.conclusion' <<<"${readback_result}")"
                   readback_attempts="$(jq -r '.attempts' <<<"${readback_result}")"

@@ -1,0 +1,56 @@
+{
+  "id": "kidults-autonomous-policy-alignment-2026-09-24-v1",
+  "state": "VERIFIED_PASS",
+  "authority": "PROGRAM_OWNER_EXPLICIT_POLICY_ALIGNMENT_DIRECTION",
+  "scope": "REPOSITORY_WIDE_AUTONOMOUS_GOVERNANCE_POLICY_AND_ENFORCEMENT",
+  "findings": [
+    {
+      "id": "AP-001",
+      "severity": "P0",
+      "finding": "Blanket path reservation classified every workflow and KPMO implementation change as Owner-only even when internal, reversible and authority-neutral.",
+      "disposition": "REPLACED_WITH_EXACT_PATH_AND_ADDED_EFFECT_CLASSIFICATION"
+    },
+    {
+      "id": "AP-002",
+      "severity": "P0",
+      "finding": "Policy wording could be read as requiring human independent review for every AI-020 landing.",
+      "disposition": "MANUAL_REVIEW_DISABLED_AUTOMATED_DISTINCT_MACHINE_VERIFICATION_RETAINED"
+    },
+    {
+      "id": "AP-003",
+      "severity": "P1",
+      "finding": "Unknown or unavailable workflow patches could otherwise escape semantic effect classification.",
+      "disposition": "FAIL_CLOSED_OWNER_REQUIRED"
+    }
+  ],
+  "owner_reserved_boundaries_retained": [
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "EXTERNAL_COMMUNICATION",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "LEGAL_POLICY_EXCEPTION",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "CREDENTIAL_OR_PERMISSION_EXPANSION",
+    "SECRET_CREATE_READ_ROTATE_EXPORT",
+    "TRUST_ROOT_OR_RULESET_WEAKENING",
+    "DESTRUCTIVE_DATA_OPERATION",
+    "PROTECTED_PROMOTION_OR_RELEASE"
+  ],
+  "manual_independent_review_required": false,
+  "automated_distinct_machine_verification_required": true,
+  "verification_evidence": [
+    "kidults-delegated-autonomous-internal-authority-validation-v1:VERIFIED_PASS",
+    "kidults-autonomous-approval-policy-envelope-v1:VERIFIED_PASS",
+    "tests/governance/autonomous-policy-alignment-v1.test.mjs:4_PASS",
+    "tests/governance/delegated-autonomous-internal-authority-v1.test.mjs:13_PASS",
+    "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs:10_PASS",
+    "tests/kidults/kpmo/governed-landing-authorization-policy-v1.test.mjs:65_PASS",
+    "scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs:13_POSITIVE_31_NEGATIVE_PASS",
+    "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs:PASS"
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

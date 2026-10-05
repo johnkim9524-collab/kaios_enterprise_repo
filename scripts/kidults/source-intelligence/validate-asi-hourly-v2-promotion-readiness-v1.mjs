@@ -22,7 +22,20 @@ for(const c of cycles){
   if(!Number.isInteger(num(r.common_crawl_seed_hosts))||num(r.common_crawl_seed_hosts)<1||num(r.common_crawl_seed_hosts)>8)fail('COMMON_CRAWL_SEED_BUDGET');
   if(num(r.common_crawl_observed_candidates)<0||num(r.common_crawl_new_candidates)<0||num(r.common_crawl_new_candidates)>num(r.common_crawl_observed_candidates))fail('COMMON_CRAWL_COUNTS');
   if(num(r.discovered_candidates)<1||num(r.live_external_candidates)<1||num(r.healthy_live_lanes)<1)fail('V2_DISCOVERY_EMPIRICAL');
-  if(num(r.gate1_safe_candidates)+num(r.gate1_review_required)+num(r.gate1_hard_blocked)!==num(r.discovered_candidates))fail('GATE1_PARTITION');
+  // Gate1 consumes product-value-filtered candidates; discovery includes the
+  // excluded enrichment queue. Legacy receipts retain their original partition.
+  const partitionFields=['gate1_partition_contract','gate1_input_candidate_count','product_value_enrichment_queue_count'];
+  const explicitPartition=partitionFields.some(key=>Object.hasOwn(r,key));
+  let gate1Input=num(r.discovered_candidates);
+  if(explicitPartition){
+    if(partitionFields.some(key=>!Object.hasOwn(r,key))||r.gate1_partition_contract!=='PRODUCT_VALUE_GATED_DISCOVERY_V1')fail('GATE1_PARTITION_CONTRACT');
+    for(const key of ['discovered_candidates','gate1_input_candidate_count','product_value_enrichment_queue_count','gate1_safe_candidates','gate1_review_required','gate1_hard_blocked']){
+      if(typeof r[key]!=='number'||!Number.isSafeInteger(r[key])||r[key]<0)fail('GATE1_PARTITION_COUNT');
+    }
+    gate1Input=r.gate1_input_candidate_count;
+    if(gate1Input+r.product_value_enrichment_queue_count!==r.discovered_candidates)fail('PRODUCT_VALUE_PARTITION');
+  }
+  if(num(r.gate1_safe_candidates)+num(r.gate1_review_required)+num(r.gate1_hard_blocked)!==gate1Input)fail('GATE1_PARTITION');
   if(num(r.gate2_verified_for_gate3)>num(r.gate1_safe_candidates))fail('GATE2_BOUNDARY');
   if(num(r.gate3_bounded_metadata_admitted)>num(r.gate2_verified_for_gate3))fail('GATE3_BOUNDARY');
   if(num(r.rolling_discovery_pool_candidates)<num(r.discovered_candidates))fail('ROLLING_POOL_REGRESSION');

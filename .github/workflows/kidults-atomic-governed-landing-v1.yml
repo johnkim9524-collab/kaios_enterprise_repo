@@ -1,4 +1,6 @@
 name: KIDULTS Atomic Governed Landing V1
+# RECOVERY_ONLY: normal internal reversible landing is delegated to
+# the role-scoped Track / KPMO / Independent Verifier autonomous workflows under AI-020.
 run-name: "KIDULTS Atomic Landing PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.landing_authorization_id }}"
 
 on:
@@ -164,6 +166,7 @@ jobs:
           EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
+          KIDULTS_AUTHORITY_CLASS: OWNER_RESERVED_RECOVERY
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
           ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS: ${{ inputs.event_emitting_transport_wait_seconds }}

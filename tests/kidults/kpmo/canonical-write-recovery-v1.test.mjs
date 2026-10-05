@@ -65,7 +65,7 @@ globalThis.fetch=async (url,opts={})=>{
  const p=u.pathname.replace('/repos/'+repo,'');requests.push({method,path:p});
  let value;
  if(method==='GET'&&p==='/branches/main'){mainReads++;value={commit:{sha:o.mainDrift&&mainReads>1?'b'.repeat(40):main}};}
- else if(method==='GET'&&u.pathname==='/search/issues'){searches++;const posts=requests.filter(x=>x.method==='POST').length; const changed=(o.beforeCommit&&posts===25)||(o.afterCommit&&posts===26)||(o.liveDrift&&searches>1); const items=changed?[...live,issue(11)]:live;value={items,incomplete_results:false,total_count:items.length};}
+ else if(method==='GET'&&p==='/issues'){searches++;const posts=requests.filter(x=>x.method==='POST').length; const changed=(o.beforeCommit&&posts===25)||(o.afterCommit&&posts===26)||(o.liveDrift&&searches%2===0); const items=changed?[...live,issue(11)]:live;value=items;}
  else if(method==='GET'&&p==='/issues/344/comments')value=o.readbackMissing&&requests.filter(x=>x.method==='POST').length===26?[]:[aggregate];
  else if(method==='GET'&&p==='/issues/1713/comments')value=o.noApproval?[]:[approval];
  else if(method==='GET'&&p.startsWith('/issues/comments/')){
