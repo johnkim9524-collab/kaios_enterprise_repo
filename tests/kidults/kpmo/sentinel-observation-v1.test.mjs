@@ -40,6 +40,16 @@ test('PASS needs all four producer content proofs and successful resolver outcom
  assert.throws(()=>validateSentinelObservation(seal(r),{...env,SENTINEL_RESOLVER_OUTCOME:'success'}));
  assert.throws(()=>validateSentinelObservation(seal(receipt('VERIFIED_PASS')),env));
 });
+test('an unbound producer cohort remains HOLD without a synthetic producer id',()=>{
+ const r=receipt('VERIFIED_HOLD');
+ r.semantic_content_verified=false;
+ r.producers=ids.map(id=>({id,state:'VERIFIED_PASS',artifact_content_validated:true}));
+ r.failed_producers=[];
+ r.waiting_producers=[];
+ r.producer_cohort_bound=false;
+ r.producer_cohort_failure_class='PRODUCER_COHORT_WINDOW_EXCEEDED';
+ assert.equal(validateSentinelObservation(seal(r),env).semantic_health_state,'VERIFIED_HOLD');
+});
 test('repository-wide fanout stays inside unchanged limits with existing mutation guards',()=>{
  const p=spawnSync(process.execPath,['scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'],{encoding:'utf8',timeout:15000});
  assert.equal(p.status,0,p.stderr);const report=JSON.parse(p.stdout);

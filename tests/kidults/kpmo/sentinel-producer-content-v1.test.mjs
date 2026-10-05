@@ -195,6 +195,18 @@ for(const url of ['http://x.blob.core.windows.net/x','https://evil.example/x','h
 test('artifact redirect accepts HTTPS signed storage without credentials',()=>assert.equal(allowedArtifactRedirect('https://example.blob.core.windows.net/artifact?sig=test').hostname,'example.blob.core.windows.net'));
 function healthInput(){const input={repository:REPOSITORY,source_sha:sha,observed_at:observed,observer_run_id:900,observer_run_attempt:1,runs:{},artifacts_by_run:{},archives_by_id:{}};for(const f of [shadow,coverage,reserve,canonical]){input.runs[f.spec.id]=[f.run];input.artifacts_by_run[f.run.id]=[f.artifact];input.archives_by_id[f.artifact.id]=f.bytes;}return input;}
 test('four content-verified producers can reach bounded aggregate PASS',()=>{const x=evaluateHealth(healthInput());assert.equal(x.state,'VERIFIED_PASS');assert.equal(x.semantic_content_verified,true);assert.equal(x.runtime_health_proven,false);assert.equal(x.whole_platform_authority,false);assert.equal(x.promotion_eligible,false);assert.equal(x.observer_run_id,900);assert.ok(!JSON.stringify(x).includes('SYNTHETIC_CONTROL'));const wire=JSON.parse(JSON.stringify(x)),{receipt_digest,...unsigned}=wire;assert.equal(receipt_digest,digest(stable(unsigned)));});
+test('an unbound producer cohort stays HOLD without a pseudo producer',()=>{
+ const input=healthInput();
+ const delayedRun={...input.runs.SHADOW[0],created_at:'2026-09-05T11:00:00Z',run_started_at:'2026-09-05T11:00:00Z'};
+ input.runs.SHADOW=[delayedRun];
+ input.artifacts_by_run[delayedRun.id]=input.artifacts_by_run[delayedRun.id].map(artifact=>({...artifact,created_at:'2026-09-05T11:01:00Z'}));
+ const x=evaluateHealth(input);
+ assert.equal(x.state,'VERIFIED_HOLD');
+ assert.equal(x.producer_cohort_bound,false);
+ assert.equal(x.producer_cohort_failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
+ assert.deepEqual(x.waiting_producers,[]);
+ assert.equal(x.producers.filter(p=>p.state==='VERIFIED_HOLD').length,0);
+});
 test('metadata-only proof remains HOLD even when a caller asserts validation',()=>{const x=healthInput();delete x.archives_by_id;x.artifact_content_validated=true;assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
 test('latest RED cannot fall back to old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',conclusion:'failure'}];assert.equal(evaluateHealth(x).state,'VERIFIED_FAIL');});
 test('new pending generation cannot reuse old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',status:'in_progress',conclusion:null}];assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
