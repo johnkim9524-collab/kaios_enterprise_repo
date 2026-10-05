@@ -89,7 +89,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs
 
   mission-directed-discovery:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -375,18 +375,6 @@ jobs:
             echo 'Validator accepted an invalid rolling cursor' >&2
             exit 1
           fi
-      - name: Reject manual-only activation mutation
-        run: |
-          set -euo pipefail
-          cp coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json /tmp/mission-directed-registry.json
-          node - <<'NODE'
-          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflows=[];fs.writeFileSync(p,JSON.stringify(x,null,2));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-mission-directed-discovery-registry-v1.mjs; then
-            echo 'Validator accepted manual-only mission discovery' >&2
-            exit 1
-          fi
-          mv /tmp/mission-directed-registry.json coordination/kidults/source-intelligence/asi-mission-directed-discovery-registry-v1.json
       - name: Revalidate pristine live outputs
         run: |
           set -euo pipefail

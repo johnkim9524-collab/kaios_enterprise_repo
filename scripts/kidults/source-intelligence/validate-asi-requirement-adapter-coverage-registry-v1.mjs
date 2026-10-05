@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import { spawnSync } from 'node:child_process';
 import {
   AUTHORITATIVE_INPUT_FILE_KEYS,
   MANIFEST_ALLOWLIST,
@@ -26,7 +27,9 @@ const files = {
 };
 const fail = (message) => { throw new Error(message); };
 const assert = (condition, message) => { if (!condition) fail(message); };
-const read = (file) => fs.readFileSync(file, 'utf8');
+// Git checkouts may use CRLF on Windows. Normalize before any line-oriented
+// workflow parsing so validation semantics are identical on every runner OS.
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 const json = (file) => JSON.parse(read(file));
 const same = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 for (const [name, file] of Object.entries(files)) assert(fs.existsSync(file), `REGISTERED_ASSET_MISSING:${name}:${file}`);
@@ -44,8 +47,9 @@ const semanticInputProjector = read(files.semanticInputProjector);
 const documentation = read(files.documentation);
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'CONTRACT_ID_VERSION');
-assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.3.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.3.0', 'CONTRACT_ID_VERSION');
+assert(artifactBindingSchema.additionalProperties === false && artifactBindingSchema.properties?.version?.const === '1.4.0', 'ARTIFACT_BINDING_SCHEMA_VERSION_STRICTNESS');
+assert(same(artifactBindingSchema.properties?.workflow_event?.enum, ['workflow_run', 'workflow_dispatch']) && artifactBindingSchema.properties?.exact_triggering_run_bound?.const === true, 'ARTIFACT_BINDING_SCHEMA_EVENT_STRICTNESS');
 assert(artifactBindingSchema.properties?.production_authorized?.const === false && !Object.hasOwn(artifactBindingSchema.properties || {}, 'production_eligible'), 'ARTIFACT_BINDING_SCHEMA_PRODUCTION_AUTHORITY');
 assert(artifactBindingSchema.properties?.upstream_class?.const === 'ASI_AUTONOMOUS_RESOLUTION' && artifactBindingSchema.required?.includes('canonical_run_key'), 'ARTIFACT_BINDING_SCHEMA_CANONICAL_RUN_IDENTITY');
 assert(contract.status === 'ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE', 'CONTRACT_STATUS');
@@ -251,10 +255,20 @@ assert(!/^\s{2}(schedule|push|pull_request):/m.test(workflow), 'WORKFLOW_UNBOUND
 assert(!workflow.includes('/actions/artifacts?per_page='), 'WORKFLOW_GLOBAL_ARTIFACT_LISTING_FORBIDDEN');
 assert(workflow.includes('/actions/runs/${RUN_ID}/artifacts?per_page=100'), 'WORKFLOW_EXACT_RUN_ARTIFACT_BINDING');
 assert(workflow.includes("consumer_event:process.env.GITHUB_EVENT_NAME"), 'WORKFLOW_CONSUMER_EVENT_BINDING_MISSING');
-assert(workflow.includes("exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'"), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
-assert(workflow.includes("authoritative_producer_event:run.event==='workflow_run'"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
+assert(workflow.includes('exact_triggering_run_bound:true'), 'WORKFLOW_EXACT_TRIGGER_CONSUMER_SEMANTICS');
+assert(workflow.includes("authoritative_producer_event:['workflow_run','workflow_dispatch'].includes(run.event)"), 'WORKFLOW_AUTHORITATIVE_PRODUCER_EVENT_MISSING');
 assert(workflow.includes('AUTHORITATIVE_PRODUCER_CARDINALITY') && workflow.includes('test "$AUTHORITATIVE_PRODUCER_CARDINALITY" = 1'), 'WORKFLOW_DUPLICATE_PRODUCER_REJECTION_MISSING');
 assert(runHistory.includes('AUTONOMOUS_RESOLUTION_RECEIPT_PRODUCER_IDENTITY_MISMATCH'), 'WORKFLOW_PRODUCER_RECEIPT_IDENTITY_MISSING');
+assert(workflow.includes('--event "$(jq -r .event /tmp/arl-run.json)"'), 'WORKFLOW_ARL_EVENT_SHELL_PARSE_SAFE');
+const arlEventLine = workflow.split('\n').find((line) => line.trimStart().startsWith('--event '));
+assert(Boolean(arlEventLine), 'WORKFLOW_ARL_EVENT_LINE_MISSING');
+const gitForWindowsBash = `${process.env.ProgramFiles || 'C:\\Program Files'}\\Git\\bin\\bash.exe`;
+const bashExecutable = process.platform === 'win32' && fs.existsSync(gitForWindowsBash)
+  ? gitForWindowsBash
+  : 'bash';
+const arlEventShell = spawnSync(bashExecutable, ['-n'], { input: `echo ${arlEventLine.trim().replace(/\\\s*$/, '')}\n`, encoding: 'utf8' });
+assert(!arlEventShell.error, `WORKFLOW_ARL_EVENT_SHELL_UNAVAILABLE:${arlEventShell.error?.code || 'UNKNOWN'}`);
+assert(arlEventShell.status === 0, 'WORKFLOW_ARL_EVENT_SHELL_SYNTAX');
 assert(workflow.includes('PRIOR_SUCCESS_COUNT="$READBACK_TOTAL"'), 'WORKFLOW_CANONICAL_ARTIFACT_COUNT_PROVES_PRIOR_PRODUCER');
 for (const pin of [
   'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',

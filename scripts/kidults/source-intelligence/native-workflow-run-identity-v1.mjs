@@ -12,8 +12,11 @@ export function nativeWorkflowRunNameMatches(run, workflowName, workflowPath) {
   }
   if (workflowPath === '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
       workflowName === 'KIDULTS ASI Requirement-to-Adapter Coverage v1') {
-    return typeof run.head_sha === 'string' && run.head_sha.length === 40 && /^[a-f0-9]{40}$/.test(run.head_sha) &&
-      run.display_title === `KIDULTS Coverage / source-${run.head_sha}`;
+    if (typeof run.display_title !== 'string' || run.name !== run.display_title) return false;
+    if (typeof run.head_sha === 'string' && run.head_sha.length === 40 && /^[a-f0-9]{40}$/.test(run.head_sha) &&
+        run.display_title === `KIDULTS Coverage / source-${run.head_sha}`) return true;
+    return Number.isSafeInteger(run.id) && run.id > 0 &&
+      run.display_title === `KIDULTS Coverage / manual-${run.id}`;
   }
   return false;
 }

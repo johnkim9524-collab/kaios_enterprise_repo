@@ -22,7 +22,7 @@ test('valid native source context stays fail-closed until later authorization ga
  const r=build(good);assert.equal(r.state,'DISPATCH_RECEIVED_FAIL_CLOSED');assert.equal(r.execution_source_sha,sha);
  assert.equal(r.execution_source_bound,true);assert.equal(r.merge_committed,false);
 });
-test('source-bound invalid authorization leaves durable sanitized receipt in actual CLI',()=>{
+test('source-bound invalid authorization leaves durable sanitized receipt in actual CLI', {skip: process.platform === 'win32' ? 'CLI binds checkout through the workflow POSIX trusted-Git path' : false},()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'atomic-source-'));
  try{
   const head=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();

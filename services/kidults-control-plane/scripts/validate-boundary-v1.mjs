@@ -416,11 +416,25 @@ export function validateBoundary(root = defaultRoot) {
   for (const runtime of [
     'enterprise-access.mjs', 'billing-ledger.mjs', 'observability-ledger.mjs',
     'outbox-delivery.mjs', 'supply-chain-admission.mjs',
-    'psa-cert-verification-adapter.mjs', 'psa-private-evaluation.mjs',
+    'psa-cert-verification-adapter.mjs',
     'workflow-receipt-ledger.mjs', 'workflow-canonical-run-claims.mjs'
   ]) {
     if (!fs.existsSync(path.join(root, 'services/kidults-control-plane/src', runtime))) {
       errors.push(`ENTERPRISE_RUNTIME_ADAPTER_MISSING:${runtime}`);
+    }
+  }
+
+  const psaFacade = path.join(root, 'services/kidults-control-plane/src/psa-cert-verification-adapter.mjs');
+  const psaPrivateModules = new Set([
+    path.join(root, 'services/kidults-control-plane/src/psa-private-evaluation.mjs'),
+    path.join(root, 'services/kidults-control-plane/src/psa-private-evaluation-store.mjs'),
+  ]);
+  const psaBoundaryValidator = path.join(root, 'services/kidults-control-plane/scripts/validate-boundary-v1.mjs');
+  for (const file of walk(root, (candidate) => /\.(?:mjs|js)$/.test(candidate))) {
+    if (file === psaFacade || file === psaBoundaryValidator || psaPrivateModules.has(file)) continue;
+    const source = fs.readFileSync(file, 'utf8');
+    if (/psa-private-evaluation(?:-store)?\.mjs/.test(source)) {
+      errors.push(`PSA_PRIVATE_MODULE_BYPASS:${path.relative(root, file).replaceAll('\\', '/')}`);
     }
   }
 

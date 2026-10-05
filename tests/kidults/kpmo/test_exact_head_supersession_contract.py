@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -12,7 +13,10 @@ def validate_contract(text: str) -> None:
     assert 'force_cancelled=0' in text
     assert 'force_cancel_attempts:$force_cancel_attempts' in text
     assert 'force_cancelled:$force_cancelled' in text
-    assert text.count('readback_result="$(read_run_terminal "${run_id}")"') >= 2
+    assert 'local max_attempts="${2:-8}"' in text
+    assert '[[ "${max_attempts}" -le 30 ]]' in text
+    assert 'readback_result="$(read_run_terminal "${run_id}" 12)"' in text
+    assert 'readback_result="$(read_run_terminal "${run_id}" 30)"' in text
     assert 'if [[ "${latest_conclusion}" == "cancelled" ]]' in text
     assert 'Cancellation not terminally confirmed for run' in text
     assert 'same_head_runs_cancelled:0' in text
@@ -50,7 +54,7 @@ def test_force_cancel_fallback_is_required() -> None:
 
 def test_force_cancel_requires_terminal_readback() -> None:
     text = WORKFLOW_PATH.read_text(encoding="utf-8")
-    needle = 'readback_result="$(read_run_terminal "${run_id}")"'
+    needle = 'readback_result="$(read_run_terminal "${run_id}" 30)"'
     mutated = text.replace(needle, 'readback_result="{\\"status\\":\\"in_progress\\",\\"conclusion\\":\\"\\",\\"attempts\\":0}"', 1)
     try:
         validate_contract(mutated)
@@ -97,3 +101,21 @@ def test_atomic_landing_generation_bridge_retention_is_required() -> None:
     except AssertionError:
         return
     raise AssertionError("Atomic Landing generation-bridge retention removal was not rejected")
+
+
+def test_autonomous_landing_retention_is_event_and_path_bounded() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    start = text.index('          retain_autonomous_landing() {')
+    end = text.index('\n          read_run_terminal()', start)
+    function = '\n'.join(line[10:] for line in text[start:end].splitlines())
+    protected = [
+        '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+        '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+        '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+    ]
+    for event in ['repository_dispatch', 'push', 'workflow_dispatch', 'pull_request_target']:
+        for workflow in protected + ['.github/workflows/ci-validation.yml', '.github/workflows/unknown.yml']:
+            result = subprocess.run(['bash', '-c', function + '\nretain_autonomous_landing "$1" "$2"', 'test', event, workflow])
+            assert (result.returncode == 0) == (event == 'repository_dispatch' and workflow in protected)
+    guard = text.index('if retain_autonomous_landing "${run_event}" "${workflow_path}"; then')
+    assert guard < text.index('/actions/runs/${run_id}/cancel', guard)

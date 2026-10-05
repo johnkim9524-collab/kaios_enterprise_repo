@@ -1,25 +1,15 @@
 name: KIDULTS ASI P0B Bounded Discovery Candidates v1
 
 on:
+  repository_dispatch:
+    types: [kidults.natural.clock.p0b.v1]
   workflow_dispatch:
   schedule:
+    # Two independent natural roots per hour. GitHub documents that an
+    # individual scheduled event may be delayed or dropped under load, so the
+    # second slot is a bounded delivery-redundancy control, not a manual replay.
+    - cron: '7 * * * *'
     - cron: '37 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-contract-v1.json'
-      - 'coordination/kidults/source-intelligence/asi-p0-mission-consumption-registry-v1.json'
-      - 'scripts/kidults/source-intelligence/asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-openalex-gdelt-public-metadata-discovery-v1.mjs'
-      - 'scripts/kidults/source-intelligence/merge-asi-public-metadata-rotations-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs'
-      - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
-      - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
-      - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
-      - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
   pull_request:
     branches: [main]
     paths:
@@ -34,35 +24,51 @@ on:
       - 'scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs'
+      - 'scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs'
       - 'docs/kidults/asi/asi-p0b-bounded-discovery-candidates-v1.md'
       - '.github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml'
-  workflow_run:
-    workflows:
-      - 'KIDULTS ASI P0 Mission Consumption v1'
-    branches: [main]
-    types: [completed]
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  # Distinct upstream completions and schedules must not share a cancellation namespace.
-  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  # P0B must be the schedule root: P1 -> ARL -> Coverage consumes all three workflow_run levels.
+  group: kidults-asi-p0b-bounded-discovery-candidates-v1-${{ github.event_name }}-${{ github.run_id }}
   cancel-in-progress: true
 
 jobs:
   bounded-discovery-candidates:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'P0B')
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Verify independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: kidults-autonomous-landing-staging[bot]
+          KIDULTS_NATURAL_CLOCK_SLOT: P0B
+        run: |
+          set -euo pipefail
+          export KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
+          test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
+      - name: Preserve independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-natural-clock-p0b-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-natural-clock-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Verify exact source, syntax and contracts
         run: |
           set -euo pipefail
@@ -74,7 +80,8 @@ jobs:
             scripts/kidults/source-intelligence/validate-asi-public-metadata-source-fabric-v1.mjs \
             scripts/kidults/source-intelligence/build-asi-p0b-bounded-discovery-candidates-v1.mjs \
             scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-candidates-v1.mjs \
-            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; do
+            scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
+            scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs; do
             node --check "$file"
           done
           node -e "JSON.parse(require('fs').readFileSync('coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-contract-v1.json','utf8'))"
@@ -84,6 +91,8 @@ jobs:
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs \
             | tee /tmp/kidults-asi-p0b-registry-validation-v1.json
+          node scripts/kidults/kpmo/validate-autonomous-workflow-activation-estate-v1.mjs \
+            | tee /tmp/kidults-autonomous-workflow-activation-estate-v1.json
       - name: Rebuild current P0 mission task queue
         run: |
           set -euo pipefail
@@ -194,18 +203,6 @@ jobs:
             echo 'Validator accepted unsupported market claim' >&2
             exit 1
           fi
-      - name: Reject manual-only activation mutation
-        run: |
-          set -euo pipefail
-          cp coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json /tmp/p0b-registry.json
-          node - <<'NODE'
-          const fs=require('fs');const p='coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json';const x=JSON.parse(fs.readFileSync(p));x.automatic_activation.main_push=false;x.automatic_activation.upstream_workflow='NONE';fs.writeFileSync(p,JSON.stringify(x,null,2));
-          NODE
-          if node scripts/kidults/source-intelligence/validate-asi-p0b-bounded-discovery-registry-v1.mjs; then
-            echo 'Validator accepted manual-only P0B activation' >&2
-            exit 1
-          fi
-          mv /tmp/p0b-registry.json coordination/kidults/source-intelligence/asi-p0b-bounded-discovery-candidate-registry-v1.json
       - name: Revalidate pristine P0B execution
         run: |
           set -euo pipefail

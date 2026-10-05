@@ -64,7 +64,7 @@ const outputManifest = json(file(required[4]));
 const baseline = contract.expected_current_main_baseline;
 const principles = ['AUTONOMOUS', 'GLOBAL', 'IRREPLACEABLE_VALUE', 'TRANSPARENT'];
 
-assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.2.0', 'CONTRACT_ID_VERSION');
+assert(contract.id === 'kidults-asi-requirement-adapter-coverage-contract-v1' && contract.version === '1.3.0', 'CONTRACT_ID_VERSION');
 assert(same(contract.platform_principles, principles), 'CONTRACT_PRINCIPLES');
 assert(same(contract.required_outputs, required), 'CONTRACT_REQUIRED_OUTPUTS');
 const artifactBindingValidator = new Ajv2020({ allErrors: true, strict: true }).compile(artifactBindingSchema);

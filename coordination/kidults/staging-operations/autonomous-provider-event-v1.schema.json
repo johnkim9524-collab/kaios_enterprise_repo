@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kidults.internal/schemas/autonomous-provider-event-v1.schema.json",
+  "title": "KIDULTS STAGING autonomous provider event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "task_id",
+    "provider_id",
+    "policy_version",
+    "rights_snapshot_id",
+    "approval_a",
+    "approval_z",
+    "decision",
+    "lease_id",
+    "attempt",
+    "evidence_uri",
+    "receipt_digest",
+    "state"
+  ],
+  "properties": {
+    "task_id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$" },
+    "provider_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,63}$" },
+    "policy_version": { "const": "provider-control-staging-v1" },
+    "rights_snapshot_id": { "type": "string", "pattern": "^rights:[A-Za-z0-9._:-]+$" },
+    "approval_a": { "$ref": "#/$defs/approval" },
+    "approval_z": { "$ref": "#/$defs/approval" },
+    "decision": { "enum": ["ALLOW_SHADOW", "DENY", "QUARANTINE"] },
+    "lease_id": { "type": "string", "pattern": "^lease:[a-f0-9]{64}$" },
+    "attempt": { "type": "integer", "minimum": 1, "maximum": 3 },
+    "evidence_uri": { "type": "string", "pattern": "^evidence://staging/[A-Za-z0-9._:/-]+$" },
+    "receipt_digest": { "type": "string", "pattern": "^sha256:[a-f0-9]{64}$" },
+    "state": {
+      "enum": [
+        "PLANNED",
+        "LEASED",
+        "DECIDED",
+        "BROKERED_SHADOW",
+        "EVIDENCE_PENDING",
+        "COMPLETE_VERIFIED",
+        "DENIED",
+        "QUARANTINED",
+        "RETRY_WAIT"
+      ]
+    }
+  },
+  "$defs": {
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["approval_id", "approver_id", "role", "task_id", "expires_at"],
+      "properties": {
+        "approval_id": { "type": "string", "pattern": "^approval:[a-f0-9]{64}$" },
+        "approver_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "role": { "enum": ["TRACK_A", "TRACK_Z"] },
+        "task_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "expires_at": { "type": "string", "format": "date-time" }
+      }
+    }
+  }
+}

@@ -7,6 +7,13 @@ const ATOMIC_LANDING_WORKFLOW = path.resolve(ROOT, 'kidults-atomic-governed-land
 const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs');
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
+const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
+  [path.resolve(ROOT, 'kidults-autonomous-track-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-TRACK' }],
+  [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-KPMO' }],
+  [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), { event: 'kidults.authorization.generation.v1', environment: 'KIDULTS-AUTONOMOUS-VERIFIER' }],
+]);
+const AUTONOMOUS_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs');
+const read = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
 
 function walk(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
@@ -202,6 +209,104 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
   return [...new Set(findings)];
 }
 
+function constrainedAutonomousLandingViolations(workflow, runner, expected) {
+  const findings = [];
+  const require = (condition, id) => { if (!condition) findings.push(`autonomous-landing-${id}`); };
+  for (const fragment of [
+    'repository_dispatch:',
+    expected.event,
+    'group: kidults-autonomous-',
+    'cancel-in-progress: false',
+    'id-token: write',
+    'checks: read',
+    'contents: write',
+    'pull-requests: write',
+    'statuses: write',
+    'persist-credentials: false',
+    'ref: ${{ github.sha }}',
+    'Verify exact workload checkout',
+    expected.environment,
+    'KIDULTS-AUTONOMOUS-FINALIZER',
+    'record-role-approval:',
+    'finalize-if-quorum:',
+    'KIDULTS_AUTONOMOUS_MODE: APPROVAL',
+    'KIDULTS_AUTONOMOUS_MODE: FINALIZE',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN',
+    'KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_ID',
+    'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
+    'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
+    'KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON',
+  ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  for (const other of ['kidults.track.authorization.v1','kidults.kpmo.authorization.v1','kidults.independent.verification.v1']) {
+    if (other !== expected.event) require(!workflow.includes(`      - ${other}`), `cross-role-event-forbidden:${other}`);
+  }
+  require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule|workflow_dispatch):/mi.test(workflow), 'event-boundary');
+  if (/^  workflow_run:/m.test(workflow)) {
+    require(workflow.includes("  workflow_run:\n    workflows: ['KPMO Continuous Assurance Success Authority Gate V1']\n    types: [completed]\n    branches: [main]\n  repository_dispatch:"), 'recovery-trigger-exact-gate');
+    const jobs = [...workflow.matchAll(/^  ([a-z][a-z0-9-]*):\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n|$(?![\s\S]))/gm)];
+    const record = jobs.find(value => value[1] === 'record-role-approval')?.[2] || '';
+    require(record.includes("if: github.event_name == 'repository_dispatch' &&"), 'live-approval-dispatch-only');
+    const originalFinalizer = jobs.find(value => value[1] === 'finalize-if-quorum')?.[2] || '';
+    require(originalFinalizer.includes("if: needs.record-role-approval.result == 'success' &&"), 'live-finalizer-dispatch-dependency');
+    const recoveryJobs = jobs.filter(value => value[1].startsWith('terminal-recovery-'));
+    require(recoveryJobs.some(value => value[1] === 'terminal-recovery-approval'), 'recovery-approval-required');
+    for (const [_, name, section] of recoveryJobs) {
+      require(['terminal-recovery-approval', 'terminal-recovery-finalizer'].includes(name), 'recovery-job-unknown');
+      require(section.includes('    permissions:\n      actions: read\n      contents: read\n      id-token: write\n      pull-requests: read\n'), 'recovery-permissions-read-only');
+      require(!/^\s*(?:contents|pull-requests|checks|statuses|issues):\s*write\s*$/mi.test(section) && !section.includes('write-all'), 'recovery-github-write-forbidden');
+      require(section.includes('node scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs'), 'recovery-terminal-runner-required');
+      require(!section.includes('node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden');
+      if (name === 'terminal-recovery-approval') require(section.includes("if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1"), 'recovery-success-exact-main');
+      if (name === 'terminal-recovery-finalizer') require(section.includes("needs.terminal-recovery-approval.outputs.approval_run_id != github.run_id"), 'recovery-distinct-finalizer');
+    }
+  }
+
+  require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
+  const approvalSection = workflow.split('  finalize-if-quorum:')[0] || '';
+  const finalizerSection = (workflow.split('  finalize-if-quorum:')[1] || '').split('  owner-reserved-boundary:')[0] || '';
+  require(!/^\s*contents:\s*write\s*$/mi.test(approvalSection), 'approval-stage-github-write-forbidden');
+  require(/^\s*contents:\s*write\s*$/mi.test(finalizerSection), 'finalizer-github-write-required');
+  require(!/^\s*permissions:\s*write-all\s*$/mi.test(workflow), 'write-all-forbidden');
+  require(!activeLines(workflow).some(containsDirectGitPush), 'direct-git-push-forbidden');
+  require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
+  for (const fragment of [
+    "eventName !== 'repository_dispatch'",
+    'AUTONOMOUS_ATTEMPT_LIMIT_EXCEEDED',
+    'policy.bounded_recovery?.maximum_attempts',
+    "mode === 'APPROVAL'",
+    "mode === 'FINALIZE'",
+    'validateWorkload(runtimeWorkload,registry,runtimeRole)',
+    'AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN',
+    'AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',
+    'KIDULTS_AUTONOMOUS_WORKFLOW_REF',
+    'KIDULTS_AUTONOMOUS_REPOSITORY_ID',
+    'invokeFinalizerWriter',
+    "'kms','sign'",
+    "'--message-type','DIGEST'",
+    'AUTONOMOUS_PR_DRIFT',
+    'AUTONOMOUS_TREE_DRIFT',
+    'AUTONOMOUS_LIVE_SCOPE_DRIFT',
+    'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',
+    "'lambda','invoke'",
+    "action:'CREATE_APPROVAL'",
+    "action:'CREATE_RESERVATION'",
+    "action:'CONSUME_RESERVATION'",
+    "method:'PUT'",
+    'merge_method',
+    'AUTONOMOUS_POSTMERGE_BINDING_FAILED',
+    'openAutomaticRollback',
+    "state:'QUARANTINED'",
+  ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
+  require(!workflow.includes('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'), 'legacy-actor-registry-forbidden');
+  require(runner.indexOf('await validateLiveCandidate();') < runner.indexOf('putApproval();'), 'approval-before-live-validation-forbidden');
+  require((runner.match(/await validateLiveCandidate\([^;]*\);/g) || []).length >= 2, 'live-revalidation-required-before-merge');
+  require(!runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'), 'sender-id-authority-forbidden');
+  require(!runner.includes("'dynamodb','put-item'"), 'runner-direct-dynamodb-put-forbidden');
+  require(!runner.includes("'dynamodb','update-item'"), 'runner-direct-dynamodb-update-forbidden');
+  return [...new Set(findings)];
+}
+
 const mutationCases = [
   ['permissions:\n  contents: write', 'contents-write'],
   ['permissions: write-all', 'permissions-write-all'],
@@ -226,16 +331,48 @@ const files = walk(ROOT);
 const findings = [];
 let constrainedAtomicLandingExceptions = 0;
 for (const file of files) {
-  const workflow = fs.readFileSync(file, 'utf8');
+  const workflow = read(file);
   let violations = violationsFor(workflow);
   if (path.resolve(file) === ATOMIC_LANDING_WORKFLOW) {
-    const runner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
-    const postValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
-    const terminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+    const runner = read(ATOMIC_LANDING_RUNNER);
+    const postValidator = read(ATOMIC_LANDING_POST_VALIDATOR);
+    const terminalReconciler = read(ATOMIC_LANDING_TERMINAL_RECONCILER);
     const exceptionViolations = constrainedAtomicLandingViolations(workflow, runner, postValidator, terminalReconciler);
     violations = [...new Set([...violations, ...exceptionViolations])];
   }
+  const autonomousSpec = AUTONOMOUS_LANDING_WORKFLOWS.get(path.resolve(file));
+  if (autonomousSpec) {
+    const runner = read(AUTONOMOUS_LANDING_RUNNER);
+    violations = [
+      ...violations.filter(value => value !== 'contents-write'),
+      ...constrainedAutonomousLandingViolations(workflow, runner, autonomousSpec),
+    ];
+  }
   if (violations.length) findings.push({ file: path.relative('.', file), violations });
+}
+
+// Recovery is an exact natural-event exception for terminal AWS writes only.
+// These mutations must remain denied even when the original dispatch landing
+// workflow retains its pre-existing governed GitHub finalizer permissions.
+let recoveryMutationCasesDetected = 0;
+for (const [file, spec] of AUTONOMOUS_LANDING_WORKFLOWS) {
+  const source = read(file), runner = read(AUTONOMOUS_LANDING_RUNNER);
+  const mutations = [
+    [source.replace("workflows: ['KPMO Continuous Assurance Success Authority Gate V1']", "workflows: ['Untrusted Gate']"), 'recovery-trigger-exact-gate'],
+    [source.replace("if: github.event_name == 'repository_dispatch' &&", "if: github.ref == 'refs/heads/main' &&"), 'live-approval-dispatch-only'],
+    [source.replace('  terminal-recovery-approval:', '  terminal-recovery-unknown:'), 'recovery-approval-required'],
+    [source.replace(/(  terminal-recovery-approval:[\s\S]*?contents:) read/, '$1 write'), 'recovery-github-write-forbidden'],
+    [source.replace(/(  terminal-recovery-approval:[\s\S]*?)node scripts\/kidults\/kpmo\/run-postmerge-terminal-recovery-v1.mjs/, '$1node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden'],
+  ];
+  if (source.includes('  terminal-recovery-finalizer:')) mutations.push([
+    source.replace('needs.terminal-recovery-approval.outputs.approval_run_id != github.run_id', 'true'), 'recovery-distinct-finalizer',
+  ]);
+  for (const [mutated, expected] of mutations) {
+    if (mutated === source || !constrainedAutonomousLandingViolations(mutated, runner, spec).includes(`autonomous-landing-${expected}`)) {
+      throw new Error(`recovery boundary mutation not rejected: ${file}:${expected}`);
+    }
+    recoveryMutationCasesDetected++;
+  }
 }
 
 if (constrainedAtomicLandingExceptions !== 0) {
@@ -245,10 +382,10 @@ if (constrainedAtomicLandingExceptions !== 0) {
   });
 }
 
-const atomicWorkflow = fs.readFileSync(ATOMIC_LANDING_WORKFLOW, 'utf8');
-const atomicRunner = fs.readFileSync(ATOMIC_LANDING_RUNNER, 'utf8');
-const atomicPostValidator = fs.readFileSync(ATOMIC_LANDING_POST_VALIDATOR, 'utf8');
-const atomicTerminalReconciler = fs.readFileSync(ATOMIC_LANDING_TERMINAL_RECONCILER, 'utf8');
+const atomicWorkflow = read(ATOMIC_LANDING_WORKFLOW);
+const atomicRunner = read(ATOMIC_LANDING_RUNNER);
+const atomicPostValidator = read(ATOMIC_LANDING_POST_VALIDATOR);
+const atomicTerminalReconciler = read(ATOMIC_LANDING_TERMINAL_RECONCILER);
 findings.push(...currentSoldMatcherAlignmentFindings(atomicRunner, atomicPostValidator, atomicTerminalReconciler));
 
 const atomicMutationCases = [
@@ -406,6 +543,7 @@ const result = {
   policy_version: POLICY_VERSION,
   workflows_scanned: files.length,
   mutation_cases_detected: mutationCases.length,
+  recovery_mutation_cases_detected: recoveryMutationCasesDetected,
   negative_cases_rejected: negativeCases.length,
   policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS; DIRECT_OWNER_UI_MERGE_REQUIRES_PRECONSUMPTION_AVAILABILITY_AND_EXACT_MERGE_SHA_POSTMERGE_PROOF',
   constrained_atomic_landing_exceptions: constrainedAtomicLandingExceptions,

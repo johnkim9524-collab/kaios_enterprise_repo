@@ -1,0 +1,65 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "One-time STAGING bootstrap for the exact natural-clock GitHub OIDC deployer and bounded CloudFormation execution role.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "Default": "arn:aws:iam::528314240275:oidc-provider/token.actions.githubusercontent.com",
+      "AllowedPattern": "^arn:aws:iam::528314240275:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "GitHubRepository": {"Type": "String", "Default": "johnkim9524-collab/kaios_enterprise_repo"},
+    "GitHubEnvironment": {"Type": "String", "Default": "KIDULTS-NATURAL-CLOCK-DEPLOYER"}
+  },
+  "Resources": {
+    "ArtifactBucket": {
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "BucketName": "kidults-natural-clock-artifacts-528314240275-ap-northeast-2",
+        "BucketEncryption": {"ServerSideEncryptionConfiguration": [{"ServerSideEncryptionByDefault": {"SSEAlgorithm": "AES256"}}]},
+        "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true},
+        "VersioningConfiguration": {"Status": "Enabled"},
+        "LifecycleConfiguration": {"Rules": [{"Id": "expire-noncurrent", "Status": "Enabled", "NoncurrentVersionExpiration": {"NoncurrentDays": 90}}]},
+        "Tags": [{"Key": "Environment", "Value": "STAGING"}, {"Key": "Production", "Value": "HOLD"}, {"Key": "Public", "Value": "HOLD"}, {"Key": "G5", "Value": "HOLD"}]
+      }
+    },
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-natural-clock-cfn-execution-staging-v1",
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "cloudformation.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
+        "Policies": [{"PolicyName": "manage-exact-natural-clock-stack", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+          {"Effect": "Allow", "Action": ["s3:GetObject", "s3:GetObjectVersion"], "Resource": {"Fn::Sub": "${ArtifactBucket.Arn}/*"}},
+          {"Effect": "Allow", "Action": ["lambda:CreateFunction", "lambda:DeleteFunction", "lambda:GetFunction", "lambda:GetFunctionConfiguration", "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:AddPermission", "lambda:RemovePermission", "lambda:TagResource", "lambda:UntagResource"], "Resource": "arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-natural-clock-dispatcher-staging-v1"},
+          {"Effect": "Allow", "Action": ["dynamodb:CreateTable", "dynamodb:DeleteTable", "dynamodb:DescribeTable", "dynamodb:UpdateTable", "dynamodb:UpdateTimeToLive", "dynamodb:DescribeTimeToLive", "dynamodb:UpdateContinuousBackups", "dynamodb:DescribeContinuousBackups", "dynamodb:TagResource", "dynamodb:UntagResource"], "Resource": "arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-natural-clock-ledger-staging-v1"},
+          {"Effect": "Allow", "Action": ["scheduler:CreateSchedule", "scheduler:DeleteSchedule", "scheduler:GetSchedule", "scheduler:UpdateSchedule", "scheduler:TagResource", "scheduler:UntagResource"], "Resource": "arn:aws:scheduler:ap-northeast-2:528314240275:schedule/default/kidults-natural-*"},
+          {"Effect": "Allow", "Action": ["iam:CreateRole", "iam:DeleteRole", "iam:GetRole", "iam:PassRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "iam:GetRolePolicy", "iam:TagRole", "iam:UntagRole"], "Resource": ["arn:aws:iam::528314240275:role/kidults-natural-clock-dispatcher-staging-v1", "arn:aws:iam::528314240275:role/kidults-natural-clock-scheduler-staging-v1"]}
+        ]}}],
+        "Tags": [{"Key": "Environment", "Value": "STAGING"}, {"Key": "Production", "Value": "HOLD"}, {"Key": "Public", "Value": "HOLD"}, {"Key": "G5", "Value": "HOLD"}]
+      }
+    },
+    "DeployerRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-natural-clock-deployer-staging-v1",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Federated": {"Ref": "GitHubOidcProviderArn"}}, "Action": "sts:AssumeRoleWithWebIdentity", "Condition": {"StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"}, "StringLike": {"token.actions.githubusercontent.com:sub": [{"Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}"}, {"Fn::Sub": "repo:${GitHubRepository}:environment:${GitHubEnvironment}:*"}]}}}]},
+        "Policies": [{"PolicyName": "deploy-exact-natural-clock-stack", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
+          {"Effect": "Allow", "Action": ["s3:PutObject", "s3:GetObject", "s3:GetObjectVersion"], "Resource": {"Fn::Sub": "${ArtifactBucket.Arn}/natural-clock/*"}},
+          {"Effect": "Allow", "Action": ["cloudformation:CreateChangeSet", "cloudformation:DescribeChangeSet", "cloudformation:ExecuteChangeSet", "cloudformation:DeleteChangeSet", "cloudformation:DescribeStacks", "cloudformation:DescribeStackEvents", "cloudformation:GetTemplate"], "Resource": ["arn:aws:cloudformation:ap-northeast-2:528314240275:stack/kidults-natural-clock-staging-v1/*", "arn:aws:cloudformation:ap-northeast-2:528314240275:changeSet/kidults-natural-clock-*/*"]},
+          {"Effect": "Allow", "Action": "iam:PassRole", "Resource": {"Fn::GetAtt": ["ExecutionRole", "Arn"]}, "Condition": {"StringEquals": {"iam:PassedToService": "cloudformation.amazonaws.com"}}},
+          {"Effect": "Allow", "Action": ["lambda:GetFunction", "lambda:InvokeFunction"], "Resource": "arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-natural-clock-dispatcher-staging-v1"},
+          {"Effect": "Allow", "Action": "scheduler:GetSchedule", "Resource": "arn:aws:scheduler:ap-northeast-2:528314240275:schedule/default/kidults-natural-*"},
+          {"Effect": "Allow", "Action": ["dynamodb:DescribeTable", "dynamodb:DescribeTimeToLive", "dynamodb:DescribeContinuousBackups"], "Resource": "arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-natural-clock-ledger-staging-v1"}
+        ]}}],
+        "Tags": [{"Key": "Environment", "Value": "STAGING"}, {"Key": "Production", "Value": "HOLD"}, {"Key": "Public", "Value": "HOLD"}, {"Key": "G5", "Value": "HOLD"}]
+      }
+    }
+  },
+  "Outputs": {
+    "ArtifactBucketName": {"Value": {"Ref": "ArtifactBucket"}},
+    "CloudFormationExecutionRoleArn": {"Value": {"Fn::GetAtt": ["ExecutionRole", "Arn"]}},
+    "GitHubDeployerRoleArn": {"Value": {"Fn::GetAtt": ["DeployerRole", "Arn"]}}
+  }
+}

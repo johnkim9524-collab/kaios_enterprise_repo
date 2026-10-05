@@ -55,6 +55,19 @@ jobs:
           assert report['bootstrap_performed'] is False
           assert report['production_resource_touched'] is False
           assert report['production'] == 'HOLD'
+          managed = report['managed_postgres']
+          assert managed['state'] in {
+              'READ', 'CONTROL_PLANE_READ_UNAVAILABLE', 'CONTROL_PLANE_RESPONSE_INVALID'
+          }
+          if managed['state'] == 'READ':
+              assert isinstance(managed['postgres_cluster_count'], int)
+              assert managed['postgres_cluster_count'] == len(managed['clusters'])
+              for cluster in managed['clusters']:
+                  assert set(cluster).isdisjoint({'id', 'name', 'host', 'user', 'password', 'uri'})
+                  assert cluster['engine'] == 'pg'
+                  assert cluster['port'] == 25060
+                  assert cluster['trusted_sources']['state'] in {'READ', 'RESPONSE_INVALID'} or \
+                      cluster['trusted_sources']['state'].startswith('HTTP_')
           print('DIGITALOCEAN_STAGING_READ_ONLY_BINDING_PASS')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

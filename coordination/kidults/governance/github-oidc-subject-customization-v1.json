@@ -1,0 +1,36 @@
+{
+  "id": "kidults-github-oidc-subject-customization-v1",
+  "version": "1.0.0",
+  "state": "OWNER_GATE_REQUIRED",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "observed_current": {
+    "use_default": true,
+    "use_immutable_subject": false,
+    "sub_claim_prefix": "repo:johnkim9524-collab/kaios_enterprise_repo"
+  },
+  "desired": {
+    "use_default": false,
+    "include_claim_keys": [
+      "repo",
+      "context",
+      "workflow_ref"
+    ],
+    "use_immutable_subject": false
+  },
+  "aws_contract": {
+    "allowed_condition_keys": [
+      "token.actions.githubusercontent.com:aud",
+      "token.actions.githubusercontent.com:sub"
+    ],
+    "custom_claim_condition_keys_forbidden": true
+  },
+  "activation_order": [
+    "UPDATE_AWS_TRUST_FOR_CUSTOM_SUB",
+    "OWNER_APPROVE_GITHUB_OIDC_SUBJECT_CUSTOMIZATION",
+    "READ_BACK_GITHUB_OIDC_SUBJECT_CUSTOMIZATION",
+    "RUN_ROLE_SCOPED_OIDC_NEGATIVE_CANARIES"
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

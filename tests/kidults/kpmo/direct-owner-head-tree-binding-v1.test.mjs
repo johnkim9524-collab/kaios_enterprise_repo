@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
-const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
-const preflight = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs', 'utf8');
+const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
+const runner = text('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs');
+const preflight = text('scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs');
 
 test('missing tree input and malformed SHA fail before status authorization', () => {
   const treeGuard = runner.indexOf("!SHA.test(expectedHeadTreeSha)");

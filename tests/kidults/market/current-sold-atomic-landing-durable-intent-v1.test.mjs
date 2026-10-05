@@ -8,7 +8,7 @@ const reconciler = fs.readFileSync('scripts/kidults/kpmo/reconcile-atomic-landin
 test('Atomic landing durably publishes fail-closed intent before irreversible merge', () => {
   const initIndex = workflow.indexOf('Initialize durable atomic landing terminal receipt');
   const intentUploadIndex = workflow.indexOf('Upload pre-mutation atomic landing intent');
-  const mergeIndex = workflow.indexOf('Re-read live authority and execute exact-head server merge');
+  const mergeIndex = workflow.indexOf('Re-read live authority and await exact-head event-emitting merge');
   assert.ok(initIndex >= 0 && initIndex < intentUploadIndex && intentUploadIndex < mergeIndex);
   assert.match(workflow, /name: kidults-atomic-governed-landing-intent-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/);
   assert.match(workflow, /Upload pre-mutation atomic landing intent[\s\S]*?if-no-files-found: error[\s\S]*?retention-days: 90/);
@@ -22,9 +22,10 @@ test('Atomic landing durable status cannot silently green a missing post-merge p
   assert.match(reconciler, /request\('\/branches\/main'\)/);
   assert.match(reconciler, /pr\.base\.sha === mainBranch\.commit\.sha/);
   assert.match(reconciler, /ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT/);
-  assert.match(reconciler, /let state = 'MERGE_COMMITTED_PROOF_PENDING'/);
-  assert.match(reconciler, /EXACT_MERGE_SHA_PUSH_SUITE_REQUIRED/);
-  assert.match(reconciler, /MERGE_COMMITTED_POSTLANDING_PROOF_PENDING/);
+  assert.match(reconciler, /let state = 'VERIFIED_FAIL'/);
+  assert.match(reconciler, /postMergeSuiteReceipt\?\.all_required_terminal === true/);
+  assert.match(reconciler, /postMergeSuiteReceipt\?\.all_required_success === true/);
+  assert.match(reconciler, /MERGE_COMMITTED_POSTMERGE_SUITE_FAILED/);
   assert.doesNotMatch(reconciler, /NOT_REQUIRED_NON_CURRENT_SOLD/);
   assert.match(reconciler, /if \(state === 'VERIFIED_PASS'\)[\s\S]*?postHeadStatus\('success'/);
   assert.match(reconciler, /else if \(state === 'VERIFIED_FAIL'\)[\s\S]*?postHeadStatus\('failure'/);

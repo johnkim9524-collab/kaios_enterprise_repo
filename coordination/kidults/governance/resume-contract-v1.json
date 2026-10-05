@@ -1,0 +1,76 @@
+{
+  "id": "KIDULTS_RESUME_CONTRACT_V1",
+  "version": "1.0.0",
+  "mandatory": true,
+  "applies_at": [
+    "EVERY_WORK_EXECUTION_START",
+    "SESSION_REPLACEMENT",
+    "STREAM_ERROR_RECOVERY",
+    "REVIEW_STALL_RECOVERY"
+  ],
+  "ordered_steps": [
+    "READ_AUTHORITATIVE_EXTERNAL_STATE",
+    "IDENTIFY_EXISTING_ARTIFACTS_AND_SIDE_EFFECTS",
+    "VERIFY_STAGE_TERMINAL_RECEIPTS",
+    "SELECT_LAST_INCOMPLETE_STAGE",
+    "RECONCILE_AND_CLAIM_IDEMPOTENCY_KEY",
+    "EXECUTE_ONLY_AUTHORIZED_INCOMPLETE_STAGE"
+  ],
+  "terminal_receipt_policy": {
+    "existence_alone_proves_completion": false,
+    "required_checks": [
+      "AUTHENTIC_PROTECTED_PRODUCER",
+      "REPOSITORY_MISSION_STAGE_BINDING",
+      "EXACT_SOURCE_OR_EXPLICIT_VALIDATED_SUPERSESSION",
+      "ARTIFACT_DIGEST_AND_SCHEMA",
+      "SUCCESS_TERMINAL_STATE",
+      "AUTHORITY_AND_SIDE_EFFECT_BINDINGS"
+    ],
+    "valid_success_receipt_behavior": "CONSUME_EXISTING_OUTPUT_SKIP_COMPLETED_STAGE",
+    "failed_receipt_behavior": "PRESERVE_FAILURE_EVIDENCE_RESUME_INCOMPLETE_STAGE",
+    "missing_or_conflicting_evidence_behavior": "UNKNOWN_NO_DUPLICATE_SIDE_EFFECT",
+    "stage_completion_is_mission_completion": false
+  },
+  "idempotency_policy": {
+    "key_fields": [
+      "canonical_repository",
+      "root_mission_id",
+      "stage_id",
+      "operation_kind",
+      "exact_target_binding",
+      "canonical_payload_sha256"
+    ],
+    "session_id_or_retry_number_in_key": false,
+    "storage": "DURABLE_PROTECTED_OPERATION_LEDGER",
+    "claim": "ATOMIC_CONDITIONAL_CREATE_WITH_EXCLUSIVE_WRITER_FENCING",
+    "existing_success": "RETURN_EXISTING_RESULT",
+    "existing_in_flight": "OBSERVE_EXISTING_OPERATION_DO_NOT_REISSUE",
+    "unknown_outcome": "RECONCILE_REMOTE_STATE_BEFORE_RETRY",
+    "no_provider_idempotency": "RECONCILE_THEN_RECORD_INTENT_UNDER_EXCLUSIVE_FENCE_AMBIGUITY_FAILS_CLOSED",
+    "atomic_cross_system_exactly_once_claimed": false
+  },
+  "prohibited_duplicates": [
+    "PUSH",
+    "PR",
+    "APPROVAL",
+    "REVIEW_REQUEST",
+    "WORKFLOW_DISPATCH",
+    "DEPLOYMENT",
+    "GENERATION",
+    "RESERVATION_CONSUMPTION"
+  ],
+  "preserves": [
+    "ORIGINAL_MISSION_AND_RESERVATION_OWNER",
+    "EXISTING_BUDGETS_AND_APPROVAL_BINDINGS",
+    "PRODUCTION_PUBLIC_G5_HOLD",
+    "PROVIDER_ACTIVATION_HOLD",
+    "NO_PAT_OR_RULESET_BYPASS"
+  ],
+  "enforcement_scope": "MANDATORY_GOVERNANCE_CONTRACT_EXTERNAL_LAUNCHER_AND_OPERATION_ADAPTER_ENFORCEMENT_REQUIRES_SEPARATE_RUNTIME_EVIDENCE",
+  "effects": {
+    "autonomous_effect": "Resume authorized incomplete work without routine Owner prompting",
+    "global_effect": "Same reconciliation requirement across all Tracks and execution surfaces",
+    "irreplaceable_value_effect": "Preserve durable mission identity and reusable evidence lineage",
+    "transparency_effect": "Distinguish verified stage completion from missing or ambiguous evidence"
+  }
+}

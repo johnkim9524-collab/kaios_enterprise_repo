@@ -13,7 +13,6 @@ const HEALTH_PATH = fileURLToPath(new URL('./resolve-continuous-assurance-sentin
 const ASSURANCE_WORKFLOW = 'KIDULTS Platform Continuous Assurance V1';
 const FULL_AUDIT_GUARD_STATES = new Set([
   'EPHEMERAL_CANONICAL_LEADER_SELECTED',
-  'FULL_AUDIT_BYPASS_NON_ALIASABLE',
 ]);
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
@@ -57,9 +56,12 @@ function appendEnvironment(values, env) {
 }
 
 export function inlineProducerHealthRequired(env = process.env) {
+  // A protected-main push starts before workflow_run-only producers can exist, and
+  // validation-only push producers intentionally publish no terminal artifact.
+  // Their exact terminal bindings are observed by observe-core-producer-content.
   return env.GITHUB_WORKFLOW === ASSURANCE_WORKFLOW &&
     env.GITHUB_REF === 'refs/heads/main' &&
-    ['push', 'schedule', 'workflow_dispatch', 'workflow_run'].includes(env.GITHUB_EVENT_NAME || '');
+    ['schedule', 'workflow_dispatch', 'workflow_run'].includes(env.GITHUB_EVENT_NAME || '');
 }
 
 export function guardRequiresProducerHealth(guard) {

@@ -195,8 +195,8 @@ try {
     .sort();
   const testOutput = run(process.execPath, ['--test', '--test-reporter=tap', ...testFiles]);
   process.stdout.write(testOutput);
-  assert(/^# tests 56$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
-  assert(/^# pass 56$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
+  assert(/^# tests 68$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
+  assert(/^# pass 68$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
   assert(/^# fail 0$/m.test(testOutput), 'POSTLANDING_TEST_FAILURE_COUNT_MISMATCH');
 
   const legacyBatchPath = 'scripts/kidults/market/current-sold-batch-v1.mjs';

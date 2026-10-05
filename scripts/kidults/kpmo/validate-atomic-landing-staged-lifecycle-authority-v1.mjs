@@ -22,6 +22,9 @@ const readyEvent = {
   actor: 'johnkim9524-collab',
   performed_via_github_app: null,
   direct_repository_owner: true,
+  authority: 'LIFECYCLE_ONLY',
+  grants_authorization: false,
+  synthetic_lifecycle_boundary: false,
 };
 const receipt = overrides => ({
   id: 'kidults-atomic-landing-lifecycle-authority-receipt-v1',
@@ -39,6 +42,7 @@ const receipt = overrides => ({
   lifecycle_updated_at: '2026-09-02T04:29:00Z',
   lifecycle_evaluated_at: '2026-09-02T04:29:30Z',
   latest_ready_event_id: readyEvent.id,
+  latest_ready_event_type: readyEvent.event,
   latest_ready_event_at: readyEvent.created_at,
   latest_ready_event_actor: readyEvent.actor,
   lifecycle_artifact_id: 9831000000,
@@ -66,6 +70,9 @@ const receipt = overrides => ({
   ],
   latest_ready_event_direct_repository_owner: true,
   latest_ready_event_performed_via_github_app: null,
+  latest_ready_event_synthetic_lifecycle_boundary: false,
+  readiness_authority: 'LIFECYCLE_ONLY',
+  ready_state_grants_authorization: false,
   final_live_reread: true,
   manual_merge_authority: false,
   atomic_landing_only: true,
@@ -89,8 +96,35 @@ const positive = invoke();
 assert(positive.state === 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND', 'POSITIVE_STATE_INVALID');
 assert(positive.lifecycle_run_id === 33590000000, 'POSITIVE_RUN_BINDING_INVALID');
 assert(positive.latest_ready_event_id === 9001, 'POSITIVE_READY_BINDING_INVALID');
-assert(positive.direct_repository_owner_ready === true, 'POSITIVE_DIRECT_OWNER_INVALID');
-assert(positive.app_mediated_ready === false, 'POSITIVE_APP_BOUNDARY_INVALID');
+assert(positive.readiness_authority === 'LIFECYCLE_ONLY', 'POSITIVE_READY_AUTHORITY_INVALID');
+assert(positive.ready_state_grants_authorization === false, 'POSITIVE_READY_AUTHORIZATION_INVALID');
+
+const ownerReserved = invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+}));
+assert(ownerReserved.state === 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  'OWNER_RESERVED_STATE_INVALID');
+assert(ownerReserved.lifecycle_contract_mode === 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  'OWNER_RESERVED_CONTRACT_MODE_INVALID');
+assert(ownerReserved.owner_exact_head_approval_required === true,
+  'OWNER_RESERVED_APPROVAL_FLAG_INVALID');
+const ownerReservedLegacyShape = invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+  latest_ready_event_type: undefined,
+  latest_ready_event_synthetic_lifecycle_boundary: undefined,
+  readiness_authority: undefined,
+  ready_state_grants_authorization: undefined,
+}));
+assert(ownerReservedLegacyShape.state === 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  'OWNER_RESERVED_LEGACY_READY_AUTHORITY_SHAPE_INVALID');
 
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_ID_INVALID', () => invoke(receipt({id: 'wrong'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_VERSION_INVALID', () => invoke(receipt({version: '1.0.0'})));
@@ -99,6 +133,19 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_PR_MISMATCH', () => invoke(receipt({pull_r
 expectReject('ATOMIC_STAGED_LIFECYCLE_HEAD_MISMATCH', () => invoke(receipt({exact_head_sha: 'd'.repeat(40)})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_BASE_MISMATCH', () => invoke(receipt({exact_base_sha: 'e'.repeat(40)})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_STATE_INVALID', () => invoke(receipt({state: 'READY_NON_PROMOTABLE'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_OWNER_APPROVAL_REQUIRED', () => invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'OWNER_RESERVED_EXACT_APPROVAL_REQUIRED_SIGNAL',
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_CONTRACT_MODE_INVALID', () => invoke(receipt({
+  state: 'OWNER_RESERVED_LIFECYCLE_CONTROL_BOUND_EXACT_APPROVAL_REQUIRED',
+  lifecycle_contract_mode: 'READY_GOVERNED_NATIVE_ATOMIC_SIGNAL',
+  owner_exact_head_approval_required: true,
+  lifecycle_receipt_state: 'READY_VERIFIED_NON_PROMOTABLE',
+  lifecycle_receipt_reason: 'NATIVE_SCOPE_SUCCESS_OPERATION_AUTHORITY_PENDING',
+})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_EVALUATION_PRECEDES_READY', () =>
   invoke(receipt({lifecycle_evaluated_at: '2026-09-02T04:19:59Z'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_CHECK_PRECEDES_EVALUATION', () =>
@@ -113,12 +160,44 @@ expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_at: '2026-09-02T04:20:01Z'})));
 expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_actor: 'automation-bot'})));
-expectReject('ATOMIC_STAGED_LIFECYCLE_READY_EVENT_APP_MEDIATED', () =>
-  invoke(receipt(), {...readyEvent, performed_via_github_app: {slug: 'automation'}}));
-expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_APP_MEDIATED', () =>
-  invoke(receipt({latest_ready_event_performed_via_github_app: {slug: 'automation'}})));
-expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_NOT_DIRECT_OWNER', () =>
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({readiness_authority: 'PROGRAM_OWNER'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({ready_state_grants_authorization: true})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({readiness_authority: null})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_RECEIPT_READY_AUTHORITY_INVALID', () =>
+  invoke(receipt({ready_state_grants_authorization: null})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_TUPLE_MISMATCH', () =>
+  invoke(receipt({latest_ready_event_type: 'created_ready_or_never_drafted'})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
+  invoke(receipt({latest_ready_event_synthetic_lifecycle_boundary: true})));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
+  invoke(receipt(), {...readyEvent, performed_via_github_app: {slug: 'automation'}, direct_repository_owner: false}));
+expectReject('ATOMIC_STAGED_LIFECYCLE_READY_PROVENANCE_MISMATCH', () =>
   invoke(receipt({latest_ready_event_direct_repository_owner: false})));
+const appLifecycleEvent = {
+  ...readyEvent,
+  actor: 'github-actions[bot]',
+  performed_via_github_app: {slug: 'github-actions'},
+  direct_repository_owner: false,
+};
+invoke(receipt({
+  latest_ready_event_actor: appLifecycleEvent.actor,
+  latest_ready_event_performed_via_github_app: appLifecycleEvent.performed_via_github_app,
+  latest_ready_event_direct_repository_owner: false,
+}), appLifecycleEvent);
+const createdReadyEvent = {
+  ...readyEvent,
+  event: 'created_ready_or_never_drafted',
+  synthetic_lifecycle_boundary: true,
+  direct_repository_owner: false,
+};
+invoke(receipt({
+  latest_ready_event_type: createdReadyEvent.event,
+  latest_ready_event_synthetic_lifecycle_boundary: true,
+  latest_ready_event_direct_repository_owner: false,
+}), createdReadyEvent);
 expectReject('ATOMIC_STAGED_LIFECYCLE_NATIVE_CONTEXT_INVALID', () => invoke(receipt({
   native_status_evidence: [
     receipt().native_status_evidence[0],
@@ -139,7 +218,7 @@ const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing
 const mergeStep = workflow.slice(workflow.indexOf('Re-read live authority and await exact-head event-emitting merge'));
 assert(mergeStep.includes('LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json'),
   'ATOMIC_MERGE_STEP_LIFECYCLE_PATH_MISSING');
-assert(runner.includes("selectLatestDirectOwnerReadyEvent"), 'ATOMIC_RUNNER_DIRECT_READY_HELPER_MISSING');
+assert(runner.includes("selectLatestLifecycleReadyEvent"), 'ATOMIC_RUNNER_DIRECT_READY_HELPER_MISSING');
 assert(!runner.includes('selectLatestProgramOwnerReadyEvent'), 'ATOMIC_RUNNER_LEGACY_READY_HELPER_PRESENT');
 assert(runner.includes('assertAtomicLandingStagedLifecycleAuthority'), 'ATOMIC_RUNNER_STAGED_AUTHORITY_ASSERTION_MISSING');
 assert(runner.includes('readStagedLifecycleAuthorityReceipt'), 'ATOMIC_RUNNER_STAGED_AUTHORITY_READER_MISSING');

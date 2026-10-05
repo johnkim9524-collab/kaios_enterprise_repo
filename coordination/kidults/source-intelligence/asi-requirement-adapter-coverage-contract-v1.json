@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-requirement-adapter-coverage-contract-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P1",
@@ -16,12 +16,14 @@
     "upstream_workflow_name": "KIDULTS ASI Autonomous Resolution Layer v1",
     "upstream_workflow_path": ".github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml",
     "artifact_binding_schema": "coordination/kidults/schemas/asi-autonomous-resolution-artifact-binding-v1.schema.json",
+    "trigger_compatibility_contract": "coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json",
     "replacement_queue_file": "replacement-source-mission-queue-v1.json",
     "replacement_queue_id": "kidults-asi-replacement-source-mission-queue-v1",
     "resolution_manifest_file": "autonomous-resolution-manifest-v1.json",
     "resolution_manifest_id": "kidults-asi-autonomous-resolution-manifest-v1",
     "resolution_receipt_file": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1.json",
     "resolution_receipt_id": "kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1",
+    "resolution_receipt_version": "1.2.0",
     "resolution_contract": "coordination/kidults/source-intelligence/asi-autonomous-resolution-layer-contract-v1.json",
     "runtime_contract": "coordination/kidults/source-intelligence/asi-p1-market-event-adapter-runtime-contract-v1.json",
     "source_frontier": "coordination/kidults/source-intelligence/targeted-high-authority-source-expansion-v1.psv",
@@ -71,7 +73,7 @@
     "canonical_guard": {
       "status": "ACTIVE_EPHEMERAL_ACTIONS_ARTIFACT_GUARD",
       "eligible_trigger": "SUCCESSFUL_WORKFLOW_RUN_ONLY",
-      "leader_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-{sha256(canonical_run_key)}",
+      "leader_artifact_name": "kidults-asi-requirement-adapter-coverage-canonical-{sha256(canonical_run_key:canonical_input_digest)}",
       "leader_artifact_retention_days": 90,
       "semantic_input_digest": "sha256(domain-separated canonical JSON of source SHA, upstream class, projection v1 stable ARL behavior outputs, full replacement queue, consumed manifest fields, Coverage contract/static inputs, implementation files, package.json, and npm-shrinkwrap.json)",
       "semantic_input_projection": {
@@ -123,6 +125,7 @@
         ],
         "authoritative_input_file_keys": [
           "artifact_binding_schema",
+          "trigger_compatibility_contract",
           "resolution_contract",
           "runtime_contract",
           "source_frontier",

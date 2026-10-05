@@ -99,8 +99,8 @@ jobs:
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           RECEIPT_PATH: /tmp/kpmo-pr-lifecycle/receipt.json
-          LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS: '30'
-          LIFECYCLE_CONVERGENCE_DELAY_MS: '1000'
+          LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS: '60'
+          LIFECYCLE_CONVERGENCE_DELAY_MS: '3000'
         run: node scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs
 
       - name: Upload run-attempt-base-head-bound lifecycle receipt

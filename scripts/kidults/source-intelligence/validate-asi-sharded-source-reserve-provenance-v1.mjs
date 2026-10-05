@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
+const discoveryWorkflowPath = '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml';
 const expectedShaBinding = "EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}";
 const exactUpstreamBinding = 'test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"';
 
@@ -71,8 +72,23 @@ function failuresFor(text) {
   return failures;
 }
 
+function discoveryActivationFailures(text) {
+  const failures = [];
+  for (const marker of [
+    "cron: '47 * * * *'",
+    "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'"
+  ]) {
+    if (!text.includes(marker)) failures.push(`discovery natural activation marker missing: ${marker}`);
+  }
+  if (/global-any-site-hourly-pool-v2:\s*\n\s*if:\s*github\.event_name == 'workflow_dispatch'\s*$/m.test(text)) {
+    failures.push('discovery schedule declared but producer job remains manual-only');
+  }
+  return failures;
+}
+
 const current = fs.readFileSync(workflowPath, 'utf8');
-const failures = failuresFor(current);
+const discoveryCurrent = fs.readFileSync(discoveryWorkflowPath, 'utf8');
+const failures = [...failuresFor(current), ...discoveryActivationFailures(discoveryCurrent)];
 if (failures.length) {
   console.error('Sharded Source Reserve provenance validation: FAIL');
   for (const failure of failures) console.error(`- ${failure}`);
@@ -134,6 +150,25 @@ for (const [from, to, label] of mutations) {
   }
 }
 
+const discoveryMutations = [
+  [
+    "if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'",
+    "if: github.event_name == 'workflow_dispatch'",
+    'natural discovery producer job activation'
+  ],
+  ["    - cron: '47 * * * *'\n", '', 'natural discovery schedule trigger']
+];
+for (const [from, to, label] of discoveryMutations) {
+  if (!discoveryCurrent.includes(from)) {
+    console.error(`Sharded Source Reserve discovery self-test fixture missing: ${label}`);
+    process.exit(4);
+  }
+  if (discoveryActivationFailures(discoveryCurrent.replace(from, to)).length === 0) {
+    console.error(`Sharded Source Reserve discovery self-test failed to reject: ${label}`);
+    process.exit(5);
+  }
+}
+
 console.log(JSON.stringify({
   status: 'PASS',
   control: 'SHARDED_SOURCE_RESERVE_EXACT_PRODUCER_PROVENANCE',
@@ -142,6 +177,7 @@ console.log(JSON.stringify({
   exact_head_binding_symbol: 'EXPECTED_SHA',
   exact_artifact_cardinality: true,
   producer_workflow_path_bound: true,
+  natural_discovery_producer_activation: true,
   concurrency_isolated_by_upstream_run: true,
   previous_reserve_bound_to_successful_run: true,
   public_release: 'HOLD',

@@ -42,12 +42,11 @@
     "mission-directed-discovery-kpmo-receipt-v1.json"
   ],
   "automatic_activation": {
-    "main_push": true,
-    "schedule": "37 * * * *",
-    "upstream_workflows": [
-      "KIDULTS ASI Mission Consumption v1"
-    ],
-    "manual_dispatch_role": "RECOVERY_OR_EXPLICIT_REPLAY_ONLY"
+    "provider_execution_enabled": false,
+    "main_push": false,
+    "schedule": null,
+    "upstream_workflows": [],
+    "manual_dispatch_role": "EXPLICIT_AUTHORIZED_EXECUTION_ONLY"
   },
   "provider_lanes": [
     "WIKIDATA_OFFICIAL_WEBSITE_GRAPH",

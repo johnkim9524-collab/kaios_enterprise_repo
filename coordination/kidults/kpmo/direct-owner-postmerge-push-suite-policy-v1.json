@@ -36,6 +36,21 @@
       "name": "KAIOS Solo Owner Preflight"
     }
   ],
+  "canonical_convergence": {
+    "producer": {
+      "path": ".github/workflows/kpmo-canonical-generation-v3-apply.yml",
+      "name": "KPMO Canonical Generation V3 Apply",
+      "event": "push"
+    },
+    "consumer": {
+      "path": ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml",
+      "name": "KPMO Live Canonical Issue Truth V1",
+      "event": "workflow_run"
+    },
+    "exact_merge_sha_required": true,
+    "producer_before_consumer_required": true,
+    "terminal_success_required": true
+  },
   "proof_contract": {
     "exact_merge_sha_only": true,
     "predecessor_head_proof_reuse_forbidden": true,

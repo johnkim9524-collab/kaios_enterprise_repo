@@ -23,6 +23,7 @@ env:
 
 jobs:
   bridge-preflight:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:

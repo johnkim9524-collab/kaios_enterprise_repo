@@ -25,6 +25,7 @@ export const KIR_CORE_TEST_FILES=Object.freeze([
  'tests/kidults/source-intelligence/global-sold-source-registry-v1.test.mjs',
  'tests/kidults/source-intelligence/source-intelligence-evidence-manifest-v1.test.mjs',
  'tests/kidults/source-intelligence/source-intelligence-writer-snapshot-v1.test.mjs',
+ 'tests/kidults/runtime/kir-module-boundaries-v1.test.mjs',
 ]);
 // These are fixed repository tests, never caller-selected commands or globs.
 export const GATES=Object.freeze([
@@ -98,12 +99,20 @@ function atomicJson(file,value){
  try{fd=fs.openSync(temp,'wx',0o600);fs.writeFileSync(fd,JSON.stringify(value,null,2)+'\n');fs.fsyncSync(fd);fs.closeSync(fd);fd=undefined;fs.renameSync(temp,file);}
  finally{if(fd!==undefined)fs.closeSync(fd);if(fs.existsSync(temp))fs.unlinkSync(temp);}
 }
+function privateDirectoryMetadata(st){
+ // Windows does not expose POSIX ownership/mode semantics through fs.Stat.
+ // The KIR bundle is non-secret control evidence, so retain the anti-link,
+ // canonical-path and outside-source checks and delegate Windows ACL isolation
+ // to the protected runner/launcher boundary.
+ if(process.platform==='win32')return true;
+ return (st.mode&0o777)===0o700&&typeof process.getuid==='function'&&st.uid===process.getuid();
+}
 function safeDirectory(directory,{empty=false}={}){
  if(typeof directory!=='string'||!path.isAbsolute(directory))fail('KIR_INTEGRATION_OUTPUT_ABSOLUTE');
  const resolved=path.resolve(directory),relative=path.relative(ROOT,resolved);
  if(relative===''||(!relative.startsWith('..'+path.sep)&&relative!=='..'&&!path.isAbsolute(relative)))fail('KIR_INTEGRATION_OUTPUT_INSIDE_SOURCE');
  const st=fs.lstatSync(resolved);
- if(!st.isDirectory()||st.isSymbolicLink()||fs.realpathSync(resolved)!==resolved||(st.mode&0o777)!==0o700||st.uid!==process.getuid())fail('KIR_INTEGRATION_OUTPUT_PRIVATE_DIRECTORY');
+ if(!st.isDirectory()||st.isSymbolicLink()||fs.realpathSync(resolved)!==resolved||!privateDirectoryMetadata(st))fail('KIR_INTEGRATION_OUTPUT_PRIVATE_DIRECTORY');
  if(empty&&fs.readdirSync(resolved).length)fail('KIR_INTEGRATION_OUTPUT_NOT_EMPTY');
  return resolved;
 }
