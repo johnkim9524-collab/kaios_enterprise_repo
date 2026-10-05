@@ -67,8 +67,10 @@ function validate(source) {
   if (shaBindingCount !== 3) fail(`ARTIFACT_SHA_BINDING_CARDINALITY:${shaBindingCount}`);
   if (pairedBindingCount !== 3) fail(`ARTIFACT_RUN_SHA_PAIR_CARDINALITY:${pairedBindingCount}`);
 
-  const jobHeader = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
-  if (/workflow_run\.conclusion\s*==\s*['\"]success['\"]/.test(jobHeader)) {
+  const jobHeader = source.match(/^  audit:\n([\\s\\S]*?)^    concurrency:/m)?.[1] || '';
+  const hasSuccessOnlyGate = /workflow_run\\.conclusion\\s*==\\s*['"]success['"]/.test(jobHeader);
+  const hasExactSentinelGate = jobHeader.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'");
+  if (hasSuccessOnlyGate && !hasExactSentinelGate) {
     fail('SUCCESS_ONLY_JOB_FILTER_FORBIDDEN');
   }
   return true;
@@ -105,6 +107,9 @@ for (const [from, to] of mutations) {
 const successOnlyMutation = text.replaceAll(
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
+).replace(
+  "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+  "UNTRUSTED SUCCESS-ONLY WORKFLOW"
 );
 if (successOnlyMutation === text) fail('SELF_TEST_SOURCE_MARKER_MISSING:SUCCESS_ONLY_JOB_FILTER');
 let successOnlyRejected = false;
