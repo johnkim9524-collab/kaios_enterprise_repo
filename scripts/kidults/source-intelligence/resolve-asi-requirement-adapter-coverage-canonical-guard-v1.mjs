@@ -102,7 +102,7 @@ function validateCurrent(raw) {
     ? `KIDULTS Coverage / source-${current.source_sha}`
     : `KIDULTS Coverage / manual-${current.run_id}`;
   if (current.coverage_run_display_title !== expectedDisplayTitle) fail('CURRENT_COVERAGE_RUN_DISPLAY_TITLE_INVALID');
-  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${current.canonical_run_key}:${current.canonical_input_digest}`).slice(7)}`;
+  current.canonical_artifact_name = `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${current.canonical_run_key}:${current.canonical_input_digest}:${current.upstream_workflow_run_id}`).slice(7)}`;
   return current;
 }
 
@@ -172,6 +172,8 @@ function validateLeaderCandidate(candidate, current, observedAt) {
   push(receipt?.trigger_event === 'workflow_run', 'RECEIPT_TRIGGER_INVALID');
   push(DIGEST.test(receipt?.upstream_binding_digest || ''), 'RECEIPT_UPSTREAM_BINDING_DIGEST_INVALID');
   push(DIGEST.test(receipt?.upstream_artifact_digest || ''), 'RECEIPT_UPSTREAM_ARTIFACT_DIGEST_INVALID');
+  for (const key of ['upstream_workflow_run_id', 'upstream_artifact_id', 'upstream_artifact_digest', 'upstream_binding_digest'])
+    push(receipt?.[key] === current[key], `RECEIPT_EXACT_UPSTREAM_DIVERGENCE:${key}`);
   push(DIGEST.test(receipt?.coverage_manifest_digest || ''), 'RECEIPT_MANIFEST_DIGEST_INVALID');
   push(DIGEST.test(receipt?.coverage_kpmo_receipt_digest || ''), 'RECEIPT_KPMO_DIGEST_INVALID');
   push(DIGEST.test(receipt?.guard_receipt_digest || ''), 'RECEIPT_GUARD_DIGEST_INVALID');

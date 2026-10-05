@@ -9,15 +9,11 @@ export LC_ALL=C
 [[ "$KAIOS_ENVIRONMENT" == "staging" ]] || { echo 'staging only' >&2; exit 64; }
 [[ "$KAIOS_PRODUCTION_PROMOTION_AUTHORIZED" == "false" ]] || { echo 'production promotion must remain false' >&2; exit 64; }
 
-for command_name in psql pg_isready sha256sum; do
+for command_name in psql sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
 export PGDATABASE="$KAIOS_POSTGRES_DSN"
-if ! pg_isready >/dev/null 2>&1; then
-  echo 'POSTGRES_CONNECTION: pg_isready did not receive a server response' >&2
-  exit 70
-fi
 
 psql_scalar() {
   psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"

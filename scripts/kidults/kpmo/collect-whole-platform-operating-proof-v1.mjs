@@ -5,12 +5,13 @@ import {pathToFileURL} from 'node:url';
 import {authenticatedGithubRead,downloadArtifact,selectProducerGeneration,SPECS} from './resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {readArchive,REPOSITORY} from './validate-sentinel-producer-content-v1.mjs';
 import {inventoryWholePlatform} from './lib/whole-platform-operating-proof-v1.mjs';
-import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt} from './lib/whole-platform-runtime-evidence-v1.mjs';
+import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt,verifyNaturalChainTerminal} from './lib/whole-platform-runtime-evidence-v1.mjs';
 import {verifyNativeResumeReuse} from './lib/native-resume-reuse-proof-v1.mjs';
 import {canonicalJson,sha256} from './lib/canonical-json-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 const spec=(id,workflow,events)=>({id,workflow,path:`.github/workflows/${workflow}`,events});
 const sentinel=spec('SENTINEL','kpmo-continuous-assurance-sentinel-health-v1.yml',['push','workflow_run','repository_dispatch']);
+const gateSpec=spec('SUCCESS_GATE','kpmo-continuous-assurance-success-authority-gate-v1.yml',['workflow_run']);
 const canary=spec('IMMUTABILITY','kidults-autonomous-object-lock-canary-v1.yml',['push','schedule','workflow_dispatch']);
 const dispatcher=spec('DISPATCHER','kidults-autonomous-dispatcher-v1.yml',['workflow_run','schedule','workflow_dispatch']);
 const finalizers=['track','kpmo','independent-verification'].map(role=>spec(`FINALIZER_${role}`,`kidults-autonomous-${role}-authorization-v1.yml`,['repository_dispatch','workflow_run']));
@@ -65,11 +66,37 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     out.protected_evidence.push({workflow_path:run.path,run_id:run.id,run_attempt:run.run_attempt,
       source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest});return parsed;
   };
+  let gateCandidates;
+  const gatePackets=new Map();
+  const chainTerminal=async health=>{
+    gateCandidates??=await runs(gateSpec);
+    for(const run of gateCandidates.slice(0,contract.maximum_observation_history)){
+      if(run.status!=='completed'||run.conclusion!=='success')continue;
+      if(!gatePackets.has(run.id)){
+        const index=await get(`actions/runs/${run.id}/artifacts?per_page=100`);
+        requireEvidence(Array.isArray(index.artifacts)&&index.total_count===index.artifacts.length,'GATE_ARTIFACT_INDEX');
+        const artifacts=index.artifacts.filter(a=>a.name.startsWith(`kpmo-continuous-assurance-success-authority-gate-${sourceSha}-`));
+        requireEvidence(artifacts.length<=1,'GATE_ARTIFACT_CARDINALITY');
+        const p=artifacts.length?await packet(run,artifacts[0].name):null;
+        gatePackets.set(run.id,p?member(p,'kpmo-continuous-assurance-success-authority-gate-v1.json'):null);
+      }
+      const receipt=gatePackets.get(run.id);
+      if(!receipt||receipt.producer_health_run_id!==health.observer_run_id)continue;
+      const assurance=await get(`actions/runs/${receipt.upstream_assurance?.run_id}`);
+      const p=await packet(assurance,`kidults-continuous-assurance-${sourceSha}-${assurance.id}-${assurance.run_attempt}`);
+      requireEvidence(p,'CHAIN_ASSURANCE_ARTIFACT');
+      verifyNaturalChainTerminal(receipt,run,assurance,member(p,'audit-receipt.json'),health,sourceSha);
+      return {sentinel_run_id:health.observer_run_id,assurance_run_id:assurance.id,gate_run_id:run.id,
+        sentinel_receipt_digest:health.receipt_digest,gate_receipt_digest:receipt.receipt_digest};
+    }
+    return null;
+  };
   const age=run=>requireEvidence(Date.parse(observedAt)>=Date.parse(run.created_at)&&Date.parse(observedAt)-Date.parse(run.created_at)<=contract.maximum_evidence_age_seconds*1000,'EVIDENCE_STALE');
+  let verifiedHealths=[];
   await attempt(['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS'],async()=>{
     requireEvidence(Number.isSafeInteger(contract.maximum_observation_history)&&contract.maximum_observation_history>=2&&contract.maximum_observation_history<=24,'OBSERVATION_HISTORY_BOUND');
     const candidates=await runs(sentinel),selected=[],healths=[];
-    let earliestCurrentProducerTime=null,archivesRead=0;
+    let archivesRead=0;
     if(!candidates.length)return;
     for(const run of candidates){
       if(run.status!=='completed'||run.conclusion!=='success'){
@@ -77,7 +104,6 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
         break; // A red/nonterminal observation interrupts consecutiveness.
       }
       if(healths.length&&Date.parse(observedAt)-Date.parse(run.created_at)>contract.maximum_evidence_age_seconds*1000)break;
-      if(healths.length&&Date.parse(run.created_at)>=earliestCurrentProducerTime)continue;
       if(archivesRead>=contract.maximum_observation_history)break;
       age(run);
       if(!healths.length)requireEvidence(Date.parse(observedAt)-Date.parse(run.created_at)<=contract.maximum_observer_age_seconds*1000,'LATEST_OBSERVER_STALE');
@@ -88,21 +114,27 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       if(healths.length&&!distinctNaturalGenerations([healths[0],h]))continue;
       for(const producer of h.producers){
         const native=await get(`actions/runs/${producer.selected_run_id}`),s=SPECS.find(s=>s.id===producer.id);
-        requireEvidence(native.path===s.path&&native.repository?.full_name===REPOSITORY&&native.head_sha===sourceSha&&native.head_branch==='main'&&native.run_attempt===producer.selected_run_attempt&&native.status==='completed'&&native.conclusion==='success','PRODUCER_NATIVE_BINDING');
+        requireEvidence(native.path===s.path&&native.repository?.full_name===REPOSITORY&&native.head_sha===sourceSha&&native.head_branch==='main'&&native.run_attempt===producer.selected_run_attempt&&native.status==='completed'&&native.conclusion==='success'
+          &&native.event===producer.selected_event&&native.created_at===producer.selected_created_at,'PRODUCER_NATIVE_BINDING');
         const artifact=await get(`actions/artifacts/${producer.artifact_id}`);
         requireEvidence(artifact.digest===producer.artifact_digest&&artifact.workflow_run?.id===native.id&&artifact.workflow_run.head_sha===sourceSha&&artifact.expired===false,'PRODUCER_ARTIFACT_BINDING');
       }
       healths.push(h);
-      if(healths.length===1){
-        earliestCurrentProducerTime=Math.min(...h.producers.map(p=>Date.parse(p.selected_created_at)));
-        requireEvidence(Number.isFinite(earliestCurrentProducerTime),'PRODUCER_GENERATION_TIME');
-      }
       selected.push(run);
       mark('CORE_FOUR_CONTENT','VERIFIED_PASS','PROTECTED_SEMANTIC_RECEIPTS_RECONCILED',selected.map(r=>r.id));
       mark('DISTINCT_NATURAL_GENERATIONS','VERIFIED_HOLD','TWO_DISTINCT_COMPLETE_PRODUCER_TUPLES_REQUIRED',selected.map(r=>r.id));
       if(healths.length===2)break;
     }
+    verifiedHealths=healths;
     if(healths.length)mark('DISTINCT_NATURAL_GENERATIONS',distinctNaturalGenerations(healths)?'VERIFIED_PASS':'VERIFIED_HOLD','TWO_DISTINCT_COMPLETE_PRODUCER_TUPLES_REQUIRED',selected.map(r=>r.id));
+  });
+  await attempt(['NATURAL_CHAIN_TERMINALS'],async()=>{
+    if(!verifiedHealths.length)return;
+    const terminals=[];
+    for(const health of verifiedHealths){const terminal=await chainTerminal(health);if(terminal)terminals.push(terminal);}
+    out.natural_chain_terminals=terminals;
+    mark('NATURAL_CHAIN_TERMINALS',terminals.length===2?'VERIFIED_PASS':'VERIFIED_HOLD',
+      'TWO_EXACT_SENTINEL_ASSURANCE_GATE_CHAINS_REQUIRED',terminals);
   });
   await attempt(['PROTECTED_LANDING'],async()=>{
     const prs=await get(`commits/${sourceSha}/pulls?per_page=100`);
@@ -123,28 +155,34 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   });
   await attempt(['NATIVE_DISPATCH','NATIVE_RESUME_REUSE'],async()=>{
     const base=commit.parents?.[0]?.sha;if(!base)return;
-    const run=(await runs(dispatcher,base))[0];if(!run||run.status!=='completed'||run.conclusion!=='success')return;
-    const p=await packet(run,`kidults-autonomous-dispatcher-${run.id}`);if(!p)return;
-    for(const m of p.members.filter(m=>/^pr-\d+-protected-resume.json$/.test(path.posix.basename(m.name)))){
-      const first=JSON.parse(m.text),binding=first.receipt?.receipt?.binding;
-      if(binding?.base_sha!==base||binding?.head_sha!==commit.parents[1]?.sha||binding?.head_tree_sha!==commit.tree.sha)continue;
-      requireEvidence(first.ok===true&&['EXECUTED_VERIFIED','REUSED_SUCCESS'].includes(first.state)&&first.receipt.receipt.state==='DISPATCH_ACCEPTED','DISPATCH_STATE');
-      mark('NATIVE_DISPATCH','VERIFIED_PASS','ORIGINAL_TRANSPORT_CONSUMED',[run.id,first.key]);
-      const reuse=p.members.find(x=>x.name===m.name.replace('-protected-resume.json','-protected-reuse.json'));
-      if(!reuse)continue;
-      const proof=verifyNativeResumeReuse(first,JSON.parse(reuse.text));
-      mark('NATIVE_RESUME_REUSE','VERIFIED_PASS','SAME_OPERATION_DURABLE_RECEIPT_REUSED',[run.id,proof.operation_key]);
+    for(const run of (await runs(dispatcher,base)).slice(0,contract.maximum_observation_history)){
+      if(run.status!=='completed'||run.conclusion!=='success')continue;
+      const p=await packet(run,`kidults-autonomous-dispatcher-${run.id}`);if(!p)continue;
+      for(const m of p.members.filter(m=>/^pr-\d+-protected-resume.json$/.test(path.posix.basename(m.name)))){
+        const first=JSON.parse(m.text),binding=first.receipt?.receipt?.binding;
+        if(binding?.base_sha!==base||binding?.head_sha!==commit.parents[1]?.sha||binding?.head_tree_sha!==commit.tree.sha)continue;
+        requireEvidence(first.ok===true&&['EXECUTED_VERIFIED','REUSED_SUCCESS'].includes(first.state)&&first.receipt.receipt.state==='DISPATCH_ACCEPTED','DISPATCH_STATE');
+        mark('NATIVE_DISPATCH','VERIFIED_PASS','ORIGINAL_TRANSPORT_CONSUMED',[run.id,first.key]);
+        const reuse=p.members.find(x=>x.name===m.name.replace('-protected-resume.json','-protected-reuse.json'));
+        if(!reuse)continue;
+        const proof=verifyNativeResumeReuse(first,JSON.parse(reuse.text));
+        mark('NATIVE_RESUME_REUSE','VERIFIED_PASS','SAME_OPERATION_DURABLE_RECEIPT_REUSED',[run.id,proof.operation_key]);
+      }
+      if(check('NATIVE_RESUME_REUSE').state==='VERIFIED_PASS')break;
     }
   });
   await attempt(['FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'],async()=>{
     const base=commit.parents?.[0]?.sha;if(!base)return;
     for(const s of finalizers){
-      const run=(await runs(s,base))[0];if(!run||run.status!=='completed')continue;
-      const p=await packet(run,`kidults-autonomous-internal-landing-finalizer-${run.id}-${run.run_attempt}`);if(!p)continue;
-      const outer=member(p,'receipt.json'),r=outer.terminal_evidence||outer;
-      if(r.merge?.merge_sha!==sourceSha)continue;
-      verifyMissionTerminal(r,sourceSha,commit);
-      mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_PASS','ORIGINAL_RESERVATION_AND_IMMUTABLE_VERSION_CONSUMED',[run.id,r.receipt_digest]);
+      for(const run of (await runs(s,base)).slice(0,contract.maximum_observation_history)){
+        if(run.status!=='completed')continue;
+        const p=await packet(run,`kidults-autonomous-internal-landing-finalizer-${run.id}-${run.run_attempt}`);if(!p)continue;
+        const outer=member(p,'receipt.json'),r=outer.terminal_evidence||outer;
+        if(r.merge?.merge_sha!==sourceSha)continue;
+        verifyMissionTerminal(r,sourceSha,commit);
+        mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_PASS','ORIGINAL_RESERVATION_AND_IMMUTABLE_VERSION_CONSUMED',[run.id,r.receipt_digest]);
+        return;
+      }
     }
   });
   await attempt(['WHOLE_VALUE_CHAIN_RUNTIME'],async()=>{

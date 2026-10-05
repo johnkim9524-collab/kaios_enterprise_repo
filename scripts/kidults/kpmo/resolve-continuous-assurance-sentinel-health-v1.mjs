@@ -34,6 +34,26 @@ function sealReceipt(base){
 
 const positiveInteger=value=>Number.isSafeInteger(value)&&value>0;
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
+export const MAX_PRODUCER_COHORT_SPAN_MS=45*60*1000;
+
+export function assessProducerCohort(producers){
+  const complete=Array.isArray(producers)&&producers.length===SPECS.length&&
+    SPECS.every((spec)=>producers.filter((producer)=>producer?.id===spec.id).length===1);
+  if(!complete)return {bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,failure_class:'PRODUCER_COHORT_INCOMPLETE'};
+  const timestamps=producers.map((producer)=>Date.parse(producer.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {
+    bound:false,span_ms:null,earliest_created_at:null,latest_created_at:null,
+    failure_class:'PRODUCER_COHORT_TIMESTAMP_INVALID'
+  };
+  const earliest=Math.min(...timestamps),latest=Math.max(...timestamps),span_ms=latest-earliest;
+  const bound=span_ms<=MAX_PRODUCER_COHORT_SPAN_MS;
+  return {
+    bound,span_ms,
+    earliest_created_at:new Date(earliest).toISOString(),
+    latest_created_at:new Date(latest).toISOString(),
+    failure_class:bound?null:'PRODUCER_COHORT_WINDOW_EXCEEDED'
+  };
+}
 
 // Both public evaluation and the authenticated collector use this one selection
 // rule. Ambiguous pages/attempts never become a best-effort older PASS.
@@ -184,10 +204,16 @@ export function evaluateHealth(input){
   if(!Number.isFinite(Date.parse(observedAt||'')))fail('OBSERVED_AT_INVALID');
   if(!SHA.test(input.source_sha||''))fail('SOURCE_SHA_INVALID');
   const producers=SPECS.map((spec)=>evaluateProducer(spec,input.runs?.[spec.id]||[],input.artifacts_by_run||{},input.source_sha,observedAt,input.archives_by_id||{},input.related_by_id||{}));
+  const cohort=assessProducerCohort(producers);
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
-  const state=failures.length?'VERIFIED_FAIL':holds.length?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const state=failures.length?'VERIFIED_FAIL':holds.length||!cohort.bound?'VERIFIED_HOLD':'VERIFIED_PASS';
+  // `waiting_producers` is an identity list for the four declared producers.
+  // Cohort binding is an independent aggregate guard; never invent a fifth
+  // producer id for that condition because the observation validator must be
+  // able to reconcile this list exactly with `producers`.
+  const waitingProducers=holds.map((p)=>p.id);
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,producer_cohort_bound:cohort.bound,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 
@@ -310,7 +336,13 @@ async function liveInput(){
     }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
     const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
-    if(generationSignature(before)!==generationSignature(after))fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    if(generationSignature(before)!==generationSignature(after)){
+      // A different newer run may be re-observed; mutation of an existing run's
+      // attempt or immutable metadata is an integrity failure, never a retry.
+      if(before&&after&&before.id!==after.id&&after.run_attempt===1
+        &&Date.parse(after.created_at)>Date.parse(before.created_at))fail('SENTINEL_GENERATION_ADVANCED_DURING_READ');
+      fail('SENTINEL_GENERATION_CHANGED_DURING_READ');
+    }
   }
   for(const related of Object.values(relatedById)){
     const fresh=await api(`https://api.github.com/repos/${repo}/actions/runs/${related.run.id}`,token);
@@ -339,11 +371,23 @@ function selfTest(){
   console.log(JSON.stringify({suite:'KPMO_CONTINUOUS_ASSURANCE_SENTINEL_HEALTH_V1',state:'VERIFIED_PASS',metadata_only_semantic_pass:false,metadata_only_state:'VERIFIED_HOLD',positive:0,negative:6,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'}));
 }
 
+// Retry only a moving read snapshot. Authority, digest and main failures remain terminal.
+export async function collectStableHealth({readInput=liveInput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maximumAttempts=3}={}){
+  if(!Number.isSafeInteger(maximumAttempts)||maximumAttempts<1||maximumAttempts>3)fail('SENTINEL_SNAPSHOT_RETRY_BOUND');
+  for(let attempt=1;attempt<=maximumAttempts;attempt++){
+    try{return evaluateHealth(await readInput());}
+    catch(error){
+      if(error.message!=='SENTINEL_GENERATION_ADVANCED_DURING_READ'||attempt===maximumAttempts)throw error;
+      await sleep(5000);
+    }
+  }
+}
+
 function outputPath(){const index=process.argv.indexOf('--output');return index>=0?process.argv[index+1]:'';}
 async function main(){
   if(process.argv.includes('--self-test'))return selfTest();
   const out=outputPath();if(!out)fail('OUTPUT_REQUIRED');
-  try{const result=evaluateHealth(await liveInput());fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
+  try{const result=await collectStableHealth();fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(result,null,2)}\n`);console.log(JSON.stringify({state:result.state,failed:result.failed_producers,waiting:result.waiting_producers}));if(result.state!=='VERIFIED_PASS')process.exitCode=1;}
   catch(error){const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state:'VERIFIED_FAIL',coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',repository:process.env.GITHUB_REPOSITORY||null,observer_run_id:process.env.GITHUB_RUN_ID||null,observer_run_attempt:process.env.GITHUB_RUN_ATTEMPT||null,semantic_content_verified:false,runtime_health_proven:false,source_sha:process.env.GITHUB_SHA||null,observed_at:new Date().toISOString(),failure_class:String(error?.message||error),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};const receipt=sealReceipt(base);if(out){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,`${JSON.stringify(receipt,null,2)}\n`);}console.error(error);process.exitCode=1;}
 }
 

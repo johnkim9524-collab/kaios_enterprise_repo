@@ -195,6 +195,18 @@ for(const url of ['http://x.blob.core.windows.net/x','https://evil.example/x','h
 test('artifact redirect accepts HTTPS signed storage without credentials',()=>assert.equal(allowedArtifactRedirect('https://example.blob.core.windows.net/artifact?sig=test').hostname,'example.blob.core.windows.net'));
 function healthInput(){const input={repository:REPOSITORY,source_sha:sha,observed_at:observed,observer_run_id:900,observer_run_attempt:1,runs:{},artifacts_by_run:{},archives_by_id:{}};for(const f of [shadow,coverage,reserve,canonical]){input.runs[f.spec.id]=[f.run];input.artifacts_by_run[f.run.id]=[f.artifact];input.archives_by_id[f.artifact.id]=f.bytes;}return input;}
 test('four content-verified producers can reach bounded aggregate PASS',()=>{const x=evaluateHealth(healthInput());assert.equal(x.state,'VERIFIED_PASS');assert.equal(x.semantic_content_verified,true);assert.equal(x.runtime_health_proven,false);assert.equal(x.whole_platform_authority,false);assert.equal(x.promotion_eligible,false);assert.equal(x.observer_run_id,900);assert.ok(!JSON.stringify(x).includes('SYNTHETIC_CONTROL'));const wire=JSON.parse(JSON.stringify(x)),{receipt_digest,...unsigned}=wire;assert.equal(receipt_digest,digest(stable(unsigned)));});
+test('an unbound producer cohort stays HOLD without a pseudo producer',()=>{
+ const input=healthInput();
+ const delayedRun={...input.runs.SHADOW[0],created_at:'2026-09-05T11:00:00Z',run_started_at:'2026-09-05T11:00:00Z'};
+ input.runs.SHADOW=[delayedRun];
+ input.artifacts_by_run[delayedRun.id]=input.artifacts_by_run[delayedRun.id].map(artifact=>({...artifact,created_at:'2026-09-05T11:01:00Z'}));
+ const x=evaluateHealth(input);
+ assert.equal(x.state,'VERIFIED_HOLD');
+ assert.equal(x.producer_cohort_bound,false);
+ assert.equal(x.producer_cohort_failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
+ assert.deepEqual(x.waiting_producers,[]);
+ assert.equal(x.producers.filter(p=>p.state==='VERIFIED_HOLD').length,0);
+});
 test('metadata-only proof remains HOLD even when a caller asserts validation',()=>{const x=healthInput();delete x.archives_by_id;x.artifact_content_validated=true;assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
 test('latest RED cannot fall back to old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',conclusion:'failure'}];assert.equal(evaluateHealth(x).state,'VERIFIED_FAIL');});
 test('new pending generation cannot reuse old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',status:'in_progress',conclusion:null}];assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
@@ -205,9 +217,10 @@ test('workflow exercises content suite and checks content-bound terminal identit
 
 function aliasFixture(){
  const leader=check(coverage).leader;
- const artifact={...coverage.artifact,name:`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${leader.canonical_run_key}:${leader.canonical_input_digest}`).slice(7)}`};
+ const artifact={...coverage.artifact,name:`kidults-asi-requirement-adapter-coverage-canonical-${digest(`${leader.canonical_run_key}:${leader.canonical_input_digest}:${leader.upstream_workflow_run_id}`).slice(7)}`};
  const a={id:'kidults-asi-requirement-adapter-coverage-canonical-alias-receipt-v1',version:'1.0.0',state:'VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE',repository:REPOSITORY,source_sha:sha,current_workflow_run_id:21,current_workflow_run_attempt:1,current_trigger_event:'workflow_run',current_coverage_consumer_sha:sha,current_coverage_run_head_sha:sha,canonical_workflow_run_id:11,canonical_workflow_run_attempt:1,canonical_artifact_id:artifact.id,canonical_artifact_name:artifact.name,canonical_artifact_digest:artifact.digest,canonical_receipt_digest:leader.receipt_digest,canonical_coverage_run_head_sha:sha,canonical_coverage_consumer_sha:sha,canonical_execution_claimed:false,durable_claim_created:false,public:'HOLD',production:'HOLD',g5:'EXPLICIT_APPROVAL_REQUIRED'};
  for(const key of ['canonical_run_key','canonical_input_digest','canonical_contract_digest','semantic_input_receipt_digest'])a[key]=leader[key];
+ for(const key of ['upstream_workflow_run_id','upstream_artifact_id','upstream_artifact_digest','upstream_binding_digest']){a[`canonical_${key}`]=leader[key];a[`current_${key}`]=leader[key];}
  a.receipt_digest=digest(stable(a));a.observed_at='2026-09-05T10:01:00Z';
  const f=fixture('REQUIREMENT',[['coverage-canonical-alias-receipt-v1.json',text(a)]]);f.run={...f.run,id:21};f.artifact={...f.artifact,id:121,workflow_run:{...f.artifact.workflow_run,id:21}};
  return {f,artifact};
@@ -361,4 +374,10 @@ for(const [name,mutate] of [
  const {f,artifact}=aliasFixture();
  const alias=check(f),leader=check({...coverage,artifact});mutate(leader);
  assert.throws(()=>validateCoverageAliasClosure(alias,leader,coverage.run,artifact),/COVERAGE_ALIAS_NATIVE_PROOF_REQUIRED/);
+});
+
+test('Coverage alias cannot substitute a different exact upstream execution even with a sealed alias',()=>{
+ const {f,artifact}=aliasFixture(),proof=check(f),leaderProof=check({...coverage,artifact});
+ const alias={...proof.alias,current_upstream_workflow_run_id:proof.alias.current_upstream_workflow_run_id+1};
+ assert.throws(()=>validateCoverageAliasClosure({...proof,alias},leaderProof,coverage.run,artifact),/COVERAGE_ALIAS_CURRENT_UPSTREAM/);
 });
