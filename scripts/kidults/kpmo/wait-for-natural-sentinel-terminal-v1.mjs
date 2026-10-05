@@ -16,11 +16,11 @@ const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const stable = value => Array.isArray(value)
-  ? \`[\${value.map(stable).join(',')}]\`
+  ? `[${value.map(stable).join(',')}]`
   : value && typeof value === 'object'
-    ? \`{\${Object.keys(value).sort().map(key => \`\${JSON.stringify(key)}:\${stable(value[key])}\`).join(',')}}\`
+    ? `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
     : JSON.stringify(value);
-const digest = value => \`sha256:\${crypto.createHash('sha256').update(value).digest('hex')}\`;
+const digest = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const outputPath = process.env.KPMO_SENTINEL_BARRIER_OUTPUT ||
   path.join(process.env.RUNNER_TEMP || '/tmp', 'kpmo-sentinel-barrier.json');
 const timeoutSeconds = Math.min(Math.max(Number(process.env.KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS || 900), 60), 1800);
@@ -31,7 +31,7 @@ function writeReceipt(body) {
   fs.mkdirSync(path.dirname(outputPath), {recursive: true});
   const unsigned = {...body};
   delete unsigned.receipt_digest;
-  fs.writeFileSync(outputPath, \`\${JSON.stringify({...body, receipt_digest: digest(stable(unsigned))}, null, 2)}\n\`);
+  fs.writeFileSync(outputPath, `${JSON.stringify({...body, receipt_digest: digest(stable(unsigned))}, null, 2)}\n`);
 }
 function fail(code, detail = null) {
   writeReceipt({
@@ -52,21 +52,21 @@ function headers() {
   if (!TOKEN) throw new Error('ASSURANCE_SENTINEL_BARRIER_TOKEN_MISSING');
   return {
     Accept: 'application/vnd.github+json',
-    Authorization: \`Bearer \${TOKEN}\`,
+    Authorization: `Bearer ${TOKEN}`,
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'kidults-assurance-sentinel-order-barrier-v1'
   };
 }
 async function api(route) {
-  const response = await fetch(\`https://api.github.com\${route}\`, {headers: headers(), signal: AbortSignal.timeout(20000)});
-  if (!response.ok) throw new Error(\`ASSURANCE_SENTINEL_BARRIER_GITHUB_\${response.status}\`);
+  const response = await fetch(`https://api.github.com${route}`, {headers: headers(), signal: AbortSignal.timeout(20000)});
+  if (!response.ok) throw new Error(`ASSURANCE_SENTINEL_BARRIER_GITHUB_${response.status}`);
   return response.json();
 }
 async function artifactBytes(artifactId) {
-  const response = await fetch(\`https://api.github.com/repos/\${REPOSITORY}/actions/artifacts/\${artifactId}/zip\`, {
+  const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/actions/artifacts/${artifactId}/zip`, {
     headers: headers(), signal: AbortSignal.timeout(30000)
   });
-  if (!response.ok) throw new Error(\`ASSURANCE_SENTINEL_BARRIER_ARTIFACT_\${response.status}\`);
+  if (!response.ok) throw new Error(`ASSURANCE_SENTINEL_BARRIER_ARTIFACT_${response.status}`);
   return Buffer.from(await response.arrayBuffer());
 }
 function eventIssuedAt() {
@@ -82,7 +82,7 @@ function eventIssuedAt() {
 function candidatesFrom(runs, cutoffMs) {
   return (runs || []).filter(run =>
     run?.name === WORKFLOW_NAME &&
-    run?.path === \`.github/workflows/\${WORKFLOW_FILE}\` &&
+    run?.path === `.github/workflows/${WORKFLOW_FILE}` &&
     run?.repository?.full_name === REPOSITORY &&
     run?.head_repository?.full_name === REPOSITORY &&
     run?.head_branch === 'main' &&
@@ -96,16 +96,16 @@ function candidatesFrom(runs, cutoffMs) {
   ).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
 }
 async function observe(run) {
-  const artifacts = await api(\`/repos/\${REPOSITORY}/actions/runs/\${run.id}/artifacts?per_page=100\`);
+  const artifacts = await api(`/repos/${REPOSITORY}/actions/runs/${run.id}/artifacts?per_page=100`);
   if (!Array.isArray(artifacts?.artifacts) || artifacts.total_count !== artifacts.artifacts.length) {
     throw new Error('ASSURANCE_SENTINEL_BARRIER_ARTIFACT_INDEX_TRUNCATED');
   }
-  const expected = \`kpmo-continuous-assurance-sentinel-health-v1-\${SOURCE_SHA}-\${run.id}-\${run.run_attempt}\`;
+  const expected = `kpmo-continuous-assurance-sentinel-health-v1-${SOURCE_SHA}-${run.id}-${run.run_attempt}`;
   const rows = artifacts.artifacts.filter(item =>
     item?.name === expected && item?.expired === false && item?.workflow_run?.id === run.id &&
     item?.workflow_run?.head_sha === SOURCE_SHA && DIGEST.test(item?.digest || '')
   );
-  if (rows.length !== 1) throw new Error(\`ASSURANCE_SENTINEL_BARRIER_ARTIFACT_CARDINALITY_\${rows.length}\`);
+  if (rows.length !== 1) throw new Error(`ASSURANCE_SENTINEL_BARRIER_ARTIFACT_CARDINALITY_${rows.length}`);
   const artifact = rows[0];
   const bytes = await artifactBytes(artifact.id);
   const reader = spawnSync('python3', ['scripts/kidults/kpmo/read-sentinel-artifact-v1.py', artifact.digest], {
@@ -172,7 +172,7 @@ async function main() {
   let lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
   while (Date.now() <= deadline) {
     try {
-      const listing = await api(\`/repos/\${REPOSITORY}/actions/workflows/\${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=\${SOURCE_SHA}&per_page=100\`);
+      const listing = await api(`/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=${SOURCE_SHA}&per_page=100`);
       const candidates = candidatesFrom(listing.workflow_runs, cutoffMs);
       const latest = candidates.at(-1);
       if (!latest) {
@@ -180,7 +180,7 @@ async function main() {
       } else if (latest.status !== 'completed') {
         lastError = 'ASSURANCE_SENTINEL_BARRIER_SENTINEL_NONTERMINAL';
       } else if (latest.conclusion !== 'success') {
-        throw new Error(\`ASSURANCE_SENTINEL_BARRIER_SENTINEL_\${String(latest.conclusion || 'UNKNOWN').toUpperCase()}\`);
+        throw new Error(`ASSURANCE_SENTINEL_BARRIER_SENTINEL_${String(latest.conclusion || 'UNKNOWN').toUpperCase()}`);
       } else {
         const result = await observe(latest);
         writeReceipt(result);
@@ -196,7 +196,7 @@ async function main() {
     }
     await sleep(pollSeconds * 1000);
   }
-  throw new Error(\`\${lastError}_TIMEOUT\`);
+  throw new Error(`${lastError}_TIMEOUT`);
 }
 try {
   await main();
