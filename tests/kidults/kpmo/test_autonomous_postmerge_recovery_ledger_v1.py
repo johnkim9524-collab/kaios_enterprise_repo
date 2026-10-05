@@ -485,15 +485,19 @@ class RecoveryLedgerTests(unittest.TestCase):
         # the comparison deterministic while avoiding a false RED caused by
         # that transport detail.
         historical = '1d7981f6c09e2b7ad52fe5a819c59a54ea01525c:' + path
+        used_fallback = False
         try:
             original_text = subprocess.check_output(['git', 'show', historical], cwd=ROOT, text=True, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError:
             original_text = subprocess.check_output(['git', 'show', 'HEAD:' + path], cwd=ROOT, text=True)
+            used_fallback = True
         original = json.loads(original_text)
         props = actual['Resources']['AutonomousLedgerWriterFunction']['Properties']
         old = original['Resources']['AutonomousLedgerWriterFunction']['Properties']
         props['Code'] = old['Code']
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
+        if used_fallback:
+            original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_KEY_ARN', None)
         self.assertEqual(actual, original)
 
     def test_bundle_is_synchronized_and_does_not_deploy(self):
