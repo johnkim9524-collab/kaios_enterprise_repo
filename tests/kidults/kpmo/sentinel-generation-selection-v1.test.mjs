@@ -59,6 +59,29 @@ test('terminal sentinel selector keeps a newer in-progress natural run on HOLD',
  ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
  assert.equal(result.state,'VERIFIED_HOLD');assert.equal(result.latest.id,41);
 });
+test('terminal sentinel selector ignores a newer administrative skip and retains the last authoritative PASS',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(42),sentinelRun(43,{conclusion:'skipped',createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,42);
+ assert.equal(result.candidate_count,2);assert.equal(result.eligible_terminal_count,1);
+});
+test('terminal sentinel selector keeps a newer pending run ahead of an older authoritative PASS',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(44),sentinelRun(45,{status:'queued',conclusion:null,createdAt:'2026-09-05T11:00:00Z'}),
+  sentinelRun(46,{conclusion:'neutral',createdAt:'2026-09-05T11:30:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_HOLD');assert.equal(result.latest.id,45);
+ assert.equal(result.candidate_count,3);assert.equal(result.eligible_terminal_count,1);
+});
+test('terminal sentinel selector reports the latest administrative observation when no authoritative terminal exists',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(47,{conclusion:'skipped'}),sentinelRun(48,{conclusion:'action_required',createdAt:'2026-09-05T11:00:00Z'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_HOLD');assert.equal(result.latest,null);
+ assert.equal(result.failure_class,'NATURAL_SENTINEL_SUCCESS_NOT_READY');
+ assert.equal(result.latest_observed.id,48);assert.equal(result.eligible_terminal_count,0);
+});
 test('terminal sentinel selector CLI consumes the real GitHub workflow-runs envelope',()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-selector-'));
  const input=path.join(dir,'runs.json');
