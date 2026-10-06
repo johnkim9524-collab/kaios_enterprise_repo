@@ -62,7 +62,7 @@ test('Sentinel waits for the final Requirement completion edge and exact produce
  assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  assert.match(s,/SECONDS \+ 900/);
- assert.match(s,/actions\/runs\?head_sha=\$\{KPMO_SOURCE_SHA\}/);
+ assert.ok(s.includes("SPECS, workflowRuns"));
 });
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
@@ -222,10 +222,10 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const barrier=fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs','utf8');
  assert.match(sentinel,/SPECS, workflowRuns/);
- assert.match(sentinel,/for \\(const spec of SPECS\\)/);
+ assert.ok(sentinel.includes("for (const spec of SPECS)"));
  assert.doesNotMatch(sentinel,new RegExp("actions/runs\\\\?head_sha=.*per_page=100"));
  assert.match(barrier,/async function workflowRuns/);
- assert.match(barrier,/page=\\$\\{page\\}/);
+ assert.ok(barrier.includes("page=${page}"));
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
  assert.match(barrier,/run_attempt === 1/);
 });
