@@ -3453,8 +3453,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2c7bad88ab23c58469286d453ac3ace747eba2f8",
-      "sha256": "sha256:ea9fc858d085c4e4e01c25c4fe189f4bb20c13f1e70bed457c4e2e98a151afee",
+      "git_blob": "29fcabb41f852b70a7b4d5db2d1d2f8906c6984a",
+      "sha256": "sha256:a41837ae34e73fd8cbfe1d58c609b5f3180bb109485966d08d708e8b239fd3db",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5381,8 +5381,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4f7468485d0b532cbb4e2bf3e4073bee840a5a1f",
-      "sha256": "sha256:95fd4b82632a01bf8901d9f00f7bb22cfca37d3bba6fce1d13068f563a958f5e",
+      "git_blob": "d4c8bdeadcabcdb316bef643b9c896b532e984b7",
+      "sha256": "sha256:0a86db24b2442c93186d8446fdf0e206368af5a45f44be3e35b17df64efc8d11",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5699,8 +5699,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "14905ebabc069edd5f4c2d149c34ba1a35477bc9",
-      "sha256": "sha256:f2484575f394ba783476a3f93c79e43d863339ff2100b0051b212bf07658ecab"
+      "git_blob": "5aad0637572ac958e93c2e8ca8b00919287a8825",
+      "sha256": "sha256:ed029efec713a3d59ff8d0668ac5b015901127b7e419e2a0da4446829858bcba"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:8f6b7c999712d321eaae4c11bda4b75f31e4c52f3843171a8ef459094ab61493"
+  "manifest_sha256": "sha256:a6ab28ad0077c4b83f96a3a8277a2e48096d1d035324f8e7543e2f17a8c13b22"
 }

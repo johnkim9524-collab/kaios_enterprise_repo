@@ -29,10 +29,16 @@ export const sha256 = value => `sha256:${crypto.createHash('sha256').update(Stri
 
 export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
+    .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
+  const touchedTransitionPath = files.some(value => transitionPaths.has(typeof value === 'string' ? value : value?.filename));
   const transitionId = delegatedTransitionId({files, policy});
-  // A matching exact transition is a narrowly bound exception. Partial or
-  // drifted matches continue through ordinary scope and capability checks.
-  // They never inherit the exact transition's capability expansion.
+  if (touchedTransitionPath && !transitionId) {
+    fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
+  }
+  // Exact transition contracts are the only capability-expanding exceptions.
+  // Each contract binds the complete path set and immutable base/head content;
+  // every other trigger or authority change remains Owner-reserved below.
   if (transitionId) {
     return files.map(value=>typeof value==='string'?value:value.filename).sort();
   }
