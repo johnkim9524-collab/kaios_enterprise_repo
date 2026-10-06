@@ -40,7 +40,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || github.ref }}
+  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || 'NA' }}
   cancel-in-progress: true
 
 jobs:
