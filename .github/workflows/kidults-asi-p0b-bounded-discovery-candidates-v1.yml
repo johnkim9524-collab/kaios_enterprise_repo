@@ -268,4 +268,3 @@ jobs:
             /tmp/kidults-asi-p0b-bounded-discovery-receipt-v1.json
           retention-days: 90
           if-no-files-found: error
-

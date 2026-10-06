@@ -56,4 +56,3 @@ test('fails closed when protected main is unavailable',async()=>{
     url.endsWith(`/repos/${repository}`) ? response(200,{id:42,full_name:repository,default_branch:'main'}) : response(500,{})});
   await assert.rejects(()=>x.handler({source:'aws.scheduler',slot:'P0B'}),/NATURAL_CLOCK_MAIN_INVALID/);
 });
-

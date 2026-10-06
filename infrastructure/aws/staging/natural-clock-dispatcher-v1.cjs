@@ -62,4 +62,3 @@ exports.handler=async event => {
       appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID},
   })(event);
 };
-

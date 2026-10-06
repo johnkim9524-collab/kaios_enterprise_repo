@@ -1405,4 +1405,3 @@ jobs:
           set -euo pipefail
           node scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs \
             "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json"
-

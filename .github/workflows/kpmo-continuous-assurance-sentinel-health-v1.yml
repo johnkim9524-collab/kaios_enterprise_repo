@@ -230,4 +230,3 @@ jobs:
             ([.producers[].state]|all(.=="VERIFIED_PASS")) and
             ([.producers[].artifact_content_validated]|all(.==true))
           ' "$RUNNER_TEMP/kpmo-continuous-assurance-sentinel-health-v1.json" >/dev/null
-

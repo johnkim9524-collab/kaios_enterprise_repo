@@ -41,8 +41,13 @@ const matchesConfiguredTransition = ({files, policy, exceptionId}) => {
   if (!exception || !Array.isArray(files) || !files.length) return false;
   const expectedPaths = [...new Set(exception.paths || [])].sort();
   const actualPaths = files.map(file => file?.filename).filter(Boolean).sort();
-  if (exception.require_complete_path_set !== false && !same(actualPaths, expectedPaths)) return false;
-  if (!same(actualPaths, expectedPaths)) return false;
+  const allowUnchangedDeclaredPaths = exception.allow_unchanged_declared_paths === true;
+  if (allowUnchangedDeclaredPaths) {
+    if (!actualPaths.length || actualPaths.some(path => !expectedPaths.includes(path))) return false;
+  } else {
+    if (exception.require_complete_path_set !== false && !same(actualPaths, expectedPaths)) return false;
+    if (!same(actualPaths, expectedPaths)) return false;
+  }
 
   const contentDigests = new Map((exception.content_digests || []).map(value => [value.path, value]));
   if (contentDigests.size) {
@@ -129,7 +134,9 @@ export const matchesNaturalClockTransition = ({files, policy}) =>
 
 export const delegatedTransitionId = ({files, policy}) => {
   for (const exception of configuredExceptions(policy)) {
-    if (matchesConfiguredTransition({files, policy, exceptionId:exception.id})) return exception.id;
+    const declared = new Set(exception.paths || []);
+    const scopedFiles = files.filter(file => declared.has(file?.filename));
+    if (matchesConfiguredTransition({files:scopedFiles, policy, exceptionId:exception.id})) return exception.id;
   }
   return null;
 };

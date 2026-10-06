@@ -160,4 +160,3 @@ console.log(JSON.stringify({
   public: 'HOLD',
   g5: 'EXPLICIT_APPROVAL_REQUIRED'
 }, null, 2));
-

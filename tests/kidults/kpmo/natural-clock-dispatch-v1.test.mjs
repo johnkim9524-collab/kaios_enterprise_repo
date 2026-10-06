@@ -47,4 +47,3 @@ test('accepts Pooling as the governed producer root', () => {
   pooling.dispatch_id = `kidults-natural-clock-v1:POOLING:${sha}:${pooling.nonce}`;
   assert.equal(verifyNaturalClockDispatch({payload:pooling,liveMainSha:sha,now}).slot,'POOLING');
 });
-
