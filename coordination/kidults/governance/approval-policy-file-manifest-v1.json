@@ -5573,8 +5573,8 @@
     {
       "path": "tests/kidults/kpmo/direct-owner-head-tree-binding-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b818ec7b57681a30ecc3eb5b4bd779a5265b40b9",
-      "sha256": "sha256:dde9e8e84faf8e1ba7bcc66a21c44eb93ca0d3bc8f6d1d8b274068d820acda6d"
+      "git_blob": "ae22eeb969c45faee0b0be66fa986ae111012158",
+      "sha256": "sha256:86d8e0ed04316662e79a2f1e9eec5566cda472b6c09409cb07d84abf9f6a60b4"
     },
     {
       "path": "tests/kidults/kpmo/direct-owner-landing-handoff-v1.test.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ddec69f74c91ce3615a9231177680b9bac09b757499e37903791390d5d382fce"
+  "manifest_sha256": "sha256:1976553dbe87f0951e1e9e6a2e5db3f5649cbaa17a9ba0ca8130661c84569ba1"
 }
