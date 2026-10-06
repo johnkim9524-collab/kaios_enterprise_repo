@@ -42,8 +42,26 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
-import {buildAtomicPostMergeReceipt, evaluateCanonicalConvergence} from '../../../scripts/kidults/kpmo/consume-atomic-postmerge-push-suite-v1.mjs';
+import {
+  buildAtomicPostMergeReceipt,
+  evaluateCanonicalConvergence,
+  resolveAtomicPostMergeWaitSeconds,
+} from '../../../scripts/kidults/kpmo/consume-atomic-postmerge-push-suite-v1.mjs';
 import {evaluatePostMergePushSuite, validatePolicy} from '../../../scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs';
+
+test('atomic post-merge wait covers the serial canonical producer and consumer', () => {
+  assert.match(workflow, /POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '300'/);
+  assert.equal(resolveAtomicPostMergeWaitSeconds('300', {max_wait_seconds: 90}), 300);
+  assert.equal(resolveAtomicPostMergeWaitSeconds('', {max_wait_seconds: 90}), 90);
+  assert.throws(
+    () => resolveAtomicPostMergeWaitSeconds('301', {max_wait_seconds: 90}),
+    /ATOMIC_POSTMERGE_WAIT_INVALID/,
+  );
+  assert.throws(
+    () => resolveAtomicPostMergeWaitSeconds('-1', {max_wait_seconds: 90}),
+    /ATOMIC_POSTMERGE_WAIT_INVALID/,
+  );
+});
 
 function nativeFixture() {
   const policy = validatePolicy(JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8')));
