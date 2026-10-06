@@ -216,3 +216,16 @@ test('Assurance natural slots are hard-barriered behind a terminal exact-SHA Sen
  assert.match(barrier,/receipt\.state !== 'VERIFIED_PASS'/);
  assert.match(barrier,/producer_cohort_bound !== true/);
 });
+
+
+test('Sentinel producer readiness uses complete per-workflow exact-SHA pagination',()=>{
+ const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+ const barrier=fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs','utf8');
+ assert.match(sentinel,/SPECS, workflowRuns/);
+ assert.match(sentinel,/for \\(const spec of SPECS\\)/);
+ assert.doesNotMatch(sentinel,/actions\\/runs\\?head_sha=.*per_page=100/);
+ assert.match(barrier,/async function workflowRuns/);
+ assert.match(barrier,/page=\\$\\{page\\}/);
+ assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
+ assert.match(barrier,/latest\\.run_attempt === 1/);
+});
