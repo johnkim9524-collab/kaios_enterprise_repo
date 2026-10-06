@@ -240,6 +240,7 @@ jobs:
             DISCOVERY_RUN_ID=""
             DISCOVERY_WAIT_DEADLINE=$((SECONDS + 2100))
             while :; do
+              # no successful v2 discovery producer exists on exact target SHA until this read observes one.
               RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
                 -f branch=main -f head_sha="$TARGET_SHA" -f status=all -f per_page=100 -f page=1 \
                 "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
