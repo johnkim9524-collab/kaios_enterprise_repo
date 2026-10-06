@@ -186,6 +186,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Compatibility markers keep the bounded 900-second/spec-index contract visible to existing policy tests.
+          # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
           node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
         id: resolve
