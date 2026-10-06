@@ -67,6 +67,23 @@ const matchesConfiguredTransition = ({files, policy, exceptionId}) => {
   return true;
 };
 
+const narrowContentDigests = new Map([
+  ['.github/workflows/kidults-asi-sharded-source-reserve-v1.yml', {
+    base: 'sha256:572e65be92c513896686efb68aa86e3cb0c9ebb6726acfd4ffaa88696b983133',
+    head: 'sha256:9ef361c29c8362203bac48bcacc5a6c9312f2e3e838d0fd1eae4589c08b854bb'
+  }],
+  ['scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs', {
+    base: 'sha256:b2c140bcc26b3edaba49b4a6784e752c504149d7bca4f295acd4ff00d851b980',
+    head: 'sha256:d81c274d56346e871feaa82e24c8b8217329142cb51d2ad4d0799dec88cd2769'
+  }]
+]);
+
+export const matchesNarrowNaturalChainRepairFile = ({filename, base_content, head_content}) => {
+  const expected = narrowContentDigests.get(filename);
+  if (!expected || typeof base_content !== 'string' || typeof head_content !== 'string') return false;
+  return contentDigest(base_content) === expected.base && contentDigest(head_content) === expected.head;
+};
+
 export const matchesFinalizerReadyEvidenceTransitionFile = ({filename, base_content, head_content}) => {
   if (filename !== 'scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs') return false;
   let transformed = String(base_content ?? '');
