@@ -15,7 +15,10 @@ export function validateSentinelObservation(r,env){
   assert.equal(env.GITHUB_REPOSITORY,'johnkim9524-collab/kaios_enterprise_repo');
   assert.match(env.GITHUB_SHA||'',/^[0-9a-f]{40}$/);
   assert.equal(r?.receipt_id,'kpmo-continuous-assurance-sentinel-health-v1');
-  assert.equal(r.version,'1.0.0');
+  assert.ok(r.version==='1.0.0'||r.version==='1.1.0');
+  if(r.version==='1.1.0'){
+    assert.match(r.generation_id||'',/^kpmo-natural-v1-[0-9a-f]{12}-[0-9a-f]{20}$/);
+  }
   assert.equal(r.repository,env.GITHUB_REPOSITORY);
   assert.equal(r.source_sha,env.GITHUB_SHA);
   for(const [key,value] of [['observer_run_id',env.GITHUB_RUN_ID],['observer_run_attempt',env.GITHUB_RUN_ATTEMPT]]){
@@ -44,8 +47,10 @@ export function validateSentinelObservation(r,env){
     // synthetic `PRODUCER_COHORT` producer id.
     if(Object.hasOwn(r,'producer_cohort_bound')){
       assert.equal(typeof r.producer_cohort_bound,'boolean');
-      if(r.producer_cohort_bound)assert.equal(r.producer_cohort_failure_class,null);
-      else assert.equal(typeof r.producer_cohort_failure_class,'string');
+      if(r.producer_cohort_bound){
+        assert.equal(r.producer_cohort_failure_class,null);
+        if(r.version==='1.1.0')assert.equal(r.producer_cohort_scope,'DYNAMIC_PRODUCERS_ONLY');
+      } else assert.equal(typeof r.producer_cohort_failure_class,'string');
     }
     const cohortWaiting=Object.hasOwn(r,'producer_cohort_bound')&&r.producer_cohort_bound===false;
     assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length||cohortWaiting?'VERIFIED_HOLD':'VERIFIED_PASS');
