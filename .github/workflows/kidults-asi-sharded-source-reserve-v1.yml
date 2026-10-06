@@ -40,7 +40,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -242,10 +242,10 @@ jobs:
             while :; do
               # no successful v2 discovery producer exists on exact target SHA until this read observes one.
               RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
-                -f branch=main -f head_sha="$TARGET_SHA" -f status=all -f per_page=100 -f page=1 \
+                -f branch=main -f head_sha="$TARGET_SHA" -f per_page=100 -f page=1 \
                 "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
               LATEST="$(jq -c --arg sha "$TARGET_SHA" \
-                '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha)] | sort_by(.created_at) | reverse | .[0] // empty' \
+                '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha and (.event=="schedule" or .event=="workflow_dispatch" or .event=="repository_dispatch"))] | sort_by(.created_at) | reverse | .[0] // empty' \
                 <<<"$RUNS")"
               if [ -n "$LATEST" ]; then
                 DISCOVERY_RUN_ID="$(jq -r '.id' <<<"$LATEST")"
