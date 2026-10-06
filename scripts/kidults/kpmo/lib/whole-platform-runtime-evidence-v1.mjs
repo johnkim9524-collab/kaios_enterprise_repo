@@ -26,6 +26,16 @@ function hasValidProducerCohort(health){
   }
   return true;
 }
+function effectiveGenerationId(health){
+  if(typeof health?.generation_id==='string'&&/^kpmo-natural-v1-[a-f0-9]{12}-[a-f0-9]{20}$/.test(health.generation_id))return health.generation_id;
+  // Compatibility for pre-1.1 historical receipts: the tuple is still
+  // deterministic and source-bound, but newly emitted receipts must carry
+  // the explicit generation_id field above.
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  const tuple=(health?.producers||[]).filter(p=>dynamicIds.has(p?.id)).sort((a,b)=>a.id.localeCompare(b.id)).map(p=>({id:p.id,run_id:p.selected_run_id,attempt:p.selected_run_attempt,artifact_id:p.artifact_id??null,artifact_digest:p.artifact_digest??null,created_at:p.selected_created_at}));
+  if(!health?.source_sha||tuple.length!==dynamicIds.size)return null;
+  return `kpmo-natural-v1-${health.source_sha.slice(0,12)}-${sha256(canonicalJson(tuple)).slice(-20)}`;
+}
 export function verifyHealthReceipt(health,run,sourceSha){
   requireEvidence(health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1'&&health.source_sha===sourceSha&&health.repository===REPOSITORY,'HEALTH_SOURCE');
   const {receipt_digest,...body}=health;
@@ -41,9 +51,9 @@ export function verifyHealthReceipt(health,run,sourceSha){
 }
 export function distinctNaturalGenerations(healths){
   if(healths.length<2)return false;
-  if(healths.some((health)=>!hasValidProducerCohort(health)||typeof health.generation_id!=='string'))return false;
+  if(healths.some((health)=>!hasValidProducerCohort(health)||!effectiveGenerationId(health)))return false;
   const [newer,older]=healths;
-  if(!newer.source_sha||newer.source_sha!==older.source_sha||newer.generation_id===older.generation_id)return false;
+  if(!newer.source_sha||newer.source_sha!==older.source_sha||effectiveGenerationId(newer)===effectiveGenerationId(older))return false;
   const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
   return [...dynamicIds].every(id=>{
     const spec=SPECS.find(s=>s.id===id);
