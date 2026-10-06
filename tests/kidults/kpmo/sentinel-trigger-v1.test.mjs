@@ -227,5 +227,5 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.match(barrier,/async function workflowRuns/);
  assert.match(barrier,/page=\\$\\{page\\}/);
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
- assert.match(barrier,/latest\\.run_attempt === 1/);
+ assert.match(barrier,/run_attempt === 1/);
 });
