@@ -153,7 +153,7 @@ jobs:
           test -n "$UPSTREAM_CREATED_AT"
           # Query the same authenticated time boundary the selector validates.
           # A naturally newer run belongs to the next Assurance observation.
-          SENTINEL_PAGE_LIMIT=10
+                    SENTINEL_PAGE_LIMIT=1000
           SENTINEL_EXPECTED_TOTAL=''
           SENTINEL_FETCHED_COUNT=0
           SENTINEL_PAGINATION_COMPLETE=false
