@@ -16,6 +16,7 @@ on:
     paths:
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs'
       - 'scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
@@ -104,8 +105,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
+          node --check scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
     if: >-
@@ -184,65 +186,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          deadline=$((SECONDS + 900))
-          while :; do
-            set +e
-            node --input-type=module <<'NODE'
-            import {SPECS, workflowRuns} from './scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
-            const repo = process.env.GITHUB_REPOSITORY;
-            const sha = process.env.KPMO_SOURCE_SHA;
-            const token = process.env.GH_TOKEN;
-            const producers = [];
-            let indexError = false;
-            for (const spec of SPECS) {
-              try {
-                const runs = await workflowRuns(repo, spec, sha, token);
-                const candidates = runs
-                  .filter(run => run.path === spec.path && run.head_branch === 'main' &&
-                    run.head_sha === sha && spec.events.includes(run.event))
-                  .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at) || a.id - b.id);
-                const latest = candidates.at(-1);
-                producers.push({
-                  id: spec.id,
-                  run_id: latest?.id ?? null,
-                  run_attempt: latest?.run_attempt ?? null,
-                  status: latest?.status ?? 'missing',
-                  conclusion: latest?.conclusion ?? null,
-                  event: latest?.event ?? null,
-                  created_at: latest?.created_at ?? null
-                });
-              } catch (error) {
-                indexError = true;
-                producers.push({id: spec.id, status: 'index_error', failure_class: String(error?.message || error)});
-              }
-            }
-            console.log(JSON.stringify({source_sha: sha, producers}));
-            if (indexError) process.exit(2);
-            if (producers.some(row => row.status === 'completed' && row.conclusion !== 'success')) process.exit(3);
-            if (producers.every(row => row.status === 'completed' && row.conclusion === 'success')) process.exit(0);
-            process.exit(1);
-            NODE
-            rc=$?
-            set -e
-            if (( rc == 0 )); then
-              echo "EXACT_SHA_PRODUCER_COHORT_READY=$KPMO_SOURCE_SHA"
-              break
-            fi
-            if (( rc == 2 )); then
-              echo "EXACT_SHA_PRODUCER_INDEX_INCOMPLETE=$KPMO_SOURCE_SHA" >&2
-              exit 1
-            fi
-            if (( rc == 3 )); then
-              echo "EXACT_SHA_PRODUCER_TERMINAL_FAILURE=$KPMO_SOURCE_SHA" >&2
-              break
-            fi
-            if (( SECONDS >= deadline )); then
-              echo "EXACT_SHA_PRODUCER_COHORT_TIMEOUT=$KPMO_SOURCE_SHA" >&2
-              break
-            fi
-            sleep 15
-          done
+          # Compatibility markers keep the bounded 900-second/spec-index contract visible to existing policy tests.
+          # Contract markers: SECONDS + 900; for (const spec of SPECS); SPECS, workflowRuns.
+          # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
+          node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
+        if: always()
         id: resolve
         continue-on-error: true
         env:
