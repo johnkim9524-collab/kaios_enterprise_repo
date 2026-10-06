@@ -100,7 +100,7 @@ jobs:
   rolling-live-reserve:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'RESERVE') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
@@ -231,27 +231,49 @@ jobs:
             test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"
             DISCOVERY_RUN_ID="$UPSTREAM_RUN_ID"
           else
-            RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f status=success -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
-            DISCOVERY_RUN_ID="$(jq -r --arg sha "$TARGET_SHA" \
-              '[.workflow_runs[] | select(.head_sha==$sha and .conclusion=="success")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
-              <<<"$RUNS")"
-            if [ -z "$DISCOVERY_RUN_ID" ]; then
-              echo "no successful v2 discovery producer exists on exact target SHA ${TARGET_SHA}; emitting WAITING/HOLD receipt"
-              {
-                echo "KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER"
-                echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=NONE"
-                echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${TARGET_SHA}"
-                echo "KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID=NONE"
-                echo "KIDULTS_RESERVE_PREVIOUS_RUN_ID=NONE"
-                echo "KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID=NONE"
-                echo "KIDULTS_RESERVE_VALIDATION_ONLY=${VALIDATION_ONLY}"
-              } >> "$GITHUB_ENV"
-              exit 0
-            fi
+            # Natural Reserve dispatches are independent clock observations. Do
+            # not consume an older pool or emit an immediate HOLD while the
+            # exact-main Pooling producer is still queued/running. Poll the
+            # workflow-specific exact-SHA index until success or a terminal
+            # producer failure; this makes Pooling -> Reserve an enforced
+            # read-after-write boundary.
+            DISCOVERY_RUN_ID=""
+            DISCOVERY_WAIT_DEADLINE=$((SECONDS + 2100))
+            while :; do
+              RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+                -f branch=main -f head_sha="$TARGET_SHA" -f status=all -f per_page=100 -f page=1 \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
+              LATEST="$(jq -c --arg sha "$TARGET_SHA" \
+                '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha)] | sort_by(.created_at) | reverse | .[0] // empty' \
+                <<<"$RUNS")"
+              if [ -n "$LATEST" ]; then
+                DISCOVERY_RUN_ID="$(jq -r '.id' <<<"$LATEST")"
+                DISCOVERY_STATUS="$(jq -r '.status' <<<"$LATEST")"
+                DISCOVERY_CONCLUSION="$(jq -r '.conclusion // empty' <<<"$LATEST")"
+                if [ "$DISCOVERY_STATUS" = "completed" ] && [ "$DISCOVERY_CONCLUSION" = "success" ]; then
+                  break
+                fi
+                if [ "$DISCOVERY_STATUS" = "completed" ] && [ "$DISCOVERY_CONCLUSION" != "success" ]; then
+                  echo "exact-main Pooling producer terminated ${DISCOVERY_CONCLUSION}; Reserve will fail closed." >&2
+                  exit 69
+                fi
+              fi
+              if (( SECONDS >= DISCOVERY_WAIT_DEADLINE )); then
+                echo "no successful exact-main Pooling producer before Reserve wait deadline; emitting WAITING/HOLD receipt" >&2
+                {
+                  echo "KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER"
+                  echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=NONE"
+                  echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${TARGET_SHA}"
+                  echo "KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID=NONE"
+                  echo "KIDULTS_RESERVE_PREVIOUS_RUN_ID=NONE"
+                  echo "KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID=NONE"
+                  echo "KIDULTS_RESERVE_VALIDATION_ONLY=${VALIDATION_ONLY}"
+                } >> "$GITHUB_ENV"
+                exit 0
+              fi
+              sleep 15
+            done
           fi
-
           validate_discovery_run "$DISCOVERY_RUN_ID" "$TARGET_SHA"
           DISCOVERY_ID="$(exact_discovery_artifact "$DISCOVERY_RUN_ID")"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
