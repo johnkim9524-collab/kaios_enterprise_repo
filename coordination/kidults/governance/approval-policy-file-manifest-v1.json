@@ -67,8 +67,8 @@
     {
       "path": ".github/workflows/kidults-atomic-governed-landing-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "316857c8f93c0f5800c15924ae6cc6321ff1c2ff",
-      "sha256": "sha256:d8c68d7cfd83921fa3432242a655cb2b585e4f8b2602cec30a132f91f4345588",
+      "git_blob": "85d29e1a416208b48363b6ee0ad5e21d05e01859",
+      "sha256": "sha256:99f18ece6d3a8a25a08ff9cf46ea60ae0a7488b6f40564ff177de24a321b40c5",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5495,8 +5495,8 @@
     {
       "path": "tests/kidults/kpmo/atomic-landing-postmerge-transport-containment-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5c9463bf6a34fe317e08bc052b1cd0561b478708",
-      "sha256": "sha256:d668db55ce9ad92c312858777d3249055cbb7cde5f02cd5f8cb96c38c25fa542"
+      "git_blob": "3656fd0c84550906267e5e78e1fc6933e0ebadea",
+      "sha256": "sha256:72ef0746488fd9cb1147241275df9b00dc160b5b8f4f6b8bac8148b2cc598c8f"
     },
     {
       "path": "tests/kidults/kpmo/autonomous-postmerge-recovery-v1.test.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:96081a1e10586154f7764e0a06624d3ea02ab3f76d440fb4905c8fe43b1bc32d"
+  "manifest_sha256": "sha256:0ad28478e252dd6f496886730ac7c6e8b41078137b6bca1dae3e4a5006d5315b"
 }
