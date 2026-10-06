@@ -186,7 +186,10 @@ jobs:
           MERGED_AT: ${{ steps.landing.outputs.merged_at }}
           ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-postmerge/receipt.json
           POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json
-          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '120'
+          # Canonical generation and its workflow_run consumer are serial. The
+          # previous 120s whole-chain budget expired after the producer passed
+          # but before the exact-SHA consumer could become terminal.
+          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '300'
         run: node scripts/kidults/kpmo/consume-atomic-postmerge-push-suite-v1.mjs
 
       - name: Checkout exact merged Current-SOLD target
