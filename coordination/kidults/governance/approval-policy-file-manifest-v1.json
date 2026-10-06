@@ -548,8 +548,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4fcceeeb4987b02e8a428f34fa6702e58282abbc",
-      "sha256": "sha256:a184b4be2db71cba93381eb5c8a64ad4798922d514e2a35ba2aaecc0bad69a50",
+      "git_blob": "03067e856d53e32ee3d68fdb727506999aecbe17",
+      "sha256": "sha256:b51d334bd35e4d67c4a1c1b811d18d297cea6ddbef16d30376e455c1d3cd9fc0",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1373,8 +1373,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "42738c23e5d998efd5c58fee2dec533721c2e894",
-      "sha256": "sha256:5fdd793efd9356f3556e223fc20287e1216b23b60775c88292e3c0726416adaf",
+      "git_blob": "cba7a1acd3d06c59a1fb31c4e811debfc1b862a6",
+      "sha256": "sha256:d3d58c6ba98d748a665b3d5fb5054b80b7c846163dcc5a1f41ec2cb72a112ec3",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f5af2b87ea721ddf5ea60c284f1eb2df7fd955fac5f9355a4bc161c3d33daeb5"
+  "manifest_sha256": "sha256:ff1e28df5603f58b00f46c4e2bfe647d4dd071e1a9bb5ec71e9291d9cbe2c3cd"
 }
