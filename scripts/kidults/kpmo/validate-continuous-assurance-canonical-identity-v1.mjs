@@ -338,3 +338,4 @@ process.stdout.write(`${JSON.stringify({
   production: contract.truth_boundary.production,
   g5: contract.truth_boundary.g5,
 }, null, 2)}\n`);
+

@@ -15,3 +15,4 @@ function execute(mutate=x=>x){
 test('accepts expected app, route and exact main',()=>assert.equal(execute().status,0));
 test('rejects another sender',()=>{const r=execute(x=>({...x,sender:{type:'Bot',login:'other[bot]'}}));assert.notEqual(r.status,0);assert.match(r.stderr,/SENDER_INVALID/);});
 test('rejects cross-slot delivery',()=>{const r=execute(x=>({...x,client_payload:{...x.client_payload,slot:'RESERVE'}}));assert.notEqual(r.status,0);assert.match(r.stderr,/SLOT_ROUTE_INVALID/);});
+

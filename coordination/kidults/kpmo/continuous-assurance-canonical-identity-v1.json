@@ -273,3 +273,4 @@
   "irreplaceable_value_effect": "POSITIVE: creates a durable canonical identity namespace that can bind future permanent receipts independently of any one Actions artifact.",
   "transparency_effect": "POSITIVE: makes dedupe eligibility, generation semantics, exact upstream class, activation hold, and alias requirements explicit."
 }
+

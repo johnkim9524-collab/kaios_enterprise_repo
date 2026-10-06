@@ -17,3 +17,4 @@ if(output) fs.appendFileSync(output,`exact_main_sha=${receipt.exact_main_sha}\nr
 const path=process.env.KIDULTS_NATURAL_CLOCK_RECEIPT_PATH||'/tmp/kidults-natural-clock-receipt-v1.json';
 fs.writeFileSync(path,`${JSON.stringify(receipt,null,2)}\n`,{flag:'wx',mode:0o600});
 process.stdout.write(`${JSON.stringify(receipt)}\n`);
+

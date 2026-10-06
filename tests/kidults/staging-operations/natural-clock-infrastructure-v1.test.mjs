@@ -67,3 +67,4 @@ test('each natural-clock slot has a unique repository dispatch route',()=>{
     assert.doesNotMatch(workflow,/types: \[kidults\.natural\.clock\.v1\]/,slot);
   }
 });
+
