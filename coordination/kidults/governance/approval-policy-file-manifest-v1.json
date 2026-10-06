@@ -1373,8 +1373,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "42738c23e5d998efd5c58fee2dec533721c2e894",
-      "sha256": "sha256:5fdd793efd9356f3556e223fc20287e1216b23b60775c88292e3c0726416adaf",
+      "git_blob": "9121e9feca9a1d226683891447975951e3765b0c",
+      "sha256": "sha256:111c51164fc6f29abccd5948d8ceb13a65a82c51ba32073ea394105b81ab8506",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3453,8 +3453,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "29fcabb41f852b70a7b4d5db2d1d2f8906c6984a",
-      "sha256": "sha256:a41837ae34e73fd8cbfe1d58c609b5f3180bb109485966d08d708e8b239fd3db",
+      "git_blob": "5cd86eebfa82075a29c8e1fd606c4e996792f578",
+      "sha256": "sha256:c4a4f55a6f65b6fb2b7baa845daa5478d2459d92b8a23444b59c17e699a2b038",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3583,8 +3583,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "8028a7ef0aa9bc6e973ec23ffdcbff89cb987b7a",
-      "sha256": "sha256:069524407218f9396a610b73ab5c0ee9f66a41790d9f3f36c71e728f858a180f",
+      "git_blob": "1f467bd7af6639902d98e98be9a94f20cd40fa18",
+      "sha256": "sha256:7bf1a7f90546a3f05f516bfe325328bccdbfa84f42ddba357babd9f34388d8ce",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f5af2b87ea721ddf5ea60c284f1eb2df7fd955fac5f9355a4bc161c3d33daeb5"
+  "manifest_sha256": "sha256:766de4b1b7003eb915f33f04dc3618c27a3db1ba0d2ecfd07eb95393423c5c31"
 }

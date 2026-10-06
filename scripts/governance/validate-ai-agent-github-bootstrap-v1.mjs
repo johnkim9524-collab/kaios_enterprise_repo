@@ -579,12 +579,31 @@ const shellArgumentValue = (command, argument) => {
   return match ? (match[1] ?? match[2] ?? match[3]) : null;
 };
 
+const defaultDispatchExpectedShaBinding = '${{ github.event.pull_request.head.sha || github.sha }}';
+const exactDispatchExpectedShaBindings = new Map([
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:validate-sharded-source-reserve-contract',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ],
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:rolling-live-reserve',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ],
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:capacity-100k-proof',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ]
+]);
+const expectedShaBindingForDispatch = (dispatch) => exactDispatchExpectedShaBindings.get(
+  `${dispatch.workflow}:${dispatch.job}`
+) ?? defaultDispatchExpectedShaBinding;
+
 const validateDispatchJob = (dispatch, workflows) => {
   const jobs = workflows.get(dispatch.workflow);
   assert(jobs, `DISPATCH_WORKFLOW_MISSING:${dispatch.workflow}`);
   const job = jobs.get(dispatch.job);
   assert(job, `DISPATCH_JOB_MISSING:${dispatch.workflow}:${dispatch.job}`);
-  assert(job.env.EXPECTED_SHA === '${{ github.event.pull_request.head.sha || github.sha }}',
+  assert(job.env.EXPECTED_SHA === expectedShaBindingForDispatch(dispatch),
     `DISPATCH_EXPECTED_SHA_ENV_INVALID:${dispatch.workflow}:${dispatch.job}`);
   const taskIndex = job.steps.findIndex((step) => step.name === dispatch.first_task_step);
   assert(taskIndex !== -1, `DISPATCH_FIRST_TASK_STEP_MISSING:${dispatch.workflow}:${dispatch.job}:${dispatch.first_task_step}`);
@@ -860,6 +879,15 @@ const parsedWorkflows = new Map(workflowPaths.map((workflowPath) => {
   return [workflowPath, parseWorkflowJobs(workflowPath, fs.readFileSync(absolutePath, 'utf8'))];
 }));
 for (const dispatch of repositoryDefenseInDepthBootstrapJobs) validateDispatchJob(dispatch, parsedWorkflows);
+for (const dispatchKey of exactDispatchExpectedShaBindings.keys()) {
+  assert(repositoryDefenseInDepthBootstrapJobs.some(
+    (dispatch) => `${dispatch.workflow}:${dispatch.job}` === dispatchKey
+  ), `WORKFLOW_RUN_EXPECTED_SHA_ALLOWLIST_TARGET_NOT_REGISTERED:${dispatchKey}`);
+}
+assert(expectedShaBindingForDispatch({
+  workflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  job: 'unregistered-job'
+}) === defaultDispatchExpectedShaBinding, 'WORKFLOW_RUN_EXPECTED_SHA_ALLOWLIST_SCOPE_BROADENED');
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
   workflow: spoofWorkflowPath,
@@ -903,6 +931,8 @@ const staticResult = {
   actual_ai_model_dispatch_jobs_validated: 0,
   repository_defense_in_depth_bootstrap_jobs_validated: repositoryDefenseInDepthBootstrapJobs.length,
   marker_only_dispatch_spoof_rejected: markerOnlySpoofRejected,
+  workflow_run_exact_sha_dispatch_bindings_validated: exactDispatchExpectedShaBindings.size,
+  workflow_run_exact_sha_binding_job_scope_enforced: true,
   trusted_git: trustedGitEvidence(),
   git_replacement_refs_rejected: true,
   git_object_alternates_rejected: true,
