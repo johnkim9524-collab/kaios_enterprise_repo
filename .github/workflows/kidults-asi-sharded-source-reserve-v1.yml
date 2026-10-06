@@ -259,7 +259,7 @@ jobs:
                 fi
               fi
               if (( SECONDS >= DISCOVERY_WAIT_DEADLINE )); then
-                echo "no successful exact-main Pooling producer before Reserve wait deadline; emitting WAITING/HOLD receipt" >&2
+                echo "no successful v2 discovery producer exists on exact target SHA ${TARGET_SHA} before bounded Reserve wait deadline; emitting WAITING/HOLD receipt" >&2
                 {
                   echo "KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER"
                   echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=NONE"

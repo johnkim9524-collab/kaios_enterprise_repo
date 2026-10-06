@@ -8,6 +8,7 @@ const POLL_SECONDS = 15;
 export function classifyProducerCohort(rows) {
   if (rows.some((row) => row.state === 'INDEX_ERROR')) return {state: 'INDEX_ERROR'};
   if (rows.some((row) => row.state === 'TERMINAL_FAILURE')) return {state: 'TERMINAL_FAILURE'};
+  if (rows.length !== SPECS.length) return {state: 'PENDING'};
   if (rows.every((row) => row.state === 'SUCCESS')) return {state: 'SUCCESS'};
   return {state: 'PENDING'};
 }

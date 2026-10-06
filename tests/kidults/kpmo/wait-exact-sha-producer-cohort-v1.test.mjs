@@ -5,6 +5,9 @@ import {classifyProducerCohort} from '../../../scripts/kidults/kpmo/wait-exact-s
 test('cohort is pending until every producer succeeds', () => {
   assert.equal(classifyProducerCohort([{state:'SUCCESS'},{state:'PENDING'}]).state, 'PENDING');
 });
+test('cohort cannot pass with a partial producer set', () => {
+  assert.equal(classifyProducerCohort([{state:'SUCCESS'},{state:'SUCCESS'},{state:'SUCCESS'}]).state, 'PENDING');
+});
 test('cohort fails closed on index error', () => {
   assert.equal(classifyProducerCohort([{state:'SUCCESS'},{state:'INDEX_ERROR'}]).state, 'INDEX_ERROR');
 });
