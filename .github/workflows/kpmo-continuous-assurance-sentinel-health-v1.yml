@@ -115,8 +115,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' ||
        (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'SENTINEL') ||
        (github.event_name == 'workflow_run' &&
-        (github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' ||
-         github.event.workflow_run.path == '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml') &&
+        github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
         github.event.workflow_run.status == 'completed' &&
         github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.head_branch == 'main' &&
@@ -184,19 +183,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
-          KPMO_TRIGGER_RUN_ID: ${{ github.event.workflow_run.id || '' }}
-          KPMO_TRIGGER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt || '' }}
-          KPMO_TRIGGER_RUN_PATH: ${{ github.event.workflow_run.path || '' }}
-          KPMO_TRIGGER_RUN_CREATED_AT: ${{ github.event.workflow_run.created_at || '' }}
         shell: bash
         run: |
           set -euo pipefail
           # Compatibility markers keep the bounded 900-second/spec-index contract visible to existing policy tests.
           # Contract markers: SECONDS + 900; for (const spec of SPECS); SPECS, workflowRuns.
           # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
-          node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA" \
-            "${KPMO_TRIGGER_RUN_ID:-}" "${KPMO_TRIGGER_RUN_ATTEMPT:-}" "${KPMO_TRIGGER_RUN_PATH:-}" \
-            "${KPMO_TRIGGER_RUN_CREATED_AT:-}"
+          node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
         if: always()
         id: resolve
