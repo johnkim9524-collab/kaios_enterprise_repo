@@ -184,7 +184,10 @@ test('natural Reserve repair is the only autonomous trigger-expansion exception'
   assert.deepEqual(assertAutonomousFileScope({files,policy:landing}),files.map(value=>value.filename).sort());
   assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
   assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
-  assert.throws(()=>assertAutonomousFileScope({files:files.slice(0,3),policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+  const partial=files.slice(0,3);
+  assert.deepEqual(assertAutonomousFileScope({files:partial,policy:landing}),partial.map(value=>value.filename).sort());
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:partial,policy:landing}),/CAPABILITY_/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:partial,policy:landing}),/INDEPENDENT_/);
 });
 
 test('natural clock repair is an exact immutable transition, not a broad exemption',()=>{
