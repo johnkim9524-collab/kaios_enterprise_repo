@@ -63,6 +63,27 @@ async function api(route) {
   if (!response.ok) throw new Error(`ASSURANCE_SENTINEL_BARRIER_GITHUB_${response.status}`);
   return response.json();
 }
+async function workflowRuns() {
+  const out = [];
+  let expectedCount;
+  for (let page = 1; page <= 10; page += 1) {
+    const value = await api(
+      `/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=${SOURCE_SHA}&per_page=100&page=${page}`
+    );
+    if (!Array.isArray(value?.workflow_runs) || value.workflow_runs.length > 100 ||
+        !Number.isSafeInteger(value.total_count) || value.total_count < 0 || value.total_count > 1000 ||
+        value.incomplete_results === true) {
+      throw new Error('ASSURANCE_SENTINEL_BARRIER_RUN_INDEX_INVALID');
+    }
+    if (expectedCount === undefined) expectedCount = value.total_count;
+    if (value.total_count !== expectedCount) throw new Error('ASSURANCE_SENTINEL_BARRIER_RUN_INDEX_CHANGED');
+    out.push(...value.workflow_runs);
+    if (out.length > expectedCount) throw new Error('ASSURANCE_SENTINEL_BARRIER_RUN_INDEX_CARDINALITY');
+    if (out.length === expectedCount) return out;
+    if (value.workflow_runs.length < 100) throw new Error('ASSURANCE_SENTINEL_BARRIER_RUN_INDEX_TRUNCATED');
+  }
+  throw new Error('ASSURANCE_SENTINEL_BARRIER_RUN_INDEX_PAGINATION_BOUND');
+}
 async function artifactBytes(artifactId) {
   const response = await fetch(`https://api.github.com/repos/${REPOSITORY}/actions/artifacts/${artifactId}/zip`, {
     headers: headers(), signal: AbortSignal.timeout(30000)
@@ -173,7 +194,7 @@ async function main() {
   let lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
   while (Date.now() <= deadline) {
     try {
-      const listing = await api(`/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=${SOURCE_SHA}&per_page=100`);
+      const listing = {workflow_runs: await workflowRuns()};
       const candidates = candidatesFrom(listing.workflow_runs, cutoffMs);
       const latest = candidates.at(-1);
       if (!latest) {
