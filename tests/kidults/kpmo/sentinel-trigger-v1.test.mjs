@@ -57,6 +57,18 @@ test('producer completion events stay aligned with sentinel health resolver sele
  }
 });
 
+test('Reserve poll admits only producing events and cannot be cancelled by the next natural tick',()=>{
+ const reserve=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
+ assert.doesNotMatch(reserve,/-f status=all/);
+ assert.match(reserve,/\.event=="schedule" or \.event=="workflow_dispatch" or \.event=="repository_dispatch"/);
+ assert.match(reserve,/github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.dispatch_id/);
+});
+
+test('Sentinel resolves and retains terminal cohort evidence after waiter failure',()=>{
+ const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+ assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
+});
+
 test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
