@@ -191,6 +191,7 @@ jobs:
           # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
           node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
+        if: always()
         id: resolve
         continue-on-error: true
         env:
