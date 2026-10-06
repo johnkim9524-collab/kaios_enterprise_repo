@@ -1,25 +1,47 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
-import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS,generationIdForProducers} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 function deriveProducerCohort(producers){
-  if(!Array.isArray(producers)||producers.length!==SPECS.length)return {bound:false,span_ms:null};
-  const timestamps=producers.map((producer)=>Date.parse(producer?.selected_created_at));
-  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {bound:false,span_ms:null};
+  if(!Array.isArray(producers)||producers.length!==SPECS.length)return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  const dynamic=producers.filter(producer=>dynamicIds.has(producer?.id));
+  if(dynamic.length!==dynamicIds.size)return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
+  const timestamps=dynamic.map((producer)=>Date.parse(producer?.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
   const span_ms=Math.max(...timestamps)-Math.min(...timestamps);
-  return {bound:span_ms>=0&&span_ms<=MAX_PRODUCER_COHORT_SPAN_MS,span_ms};
+  return {bound:span_ms>=0&&span_ms<=MAX_PRODUCER_COHORT_SPAN_MS,span_ms,scope:'DYNAMIC_PRODUCERS_ONLY'};
 }
 function hasValidProducerCohort(health){
   const derived=deriveProducerCohort(health?.producers);
   if(!derived.bound)return false;
   if(Object.prototype.hasOwnProperty.call(health||{},'producer_cohort_bound')){
     return health.producer_cohort_bound===true
+      &&health.producer_cohort_scope==='DYNAMIC_PRODUCERS_ONLY'
+      &&derived.scope==='DYNAMIC_PRODUCERS_ONLY'
       &&Number.isSafeInteger(health.producer_cohort_span_ms)
       &&health.producer_cohort_span_ms===derived.span_ms
       &&health.producer_cohort_span_ms<=MAX_PRODUCER_COHORT_SPAN_MS
       &&health.producer_cohort_failure_class===null;
   }
   return true;
+}
+function effectiveGenerationId(health){
+  const derived=generationIdForProducers(health?.producers,health?.source_sha);
+  if(health?.version==='1.1.0'||Object.prototype.hasOwnProperty.call(health||{},'generation_id')){
+    return derived!==null&&health.generation_id===derived?derived:null;
+  }
+  // Compatibility for pre-1.1 historical receipts that did not carry
+  // artifact digests or an explicit generation_id.
+  const dynamicSpecs=SPECS.filter(spec=>spec.cohort==='DYNAMIC');
+  const tuple=dynamicSpecs.map(spec=>{
+    const matches=(health?.producers||[]).filter(p=>p?.id===spec.id);
+    if(matches.length!==1)return null;
+    const p=matches[0];
+    return {id:p.id,run_id:p.selected_run_id,attempt:p.selected_run_attempt,artifact_id:p.artifact_id??null,artifact_digest:p.artifact_digest??null,created_at:p.selected_created_at};
+  });
+  if(!health?.source_sha||tuple.some(row=>row===null))return null;
+  return `kpmo-natural-v1-${health.source_sha.slice(0,12)}-${sha256(canonicalJson(tuple)).slice(-20)}`;
 }
 export function verifyHealthReceipt(health,run,sourceSha){
   requireEvidence(health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1'&&health.source_sha===sourceSha&&health.repository===REPOSITORY,'HEALTH_SOURCE');
@@ -31,19 +53,23 @@ export function verifyHealthReceipt(health,run,sourceSha){
   requireEvidence(SPECS.every(s=>health.producers.filter(p=>p.id===s.id).length===1),'HEALTH_PRODUCER_IDS');
   requireEvidence(health.producers.every(p=>p.state==='VERIFIED_PASS'&&p.artifact_content_validated===true&&p.artifact_transport_verified===true),'HEALTH_CONTENT');
   requireEvidence(hasValidProducerCohort(health),'HEALTH_COHORT');
+  if(health.version==='1.1.0'||Object.prototype.hasOwnProperty.call(health,'generation_id')){
+    requireEvidence(effectiveGenerationId(health)!==null,'HEALTH_GENERATION');
+  }
   requireEvidence(health.production==='HOLD'&&health.public==='HOLD'&&health.g5==='HOLD'&&health.promotion_eligible===false,'HEALTH_HOLD');
   return health;
 }
 export function distinctNaturalGenerations(healths){
   if(healths.length<2)return false;
-  if(healths.some((health)=>!hasValidProducerCohort(health)))return false;
+  if(healths.some((health)=>!hasValidProducerCohort(health)||!effectiveGenerationId(health)))return false;
   const [newer,older]=healths;
-  if(!newer.source_sha||newer.source_sha!==older.source_sha)return false;
-  // Observer IDs and a changed single producer are not a second whole chain.
-  return SPECS.every(s=>{
-    const a=newer.producers.find(p=>p.id===s.id),b=older.producers.find(p=>p.id===s.id);
+  if(!newer.source_sha||newer.source_sha!==older.source_sha||effectiveGenerationId(newer)===effectiveGenerationId(older))return false;
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  return [...dynamicIds].every(id=>{
+    const spec=SPECS.find(s=>s.id===id);
+    const a=newer.producers.find(p=>p.id===id),b=older.producers.find(p=>p.id===id);
     if(!a||!b)return false;
-    const natural=p=>p.selected_run_attempt===1&&s.events.includes(p.selected_event)&&p.selected_event!=='workflow_dispatch'
+    const natural=p=>p.selected_run_attempt===1&&spec.events.includes(p.selected_event)&&p.selected_event!=='workflow_dispatch'
       &&p.semantic_scope!=='COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION';
     return natural(a)&&natural(b)&&Number.isSafeInteger(a.selected_run_id)&&Number.isSafeInteger(b.selected_run_id)
       &&a.selected_run_id!==b.selected_run_id&&Date.parse(a.selected_created_at)>Date.parse(b.selected_created_at);
