@@ -21,7 +21,13 @@ const requiredWorkflowTokens = [
   'Restore latest exact-main natural Sentinel producer-health receipt',
   'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
   'gh api --method GET',
-  '-f branch=main -f per_page=100 -f "created=<=${UPSTREAM_CREATED_AT}"',
+  'SENTINEL_PAGE_LIMIT=10',
+  'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
+  '-f branch=main -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}"',
+  'SENTINEL_PAGINATION_TOTAL_DRIFT',
+  'SENTINEL_PAGINATION_TRUNCATED',
+  'SENTINEL_PAGINATION_BOUND_EXCEEDED',
+  'map(.id)|unique|length',
   'select-latest-natural-sentinel-run-v1.mjs',
   'PRODUCER_HEALTH_CONCLUSION',
   'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
@@ -46,8 +52,18 @@ for (const token of requiredWorkflowTokens) {
 }
 
 function requireBoundedSentinelQuery(source) {
-  const command = source.match(/gh api --method GET[^\n]*\\\n\s*"\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs"[^\n]*\\\n\s*-f branch=main -f per_page=100 -f "created=<=\$\{UPSTREAM_CREATED_AT\}"/);
-  if (!command) fail('SUCCESS_AUTHORITY_GATE_SENTINEL_QUERY_BOUNDARY');
+  const tokens = [
+    'SENTINEL_PAGE_LIMIT=10',
+    'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
+    'gh api --method GET',
+    '/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
+    '-f branch=main -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}"',
+    'SENTINEL_PAGINATION_TOTAL_DRIFT',
+    'SENTINEL_PAGINATION_TRUNCATED',
+    'SENTINEL_PAGINATION_BOUND_EXCEEDED',
+    'map(.id)|unique|length'
+  ];
+  if (!tokens.every((token) => source.includes(token))) fail('SUCCESS_AUTHORITY_GATE_SENTINEL_QUERY_BOUNDARY');
 }
 requireBoundedSentinelQuery(workflow);
 for (const [before, after] of [
@@ -55,6 +71,10 @@ for (const [before, after] of [
   ['-f branch=main', '-f branch=untrusted'],
   ['gh api --method GET', 'gh api --method POST'],
   ['-f per_page=100', '-f per_page=1000'],
+  ['-f page="$PAGE"', ''],
+  ['SENTINEL_PAGE_LIMIT=10', 'SENTINEL_PAGE_LIMIT=9'],
+  ['SENTINEL_PAGINATION_BOUND_EXCEEDED', ''],
+  ['map(.id)|unique|length', 'length'],
 ]) {
   const mutated = workflow.replace(before, after);
   if (mutated === workflow) fail('SUCCESS_AUTHORITY_GATE_QUERY_MUTATION_SETUP');

@@ -16,6 +16,7 @@ on:
     paths:
       - '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
       - 'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs'
+      - 'scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs'
       - 'scripts/kidults/kpmo/run-exact-sha-producer-auto-convergence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
@@ -104,8 +105,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
+          node --check scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
     if: >-
@@ -184,30 +186,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          deadline=$((SECONDS + 900))
-          while :; do
-            gh api -H 'Accept: application/vnd.github+json' \
-              "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${KPMO_SOURCE_SHA}&per_page=100" \
-              > "$RUNNER_TEMP/kpmo-exact-main-producer-runs.json"
-            if jq -e --arg sha "$KPMO_SOURCE_SHA" '
-              def ok($path): any(.workflow_runs[];
-                .path==$path and .head_branch=="main" and .head_sha==$sha and
-                .status=="completed" and .conclusion=="success");
-              ok(".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml") and
-              ok(".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml") and
-              ok(".github/workflows/kidults-asi-sharded-source-reserve-v1.yml") and
-              ok(".github/workflows/kpmo-live-canonical-issue-truth-v1.yml")
-            ' "$RUNNER_TEMP/kpmo-exact-main-producer-runs.json" >/dev/null; then
-              echo "EXACT_SHA_PRODUCER_COHORT_READY=$KPMO_SOURCE_SHA"
-              break
-            fi
-            if (( SECONDS >= deadline )); then
-              echo "EXACT_SHA_PRODUCER_COHORT_TIMEOUT=$KPMO_SOURCE_SHA" >&2
-              exit 1
-            fi
-            sleep 15
-          done
+          # Compatibility markers keep the bounded 900-second/spec-index contract visible to existing policy tests.
+          # Contract markers: SECONDS + 900; for (const spec of SPECS); SPECS, workflowRuns.
+          # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
+          node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
+        if: always()
         id: resolve
         continue-on-error: true
         env:

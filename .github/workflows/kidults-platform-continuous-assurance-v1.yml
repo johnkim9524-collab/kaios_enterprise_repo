@@ -508,6 +508,17 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
 
+      - name: Enforce Sentinel terminal before Assurance
+        if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          export KPMO_SENTINEL_BARRIER_OUTPUT="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/sentinel-order-barrier.json"
+          export KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS=900
+          export KPMO_SENTINEL_BARRIER_POLL_SECONDS=10
+          node scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs
+
       - name: Restore verified one-time Coverage continuation consumption
         if: github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093

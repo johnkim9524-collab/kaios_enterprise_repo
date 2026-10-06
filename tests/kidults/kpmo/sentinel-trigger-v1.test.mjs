@@ -57,12 +57,25 @@ test('producer completion events stay aligned with sentinel health resolver sele
  }
 });
 
+test('Reserve poll admits only producing events and cannot be cancelled by the next natural tick',()=>{
+ const reserve=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
+ assert.doesNotMatch(reserve,/-f status=all/);
+ assert.match(reserve,/\.event=="schedule" or \.event=="workflow_dispatch" or \.event=="repository_dispatch"/);
+ assert.match(reserve,/github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.dispatch_id/);
+});
+
+test('Sentinel resolves and retains terminal cohort evidence after waiter failure',()=>{
+ const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+ assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
+});
+
 test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
- assert.match(s,/SECONDS \+ 900/);
- assert.match(s,/actions\/runs\?head_sha=\$\{KPMO_SOURCE_SHA\}/);
+ const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
+ assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*900/);
+ assert.ok(waiter.includes("SPECS, workflowRuns"));
 });
 test('inline Assurance trigger accepts protected-main push without requiring unavailable producer artifacts',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'push',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
@@ -203,4 +216,30 @@ test('actual natural Sentinel observer reads and validates its repository_dispat
 for(const scenario of ['fork','malformed-json','native-attempt','native-repository','readback-drift'])test(`actual completion observer durably rejects ${scenario}`,()=>{
  const x=resolverCli(scenario);assert.equal(x.receipt.state,'VERIFIED_FAIL');assert.notEqual(x.result.status,0);
  if(['fork','malformed-json'].includes(scenario))assert.equal(x.calls.length,0);
+});
+
+test('Assurance natural slots are hard-barriered behind a terminal exact-SHA Sentinel receipt',()=>{
+ const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+ const barrier=fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs','utf8');
+ assert.match(assurance,/Enforce Sentinel terminal before Assurance/);
+ assert.match(assurance,/github\.event_name == 'repository_dispatch' \|\| github\.event_name == 'schedule'/);
+ assert.match(assurance,/wait-for-natural-sentinel-terminal-v1\.mjs/);
+ assert.match(barrier,/SENTINEL_TERMINAL_BEFORE_ASSURANCE/);
+ assert.match(barrier,/latest\.status !== 'completed'/);
+ assert.match(barrier,/receipt\.state !== 'VERIFIED_PASS'/);
+ assert.match(barrier,/producer_cohort_bound !== true/);
+});
+
+
+test('Sentinel producer readiness uses complete per-workflow exact-SHA pagination',()=>{
+ const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+ const barrier=fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs','utf8');
+ const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
+ assert.match(waiter,/SPECS, workflowRuns/);
+ assert.ok(waiter.includes("for (const spec of SPECS)"));
+ assert.doesNotMatch(sentinel,new RegExp("actions/runs\\\\?head_sha=.*per_page=100"));
+ assert.match(barrier,/async function workflowRuns/);
+ assert.ok(barrier.includes("page=${page}"));
+ assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
+ assert.match(barrier,/run_attempt === 1/);
 });
