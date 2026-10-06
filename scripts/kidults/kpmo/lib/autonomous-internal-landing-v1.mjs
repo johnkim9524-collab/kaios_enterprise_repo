@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import {evaluateSemanticCapabilityDelta} from './semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './independent-capability-verifier-v1.mjs';
-import {delegatedTransitionId, matchesNarrowNaturalChainRepairFile} from './natural-reserve-transition-exception-v1.mjs';
+import {delegatedTransitionId} from './natural-reserve-transition-exception-v1.mjs';
 import {bindRequiredGateEvidence} from './required-gate-evidence-v1.mjs';
 
 const SHA = /^[0-9a-f]{40}$/;
@@ -34,8 +34,7 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   const touchedTransitionPath = files.some(value => transitionPaths.has(typeof value === 'string' ? value : value?.filename));
   const transitionId = delegatedTransitionId({files, policy});
   if (touchedTransitionPath && !transitionId) {
-    const narrowRepair = files.length > 0 && files.every(file => matchesNarrowNaturalChainRepairFile(file));
-    if (!narrowRepair) fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
+    fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
   }
   // Exact transition contracts are the only capability-expanding exceptions.
   // Each contract binds the complete path set and immutable base/head content;
