@@ -33,7 +33,7 @@ test('two observers and a single refreshed producer do not prove two complete na
   assert.equal(distinctNaturalGenerations([body,{...body,observer_run_id:901}]),false);
   const newer={...body,producers:body.producers.map((p,i)=>({...p,selected_run_id:p.selected_run_id+10,selected_created_at:'2026-10-04T12:00:00Z'}))};
   assert.equal(distinctNaturalGenerations([newer,body]),true);
-  assert.equal(distinctNaturalGenerations([{...newer,producers:[...newer.producers.slice(0,3),body.producers[3]]},body]),false);
+  assert.equal(distinctNaturalGenerations([{...newer,producers:[newer.producers[0],body.producers[1],newer.producers[2],body.producers[3]]},body]),false);
   assert.equal(distinctNaturalGenerations([{...newer,producers:newer.producers.map(p=>({...p,selected_event:'workflow_dispatch'}))},body]),false);
   assert.equal(distinctNaturalGenerations([{...newer,producers:newer.producers.map(p=>({...p,selected_run_attempt:2}))},body]),false);
   assert.equal(distinctNaturalGenerations([{...newer,source_sha:'b'.repeat(40)},body]),false);
