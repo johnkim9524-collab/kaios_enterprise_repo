@@ -21,7 +21,7 @@ const requiredWorkflowTokens = [
   'Restore latest exact-main natural Sentinel producer-health receipt',
   'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
   'gh api --method GET',
-  'SENTINEL_PAGE_LIMIT=10',
+    'SENTINEL_PAGE_LIMIT=1000',
   'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
   '-f branch=main -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}"',
   'SENTINEL_PAGINATION_TOTAL_DRIFT',
@@ -53,7 +53,7 @@ for (const token of requiredWorkflowTokens) {
 
 function requireBoundedSentinelQuery(source) {
   const tokens = [
-    'SENTINEL_PAGE_LIMIT=10',
+        'SENTINEL_PAGE_LIMIT=1000',
     'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
     'gh api --method GET',
     '/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
@@ -72,7 +72,7 @@ for (const [before, after] of [
   ['gh api --method GET', 'gh api --method POST'],
   ['-f per_page=100', '-f per_page=1000'],
   ['-f page="$PAGE"', ''],
-  ['SENTINEL_PAGE_LIMIT=10', 'SENTINEL_PAGE_LIMIT=9'],
+    ['SENTINEL_PAGE_LIMIT=1000', 'SENTINEL_PAGE_LIMIT=999'],
   ['SENTINEL_PAGINATION_BOUND_EXCEEDED', ''],
   ['map(.id)|unique|length', 'length'],
 ]) {
