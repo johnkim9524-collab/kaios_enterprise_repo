@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,evaluateHealth,allowedArtifactRedirect} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,evaluateHealth,allowedArtifactRedirect,assessProducerCohort,generationIdForProducers} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {COVERAGE_PUBLIC_RESULT_KEYS,REPOSITORY,stable,digest,readArchive,validateProducerContent,validateCoverageAliasClosure} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {buildMaterialRegistry,materialRegistryDigest} from '../../../scripts/kidults/kpmo/material-defect-registry-v3.mjs';
 import {MEMBERS,generationId} from '../../../scripts/kidults/kpmo/canonical-generation-v3-lib.mjs';
@@ -380,4 +380,34 @@ test('Coverage alias cannot substitute a different exact upstream execution even
  const {f,artifact}=aliasFixture(),proof=check(f),leaderProof=check({...coverage,artifact});
  const alias={...proof.alias,current_upstream_workflow_run_id:proof.alias.current_upstream_workflow_run_id+1};
  assert.throws(()=>validateCoverageAliasClosure({...proof,alias},leaderProof,coverage.run,artifact),/COVERAGE_ALIAS_CURRENT_UPSTREAM/);
+});
+
+
+test('natural generation binds only dynamic Requirement and Reserve while reusing exact-SHA static authorities',()=>{
+ const digestValue='sha256:'+'c'.repeat(64);
+ const producers=[
+  {id:'SHADOW',state:'VERIFIED_PASS',selected_run_id:101,selected_run_attempt:1,selected_created_at:'2026-10-06T00:00:00Z',artifact_digest:digestValue},
+  {id:'REQUIREMENT',state:'VERIFIED_PASS',selected_run_id:201,selected_run_attempt:1,selected_created_at:'2026-10-06T08:40:00Z',artifact_digest:digestValue},
+  {id:'RESERVE',state:'VERIFIED_PASS',selected_run_id:301,selected_run_attempt:1,selected_created_at:'2026-10-06T08:44:00Z',artifact_digest:digestValue},
+  {id:'CANONICAL_TRUTH',state:'VERIFIED_PASS',selected_run_id:401,selected_run_attempt:1,selected_created_at:'2026-10-06T00:01:00Z',artifact_digest:digestValue},
+ ];
+ const cohort=assessProducerCohort(producers);
+ assert.equal(cohort.bound,true);
+ assert.equal(cohort.cohort_scope,'DYNAMIC_PRODUCERS_ONLY');
+ assert.equal(cohort.span_ms,4*60*1000);
+ assert.deepEqual(cohort.static_producers_reused,['SHADOW','CANONICAL_TRUTH']);
+ const id=generationIdForProducers(producers,'a'.repeat(40));
+ assert.match(id,/^kpmo-natural-v1-aaaaaaaaaaaa-[0-9a-f]{20}$/);
+});
+test('natural generation rejects a dynamic producer pair outside its bounded window',()=>{
+ const digestValue='sha256:'+'d'.repeat(64);
+ const producers=[
+  {id:'SHADOW',selected_run_id:101,selected_run_attempt:1,selected_created_at:'2026-10-06T00:00:00Z',artifact_digest:digestValue},
+  {id:'REQUIREMENT',selected_run_id:201,selected_run_attempt:1,selected_created_at:'2026-10-06T08:00:00Z',artifact_digest:digestValue},
+  {id:'RESERVE',selected_run_id:301,selected_run_attempt:1,selected_created_at:'2026-10-06T08:50:00Z',artifact_digest:digestValue},
+  {id:'CANONICAL_TRUTH',selected_run_id:401,selected_run_attempt:1,selected_created_at:'2026-10-06T00:01:00Z',artifact_digest:digestValue},
+ ];
+ const cohort=assessProducerCohort(producers);
+ assert.equal(cohort.bound,false);
+ assert.equal(cohort.failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
 });
