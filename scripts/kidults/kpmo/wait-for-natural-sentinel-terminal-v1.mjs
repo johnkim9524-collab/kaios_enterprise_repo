@@ -63,12 +63,14 @@ async function api(route) {
   if (!response.ok) throw new Error(`ASSURANCE_SENTINEL_BARRIER_GITHUB_${response.status}`);
   return response.json();
 }
-async function workflowRuns() {
+async function workflowRuns(cutoffMs) {
   const out = [];
   let expectedCount;
+  const createdStart = new Date(cutoffMs - cutoffWindowSeconds * 1000).toISOString();
+  const createdEnd = new Date(cutoffMs).toISOString();
   for (let page = 1; page <= 10; page += 1) {
     const value = await api(
-      `/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=${SOURCE_SHA}&per_page=100&page=${page}`
+      `/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=repository_dispatch&head_sha=${SOURCE_SHA}&created=${encodeURIComponent(`${createdStart}..${createdEnd}`)}&per_page=100&page=${page}`
     );
     if (!Array.isArray(value?.workflow_runs) || value.workflow_runs.length > 100 ||
         !Number.isSafeInteger(value.total_count) || value.total_count < 0 || value.total_count > 1000 ||
@@ -194,7 +196,7 @@ async function main() {
   let lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
   while (Date.now() <= deadline) {
     try {
-      const listing = {workflow_runs: await workflowRuns()};
+      const listing = {workflow_runs: await workflowRuns(cutoffMs)};
       const candidates = candidatesFrom(listing.workflow_runs, cutoffMs);
       const latest = candidates.at(-1);
       if (!latest) {

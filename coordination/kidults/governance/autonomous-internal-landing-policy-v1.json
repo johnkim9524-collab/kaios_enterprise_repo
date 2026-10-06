@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -225,95 +225,96 @@
       "content_digests": [
         {
           "path": ".github/workflows/kidults-asi-p0b-bounded-discovery-candidates-v1.yml",
-          "base_sha256": "sha256:16dcd618db6206191ec66f268979e391389762694c859d4a68d1bcb765a1d0a0",
-          "head_sha256": "sha256:cd802073cc440a8ff4c7ed92299af39486e0ba7f8b47efb035ee9494853a608e"
+          "base_sha256": "sha256:040910fa193026c29ce15c6fee1dca8b201e8478fc8519fd28954456c557c045",
+          "head_sha256": "sha256:040910fa193026c29ce15c6fee1dca8b201e8478fc8519fd28954456c557c045"
         },
         {
           "path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
-          "base_sha256": "sha256:91505ac3c07413c2faad3a376f4c6886b4fad4dd3133ad63e90a9f68d10adeec",
-          "head_sha256": "sha256:fb6d444be7bd11a8b2146ff8a32d422fdd9f72ccaf1b20e71e468b05c505a3ad"
+          "base_sha256": "sha256:572e65be92c513896686efb68aa86e3cb0c9ebb6726acfd4ffaa88696b983133",
+          "head_sha256": "sha256:9ef361c29c8362203bac48bcacc5a6c9312f2e3e838d0fd1eae4589c08b854bb"
         },
         {
           "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
-          "base_sha256": "sha256:65d4a51127e2abc01fa31f94057d037f3b66f57cd29aa05f9fd568d74625deac",
-          "head_sha256": "sha256:4feb299ddece4c75f49df315bcd583096d514997f5e3c92d672e53175f2784f9"
+          "base_sha256": "sha256:a184b4be2db71cba93381eb5c8a64ad4798922d514e2a35ba2aaecc0bad69a50",
+          "head_sha256": "sha256:a184b4be2db71cba93381eb5c8a64ad4798922d514e2a35ba2aaecc0bad69a50"
         },
         {
           "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
-          "base_sha256": "sha256:ad5aa5725c543f95d1497d3241ff864c4a5bea612cb720480010bfe834369dd2",
-          "head_sha256": "sha256:21dc7e9c514f3d030bf1da9122ad2b579f5c893203e38e169174a750c300e862"
+          "base_sha256": "sha256:a9467ff04780bf6bc605643fa312d140541a553beb5d797d942729bd9f8c3d13",
+          "head_sha256": "sha256:a9467ff04780bf6bc605643fa312d140541a553beb5d797d942729bd9f8c3d13"
         },
         {
           "path": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
-          "base_sha256": "sha256:d04a556b0066886f7cf31208d3297c295006b2bd9a816398bb9b7a848aa463aa",
-          "head_sha256": "sha256:623ed61754b4e53473f576e5a58d0f065b6375c741f1dbe8a314218e42c8f89d"
+          "base_sha256": "sha256:fd2ba800bc8381466bfffb09e7922f8a99415995bb89379c68794748c68b446b",
+          "head_sha256": "sha256:fd2ba800bc8381466bfffb09e7922f8a99415995bb89379c68794748c68b446b"
         },
         {
           "path": "coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:f785654f3319a508d3f7d299380ab54ea774c7e494c9beca22eea58e11d345b3"
+          "base_sha256": "sha256:102fa2d4eba71cd5cbd5f9dc7c16626aa36f18675f3a7acd34762f68fd26c852",
+          "head_sha256": "sha256:102fa2d4eba71cd5cbd5f9dc7c16626aa36f18675f3a7acd34762f68fd26c852"
         },
         {
           "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:2bea72ecc9f09bbe35fd155e9e14c3649590d80bdc6efbdb9c9e1bf8b54d6070"
+          "base_sha256": "sha256:c9946be6180b49b0389c911b65f05bca03e78af1ddd230c1d93000fe542bee85",
+          "head_sha256": "sha256:c9946be6180b49b0389c911b65f05bca03e78af1ddd230c1d93000fe542bee85"
         },
         {
           "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:4f368bf273e551757e334bac268970a0cdb00573e696240a00230242d84160a7"
+          "base_sha256": "sha256:f2c0e112001fd3be18339ae73b4aa004f1e0d7314d8af32a1bcf8b2b967a0b7b",
+          "head_sha256": "sha256:f2c0e112001fd3be18339ae73b4aa004f1e0d7314d8af32a1bcf8b2b967a0b7b"
         },
         {
           "path": "scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs",
-          "base_sha256": "sha256:db9d83609abff5aab3c6d0657d4ad82a732f1169315f85199ec63cf856d9e4cc",
-          "head_sha256": "sha256:af069bc6e7ac001be15169500d43732d9327822b7a4d9a488307eac219f3dcf0"
+          "base_sha256": "sha256:50eec1c95231b818c4e0914d013d11377616dfbf6ba5c366d69ce91826204dbe",
+          "head_sha256": "sha256:50eec1c95231b818c4e0914d013d11377616dfbf6ba5c366d69ce91826204dbe"
         },
         {
           "path": "scripts/kidults/kpmo/lib/natural-clock-dispatch-v1.mjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:a1e57b45396aacd0d077ee156737ee8bd66c17a2d90ab708eec026affae19b45"
+          "base_sha256": "sha256:c15df14a367e0cfe997476161ad9828317b489b2e2df1cad8102c685cdf95636",
+          "head_sha256": "sha256:c15df14a367e0cfe997476161ad9828317b489b2e2df1cad8102c685cdf95636"
         },
         {
           "path": "scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs",
-          "base_sha256": "sha256:2ca0f12ab3c516bd99c0a3bb81cb30ba3b7ef4effc0e21fe1077849641616d51",
-          "head_sha256": "sha256:907dce03ac632a87730338c83dd720366d5e99192007e6d02afbeb8cccfeb1e0"
+          "base_sha256": "sha256:b2c140bcc26b3edaba49b4a6784e752c504149d7bca4f295acd4ff00d851b980",
+          "head_sha256": "sha256:d81c274d56346e871feaa82e24c8b8217329142cb51d2ad4d0799dec88cd2769"
         },
         {
           "path": "scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:3f7f224780ca5c63dcbc05ca6530e53c16d4ca7e3ce82087b2d70bd971f5149b"
+          "base_sha256": "sha256:52cd1a390560705ea6b50a4715ada871b46a755920bd3da57b3cbbba73171a68",
+          "head_sha256": "sha256:52cd1a390560705ea6b50a4715ada871b46a755920bd3da57b3cbbba73171a68"
         },
         {
           "path": "scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs",
-          "base_sha256": "sha256:7c561759e1cd6799c5b00cb576d5f02c036330e317c644c10c9e6304af242f18",
-          "head_sha256": "sha256:64cc14d678decf716e053037e4ef3d3559a6dbd8fba267f8b8ed16f334e938e7"
+          "base_sha256": "sha256:82c19c5068217ce063f6d6878966730ef3135df49d2e778213c0f79e4ed64b27",
+          "head_sha256": "sha256:82c19c5068217ce063f6d6878966730ef3135df49d2e778213c0f79e4ed64b27"
         },
         {
           "path": "scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs",
-          "base_sha256": "sha256:958298df67d67a983f456c5a52965e1c50b335ce40efbcd74096fa22a5ed0ff9",
-          "head_sha256": "sha256:98069b5f65ae2c511e1b162e70f95f3817893aafa28eb22a6db9f24d9a6dfb79"
+          "base_sha256": "sha256:fbbe3e87f717b05515ef23796c8f91d03444c4942edd8b93c6b0790b2a9e159b",
+          "head_sha256": "sha256:fbbe3e87f717b05515ef23796c8f91d03444c4942edd8b93c6b0790b2a9e159b"
         },
         {
           "path": "tests/kidults/kpmo/natural-clock-dispatch-v1.test.mjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:1e76a4cd919e4d2be14ab71f23269afe84dc830e7d2490d47dcabfa46c007d89"
+          "base_sha256": "sha256:4003c3a6bfdf83e979fa53c10f6bda46c8d165dd6699db67ff0cb2580e6345fb",
+          "head_sha256": "sha256:4003c3a6bfdf83e979fa53c10f6bda46c8d165dd6699db67ff0cb2580e6345fb"
         },
         {
           "path": "tests/kidults/kpmo/natural-clock-intake-v1.test.mjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:792a45ce07e9e568f3550f97202f1a7d650267f913e7544a70cc4d1c978e8d85"
+          "base_sha256": "sha256:b502147205daea4e8ce9f466f6e617d6651ebe0d4e4585cc310a088753601047",
+          "head_sha256": "sha256:b502147205daea4e8ce9f466f6e617d6651ebe0d4e4585cc310a088753601047"
         },
         {
           "path": "tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:640f39b59acc7263ce894b8454ab7722303d56ceb06ab696350b231b29250820"
+          "base_sha256": "sha256:2b0875f0a3eea551b48f2855df2c8d0c272c40609a936a1301a9c67c651b61ab",
+          "head_sha256": "sha256:2b0875f0a3eea551b48f2855df2c8d0c272c40609a936a1301a9c67c651b61ab"
         },
         {
           "path": "tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs",
-          "base_sha256": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "head_sha256": "sha256:9695e913507ae929b77a2552cdd3805a131f497f6b51903c7dc75c86e20bfd43"
+          "base_sha256": "sha256:9985e225824a03ab8deb57e8d54d71f3efe662fa926e6f34a4ba207ea8c5e392",
+          "head_sha256": "sha256:9985e225824a03ab8deb57e8d54d71f3efe662fa926e6f34a4ba207ea8c5e392"
         }
-      ]
+      ],
+      "allow_unchanged_declared_paths": true
     }
   ],
   "automatic_triggers": [

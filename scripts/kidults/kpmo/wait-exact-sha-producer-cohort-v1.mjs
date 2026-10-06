@@ -23,6 +23,15 @@ export function selectLatestExactRun(runs, spec, sha) {
   return candidates.at(-1) ?? null;
 }
 
+export function triggerMatchesRun(run, spec, trigger = {}) {
+  if (!trigger.path || trigger.path !== spec.path) return true;
+  const expectedId = Number(trigger.id);
+  const expectedAttempt = Number(trigger.attempt);
+  return Number.isSafeInteger(expectedId) && expectedId > 0 &&
+    Number.isSafeInteger(expectedAttempt) && expectedAttempt > 0 &&
+    Boolean(run) && Number(run.id) === expectedId && Number(run.run_attempt) === expectedAttempt;
+}
+
 function producerState(run) {
   if (!run) return {state: 'PENDING', run_id: null};
   if (run.status !== 'completed') return {
@@ -47,11 +56,24 @@ function producerState(run) {
   };
 }
 
-export async function readCohort(repo, sha, token) {
+export async function readCohort(repo, sha, token, trigger = {}) {
   const rows = [];
+  const triggerCreatedMs = Date.parse(trigger.createdAt || '');
+  const dynamicWindow = Number.isFinite(triggerCreatedMs)
+    ? {createdAfter: triggerCreatedMs - (45 * 60 * 1000), createdBefore: Date.now()}
+    : {};
   for (const spec of SPECS) {
     try {
-      const run = selectLatestExactRun(await workflowRuns(repo, spec, sha, token), spec, sha);
+      const runs = await workflowRuns(repo, spec, sha, token,
+        spec.cohort === 'DYNAMIC' ? dynamicWindow : {});
+      const run = selectLatestExactRun(runs, spec, sha);
+      // A workflow_run delivery is a causal edge, not a hint.  Bind the
+      // triggering producer to the selected exact run so a later run with the
+      // same SHA cannot silently replace the event's parent generation.
+      if (!triggerMatchesRun(run, spec, trigger)) {
+        rows.push({id: spec.id, state: 'INDEX_ERROR', failure_class: 'TRIGGER_RUN_NOT_SELECTED'});
+        continue;
+      }
       rows.push({id: spec.id, ...producerState(run)});
     } catch (error) {
       rows.push({id: spec.id, state: 'INDEX_ERROR', failure_class: String(error?.message || error)});
@@ -70,12 +92,21 @@ export async function waitForCohort({
   token,
   maxWaitSeconds = DEFAULT_MAX_WAIT_SECONDS,
   pollSeconds = POLL_SECONDS,
-  read = readCohort
+  read = readCohort,
+  triggerRunId = '',
+  triggerRunAttempt = '',
+  triggerRunPath = '',
+  triggerRunCreatedAt = ''
 } = {}) {
   if (!repo || !sha || !token) throw new Error('COHORT_INPUT_MISSING');
   const deadline = Date.now() + maxWaitSeconds * 1000;
   while (true) {
-    const snapshot = await read(repo, sha, token);
+    const snapshot = await read(repo, sha, token, {
+      id: triggerRunId,
+      attempt: triggerRunAttempt,
+      path: triggerRunPath,
+      createdAt: triggerRunCreatedAt
+    });
     console.log(JSON.stringify(snapshot));
     if (snapshot.state === 'SUCCESS') return snapshot;
     if (snapshot.state === 'INDEX_ERROR') throw new Error('EXACT_SHA_PRODUCER_INDEX_INCOMPLETE');
@@ -87,10 +118,14 @@ export async function waitForCohort({
 
 async function main() {
   const sha = process.argv[2];
+  const triggerRunId = process.argv[3] || '';
+  const triggerRunAttempt = process.argv[4] || '';
+  const triggerRunPath = process.argv[5] || '';
+  const triggerRunCreatedAt = process.argv[6] || '';
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
   try {
-    const result = await waitForCohort({repo, sha, token});
+    const result = await waitForCohort({repo, sha, token, triggerRunId, triggerRunAttempt, triggerRunPath, triggerRunCreatedAt});
     console.log(`EXACT_SHA_PRODUCER_COHORT_READY=${result.source_sha}`);
   } catch (error) {
     console.error(String(error?.message || error));

@@ -270,10 +270,15 @@ async function downloadArtifact(repo,artifact,token){
 }
 const latestApplicable=(runs,spec,sha)=>selectProducerGeneration(runs,spec,sha,new Date().toISOString()).latest;
 
-async function workflowRuns(repo,spec,sha,token){
+async function workflowRuns(repo,spec,sha,token,{createdAfter=null,createdBefore=null}={}){
   const out=[];let expectedCount;
+  const createdRange = createdAfter && createdBefore
+    ? `${new Date(createdAfter).toISOString()}..${new Date(createdBefore).toISOString()}`
+    : null;
   for(let page=1;page<=10;page+=1){
-    const url=`https://api.github.com/repos/${repo}/actions/workflows/${spec.workflow}/runs?branch=main&head_sha=${sha}&per_page=100&page=${page}`;
+    const params = new URLSearchParams({branch:'main',head_sha:sha,per_page:'100',page:String(page)});
+    if(createdRange) params.set('created',createdRange);
+    const url=`https://api.github.com/repos/${repo}/actions/workflows/${spec.workflow}/runs?${params}`;
     const value=await api(url,token);
     if(!Array.isArray(value?.workflow_runs)||value.workflow_runs.length>100||
        !Number.isSafeInteger(value.total_count)||value.total_count<0||value.total_count>1000||
@@ -302,8 +307,17 @@ async function liveInput(){
   const sourceSha=main?.commit?.sha||'';
   if(!SHA.test(sourceSha)||process.env.GITHUB_SHA!==sourceSha||execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()!==sourceSha)fail('SENTINEL_EXACT_LIVE_MAIN_MISMATCH');
   // Event payload is an assertion; re-read the named native producer before use.
-  if(upstreamTrigger?.run_id)validateSentinelTrigger(process.env,triggerPayload,
-    await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
+  let triggerRun=null;
+  if(upstreamTrigger?.run_id){
+    triggerRun=await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token);
+    validateSentinelTrigger(process.env,triggerPayload,triggerRun);
+  }
+  const triggerCreatedAt=triggerRun?.created_at;
+  const triggerCreatedMs=Date.parse(triggerCreatedAt||'');
+  const triggerRunUsable=triggerRun && Number.isFinite(triggerCreatedMs);
+  const dynamicWindow=Number.isFinite(triggerCreatedMs)
+    ? {createdAfter:triggerCreatedMs-(45*60*1000),createdBefore:Date.now()}
+    : {};
   const canonicalConvergence=process.env.GITHUB_EVENT_NAME==='push'
     ? await waitForCanonicalConvergence(repo,sourceSha,token)
     : null;
@@ -311,7 +325,9 @@ async function liveInput(){
   for(const spec of SPECS){
     runs[spec.id]=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
       ? canonicalConvergence.evaluation_truth_runs
-      : await workflowRuns(repo,spec,sourceSha,token);
+      : triggerRunUsable&&triggerRun.path===spec.path
+        ? [triggerRun]
+        : await workflowRuns(repo,spec,sourceSha,token,dynamicWindow && spec.cohort==='DYNAMIC' ? dynamicWindow : {});
     const run=spec.id==='CANONICAL_TRUTH'&&canonicalConvergence
       ? canonicalConvergence.consumer
       : latestApplicable(runs[spec.id],spec,sourceSha);
@@ -354,7 +370,10 @@ async function liveInput(){
       continue;
     }
     const before=latestApplicable(runs[spec.id],spec,sourceSha);
-    const after=latestApplicable(await workflowRuns(repo,spec,sourceSha,token),spec,sourceSha);
+    const afterRuns = triggerRunUsable&&triggerRun.path===spec.path
+      ? [await api(`https://api.github.com/repos/${repo}/actions/runs/${triggerRun.id}`,token)]
+      : await workflowRuns(repo,spec,sourceSha,token,dynamicWindow && spec.cohort==='DYNAMIC' ? dynamicWindow : {});
+    const after=latestApplicable(afterRuns,spec,sourceSha);
     if(generationSignature(before)!==generationSignature(after)){
       // A different newer run may be re-observed; mutation of an existing run's
       // attempt or immutable metadata is an integrity failure, never a retry.

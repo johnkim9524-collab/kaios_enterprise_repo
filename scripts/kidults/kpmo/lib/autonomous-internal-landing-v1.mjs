@@ -36,12 +36,13 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   if (touchedTransitionPath && !transitionId) {
     fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
   }
-  // Exact transition contracts are the only capability-expanding exceptions.
-  // Each contract binds the complete path set and immutable base/head content;
-  // every other trigger or authority change remains Owner-reserved below.
-  if (transitionId) {
-    return files.map(value=>typeof value==='string'?value:value.filename).sort();
-  }
+  // A transition may declare immutable base=head paths that are intentionally
+  // unchanged in this generation. Validate the changed transition subset,
+  // then continue classifying every other changed file independently.
+  const transitionExceptionPaths = transitionId
+    ? new Set((policy.delegated_internal_transition_exceptions || [])
+      .find(value => value.id === transitionId)?.paths || [])
+    : new Set();
   const exceptions=new Set(policy.delegated_internal_exact_path_exceptions||[]);
   const exactReserved=new Set(policy.owner_reserved_exact_paths||[]);
   const prefixes=policy.owner_reserved_path_prefixes||[];
@@ -50,6 +51,7 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   for (const file of files) {
     const filename=typeof file==='string'?file:file?.filename;
     if (typeof filename!=='string'||!filename||filename.startsWith('/')||filename.includes('..')) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+    if (transitionExceptionPaths.has(filename)) continue;
     if (exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix))) fail(errorCode,filename);
     const delegated=delegatedPrefixes.some(prefix=>filename.startsWith(prefix));
     if (!delegated && !exceptions.has(filename)) continue;
