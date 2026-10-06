@@ -7,6 +7,7 @@ import {spawnSync} from 'node:child_process';
 import {deflateRawSync} from 'node:zlib';
 import {SPECS,evaluateHealth,allowedArtifactRedirect,assessProducerCohort,generationIdForProducers} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {COVERAGE_PUBLIC_RESULT_KEYS,REPOSITORY,stable,digest,readArchive,validateProducerContent,validateCoverageAliasClosure} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
+import {validateSentinelObservation} from '../../../scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs';
 import {buildMaterialRegistry,materialRegistryDigest} from '../../../scripts/kidults/kpmo/material-defect-registry-v3.mjs';
 import {MEMBERS,generationId} from '../../../scripts/kidults/kpmo/canonical-generation-v3-lib.mjs';
 import {finalizeCoverageCanonicalLeader} from '../../../scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs';
@@ -411,4 +412,15 @@ test('natural generation rejects a dynamic producer pair outside its bounded win
  const cohort=assessProducerCohort(producers);
  assert.equal(cohort.bound,false);
  assert.equal(cohort.failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
+});
+
+test('v1.1 observation binds generation id to one exact Requirement and Reserve tuple',()=>{
+ const receipt=evaluateHealth(healthInput());
+ const env={GITHUB_REPOSITORY:REPOSITORY,GITHUB_SHA:sha,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',SENTINEL_RESOLVER_OUTCOME:'success'};
+ assert.equal(validateSentinelObservation(receipt,env).semantic_health_state,'VERIFIED_PASS');
+ const unsigned={...receipt,generation_id:`kpmo-natural-v1-${sha.slice(0,12)}-${'f'.repeat(20)}`};delete unsigned.receipt_digest;
+ const forged={...unsigned,receipt_digest:digest(stable(unsigned))};
+ assert.throws(()=>validateSentinelObservation(forged,env));
+ const duplicate=receipt.producers.map(p=>p.id==='RESERVE'?{...p,id:'REQUIREMENT'}:p);
+ assert.equal(generationIdForProducers(duplicate,sha),null);
 });

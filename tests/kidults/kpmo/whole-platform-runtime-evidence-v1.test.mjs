@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt,verifyNaturalChainTerminal} from '../../../scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {generationIdForProducers} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 const source='a'.repeat(40),run={id:900,run_attempt:1};
 const body={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',repository:'johnkim9524-collab/kaios_enterprise_repo',source_sha:source,
   observer_run_id:900,observer_run_attempt:1,state:'VERIFIED_PASS',semantic_content_verified:true,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
@@ -41,6 +42,18 @@ test('two observers and a single refreshed producer do not prove two complete na
   assert.equal(distinctNaturalGenerations([{...newer,producers:newer.producers.map(p=>({...p,selected_event:'unknown'}))},body]),false);
   assert.equal(distinctNaturalGenerations([{...newer,producers:newer.producers.map(p=>p.id==='REQUIREMENT'?{...p,semantic_scope:'COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION'}:p)},body]),false);
   assert.equal(distinctNaturalGenerations([newer,{...body,producers:body.producers.map(p=>p.id==='REQUIREMENT'?{...p,semantic_scope:'COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION'}:p)}]),false);
+});
+test('v1.1 generation identity is recomputed from the exact dynamic tuple',()=>{
+  const producers=body.producers.map((p,i)=>({...p,artifact_id:100+i,artifact_digest:'sha256:'+String(i+1).repeat(64)}));
+  const expected=generationIdForProducers(producers,source);
+  const v11={...body,version:'1.1.0',generation_id:expected,producers,producer_cohort_bound:true,producer_cohort_scope:'DYNAMIC_PRODUCERS_ONLY',producer_cohort_span_ms:0,producer_cohort_failure_class:null};
+  assert.equal(verifyHealthReceipt(seal(v11),run,source).generation_id,expected);
+  const forged={...v11,generation_id:`kpmo-natural-v1-${source.slice(0,12)}-${'f'.repeat(20)}`};
+  assert.throws(()=>verifyHealthReceipt(seal(forged),run,source),/HEALTH_GENERATION/);
+  const newerProducers=producers.map(p=>['REQUIREMENT','RESERVE'].includes(p.id)?{...p,selected_run_id:p.selected_run_id+10,selected_created_at:'2026-10-04T12:00:00Z'}:p);
+  const newer={...v11,producers:newerProducers,generation_id:generationIdForProducers(newerProducers,source)};
+  assert.equal(distinctNaturalGenerations([newer,v11]),true);
+  assert.equal(distinctNaturalGenerations([{...newer,generation_id:`kpmo-natural-v1-${source.slice(0,12)}-${'e'.repeat(20)}`},v11]),false);
 });
 test('canary and historical immutable receipts cannot substitute for current mission terminal',()=>{
   assert.throws(()=>verifyMissionTerminal({id:'kidults-autonomous-object-lock-canary-terminal-receipt-v1',state:'VERIFIED_PASS'},source,{}),/TERMINAL_TYPE/);

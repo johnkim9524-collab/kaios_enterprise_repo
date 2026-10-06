@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {readSentinelEvent} from './validate-sentinel-trigger-v1.mjs';
+import {generationIdForProducers} from './resolve-continuous-assurance-sentinel-health-v1.mjs';
 
 const stable=x=>Array.isArray(x)?`[${x.map(stable).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${stable(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>`sha256:${crypto.createHash('sha256').update(stable(x)).digest('hex')}`;
@@ -17,7 +18,9 @@ export function validateSentinelObservation(r,env){
   assert.equal(r?.receipt_id,'kpmo-continuous-assurance-sentinel-health-v1');
   assert.ok(r.version==='1.0.0'||r.version==='1.1.0');
   if(r.version==='1.1.0'){
-    assert.match(r.generation_id||'',/^kpmo-natural-v1-[0-9a-f]{12}-[0-9a-f]{20}$/);
+    const expectedGenerationId=generationIdForProducers(r.producers,r.source_sha);
+    assert.equal(r.generation_id,expectedGenerationId);
+    if(expectedGenerationId!==null)assert.match(expectedGenerationId,/^kpmo-natural-v1-[0-9a-f]{12}-[0-9a-f]{20}$/);
   }
   assert.equal(r.repository,env.GITHUB_REPOSITORY);
   assert.equal(r.source_sha,env.GITHUB_SHA);

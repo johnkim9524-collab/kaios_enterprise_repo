@@ -63,9 +63,14 @@ export function assessProducerCohort(producers){
 
 export function generationIdForProducers(producers,sourceSha){
   if(!SHA.test(sourceSha||'')||!Array.isArray(producers))return null;
-  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
-  const rows=producers.filter(p=>dynamicIds.has(p?.id)).map(p=>[p.id,p.selected_run_id,p.selected_run_attempt,p.artifact_digest]).sort((a,b)=>a[0].localeCompare(b[0]));
-  if(rows.length!==dynamicIds.size||rows.some(row=>!positiveInteger(row[1])||!positiveInteger(row[2])||!DIGEST.test(row[3]||'')))return null;
+  const dynamicSpecs=SPECS.filter(spec=>spec.cohort==='DYNAMIC');
+  const rows=dynamicSpecs.map(spec=>{
+    const matches=producers.filter(p=>p?.id===spec.id);
+    if(matches.length!==1)return null;
+    const p=matches[0];
+    return [p.id,p.selected_run_id,p.selected_run_attempt,p.artifact_digest];
+  });
+  if(rows.some(row=>row===null||!positiveInteger(row[1])||!positiveInteger(row[2])||!DIGEST.test(row[3]||'')))return null;
   return 'kpmo-natural-v1-'+sourceSha.slice(0,12)+'-'+sha256(rows).slice(-20);
 }
 

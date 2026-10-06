@@ -1,5 +1,5 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
-import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS,generationIdForProducers} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 function deriveProducerCohort(producers){
@@ -27,13 +27,20 @@ function hasValidProducerCohort(health){
   return true;
 }
 function effectiveGenerationId(health){
-  if(typeof health?.generation_id==='string'&&/^kpmo-natural-v1-[a-f0-9]{12}-[a-f0-9]{20}$/.test(health.generation_id))return health.generation_id;
-  // Compatibility for pre-1.1 historical receipts: the tuple is still
-  // deterministic and source-bound, but newly emitted receipts must carry
-  // the explicit generation_id field above.
-  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
-  const tuple=(health?.producers||[]).filter(p=>dynamicIds.has(p?.id)).sort((a,b)=>a.id.localeCompare(b.id)).map(p=>({id:p.id,run_id:p.selected_run_id,attempt:p.selected_run_attempt,artifact_id:p.artifact_id??null,artifact_digest:p.artifact_digest??null,created_at:p.selected_created_at}));
-  if(!health?.source_sha||tuple.length!==dynamicIds.size)return null;
+  const derived=generationIdForProducers(health?.producers,health?.source_sha);
+  if(health?.version==='1.1.0'||Object.prototype.hasOwnProperty.call(health||{},'generation_id')){
+    return derived!==null&&health.generation_id===derived?derived:null;
+  }
+  // Compatibility for pre-1.1 historical receipts that did not carry
+  // artifact digests or an explicit generation_id.
+  const dynamicSpecs=SPECS.filter(spec=>spec.cohort==='DYNAMIC');
+  const tuple=dynamicSpecs.map(spec=>{
+    const matches=(health?.producers||[]).filter(p=>p?.id===spec.id);
+    if(matches.length!==1)return null;
+    const p=matches[0];
+    return {id:p.id,run_id:p.selected_run_id,attempt:p.selected_run_attempt,artifact_id:p.artifact_id??null,artifact_digest:p.artifact_digest??null,created_at:p.selected_created_at};
+  });
+  if(!health?.source_sha||tuple.some(row=>row===null))return null;
   return `kpmo-natural-v1-${health.source_sha.slice(0,12)}-${sha256(canonicalJson(tuple)).slice(-20)}`;
 }
 export function verifyHealthReceipt(health,run,sourceSha){
@@ -46,6 +53,9 @@ export function verifyHealthReceipt(health,run,sourceSha){
   requireEvidence(SPECS.every(s=>health.producers.filter(p=>p.id===s.id).length===1),'HEALTH_PRODUCER_IDS');
   requireEvidence(health.producers.every(p=>p.state==='VERIFIED_PASS'&&p.artifact_content_validated===true&&p.artifact_transport_verified===true),'HEALTH_CONTENT');
   requireEvidence(hasValidProducerCohort(health),'HEALTH_COHORT');
+  if(health.version==='1.1.0'||Object.prototype.hasOwnProperty.call(health,'generation_id')){
+    requireEvidence(effectiveGenerationId(health)!==null,'HEALTH_GENERATION');
+  }
   requireEvidence(health.production==='HOLD'&&health.public==='HOLD'&&health.g5==='HOLD'&&health.promotion_eligible===false,'HEALTH_HOLD');
   return health;
 }

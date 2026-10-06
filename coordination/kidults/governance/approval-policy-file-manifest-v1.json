@@ -4194,8 +4194,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b8f327a22205baa62f6604d31d37680453bd0346",
-      "sha256": "sha256:d35813469e705262eb2cb6273224a888999e45d486fefff32cda1cd08f237ed8",
+      "git_blob": "84676656c27823253f74f7696eaab9c714767bfe",
+      "sha256": "sha256:142adaef415a6c079a8fa3ddff60d64fdd4053ad2749b362c04cf3dcb073fe6a",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:383cb789df9778cc9c9532b212a084b2d4e09b4d9588ccc7659fd3b480b7ca7e"
+  "manifest_sha256": "sha256:f5af2b87ea721ddf5ea60c284f1eb2df7fd955fac5f9355a4bc161c3d33daeb5"
 }
