@@ -23,7 +23,9 @@ const requiredWorkflowTokens = [
   'gh api --method GET',
   'SENTINEL_PAGE_LIMIT=10',
   'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
-  '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}"',
+  'SENTINEL_CREATED_FROM=',
+  'SENTINEL_CREATED_RANGE=',
+  '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=${SENTINEL_CREATED_RANGE}"',
   'SENTINEL_PAGINATION_TOTAL_DRIFT',
   'SENTINEL_PAGINATION_TRUNCATED',
   'SENTINEL_PAGINATION_BOUND_EXCEEDED',
@@ -57,7 +59,9 @@ function requireBoundedSentinelQuery(source) {
     'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
     'gh api --method GET',
     '/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
-    '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}"',
+    'SENTINEL_CREATED_FROM=',
+    'SENTINEL_CREATED_RANGE=',
+    '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=${SENTINEL_CREATED_RANGE}"',
     'SENTINEL_PAGINATION_TOTAL_DRIFT',
     'SENTINEL_PAGINATION_TRUNCATED',
     'SENTINEL_PAGINATION_BOUND_EXCEEDED',
@@ -67,7 +71,7 @@ function requireBoundedSentinelQuery(source) {
 }
 requireBoundedSentinelQuery(workflow);
 for (const [before, after] of [
-  ['-f "created=<=${UPSTREAM_CREATED_AT}"', ''],
+  ['SENTINEL_CREATED_RANGE=', ''],
   ['-f branch=main', '-f branch=untrusted'],
   ['-f head_sha="$UPSTREAM_SHA"', ''],
   ['gh api --method GET', 'gh api --method POST'],

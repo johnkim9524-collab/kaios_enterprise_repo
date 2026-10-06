@@ -151,8 +151,11 @@ jobs:
             > "$GATE_DIR/upstream-assurance-run.json"
           UPSTREAM_CREATED_AT=$(jq -r '.created_at // empty' "$GATE_DIR/upstream-assurance-run.json")
           test -n "$UPSTREAM_CREATED_AT"
-          # Query the exact source SHA within the same authenticated time boundary the selector validates.
-          # A naturally newer run belongs to the next Assurance observation.
+          # Query the exact source SHA only within the bounded natural observation window.
+          # A naturally older or newer run cannot be joined to this Assurance generation.
+          UPSTREAM_CREATED_EPOCH=$(date -u -d "$UPSTREAM_CREATED_AT" +%s)
+          SENTINEL_CREATED_FROM=$(date -u -d "@$((UPSTREAM_CREATED_EPOCH - 1800))" +%Y-%m-%dT%H:%M:%SZ)
+          SENTINEL_CREATED_RANGE="${SENTINEL_CREATED_FROM}..${UPSTREAM_CREATED_AT}"
           SENTINEL_PAGE_LIMIT=10
           SENTINEL_EXPECTED_TOTAL=''
           SENTINEL_FETCHED_COUNT=0
@@ -162,7 +165,7 @@ jobs:
             PAGE_PATH="$GATE_DIR/sentinel-runs-page-${PAGE}.json"
             gh api --method GET -H 'Accept: application/vnd.github+json' \
               "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs" \
-              -f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=<=${UPSTREAM_CREATED_AT}" \
+              -f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=${SENTINEL_CREATED_RANGE}" \
               > "$PAGE_PATH"
             PAGE_TOTAL=$(jq -r '.total_count // empty' "$PAGE_PATH")
             PAGE_COUNT=$(jq -r '.workflow_runs | length' "$PAGE_PATH")
