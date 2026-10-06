@@ -53,9 +53,9 @@ if(import.meta.url==='file://'+process.argv[1]){
     const [inputPath,sourceSha,observedAt,repository]=process.argv.slice(2);
     const input=JSON.parse(await (await import('node:fs/promises')).readFile(inputPath,'utf8'));
     const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt});
-    process.stdout.write(JSON.stringify(result)+'\\n');
+    process.stdout.write(JSON.stringify(result)+'\n');
   }catch(error){
-    process.stderr.write('SENTINEL_LATEST_RUN_SELECTION_FAILED\\n');
+    process.stderr.write('SENTINEL_LATEST_RUN_SELECTION_FAILED\n');
     process.exitCode=1;
   }
 }
