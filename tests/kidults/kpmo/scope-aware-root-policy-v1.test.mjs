@@ -20,3 +20,26 @@ test("committed evidence receipts are covered by the governance scope", () => {
 
   assert.deepEqual(matches.map((rule) => rule.id), ["governance-and-data"]);
 });
+
+test("trust-engine source is routed through technical and governed coverage", () => {
+  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  const filename = "src/trust/rebuild/decision-engine.mjs";
+  const matches = policy.scope_rules.filter((rule) =>
+    rule.exact_paths?.includes(filename)
+      || rule.prefixes?.some((prefix) => filename.startsWith(prefix)),
+  );
+
+  assert.deepEqual(matches.map((rule) => rule.id), ["implementation-and-tests"]);
+});
+
+test("unknown top-level source remains fail-closed and unmatched", () => {
+  const policy = JSON.parse(readFileSync(policyPath, "utf8"));
+  const filename = "unknown-runtime/decision-engine.mjs";
+  const matches = policy.scope_rules.filter((rule) =>
+    rule.exact_paths?.includes(filename)
+      || rule.prefixes?.some((prefix) => filename.startsWith(prefix)),
+  );
+
+  assert.equal(policy.zero_coverage_policy, "FAIL_CLOSED");
+  assert.deepEqual(matches, []);
+});
