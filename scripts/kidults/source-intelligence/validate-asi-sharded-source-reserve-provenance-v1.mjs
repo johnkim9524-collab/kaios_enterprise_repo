@@ -3,7 +3,7 @@ import fs from 'node:fs';
 
 const workflowPath = '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml';
 const discoveryWorkflowPath = '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml';
-const expectedShaBinding = "EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}";
+const expectedShaBinding = "EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}";
 const exactUpstreamBinding = 'test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"';
 
 function failuresFor(text) {
