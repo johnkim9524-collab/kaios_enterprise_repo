@@ -57,6 +57,7 @@ test('producer completion events stay aligned with sentinel health resolver sele
  }
 });
 
+// The cohort waiter is a checked-in script so YAML shell indentation cannot corrupt it.
 test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
