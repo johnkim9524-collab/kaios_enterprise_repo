@@ -20,6 +20,7 @@ const normalizedDerivedApprovalMetadata=(source,filename)=>{
     value.manifest_sha256='DERIVED';
     for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
   } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
+    value.manifest_sha256='DERIVED';
     if(value.audit) value.audit.manifest_sha256='DERIVED';
   }
   return value;
