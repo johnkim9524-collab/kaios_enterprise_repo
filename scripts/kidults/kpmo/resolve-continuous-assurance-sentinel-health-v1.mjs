@@ -12,10 +12,12 @@ const SHA=/^[0-9a-f]{40}$/;
 const DIGEST=/^sha256:[0-9a-f]{64}$/;
 const TERMINAL=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
 const SPECS=[
-  {id:'SHADOW',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch'],artifacts:['kidults-asi-shadow-operating-evidence-v1']},
-  {id:'REQUIREMENT',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
-  {id:'RESERVE',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['repository_dispatch','schedule','workflow_run','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
-  {id:'CANONICAL_TRUTH',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
+  // Static producers are source-SHA authorities reused across natural cycles.
+  // Dynamic producers are the per-cycle pair whose timestamps must form a cohort.
+  {id:'SHADOW',cohort:'STATIC',workflow:'kidults-asi-shadow-operating-evidence-v1.yml',path:'.github/workflows/kidults-asi-shadow-operating-evidence-v1.yml',events:['schedule','push','workflow_dispatch'],artifacts:['kidults-asi-shadow-operating-evidence-v1']},
+  {id:'REQUIREMENT',cohort:'DYNAMIC',workflow:'kidults-asi-requirement-adapter-coverage-v1.yml',path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',events:['workflow_run','workflow_dispatch'],artifacts:['kidults-asi-requirement-adapter-coverage-v1']},
+  {id:'RESERVE',cohort:'DYNAMIC',workflow:'kidults-asi-sharded-source-reserve-v1.yml',path:'.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',events:['repository_dispatch','schedule','workflow_run','workflow_dispatch'],artifacts:['kidults-asi-sharded-source-reserve-v1','kidults-asi-sharded-source-reserve-waiting-v1'],waitingArtifact:'kidults-asi-sharded-source-reserve-waiting-v1'},
+  {id:'CANONICAL_TRUTH',cohort:'STATIC',workflow:'kpmo-live-canonical-issue-truth-v1.yml',path:'.github/workflows/kpmo-live-canonical-issue-truth-v1.yml',events:['workflow_run'],artifactForRun:(run)=>`kpmo-live-canonical-issue-truth-v1-${run.id}`},
 ];
 const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');
 const CANONICAL_GENERATION_SPEC={id:'CANONICAL_GENERATION',workflow:'kpmo-canonical-generation-v3-apply.yml',path:'.github/workflows/kpmo-canonical-generation-v3-apply.yml',events:['push']};
@@ -34,6 +36,43 @@ function sealReceipt(base){
 
 const positiveInteger=value=>Number.isSafeInteger(value)&&value>0;
 const ACTIVE=new Set(['queued','in_progress','waiting','pending','requested']);
+export const MAX_PRODUCER_COHORT_SPAN_MS=45*60*1000;
+
+export function assessProducerCohort(producers){
+  const complete=Array.isArray(producers)&&producers.length===SPECS.length&&
+    SPECS.every((spec)=>producers.filter((producer)=>producer?.id===spec.id).length===1);
+  if(!complete)return {bound:false,cohort_scope:'DYNAMIC_PRODUCERS_ONLY',span_ms:null,earliest_created_at:null,latest_created_at:null,failure_class:'PRODUCER_COHORT_INCOMPLETE'};
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  const dynamic=producers.filter(producer=>dynamicIds.has(producer?.id));
+  if(dynamic.length!==dynamicIds.size)return {bound:false,cohort_scope:'DYNAMIC_PRODUCERS_ONLY',span_ms:null,earliest_created_at:null,latest_created_at:null,failure_class:'PRODUCER_COHORT_DYNAMIC_INCOMPLETE'};
+  const timestamps=dynamic.map((producer)=>Date.parse(producer.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {
+    bound:false,cohort_scope:'DYNAMIC_PRODUCERS_ONLY',span_ms:null,earliest_created_at:null,latest_created_at:null,
+    failure_class:'PRODUCER_COHORT_TIMESTAMP_INVALID'
+  };
+  const earliest=Math.min(...timestamps),latest=Math.max(...timestamps),span_ms=latest-earliest;
+  const bound=span_ms<=MAX_PRODUCER_COHORT_SPAN_MS;
+  return {
+    bound,cohort_scope:'DYNAMIC_PRODUCERS_ONLY',span_ms,
+    earliest_created_at:new Date(earliest).toISOString(),
+    latest_created_at:new Date(latest).toISOString(),
+    static_producers_reused:SPECS.filter(spec=>spec.cohort==='STATIC').map(spec=>spec.id),
+    failure_class:bound?null:'PRODUCER_COHORT_WINDOW_EXCEEDED'
+  };
+}
+
+export function generationIdForProducers(producers,sourceSha){
+  if(!SHA.test(sourceSha||'')||!Array.isArray(producers))return null;
+  const dynamicSpecs=SPECS.filter(spec=>spec.cohort==='DYNAMIC');
+  const rows=dynamicSpecs.map(spec=>{
+    const matches=producers.filter(p=>p?.id===spec.id);
+    if(matches.length!==1)return null;
+    const p=matches[0];
+    return [p.id,p.selected_run_id,p.selected_run_attempt,p.artifact_digest];
+  });
+  if(rows.some(row=>row===null||!positiveInteger(row[1])||!positiveInteger(row[2])||!DIGEST.test(row[3]||'')))return null;
+  return 'kpmo-natural-v1-'+sourceSha.slice(0,12)+'-'+sha256(rows).slice(-20);
+}
 
 // Both public evaluation and the authenticated collector use this one selection
 // rule. Ambiguous pages/attempts never become a best-effort older PASS.
@@ -184,10 +223,16 @@ export function evaluateHealth(input){
   if(!Number.isFinite(Date.parse(observedAt||'')))fail('OBSERVED_AT_INVALID');
   if(!SHA.test(input.source_sha||''))fail('SOURCE_SHA_INVALID');
   const producers=SPECS.map((spec)=>evaluateProducer(spec,input.runs?.[spec.id]||[],input.artifacts_by_run||{},input.source_sha,observedAt,input.archives_by_id||{},input.related_by_id||{}));
+  const cohort=assessProducerCohort(producers);
   const failures=producers.filter((p)=>p.state==='VERIFIED_FAIL');
   const holds=producers.filter((p)=>p.state==='VERIFIED_HOLD');
-  const state=failures.length?'VERIFIED_FAIL':holds.length?'VERIFIED_HOLD':'VERIFIED_PASS';
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,producers,failed_producers:failures.map((p)=>p.id),waiting_producers:holds.map((p)=>p.id),whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const state=failures.length?'VERIFIED_FAIL':holds.length||!cohort.bound?'VERIFIED_HOLD':'VERIFIED_PASS';
+  // `waiting_producers` is an identity list for the four declared producers.
+  // Cohort binding is an independent aggregate guard; never invent a fifth
+  // producer id for that condition because the observation validator must be
+  // able to reconcile this list exactly with `producers`.
+  const waitingProducers=holds.map((p)=>p.id);
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.1.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,generation_id:generationIdForProducers(producers,input.source_sha),producers,producer_cohort_bound:cohort.bound,producer_cohort_scope:cohort.cohort_scope,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,static_producers_reused:cohort.static_producers_reused??[],producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 

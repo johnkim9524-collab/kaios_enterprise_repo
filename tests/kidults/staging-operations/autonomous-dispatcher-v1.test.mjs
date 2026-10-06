@@ -4,6 +4,7 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
@@ -11,6 +12,24 @@ const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
 const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
+
+const partialTransition=governedFile(
+  '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  'name: reserve\n','name: reserve\nconcurrency: internal-safe\n',
+  '@@ -1 +1,2 @@\n name: reserve\n+concurrency: internal-safe'
+);
+assert.deepEqual(assertAutonomousFileScope({
+  files:[partialTransition],policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'
+}),['.github/workflows/kidults-asi-sharded-source-reserve-v1.yml']);
+const unsafePartialTransition=governedFile(
+  '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  'name: reserve\n','name: reserve\npermissions: write-all\n',
+  '@@ -1 +1,2 @@\n name: reserve\n+permissions: write-all'
+);
+assert.throws(()=>assertAutonomousFileScope({
+  files:[unsafePartialTransition],policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'
+}),error=>error.code==='DISPATCH_OWNER_RESERVED_ACTION');
+
 const e=classifyCandidate(input);assert.match(e.authorization_generation,/^pr-42-b{20}-[0-9a-f]{16}$/);assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const sameRunEnvelope=classifyCandidate({...input,now:new Date('2026-09-24T12:00:01Z')});
 assert.equal(sameRunEnvelope.authorization_generation,e.authorization_generation);

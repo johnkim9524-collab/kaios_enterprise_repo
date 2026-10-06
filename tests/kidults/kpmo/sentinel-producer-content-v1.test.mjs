@@ -5,8 +5,9 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,evaluateHealth,allowedArtifactRedirect} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,evaluateHealth,allowedArtifactRedirect,assessProducerCohort,generationIdForProducers} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {COVERAGE_PUBLIC_RESULT_KEYS,REPOSITORY,stable,digest,readArchive,validateProducerContent,validateCoverageAliasClosure} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
+import {validateSentinelObservation} from '../../../scripts/kidults/kpmo/validate-sentinel-observation-v1.mjs';
 import {buildMaterialRegistry,materialRegistryDigest} from '../../../scripts/kidults/kpmo/material-defect-registry-v3.mjs';
 import {MEMBERS,generationId} from '../../../scripts/kidults/kpmo/canonical-generation-v3-lib.mjs';
 import {finalizeCoverageCanonicalLeader} from '../../../scripts/kidults/source-intelligence/resolve-asi-requirement-adapter-coverage-canonical-guard-v1.mjs';
@@ -195,6 +196,19 @@ for(const url of ['http://x.blob.core.windows.net/x','https://evil.example/x','h
 test('artifact redirect accepts HTTPS signed storage without credentials',()=>assert.equal(allowedArtifactRedirect('https://example.blob.core.windows.net/artifact?sig=test').hostname,'example.blob.core.windows.net'));
 function healthInput(){const input={repository:REPOSITORY,source_sha:sha,observed_at:observed,observer_run_id:900,observer_run_attempt:1,runs:{},artifacts_by_run:{},archives_by_id:{}};for(const f of [shadow,coverage,reserve,canonical]){input.runs[f.spec.id]=[f.run];input.artifacts_by_run[f.run.id]=[f.artifact];input.archives_by_id[f.artifact.id]=f.bytes;}return input;}
 test('four content-verified producers can reach bounded aggregate PASS',()=>{const x=evaluateHealth(healthInput());assert.equal(x.state,'VERIFIED_PASS');assert.equal(x.semantic_content_verified,true);assert.equal(x.runtime_health_proven,false);assert.equal(x.whole_platform_authority,false);assert.equal(x.promotion_eligible,false);assert.equal(x.observer_run_id,900);assert.ok(!JSON.stringify(x).includes('SYNTHETIC_CONTROL'));const wire=JSON.parse(JSON.stringify(x)),{receipt_digest,...unsigned}=wire;assert.equal(receipt_digest,digest(stable(unsigned)));});
+test('an unbound dynamic producer cohort stays HOLD without a pseudo producer',()=>{
+ const input=healthInput();
+ const delayedRun={...input.runs.RESERVE[0],created_at:'2026-09-05T11:00:00Z',run_started_at:'2026-09-05T11:00:00Z'};
+ input.runs.RESERVE=[delayedRun];
+ input.artifacts_by_run[delayedRun.id]=input.artifacts_by_run[delayedRun.id].map(artifact=>({...artifact,created_at:'2026-09-05T11:01:00Z'}));
+ const x=evaluateHealth(input);
+ assert.equal(x.state,'VERIFIED_HOLD');
+ assert.equal(x.producer_cohort_bound,false);
+ assert.equal(x.producer_cohort_scope,'DYNAMIC_PRODUCERS_ONLY');
+ assert.equal(x.producer_cohort_failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
+ assert.deepEqual(x.waiting_producers,[]);
+ assert.equal(x.producers.filter(p=>p.state==='VERIFIED_HOLD').length,0);
+});
 test('metadata-only proof remains HOLD even when a caller asserts validation',()=>{const x=healthInput();delete x.archives_by_id;x.artifact_content_validated=true;assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
 test('latest RED cannot fall back to old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',conclusion:'failure'}];assert.equal(evaluateHealth(x).state,'VERIFIED_FAIL');});
 test('new pending generation cannot reuse old content PASS',()=>{const x=healthInput();x.runs.SHADOW=[shadow.run,{...shadow.run,id:77,created_at:'2026-09-05T11:00:00Z',status:'in_progress',conclusion:null}];assert.equal(evaluateHealth(x).state,'VERIFIED_HOLD');});
@@ -368,4 +382,45 @@ test('Coverage alias cannot substitute a different exact upstream execution even
  const {f,artifact}=aliasFixture(),proof=check(f),leaderProof=check({...coverage,artifact});
  const alias={...proof.alias,current_upstream_workflow_run_id:proof.alias.current_upstream_workflow_run_id+1};
  assert.throws(()=>validateCoverageAliasClosure({...proof,alias},leaderProof,coverage.run,artifact),/COVERAGE_ALIAS_CURRENT_UPSTREAM/);
+});
+
+
+test('natural generation binds only dynamic Requirement and Reserve while reusing exact-SHA static authorities',()=>{
+ const digestValue='sha256:'+'c'.repeat(64);
+ const producers=[
+  {id:'SHADOW',state:'VERIFIED_PASS',selected_run_id:101,selected_run_attempt:1,selected_created_at:'2026-10-06T00:00:00Z',artifact_digest:digestValue},
+  {id:'REQUIREMENT',state:'VERIFIED_PASS',selected_run_id:201,selected_run_attempt:1,selected_created_at:'2026-10-06T08:40:00Z',artifact_digest:digestValue},
+  {id:'RESERVE',state:'VERIFIED_PASS',selected_run_id:301,selected_run_attempt:1,selected_created_at:'2026-10-06T08:44:00Z',artifact_digest:digestValue},
+  {id:'CANONICAL_TRUTH',state:'VERIFIED_PASS',selected_run_id:401,selected_run_attempt:1,selected_created_at:'2026-10-06T00:01:00Z',artifact_digest:digestValue},
+ ];
+ const cohort=assessProducerCohort(producers);
+ assert.equal(cohort.bound,true);
+ assert.equal(cohort.cohort_scope,'DYNAMIC_PRODUCERS_ONLY');
+ assert.equal(cohort.span_ms,4*60*1000);
+ assert.deepEqual(cohort.static_producers_reused,['SHADOW','CANONICAL_TRUTH']);
+ const id=generationIdForProducers(producers,'a'.repeat(40));
+ assert.match(id,/^kpmo-natural-v1-aaaaaaaaaaaa-[0-9a-f]{20}$/);
+});
+test('natural generation rejects a dynamic producer pair outside its bounded window',()=>{
+ const digestValue='sha256:'+'d'.repeat(64);
+ const producers=[
+  {id:'SHADOW',selected_run_id:101,selected_run_attempt:1,selected_created_at:'2026-10-06T00:00:00Z',artifact_digest:digestValue},
+  {id:'REQUIREMENT',selected_run_id:201,selected_run_attempt:1,selected_created_at:'2026-10-06T08:00:00Z',artifact_digest:digestValue},
+  {id:'RESERVE',selected_run_id:301,selected_run_attempt:1,selected_created_at:'2026-10-06T08:50:00Z',artifact_digest:digestValue},
+  {id:'CANONICAL_TRUTH',selected_run_id:401,selected_run_attempt:1,selected_created_at:'2026-10-06T00:01:00Z',artifact_digest:digestValue},
+ ];
+ const cohort=assessProducerCohort(producers);
+ assert.equal(cohort.bound,false);
+ assert.equal(cohort.failure_class,'PRODUCER_COHORT_WINDOW_EXCEEDED');
+});
+
+test('v1.1 observation binds generation id to one exact Requirement and Reserve tuple',()=>{
+ const receipt=evaluateHealth(healthInput());
+ const env={GITHUB_REPOSITORY:REPOSITORY,GITHUB_SHA:sha,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',SENTINEL_RESOLVER_OUTCOME:'success'};
+ assert.equal(validateSentinelObservation(receipt,env).semantic_health_state,'VERIFIED_PASS');
+ const unsigned={...receipt,generation_id:`kpmo-natural-v1-${sha.slice(0,12)}-${'f'.repeat(20)}`};delete unsigned.receipt_digest;
+ const forged={...unsigned,receipt_digest:digest(stable(unsigned))};
+ assert.throws(()=>validateSentinelObservation(forged,env));
+ const duplicate=receipt.producers.map(p=>p.id==='RESERVE'?{...p,id:'REQUIREMENT'}:p);
+ assert.equal(generationIdForProducers(duplicate,sha),null);
 });
