@@ -15,6 +15,7 @@ const TERMINAL_CONCLUSIONS = new Set([
 ]);
 const isRecord = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const positiveInteger = value => Number.isSafeInteger(value) && value > 0;
+const MAX_ATOMIC_POSTMERGE_WAIT_SECONDS = 300;
 const fail = (code, details = null) => {
   const error = new Error(code);
   error.code = code;
@@ -126,6 +127,15 @@ export function evaluateCanonicalConvergence(runs, policy, mergeSha, mergedAt) {
   };
 }
 
+export function resolveAtomicPostMergeWaitSeconds(value, policy) {
+  const waitSeconds = Number(value || policy?.max_wait_seconds);
+  requireCondition(Number.isInteger(waitSeconds)
+    && waitSeconds >= 0
+    && waitSeconds <= MAX_ATOMIC_POSTMERGE_WAIT_SECONDS,
+  'ATOMIC_POSTMERGE_WAIT_INVALID');
+  return waitSeconds;
+}
+
 async function selfTest() {
   const policy = validatePolicy(readJson(
     process.env.POSTMERGE_PUSH_SUITE_POLICY_PATH
@@ -206,9 +216,10 @@ async function main() {
   requireCondition(token && /^[^/]+\/[^/]+$/.test(repository) && receiptPath,
     'ATOMIC_POSTMERGE_ENVIRONMENT_INVALID');
   requireCondition(Number.isFinite(Date.parse(mergedAt)), 'ATOMIC_POSTMERGE_MERGED_AT_INVALID');
-  const waitSeconds = Number(process.env.POSTMERGE_PUSH_SUITE_WAIT_SECONDS || policy.max_wait_seconds);
-  requireCondition(Number.isInteger(waitSeconds) && waitSeconds >= 0 && waitSeconds <= 120,
-    'ATOMIC_POSTMERGE_WAIT_INVALID');
+  const waitSeconds = resolveAtomicPostMergeWaitSeconds(
+    process.env.POSTMERGE_PUSH_SUITE_WAIT_SECONDS,
+    policy,
+  );
 
   const headers = {Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28', 'User-Agent': 'kidults-atomic-postmerge-push-suite-v1'};
