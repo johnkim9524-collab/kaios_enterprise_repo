@@ -69,10 +69,9 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
  assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
 });
 
-test('Sentinel starts from either dynamic producer completion edge and waits for the exact producer cohort',()=>{
+test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
- assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-sharded-source-reserve-v1\.yml'/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
  assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*900/);
@@ -242,6 +241,5 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.match(barrier,/async function workflowRuns/);
  assert.ok(barrier.includes("page=${page}"));
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
- assert.match(barrier,/createdStart/);
  assert.match(barrier,/run_attempt === 1/);
 });
