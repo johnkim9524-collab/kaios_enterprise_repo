@@ -3,17 +3,22 @@ import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS} from '../resolve-continuous-assurance
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 function deriveProducerCohort(producers){
-  if(!Array.isArray(producers)||producers.length!==SPECS.length)return {bound:false,span_ms:null};
-  const timestamps=producers.map((producer)=>Date.parse(producer?.selected_created_at));
-  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {bound:false,span_ms:null};
+  if(!Array.isArray(producers)||producers.length!==SPECS.length)return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  const dynamic=producers.filter(producer=>dynamicIds.has(producer?.id));
+  if(dynamic.length!==dynamicIds.size)return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
+  const timestamps=dynamic.map((producer)=>Date.parse(producer?.selected_created_at));
+  if(timestamps.some((timestamp)=>!Number.isFinite(timestamp)))return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
   const span_ms=Math.max(...timestamps)-Math.min(...timestamps);
-  return {bound:span_ms>=0&&span_ms<=MAX_PRODUCER_COHORT_SPAN_MS,span_ms};
+  return {bound:span_ms>=0&&span_ms<=MAX_PRODUCER_COHORT_SPAN_MS,span_ms,scope:'DYNAMIC_PRODUCERS_ONLY'};
 }
 function hasValidProducerCohort(health){
   const derived=deriveProducerCohort(health?.producers);
   if(!derived.bound)return false;
   if(Object.prototype.hasOwnProperty.call(health||{},'producer_cohort_bound')){
     return health.producer_cohort_bound===true
+      &&health.producer_cohort_scope==='DYNAMIC_PRODUCERS_ONLY'
+      &&derived.scope==='DYNAMIC_PRODUCERS_ONLY'
       &&Number.isSafeInteger(health.producer_cohort_span_ms)
       &&health.producer_cohort_span_ms===derived.span_ms
       &&health.producer_cohort_span_ms<=MAX_PRODUCER_COHORT_SPAN_MS
@@ -36,14 +41,15 @@ export function verifyHealthReceipt(health,run,sourceSha){
 }
 export function distinctNaturalGenerations(healths){
   if(healths.length<2)return false;
-  if(healths.some((health)=>!hasValidProducerCohort(health)))return false;
+  if(healths.some((health)=>!hasValidProducerCohort(health)||typeof health.generation_id!=='string'))return false;
   const [newer,older]=healths;
-  if(!newer.source_sha||newer.source_sha!==older.source_sha)return false;
-  // Observer IDs and a changed single producer are not a second whole chain.
-  return SPECS.every(s=>{
-    const a=newer.producers.find(p=>p.id===s.id),b=older.producers.find(p=>p.id===s.id);
+  if(!newer.source_sha||newer.source_sha!==older.source_sha||newer.generation_id===older.generation_id)return false;
+  const dynamicIds=new Set(SPECS.filter(spec=>spec.cohort==='DYNAMIC').map(spec=>spec.id));
+  return [...dynamicIds].every(id=>{
+    const spec=SPECS.find(s=>s.id===id);
+    const a=newer.producers.find(p=>p.id===id),b=older.producers.find(p=>p.id===id);
     if(!a||!b)return false;
-    const natural=p=>p.selected_run_attempt===1&&s.events.includes(p.selected_event)&&p.selected_event!=='workflow_dispatch'
+    const natural=p=>p.selected_run_attempt===1&&spec.events.includes(p.selected_event)&&p.selected_event!=='workflow_dispatch'
       &&p.semantic_scope!=='COVERAGE_CONTENT_BOUND_ALIAS_NOT_NEW_EXECUTION';
     return natural(a)&&natural(b)&&Number.isSafeInteger(a.selected_run_id)&&Number.isSafeInteger(b.selected_run_id)
       &&a.selected_run_id!==b.selected_run_id&&Date.parse(a.selected_created_at)>Date.parse(b.selected_created_at);
