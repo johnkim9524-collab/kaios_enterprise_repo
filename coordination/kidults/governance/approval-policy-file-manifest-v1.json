@@ -4168,8 +4168,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1e05dbab2df35c0f519615cf4459773308b83a51",
-      "sha256": "sha256:41255d02bf4e88dca5f5f956461dfa6ddeb915f78fc9cafa0c4e89544086c120",
+      "git_blob": "88417a7ddba8249f77b30f05c4928d42154cc6a4",
+      "sha256": "sha256:19ebebb0a6a0e33f3c3f9b7f0466152babaec0a900330516f3e435f80f88c760",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5621,8 +5621,8 @@
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1f908c2bbfbb6cc6ad0be638b578c65dbea4d09a",
-      "sha256": "sha256:a4348a8abdd3fb3313ef1f1eef172fd03179f1838d5c7e013ab8c32889aa9213"
+      "git_blob": "3c42d0e2adbd48d12ebb434666fa77c80c9c1d41",
+      "sha256": "sha256:225d154ca57a68cdfbc5f125b949598fea1d421b8778a9b7b4a4e4474a2b9f1f"
     },
     {
       "path": "tests/kidults/kpmo/postmerge-recovery-github-observation-v1.test.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:0ffdcddce725a8c1fce970c4919ea813e94239a07bb078aec229cfa454f3c676"
+  "manifest_sha256": "sha256:42e22c22bd4e3f506074ca06e97a8dfbb571a2d37ee91d897fa81dc3df510e78"
 }

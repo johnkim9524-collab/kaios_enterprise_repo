@@ -1,3 +1,4 @@
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -84,4 +85,16 @@ test('automatic closure preserves the protected HOLD boundary', () => {
   assert.equal(contract.termination.manual_dispatch_not_terminal_natural_proof, true);
   assert.equal(contract.termination.producer_mutation_recovery_separate_from_assurance, true);
   assert.equal(contract.termination.main_sha_drift_fails_closed, true);
+});
+
+
+test('PR lifecycle validators accept only the exact non-governed protected-main control status', () => {
+  for (const script of [
+    'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs',
+    'scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs',
+  ]) {
+    const result = spawnSync(process.execPath, [script, '--self-test'], {encoding: 'utf8'});
+    assert.equal(result.status, 0, `${script}: ${result.stderr || result.stdout}`);
+    assert.match(result.stdout, /self-test: PASS/);
+  }
 });

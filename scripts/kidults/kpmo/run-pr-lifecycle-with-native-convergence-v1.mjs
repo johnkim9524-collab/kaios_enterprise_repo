@@ -29,7 +29,12 @@ export function nativeGovernanceConverged(statuses, requiredContexts) {
       && status.state === 'pending'
       && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
       && githubActionsIdentity;
-    return normalReadyControl || isAtomicLandingNativeStatusReady(status);
+    const nonGovernedProtectedMainControl = context === 'KIDULTS Governed Landing Authorization V1'
+      && status.state === 'success'
+      && status.description === 'Ready lifecycle verified; non-governed scope uses protected-main status path'
+      && githubActionsIdentity;
+    return normalReadyControl || nonGovernedProtectedMainControl
+      || isAtomicLandingNativeStatusReady(status);
   });
 }
 
@@ -60,6 +65,18 @@ function runSelfTest() {
   const normalReadyApiShape={...normalReady,creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4'};
   assert(nativeGovernanceConverged([scope, normalReadyApiShape], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_GITHUB_ACTIONS_AVATAR_REJECTED');
+  const nonGovernedProtectedMain = {
+    context: required[1],
+    state: 'success',
+    description: 'Ready lifecycle verified; non-governed scope uses protected-main status path',
+    creator: {login: 'github-actions[bot]'},
+  };
+  assert(nativeGovernanceConverged([scope, nonGovernedProtectedMain], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_PROTECTED_MAIN_REJECTED');
+  assert(!nativeGovernanceConverged([scope, {...nonGovernedProtectedMain, description: 'generic success'}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_DESCRIPTION_REQUIRED');
+  assert(!nativeGovernanceConverged([scope, {...nonGovernedProtectedMain, creator: {login: 'untrusted'}}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_TRUSTED_CREATOR_REQUIRED');
   assert(!nativeGovernanceConverged([scope, {...normalReady, creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_UNTRUSTED_AVATAR_ACCEPTED');
   assert(!nativeGovernanceConverged([scope, {...normalReady, creator: {login: 'untrusted'},avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
