@@ -20,6 +20,11 @@ const stable = (value) => Array.isArray(value)
     ? `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`
     : JSON.stringify(value);
 const hash = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
+export const coverageGenerationId = ({sourceSha, runId, runAttempt}) => hash(stable({
+  domain: 'KIDULTS_COVERAGE_GENERATION_V1', repository: REPOSITORY,
+  coverage_workflow_path: WORKFLOW_PATH, source_sha: sourceSha,
+  coverage_run_id: Number(runId), coverage_run_attempt: Number(runAttempt),
+}));
 const positive = (value, code) => {
   const number = Number(value);
   if (!Number.isSafeInteger(number) || number < 1 || String(number) !== String(value)) fail(code);
@@ -74,9 +79,10 @@ export function issueKirCoverageAssuranceContinuation(input) {
     coverage_run_attempt: runAttempt,
     source_sha: input.source_sha,
     source_tree: input.source_tree,
+    generation_id: coverageGenerationId({sourceSha: input.source_sha, runId, runAttempt}),
   };
   return seal({
-    id: 'kidults-kir-coverage-assurance-continuation-v1', version: '1.2.0',
+    id: 'kidults-kir-coverage-assurance-continuation-v1', version: '1.3.0',
     state: 'ISSUED_PENDING_ONE_TIME_CONSUMPTION', artifact_role: 'ASSURANCE_CONTINUATION_REQUEST',
     ...identity, coverage_created_at: input.run.created_at,
     continuation_key: hash(stable({domain: 'KIR_COVERAGE_ASSURANCE_CONTINUATION_V1', ...identity})),
@@ -106,10 +112,10 @@ export function consumeKirCoverageAssuranceContinuation(input) {
   if (artifact.id !== artifactId || artifact.name !== artifactName || artifact.expired !== false ||
       artifact.workflow_run?.id !== runId || artifact.workflow_run?.head_sha !== current.source_sha) fail('CONSUME_ARTIFACT_BINDING_MISMATCH');
   if (!DIGEST.test(request.dispatch_artifact_digest || '') || artifact.digest !== request.dispatch_artifact_digest) fail('CONSUME_ARTIFACT_DIGEST_MISMATCH');
-  if (receipt.id !== 'kidults-kir-coverage-assurance-continuation-v1' || receipt.version !== '1.2.0' ||
+  if (receipt.id !== 'kidults-kir-coverage-assurance-continuation-v1' || receipt.version !== '1.3.0' ||
       receipt.state !== 'ISSUED_PENDING_ONE_TIME_CONSUMPTION' || receipt.artifact_role !== 'ASSURANCE_CONTINUATION_REQUEST') fail('CONSUME_RECEIPT_IDENTITY');
   exactKeys(receipt, ['id', 'version', 'state', 'artifact_role', 'repository', 'coverage_workflow_path', 'coverage_event',
-    'coverage_run_id', 'coverage_run_attempt', 'source_sha', 'source_tree', 'coverage_created_at',
+    'coverage_run_id', 'coverage_run_attempt', 'source_sha', 'source_tree', 'generation_id', 'coverage_created_at',
     'continuation_key', 'authoritative_coverage_required', 'classification_only_success_accepted',
     'one_time_consumption_required', 'promotion_eligible', 'public', 'production', 'g5', 'receipt_digest'],
   'CONSUME_RECEIPT_FIELDS_NOT_EXACT');
@@ -122,21 +128,24 @@ export function consumeKirCoverageAssuranceContinuation(input) {
     source_tree: current.source_tree, coverage_created_at: input.run.created_at})) {
     if (receipt[key] !== value) fail(`CONSUME_RECEIPT_BINDING_${key.toUpperCase()}`);
   }
+  const generationId = coverageGenerationId({sourceSha: current.source_sha, runId, runAttempt});
+  if (request.generation_id !== generationId || receipt.generation_id !== generationId) fail('CONSUME_GENERATION_ID_MISMATCH');
   if (receipt.authoritative_coverage_required !== true || receipt.classification_only_success_accepted !== false ||
       receipt.one_time_consumption_required !== true || receipt.promotion_eligible !== false ||
       receipt.public !== 'HOLD' || receipt.production !== 'HOLD' || receipt.g5 !== 'HOLD') fail('CONSUME_AUTHORITY_BOUNDARY');
   const expectedContinuationKey = hash(stable({domain: 'KIR_COVERAGE_ASSURANCE_CONTINUATION_V1',
     repository: REPOSITORY, coverage_workflow_path: WORKFLOW_PATH, coverage_event: input.run.event, coverage_run_id: runId,
-    coverage_run_attempt: runAttempt, source_sha: current.source_sha, source_tree: current.source_tree}));
+    coverage_run_attempt: runAttempt, source_sha: current.source_sha, source_tree: current.source_tree,
+    generation_id: generationId}));
   if (request.continuation_key !== receipt.continuation_key || receipt.continuation_key !== expectedContinuationKey ||
       !DIGEST.test(receipt.continuation_key || '')) fail('CONSUME_CONTINUATION_KEY_MISMATCH');
   if (input.prior_consumption_count !== 0) fail('CONSUME_REPLAY_DETECTED');
   const consumerRunId = positive(consumer.run_id, 'CONSUMER_RUN_ID_INVALID');
   const consumerRunAttempt = positive(consumer.run_attempt, 'CONSUMER_RUN_ATTEMPT_INVALID');
   return seal({
-    id: 'kidults-kir-coverage-assurance-consumption-v1', version: '1.2.0', state: 'CONSUMED_VERIFIED',
+    id: 'kidults-kir-coverage-assurance-consumption-v1', version: '1.3.0', state: 'CONSUMED_VERIFIED',
     repository: REPOSITORY, source_sha: current.source_sha, source_tree: current.source_tree,
-    coverage_event: input.run.event, coverage_run_id: runId, coverage_run_attempt: runAttempt, coverage_artifact_id: artifactId,
+    coverage_event: input.run.event, coverage_run_id: runId, coverage_run_attempt: runAttempt, generation_id: generationId, coverage_artifact_id: artifactId,
     coverage_artifact_digest: request.dispatch_artifact_digest, continuation_key: receipt.continuation_key,
     continuation_receipt_digest: receipt.receipt_digest,
     consumer_workflow_run_id: consumerRunId, consumer_workflow_run_attempt: consumerRunAttempt,

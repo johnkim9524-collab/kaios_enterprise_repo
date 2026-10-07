@@ -30,7 +30,7 @@ test('latest in-flight generation holds instead of choosing an older green or ca
   const f=fixture({active:true}),r=await f.run();assert.equal(r.state,'VERIFIED_INCOMPLETE');
   assert.equal(r.operating_checks.find(c=>c.id==='CORE_FOUR_CONTENT').state,'VERIFIED_HOLD');
   assert.equal(f.counts().downloads,0);assert.equal(r.whole_platform_runtime_proven,false);
-  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);
+  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'HOLD');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,0);
 });
 test('foreign producer metadata and duplicate artifacts never become partial PASS',async()=>{
   for(const options of [{foreign:true},{duplicate:true}]){
@@ -105,7 +105,7 @@ function completeChainFixture({missingGate=false,manual=false}={}){
 test('overlapping genuine generations retain older evidence and require both downstream terminals',async()=>{
   const r=await completeChainFixture();
   for(const id of ['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS'])assert.equal(r.operating_checks.find(c=>c.id===id).state,'VERIFIED_PASS',JSON.stringify(r.operating_checks));
-  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);
+  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.assurance_runtime_readiness_proven,false);assert.equal(r.assurance_runtime_readiness.verified_domain_count,0);
 });
 test('missing Gate or manual Assurance cannot complete natural terminal proof',async()=>{
   for(const options of [{missingGate:true},{manual:true}]){

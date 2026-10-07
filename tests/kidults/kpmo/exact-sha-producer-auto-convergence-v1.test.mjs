@@ -101,7 +101,9 @@ test('terminal producer-health failure preserves the originating sentinel class'
 
 test('sentinel observes protected-main health without dispatching or mutating producers',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
-  assert.match(workflow,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.match(workflow,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+  assert.match(workflow,/github\.event\.workflow_run\.head_sha != ''/);
+  assert.doesNotMatch(workflow,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
   assert.doesNotMatch(workflow,/^  push:/m);
   assert.doesNotMatch(workflow,/^  schedule:/m);
   assert.match(workflow,/permissions:\n  contents: read\n  actions: read/);
@@ -126,13 +128,11 @@ test('root dispatches target authoritative producers without relying on token-su
 test('natural assurance is causally serialized behind a successful sentinel',()=>{
   const sentinel=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
   const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
-  for(const producer of [
-    'KIDULTS ASI Sharded Source Reserve v1',
-    'KIDULTS ASI Requirement-to-Adapter Coverage v1',
-    'KPMO Live Canonical Issue Truth V1',
-    'KIDULTS ASI SHADOW Operating Evidence v1',
-  ]) assert.ok(sentinel.includes(`      - '${producer}'`));
-  assert.match(sentinel,/github\.event\.workflow_run\.head_sha == github\.sha/);
+  assert.match(sentinel,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+  assert.doesNotMatch(sentinel,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.doesNotMatch(sentinel,/      - 'KPMO Live Canonical Issue Truth V1'/m);
+  assert.doesNotMatch(sentinel,/      - 'KIDULTS ASI SHADOW Operating Evidence v1'/m);
+  assert.match(sentinel,/github\.event\.workflow_run\.head_sha != ''/);
   assert.match(assurance,/github\.event\.workflow_run\.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'/);
   assert.match(assurance,/github\.event\.workflow_run\.conclusion == 'success'/);
 });
