@@ -103,6 +103,44 @@ jobs:
           LIFECYCLE_CONVERGENCE_DELAY_MS: '3000'
         run: node scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs
 
+      - name: Persist fail-closed receipt if evaluator did not write one
+        if: always()
+        env:
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          receipt=/tmp/kpmo-pr-lifecycle/receipt.json
+          if [ ! -s "$receipt" ]; then
+            mkdir -p "$(dirname "$receipt")"
+            node --input-type=module -e '
+              import fs from "node:fs";
+              const receipt = {
+                id: "kpmo-pr-lifecycle-integrity-receipt-v1",
+                repository: process.env.GH_REPOSITORY,
+                pull_request: Number(process.env.PR_NUMBER),
+                exact_head_sha: process.env.EXPECTED_HEAD_SHA,
+                exact_base_sha: process.env.EXPECTED_BASE_SHA,
+                workflow_run_id: process.env.GITHUB_RUN_ID,
+                workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT,
+                state: "READY_NON_PROMOTABLE",
+                reason: "LIFECYCLE_EVALUATOR_DID_NOT_WRITE_RECEIPT",
+                validator_authority: "CONTROL_ONLY",
+                promotion_eligible: false,
+                public_release: "HOLD",
+                production: "HOLD",
+                g5: "HOLD",
+                final_live_reread: false
+              };
+              fs.writeFileSync(process.argv[1], JSON.stringify(receipt, null, 2) + "\n");
+            ' "$receipt"
+          fi
+
       - name: Upload run-attempt-base-head-bound lifecycle receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
