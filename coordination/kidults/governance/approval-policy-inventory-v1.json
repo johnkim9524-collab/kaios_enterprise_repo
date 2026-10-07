@@ -8,7 +8,7 @@
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 722,
-    "manifest_sha256": "sha256:e6ee10e2d0d6d2ef74cd3691b7b70b1b818ae69e9f7ba08a34e7319424223910",
+    "manifest_sha256": "sha256:d83b71234888ee1956e14ca9add5c259f19ac0a8da624c5f83c174855ecaa5ed",
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
@@ -34,3 +34,27 @@
     },
     {
       "policy": "AUTONOMOUS_INTERNAL_LANDING",
+      "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+      "route": "INTERNAL_REVERSIBLE",
+      "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"
+    },
+    {
+      "policy": "GOVERNED_LANDING_AUTHORIZATION",
+      "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+      "route": "OWNER_RESERVED_OR_RECOVERY_ONLY",
+      "human_reapproval": "REQUIRED_PER_EXACT_ACTION"
+    }
+  ],
+  "domain_human_reviews": {
+    "affected": false,
+    "reason": "Entity resolution, legal, rights, financial, safety and external-publication reviews are domain decisions, not repeated landing authorization."
+  },
+  "unknown_policy": "FAIL_CLOSED_OWNER_REQUIRED",
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "psa_external_call": "HOLD"
+  },
+  "manifest_sha256": "sha256:5fbd4e16e7ee29c38cf4fd6e5e37fc58c8c7784ce6589d764eeb75a8c47ff46b"
+}
