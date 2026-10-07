@@ -31,6 +31,23 @@ function validateNaturalClockEvent(env,payload,expectedSlot){
   }
   return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
 }
+function validateCoverageChainContinuationEvent(env,payload){
+  if(!object(payload)||payload.action!=='kidults.assurance.continuation.v1'||payload.repository?.full_name!==REPO)
+    fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
+  if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
+  const continuation=payload.client_payload;
+  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_key,exact_main_sha,source,slot,upstream_run_attempt,upstream_run_id,upstream_workflow_path'.split(',').sort().join(',');
+  if(!object(continuation)||continuation.source!=='KIDULTS_COVERAGE_CHAIN_CONTINUATION'||continuation.slot!=='SENTINEL_CHAIN'
+    ||continuation.exact_main_sha!==env.GITHUB_SHA||!sha.test(continuation.exact_main_sha)
+    ||!positive(continuation.upstream_run_id)||!positive(continuation.upstream_run_attempt)
+    ||continuation.upstream_workflow_path!=='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+    ||!positive(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
+    ||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_key||'')
+    ||Object.keys(continuation).sort().join(',')!==keys)fail('SENTINEL_CHAIN_CONTINUATION_BINDING_INVALID');
+  return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,upstream_run_id:continuation.upstream_run_id,
+    upstream_run_attempt:continuation.upstream_run_attempt,continuation_artifact_id:continuation.continuation_artifact_id,
+    continuation_artifact_digest:continuation.continuation_artifact_digest,continuation_key:continuation.continuation_key};
+}
 export function readSentinelEvent(file){
   if(typeof file!=='string'||!file)fail('SENTINEL_EVENT_PATH_MISSING');
   let fd;
@@ -86,7 +103,10 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
   if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
-  if(env.GITHUB_EVENT_NAME==='repository_dispatch')return validateNaturalClockEvent(env,payload,'SENTINEL');
+  if(env.GITHUB_EVENT_NAME==='repository_dispatch'){
+    if(payload?.action==='kidults.assurance.continuation.v1')return validateCoverageChainContinuationEvent(env,payload);
+    return validateNaturalClockEvent(env,payload,'SENTINEL');
+  }
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;
