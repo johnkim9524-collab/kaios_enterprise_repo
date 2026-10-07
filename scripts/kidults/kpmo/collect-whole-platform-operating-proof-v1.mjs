@@ -202,6 +202,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     mark('WHOLE_VALUE_CHAIN_RUNTIME',complete?'VERIFIED_PASS':'VERIFIED_HOLD',complete?'ALL_REGISTERED_DOMAIN_RUNTIME_RECEIPTS_VERIFIED':'ADMITTED_IMMUTABLE_PAIR_TRACK_B_WORKLOAD_AND_HUMAN_ACCEPTANCE_RECEIPTS_REQUIRED');
   });
   if((await get('branches/main')).commit?.sha!==sourceSha)throw new Error('WHOLE_RUNTIME_MAIN_CHANGED');
+  const verifiedDomains=out.value_chain.filter(d=>d.runtime_state==='VERIFIED_PASS'&&/^sha256:[a-f0-9]{64}$/.test(d.runtime_receipt_digest||''));
+  const assuranceRuntimeReady=out.value_chain.length===14&&verifiedDomains.length===14&&new Set(verifiedDomains.map(d=>d.id)).size===14;
+  out.assurance_runtime_readiness={state:assuranceRuntimeReady?'VERIFIED_PASS':'VERIFIED_HOLD',verified_domain_count:verifiedDomains.length,required_domain_count:14,domain_ids:verifiedDomains.map(d=>d.id).sort()};
+  out.assurance_runtime_readiness_proven=assuranceRuntimeReady;
   out.whole_platform_runtime_proven=out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';
   out.receipt_digest=sha256(canonicalJson(out));return out;

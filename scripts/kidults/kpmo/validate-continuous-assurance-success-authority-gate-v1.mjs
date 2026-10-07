@@ -7,6 +7,10 @@ const fail = (code) => { throw new Error(code); };
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+const assuranceProofHelper = fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs', 'utf8');
+for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verified_domain_count!==14', 'fail(\'SENTINEL_BINDING\')']) {
+  if (!assuranceProofHelper.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_PROOF_HELPER_TOKEN_MISSING:${token}`);
+}
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
@@ -19,6 +23,16 @@ const requiredWorkflowTokens = [
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
   'Restore latest exact-main natural Sentinel producer-health receipt',
+  'Restore exact Assurance full-runtime proof',
+  'actions/runs/${UPSTREAM_RUN_ID}/attempts/${UPSTREAM_RUN_ATTEMPT}/jobs?per_page=100',
+  'select(.run_id==$run and .name==\"audit\" and .status==\"completed\" and .conclusion==\"success\")',
+  'audit-receipt.json',
+  'whole-platform-operating-proof-v1.json',
+  '.assurance_runtime_readiness==true',
+  '.assurance_archive_readback==\"PASS\"',
+  '.producer_health_artifact_digest|test(\"^sha256:[0-9a-f]{64}$\")',
+  'ASSURANCE_AUDIT_RECEIPT_DIGEST',
+  'ASSURANCE_RUNTIME_PROOF_DIGEST',
   'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
   'gh api --method GET',
   'SENTINEL_PAGE_LIMIT=10',
@@ -33,6 +47,8 @@ const requiredWorkflowTokens = [
   'select-latest-natural-sentinel-run-v1.mjs',
   'PRODUCER_HEALTH_CONCLUSION',
   'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
+  'node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs',
+  'node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs',
   '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"',
   'actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100',
   'read-sentinel-artifact-v1.py',
