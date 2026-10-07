@@ -12,18 +12,12 @@ const aggregateRunnerPath = 'scripts/kidults/kpmo/run-scope-aware-authoritative-
 const dispatcherWorkflowPath = '.github/workflows/kidults-autonomous-dispatcher-v1.yml';
 
 const requiredPrefixes = [
-  '.github/',
   'services/kidults-control-plane/',
   'services/kidults-autonomous-intelligence/',
-  'scripts/kidults/kpmo/',
-  'scripts/kidults/redteam/',
   'scripts/kidults/portal/runtime/',
-  'coordination/kidults/kpmo/',
-  'coordination/kidults/audit/',
-  'coordination/kidults/security/',
   'coordination/kidults/provider/',
-  'coordination/kidults/runtime/',
   'infra/',
+  'infrastructure/aws/',
 ];
 
 function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkflow, aggregatePolicy, atomicRunner, aggregateRunner) {
