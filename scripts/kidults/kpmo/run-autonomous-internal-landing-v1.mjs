@@ -18,6 +18,7 @@ import {
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {normalizeRequiredGateContexts} from './lib/required-gate-context-alias-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
@@ -378,17 +379,21 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   const files=await attachImmutableContents(fileRecords);
   validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,policy,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const envelopeRequiredSource=envelope.test_evidence?.required_contexts||envelope.test_evidence?.required_evidence||[];
-  const envelopeRequiresDraftDevelopment=envelopeRequiredSource.some(value=>(typeof value==='string'?value:String(value?.context||''))==='KIDULTS Draft Development Validation V1');
+  // Ruleset context is Scope-Aware, but a live Draft PR reports the
+  // non-promotable Draft Development alias. Canonicalize both sides to the
+  // exact current PR state before comparing required sets and check identities.
+  const draftDevelopment=pr.draft===true;
+  const normalizedEnvelope=normalizeRequiredGateContexts(envelopeRequiredSource,{draftDevelopment});
+  if(normalizedEnvelope.invalidDraftAlias) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_SET_DRIFT','Draft-only context on ready PR');
+  const envelopeRequired=normalizedEnvelope.values;
   const [status,checks,requiredChecks]=await Promise.all([
     api(`/commits/${envelope.head_sha}/status`),
     collectCheckRuns(envelope.head_sha),
-    liveRequiredChecks({includeLandingStatus,draftDevelopment:requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true}),
+    liveRequiredChecks({includeLandingStatus,draftDevelopment}),
   ]);
   const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
   const authoritativeChecks=checks;
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
- const envelopeRequired=envelopeRequiredSource.map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||value.app_id||0)})
-    .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
   if(requireEnvelopeBinding) {
     const liveByContext=new Map(requiredChecks.map(value=>[value.context,value]));
     const envelopeByContext=new Map(envelopeRequired.map(value=>[value.context,value]));
