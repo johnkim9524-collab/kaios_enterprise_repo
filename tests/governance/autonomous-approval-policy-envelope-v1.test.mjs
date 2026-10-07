@@ -4,7 +4,7 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
 import {assertAutonomousFileScope,collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
-import {sameRequiredGateEvidenceAuthority} from "../../scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs";
+import {sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from "../../scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
 test("repository-wide approval envelope is internally consistent", () => {
@@ -91,6 +91,15 @@ test("same-head required-check reissues preserve authority while live binding en
   assert.equal(sameRequiredGateEvidenceAuthority({kind:"check",id:200,app_id:42,context:"CI"},dispatched),false);
   assert.equal(sameRequiredGateEvidenceAuthority({kind:"status",id:200,app_id:15368,context:"CI"},dispatched),false);
   assert.equal(sameRequiredGateEvidenceAuthority({kind:"check",id:200,app_id:15368,context:"Other"},dispatched),false);
+});
+test("replacement canonical check must retain VERIFIED_PASS semantic evidence", () => {
+  const bindings=[{kind:"check",id:200,app_id:15368,context:"KPMO Live Canonical Issue Truth V1"}];
+  const fail=(code,context)=>{throw new Error(`${code}:${context}`);};
+  const check=(id,text)=>({id,name:"KPMO Live Canonical Issue Truth V1",output:{summary:text}});
+  assert.equal(validateRequiredGateSemanticEvidence({bindings,checks:[check(200,"state=VERIFIED_PASS")],fail}),bindings);
+  assert.throws(()=>validateRequiredGateSemanticEvidence({bindings,checks:[check(200,"state=IMPLEMENTED_NOT_VERIFIED")],fail}),/REQUIRED_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED/);
+  assert.throws(()=>validateRequiredGateSemanticEvidence({bindings,checks:[check(200,"completed")],fail}),/REQUIRED_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED/);
+  assert.throws(()=>validateRequiredGateSemanticEvidence({bindings,checks:[check(201,"state=VERIFIED_PASS")],fail}),/REQUIRED_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED/);
 });
 test("approval roles derive decisions before durable signing", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");

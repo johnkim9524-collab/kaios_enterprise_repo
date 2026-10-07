@@ -50,3 +50,14 @@ export function sameRequiredGateEvidenceAuthority(current, dispatched) {
     && current.context === dispatched.context
     && Number(current.app_id) === Number(dispatched.app_id));
 }
+export function validateRequiredGateSemanticEvidence({bindings, checks, fail}) {
+  for (const binding of bindings) {
+    if (binding.context !== 'KPMO Live Canonical Issue Truth V1') continue;
+    const check = checks.find(value => Number(value.id) === Number(binding.id) && value.name === binding.context);
+    const semantic = check ? [check.output?.title, check.output?.summary, check.output?.text].filter(Boolean).join('\n') : '';
+    if (!check || /IMPLEMENTED_NOT_VERIFIED/.test(semantic) || !/\bVERIFIED_PASS\b/.test(semantic)) {
+      fail('REQUIRED_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED', binding.context);
+    }
+  }
+  return bindings;
+}

@@ -17,7 +17,7 @@ import {
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
-import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority} from './lib/required-gate-evidence-v1.mjs';
+import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
@@ -412,14 +412,7 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
     const dispatched=envelope.test_evidence?.required_check_runs||envelope.test_evidence?.required_evidence||[];
     if(bound.length!==dispatched.length || bound.some((value,index)=>!sameRequiredGateEvidenceAuthority(value,dispatched[index]))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   }
-  for (const binding of bound) {
-    if (binding.context !== 'KPMO Live Canonical Issue Truth V1') continue;
-    const check = authoritativeChecks.find(value => Number(value.id) === Number(binding.id));
-    const semantic = check ? [check.output?.title, check.output?.summary, check.output?.text].filter(Boolean).join('\\n') : '';
-    if (!check || /IMPLEMENTED_NOT_VERIFIED/.test(semantic) || !/\\bVERIFIED_PASS\\b/.test(semantic)) {
-      throw new AutonomousLandingError('AUTONOMOUS_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
-    }
-  }
+  validateRequiredGateSemanticEvidence({bindings:bound,checks:authoritativeChecks,fail:()=>{throw new AutonomousLandingError('AUTONOMOUS_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');}});
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context),required_bindings:requiredChecks};
 };
 const waitForReadyCandidate = async () => {
