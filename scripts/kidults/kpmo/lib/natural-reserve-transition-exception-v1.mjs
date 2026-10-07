@@ -103,8 +103,8 @@ export const matchesFinalizerReadyEvidenceTransitionFile = ({filename, base_cont
       'const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true,preserveDraftDevelopmentEvidence=false}={}) => {',
     ],
     [
-      'liveRequiredChecks({includeLandingStatus,draftDevelopment:requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true})',
-      'liveRequiredChecks({includeLandingStatus,draftDevelopment:preserveDraftDevelopmentEvidence||(requireEnvelopeBinding?envelopeRequiresDraftDevelopment:pr.draft===true)})',
+      'liveRequiredChecks({includeLandingStatus,draftDevelopment})',
+      'liveRequiredChecks({includeLandingStatus,draftDevelopment:preserveDraftDevelopmentEvidence||draftDevelopment})',
     ],
     [
       'const waitForReadyCandidate = async () => {',

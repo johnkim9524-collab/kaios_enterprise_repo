@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
 import {assertAutonomousFileScope,collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
+import {normalizeRequiredGateContexts,SCOPE_AWARE_CONTEXT,DRAFT_DEVELOPMENT_CONTEXT} from "../../scripts/kidults/kpmo/lib/required-gate-context-alias-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
 test("repository-wide approval envelope is internally consistent", () => {
@@ -99,4 +100,29 @@ test("staging bounded execution is allowlisted and immutable", () => {
   assert.deepEqual(executor.operations.map(value=>value.operation).sort(),["CLOUDTRAIL_CONTINUOUS_ASSURANCE","OBJECT_LOCK_CONTINUOUS_ASSURANCE"]);
   assert.ok(executor.operations.every(value=>value.immutable_terminal_receipt&&value.exact_main_sha_input==="expected_main_sha"));
   assert.ok(executor.forbidden_operations.includes("CLOUDFORMATION_IAM_PERMISSION_EXPANSION"));
+});
+test("Draft required-status alias binds only to the live Draft PR", () => {
+  const draftFromRuleset=normalizeRequiredGateContexts([
+    {context:SCOPE_AWARE_CONTEXT,integration_id:15368},
+  ],{draftDevelopment:true});
+  assert.deepEqual(draftFromRuleset.values,[{context:DRAFT_DEVELOPMENT_CONTEXT,integration_id:15368}]);
+  assert.equal(draftFromRuleset.invalidDraftAlias,false);
+
+  const alreadyCanonical=normalizeRequiredGateContexts([
+    {context:DRAFT_DEVELOPMENT_CONTEXT,integration_id:15368},
+  ],{draftDevelopment:true});
+  assert.deepEqual(alreadyCanonical.values,[{context:DRAFT_DEVELOPMENT_CONTEXT,integration_id:15368}]);
+  assert.equal(alreadyCanonical.invalidDraftAlias,false);
+
+  const readyScope=normalizeRequiredGateContexts([
+    {context:SCOPE_AWARE_CONTEXT,integration_id:15368},
+  ],{draftDevelopment:false});
+  assert.deepEqual(readyScope.values,[{context:SCOPE_AWARE_CONTEXT,integration_id:15368}]);
+  assert.equal(readyScope.invalidDraftAlias,false);
+
+  const readyDraft=normalizeRequiredGateContexts([
+    {context:DRAFT_DEVELOPMENT_CONTEXT,integration_id:15368},
+  ],{draftDevelopment:false});
+  assert.equal(readyDraft.invalidDraftAlias,true);
+  assert.deepEqual(readyDraft.values,[{context:DRAFT_DEVELOPMENT_CONTEXT,integration_id:15368}]);
 });
