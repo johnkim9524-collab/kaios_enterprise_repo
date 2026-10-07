@@ -1373,8 +1373,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9121e9feca9a1d226683891447975951e3765b0c",
-      "sha256": "sha256:111c51164fc6f29abccd5948d8ceb13a65a82c51ba32073ea394105b81ab8506",
+      "git_blob": "7428eb0ba6972b3b229977af749e6c479f135aba",
+      "sha256": "sha256:54b14910d873836c05fb46a600644d182ee5cb8751410c9c9a742997513439cf",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3739,8 +3739,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "41ff80e692a15b6121a288f3459abc981f34c19b",
-      "sha256": "sha256:b44943a3c2342f3965cdd6c8d2f929d4cfde76458032de85d470856591b11e28",
+      "git_blob": "a501263de2a9dc06e5c635e4482833f6618655ab",
+      "sha256": "sha256:03e1d07c4e46da56189cf0a5f0d112cbc39a7504873014bacbada1f6d3616cb7",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5699,8 +5699,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5aad0637572ac958e93c2e8ca8b00919287a8825",
-      "sha256": "sha256:ed029efec713a3d59ff8d0668ac5b015901127b7e419e2a0da4446829858bcba"
+      "git_blob": "0168ef57b094dcf71eba035283877b3f02f50415",
+      "sha256": "sha256:879a88bc2afbf82dd0061f9897edac743d05b094803458d09cb28ac9b1758bfb"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f1afbf3ffb2ea9055351cc2a66b9445a923aba20a2e23eb855412b18414cfa06"
+  "manifest_sha256": "sha256:2720d6f180da64bf669bb4e664b23c669b200323394d7bf7fb39a3c9600cab7a"
 }

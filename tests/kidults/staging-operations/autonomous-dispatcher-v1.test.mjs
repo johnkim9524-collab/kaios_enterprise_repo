@@ -2,8 +2,9 @@ import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
-import {classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
@@ -11,6 +12,26 @@ const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
 const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
+assert.equal(policy.capability_guard_owner_review_handoff.disposition,'OWNER_REVIEW_REQUIRED');
+assert.equal(policy.capability_guard_owner_review_handoff.autonomous_quorum_before_owner_decision,false);
+assert.equal(policy.capability_guard_owner_review_handoff.merge_authorization_created_by_handoff,false);
+const ownerReview=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,
+  files:[{filename:'scripts/guard.mjs'},{filename:'.github/workflows/sentinel.yml'}],
+  error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED','scripts/guard.mjs')});
+assert.equal(ownerReview.state,'OWNER_REVIEW_REQUIRED');
+assert.equal(ownerReview.reason,'CAPABILITY_GUARD_DEPENDENCY_CHANGED');
+assert.equal(ownerReview.autonomous_eligible,false);
+assert.equal(ownerReview.landing_authorization_created,false);
+assert.equal(ownerReview.merge_authorized,false);
+assert.deepEqual(ownerReview.binding.changed_paths,['.github/workflows/sentinel.yml','scripts/guard.mjs']);
+assert.equal(ownerReview.binding.base_sha,input.mainSha);
+assert.equal(ownerReview.binding.head_sha,pr.head.sha);
+assert.equal(ownerReview.binding.head_tree_sha,input.treeSha);
+assert.equal(ownerReview.binding.scope_digest,`sha256:${crypto.createHash('sha256').update(ownerReview.binding.changed_paths.join('\n')).digest('hex')}`);
+assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:sha('d'),treeSha:input.treeSha,files:input.files,
+  error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
+assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
+  error:new CapabilityDeltaError('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
 const e=classifyCandidate(input);assert.match(e.authorization_generation,/^pr-42-b{20}-[0-9a-f]{16}$/);assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const sameRunEnvelope=classifyCandidate({...input,now:new Date('2026-09-24T12:00:01Z')});
 assert.equal(sameRunEnvelope.authorization_generation,e.authorization_generation);

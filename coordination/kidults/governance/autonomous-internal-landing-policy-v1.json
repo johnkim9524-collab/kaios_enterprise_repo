@@ -22,6 +22,34 @@
     "bounded_retry": "AUTOMATIC_FRESH_GENERATION",
     "owner_escalation": "ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED"
   },
+  "capability_guard_owner_review_handoff": {
+    "trigger_codes": [
+      "CAPABILITY_GUARD_DEPENDENCY_CHANGED",
+      "CAPABILITY_GUARD_WEAKENED",
+      "CAPABILITY_GUARD_REMOVED",
+      "CAPABILITY_AUTHORITY_POLICY_CHANGED",
+      "CAPABILITY_EXPANSION",
+      "CAPABILITY_PERMISSION_EXPANSION",
+      "INDEPENDENT_SECURITY_CAPABILITY_CHANGED",
+      "INDEPENDENT_AUTHORITY_POLICY_CHANGED"
+    ],
+    "disposition": "OWNER_REVIEW_REQUIRED",
+    "autonomous_quorum_before_owner_decision": false,
+    "owner_decision_binding": [
+      "repository_id",
+      "pull_request",
+      "base_sha",
+      "head_sha",
+      "head_tree_sha",
+      "changed_paths",
+      "scope_digest"
+    ],
+    "missing_or_drifted_binding": "HOLD",
+    "merge_authorization_created_by_handoff": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
   "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
   "state_model": [
     "SCOPE_GRANTED",
