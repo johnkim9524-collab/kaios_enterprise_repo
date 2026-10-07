@@ -5651,8 +5651,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6833eb6d4bede71acf7cd65d7c316d4e8849e1e0",
-      "sha256": "sha256:68f6595420c91ae89195e7a1034696d9af2ded226aeb6b526c65148451331c36"
+      "git_blob": "86828d57cbde439083d959669a3cbf68e7349040",
+      "sha256": "sha256:93bf1b3332960532e8da92a2deeda5edf78b4e88f52088a29aa40a86dfd45729"
     },
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d83b71234888ee1956e14ca9add5c259f19ac0a8da624c5f83c174855ecaa5ed"
+  "manifest_sha256": "sha256:e6ee10e2d0d6d2ef74cd3691b7b70b1b818ae69e9f7ba08a34e7319424223910"
 }
