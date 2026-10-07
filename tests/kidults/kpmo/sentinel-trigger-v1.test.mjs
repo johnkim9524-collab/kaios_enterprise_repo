@@ -7,8 +7,11 @@ import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
 import {SPECS as SENTINEL_HEALTH_SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
+const landing=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
 function naturalEvent(slot='SENTINEL'){
  const nonce='A'.repeat(32);
@@ -278,4 +281,16 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.ok(barrier.includes("page=${page}"));
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
  assert.match(barrier,/run_attempt === 1/);
+});
+
+test('inventory digest rebinding is non-semantic while routing drift fails closed',()=>{
+ const filename='coordination/kidults/governance/approval-policy-inventory-v1.json';
+ const base_content=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:old'});
+ const head_content=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:new'});
+ const file={filename,base_content,head_content};
+ assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+ assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+ const drifted=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{OWNER_RESERVED:1}}},manifest_sha256:'sha256:new'});
+ assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
+ assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
 });
