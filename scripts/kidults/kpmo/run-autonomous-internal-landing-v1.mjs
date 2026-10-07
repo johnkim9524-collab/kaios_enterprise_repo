@@ -17,7 +17,7 @@ import {
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
-import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
@@ -410,8 +410,9 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
       code==='REQUIRED_STATUS_NOT_GREEN'?'AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN':`AUTONOMOUS_${code}`,context);}});
   if(requireEnvelopeBinding) {
     const dispatched=envelope.test_evidence?.required_check_runs||envelope.test_evidence?.required_evidence||[];
-    if(bound.length!==dispatched.length || bound.some((value,index)=>value.kind!==dispatched[index]?.kind || value.id!==Number(dispatched[index]?.id) || value.app_id!==Number(dispatched[index]?.app_id))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
+    if(bound.length!==dispatched.length || bound.some((value,index)=>!sameRequiredGateEvidenceAuthority(value,dispatched[index]))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   }
+  validateRequiredGateSemanticEvidence({bindings:bound,checks:authoritativeChecks,fail:()=>{throw new AutonomousLandingError('AUTONOMOUS_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');}});
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context),required_bindings:requiredChecks};
 };
 const waitForReadyCandidate = async () => {

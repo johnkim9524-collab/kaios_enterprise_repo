@@ -1,6 +1,8 @@
 // Pure lock-graph policy. No file, process, network or Provider authority.
 export const WRANGLER_VERSION = '4.131.2';
-export const SHARP_MINIMUM = '0.35.4';
+export const SHARP_PARENT_VERSION = '0.35.4';
+// GHSA-wq5f-xc86-pv6w / CVE-2026-96889: patched same-major release.
+export const SHARP_VERSION = '0.35.5';
 // GHSA-w293-vg96-wgc3 / GHSA-rfgv-xxqx-mfg5: patched same-major release.
 export const UNDICI_VERSION = '7.29.1';
 export const LOCK_DIRECTORIES = Object.freeze([
@@ -37,12 +39,14 @@ export function validateDependencyLock(manifest, lock) {
   requireValue(miniflare?.version === wrangler.dependencies?.miniflare, 'MINIFLARE_GRAPH_BINDING');
   validatePackage(miniflare, 'miniflare');
   const sharp = packages['node_modules/sharp'];
-  requireValue(sharp?.version === miniflare.dependencies?.sharp, 'SHARP_GRAPH_BINDING');
+  requireValue(miniflare.dependencies?.sharp === SHARP_PARENT_VERSION, 'SHARP_PARENT_EDGE');
+  requireValue(manifest.overrides?.sharp === SHARP_VERSION, 'SHARP_SECURITY_OVERRIDE_REQUIRED');
+  requireValue(sharp?.version === SHARP_VERSION, 'LOCKED_SHARP_SECURITY_PIN');
   const copies = Object.entries(packages).filter(([path, node]) => /(^|\/)node_modules\/sharp$/.test(path) || node?.name === 'sharp');
   requireValue(copies.length > 0, 'SHARP_MISSING');
   for (const [, node] of copies) {
     validatePackage(node, 'sharp');
-    requireValue(versionAtLeast(node.version, SHARP_MINIMUM), 'VULNERABLE_SHARP');
+    requireValue(node.version === SHARP_VERSION, 'UNPATCHED_OR_UNAPPROVED_SHARP');
   }
   requireValue(manifest.overrides?.undici === UNDICI_VERSION, 'UNDICI_SECURITY_OVERRIDE_REQUIRED');
   requireValue(typeof miniflare.dependencies?.undici === 'string', 'UNDICI_PARENT_EDGE_REQUIRED');
