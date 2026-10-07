@@ -312,6 +312,35 @@ async function main() {
   };
 
   fs.mkdirSync(path.dirname(outPath), {recursive: true});
+  const terminalProbe = await api(`/pulls/${prNumber}`);
+  assert(terminalProbe.base?.ref === 'main', 'BASE_REF_NOT_MAIN');
+  assert(terminalProbe.head?.sha === expectedHeadSha, 'HEAD_CHANGED_FROM_EVENT');
+  assert(terminalProbe.base?.sha === expectedBaseSha, 'BASE_CHANGED_FROM_EVENT');
+  if (terminalProbe.state !== 'open' || terminalProbe.merged === true) {
+    const terminalReceipt = {
+      id: 'kpmo-pr-lifecycle-integrity-receipt-v1',
+      repository,
+      pull_request: Number(prNumber),
+      exact_head_sha: terminalProbe.head.sha,
+      exact_base_sha: terminalProbe.base.sha,
+      merge_commit_sha: terminalProbe.merged === true ? terminalProbe.merge_commit_sha : null,
+      workflow_run_id: process.env.GITHUB_RUN_ID || null,
+      workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || null,
+      event_name: process.env.GITHUB_EVENT_NAME || null,
+      state: terminalProbe.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING',
+      reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+      validator_authority: 'CONTROL_ONLY',
+      promotion_eligible: false,
+      post_landing_verification_required: terminalProbe.merged === true,
+      public_release: 'HOLD',
+      production: 'HOLD',
+      g5: 'HOLD',
+      final_live_reread: true,
+    };
+    fs.writeFileSync(outPath, `${JSON.stringify(terminalReceipt, null, 2)}\n`);
+    console.log(JSON.stringify(terminalReceipt, null, 2));
+    return;
+  }
   let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));

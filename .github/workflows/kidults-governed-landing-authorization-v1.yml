@@ -82,7 +82,21 @@ jobs:
           const pr = await api(`/pulls/${prNumber}`);
           if (pr.base?.ref !== 'main') fail('base branch is not main');
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
-          if (pr.state !== 'open' || pr.merged === true) fail('pull request is closed, merged, or NO-MERGE');
+          const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;
+          if (terminalAfterTrigger) {
+            console.log(JSON.stringify({
+              id:'kidults-governed-landing-authorization-receipt-v1',
+              state:pr.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING',
+              reason:'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+              pull_request:Number(prNumber),
+              exact_head_sha:pr.head.sha,
+              merge_commit_sha:pr.merged===true ? pr.merge_commit_sha : null,
+              promotion_eligible:false,
+              post_landing_verification_required:pr.merged===true,
+              production:'HOLD', public_release:'HOLD', g5:'HOLD'
+            },null,2));
+            process.exit(0);
+          }
           const labels = new Set((pr.labels || []).map(label => String(label.name || '').toLowerCase()));
           if (['no-merge','do-not-merge','merge-hold'].some(label => labels.has(label))) fail('NO-MERGE label is active');
           if (/\[(?:NO-MERGE|DO-NOT-MERGE)\]/i.test(pr.title || '')) fail('NO-MERGE title marker is active');

@@ -93,6 +93,13 @@ requireValue(liveValidator.includes('eventPayload?.pull_request?.head?.sha'), 'L
 requireValue(liveValidator.includes('eventPayload?.pull_request?.base?.sha'), 'LIVE_VALIDATOR_EVENT_BASE_BINDING');
 requireValue(liveValidator.includes('APPROVAL_GENERATION_HEAD_CHANGED_FROM_EVENT'), 'LIVE_VALIDATOR_HEAD_DRIFT_FAIL_CLOSED');
 requireValue(liveValidator.includes('APPROVAL_GENERATION_BASE_CHANGED_FROM_EVENT'), 'LIVE_VALIDATOR_BASE_DRIFT_FAIL_CLOSED');
+requireValue(liveValidator.includes("id: 'kidults-approval-generation-equality-live-pr-receipt-v1'"), 'LIVE_VALIDATOR_CANONICAL_RECEIPT_ID');
+requireValue(liveValidator.includes("state: pullRequest.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING'"), 'LIVE_VALIDATOR_TERMINAL_STATE');
+requireValue(liveValidator.includes("reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE'"), 'LIVE_VALIDATOR_TERMINAL_REASON');
+requireValue(liveValidator.includes('approval_generation_equality: false'), 'LIVE_VALIDATOR_TERMINAL_NON_AUTHORITY');
+requireValue(liveValidator.includes('promotion_eligible: false'), 'LIVE_VALIDATOR_TERMINAL_NON_PROMOTABLE');
+requireValue(liveValidator.indexOf('APPROVAL_GENERATION_BASE_CHANGED_FROM_EVENT') < liveValidator.indexOf("reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE'"), 'LIVE_VALIDATOR_TERMINAL_AFTER_EVENT_BINDING');
+requireValue(liveValidator.indexOf("reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE'") < liveValidator.indexOf('const [baseTree, headTree]'), 'LIVE_VALIDATOR_TERMINAL_BEFORE_TREE_COMPARISON');
 requireValue(liveValidator.includes('APPROVAL_GENERATION_FINAL_HEAD_CHANGED'), 'LIVE_VALIDATOR_FINAL_HEAD_REREAD');
 requireValue(liveValidator.includes('APPROVAL_GENERATION_FINAL_BASE_CHANGED'), 'LIVE_VALIDATOR_FINAL_BASE_REREAD');
 requireValue(liveValidator.includes('APPROVAL_GENERATION_LIVE_MAIN_CHANGED_DURING_VALIDATION'), 'LIVE_VALIDATOR_FINAL_MAIN_REREAD');
@@ -153,6 +160,7 @@ console.log(JSON.stringify({
   lifecycle_full_registry_direct: true,
   live_validator_full_registry_direct: true,
   live_validator_event_payload_bound: true,
+  live_validator_terminal_non_authority: true,
   live_validator_final_live_reread: true,
   scope_atomic_full_registry_via_compatibility_gate: true,
   descendant_main_drift_rejected: true,
