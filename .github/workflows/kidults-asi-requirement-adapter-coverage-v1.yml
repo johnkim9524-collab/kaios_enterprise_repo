@@ -773,10 +773,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      # repository_dispatch requires the narrow Contents write permission.
-      # The job still has no deployment, secret, or administration authority.
-      contents: write
       actions: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -851,24 +849,3 @@ jobs:
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches" \
             --input /tmp/kir-core-four-terminal-reserve-dispatch-v1.json
-
-          # workflow_run fan-out is suppressed after the platform's third
-          # workflow_run hop.  Continue the exact Coverage generation through
-          # repository_dispatch, carrying the authenticated one-time receipt;
-          # Sentinel still performs its own upstream/artifact/read-back checks.
-          jq -n \
-            --arg event_type kidults.assurance.continuation.v1 \
-            --arg source KIDULTS_COVERAGE_CHAIN_CONTINUATION \
-            --arg slot SENTINEL_CHAIN \
-            --arg sha "$GITHUB_SHA" \
-            --argjson run "$GITHUB_RUN_ID" \
-            --argjson attempt "$GITHUB_RUN_ATTEMPT" \
-            --arg path .github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml \
-            --argjson artifact "$DISPATCH_ARTIFACT_ID" \
-            --arg digest "$DISPATCH_ARTIFACT_DIGEST" \
-            --arg key "$CONTINUATION_KEY" \
-            '{event_type:$event_type,client_payload:{source:$source,slot:$slot,exact_main_sha:$sha,upstream_run_id:$run,upstream_run_attempt:$attempt,upstream_workflow_path:$path,continuation_artifact_id:$artifact,continuation_artifact_digest:$digest,continuation_key:$key}}' \
-            > /tmp/kir-sentinel-chain-continuation-dispatch-v1.json
-          gh api --method POST -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/dispatches" \
-            --input /tmp/kir-sentinel-chain-continuation-dispatch-v1.json

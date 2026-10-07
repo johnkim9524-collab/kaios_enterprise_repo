@@ -2,7 +2,7 @@ name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 
 on:
   repository_dispatch:
-    types: [kidults.natural.clock.sentinel.v1, kidults.assurance.continuation.v1]
+    types: [kidults.natural.clock.sentinel.v1]
   workflow_run:
     workflows:
       - 'KIDULTS ASI Sharded Source Reserve v1'
@@ -156,27 +156,27 @@ jobs:
           node-version: '24.19.0'
           package-manager-cache: false
       - name: Verify exact Coverage chain continuation
-        if: github.event_name == 'repository_dispatch' && github.event.action == 'kidults.assurance.continuation.v1'
+        if: >-
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
+          github.event.workflow_run.status == 'completed' &&
+          github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.head_branch == 'main' &&
+          github.event.workflow_run.head_sha == github.sha
         env:
           GH_TOKEN: ${{ github.token }}
+          COVERAGE_RUN_ID: ${{ github.event.workflow_run.id }}
+          COVERAGE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
         shell: bash
         run: |
           set -euo pipefail
-          test "$(jq -r '.client_payload.source' "$GITHUB_EVENT_PATH")" = KIDULTS_COVERAGE_CHAIN_CONTINUATION
-          test "$(jq -r '.client_payload.slot' "$GITHUB_EVENT_PATH")" = SENTINEL_CHAIN
-          SOURCE_SHA="$(jq -r '.client_payload.exact_main_sha' "$GITHUB_EVENT_PATH")"
-          UPSTREAM_RUN_ID="$(jq -r '.client_payload.upstream_run_id' "$GITHUB_EVENT_PATH")"
-          UPSTREAM_ATTEMPT="$(jq -r '.client_payload.upstream_run_attempt' "$GITHUB_EVENT_PATH")"
-          ARTIFACT_ID="$(jq -r '.client_payload.continuation_artifact_id' "$GITHUB_EVENT_PATH")"
-          ARTIFACT_DIGEST="$(jq -r '.client_payload.continuation_artifact_digest' "$GITHUB_EVENT_PATH")"
-          CONTINUATION_KEY="$(jq -r '.client_payload.continuation_key' "$GITHUB_EVENT_PATH")"
-          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          UPSTREAM_RUN_ID="$COVERAGE_RUN_ID"
+          UPSTREAM_ATTEMPT="$COVERAGE_RUN_ATTEMPT"
           test "$SOURCE_SHA" = "$GITHUB_SHA"
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$UPSTREAM_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
-          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
-          [[ "$CONTINUATION_KEY" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > /tmp/sentinel-chain-upstream-run.json
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" \
@@ -184,6 +184,13 @@ jobs:
             --arg attempt "$UPSTREAM_ATTEMPT" /tmp/sentinel-chain-upstream-run.json >/dev/null
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" > /tmp/sentinel-chain-artifacts.json
+          ARTIFACT_ID=$(jq -r --arg name "kidults-kir-coverage-assurance-dispatch-v1-${UPSTREAM_RUN_ID}-${UPSTREAM_ATTEMPT}" --argjson run "$UPSTREAM_RUN_ID" '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run)] | if length==1 then .[0].id else error("COVERAGE_CONTINUATION_ARTIFACT_CARDINALITY") end' /tmp/sentinel-chain-artifacts.json)
+          ARTIFACT_DIGEST=$(jq -r --argjson id "$ARTIFACT_ID" '.artifacts[] | select(.id==$id) | .digest' /tmp/sentinel-chain-artifacts.json)
+          CONTINUATION_KEY=$(jq -r --argjson id "$ARTIFACT_ID" '.artifacts[] | select(.id==$id) | .name' /tmp/sentinel-chain-artifacts.json | sha256sum | cut -d' ' -f1)
+          ARTIFACT_DIGEST="${ARTIFACT_DIGEST#sha256:}"
+          ARTIFACT_DIGEST="sha256:${ARTIFACT_DIGEST}"
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           ARTIFACT_NAME="kidults-kir-coverage-assurance-dispatch-v1-${UPSTREAM_RUN_ID}-${UPSTREAM_ATTEMPT}"
           jq -e --arg name "$ARTIFACT_NAME" --argjson id "$ARTIFACT_ID" --arg digest "$ARTIFACT_DIGEST" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$SOURCE_SHA" \
             '[.artifacts[] | select(.id==$id and .name==$name and .expired==false and .digest==$digest and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length==1' /tmp/sentinel-chain-artifacts.json >/dev/null
@@ -198,6 +205,7 @@ jobs:
           unzip -q /tmp/sentinel-chain.zip -d /tmp/sentinel-chain
           mapfile -d '' -t RECEIPTS < <(find /tmp/sentinel-chain -type f -name kir-coverage-assurance-continuation-v1.json -print0)
           test "${#RECEIPTS[@]}" -eq 1
+          CONTINUATION_KEY=$(jq -r .continuation_key "${RECEIPTS[0]}")
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_ATTEMPT" --arg key "$CONTINUATION_KEY" \
             '.repository==$repo and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt and .continuation_key==$key and .state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION" and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD"' \
             "${RECEIPTS[0]}" >/dev/null

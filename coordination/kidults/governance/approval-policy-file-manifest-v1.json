@@ -548,8 +548,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7a67518096d6174c51b8e9186bb00e88ebbecb74",
-      "sha256": "sha256:9b1859cd0720906a9efea2fc0242a2fdbf8a71fccdcfc0461716ce6388c32a00",
+      "git_blob": "c8d7d9e73129037b739c2d507e7aa460f4ee3783",
+      "sha256": "sha256:be93e06e9948146ddb837d28e06cb4d34f4eeea8c59d961a5252a4fcff409406",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -743,8 +743,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0be7ee25c9e16f4b6752a654ce3981e5a85f15f4",
-      "sha256": "sha256:b2faed3e9f73b5bcb4b4631032dcb9f183649e04d51e736d7981cfa11ce7084b"
+      "git_blob": "538298c4b53b6dbc6de0fc91094b01b2a13d9d7e",
+      "sha256": "sha256:4d8490a34de362fd249e06bb7d80cfb005d8dfd9501f2f717a4e1a8f00863a6d"
     },
     {
       "path": "CONSTITUTION.md",
@@ -5651,8 +5651,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "28a98adfd56be56978226c005842a3c57d46501d",
-      "sha256": "sha256:969d5a1bcff1d679b774e56584ab2ff7a23a9f8609c88b00697d5471c926da59"
+      "git_blob": "c1fa5e6b6ed648637e5f4de38ab5371edab83cd3",
+      "sha256": "sha256:2910981917309f88a9343c69cefc003fe1abaf6376ee60f27f3b778a505e6e90"
     },
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5fbd4e16e7ee29c38cf4fd6e5e37fc58c8c7784ce6589d764eeb75a8c47ff46b"
+  "manifest_sha256": "sha256:f4f91d27d722bb88dd2130d14112c8697da21133eaa135148210568ee8507d85"
 }

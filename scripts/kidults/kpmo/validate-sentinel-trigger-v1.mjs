@@ -126,5 +126,9 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   const run=payload.workflow_run;
   validateRun(run,env.GITHUB_SHA);
   if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,false);
+  if(run.path==='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'){
+    return {slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:run.id,
+      upstream_run_attempt:run.run_attempt,upstream_workflow_path:run.path};
+  }
   return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
 }
