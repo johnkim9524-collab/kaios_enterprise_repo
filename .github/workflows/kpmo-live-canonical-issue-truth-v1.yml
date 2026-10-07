@@ -21,6 +21,8 @@ on:
 permissions:
   contents: read
   issues: read
+  pull-requests: read
+  checks: read
 
 # Whole-board truth is authoritative and must not be cancelled by issue-edit fan-out.
 # PR validation may observe a newer main than its event base; strict native ruleset

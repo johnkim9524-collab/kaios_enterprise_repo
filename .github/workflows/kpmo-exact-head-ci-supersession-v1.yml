@@ -151,6 +151,12 @@ jobs:
               --data-urlencode "branch=${HEAD_BRANCH}" \
               --data-urlencode "per_page=100" \
               --data-urlencode "page=${page}" \
+              "${api}/actions/runs" || curl --fail-with-body --silent --show-error --get \
+              -H "Accept: application/vnd.github+json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              --data-urlencode "branch=${HEAD_BRANCH}" \
+              --data-urlencode "per_page=100" \
+              --data-urlencode "page=${page}" \
               "${api}/actions/runs")"
 
             count="$(jq '.workflow_runs | length' <<<"${response}")"

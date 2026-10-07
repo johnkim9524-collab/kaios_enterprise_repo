@@ -9,8 +9,28 @@ import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
   || /^INDEPENDENT_/.test(String(error?.code||''));
+const OWNER_REVIEW_CODES=new Set([
+  'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
+  'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
+  'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+]);
+const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+
+export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
+  const changedPaths=files.map(file=>file.filename).sort();
+  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+    ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
+  const scopeDigest=sha256(changedPaths.join('\n'));
+  return {
+    state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
+    binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
+      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
+    autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
+    production:'HOLD',public:'HOLD',g5:'HOLD',
+  };
+}
 
 export function assertDelegatedPathScope(changedPaths,policy){
   try { return assertAutonomousFileScope({files:changedPaths,policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'}); }
@@ -127,7 +147,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed}
   if(!baseRequiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
   const results=[];
-  for(const pr of prs){try{
+  for(const pr of prs){let candidateContext=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
@@ -148,8 +168,12 @@ export async function discover({repository,token,prNumber,policy,generationSeed}
       : baseRequiredChecks;
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
-    results.push({state:'ELIGIBLE',envelope:classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed})});
-  }catch(error){if(!isCandidateRejection(error))throw error;results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+    candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files};
+    const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
+    results.push({state:'ELIGIBLE',envelope:candidate});
+  }catch(error){if(!isCandidateRejection(error))throw error;
+    if(candidateContext&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
+    else results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
@@ -157,5 +181,7 @@ if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
   const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,generationSeed:process.env.GITHUB_RUN_ID});
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
-  console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,skipped:results.filter(x=>x.state==='SKIPPED').length}));
+  console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
+    owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
+    skipped:results.filter(x=>x.state==='SKIPPED').length}));
 }
