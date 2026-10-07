@@ -34,11 +34,13 @@ const headers = {
   'User-Agent': 'kidults-scope-aware-authoritative-status-v1',
 };
 const api = async (path, options = {}) => {
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+  const url = `https://api.github.com/repos/${repository}${path}`;
+  let response = await fetch(url, {
     ...options,
     headers: {...headers, ...(options.headers || {})},
     redirect: 'error',
   });
+  if (response.status === 403 && (!options.method || options.method === 'GET')) response = await fetch(url, { ...options, headers: {Accept: headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
   if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${path}`);
   if (response.status === 204) return null;
   return response.json();
