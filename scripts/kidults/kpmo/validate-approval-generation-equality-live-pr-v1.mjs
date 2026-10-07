@@ -57,9 +57,7 @@ const [pullRequest, mainBranch] = await Promise.all([
 ]);
 
 if (pullRequest?.base?.ref !== 'main') throw new Error('APPROVAL_GENERATION_BASE_REF_NOT_MAIN');
-if (pullRequest?.state !== 'open' || pullRequest?.merged === true) {
-  throw new Error('APPROVAL_GENERATION_PR_NOT_OPEN_UNMERGED');
-}
+
 if (!SHA40.test(String(pullRequest?.head?.sha || ''))) {
   throw new Error('APPROVAL_GENERATION_PR_HEAD_SHA_INVALID');
 }
@@ -76,6 +74,24 @@ if (pullRequest.base.sha !== expectedBaseSha) {
   throw new Error('APPROVAL_GENERATION_BASE_CHANGED_FROM_EVENT');
 }
 
+if (pullRequest?.state !== 'open' || pullRequest?.merged === true) {
+  console.log(JSON.stringify({
+    id: 'kpmo-approval-generation-equality-live-pr-receipt-v1',
+    state: pullRequest.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING',
+    reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+    pull_request: Number(prNumber),
+    exact_head_sha: pullRequest.head.sha,
+    exact_base_sha: pullRequest.base.sha,
+    merge_commit_sha: pullRequest.merged === true ? pullRequest.merge_commit_sha : null,
+    approval_generation_equality: false,
+    promotion_eligible: false,
+    post_landing_verification_required: pullRequest.merged === true,
+    production: 'HOLD',
+    public_release: 'HOLD',
+    g5: 'HOLD',
+  }, null, 2));
+  process.exit(0);
+}
 const [baseTree, headTree] = await Promise.all([
   api(`/git/trees/${expectedBaseSha}?recursive=1`),
   api(`/git/trees/${expectedHeadSha}?recursive=1`),
