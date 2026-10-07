@@ -293,7 +293,10 @@ jobs:
               if(values.length<100)break;
               if(page===5)throw new GateFailure('FINAL_FILE_SCOPE_PAGINATION_BOUND_EXCEEDED');
             }
-            const governedPrefixes=['.github/','services/kidults-control-plane/','services/kidults-autonomous-intelligence/','scripts/kidults/kpmo/','scripts/kidults/redteam/','scripts/kidults/portal/runtime/','scripts/governance/','coordination/kidults/kpmo/','coordination/kidults/audit/','coordination/kidults/security/','coordination/kidults/provider/','coordination/kidults/runtime/','infra/','infrastructure/aws/'];
+            // Only external-effect surfaces require operation-specific atomic landing.
+            // Internal governance, dispatcher, verifier, workflow, audit, and policy code
+            // use the normal AI-020 protected-main path after exact machine verification.
+            const governedPrefixes=['services/kidults-control-plane/','services/kidults-autonomous-intelligence/','scripts/kidults/portal/runtime/','coordination/kidults/provider/','infra/','infrastructure/aws/'];
             const governedExact=new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
             const governedFiles=files.map(x=>x.filename).filter(name=>governedExact.has(name)||governedPrefixes.some(prefix=>name.startsWith(prefix)));
             if(governedFiles.length===0){
