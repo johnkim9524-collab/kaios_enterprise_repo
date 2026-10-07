@@ -114,7 +114,17 @@ const REPORT_ROOTS = {
 
 const stageEvidence = {};
 for (const [stage, dir] of Object.entries(REPORT_ROOTS)) {
-  stageEvidence[stage] = readLatestJson(dir, { _fallback: true, stage, generatedAt: nowIso });
+  // SIMULATION is a deterministic scenario harness. It must not consume
+  // persisted operational reports because those reports can legitimately be
+  // older generations (for example, an A24 v1 report after the canonical
+  // authority has moved to v2). Mixing that evidence into a simulation
+  // creates a false policy mismatch and makes the synthetic run depend on
+  // repository history. Real evidence is intentionally read only by the
+  // EVIDENCE/LIVE_SAFE modes, where stale or mismatched authority must fail
+  // closed.
+  stageEvidence[stage] = MODE === 'SIMULATION'
+    ? { _fallback: true, stage, generatedAt: nowIso }
+    : readLatestJson(dir, { _fallback: true, stage, generatedAt: nowIso });
 }
 
 // ---------------------------------------------------------------------------
