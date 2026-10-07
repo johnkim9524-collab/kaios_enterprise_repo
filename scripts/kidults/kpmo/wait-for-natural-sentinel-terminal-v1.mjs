@@ -8,6 +8,8 @@ const REPOSITORY = process.env.GITHUB_REPOSITORY || '';
 const SOURCE_SHA = process.env.KPMO_SOURCE_SHA || process.env.GITHUB_SHA || '';
 const EVENT_NAME = process.env.GITHUB_EVENT_NAME || '';
 const TOKEN = process.env.GH_TOKEN || '';
+const FORWARDED_COVERAGE_RUN_ID = Number(process.env.KPMO_COVERAGE_RUN_ID || 0);
+const FORWARDED_COVERAGE_RUN_ATTEMPT = Number(process.env.KPMO_COVERAGE_RUN_ATTEMPT || 0);
 const WORKFLOW_FILE = 'kpmo-continuous-assurance-sentinel-health-v1.yml';
 const WORKFLOW_NAME = 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1';
 const RECEIPT_NAME = 'kpmo-continuous-assurance-sentinel-health-v1.json';
@@ -63,10 +65,10 @@ async function api(route) {
   if (!response.ok) throw new Error(`ASSURANCE_SENTINEL_BARRIER_GITHUB_${response.status}`);
   return response.json();
 }
-async function workflowRuns(cutoffMs) {
+async function workflowRuns(cutoffMs, startMs = cutoffMs - cutoffWindowSeconds * 1000) {
   const out = [];
   let expectedCount;
-  const createdStart = new Date(cutoffMs - cutoffWindowSeconds * 1000).toISOString();
+    const createdStart = new Date(startMs).toISOString();
   const createdEnd = new Date(cutoffMs).toISOString();
   for (let page = 1; page <= 10; page += 1) {
     const value = await api(
@@ -155,6 +157,14 @@ async function observe(run) {
       receipt.producers.some(item => item?.state !== 'VERIFIED_PASS')) {
     throw new Error('ASSURANCE_SENTINEL_BARRIER_RECEIPT_NOT_PASS');
   }
+  if (FORWARDED_COVERAGE_RUN_ID > 0) {
+    const binding = receipt.continuation_binding;
+    if (!binding || binding.slot !== 'SENTINEL_CHAIN' ||
+        binding.upstream_run_id !== FORWARDED_COVERAGE_RUN_ID ||
+        binding.upstream_run_attempt !== FORWARDED_COVERAGE_RUN_ATTEMPT) {
+      throw new Error('ASSURANCE_SENTINEL_BARRIER_CONTINUATION_BINDING_MISMATCH');
+    }
+  }
   return {
     schema_version: '1.0.0',
     receipt_type: 'KPMO_ASSURANCE_SENTINEL_ORDER_BARRIER',
@@ -177,6 +187,38 @@ async function observe(run) {
 }
 async function main() {
   if (!REPOSITORY || !SOURCE_SHA || !SHA.test(SOURCE_SHA)) throw new Error('ASSURANCE_SENTINEL_BARRIER_SOURCE_INVALID');
+  if (EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0) {
+    if (!positive(FORWARDED_COVERAGE_RUN_ATTEMPT)) fail('ASSURANCE_SENTINEL_BARRIER_COVERAGE_IDENTITY_INVALID');
+    const coverage = await api(`/repos/${REPOSITORY}/actions/runs/${FORWARDED_COVERAGE_RUN_ID}`);
+    if (coverage.repository?.full_name !== REPOSITORY || coverage.head_repository?.full_name !== REPOSITORY ||
+        coverage.path !== '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' ||
+        coverage.head_branch !== 'main' || coverage.head_sha !== SOURCE_SHA ||
+        coverage.run_attempt !== FORWARDED_COVERAGE_RUN_ATTEMPT ||
+        coverage.status !== 'completed' || coverage.conclusion !== 'success') {
+      fail('ASSURANCE_SENTINEL_BARRIER_COVERAGE_BINDING_INVALID');
+    }
+    const startMs = Date.parse(coverage.created_at);
+    if (!Number.isFinite(startMs)) fail('ASSURANCE_SENTINEL_BARRIER_COVERAGE_TIME_INVALID');
+    const deadline = Date.now() + timeoutSeconds * 1000;
+    let lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
+    while (Date.now() <= deadline) {
+      try {
+        const cutoffMs = Date.now();
+        const listing = {workflow_runs: await workflowRuns(cutoffMs, startMs)};
+        const candidates = candidatesFrom(listing.workflow_runs, cutoffMs).filter(run => run.created_at >= coverage.created_at);
+        const latest = candidates.at(-1);
+        if (!latest) lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
+        else if (latest.status !== 'completed') lastError = 'ASSURANCE_SENTINEL_BARRIER_SENTINEL_NONTERMINAL';
+        else if (latest.conclusion !== 'success') throw new Error(`ASSURANCE_SENTINEL_BARRIER_SENTINEL_${String(latest.conclusion || 'UNKNOWN').toUpperCase()}`);
+        else { const result = await observe(latest); writeReceipt(result); console.log(JSON.stringify({state: result.state, sentinel_run_id: result.sentinel_run_id, sentinel_receipt_digest: result.sentinel_receipt_digest})); return; }
+      } catch (error) {
+        if (String(error.message).startsWith('ASSURANCE_SENTINEL_BARRIER_SENTINEL_') || String(error.message).includes('RECEIPT_NOT_PASS') || String(error.message).includes('CONTINUATION_BINDING') || String(error.message).includes('ARTIFACT_') || String(error.message).includes('ARCHIVE_')) throw error;
+        lastError = String(error.message || error);
+      }
+      await sleep(pollSeconds * 1000);
+    }
+    throw new Error(`${lastError}_TIMEOUT`);
+  }
   if (!['repository_dispatch', 'schedule'].includes(EVENT_NAME)) {
     writeReceipt({
       schema_version: '1.0.0',

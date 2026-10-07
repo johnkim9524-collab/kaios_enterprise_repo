@@ -512,6 +512,8 @@ jobs:
         if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')
         env:
           GH_TOKEN: ${{ github.token }}
+          KPMO_COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          KPMO_COVERAGE_RUN_ATTEMPT: ${{ inputs.coverage_run_attempt }}
         run: |
           set -euo pipefail
           export KPMO_SENTINEL_BARRIER_OUTPUT="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/sentinel-order-barrier.json"

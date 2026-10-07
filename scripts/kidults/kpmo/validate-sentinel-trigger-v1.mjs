@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
+import { loadAuthorityChainTriggerContract, validateAuthorityChainTriggerCompatibility } from '../source-intelligence/lib/authority-chain-trigger-compatibility-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
@@ -44,6 +45,19 @@ function validateCoverageChainContinuationEvent(env,payload){
     ||!positive(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
     ||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_key||'')
     ||Object.keys(continuation).sort().join(',')!==keys)fail('SENTINEL_CHAIN_CONTINUATION_BINDING_INVALID');
+  try {
+    validateAuthorityChainTriggerCompatibility({
+      producerEvent:'workflow_run',
+      consumerEvent:'repository_dispatch',
+      producerWorkflowPath:continuation.upstream_workflow_path,
+      consumerWorkflowPath:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+      eventType:'kidults.assurance.continuation.v1',
+      exactTriggeringRunBound:true,
+      authenticatedReceiptBound:true,
+    }, loadAuthorityChainTriggerContract());
+  } catch (error) {
+    fail(`SENTINEL_CHAIN_TRIGGER_COMPATIBILITY:${error.message}`);
+  }
   return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,upstream_run_id:continuation.upstream_run_id,
     upstream_run_attempt:continuation.upstream_run_attempt,continuation_artifact_id:continuation.continuation_artifact_id,
     continuation_artifact_digest:continuation.continuation_artifact_digest,continuation_key:continuation.continuation_key};

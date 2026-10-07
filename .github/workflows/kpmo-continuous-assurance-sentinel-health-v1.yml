@@ -202,6 +202,11 @@ jobs:
             '.repository==$repo and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt and .continuation_key==$key and .state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION" and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD"' \
             "${RECEIPTS[0]}" >/dev/null
           echo KPMO_CONTINUATION_CLASS=EXACT_COVERAGE_CHAIN >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_UPSTREAM_RUN_ID=$UPSTREAM_RUN_ID" >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_UPSTREAM_RUN_ATTEMPT=$UPSTREAM_ATTEMPT" >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_ARTIFACT_DIGEST=$ARTIFACT_DIGEST" >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_KEY=$CONTINUATION_KEY" >> "$GITHUB_ENV"
 
       - name: Verify independent natural-clock receipt
         if: github.event_name == 'repository_dispatch' && github.event.action == 'kidults.natural.clock.sentinel.v1'
@@ -215,7 +220,7 @@ jobs:
           node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
           test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Preserve independent natural-clock receipt
-        if: github.event_name == 'repository_dispatch'
+        if: github.event_name == 'repository_dispatch' && github.event.action == 'kidults.natural.clock.sentinel.v1'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-natural-clock-sentinel-${{ github.run_id }}-${{ github.run_attempt }}

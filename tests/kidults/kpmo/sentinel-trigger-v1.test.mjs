@@ -176,7 +176,10 @@ test('completion collection serializes Reserve into the strict sentinel gate',()
  assert.ok(s.includes("kidults.assurance.continuation.v1"));
  assert.ok(c.includes("kidults.assurance.continuation.v1"));
  assert.match(c,/\/repos\/\$\{GITHUB_REPOSITORY\}\/dispatches/);
+ assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: write/);
  assert.match(a,/github\.event_name == 'workflow_dispatch' && inputs\.coverage_run_id != ''/);
+ assert.match(s,/Preserve independent natural-clock receipt[\s\S]*?github\.event\.action == 'kidults\.natural\.clock\.sentinel\.v1'/);
+ assert.match(a,/KPMO_COVERAGE_RUN_ID: \$\{\{ inputs\.coverage_run_id \}\}/);
  const job=a.slice(a.indexOf('  observe-core-producer-content:'));
  assert.match(job,/github\.event\.workflow_run\.head_sha == github\.sha/);
  assert.ok(job.includes('validate-sentinel-observation-v1.mjs'));
