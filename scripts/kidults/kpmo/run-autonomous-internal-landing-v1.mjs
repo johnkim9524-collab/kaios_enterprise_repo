@@ -412,6 +412,14 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
     const dispatched=envelope.test_evidence?.required_check_runs||envelope.test_evidence?.required_evidence||[];
     if(bound.length!==dispatched.length || bound.some((value,index)=>!sameRequiredGateEvidenceAuthority(value,dispatched[index]))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   }
+  for (const binding of bound) {
+    if (binding.context !== 'KPMO Live Canonical Issue Truth V1') continue;
+    const check = authoritativeChecks.find(value => Number(value.id) === Number(binding.id));
+    const semantic = check ? [check.output?.title, check.output?.summary, check.output?.text].filter(Boolean).join('\\n') : '';
+    if (!check || /IMPLEMENTED_NOT_VERIFIED/.test(semantic) || !/\\bVERIFIED_PASS\\b/.test(semantic)) {
+      throw new AutonomousLandingError('AUTONOMOUS_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
+    }
+  }
   return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context),required_bindings:requiredChecks};
 };
 const waitForReadyCandidate = async () => {
