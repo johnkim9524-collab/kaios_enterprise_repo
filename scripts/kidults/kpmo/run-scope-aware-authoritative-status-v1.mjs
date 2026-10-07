@@ -89,7 +89,29 @@ try {
     api(`/pulls/${prNumber}`),
     api('/branches/main'),
   ]);
-  const draftDevelopment = initial.draft === true;
+    if (initial.base?.ref !== 'main') throw new Error('SCOPE_AGGREGATOR_BASE_REF_NOT_MAIN');
+  if (initial.head?.sha !== expectedHeadSha) throw new Error('SCOPE_AGGREGATOR_HEAD_CHANGED_FROM_EVENT');
+  if (initial.state !== 'open' || initial.merged === true) {
+    console.log(JSON.stringify({
+      id: 'kidults-scope-aware-authoritative-status-receipt-v1',
+      version: '1.1.0',
+      state: initial.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING',
+      reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+      pull_request: Number(prNumber),
+      exact_head_sha: initial.head.sha,
+      exact_base_sha: initial.base.sha,
+      merge_commit_sha: initial.merged === true ? initial.merge_commit_sha : null,
+      final_live_reread: true,
+      promotion_eligible: false,
+      landing_authorization_created: false,
+      post_landing_verification_required: initial.merged === true,
+      production: 'HOLD',
+      public_release: 'HOLD',
+      g5: 'HOLD',
+    }, null, 2));
+    process.exit(0);
+  }
+const draftDevelopment = initial.draft === true;
   if (draftDevelopment) {
     if (initial.state !== 'open' || initial.merged === true || initial.head?.sha !== expectedHeadSha
         || initial.head?.repo?.full_name !== repository || initial.base?.ref !== 'main') {
