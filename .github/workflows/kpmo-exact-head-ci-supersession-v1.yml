@@ -284,6 +284,7 @@ jobs:
             --argjson force_cancelled "${force_cancelled}" \
             --argjson exact_head_retained "${exact_head_retained}" \
             --argjson generation_bridge_retained "${generation_bridge_retained}" \
+            --argjson scheduled_runs_retained "${scheduled_runs_retained}" \
             --argjson cancellation_retry_attempts "${cancellation_retry_attempts}" \
             --argjson force_cancel_attempts "${force_cancel_attempts}" \
             --argjson terminal_race_readbacks "${terminal_race_readbacks}" \

@@ -678,8 +678,8 @@
     {
       "path": ".github/workflows/kpmo-exact-head-ci-supersession-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "798de307c82e0aec1a4caf00c27174afa5acb390",
-      "sha256": "sha256:302538483c362b18fff26a0fc0b7edde9e137d472fbc9e294b8f3228c41e9911",
+      "git_blob": "088df97742b5fcb347d94eea129dced7e9d63569",
+      "sha256": "sha256:6453aef0e68a227d20d0a004eab18ffa99b2ddd2c57b7f3c514dfb89bb293ced",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3d4cfd8b1798dc28ed8fe5366c4318a4c97fadbb277b66e833f10fcd0aec3eb0"
+  "manifest_sha256": "sha256:b5aa25bdbde8e518b4dae17f5600fbb06c341d692d58e0b26445a5ce3795d40f"
 }
