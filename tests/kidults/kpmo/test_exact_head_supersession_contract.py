@@ -13,6 +13,8 @@ def validate_contract(text: str) -> None:
     assert 'force_cancelled=0' in text
     assert 'force_cancel_attempts:$force_cancel_attempts' in text
     assert 'force_cancelled:$force_cancelled' in text
+    assert 'scheduled_runs_retained=0' in text
+    assert 'scheduled_runs_retained:$scheduled_runs_retained' in text
     assert 'local max_attempts="${2:-8}"' in text
     assert '[[ "${max_attempts}" -le 30 ]]' in text
     assert 'readback_result="$(read_run_terminal "${run_id}" 12)"' in text
@@ -36,6 +38,18 @@ def validate_contract(text: str) -> None:
 
     forbidden = 'if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'
     assert forbidden not in text
+
+
+def test_scheduled_runs_are_retained_outside_pr_supersession() -> None:
+    text = WORKFLOW_PATH.read_text(encoding="utf-8")
+    start = text.index('          retain_scheduled_run() {')
+    end = text.index('\n          read_run_terminal()', start)
+    function = '\n'.join(line[10:] for line in text[start:end].splitlines())
+    for event in ['schedule', 'push', 'pull_request_target', 'workflow_dispatch']:
+        result = subprocess.run(['bash', '-c', function + '\nretain_scheduled_run "$1"', 'test', event])
+        assert (result.returncode == 0) == (event == 'schedule')
+    guard = text.index('if retain_scheduled_run "${run_event}"; then')
+    assert guard < text.index('/actions/runs/${run_id}/cancel', guard)
 
 
 def test_exact_head_supersession_contract() -> None:
