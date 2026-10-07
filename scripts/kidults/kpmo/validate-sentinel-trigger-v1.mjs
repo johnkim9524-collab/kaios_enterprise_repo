@@ -80,6 +80,7 @@ export function readSentinelEvent(file){
     if(bytes.length!==before.size||after.size!==opened.size||after.mtimeMs!==opened.mtimeMs)fail('SENTINEL_EVENT_FILE_CHANGED');
     let payload;
     try{payload=JSON.parse(bytes.toString('utf8'));}catch{fail('SENTINEL_EVENT_JSON_INVALID');}
+    payload?.ref==='refs/heads/main'&&(payload.ref='main');
     if(!object(payload))fail('SENTINEL_EVENT_SHAPE');
     return payload;
   }finally{if(fd!==undefined)fs.closeSync(fd);}
