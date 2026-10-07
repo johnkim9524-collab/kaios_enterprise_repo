@@ -5621,8 +5621,8 @@
     {
       "path": "tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "cc2638d5ae7a2c9caa98b5d61bc38d81f59e2b49",
-      "sha256": "sha256:165b44b4a3ae8f880a7846de27f387b05f8a014c6686fafabecec472eccdd856"
+      "git_blob": "1f908c2bbfbb6cc6ad0be638b578c65dbea4d09a",
+      "sha256": "sha256:a4348a8abdd3fb3313ef1f1eef172fd03179f1838d5c7e013ab8c32889aa9213"
     },
     {
       "path": "tests/kidults/kpmo/postmerge-recovery-github-observation-v1.test.mjs",
@@ -5645,14 +5645,14 @@
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5cec9bd23f5b3f709218e9d4f8c95e96395cd385",
-      "sha256": "sha256:40164353f93049d729abc3ee8362b398338f4f444176e7055721e7a6dad02cb0"
+      "git_blob": "b314fa1dd7f2fa7e86172a25484bc0b36608e2ac",
+      "sha256": "sha256:dd2deba60c2fcd461c8bc938f8dec204bbc9d8fb1afefb4285c74feb549507e3"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a9cba61ead362499946c039dacc69f82f8a06716",
-      "sha256": "sha256:76a0175cb1999e743aa8bc923fd7b40ac0a60d8e13ed1dd3c3adce24bb0cdc87"
+      "git_blob": "f9129ef6bf66239bbe8d0447d18596f67624c9d1",
+      "sha256": "sha256:7993f7a81adbf82c2ee3de1015001bc341bbf00c6fd8fac676a9efee20d24538"
     },
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:766de4b1b7003eb915f33f04dc3618c27a3db1ba0d2ecfd07eb95393423c5c31"
+  "manifest_sha256": "sha256:e21218ed48710fc47500849c47a40637414f6d213c70601a022fbb5aa760405d"
 }
