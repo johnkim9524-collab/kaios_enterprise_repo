@@ -102,19 +102,14 @@ jobs:
             },null,2));
             process.exit(0);
           }
+          // Only external-effect surfaces require operation-specific atomic landing.
+          // Internal governance, dispatcher, verifier, workflow, audit, and policy code
+          // use the normal AI-020 protected-main path after exact machine verification.
           const prefixes = [
-            '.github/',
             'services/kidults-control-plane/',
             'services/kidults-autonomous-intelligence/',
-            'scripts/kidults/kpmo/',
-            'scripts/kidults/redteam/',
             'scripts/kidults/portal/runtime/',
-            'scripts/governance/',
-            'coordination/kidults/kpmo/',
-            'coordination/kidults/audit/',
-            'coordination/kidults/security/',
             'coordination/kidults/provider/',
-            'coordination/kidults/runtime/',
             'infra/',
             'infrastructure/aws/'
           ];
