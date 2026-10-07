@@ -113,10 +113,12 @@ async function main() {
     'User-Agent': 'kpmo-pr-lifecycle-native-convergence-v1',
   };
   const request = async endpoint => {
-    const response = await fetch(
-      `https://api.github.com/repos/${repository}${endpoint}`,
+    const url = `https://api.github.com/repos/${repository}${endpoint}`;
+    let response = await fetch(
+      url,
       {headers, redirect: 'error'},
     );
+    if (response.status === 403) response = await fetch(url, {headers: {'Accept': headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
       throw new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_${response.status}:${endpoint}`);
