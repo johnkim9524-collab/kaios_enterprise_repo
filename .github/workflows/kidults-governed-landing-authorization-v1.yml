@@ -68,7 +68,21 @@ jobs:
           };
           const pages = async (path, maxPages=5) => {
             const out=[];
-            for(let page=1;page<=maxPages;page++){
+                      const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;
+          if (terminalAfterTrigger) {
+            console.log(JSON.stringify({
+              id:'kidults-governed-landing-authorization-receipt-v1',
+              state:pr.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING',
+              reason:'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+              pull_request:Number(prNumber),
+              exact_head_sha:pr.head.sha,
+              merge_commit_sha:pr.merged===true ? pr.merge_commit_sha : null,
+              promotion_eligible:false,
+              post_landing_verification_required:pr.merged===true,
+              production:'HOLD', public_release:'HOLD', g5:'HOLD'
+            },null,2));
+            process.exit(0);
+          }
               const sep=path.includes('?')?'&':'?';
               const values=await api(`${path}${sep}per_page=100&page=${page}`);
               if(!Array.isArray(values)) fail(`non-array pagination response ${path}`);
