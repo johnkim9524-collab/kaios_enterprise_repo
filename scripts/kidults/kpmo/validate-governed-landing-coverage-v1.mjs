@@ -124,7 +124,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     'landing_authorization_created:false',
     'required_approval_count:0',
     'ruleset bypass actor detected',
-                        'const terminalAfterTrigger = pr.state !== \'open\' || pr.merged === true;',
+    'const terminalAfterTrigger = pr.state !== \'open\' || pr.merged === true;',
     "['no-merge','do-not-merge','merge-hold']",
     "types: [opened, synchronize, reopened, ready_for_review, converted_to_draft, edited, labeled, unlabeled, closed]",
     "Ready lifecycle verified; operation-specific landing authority required",
@@ -313,7 +313,7 @@ const mutations = [
   {
     id: 'CLOSED_PR_GUARD_REMOVED',
     policy,
-          workflow: workflow.replace("const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;", 'const terminalAfterTrigger = false;'),
+    workflow: workflow.replace("const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;", 'const terminalAfterTrigger = false;'),
     preflight,
     atomicWorkflow,
     aggregateWorkflow,

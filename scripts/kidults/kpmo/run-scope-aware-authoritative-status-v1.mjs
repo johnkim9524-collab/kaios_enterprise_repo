@@ -89,7 +89,7 @@ try {
     api(`/pulls/${prNumber}`),
     api('/branches/main'),
   ]);
-    if (initial.base?.ref !== 'main') throw new Error('SCOPE_AGGREGATOR_BASE_REF_NOT_MAIN');
+  if (initial.base?.ref !== 'main') throw new Error('SCOPE_AGGREGATOR_BASE_REF_NOT_MAIN');
   if (initial.head?.sha !== expectedHeadSha) throw new Error('SCOPE_AGGREGATOR_HEAD_CHANGED_FROM_EVENT');
   if (initial.state !== 'open' || initial.merged === true) {
     console.log(JSON.stringify({
@@ -111,7 +111,7 @@ try {
     }, null, 2));
     process.exit(0);
   }
-const draftDevelopment = initial.draft === true;
+  const draftDevelopment = initial.draft === true;
   if (draftDevelopment) {
     if (initial.state !== 'open' || initial.merged === true || initial.head?.sha !== expectedHeadSha
         || initial.head?.repo?.full_name !== repository || initial.base?.ref !== 'main') {

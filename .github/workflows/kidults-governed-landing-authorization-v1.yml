@@ -68,7 +68,21 @@ jobs:
           };
           const pages = async (path, maxPages=5) => {
             const out=[];
-                      const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;
+            for(let page=1;page<=maxPages;page++){
+              const sep=path.includes('?')?'&':'?';
+              const values=await api(`${path}${sep}per_page=100&page=${page}`);
+              if(!Array.isArray(values)) fail(`non-array pagination response ${path}`);
+              out.push(...values);
+              if(values.length<100) return out;
+            }
+            fail(`pagination bound exceeded ${path}`);
+          };
+
+          const repository = await api('');
+          const pr = await api(`/pulls/${prNumber}`);
+          if (pr.base?.ref !== 'main') fail('base branch is not main');
+          if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
+          const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;
           if (terminalAfterTrigger) {
             console.log(JSON.stringify({
               id:'kidults-governed-landing-authorization-receipt-v1',
@@ -83,20 +97,6 @@ jobs:
             },null,2));
             process.exit(0);
           }
-              const sep=path.includes('?')?'&':'?';
-              const values=await api(`${path}${sep}per_page=100&page=${page}`);
-              if(!Array.isArray(values)) fail(`non-array pagination response ${path}`);
-              out.push(...values);
-              if(values.length<100) return out;
-            }
-            fail(`pagination bound exceeded ${path}`);
-          };
-
-          const repository = await api('');
-          const pr = await api(`/pulls/${prNumber}`);
-          if (pr.base?.ref !== 'main') fail('base branch is not main');
-          if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
-          if (pr.state !== 'open' || pr.merged === true) fail('pull request is closed, merged, or NO-MERGE');
           const labels = new Set((pr.labels || []).map(label => String(label.name || '').toLowerCase()));
           if (['no-merge','do-not-merge','merge-hold'].some(label => labels.has(label))) fail('NO-MERGE label is active');
           if (/\[(?:NO-MERGE|DO-NOT-MERGE)\]/i.test(pr.title || '')) fail('NO-MERGE title marker is active');

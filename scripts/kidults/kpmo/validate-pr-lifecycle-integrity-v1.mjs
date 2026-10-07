@@ -312,7 +312,7 @@ async function main() {
   };
 
   fs.mkdirSync(path.dirname(outPath), {recursive: true});
-    const terminalProbe = await api(`/pulls/${prNumber}`);
+  const terminalProbe = await api(`/pulls/${prNumber}`);
   assert(terminalProbe.base?.ref === 'main', 'BASE_REF_NOT_MAIN');
   assert(terminalProbe.head?.sha === expectedHeadSha, 'HEAD_CHANGED_FROM_EVENT');
   assert(terminalProbe.base?.sha === expectedBaseSha, 'BASE_CHANGED_FROM_EVENT');
@@ -341,7 +341,7 @@ async function main() {
     console.log(JSON.stringify(terminalReceipt, null, 2));
     return;
   }
-let receipt;
+  let receipt;
   try {
     const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
     const [prInitial, mainBranch, statuses, timeline] = await Promise.all([
