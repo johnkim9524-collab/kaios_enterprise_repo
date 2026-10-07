@@ -255,12 +255,13 @@ jobs:
           jq -n \
             --arg repository "$GITHUB_REPOSITORY" --arg sha "$COVERAGE_SOURCE_SHA" --arg tree "$COVERAGE_SOURCE_TREE" \
             --arg created "$COVERAGE_CREATED_AT" --arg digest "$DISPATCH_ARTIFACT_DIGEST" --arg key "$CONTINUATION_KEY" \
+            --arg generation "$(jq -r .generation_id "${RECEIPTS[0]}")" \
             --arg event "$COVERAGE_EVENT" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" --argjson artifact "$DISPATCH_ARTIFACT_ID" \
             --argjson prior "$PRIOR_CONSUMPTION_COUNT" --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
             --slurpfile runRecord /tmp/kir-forwarded-coverage-run.json --slurpfile artifactRecord /tmp/kir-forwarded-dispatch-artifact.json \
             --slurpfile receipt "${RECEIPTS[0]}" \
-            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
+            '{request:{repository:$repository,source_sha:$sha,source_tree:$tree,coverage_event:$event,coverage_run_id:$run,coverage_run_attempt:$attempt,coverage_created_at:$created,generation_id:$generation,dispatch_artifact_id:$artifact,dispatch_artifact_digest:$digest,continuation_key:$key},run:$runRecord[0],current:{repository:$repository,source_sha:$sha,source_tree:$tree},dispatch_artifact:$artifactRecord[0],dispatch_receipt:$receipt[0],prior_consumption_count:$prior,consumer:{run_id:$consumer,run_attempt:$consumerAttempt}}' \
             > /tmp/kir-coverage-assurance-consume-input-v1.json
           mkdir -p "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET"
           cp /tmp/kir-forwarded-dispatch-archive-receipt.json "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/"
@@ -540,7 +541,7 @@ jobs:
           jq -e --arg repository "$GITHUB_REPOSITORY" --arg sha "$KPMO_SOURCE_SHA" \
             --argjson run "$COVERAGE_RUN_ID" --argjson attempt "$COVERAGE_RUN_ATTEMPT" \
             --argjson consumer "$GITHUB_RUN_ID" --argjson consumerAttempt "$GITHUB_RUN_ATTEMPT" \
-            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.2.0" and .state=="CONSUMED_VERIFIED"
+            '.id=="kidults-kir-coverage-assurance-consumption-v1" and .version=="1.3.0" and .state=="CONSUMED_VERIFIED"
              and .repository==$repository and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt
              and .consumer_workflow_run_id==$consumer and .consumer_workflow_run_attempt==$consumerAttempt
              and .input_validated==true and .receipt_verified==true and .one_time_consumed==true

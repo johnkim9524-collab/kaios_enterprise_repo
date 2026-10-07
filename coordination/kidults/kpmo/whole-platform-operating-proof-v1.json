@@ -15,6 +15,7 @@
     "FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL", "WHOLE_VALUE_CHAIN_RUNTIME"
   ],
   "value_chain_source": "coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json",
+  "runtime_domain_registry_required_count": 14,
   "runtime_domain_sources": [],
   "value_chain_dimensions": [
     "VALUE_TRACEABILITY", "SOURCE_RIGHTS", "ENTITY_RESOLUTION", "MARKET_EVIDENCE", "ASI_EXECUTION",

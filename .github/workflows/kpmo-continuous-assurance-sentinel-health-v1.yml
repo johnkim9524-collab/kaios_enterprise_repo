@@ -3,12 +3,13 @@ name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 on:
   repository_dispatch:
     types: [kidults.natural.clock.sentinel.v1]
+  # Only the causal final producer edge starts an authoritative Sentinel run.
+  # The resolver still reads the complete four-producer cohort; non-final
+  # completions must not create skipped Sentinel runs that poison exact-window
+  # selection for Assurance/Gate.
   workflow_run:
     workflows:
-      - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
-      - 'KPMO Live Canonical Issue Truth V1'
-      - 'KIDULTS ASI SHADOW Operating Evidence v1'
     branches: [main]
     types: [completed]
   pull_request:
@@ -104,6 +105,14 @@ on:
         description: Registered Coverage producer event
         required: false
         type: string
+      coverage_workflow_path:
+        description: Exact Coverage workflow path
+        required: false
+        type: string
+      generation_id:
+        description: Exact deterministic Coverage generation identity
+        required: false
+        type: string
       continuation_artifact_id:
         description: Exact authenticated continuation artifact ID
         required: false
@@ -153,11 +162,12 @@ jobs:
   exact-main-health:
     if: >-
       (github.event_name == 'workflow_run' &&
-       github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1' &&
+       github.event.workflow_run.repository.full_name == github.repository &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
        github.event.workflow_run.status == 'completed' &&
        github.event.workflow_run.conclusion == 'success' &&
        github.event.workflow_run.head_branch == 'main' &&
-       github.event.workflow_run.head_sha == github.sha) ||
+       github.event.workflow_run.head_sha != '') ||
       (github.ref == 'refs/heads/main' &&
        (github.event_name == 'workflow_dispatch' ||
         (github.event_name == 'repository_dispatch' && (github.event.client_payload.slot == 'SENTINEL' || github.event.action == 'kidults.assurance.continuation.v1'))))
@@ -206,6 +216,8 @@ jobs:
           UPSTREAM_RUN_ID: ${{ inputs.upstream_run_id }}
           UPSTREAM_ATTEMPT: ${{ inputs.upstream_run_attempt }}
           UPSTREAM_EVENT: ${{ inputs.upstream_event }}
+          COVERAGE_WORKFLOW_PATH: ${{ inputs.coverage_workflow_path }}
+          GENERATION_ID: ${{ inputs.generation_id }}
           ARTIFACT_ID: ${{ inputs.continuation_artifact_id }}
           ARTIFACT_DIGEST: ${{ inputs.continuation_artifact_digest }}
           CONTINUATION_KEY: ${{ inputs.continuation_key }}
@@ -216,6 +228,8 @@ jobs:
           test "$CONTINUATION_SLOT" = SENTINEL_CHAIN
           test "$SOURCE_SHA" = "$GITHUB_SHA"
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$COVERAGE_WORKFLOW_PATH" = .github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml
+          [[ "$GENERATION_ID" =~ ^sha256:[0-9a-f]{64}$ ]]
           [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$UPSTREAM_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
           [[ "$UPSTREAM_EVENT" == workflow_run || "$UPSTREAM_EVENT" == workflow_dispatch ]]
@@ -225,7 +239,8 @@ jobs:
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > /tmp/sentinel-chain-upstream-run.json
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --arg event "$UPSTREAM_EVENT" \
-            '.repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml" and .event==$event and .status=="completed" and .conclusion=="success" and (.run_attempt|tostring)==$attempt' \
+            --arg path "$COVERAGE_WORKFLOW_PATH" \
+            '.repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .path==$path and .event==$event and .status=="completed" and .conclusion=="success" and (.run_attempt|tostring)==$attempt' \
             --arg attempt "$UPSTREAM_ATTEMPT" /tmp/sentinel-chain-upstream-run.json >/dev/null
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" > /tmp/sentinel-chain-artifacts.json
@@ -243,8 +258,8 @@ jobs:
           unzip -q /tmp/sentinel-chain.zip -d /tmp/sentinel-chain
           mapfile -d '' -t RECEIPTS < <(find /tmp/sentinel-chain -type f -name kir-coverage-assurance-continuation-v1.json -print0)
           test "${#RECEIPTS[@]}" -eq 1
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_ATTEMPT" --arg key "$CONTINUATION_KEY" \
-            '.repository==$repo and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt and .continuation_key==$key and .state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION" and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD"' \
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --arg path "$COVERAGE_WORKFLOW_PATH" --arg generation "$GENERATION_ID" --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_ATTEMPT" --arg key "$CONTINUATION_KEY" \
+            '.repository==$repo and .source_sha==$sha and .coverage_workflow_path==$path and .generation_id==$generation and .coverage_run_id==$run and .coverage_run_attempt==$attempt and .continuation_key==$key and .version=="1.3.0" and .state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION" and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD"' \
             "${RECEIPTS[0]}" >/dev/null
           echo KPMO_CONTINUATION_CLASS=EXACT_COVERAGE_CHAIN >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_UPSTREAM_RUN_ID=$UPSTREAM_RUN_ID" >> "$GITHUB_ENV"

@@ -32,16 +32,29 @@ function githubApiUrl(url){
   return endpoint.toString();
 }
 
+async function fetchReadOnly(url,options={},fetchImpl=fetch){
+  const response=await fetchImpl(url,options);
+  if(response.status!==403)return response;
+  // Public canonical issue data may be readable without the workflow token when
+  // GitHub App installation policy denies the token's Issues read scope. Retry
+  // once with an unauthenticated, origin-pinned GET; never apply this to writes.
+  return fetchImpl(url,{...options,headers:readHeadersFor(null)});
+}
+
 async function api(url,options={}){
   const method=String(options.method||'GET').toUpperCase();
   const mutating=!['GET','HEAD'].includes(method);
   if(mutating&&!token)die('WRITE_TOKEN_MISSING');
-  const response=await fetch(githubApiUrl(url),{
+  const requestUrl=githubApiUrl(url);
+  const requestOptions={
     ...options,
     method,
     headers:{...(mutating?writeHeaders:readHeaders),...(options.headers||{})},
     signal:AbortSignal.timeout(20000)
-  });
+  };
+  const response=mutating
+    ? await fetch(requestUrl,requestOptions)
+    : await fetchReadOnly(requestUrl,requestOptions);
   const text=await response.text();
   if(!response.ok)die(`GITHUB_HTTP_${response.status}:${url}:${text.slice(0,240)}`);
   return text?JSON.parse(text):null;
@@ -268,7 +281,7 @@ async function validate(){
   console.log(JSON.stringify({validator:'KPMO_CANONICAL_GENERATION_V3',version:'3.5.1',authority_model:'CANONICAL_GENERATION_V3_APPEND_ONLY_COMMIT',state:'VERIFIED_PASS',...current,protected_main_sha:snapshotValue.protected_main_sha,canonical_issue_count:25,canonical_issues:snapshotValue.canonical_issue_numbers,active_baseline_trust_root_defects:snapshotValue.active_baseline_defects,material_defect_count:snapshotValue.material_defect_count,material_defect_registry_sha256:snapshotValue.material_defect_registry_sha256,material_defect_query_cardinality:snapshotValue.material_defect_query_cardinality,material_defects:snapshotValue.material_defects,empirical_promotion:false,whole_platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'},null,2));
 }
 
-function selfTest(){
+async function selfTest(){
   const material=runMaterialRegistrySelfTest();
   const library=libSelfTest();
   const source=fs.readFileSync(new URL(import.meta.url),'utf8');
@@ -290,7 +303,7 @@ function selfTest(){
     "const writeHeaders={...readHeaders,'Content-Type':'application/json'}",
     "mutating?writeHeaders:readHeaders",
     'GITHUB_API_ORIGIN_INVALID',
-    'fetch(githubApiUrl(url)',
+    'fetchReadOnly(requestUrl,requestOptions)',
     "authority_type:'PROTECTED_MAIN_PUSH'",
     "authority_type:'PROTECTED_MAIN_SCHEDULE'",
     "CANONICAL_GENERATION_SCHEDULE_CRON!=='13,43 * * * *'",
@@ -306,6 +319,23 @@ function selfTest(){
   const authenticatedHeaders=readHeadersFor('self-test-token');
   if(Object.hasOwn(publicHeaders,'Authorization'))die('SELF_TEST_PUBLIC_READ_FALLBACK_AUTH_PRESENT');
   if(authenticatedHeaders.Authorization!=='Bearer self-test-token')die('SELF_TEST_AUTHENTICATED_READ_HEADER_MISSING');
+  const requestCalls=[];
+  const forbiddenResponse={status:403,ok:false,text:async()=>'{"message":"Resource not accessible by integration"}'};
+  const allowedResponse={status:200,ok:true,text:async()=>'{"state":"ok"}'};
+  const fallbackResponse=await fetchReadOnly('https://api.github.com/repos/example/repo/issues',{
+    headers:readHeadersFor('self-test-token')
+  },async(url,options)=>{
+    requestCalls.push({url,authorization:options.headers?.Authorization||null});
+    return requestCalls.length===1?forbiddenResponse:allowedResponse;
+  });
+  if(!fallbackResponse.ok||requestCalls.length!==2||
+    requestCalls[0].authorization!=='Bearer self-test-token'||requestCalls[1].authorization!==null||
+    requestCalls.some(call=>!call.url.startsWith('https://api.github.com/')))die('SELF_TEST_PUBLIC_READ_403_FALLBACK');
+  const successCalls=[];
+  await fetchReadOnly('https://api.github.com/repos/example/repo/issues',{},async(url,options)=>{
+    successCalls.push({url,options});return allowedResponse;
+  });
+  if(successCalls.length!==1)die('SELF_TEST_PUBLIC_READ_SUCCESS_DUPLICATED');
   if(writeHeaders['Content-Type']!=='application/json')die('SELF_TEST_WRITE_CONTENT_TYPE_MISSING');
   let originRejected=false;
   try{githubApiUrl('https://example.com/exfil');}catch{originRejected=true;}
@@ -330,11 +360,11 @@ function selfTest(){
   }
   if(rejected!==4)die('SELF_TEST_AUTHORIZATION_NEGATIVE_CASES');
   validateAuthorizationComment({user:{login:OWNER},author_association:'OWNER',performed_via_github_app:null,body,created_at:'2026-01-01T00:00:00Z',updated_at:'2026-01-01T00:00:00Z'},body,'2026-01-01T00:01:00Z');
-  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,protected_main_schedule_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,owner_actor_required_for_manual_only:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,schedule_write_authority_added:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
+  console.log(JSON.stringify({...library,material_registry_self_test:material.state,cli_append_only:true,explicit_write_authority_required:true,workflow_write_authority:true,protected_main_push_authority:true,protected_main_schedule_authority:true,manual_recovery_owner_preapproval_comment_required:true,authorization_bound_to_exact_main_and_run_envelope:true,owner_nonce_preexists_run:true,authorization_max_age_minutes:30,app_mediated_approval_forbidden:true,rerun_forbidden:true,owner_actor_required_for_manual_only:true,authorization_bound_to_run_started_at:true,post_write_live_truth_rebound:true,label_cardinality_overlap_preserved:true,authenticated_read_plane_when_token_available:true,public_read_fallback_without_token:true,public_read_fallback_on_forbidden:true,read_plane_nonmutating:true,authenticated_read_origin_pinned_to_api_github_com:true,schedule_write_authority_added:true,sequential_member_readback:true,authorization_negative_cases:4},null,2));
 }
 
 try{
-  if(process.argv.includes('--self-test'))selfTest();
+  if(process.argv.includes('--self-test'))await selfTest();
   else if(process.argv.includes('--write'))await write();
   else await validate();
 }catch(error){

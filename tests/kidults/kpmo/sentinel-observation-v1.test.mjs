@@ -69,7 +69,8 @@ test('observer records RED/HOLD without changing the independent strict gate',()
  assert.ok(job.includes('retention-days: 90'));
  assert.ok(!job.includes('actions: write')&&!job.includes('secrets.')&&!job.includes('needs:'));
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+ assert.doesNotMatch(s,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
  for(const marker of ['workflow_dispatch:', 'Enforce fail-closed producer health after receipt retention','.state=="VERIFIED_PASS"','.semantic_content_verified==true'])assert.ok(s.includes(marker));

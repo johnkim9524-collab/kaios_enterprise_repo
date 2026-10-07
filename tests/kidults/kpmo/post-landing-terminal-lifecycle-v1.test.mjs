@@ -1,3 +1,4 @@
+import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -58,7 +59,8 @@ test('post-landing evidence chain reaches Reserve, Sentinel and terminal Assuran
   assert.match(assurance, /- 'KIDULTS ASI Sharded Source Reserve v1'/);
   assert.match(assurance, /- 'KPMO Live Canonical Issue Truth V1'/);
   assert.match(sentinel, /actions:\s*read/);
-  assert.match(sentinel, /^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.match(sentinel, /^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+  assert.doesNotMatch(sentinel, /      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
   assert.doesNotMatch(sentinel, /^  push:/m);
   assert.doesNotMatch(sentinel, /^  schedule:/m);
   assert.doesNotMatch(sentinel, /Run exact-SHA producer auto-convergence/);
@@ -83,4 +85,16 @@ test('automatic closure preserves the protected HOLD boundary', () => {
   assert.equal(contract.termination.manual_dispatch_not_terminal_natural_proof, true);
   assert.equal(contract.termination.producer_mutation_recovery_separate_from_assurance, true);
   assert.equal(contract.termination.main_sha_drift_fails_closed, true);
+});
+
+
+test('PR lifecycle validators accept only the exact non-governed protected-main control status', () => {
+  for (const script of [
+    'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs',
+    'scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs',
+  ]) {
+    const result = spawnSync(process.execPath, [script, '--self-test'], {encoding: 'utf8'});
+    assert.equal(result.status, 0, `${script}: ${result.stderr || result.stdout}`);
+    assert.match(result.stdout, /self-test: PASS/);
+  }
 });

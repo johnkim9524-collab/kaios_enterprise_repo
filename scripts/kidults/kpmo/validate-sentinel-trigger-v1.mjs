@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
 import { loadAuthorityChainTriggerContract, validateAuthorityChainTriggerCompatibility } from '../source-intelligence/lib/authority-chain-trigger-compatibility-v1.mjs';
+import { coverageGenerationId } from './validate-kir-coverage-assurance-continuation-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
@@ -38,10 +39,12 @@ function validateCoverageChainContinuationEvent(env,payload){
     fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
   if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
   const continuation=payload.inputs;
-  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_event_type,continuation_key,continuation_slot,continuation_source,exact_main_sha,upstream_event,upstream_run_attempt,upstream_run_id'.split(',').sort().join(',');
+  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_event_type,continuation_key,continuation_slot,continuation_source,coverage_workflow_path,exact_main_sha,generation_id,upstream_event,upstream_run_attempt,upstream_run_id'.split(',').sort().join(',');
+  const coveragePath='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
   if(!object(continuation)||continuation.continuation_event_type!=='kidults.assurance.continuation.v1'
     ||continuation.continuation_source!=='KIDULTS_COVERAGE_CHAIN_CONTINUATION'||continuation.continuation_slot!=='SENTINEL_CHAIN'
     ||continuation.exact_main_sha!==env.GITHUB_SHA||!sha.test(continuation.exact_main_sha)
+    ||continuation.coverage_workflow_path!==coveragePath
     ||!positiveText(continuation.upstream_run_id)||!positiveText(continuation.upstream_run_attempt)
     ||!['workflow_run','workflow_dispatch'].includes(continuation.upstream_event)
     ||!positiveText(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
@@ -61,9 +64,11 @@ function validateCoverageChainContinuationEvent(env,payload){
     fail(`SENTINEL_CHAIN_TRIGGER_COMPATIBILITY:${error.message}`);
   }
   const runId=Number(continuation.upstream_run_id),runAttempt=Number(continuation.upstream_run_attempt);
+  const generationId=coverageGenerationId({sourceSha:continuation.exact_main_sha,runId,runAttempt});
+  if(continuation.generation_id!==generationId)fail('SENTINEL_CHAIN_GENERATION_ID_INVALID');
   return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,run_id:runId,run_attempt:runAttempt,
     upstream_run_id:runId,upstream_run_attempt:runAttempt,upstream_event:continuation.upstream_event,
-    path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',continuation_artifact_id:Number(continuation.continuation_artifact_id),
+    path:coveragePath,coverage_workflow_path:coveragePath,generation_id:generationId,continuation_artifact_id:Number(continuation.continuation_artifact_id),
     continuation_artifact_digest:continuation.continuation_artifact_digest,continuation_key:continuation.continuation_key};
 }
 export function readSentinelEvent(file){

@@ -187,7 +187,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   });
   await attempt(['WHOLE_VALUE_CHAIN_RUNTIME'],async()=>{
     const sources=contract.runtime_domain_sources||[],ids=new Set();
-    requireEvidence(Array.isArray(sources)&&sources.length<=contract.value_chain_dimensions.length,'DOMAIN_REGISTRY');
+    const requiredDomainCount=Number(contract.runtime_domain_registry_required_count);
+    requireEvidence(Number.isSafeInteger(requiredDomainCount)&&requiredDomainCount===14,'DOMAIN_REGISTRY_REQUIRED_COUNT');
+    requireEvidence(Array.isArray(sources)&&sources.length<=requiredDomainCount,'DOMAIN_REGISTRY');
+    out.runtime_domain_registry={state:sources.length===requiredDomainCount?'VERIFIED_PASS':'HOLD',required_domain_count:requiredDomainCount,registered_domain_count:sources.length,reason:sources.length===requiredDomainCount?'EXACT_REGISTERED_RUNTIME_DOMAIN_SET':'AUTHENTICATED_EXACT_MAIN_RUNTIME_RECEIPT_REQUIRED'};
     for(const source of sources){
       requireEvidence(contract.value_chain_dimensions.includes(source.domain_id)&&!ids.has(source.domain_id),'DOMAIN_REGISTRY_COVERAGE');ids.add(source.domain_id);
       requireEvidence(/^kidults-[a-z0-9-]+\.yml$/.test(source.workflow||'')&&/^kidults-[a-z0-9-]+$/.test(source.artifact_prefix||''),'DOMAIN_PRODUCER_REGISTRATION');
@@ -202,6 +205,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     mark('WHOLE_VALUE_CHAIN_RUNTIME',complete?'VERIFIED_PASS':'VERIFIED_HOLD',complete?'ALL_REGISTERED_DOMAIN_RUNTIME_RECEIPTS_VERIFIED':'ADMITTED_IMMUTABLE_PAIR_TRACK_B_WORKLOAD_AND_HUMAN_ACCEPTANCE_RECEIPTS_REQUIRED');
   });
   if((await get('branches/main')).commit?.sha!==sourceSha)throw new Error('WHOLE_RUNTIME_MAIN_CHANGED');
+  const verifiedDomains=out.value_chain.filter(d=>d.runtime_state==='VERIFIED_PASS'&&/^sha256:[a-f0-9]{64}$/.test(d.runtime_receipt_digest||''));
+  const assuranceRuntimeReady=out.runtime_domain_registry?.state==='VERIFIED_PASS'&&out.runtime_domain_registry.registered_domain_count===14&&out.value_chain.length===14&&verifiedDomains.length===14&&new Set(verifiedDomains.map(d=>d.id)).size===14;
+  out.assurance_runtime_readiness={state:assuranceRuntimeReady?'VERIFIED_PASS':'VERIFIED_HOLD',verified_domain_count:verifiedDomains.length,required_domain_count:14,registered_domain_count:out.runtime_domain_registry?.registered_domain_count??0,domain_ids:verifiedDomains.map(d=>d.id).sort()};
+  out.assurance_runtime_readiness_proven=assuranceRuntimeReady;
   out.whole_platform_runtime_proven=out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';
   out.receipt_digest=sha256(canonicalJson(out));return out;

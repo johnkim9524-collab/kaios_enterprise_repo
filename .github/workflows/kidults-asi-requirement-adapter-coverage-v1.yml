@@ -831,6 +831,8 @@ jobs:
           COVERAGE_EVENT=$(jq -r .coverage_event /tmp/kir-coverage-assurance-continuation-v1.json)
           COVERAGE_CREATED_AT=$(jq -r .coverage_created_at /tmp/kir-coverage-assurance-continuation-v1.json)
           CONTINUATION_KEY=$(jq -r .continuation_key /tmp/kir-coverage-assurance-continuation-v1.json)
+          COVERAGE_WORKFLOW_PATH=$(jq -r .coverage_workflow_path /tmp/kir-coverage-assurance-continuation-v1.json)
+          GENERATION_ID=$(jq -r .generation_id /tmp/kir-coverage-assurance-continuation-v1.json)
           jq -n --arg ref main --arg profile sentinel --arg coverage_event "$COVERAGE_EVENT" \
             --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
             --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" --arg created "$COVERAGE_CREATED_AT" \
@@ -862,10 +864,12 @@ jobs:
             --arg run "$GITHUB_RUN_ID" \
             --arg attempt "$GITHUB_RUN_ATTEMPT" \
             --arg upstream_event "$GITHUB_EVENT_NAME" \
+            --arg coverage_workflow_path "$COVERAGE_WORKFLOW_PATH" \
+            --arg generation_id "$GENERATION_ID" \
             --arg artifact "$DISPATCH_ARTIFACT_ID" \
             --arg digest "$DISPATCH_ARTIFACT_DIGEST" \
             --arg key "$CONTINUATION_KEY" \
-            '{ref:$ref,inputs:{continuation_event_type:$event_type,continuation_source:$source,continuation_slot:$slot,exact_main_sha:$sha,upstream_run_id:$run,upstream_run_attempt:$attempt,upstream_event:$upstream_event,continuation_artifact_id:$artifact,continuation_artifact_digest:$digest,continuation_key:$key}}' \
+            '{ref:$ref,inputs:{continuation_event_type:$event_type,continuation_source:$source,continuation_slot:$slot,exact_main_sha:$sha,upstream_run_id:$run,upstream_run_attempt:$attempt,upstream_event:$upstream_event,coverage_workflow_path:$coverage_workflow_path,generation_id:$generation_id,continuation_artifact_id:$artifact,continuation_artifact_digest:$digest,continuation_key:$key}}' \
             > /tmp/kir-sentinel-chain-continuation-dispatch-v1.json
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/dispatches" \

@@ -173,7 +173,10 @@ test('wiring preserves canonical schema name, exact raw identity checks and boun
  assert.ok(assurance.includes('CONSUME_REPLAY_DETECTED') || fs.readFileSync('scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs','utf8').includes('CONSUME_REPLAY_DETECTED'));
  const strict=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  assert.ok(strict.includes('.state=="VERIFIED_PASS"'));assert.ok(strict.includes('.semantic_content_verified==true'));
- assert.match(strict,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.match(strict,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+ assert.doesNotMatch(strict,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(strict,/      - 'KPMO Live Canonical Issue Truth V1'/m);
+ assert.doesNotMatch(strict,/      - 'KIDULTS ASI SHADOW Operating Evidence v1'/m);
  assert.doesNotMatch(strict,/^  push:/m);
  assert.doesNotMatch(strict,/^  schedule:/m);
 });

@@ -79,6 +79,19 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
   const scope = evidence.find(item => item.context === SCOPE_AWARE_CONTEXT);
   // The normal Ready status is a control result, never an atomic landing grant.
   // Keep the atomic-only READY_GOVERNED contract below unchanged.
+  if (landing?.state === 'success'
+    && landing.description === 'Ready lifecycle verified; non-governed scope uses protected-main status path'
+    && landing.creator === 'github-actions[bot]'
+    && scope?.state === 'success') {
+    return {
+      ...common,
+      state: 'READY_VERIFIED_NON_PROMOTABLE',
+      reason: 'NATIVE_SCOPE_SUCCESS_NON_GOVERNED_PROTECTED_MAIN',
+      native_status_evidence: evidence,
+      manual_merge_authority: false,
+      atomic_landing_only: false,
+    };
+  }
   if (landing?.state === 'pending'
     && landing.description === 'Ready lifecycle verified; operation-specific landing authority required'
     && landing.creator === 'github-actions[bot]'
@@ -152,6 +165,39 @@ function runSelfTest() {
     expectedHeadSha: head,
     expectedBaseSha: base,
   }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_GENERIC_SUCCESS_NOT_OPERATION_SIGNAL');
+  const nonGovernedStatus = {
+    id: 12,
+    context: GOVERNED_LANDING_CONTEXT,
+    state: 'success',
+    description: 'Ready lifecycle verified; non-governed scope uses protected-main status path',
+    creator: {login: 'github-actions[bot]'},
+    created_at: '2026-09-01T00:00:02Z',
+    updated_at: '2026-09-01T00:00:02Z',
+  };
+  const nonGoverned = classifyLifecycle({
+    pr, liveMainSha: base, statuses: [nonGovernedStatus, success(SCOPE_AWARE_CONTEXT)],
+    policy, expectedHeadSha: head, expectedBaseSha: base,
+  });
+  assert(nonGoverned.state === 'READY_VERIFIED_NON_PROMOTABLE'
+    && nonGoverned.reason === 'NATIVE_SCOPE_SUCCESS_NON_GOVERNED_PROTECTED_MAIN'
+    && nonGoverned.promotion_eligible === false
+    && nonGoverned.manual_merge_authority === false
+    && nonGoverned.atomic_landing_only === false, 'SELFTEST_NON_GOVERNED_PROTECTED_MAIN_CONTROL_ONLY');
+  assert(classifyLifecycle({
+    pr, liveMainSha: base,
+    statuses: [{...nonGovernedStatus, description: 'generic success'}, success(SCOPE_AWARE_CONTEXT)],
+    policy, expectedHeadSha: head, expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_NON_GOVERNED_DESCRIPTION_REQUIRED');
+  assert(classifyLifecycle({
+    pr, liveMainSha: base,
+    statuses: [{...nonGovernedStatus, creator: {login: 'untrusted'}}, success(SCOPE_AWARE_CONTEXT)],
+    policy, expectedHeadSha: head, expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_NON_GOVERNED_TRUSTED_CREATOR_REQUIRED');
+  assert(classifyLifecycle({
+    pr, liveMainSha: base,
+    statuses: [nonGovernedStatus, {...success(SCOPE_AWARE_CONTEXT), state: 'pending'}],
+    policy, expectedHeadSha: head, expectedBaseSha: base,
+  }).state === 'READY_NON_PROMOTABLE', 'SELFTEST_NON_GOVERNED_SCOPE_SUCCESS_REQUIRED');
   const verifiedPending = classifyLifecycle({
     pr,
     liveMainSha: base,
