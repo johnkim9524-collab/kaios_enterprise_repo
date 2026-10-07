@@ -5198,8 +5198,8 @@
     {
       "path": "services/kidults-autonomous-intelligence/scripts/a32-production-reality-gate.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "bbb28f9a3140a5fe5a08cc0895bf21e8e2f72b3c",
-      "sha256": "sha256:0523ae89a3e97056cee42d81a0acb2d8e6716e3721fb6d99bd3b8702bb99f5f3"
+      "git_blob": "8b3432362e88fb8ff580f9fcc3b609fc60f13801",
+      "sha256": "sha256:22cb73cc26c5854f6222eed8d6c2244e2dceffa603ec87469c6bfb6653713049"
     },
     {
       "path": "services/kidults-autonomous-intelligence/scripts/a34-production-assurance.mjs",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c951fc328af7eb05bffa7785363a6e1a965abf6215349c43a55784940ae9e28f"
+  "manifest_sha256": "sha256:3f550dc256525f63fa34739ab476dfcd9b21539446042880d6effb0a05b12e5f"
 }
