@@ -101,7 +101,8 @@ test('terminal producer-health failure preserves the originating sentinel class'
 
 test('sentinel observes protected-main health without dispatching or mutating producers',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
-  assert.match(workflow,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);\n  assert.doesNotMatch(workflow,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+  assert.match(workflow,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+  assert.doesNotMatch(workflow,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
   assert.doesNotMatch(workflow,/^  push:/m);
   assert.doesNotMatch(workflow,/^  schedule:/m);
   assert.match(workflow,/permissions:\n  contents: read\n  actions: read/);
