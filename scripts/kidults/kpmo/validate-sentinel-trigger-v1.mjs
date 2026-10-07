@@ -34,7 +34,11 @@ function validateNaturalClockEvent(env,payload,expectedSlot){
   return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
 }
 function validateCoverageChainContinuationEvent(env,payload){
-  if(!object(payload)||payload.repository?.full_name!==REPO||payload.ref!=='main')
+  const mainRef=payload?.ref==='main'||payload?.ref==='refs/heads/main';
+  // GitHub workflow_dispatch deliveries may carry either the requested branch
+  // name or its fully-qualified ref. Both are accepted only for protected main;
+  // the runner-level GITHUB_REF check remains strict below.
+  if(!object(payload)||payload.repository?.full_name!==REPO||!mainRef)
     fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
   if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
   const continuation=payload.inputs;
