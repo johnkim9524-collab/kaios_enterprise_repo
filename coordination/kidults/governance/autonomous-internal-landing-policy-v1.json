@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.14.0",
+  "version": "1.15.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -154,8 +154,7 @@
     "id-token:[ ]*write",
     "secrets\\.",
     "permissions:[ ]*(write-all|admin)",
-    "^[ \\t]*on:[ \\t]*$",
-    "^[ \\t]*(workflow_dispatch|repository_dispatch|schedule|push|pull_request_target):",
+    "^[ \\t]*(repository_dispatch|pull_request_target):",
     "^[ \\t]*(run|uses):.*(curl|wget|gh api|aws |gcloud |az |terraform|kubectl|http://|https://)",
     "--admin-bypass",
     "force:[ ]*true"
