@@ -34,9 +34,6 @@ function validateNaturalClockEvent(env,payload,expectedSlot){
   return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
 }
 function validateCoverageChainContinuationEvent(env,payload){
-  // Normalize GitHub's fully-qualified protected-main dispatch ref before the
-  // unchanged fail-closed context predicate; runner GITHUB_REF stays strict.
-  object(payload)&&(payload.ref=payload.ref==='refs/heads/main'?'main':payload.ref);
   if(!object(payload)||payload.repository?.full_name!==REPO||payload.ref!=='main')
     fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
   if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
@@ -83,6 +80,9 @@ export function readSentinelEvent(file){
     if(bytes.length!==before.size||after.size!==opened.size||after.mtimeMs!==opened.mtimeMs)fail('SENTINEL_EVENT_FILE_CHANGED');
     let payload;
     try{payload=JSON.parse(bytes.toString('utf8'));}catch{fail('SENTINEL_EVENT_JSON_INVALID');}
+    // GitHub workflow_dispatch may encode protected main as refs/heads/main;
+    // canonicalize only the immutable event object before the unchanged guard.
+    object(payload)&&(payload.ref=payload.ref==='refs/heads/main'?'main':payload.ref);
     if(!object(payload))fail('SENTINEL_EVENT_SHAPE');
     return payload;
   }finally{if(fd!==undefined)fs.closeSync(fd);}
