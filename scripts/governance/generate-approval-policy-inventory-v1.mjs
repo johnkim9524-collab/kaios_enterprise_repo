@@ -50,7 +50,6 @@ if (output === manifestPath && fs.existsSync(inventoryPath)) {
   inventory.audit.baseline_sha = revision;
   inventory.audit.approval_related_files_reviewed = files.length;
   inventory.audit.manifest_sha256 = payload.manifest_sha256;
-  inventory.manifest_sha256 = payload.manifest_sha256;
   const routeCounts = files.reduce((counts, file) => {
     const route = file.authorization_routing?.route;
     if (route) counts[route] = (counts[route] || 0) + 1;
