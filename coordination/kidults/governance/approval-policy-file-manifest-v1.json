@@ -3661,8 +3661,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1806fae9ff9913092d886aa4dec1c37677783b5a",
-      "sha256": "sha256:5a7ff593c54a32cc8b2cfd8e5e043321445baebf5a7089447d29836b49e91d0d",
+      "git_blob": "fcf2c79da7493dd307dfe21a939aa7fa930e9b56",
+      "sha256": "sha256:295f7c898768188ad5ba9bcad51b481042a9c72f5dd5c4738c0dd5fb780b6185",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:62a68922e5d07365acbd807edd4406c7bd1bd91abfa5ea55ce859a0cb20ffc53"
+  "manifest_sha256": "sha256:7f1e340a51ccd3eb4a49e73303854666e09a4e3d6477d0514c241fc04b6781a2"
 }
