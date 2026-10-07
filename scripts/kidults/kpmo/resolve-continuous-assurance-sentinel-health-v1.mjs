@@ -232,7 +232,8 @@ export function evaluateHealth(input){
   // producer id for that condition because the observation validator must be
   // able to reconcile this list exactly with `producers`.
   const waitingProducers=holds.map((p)=>p.id);
-  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.1.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,generation_id:generationIdForProducers(producers,input.source_sha),producers,producer_cohort_bound:cohort.bound,producer_cohort_scope:cohort.cohort_scope,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,static_producers_reused:cohort.static_producers_reused??[],producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
+  const continuation=input.continuation_binding||null;
+  const base={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.1.0',state,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',semantic_content_verified:state==='VERIFIED_PASS',runtime_health_proven:false,observer_run_id:input.observer_run_id??null,observer_run_attempt:input.observer_run_attempt??null,repository:input.repository,source_sha:input.source_sha,observed_at:observedAt,generation_id:generationIdForProducers(producers,input.source_sha),producers,producer_cohort_bound:cohort.bound,producer_cohort_scope:cohort.cohort_scope,producer_cohort_span_ms:cohort.span_ms,producer_cohort_earliest_created_at:cohort.earliest_created_at,producer_cohort_latest_created_at:cohort.latest_created_at,static_producers_reused:cohort.static_producers_reused??[],producer_cohort_failure_class:cohort.failure_class,failed_producers:failures.map((p)=>p.id),waiting_producers:waitingProducers,continuation_binding:continuation,whole_platform_authority:false,promotion_eligible:false,empirical_delta:0,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD'};
   return sealReceipt(base);
 }
 
@@ -297,7 +298,7 @@ async function liveInput(){
   const repo=process.env.GITHUB_REPOSITORY||'';
   const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   if(repo!==REPOSITORY||!token)fail('REPOSITORY_OR_TOKEN_MISSING');
-  const eventPayloadRequired=['workflow_run','repository_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
+  const eventPayloadRequired=['workflow_run','repository_dispatch','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
   const triggerPayload=eventPayloadRequired?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
   const upstreamTrigger=validateSentinelTrigger(process.env,triggerPayload);
   if(process.env.GITHUB_REF!=='refs/heads/main')fail('SENTINEL_MAIN_REF_REQUIRED');
@@ -390,7 +391,7 @@ async function liveInput(){
     await api(`https://api.github.com/repos/${repo}/actions/runs/${upstreamTrigger.run_id}`,token));
   const afterMain=await api(`https://api.github.com/repos/${repo}/branches/main`,token);
   if(afterMain?.commit?.sha!==sourceSha)fail('SENTINEL_MAIN_CHANGED_DURING_READ');
-  return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById};
+  return {repository:repo,source_sha:sourceSha,observer_run_id:observerRun,observer_run_attempt:observerAttempt,observed_at:new Date().toISOString(),runs,artifacts_by_run:artifactsByRun,archives_by_id:archivesById,related_by_id:relatedById,continuation_binding:upstreamTrigger?.slot==='SENTINEL_CHAIN'?upstreamTrigger:null};
 }
 
 function fakeRun(id,spec,sha,{status='completed',conclusion='success',event=spec.events[0],minute=id}={}){return {id,run_attempt:1,repository:{full_name:REPOSITORY},path:spec.path,head_branch:'main',head_sha:sha,event,status,conclusion,created_at:`2026-09-04T00:${String(minute%60).padStart(2,'0')}:00Z`};}
