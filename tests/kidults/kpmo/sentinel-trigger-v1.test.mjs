@@ -14,8 +14,8 @@ function naturalEvent(slot='SENTINEL'){
  const nonce='A'.repeat(32);
  return {action:`kidults.natural.clock.${slot.toLowerCase()}.v1`,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
 }
-function continuationEvent(){
- return {ref:'main',repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
+function continuationEvent(ref='main'){
+ return {ref,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
 }
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
@@ -26,12 +26,13 @@ test('natural Sentinel dispatch accepts the authenticated exact-main clock bindi
  const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
  assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
 });
-test('coverage chain continuation accepts exact authenticated artifact binding',()=>{
- const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},continuationEvent());
+for(const ref of ['main','refs/heads/main'])test(`coverage chain continuation accepts canonical main ref ${ref}`,()=>{
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},continuationEvent(ref));
  assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.run_id,101);assert.equal(binding.upstream_run_id,101);
 });
 for(const [name,mutate] of [
  ['wrong sender',p=>p.sender.login='untrusted[bot]'],
+ ['wrong ref',p=>p.ref='refs/heads/feature'],
  ['wrong source SHA',p=>p.inputs.exact_main_sha='b'.repeat(40)],
  ['missing artifact digest',p=>delete p.inputs.continuation_artifact_digest],
  ['unregistered upstream event',p=>p.inputs.upstream_event='push'],
