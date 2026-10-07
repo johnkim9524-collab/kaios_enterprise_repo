@@ -98,6 +98,15 @@ test('internal workflow strengthening is autonomous while added authority is Own
   for(const line of ['+permissions: write-all','+  id-token: write','+environment: production','+value: ${{ secrets.ADMIN }}','+force: true']){
     assert.throws(()=>assertAutonomousFileScope({files:[{...safe,patch:`@@ -1 +1,2 @@\n name: recovery\n${line}`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
   }
+  for(const trigger of ['workflow_dispatch','schedule','push']){
+    assert.deepEqual(
+      assertAutonomousFileScope({files:[{...safe,patch:`@@ -1 +1,2 @@\n name: recovery\n+${trigger}:`}],policy:landing}),
+      [safe.filename],
+    );
+  }
+  for(const trigger of ['repository_dispatch','pull_request_target']){
+    assert.throws(()=>assertAutonomousFileScope({files:[{...safe,patch:`@@ -1 +1,2 @@\n name: recovery\n+${trigger}:`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+  }
 });
 
 test('authority-bearing self-governance fields remain Owner-bound after bootstrap',()=>{
@@ -132,7 +141,7 @@ test('capability expansion fails before dispatch while replacements reach semant
   for(const line of [
     '+permissions:\n+  contents: write',
     '+permissions:\n+  pull-requests: write',
-    '+on:\n+  workflow_dispatch:',
+    '+repository_dispatch:',
     '+run: curl https://example.invalid',
     '+uses: aws-actions/configure-aws-credentials@v5',
   ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:`@@ -1 +1,2 @@\n name: recovery\n${line}`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
