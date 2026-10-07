@@ -90,6 +90,7 @@ jobs:
           node --check scripts/governance/bootstrap-ai-agent-from-github-v1.mjs
           node --check scripts/governance/verify-ai-agent-bootstrap-receipt-v1.mjs
           node --check scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs
+          node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs --self-test-event-sha-binding
           export KIDULTS_BOOTSTRAP_NONCE="$(openssl rand -base64 48 | tr -d '\n')"
           TASK_ID="ci-validation-${GITHUB_RUN_ID}"
           SESSION_ID="ci-validation-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${EXPECTED_SHA}"

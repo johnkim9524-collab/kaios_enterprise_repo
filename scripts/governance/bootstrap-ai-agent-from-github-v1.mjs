@@ -789,6 +789,27 @@ const verifyRemote = (root, workingRef, workingSha) => {
   return { authority_sha: authoritySha, working_ref: workingRemoteRef, working_sha: workingRemoteSha };
 };
 
+export function resolveGithubEventSha(eventName, payload, githubSha) {
+  let sha = null;
+  let source = 'GITHUB_SHA';
+  if (eventName === 'pull_request') {
+    sha = payload?.pull_request?.head?.sha ?? null;
+    source = 'pull_request.head.sha';
+  } else if (eventName === 'push') {
+    sha = payload?.after ?? null;
+    source = 'push.after';
+  } else if (eventName === 'workflow_run') {
+    // workflow_run's default GITHUB_SHA can point at the current default branch,
+    // while this job is intentionally checked out at the triggering run's head.
+    // Bind provenance to the exact upstream event SHA that selected the checkout.
+    sha = payload?.workflow_run?.head_sha ?? null;
+    source = 'workflow_run.head_sha';
+  } else {
+    sha = githubSha ?? null;
+  }
+  return {sha: typeof sha === 'string' ? sha.toLowerCase() : null, source};
+}
+
 const githubEventContextBinding = (workingSha) => {
   if (process.env.GITHUB_ACTIONS !== 'true') return null;
   if (process.env.GITHUB_REPOSITORY !== TRUST.repositorySlug) {
@@ -804,18 +825,11 @@ const githubEventContextBinding = (workingSha) => {
       fail('GITHUB_EVENT_PAYLOAD_UNREADABLE');
     }
   }
-  let trustedSha = null;
-  let source = 'GITHUB_SHA';
-  if (eventName === 'pull_request') {
-    trustedSha = payload?.pull_request?.head?.sha ?? null;
-    source = 'pull_request.head.sha';
-  } else if (eventName === 'push') {
-    trustedSha = payload?.after ?? null;
-    source = 'push.after';
-  } else {
-    trustedSha = process.env.GITHUB_SHA ?? null;
-  }
-  trustedSha = trustedSha?.toLowerCase() ?? null;
+  const {sha: trustedSha, source} = resolveGithubEventSha(
+    eventName,
+    payload,
+    process.env.GITHUB_SHA,
+  );
   if (!/^[0-9a-f]{40}$/.test(trustedSha ?? '')) fail('GITHUB_EVENT_TRUSTED_SHA_UNRESOLVED');
   if (trustedSha !== workingSha) fail('GITHUB_EVENT_CHECKOUT_SHA_MISMATCH', `${trustedSha}!=${workingSha}`);
   return {
@@ -866,6 +880,36 @@ const writeExclusive = (filePath, body) => {
     if (descriptor !== undefined) fs.closeSync(descriptor);
   }
 };
+
+if (process.argv.includes('--self-test-event-sha-binding')) {
+  const sourceSha = 'a'.repeat(40);
+  const githubSha = 'b'.repeat(40);
+  const workflowRun = resolveGithubEventSha(
+    'workflow_run',
+    {workflow_run: {head_sha: sourceSha}},
+    githubSha,
+  );
+  if (workflowRun.sha !== sourceSha || workflowRun.source !== 'workflow_run.head_sha') {
+    throw new Error('WORKFLOW_RUN_HEAD_SHA_BINDING_FAILED');
+  }
+  if (resolveGithubEventSha('workflow_run', {workflow_run: {}}, githubSha).sha !== null) {
+    throw new Error('WORKFLOW_RUN_MISSING_HEAD_SHA_MUST_FAIL_CLOSED');
+  }
+  const pullRequest = resolveGithubEventSha(
+    'pull_request',
+    {pull_request: {head: {sha: sourceSha}}},
+    githubSha,
+  );
+  if (pullRequest.sha !== sourceSha || pullRequest.source !== 'pull_request.head.sha') {
+    throw new Error('PULL_REQUEST_HEAD_SHA_BINDING_REGRESSION');
+  }
+  const push = resolveGithubEventSha('push', {after: sourceSha}, githubSha);
+  if (push.sha !== sourceSha || push.source !== 'push.after') {
+    throw new Error('PUSH_AFTER_SHA_BINDING_REGRESSION');
+  }
+  console.log('GitHub workflow_run event SHA binding self-test: PASS');
+  process.exit(0);
+}
 
 const options = parseArgs(process.argv.slice(2));
 const nonce = process.env.KIDULTS_BOOTSTRAP_NONCE;
