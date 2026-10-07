@@ -118,7 +118,7 @@ test('Sentinel triggers only on the final Requirement edge and waits for the exa
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
  assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),['KIDULTS ASI Requirement-to-Adapter Coverage v1']);
- assert.match(s,/github\.event\.workflow_run\.(?:name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'|path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml')/);
+ assert.doesNotMatch(s,/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
@@ -202,7 +202,7 @@ test('Sentinel trigger is scoped to Coverage while Assurance still sees the prod
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
  assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),['KIDULTS ASI Requirement-to-Adapter Coverage v1']);
- assert.match(s,/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
+ assert.doesNotMatch(s,/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
