@@ -3583,8 +3583,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1f467bd7af6639902d98e98be9a94f20cd40fa18",
-      "sha256": "sha256:7bf1a7f90546a3f05f516bfe325328bccdbfa84f42ddba357babd9f34388d8ce",
+      "git_blob": "4632808e8f418a6c5e4e8a403a08cff850916ad5",
+      "sha256": "sha256:79f893fdfa6f7fdd2c547e42da5f1e3445d8e4d23f81df5a84681e0eba74d7ca",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3752,8 +3752,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b30fc520f875bc86bbf1df16c3dbbaf42b8d7523",
-      "sha256": "sha256:a3561bcb69f5664b815c8a94954a986de2472f3d6d3fb918ff5f5a41c7bc0917",
+      "git_blob": "856abfe78d95102902d24388e9760cadb299be51",
+      "sha256": "sha256:0a7e5af39bfc248e8769b5f33202fc354aa050658d798b5f3b36427778a7ce33",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5354,8 +5354,8 @@
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "782a65d8b22e76a6ed04ade7641f5f528ccf1a7e",
-      "sha256": "sha256:af2c39195d709297a068aed677a01a55bb0f3efb66f891312ad8b66d24ccfcc0",
+      "git_blob": "b57282dba192783a48f1cf0929edffa972ca3186",
+      "sha256": "sha256:e67ad6f658a5bff6c5db6e581123209290875a31d694b95c355591847a062b3f",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5699,8 +5699,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5aad0637572ac958e93c2e8ca8b00919287a8825",
-      "sha256": "sha256:ed029efec713a3d59ff8d0668ac5b015901127b7e419e2a0da4446829858bcba"
+      "git_blob": "991ae27d37c08bb7f0b99129c335ab3857f143f3",
+      "sha256": "sha256:9d31a8a8bb51e8d6914de75aa735e60384f6f39b5872f3f688001feedbfe5185"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
