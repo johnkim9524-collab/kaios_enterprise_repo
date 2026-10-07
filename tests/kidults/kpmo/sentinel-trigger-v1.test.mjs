@@ -20,6 +20,11 @@ function naturalEvent(slot='SENTINEL'){
 function continuationEvent(ref='main'){
  return {ref,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
 }
+function readContinuationPayload(ref){
+ const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-continuation-')),'event.json');
+ fs.writeFileSync(file,JSON.stringify(continuationEvent(ref)));
+ try{return readSentinelEvent(file)}finally{fs.rmSync(path.dirname(file),{recursive:true,force:true});}
+}
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
@@ -30,7 +35,7 @@ test('natural Sentinel dispatch accepts the authenticated exact-main clock bindi
  assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
 });
 for(const ref of ['main','refs/heads/main'])test(`coverage chain continuation accepts canonical main ref ${ref}`,()=>{
- const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},continuationEvent(ref));
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},readContinuationPayload(ref));
  assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.run_id,101);assert.equal(binding.upstream_run_id,101);
 });
 for(const [name,mutate] of [
