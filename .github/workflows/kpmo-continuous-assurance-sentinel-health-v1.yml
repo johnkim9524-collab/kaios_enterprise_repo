@@ -3,12 +3,13 @@ name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 on:
   repository_dispatch:
     types: [kidults.natural.clock.sentinel.v1]
+  # Only the causal final producer edge starts an authoritative Sentinel run.
+  # The resolver still reads the complete four-producer cohort; non-final
+  # completions must not create skipped Sentinel runs that poison exact-window
+  # selection for Assurance/Gate.
   workflow_run:
     workflows:
-      - 'KIDULTS ASI Sharded Source Reserve v1'
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
-      - 'KPMO Live Canonical Issue Truth V1'
-      - 'KIDULTS ASI SHADOW Operating Evidence v1'
     branches: [main]
     types: [completed]
   pull_request:
