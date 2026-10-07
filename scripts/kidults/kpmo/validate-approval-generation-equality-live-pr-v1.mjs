@@ -37,10 +37,12 @@ const headers = {
 };
 
 async function api(path) {
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+  const url = `https://api.github.com/repos/${repository}${path}`;
+  let response = await fetch(url, {
     headers,
     redirect: 'error',
   });
+  if (response.status === 403) response = await fetch(url, {headers: {'Accept': headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
   if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${path}`);
   return response.json();
 }
