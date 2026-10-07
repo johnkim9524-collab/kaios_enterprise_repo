@@ -14,6 +14,7 @@ def validate_contract(text: str) -> None:
     assert 'force_cancel_attempts:$force_cancel_attempts' in text
     assert 'force_cancelled:$force_cancelled' in text
     assert 'scheduled_runs_retained=0' in text
+    assert '--argjson scheduled_runs_retained "${scheduled_runs_retained}"' in text
     assert 'scheduled_runs_retained:$scheduled_runs_retained' in text
     assert 'local max_attempts="${2:-8}"' in text
     assert '[[ "${max_attempts}" -le 30 ]]' in text
