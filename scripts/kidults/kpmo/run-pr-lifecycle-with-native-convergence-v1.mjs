@@ -131,16 +131,41 @@ async function main() {
   };
   const request = async endpoint => {
     const url = `https://api.github.com/repos/${repository}${endpoint}`;
-    let response = await fetch(
-      url,
-      {headers, redirect: 'error'},
-    );
-    if (response.status === 403) response = await fetch(url, {headers: {'Accept': headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_${response.status}:${endpoint}`);
+    let lastError;
+    for (let attempt = 0; attempt <= 3; attempt += 1) {
+      let response;
+      try {
+        response = await fetch(url, {headers, redirect: 'error'});
+        if (response.status === 403) {
+          response = await fetch(url, {
+            headers: {
+              Accept: headers.Accept,
+              'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'],
+              'User-Agent': headers['User-Agent'],
+            },
+            redirect: 'error',
+          });
+        }
+      } catch (error) {
+        lastError = error;
+        if (attempt === 3) break;
+        await sleep(Math.min(5000, 250 * (2 ** attempt)));
+        continue;
+      }
+      if (response.ok) return response.json();
+      lastError = new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_${response.status}:${endpoint}`);
+      const retryable = response.status === 429
+        || [500, 502, 503, 504].includes(response.status);
+      if (!retryable || attempt === 3) break;
+      const retryAfter = Number(response.headers.get('retry-after'));
+      const retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0
+        ? retryAfter * 1000
+        : 250 * (2 ** attempt);
+      await sleep(Math.min(5000, Math.max(250, retryAfterMs)));
     }
-    return payload;
+    throw lastError instanceof Error
+      ? lastError
+      : new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_FAILED:${endpoint}`);
   };
 
   const maxAttempts = Number(process.env.LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS
@@ -154,34 +179,43 @@ async function main() {
 
   let converged = false;
   let attempts = 0;
+  let convergenceError = null;
   for (attempts = 1; attempts <= maxAttempts; attempts += 1) {
-    const [pr, main, status] = await Promise.all([
-      request(`/pulls/${prNumber}`),
-      request('/branches/main'),
-      request(`/commits/${expectedHeadSha}/status`),
-    ]);
-    const stableReadyCandidate = pr?.state === 'open'
-      && pr?.merged !== true
-      && pr?.draft === false
-      && pr?.head?.sha === expectedHeadSha
-      && pr?.base?.ref === 'main'
-      && pr?.base?.sha === expectedBaseSha
-      && main?.commit?.sha === expectedBaseSha;
-    if (!stableReadyCandidate) break;
-    const statuses = Array.isArray(status?.statuses) ? status.statuses : [];
-    if (nativeGovernanceConverged(statuses, required)) {
-      converged = true;
+    try {
+      const [pr, main, status] = await Promise.all([
+        request(`/pulls/${prNumber}`),
+        request('/branches/main'),
+        request(`/commits/${expectedHeadSha}/status`),
+      ]);
+      const stableReadyCandidate = pr?.state === 'open'
+        && pr?.merged !== true
+        && pr?.draft === false
+        && pr?.head?.sha === expectedHeadSha
+        && pr?.base?.ref === 'main'
+        && pr?.base?.sha === expectedBaseSha
+        && main?.commit?.sha === expectedBaseSha;
+      if (!stableReadyCandidate) break;
+      const statuses = Array.isArray(status?.statuses) ? status.statuses : [];
+      if (nativeGovernanceConverged(statuses, required)) {
+        converged = true;
+        break;
+      }
+      if (attempts < maxAttempts) await sleep(delayMs);
+    } catch (error) {
+      convergenceError = String(error?.message || error);
       break;
     }
-    if (attempts < maxAttempts) await sleep(delayMs);
   }
 
   console.log(JSON.stringify({
     id: 'kpmo-pr-lifecycle-native-convergence-receipt-v1',
-    state: converged ? 'CONVERGED' : 'DELEGATE_FAIL_CLOSED_CLASSIFICATION',
+    state: converged ? 'CONVERGED'
+      : convergenceError ? 'CONVERGENCE_API_ERROR_DELEGATED_TO_VALIDATOR'
+        : 'DELEGATE_FAIL_CLOSED_CLASSIFICATION',
     attempts,
     max_attempts: maxAttempts,
     delay_ms: delayMs,
+    error: convergenceError,
     status_write_authority: false,
     status_write_performed: false,
   }));
