@@ -31,14 +31,11 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
     .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
-  const touchedTransitionPath = files.some(value => transitionPaths.has(typeof value === 'string' ? value : value?.filename));
   const transitionId = delegatedTransitionId({files, policy});
-  if (touchedTransitionPath && !transitionId) {
-    fail(errorCode, 'NATURAL_RESERVE_CHAIN_REPAIR_INCOMPLETE_OR_DRIFTED');
-  }
   // A transition may declare immutable base=head paths that are intentionally
   // unchanged in this generation. Validate the changed transition subset,
-  // then continue classifying every other changed file independently.
+  // then continue classifying every other changed file independently. A path
+  // appearing in an old exception does not reserve later, unrelated edits.
   const transitionExceptionPaths = transitionId
     ? new Set((policy.delegated_internal_transition_exceptions || [])
       .find(value => value.id === transitionId)?.paths || [])

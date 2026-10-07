@@ -134,9 +134,10 @@ export const matchesNaturalClockTransition = ({files, policy}) =>
 
 export const delegatedTransitionId = ({files, policy}) => {
   for (const exception of configuredExceptions(policy)) {
-    const declared = new Set(exception.paths || []);
-    const scopedFiles = files.filter(file => declared.has(file?.filename));
-    if (matchesConfiguredTransition({files:scopedFiles, policy, exceptionId:exception.id})) return exception.id;
+    // A transition exemption applies only when the complete candidate change
+    // set is exactly the reviewed transition. Matching only a subset here
+    // would let unrelated files inherit the transition's semantic bypass.
+    if (matchesConfiguredTransition({files, policy, exceptionId:exception.id})) return exception.id;
   }
   return null;
 };
