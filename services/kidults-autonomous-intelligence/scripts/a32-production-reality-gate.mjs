@@ -112,20 +112,30 @@ const REPORT_ROOTS = {
   a31: path.join(ROOT, 'reports', 'control-tower-gateway'),
 };
 
-const stageEvidence = {};
-for (const [stage, dir] of Object.entries(REPORT_ROOTS)) {
-  // SIMULATION is a deterministic scenario harness. It must not consume
-  // persisted operational reports because those reports can legitimately be
-  // older generations (for example, an A24 v1 report after the canonical
-  // authority has moved to v2). Mixing that evidence into a simulation
-  // creates a false policy mismatch and makes the synthetic run depend on
-  // repository history. Real evidence is intentionally read only by the
-  // EVIDENCE/LIVE_SAFE modes, where stale or mismatched authority must fail
-  // closed.
-  stageEvidence[stage] = MODE === 'SIMULATION'
-    ? { _fallback: true, stage, generatedAt: nowIso }
-    : readLatestJson(dir, { _fallback: true, stage, generatedAt: nowIso });
+export function loadStageEvidence({
+  mode = MODE,
+  reportRoots = REPORT_ROOTS,
+  generatedAt = nowIso,
+  readLatest = readLatestJson,
+} = {}) {
+  const evidence = {};
+  for (const [stage, dir] of Object.entries(reportRoots)) {
+    // SIMULATION is a deterministic scenario harness. It must not consume
+    // persisted operational reports because those reports can legitimately be
+    // older generations (for example, an A24 v1 report after the canonical
+    // authority has moved to v2). Mixing that evidence into a simulation
+    // creates a false policy mismatch and makes the synthetic run depend on
+    // repository history. Real evidence is intentionally read only by the
+    // EVIDENCE/LIVE_SAFE modes, where stale or mismatched authority must fail
+    // closed.
+    evidence[stage] = mode === 'SIMULATION'
+      ? { _fallback: true, stage, generatedAt }
+      : readLatest(dir, { _fallback: true, stage, generatedAt });
+  }
+  return evidence;
 }
+
+const stageEvidence = loadStageEvidence();
 
 // ---------------------------------------------------------------------------
 // Policy-version consistency check (§25)
