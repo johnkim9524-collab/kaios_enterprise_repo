@@ -125,8 +125,8 @@ jobs:
         env:
           GH_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          RECEIPT_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RECEIPT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_RUN_ATTEMPT: ${{ github.run_attempt }}
         shell: bash
@@ -141,8 +141,8 @@ jobs:
                 id: "kpmo-pr-lifecycle-integrity-receipt-v1",
                 repository: process.env.GH_REPOSITORY,
                 pull_request: Number(process.env.PR_NUMBER),
-                exact_head_sha: process.env.EXPECTED_HEAD_SHA,
-                exact_base_sha: process.env.EXPECTED_BASE_SHA,
+                exact_head_sha: process.env.RECEIPT_HEAD_SHA,
+                exact_base_sha: process.env.RECEIPT_BASE_SHA,
                 workflow_run_id: process.env.GITHUB_RUN_ID,
                 workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT,
                 state: "READY_NON_PROMOTABLE",
