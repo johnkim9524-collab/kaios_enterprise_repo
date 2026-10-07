@@ -68,6 +68,8 @@ function validate(text) {
     'observe-continuous-assurance-coverage-alias-v1.mjs'
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`REQUIREMENT_MARKER_MISSING:${marker}`);
+  const sentinelBarrier = "if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')";
+  if (!text.includes(sentinelBarrier)) fail('SENTINEL_CHAIN_BARRIER_MISSING');
   const continuationRequired = [
     'coverage_run_id:',
     'coverage_dispatch_artifact_digest:',
@@ -120,7 +122,7 @@ for (const [from, to] of mutations) {
 }
 
 const sourceMutations = [
-  ["(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')", "(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id == '')"],
+  ["if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')", "if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id == '')"],
   ['PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN', 'PARTIAL_INPUTS_ACCEPTED'],
   ['validate-kir-coverage-assurance-continuation-v1.mjs consume', 'validate-kir-coverage-assurance-continuation-v1.mjs issue'],
   ['--argjson prior "$PRIOR_CONSUMPTION_COUNT"', '--argjson prior "0"'],

@@ -7,12 +7,23 @@ import {pathToFileURL} from 'node:url';
 import {PRODUCER_COMPLETIONS,readSentinelEvent,validateSentinelTrigger} from '../../../scripts/kidults/kpmo/validate-sentinel-trigger-v1.mjs';
 import {SPECS as SENTINEL_HEALTH_SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs';
+import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
+import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
+const landing=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
 function naturalEvent(slot='SENTINEL'){
  const nonce='A'.repeat(32);
  return {action:`kidults.natural.clock.${slot.toLowerCase()}.v1`,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
+}
+function continuationEvent(ref='main'){
+ return {ref,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
+}
+function readContinuationPayload(ref){
+ const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-continuation-')),'event.json');
+ fs.writeFileSync(file,JSON.stringify(continuationEvent(ref)));
+ try{return readSentinelEvent(file)}finally{fs.rmSync(path.dirname(file),{recursive:true,force:true});}
 }
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
  const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
@@ -22,6 +33,29 @@ test('manual recovery observer remains valid',()=>assert.equal(validateSentinelT
 test('natural Sentinel dispatch accepts the authenticated exact-main clock binding',()=>{
  const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},naturalEvent());
  assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
+});
+for(const ref of ['main','refs/heads/main'])test(`coverage chain continuation accepts canonical main ref ${ref}`,()=>{
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},readContinuationPayload(ref));
+ assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.run_id,101);assert.equal(binding.upstream_run_id,101);
+});
+for(const [name,mutate] of [
+ ['wrong sender',p=>p.sender.login='untrusted[bot]'],
+ ['wrong ref',p=>p.ref='refs/heads/feature'],
+ ['wrong source SHA',p=>p.inputs.exact_main_sha='b'.repeat(40)],
+ ['missing artifact digest',p=>delete p.inputs.continuation_artifact_digest],
+ ['unregistered upstream event',p=>p.inputs.upstream_event='push'],
+ ['numeric run id',p=>p.inputs.upstream_run_id=101],
+ ['extra field',p=>p.inputs.extra='forged'],
+])test(`coverage chain continuation rejects ${name}`,()=>{
+ const p=continuationEvent();mutate(p);assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p));
+});
+test('coverage continuation re-read rejects a different run identity',()=>{
+ const p=continuationEvent();
+ const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
+ remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
+ assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,structuredClone(remote)).run_id,101);
+ remote.run_attempt=2;
+ assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,remote),/SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED/);
 });
 test('inline Assurance accepts only its exact natural-clock slot',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'repository_dispatch',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
@@ -71,7 +105,7 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
 
 test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
+ assert.match(s,/github\.event\.workflow_run\.(?:name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'|path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml')/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
  assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*900/);
@@ -149,6 +183,7 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
 test('completion collection serializes Reserve into the strict sentinel gate',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+ const c=fs.readFileSync('.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml','utf8');
  assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
@@ -157,6 +192,15 @@ test('completion collection serializes Reserve into the strict sentinel gate',()
  assert.ok(a.includes("      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'"));
  assert.match(a,/types: \[completed\]/);assert.match(a,/branches: \[main\]/);
  assert.ok(s.includes('tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'));
+ assert.ok(s.includes("continuation_event_type"));
+ assert.ok(c.includes("kidults.assurance.continuation.v1"));
+ assert.match(c,/\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/dispatches/);
+ assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: read[\s\S]*?actions: write|dispatch-kir-coverage-assurance:[\s\S]*?actions: write[\s\S]*?contents: read/);
+ assert.doesNotMatch(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: write/);
+ assert.match(s,/Verify exact Coverage chain continuation[\s\S]*?github\.event_name == 'workflow_dispatch'/);
+ assert.match(a,/github\.event_name == 'workflow_dispatch' && inputs\.coverage_run_id != ''/);
+ assert.match(s,/Preserve independent natural-clock receipt[\s\S]*?github\.event\.action == 'kidults\.natural\.clock\.sentinel\.v1'/);
+ assert.match(a,/KPMO_COVERAGE_RUN_ID: \$\{\{ inputs\.coverage_run_id \}\}/);
  const job=a.slice(a.indexOf('  observe-core-producer-content:'));
  assert.match(job,/github\.event\.workflow_run\.head_sha == github\.sha/);
  assert.ok(job.includes('validate-sentinel-observation-v1.mjs'));
@@ -242,4 +286,16 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.ok(barrier.includes("page=${page}"));
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
  assert.match(barrier,/run_attempt === 1/);
+});
+
+test('inventory audit digest rebinding is non-semantic while routing drift fails closed',()=>{
+ const filename='coordination/kidults/governance/approval-policy-inventory-v1.json';
+ const base_content=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:legacy'});
+ const head_content=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:legacy'});
+ const file={filename,base_content,head_content};
+ assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+ assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+ const drifted=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{OWNER_RESERVED:1}}},manifest_sha256:'sha256:legacy'});
+ assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
+ assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
 });

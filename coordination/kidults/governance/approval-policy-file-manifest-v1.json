@@ -548,8 +548,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4fcceeeb4987b02e8a428f34fa6702e58282abbc",
-      "sha256": "sha256:a184b4be2db71cba93381eb5c8a64ad4798922d514e2a35ba2aaecc0bad69a50",
+      "git_blob": "c8d7d9e73129037b739c2d507e7aa460f4ee3783",
+      "sha256": "sha256:be93e06e9948146ddb837d28e06cb4d34f4eeea8c59d961a5252a4fcff409406",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -743,8 +743,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0be7ee25c9e16f4b6752a654ce3981e5a85f15f4",
-      "sha256": "sha256:b2faed3e9f73b5bcb4b4631032dcb9f183649e04d51e736d7981cfa11ce7084b"
+      "git_blob": "6111faa7ca8c32c5756cd7222a79de3bafcff6be",
+      "sha256": "sha256:77d16ce0de4848b6240e607ac78ee5e7c92896ca24d9f8af9c5ce9d977089fb5"
     },
     {
       "path": "CONSTITUTION.md",
@@ -3765,8 +3765,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f4db6c34b4aba296df1c523a6152756c402a9785",
-      "sha256": "sha256:219b37fb42727276848f0b44a76c9d6f3babde201606a2c065c2782ca7dbab47",
+      "git_blob": "085c4161487c1059e98f72f1678e8d26a2789dda",
+      "sha256": "sha256:ca3f7993f536ad95627e8b0b857502db20946f4e48edaa5cffa0fed730beb2dc",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5651,8 +5651,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a9cba61ead362499946c039dacc69f82f8a06716",
-      "sha256": "sha256:76a0175cb1999e743aa8bc923fd7b40ac0a60d8e13ed1dd3c3adce24bb0cdc87"
+      "git_blob": "6833eb6d4bede71acf7cd65d7c316d4e8849e1e0",
+      "sha256": "sha256:68f6595420c91ae89195e7a1034696d9af2ded226aeb6b526c65148451331c36"
     },
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3f550dc256525f63fa34739ab476dfcd9b21539446042880d6effb0a05b12e5f"
+  "manifest_sha256": "sha256:d83b71234888ee1956e14ca9add5c259f19ac0a8da624c5f83c174855ecaa5ed"
 }

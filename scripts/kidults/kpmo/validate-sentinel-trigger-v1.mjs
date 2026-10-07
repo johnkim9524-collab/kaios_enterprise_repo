@@ -1,9 +1,11 @@
 import fs from 'node:fs';
 import { nativeWorkflowRunNameMatches } from '../source-intelligence/native-workflow-run-identity-v1.mjs';
+import { loadAuthorityChainTriggerContract, validateAuthorityChainTriggerCompatibility } from '../source-intelligence/lib/authority-chain-trigger-compatibility-v1.mjs';
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
+const positiveText=x=>typeof x==='string'&&/^[1-9][0-9]*$/.test(x)&&positive(Number(x));
 const terminal=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
 const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run','repository_dispatch']);
 export const PRODUCER_COMPLETIONS=Object.freeze([
@@ -31,6 +33,39 @@ function validateNaturalClockEvent(env,payload,expectedSlot){
   }
   return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
 }
+function validateCoverageChainContinuationEvent(env,payload){
+  if(!object(payload)||payload.repository?.full_name!==REPO||payload.ref!=='main')
+    fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
+  if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
+  const continuation=payload.inputs;
+  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_event_type,continuation_key,continuation_slot,continuation_source,exact_main_sha,upstream_event,upstream_run_attempt,upstream_run_id'.split(',').sort().join(',');
+  if(!object(continuation)||continuation.continuation_event_type!=='kidults.assurance.continuation.v1'
+    ||continuation.continuation_source!=='KIDULTS_COVERAGE_CHAIN_CONTINUATION'||continuation.continuation_slot!=='SENTINEL_CHAIN'
+    ||continuation.exact_main_sha!==env.GITHUB_SHA||!sha.test(continuation.exact_main_sha)
+    ||!positiveText(continuation.upstream_run_id)||!positiveText(continuation.upstream_run_attempt)
+    ||!['workflow_run','workflow_dispatch'].includes(continuation.upstream_event)
+    ||!positiveText(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
+    ||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_key||'')
+    ||Object.keys(continuation).sort().join(',')!==keys)fail('SENTINEL_CHAIN_CONTINUATION_BINDING_INVALID');
+  try {
+    validateAuthorityChainTriggerCompatibility({
+      producerEvent:continuation.upstream_event,
+      consumerEvent:'workflow_dispatch',
+      producerWorkflowPath:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
+      consumerWorkflowPath:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+      eventType:'kidults.assurance.continuation.v1',
+      exactTriggeringRunBound:true,
+      authenticatedReceiptBound:true,
+    }, loadAuthorityChainTriggerContract());
+  } catch (error) {
+    fail(`SENTINEL_CHAIN_TRIGGER_COMPATIBILITY:${error.message}`);
+  }
+  const runId=Number(continuation.upstream_run_id),runAttempt=Number(continuation.upstream_run_attempt);
+  return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,run_id:runId,run_attempt:runAttempt,
+    upstream_run_id:runId,upstream_run_attempt:runAttempt,upstream_event:continuation.upstream_event,
+    path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',continuation_artifact_id:Number(continuation.continuation_artifact_id),
+    continuation_artifact_digest:continuation.continuation_artifact_digest,continuation_key:continuation.continuation_key};
+}
 export function readSentinelEvent(file){
   if(typeof file!=='string'||!file)fail('SENTINEL_EVENT_PATH_MISSING');
   let fd;
@@ -45,6 +80,7 @@ export function readSentinelEvent(file){
     if(bytes.length!==before.size||after.size!==opened.size||after.mtimeMs!==opened.mtimeMs)fail('SENTINEL_EVENT_FILE_CHANGED');
     let payload;
     try{payload=JSON.parse(bytes.toString('utf8'));}catch{fail('SENTINEL_EVENT_JSON_INVALID');}
+    payload?.ref==='refs/heads/main'&&(payload.ref='main');
     if(!object(payload))fail('SENTINEL_EVENT_SHAPE');
     return payload;
   }finally{if(fd!==undefined)fs.closeSync(fd);}
@@ -85,8 +121,20 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
-  if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
-  if(env.GITHUB_EVENT_NAME==='repository_dispatch')return validateNaturalClockEvent(env,payload,'SENTINEL');
+  if(['push','schedule'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'){
+    if(!object(payload?.inputs)||!payload.inputs.continuation_event_type)return null;
+    const binding=validateCoverageChainContinuationEvent(env,payload);
+    if(remoteRun!==null){
+      validateRun(remoteRun,env.GITHUB_SHA);
+      if(remoteRun.id!==binding.run_id||remoteRun.run_attempt!==binding.run_attempt||remoteRun.path!==binding.path
+        ||remoteRun.event!==binding.upstream_event||remoteRun.conclusion!=='success')fail('SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED');
+    }
+    return binding;
+  }
+  if(env.GITHUB_EVENT_NAME==='repository_dispatch'){
+    return validateNaturalClockEvent(env,payload,'SENTINEL');
+  }
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
   if(!object(payload)||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_EVENT_COMPLETION_CONTEXT');
   const run=payload.workflow_run;
