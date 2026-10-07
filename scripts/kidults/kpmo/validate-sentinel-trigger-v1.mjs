@@ -80,8 +80,6 @@ export function readSentinelEvent(file){
     if(bytes.length!==before.size||after.size!==opened.size||after.mtimeMs!==opened.mtimeMs)fail('SENTINEL_EVENT_FILE_CHANGED');
     let payload;
     try{payload=JSON.parse(bytes.toString('utf8'));}catch{fail('SENTINEL_EVENT_JSON_INVALID');}
-    // GitHub workflow_dispatch may encode protected main as refs/heads/main;
-    // canonicalize only the immutable event object before the unchanged guard.
     object(payload)&&(payload.ref=payload.ref==='refs/heads/main'?'main':payload.ref);
     if(!object(payload))fail('SENTINEL_EVENT_SHAPE');
     return payload;
