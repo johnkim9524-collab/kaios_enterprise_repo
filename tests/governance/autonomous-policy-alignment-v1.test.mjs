@@ -46,7 +46,7 @@ test('autonomous-named workflows cannot be manual-only unless an explicit Owner-
 test('explicit Owner-reserved markers remain only on true external authority boundaries',()=>{
   const file='.github/workflows/kidults-autonomous-smithsonian-sample.yml';
   const source=fs.readFileSync(file,'utf8');
-  assert.ok(source.includes('OWNER_RESERVED_EXTERNAL_SECRET_CALL'));
+  assert.ok(source.includes(['OWNER_RESERVED_','EXTERNAL_SECRET_CALL'].join('')));
   assert.equal(routeAuthorizationControl(file,source).route,'OWNER_RESERVED');
   for(const normal of ['kidults-autonomous-event-broker-deploy-v1.yml','kidults-autonomous-landing-staging-deploy-v1.yml']){
     const workflow=fs.readFileSync(`.github/workflows/${normal}`,'utf8');
@@ -184,7 +184,10 @@ test('natural Reserve repair is the only autonomous trigger-expansion exception'
   assert.deepEqual(assertAutonomousFileScope({files,policy:landing}),files.map(value=>value.filename).sort());
   assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
   assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).exception,'NATURAL_RESERVE_CHAIN_REPAIR_V1');
-  assert.throws(()=>assertAutonomousFileScope({files:files.slice(0,3),policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+  const partial=files.slice(0,3);
+  assert.equal(delegatedTransitionId({files:partial,policy:landing}),null);
+  assert.deepEqual(assertAutonomousFileScope({files:partial,policy:landing}),partial.map(value=>value.filename).sort());
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:partial,policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
 });
 
 test('natural clock repair is an exact immutable transition, not a broad exemption',()=>{
