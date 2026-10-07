@@ -171,9 +171,6 @@ const normalizedDerivedApprovalMetadata=(source,filename)=>{
     for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
   } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
     if(value.audit) value.audit.manifest_sha256='DERIVED';
-    // The inventory carries the same derived digest at the document root.
-    // Normalize both locations so digest-only regeneration stays non-semantic.
-    value.manifest_sha256='DERIVED';
   }
   return value;
 };
