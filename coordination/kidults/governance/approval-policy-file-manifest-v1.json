@@ -2967,8 +2967,8 @@
     {
       "path": "scripts/governance/generate-approval-policy-inventory-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c89c2eea5453fccbe6650bb60a9313e69d49910f",
-      "sha256": "sha256:20881da0d0ad40572be678df300285fa872a788735de91107a5e42ac33a3d49e",
+      "git_blob": "c5aaf9c6f3f5504fd5be8594d051736c44a38b84",
+      "sha256": "sha256:0d4ec1d8ef8aca1ec23d87c0b375c5025fe435614846b6084474523ee853916d",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a390855447b499462b0cb435ddf93b3f9adf57cc00e18150a77bdac02e66a50b"
+  "manifest_sha256": "sha256:92b02dae1e0d97cfa78e43434c88208898957906313df0ad5167dfb86a88dcfa"
 }
