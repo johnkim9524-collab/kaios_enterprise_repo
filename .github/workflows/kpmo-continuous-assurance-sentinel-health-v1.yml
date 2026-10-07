@@ -152,15 +152,15 @@ jobs:
 
   exact-main-health:
     if: >-
-      github.ref == 'refs/heads/main' &&
-      (github.event_name == 'workflow_dispatch' ||
-       (github.event_name == 'repository_dispatch' && (github.event.client_payload.slot == 'SENTINEL' || github.event.action == 'kidults.assurance.continuation.v1')) ||
-       (github.event_name == 'workflow_run' &&
-        github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
-        github.event.workflow_run.status == 'completed' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.head_sha == github.sha))
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1' &&
+       github.event.workflow_run.status == 'completed' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_sha == github.sha) ||
+      (github.ref == 'refs/heads/main' &&
+       (github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'repository_dispatch' && (github.event.client_payload.slot == 'SENTINEL' || github.event.action == 'kidults.assurance.continuation.v1'))))
     runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:

@@ -105,7 +105,7 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
 
 test('Sentinel waits for the final Requirement completion edge and exact producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
- assert.match(s,/github\.event\.workflow_run\.path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml'/);
+ assert.match(s,/github\.event\.workflow_run\.(?:name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'|path == '\.github\/workflows\/kidults-asi-requirement-adapter-coverage-v1\.yml')/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
  assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*900/);
