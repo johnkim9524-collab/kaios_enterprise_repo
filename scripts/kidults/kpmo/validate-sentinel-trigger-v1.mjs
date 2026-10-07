@@ -5,6 +5,7 @@ const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const ASSURANCE_WORKFLOW='KIDULTS Platform Continuous Assurance V1';
 const sha=/^[0-9a-f]{40}$/;
 const positive=x=>Number.isSafeInteger(x)&&x>0;
+const positiveText=x=>typeof x==='string'&&/^[1-9][0-9]*$/.test(x)&&positive(Number(x));
 const terminal=new Set(['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale']);
 const inlineEvents=new Set(['push','schedule','workflow_dispatch','workflow_run','repository_dispatch']);
 export const PRODUCER_COMPLETIONS=Object.freeze([
@@ -33,23 +34,24 @@ function validateNaturalClockEvent(env,payload,expectedSlot){
   return {slot:expectedSlot,exact_main_sha:clock.exact_main_sha,dispatch_id:clock.dispatch_id,issued_at:clock.issued_at};
 }
 function validateCoverageChainContinuationEvent(env,payload){
-  if(!object(payload)||payload.action!=='kidults.assurance.continuation.v1'||payload.repository?.full_name!==REPO)
+  if(!object(payload)||payload.repository?.full_name!==REPO||payload.ref!=='main')
     fail('SENTINEL_CHAIN_CONTINUATION_EVENT_CONTEXT');
   if(payload.sender?.type!=='Bot'||payload.sender?.login!=='github-actions[bot]')fail('SENTINEL_CHAIN_CONTINUATION_SENDER');
-  const continuation=payload.client_payload;
-  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_key,exact_main_sha,source,slot,upstream_run_attempt,upstream_run_id,upstream_workflow_path'.split(',').sort().join(',');
-  if(!object(continuation)||continuation.source!=='KIDULTS_COVERAGE_CHAIN_CONTINUATION'||continuation.slot!=='SENTINEL_CHAIN'
+  const continuation=payload.inputs;
+  const keys='continuation_artifact_digest,continuation_artifact_id,continuation_event_type,continuation_key,continuation_slot,continuation_source,exact_main_sha,upstream_event,upstream_run_attempt,upstream_run_id'.split(',').sort().join(',');
+  if(!object(continuation)||continuation.continuation_event_type!=='kidults.assurance.continuation.v1'
+    ||continuation.continuation_source!=='KIDULTS_COVERAGE_CHAIN_CONTINUATION'||continuation.continuation_slot!=='SENTINEL_CHAIN'
     ||continuation.exact_main_sha!==env.GITHUB_SHA||!sha.test(continuation.exact_main_sha)
-    ||!positive(continuation.upstream_run_id)||!positive(continuation.upstream_run_attempt)
-    ||continuation.upstream_workflow_path!=='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
-    ||!positive(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
+    ||!positiveText(continuation.upstream_run_id)||!positiveText(continuation.upstream_run_attempt)
+    ||!['workflow_run','workflow_dispatch'].includes(continuation.upstream_event)
+    ||!positiveText(continuation.continuation_artifact_id)||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_artifact_digest||'')
     ||!/^sha256:[0-9a-f]{64}$/.test(continuation.continuation_key||'')
     ||Object.keys(continuation).sort().join(',')!==keys)fail('SENTINEL_CHAIN_CONTINUATION_BINDING_INVALID');
   try {
     validateAuthorityChainTriggerCompatibility({
-      producerEvent:'workflow_run',
-      consumerEvent:'repository_dispatch',
-      producerWorkflowPath:continuation.upstream_workflow_path,
+      producerEvent:continuation.upstream_event,
+      consumerEvent:'workflow_dispatch',
+      producerWorkflowPath:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
       consumerWorkflowPath:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
       eventType:'kidults.assurance.continuation.v1',
       exactTriggeringRunBound:true,
@@ -58,8 +60,10 @@ function validateCoverageChainContinuationEvent(env,payload){
   } catch (error) {
     fail(`SENTINEL_CHAIN_TRIGGER_COMPATIBILITY:${error.message}`);
   }
-  return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,upstream_run_id:continuation.upstream_run_id,
-    upstream_run_attempt:continuation.upstream_run_attempt,continuation_artifact_id:continuation.continuation_artifact_id,
+  const runId=Number(continuation.upstream_run_id),runAttempt=Number(continuation.upstream_run_attempt);
+  return {slot:'SENTINEL_CHAIN',exact_main_sha:continuation.exact_main_sha,run_id:runId,run_attempt:runAttempt,
+    upstream_run_id:runId,upstream_run_attempt:runAttempt,upstream_event:continuation.upstream_event,
+    path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',continuation_artifact_id:Number(continuation.continuation_artifact_id),
     continuation_artifact_digest:continuation.continuation_artifact_digest,continuation_key:continuation.continuation_key};
 }
 export function readSentinelEvent(file){
@@ -116,9 +120,18 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
     return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
   }
-  if(['push','schedule','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(['push','schedule'].includes(env.GITHUB_EVENT_NAME))return null;
+  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'){
+    if(!object(payload?.inputs)||!payload.inputs.continuation_event_type)return null;
+    const binding=validateCoverageChainContinuationEvent(env,payload);
+    if(remoteRun!==null){
+      validateRun(remoteRun,env.GITHUB_SHA);
+      if(remoteRun.id!==binding.run_id||remoteRun.run_attempt!==binding.run_attempt||remoteRun.path!==binding.path
+        ||remoteRun.event!==binding.upstream_event||remoteRun.conclusion!=='success')fail('SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED');
+    }
+    return binding;
+  }
   if(env.GITHUB_EVENT_NAME==='repository_dispatch'){
-    if(payload?.action==='kidults.assurance.continuation.v1')return validateCoverageChainContinuationEvent(env,payload);
     return validateNaturalClockEvent(env,payload,'SENTINEL');
   }
   if(env.GITHUB_EVENT_NAME!=='workflow_run')fail('SENTINEL_EVENT_NOT_ALLOWED');
@@ -126,10 +139,5 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   const run=payload.workflow_run;
   validateRun(run,env.GITHUB_SHA);
   if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,false);
-  if(run.path==='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'){
-    return {slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:run.id,
-      upstream_run_attempt:run.run_attempt,upstream_workflow_path:run.path,
-      run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
-  }
   return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion};
 }

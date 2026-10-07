@@ -849,3 +849,24 @@ jobs:
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches" \
             --input /tmp/kir-core-four-terminal-reserve-dispatch-v1.json
+
+          # workflow_run fan-out is suppressed after the platform's third hop.
+          # Continue with the already-authorized workflow_dispatch mechanism;
+          # typed exact-run inputs and the authenticated one-time receipt keep
+          # Sentinel fail-closed without granting repository mutation authority.
+          jq -n --arg ref main \
+            --arg event_type kidults.assurance.continuation.v1 \
+            --arg source KIDULTS_COVERAGE_CHAIN_CONTINUATION \
+            --arg slot SENTINEL_CHAIN \
+            --arg sha "$GITHUB_SHA" \
+            --arg run "$GITHUB_RUN_ID" \
+            --arg attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg upstream_event "$GITHUB_EVENT_NAME" \
+            --arg artifact "$DISPATCH_ARTIFACT_ID" \
+            --arg digest "$DISPATCH_ARTIFACT_DIGEST" \
+            --arg key "$CONTINUATION_KEY" \
+            '{ref:$ref,inputs:{continuation_event_type:$event_type,continuation_source:$source,continuation_slot:$slot,exact_main_sha:$sha,upstream_run_id:$run,upstream_run_attempt:$attempt,upstream_event:$upstream_event,continuation_artifact_id:$artifact,continuation_artifact_digest:$digest,continuation_key:$key}}' \
+            > /tmp/kir-sentinel-chain-continuation-dispatch-v1.json
+          gh api --method POST -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/dispatches" \
+            --input /tmp/kir-sentinel-chain-continuation-dispatch-v1.json

@@ -75,13 +75,54 @@ on:
       - 'package.json'
       - 'npm-shrinkwrap.json'
   workflow_dispatch:
+    inputs:
+      continuation_event_type:
+        description: Exact registered continuation type; empty for manual recovery
+        required: false
+        type: string
+      continuation_source:
+        description: Exact continuation producer class
+        required: false
+        type: string
+      continuation_slot:
+        description: Exact continuation consumer slot
+        required: false
+        type: string
+      exact_main_sha:
+        description: Exact protected-main SHA
+        required: false
+        type: string
+      upstream_run_id:
+        description: Exact Coverage workflow run ID
+        required: false
+        type: string
+      upstream_run_attempt:
+        description: Exact Coverage workflow run attempt
+        required: false
+        type: string
+      upstream_event:
+        description: Registered Coverage producer event
+        required: false
+        type: string
+      continuation_artifact_id:
+        description: Exact authenticated continuation artifact ID
+        required: false
+        type: string
+      continuation_artifact_digest:
+        description: Exact authenticated continuation artifact digest
+        required: false
+        type: string
+      continuation_key:
+        description: Exact single-use continuation key
+        required: false
+        type: string
 
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: kpmo-continuous-assurance-sentinel-health-${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
+  group: kpmo-continuous-assurance-sentinel-health-${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || inputs.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
@@ -149,48 +190,45 @@ jobs:
           PY_BOOTSTRAP
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || inputs.exact_main_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
           package-manager-cache: false
       - name: Verify exact Coverage chain continuation
-        if: >-
-          github.event_name == 'workflow_run' &&
-          github.event.workflow_run.path == '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml' &&
-          github.event.workflow_run.status == 'completed' &&
-          github.event.workflow_run.conclusion == 'success' &&
-          github.event.workflow_run.head_branch == 'main' &&
-          github.event.workflow_run.head_sha == github.sha
+        if: github.event_name == 'workflow_dispatch' && inputs.continuation_event_type == 'kidults.assurance.continuation.v1'
         env:
           GH_TOKEN: ${{ github.token }}
-          COVERAGE_RUN_ID: ${{ github.event.workflow_run.id }}
-          COVERAGE_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+          CONTINUATION_SOURCE: ${{ inputs.continuation_source }}
+          CONTINUATION_SLOT: ${{ inputs.continuation_slot }}
+          SOURCE_SHA: ${{ inputs.exact_main_sha }}
+          UPSTREAM_RUN_ID: ${{ inputs.upstream_run_id }}
+          UPSTREAM_ATTEMPT: ${{ inputs.upstream_run_attempt }}
+          UPSTREAM_EVENT: ${{ inputs.upstream_event }}
+          ARTIFACT_ID: ${{ inputs.continuation_artifact_id }}
+          ARTIFACT_DIGEST: ${{ inputs.continuation_artifact_digest }}
+          CONTINUATION_KEY: ${{ inputs.continuation_key }}
         shell: bash
         run: |
           set -euo pipefail
-          UPSTREAM_RUN_ID="$COVERAGE_RUN_ID"
-          UPSTREAM_ATTEMPT="$COVERAGE_RUN_ATTEMPT"
+          test "$CONTINUATION_SOURCE" = KIDULTS_COVERAGE_CHAIN_CONTINUATION
+          test "$CONTINUATION_SLOT" = SENTINEL_CHAIN
           test "$SOURCE_SHA" = "$GITHUB_SHA"
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$UPSTREAM_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$UPSTREAM_EVENT" == workflow_run || "$UPSTREAM_EVENT" == workflow_dispatch ]]
+          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$CONTINUATION_KEY" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > /tmp/sentinel-chain-upstream-run.json
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" \
-            '.repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml" and .status=="completed" and .conclusion=="success" and (.run_attempt|tostring)==$attempt' \
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --arg event "$UPSTREAM_EVENT" \
+            '.repository.full_name==$repo and .head_repository.full_name==$repo and .head_branch=="main" and .head_sha==$sha and .path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml" and .event==$event and .status=="completed" and .conclusion=="success" and (.run_attempt|tostring)==$attempt' \
             --arg attempt "$UPSTREAM_ATTEMPT" /tmp/sentinel-chain-upstream-run.json >/dev/null
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" > /tmp/sentinel-chain-artifacts.json
-          ARTIFACT_ID=$(jq -r --arg name "kidults-kir-coverage-assurance-dispatch-v1-${UPSTREAM_RUN_ID}-${UPSTREAM_ATTEMPT}" --argjson run "$UPSTREAM_RUN_ID" '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run)] | if length==1 then .[0].id else error("COVERAGE_CONTINUATION_ARTIFACT_CARDINALITY") end' /tmp/sentinel-chain-artifacts.json)
-          ARTIFACT_DIGEST=$(jq -r --argjson id "$ARTIFACT_ID" '.artifacts[] | select(.id==$id) | .digest' /tmp/sentinel-chain-artifacts.json)
-          CONTINUATION_KEY=$(jq -r --argjson id "$ARTIFACT_ID" '.artifacts[] | select(.id==$id) | .name' /tmp/sentinel-chain-artifacts.json | sha256sum | cut -d' ' -f1)
-          ARTIFACT_DIGEST="${ARTIFACT_DIGEST#sha256:}"
-          ARTIFACT_DIGEST="sha256:${ARTIFACT_DIGEST}"
-          [[ "$ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           ARTIFACT_NAME="kidults-kir-coverage-assurance-dispatch-v1-${UPSTREAM_RUN_ID}-${UPSTREAM_ATTEMPT}"
           jq -e --arg name "$ARTIFACT_NAME" --argjson id "$ARTIFACT_ID" --arg digest "$ARTIFACT_DIGEST" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$SOURCE_SHA" \
             '[.artifacts[] | select(.id==$id and .name==$name and .expired==false and .digest==$digest and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length==1' /tmp/sentinel-chain-artifacts.json >/dev/null
@@ -205,7 +243,6 @@ jobs:
           unzip -q /tmp/sentinel-chain.zip -d /tmp/sentinel-chain
           mapfile -d '' -t RECEIPTS < <(find /tmp/sentinel-chain -type f -name kir-coverage-assurance-continuation-v1.json -print0)
           test "${#RECEIPTS[@]}" -eq 1
-          CONTINUATION_KEY=$(jq -r .continuation_key "${RECEIPTS[0]}")
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$SOURCE_SHA" --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_ATTEMPT" --arg key "$CONTINUATION_KEY" \
             '.repository==$repo and .source_sha==$sha and .coverage_run_id==$run and .coverage_run_attempt==$attempt and .continuation_key==$key and .state=="ISSUED_PENDING_ONE_TIME_CONSUMPTION" and .promotion_eligible==false and .public=="HOLD" and .production=="HOLD" and .g5=="HOLD"' \
             "${RECEIPTS[0]}" >/dev/null
@@ -240,10 +277,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
       - name: Wait for exact-SHA producer cohort before Sentinel resolution
-        if: github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch'
+        if: github.event_name == 'workflow_run' || github.event_name == 'repository_dispatch' || (github.event_name == 'workflow_dispatch' && inputs.continuation_event_type == 'kidults.assurance.continuation.v1')
         env:
           GH_TOKEN: ${{ github.token }}
-          KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+          KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || inputs.exact_main_sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail

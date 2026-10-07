@@ -71,7 +71,7 @@ async function workflowRuns(cutoffMs, startMs = cutoffMs - cutoffWindowSeconds *
     const createdStart = new Date(startMs).toISOString();
   const createdEnd = new Date(cutoffMs).toISOString();
   for (let page = 1; page <= 10; page += 1) {
-    const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_run' : 'repository_dispatch';
+    const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_dispatch' : 'repository_dispatch';
     const value = await api(
       `/repos/${REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&event=${sentinelEvent}&head_sha=${SOURCE_SHA}&created=${encodeURIComponent(`${createdStart}..${createdEnd}`)}&per_page=100&page=${page}`
     );
@@ -107,7 +107,7 @@ function eventIssuedAt() {
   return Date.parse(value);
 }
 function candidatesFrom(runs, cutoffMs) {
-  const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_run' : 'repository_dispatch';
+  const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_dispatch' : 'repository_dispatch';
   return (runs || []).filter(run =>
     run?.name === WORKFLOW_NAME &&
     run?.path === `.github/workflows/${WORKFLOW_FILE}` &&

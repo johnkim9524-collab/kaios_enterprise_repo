@@ -298,7 +298,7 @@ async function liveInput(){
   const repo=process.env.GITHUB_REPOSITORY||'';
   const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';
   if(repo!==REPOSITORY||!token)fail('REPOSITORY_OR_TOKEN_MISSING');
-  const eventPayloadRequired=['workflow_run','repository_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
+  const eventPayloadRequired=['workflow_run','repository_dispatch','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME);
   const triggerPayload=eventPayloadRequired?readSentinelEvent(process.env.GITHUB_EVENT_PATH):null;
   const upstreamTrigger=validateSentinelTrigger(process.env,triggerPayload);
   if(process.env.GITHUB_REF!=='refs/heads/main')fail('SENTINEL_MAIN_REF_REQUIRED');

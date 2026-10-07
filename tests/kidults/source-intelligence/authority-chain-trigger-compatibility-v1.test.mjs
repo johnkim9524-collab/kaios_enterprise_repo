@@ -16,7 +16,7 @@ for (const event of ['workflow_run', 'workflow_dispatch']) {
 test('accepts only the registered authenticated Coverage-to-Sentinel relay', () =>
   assert.equal(validate({
     producerEvent: 'workflow_run',
-    consumerEvent: 'repository_dispatch',
+    consumerEvent: 'workflow_dispatch',
     producerWorkflowPath: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
     consumerWorkflowPath: '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
     eventType: 'kidults.assurance.continuation.v1',
@@ -32,7 +32,7 @@ for (const mutation of [
 ]) {
   test('rejects relay binding mutation', () => assert.throws(() => validate({
     producerEvent: 'workflow_run',
-    consumerEvent: 'repository_dispatch',
+    consumerEvent: 'workflow_dispatch',
     producerWorkflowPath: '.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',
     consumerWorkflowPath: '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
     eventType: 'kidults.assurance.continuation.v1',

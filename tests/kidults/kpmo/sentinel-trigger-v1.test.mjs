@@ -15,11 +15,10 @@ function naturalEvent(slot='SENTINEL'){
  return {action:`kidults.natural.clock.${slot.toLowerCase()}.v1`,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
 }
 function continuationEvent(){
- return {action:'kidults.assurance.continuation.v1',repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},client_payload:{source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:101,upstream_run_attempt:1,upstream_workflow_path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',continuation_artifact_id:202,continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
+ return {ref:'main',repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',exact_main_sha:env.GITHUB_SHA,upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
 }
 for(const spec of PRODUCER_COMPLETIONS)test(`automatic observer accepts exact same-main ${spec.name}`,()=>{
- const p=event(spec);const binding=validateSentinelTrigger(env,p,structuredClone(p.workflow_run));
- assert.equal(binding.slot==='SENTINEL_CHAIN'?binding.upstream_run_id:binding.run_id,100);
+ const p=event(spec);assert.equal(validateSentinelTrigger(env,p,structuredClone(p.workflow_run)).run_id,100);
  const wf=fs.readFileSync(spec.path,'utf8').replace(/\r\n/g,'\n');assert.ok(wf.startsWith(`name: ${spec.name}\n`));
 });
 test('manual recovery observer remains valid',()=>assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'}),null));
@@ -28,22 +27,26 @@ test('natural Sentinel dispatch accepts the authenticated exact-main clock bindi
  assert.equal(binding.slot,'SENTINEL');assert.equal(binding.exact_main_sha,env.GITHUB_SHA);
 });
 test('coverage chain continuation accepts exact authenticated artifact binding',()=>{
- const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},continuationEvent());
- assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.upstream_run_id,101);
-});
-test('native Coverage workflow_run completion binds the Sentinel chain to one upstream run',()=>{
- const p=event(PRODUCER_COMPLETIONS.find(x=>x.name==='KIDULTS ASI Requirement-to-Adapter Coverage v1'));
- const binding=validateSentinelTrigger(env,p,structuredClone(p.workflow_run));
- assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.upstream_run_id,100);
- assert.equal(binding.upstream_run_attempt,1);
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},continuationEvent());
+ assert.equal(binding.slot,'SENTINEL_CHAIN');assert.equal(binding.run_id,101);assert.equal(binding.upstream_run_id,101);
 });
 for(const [name,mutate] of [
  ['wrong sender',p=>p.sender.login='untrusted[bot]'],
- ['wrong source SHA',p=>p.client_payload.exact_main_sha='b'.repeat(40)],
- ['missing artifact digest',p=>delete p.client_payload.continuation_artifact_digest],
- ['extra field',p=>p.client_payload.extra='forged'],
+ ['wrong source SHA',p=>p.inputs.exact_main_sha='b'.repeat(40)],
+ ['missing artifact digest',p=>delete p.inputs.continuation_artifact_digest],
+ ['unregistered upstream event',p=>p.inputs.upstream_event='push'],
+ ['numeric run id',p=>p.inputs.upstream_run_id=101],
+ ['extra field',p=>p.inputs.extra='forged'],
 ])test(`coverage chain continuation rejects ${name}`,()=>{
- const p=continuationEvent();mutate(p);assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'repository_dispatch'},p));
+ const p=continuationEvent();mutate(p);assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p));
+});
+test('coverage continuation re-read rejects a different run identity',()=>{
+ const p=continuationEvent();
+ const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
+ remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
+ assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,structuredClone(remote)).run_id,101);
+ remote.run_attempt=2;
+ assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,remote),/SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED/);
 });
 test('inline Assurance accepts only its exact natural-clock slot',()=>{
  const inline={...env,GITHUB_EVENT_NAME:'repository_dispatch',GITHUB_WORKFLOW:'KIDULTS Platform Continuous Assurance V1',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'};
@@ -180,11 +183,12 @@ test('completion collection serializes Reserve into the strict sentinel gate',()
  assert.ok(a.includes("      - 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'"));
  assert.match(a,/types: \[completed\]/);assert.match(a,/branches: \[main\]/);
  assert.ok(s.includes('tests/kidults/kpmo/sentinel-trigger-v1.test.mjs'));
- assert.doesNotMatch(s,/types: \[[^\]]*kidults\.assurance\.continuation\.v1/);
- assert.doesNotMatch(c,/\/repos\/\$\{GITHUB_REPOSITORY\}\/dispatches/);
- assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?actions: write/);
+ assert.ok(s.includes("continuation_event_type"));
+ assert.ok(c.includes("kidults.assurance.continuation.v1"));
+ assert.match(c,/\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/dispatches/);
+ assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: read[\s\S]*?actions: write|dispatch-kir-coverage-assurance:[\s\S]*?actions: write[\s\S]*?contents: read/);
  assert.doesNotMatch(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: write/);
- assert.match(s,/Verify exact Coverage chain continuation[\s\S]*?github\.event_name == 'workflow_run'/);
+ assert.match(s,/Verify exact Coverage chain continuation[\s\S]*?github\.event_name == 'workflow_dispatch'/);
  assert.match(a,/github\.event_name == 'workflow_dispatch' && inputs\.coverage_run_id != ''/);
  assert.match(s,/Preserve independent natural-clock receipt[\s\S]*?github\.event\.action == 'kidults\.natural\.clock\.sentinel\.v1'/);
  assert.match(a,/KPMO_COVERAGE_RUN_ID: \$\{\{ inputs\.coverage_run_id \}\}/);
