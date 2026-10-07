@@ -3557,8 +3557,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7e5866dfafdd65245f237de67d808a66d54b3b5b",
-      "sha256": "sha256:2e931619a764f78b7ba0bfb9c64c3065c120dc97f999beb4408701edf326828e",
+      "git_blob": "61f1b7aeebeb57338259136ec90fc5819d46ce44",
+      "sha256": "sha256:7b4e820042a88de644c2d1c292442d8b3f521787d59f0351dbaff181015a0e29",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3661,8 +3661,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fcf2c79da7493dd307dfe21a939aa7fa930e9b56",
-      "sha256": "sha256:295f7c898768188ad5ba9bcad51b481042a9c72f5dd5c4738c0dd5fb780b6185",
+      "git_blob": "1806fae9ff9913092d886aa4dec1c37677783b5a",
+      "sha256": "sha256:5a7ff593c54a32cc8b2cfd8e5e043321445baebf5a7089447d29836b49e91d0d",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:15fc54e949ccc0d6f7fd1e0dddc53b4173c6cae17ae74906d1f61fe4eec1647e"
+  "manifest_sha256": "sha256:a36eecaa0eddff33f0f3d880800df317290e610f8b65d2158b6ea935c0558b3d"
 }
