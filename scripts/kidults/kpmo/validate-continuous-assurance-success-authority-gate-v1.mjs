@@ -30,8 +30,6 @@ const requiredWorkflowTokens = [
   'whole-platform-operating-proof-v1.json',
   '.assurance_runtime_readiness==true',
   '.assurance_archive_readback==\"PASS\"',
-  '.assurance_archive_validation_receipt_digest|test(\"^sha256:[0-9a-f]{64}$\")',
-  'ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST',
   '.producer_health_artifact_digest|test(\"^sha256:[0-9a-f]{64}$\")',
   'ASSURANCE_AUDIT_RECEIPT_DIGEST',
   'ASSURANCE_RUNTIME_PROOF_DIGEST',

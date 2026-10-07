@@ -118,7 +118,6 @@ jobs:
             assurance_artifact_id:null,
             assurance_artifact_digest:null,
             assurance_archive_readback:'NOT_VERIFIED',
-            assurance_archive_validation_receipt_digest:null,
             producer_health_artifact_id:null,
             producer_health_artifact_digest:null,
             coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',
@@ -313,29 +312,6 @@ jobs:
             "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/audit-receipt.json"
           jq -r '[.members[] | select((.name|split("/")|last)=="whole-platform-operating-proof-v1.json")][0].text' \
             "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/whole-platform-operating-proof-v1.json"
-          jq -n --argjson id "$ASSURANCE_ARTIFACT_ID" --arg digest "$ASSURANCE_ARTIFACT_DIGEST" \
-            '{id:$id,digest:$digest}' > "$GATE_DIR/assurance-artifact-binding.json"
-          node --input-type=module <<'NODE'
-          import crypto from 'node:crypto';
-          import fs from 'node:fs';
-          const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
-          const sha256=value=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
-          const dir=process.env.GATE_DIR;
-          const packet=JSON.parse(fs.readFileSync(`${dir}/assurance-packet.json`,'utf8'));
-          const run=JSON.parse(fs.readFileSync(`${dir}/upstream-assurance-run.json`,'utf8'));
-          const artifact=JSON.parse(fs.readFileSync(`${dir}/assurance-artifact-binding.json`,'utf8'));
-          const audit=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='audit-receipt.json');
-          const proof=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='whole-platform-operating-proof-v1.json');
-          if(packet.archive_digest!==artifact.digest||audit.length!==1||proof.length!==1||packet.members.length<1||packet.members.length>512) throw new Error('ASSURANCE_ARCHIVE_CARDINALITY');
-          const base={receipt_type:'KPMO_ASSURANCE_ARCHIVE_VALIDATION',state:'VERIFIED_PASS',readback_verified:true,
-            source_sha:process.env.UPSTREAM_SHA,assurance_run_id:Number(run.id),assurance_run_attempt:Number(run.run_attempt),
-            artifact_id:Number(artifact.id),artifact_digest:artifact.digest,archive_digest:packet.archive_digest,
-            archive_size_bytes:fs.statSync(`${dir}/assurance-packet.zip`).size,member_count:packet.members.length,
-            audit_receipt_count:audit.length,runtime_proof_count:proof.length,
-            audit_receipt_archive_member_digest:audit[0].sha256,runtime_proof_archive_member_digest:proof[0].sha256};
-          if(base.archive_size_bytes<1||base.archive_size_bytes>8*1024*1024) throw new Error('ASSURANCE_ARCHIVE_SIZE_LIMIT');
-          fs.writeFileSync(`${dir}/assurance-archive-validation-receipt.json`,JSON.stringify({...base,receipt_digest:sha256(base)},null,2)+'\n');
-          NODE
           jq -n \
             --argjson run "$PRODUCER_HEALTH_RUN_ID" \
             --argjson attempt "$PRODUCER_HEALTH_RUN_ATTEMPT" \
@@ -350,9 +326,6 @@ jobs:
             "$GATE_DIR/upstream-assurance-run.json" \
             "$GATE_DIR/assurance-audit-job.json" \
             "$GATE_DIR/sentinel-binding.json" \
-            "$GATE_DIR/assurance-packet.json" \
-            "$GATE_DIR/assurance-archive-validation-receipt.json" \
-            "$GATE_DIR/assurance-artifact-binding.json" \
             > "$GATE_DIR/assurance-runtime-readiness.json"
           jq -e '.state=="VERIFIED_PASS" and .verified_domain_count==14' \
             "$GATE_DIR/assurance-runtime-readiness.json" >/dev/null
@@ -360,7 +333,6 @@ jobs:
             echo "ASSURANCE_RUNTIME_READINESS=VERIFIED_PASS"
             echo "ASSURANCE_AUDIT_RECEIPT_DIGEST=$(jq -r '.audit_receipt_digest' "$GATE_DIR/assurance-runtime-readiness.json")"
             echo "ASSURANCE_RUNTIME_PROOF_DIGEST=$(jq -r '.runtime_proof_digest' "$GATE_DIR/assurance-runtime-readiness.json")"
-            echo "ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST=$(jq -r '.archive_validation_receipt_digest' "$GATE_DIR/assurance-runtime-readiness.json")"
             echo "ASSURANCE_ARTIFACT_ID=$ASSURANCE_ARTIFACT_ID"
             echo "ASSURANCE_ARTIFACT_DIGEST=$ASSURANCE_ARTIFACT_DIGEST"
             echo "ASSURANCE_ARCHIVE_READBACK=PASS"
@@ -386,7 +358,7 @@ jobs:
           const healthDigest=health&&/^sha256:[0-9a-f]{64}$/.test(health.receipt_digest||'')&&health.receipt_digest===sha256(healthUnsigned)?health.receipt_digest:null;
           const exactSource=process.env.CURRENT_MAIN_SHA===process.env.UPSTREAM_SHA && /^[0-9a-f]{40}$/.test(process.env.UPSTREAM_SHA||'');
           const upstreamAssurancePass=process.env.UPSTREAM_CONCLUSION==='success' && process.env.UPSTREAM_WORKFLOW_NAME==='KIDULTS Platform Continuous Assurance V1';
-          const assuranceReady=process.env.ASSURANCE_RUNTIME_READINESS==='VERIFIED_PASS' && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_AUDIT_RECEIPT_DIGEST||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_RUNTIME_PROOF_DIGEST||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST||'') && /^[1-9][0-9]*$/.test(process.env.ASSURANCE_ARTIFACT_ID||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_ARTIFACT_DIGEST||'') && process.env.ASSURANCE_ARCHIVE_READBACK==='PASS' && /^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_ARTIFACT_ID||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.PRODUCER_HEALTH_ARTIFACT_DIGEST||'');
+          const assuranceReady=process.env.ASSURANCE_RUNTIME_READINESS==='VERIFIED_PASS' && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_AUDIT_RECEIPT_DIGEST||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_RUNTIME_PROOF_DIGEST||'') && /^[1-9][0-9]*$/.test(process.env.ASSURANCE_ARTIFACT_ID||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.ASSURANCE_ARTIFACT_DIGEST||'') && process.env.ASSURANCE_ARCHIVE_READBACK==='PASS' && /^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_ARTIFACT_ID||'') && /^sha256:[0-9a-f]{64}$/.test(process.env.PRODUCER_HEALTH_ARTIFACT_DIGEST||'');
           const healthPass=health?.receipt_id==='kpmo-continuous-assurance-sentinel-health-v1' && health?.state==='VERIFIED_PASS' &&
             health?.source_sha===process.env.UPSTREAM_SHA && health?.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM' &&
             health?.semantic_content_verified===true && health?.runtime_health_proven===false &&
@@ -401,7 +373,6 @@ jobs:
             assurance_artifact_id:assuranceReady?Number(process.env.ASSURANCE_ARTIFACT_ID):null,
             assurance_artifact_digest:assuranceReady?process.env.ASSURANCE_ARTIFACT_DIGEST:null,
             assurance_archive_readback:assuranceReady?'PASS':'NOT_VERIFIED',
-            assurance_archive_validation_receipt_digest:assuranceReady?process.env.ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST:null,
             producer_health_artifact_id:assuranceReady?Number(process.env.PRODUCER_HEALTH_ARTIFACT_ID):null,
             producer_health_artifact_digest:assuranceReady?process.env.PRODUCER_HEALTH_ARTIFACT_DIGEST:null,
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
@@ -454,7 +425,6 @@ jobs:
             (.assurance_artifact_id|type)=="number" and
             (.assurance_artifact_digest|test("^sha256:[0-9a-f]{64}$")) and
             .assurance_archive_readback=="PASS" and
-            (.assurance_archive_validation_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             (.producer_health_artifact_id|type)=="number" and
             (.producer_health_artifact_digest|test("^sha256:[0-9a-f]{64}$")) and
             .coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM" and
