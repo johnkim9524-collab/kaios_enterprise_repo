@@ -146,10 +146,13 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
-test('completion collection serializes Reserve into the strict sentinel gate',()=>{
+test('authoritative Sentinel starts only on the causal Requirement edge',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
- assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.match(s,/^  workflow_run:\n    workflows:\n      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/m);
+ assert.doesNotMatch(s,/      - 'KIDULTS ASI Sharded Source Reserve v1'/m);
+ assert.doesNotMatch(s,/      - 'KPMO Live Canonical Issue Truth V1'/m);
+ assert.doesNotMatch(s,/      - 'KIDULTS ASI SHADOW Operating Evidence v1'/m);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
