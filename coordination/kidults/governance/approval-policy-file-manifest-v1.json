@@ -3635,8 +3635,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bd9c45d92cc5cafec331fb24055e374bc5ed31a0",
-      "sha256": "sha256:befe522e516dbf6b09fe8b3316ec691eb6486e1b02ca4600d318056d201d0d81",
+      "git_blob": "aaea8eae59ebec91a417aa524561eeb4b5833471",
+      "sha256": "sha256:e2de34ecea0ff839f4e99b742812c879f5bc7345e0d959b86bc2f97784b0ada",
       "authorization_routing": {
         "route": "DOMAIN_ADJUDICATION",
         "coverage": {
@@ -3752,8 +3752,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b30fc520f875bc86bbf1df16c3dbbaf42b8d7523",
-      "sha256": "sha256:a3561bcb69f5664b815c8a94954a986de2472f3d6d3fb918ff5f5a41c7bc0917",
+      "git_blob": "cd3507f92415f1cc0b2de11d081e5b5f85e548f1",
+      "sha256": "sha256:992e3d582ed98803b76d372a866ca82e47acb9254439500c1370106481be67c5",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5354,8 +5354,8 @@
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "782a65d8b22e76a6ed04ade7641f5f528ccf1a7e",
-      "sha256": "sha256:af2c39195d709297a068aed677a01a55bb0f3efb66f891312ad8b66d24ccfcc0",
+      "git_blob": "b29a04995efa223997e1710d1b32b427f4b773e0",
+      "sha256": "sha256:c1ed5cd8b5159d2bd2e68f3327def5a12d0e8ce98d593d2cbb36154141a2a9d8",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6719f05a250867874811693bacf3373889508e5cc2d48272db1f840dd53bbb17"
+  "manifest_sha256": "sha256:602ea041665668b8da7d992cc73711dd8a5914b3faac7d3276b0011bc98362bf"
 }

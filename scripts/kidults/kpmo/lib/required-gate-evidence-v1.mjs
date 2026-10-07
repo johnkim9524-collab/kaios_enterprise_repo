@@ -41,3 +41,12 @@ export function bindRequiredGateEvidence({required, checks, statuses, headSha, f
     return {kind:'status', id:Number(status.id), app_id:integrationId(status), context:binding.context};
   });
 }
+
+// Check-run ids can be reissued for the same exact head. Callers must first bind
+// current evidence through bindRequiredGateEvidence, which enforces SHA, app,
+// context, and green state; this compares only the authorization identity.
+export function sameRequiredGateEvidenceAuthority(current, dispatched) {
+  return Boolean(current && dispatched && current.kind === dispatched.kind
+    && current.context === dispatched.context
+    && Number(current.app_id) === Number(dispatched.app_id));
+}

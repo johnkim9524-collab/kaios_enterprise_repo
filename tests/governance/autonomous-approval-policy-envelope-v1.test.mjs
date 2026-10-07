@@ -4,6 +4,7 @@ import fs from "node:fs";
 import { spawnSync } from "node:child_process";
 import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
 import {assertAutonomousFileScope,collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
+import {sameRequiredGateEvidenceAuthority} from "../../scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
 test("repository-wide approval envelope is internally consistent", () => {
@@ -83,6 +84,13 @@ test("finalizer revalidates paginated checks and shared status identity", () => 
   const binding=fs.readFileSync("scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs","utf8");
   for(const marker of ["check-runs?filter=all&per_page=100&page=","AUTONOMOUS_REQUIRED_SET_DRIFT","AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT","bindRequiredGateEvidence"]) assert.ok(source.includes(marker),marker);
   for(const marker of ["value.app?.id","value.sha === headSha","status.state !== 'success'","landingContexts"]) assert.ok(binding.includes(marker),marker);
+});
+test("same-head required-check reissues preserve authority while live binding enforces the current run", () => {
+  const dispatched={kind:"check",id:100,app_id:15368,context:"CI"};
+  assert.equal(sameRequiredGateEvidenceAuthority({kind:"check",id:200,app_id:15368,context:"CI"},dispatched),true);
+  assert.equal(sameRequiredGateEvidenceAuthority({kind:"check",id:200,app_id:42,context:"CI"},dispatched),false);
+  assert.equal(sameRequiredGateEvidenceAuthority({kind:"status",id:200,app_id:15368,context:"CI"},dispatched),false);
+  assert.equal(sameRequiredGateEvidenceAuthority({kind:"check",id:200,app_id:15368,context:"Other"},dispatched),false);
 });
 test("approval roles derive decisions before durable signing", () => {
   const source=fs.readFileSync("scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs","utf8");
