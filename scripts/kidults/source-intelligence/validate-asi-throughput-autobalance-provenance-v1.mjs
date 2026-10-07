@@ -26,6 +26,9 @@ function validate(text) {
   requireText('.head_sha==$sha', 'exact producer SHA binding');
   requireText('EXPECTED_PRODUCER_SHA="$CURRENT_SHA"', 'current-main exact-generation binding');
   requireText('test "$GITHUB_REF" = "refs/heads/main"', 'non-PR protected-main gate');
+  requireText('CURRENT_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')"', 'protected-main source lookup');
+  requireText('if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then', 'stale scheduled source rejection');
+  requireText('STALE_SCHEDULE_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'precise stale scheduled source diagnosis');
   requireText('AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10', 'bounded producer wait attempt cap');
   requireText('AUTOBALANCE_PRODUCER_WAIT_SECONDS=3', 'bounded producer wait interval');
   requireText('for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS")', 'bounded producer poll loop');
@@ -71,6 +74,7 @@ const mutations = [
   ['if length==1 then .[0] else empty end','.[0] // empty'],
   ['.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"','.head_branch=="main"'],
   ['EXPECTED_PRODUCER_SHA="$CURRENT_SHA"','EXPECTED_PRODUCER_SHA=""'],
+  ['if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then','if false; then'],
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],

@@ -19,6 +19,9 @@ def validate_contract(text: str) -> None:
     assert 'readback_result="$(read_run_terminal "${run_id}" 30)"' in text
     assert 'if [[ "${latest_conclusion}" == "cancelled" ]]' in text
     assert 'Cancellation not terminally confirmed for run' in text
+    assert 'GITHUB_PREQUEUE_CANCELLATION_RACE:run=${run_id}' in text
+    assert '"${cancel_message}" == *"not been queued yet"*' in text
+    assert '"${force_message}" == *"not been queued yet"*' in text
     assert 'same_head_runs_cancelled:0' in text
     assert 'generation_bridge_runs_retained:$generation_bridge_retained' in text
     assert ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml" in text
@@ -36,6 +39,11 @@ def validate_contract(text: str) -> None:
 
     forbidden = 'if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'
     assert forbidden not in text
+
+    prequeue_diagnosis = text.index('GITHUB_PREQUEUE_CANCELLATION_RACE:run=${run_id}')
+    terminal_failure = text.index('Cancellation not terminally confirmed for run', prequeue_diagnosis)
+    explicit_failure = text.index('exit 1', terminal_failure)
+    assert prequeue_diagnosis < terminal_failure < explicit_failure
 
 
 def test_exact_head_supersession_contract() -> None:
