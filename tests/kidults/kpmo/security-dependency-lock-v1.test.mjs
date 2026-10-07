@@ -1,15 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {validateDependencyLock, versionAtLeast, WRANGLER_VERSION, UNDICI_VERSION} from '../../../scripts/kidults/kpmo/security-dependency-lock-v1.mjs';
+import {validateDependencyLock, versionAtLeast, WRANGLER_VERSION, SHARP_PARENT_VERSION, SHARP_VERSION, UNDICI_VERSION} from '../../../scripts/kidults/kpmo/security-dependency-lock-v1.mjs';
 const node = (name, version, dependencies = {}) => ({version, dependencies,
   resolved: `https://registry.npmjs.org/${name}/-/${name}-${version}.tgz`, integrity: `sha512-${'A'.repeat(86)}==`});
-const fixture = () => ({manifest: {packageManager: 'npm@11.17.0', overrides: {undici: UNDICI_VERSION}, devDependencies: {wrangler: WRANGLER_VERSION}},
+const fixture = () => ({manifest: {packageManager: 'npm@11.17.0', overrides: {undici: UNDICI_VERSION, sharp: SHARP_VERSION}, devDependencies: {wrangler: WRANGLER_VERSION}},
   lock: {lockfileVersion: 3, packages: {
     '': {packageManager: 'npm@11.17.0', devDependencies: {wrangler: WRANGLER_VERSION}},
     'node_modules/wrangler': node('wrangler', WRANGLER_VERSION, {miniflare: '5.20260901.0-alpha'}),
-    'node_modules/miniflare': node('miniflare', '5.20260901.0-alpha', {sharp: '0.35.4', undici: '7.29.0'}),
-    'node_modules/sharp': node('sharp', '0.35.4'),
+    'node_modules/miniflare': node('miniflare', '5.20260901.0-alpha', {sharp: SHARP_PARENT_VERSION, undici: '7.29.0'}),
+    'node_modules/sharp': node('sharp', SHARP_VERSION),
     'node_modules/undici': node('undici', UNDICI_VERSION),
   }}});
 test('pure policy accepts a patched graph without changing its input', () => {
@@ -45,7 +45,10 @@ const mutations = [
   ['linked sharp', x => x.lock.packages['node_modules/sharp'].link = true],
   ['missing integrity', x => delete x.lock.packages['node_modules/sharp'].integrity],
   ['wrong registry', x => x.lock.packages['node_modules/sharp'].resolved = 'https://example.invalid/sharp.tgz'],
-  ['vulnerable root', x => {x.lock.packages['node_modules/sharp'] = node('sharp', '0.35.2'); x.lock.packages['node_modules/miniflare'].dependencies.sharp = '0.35.2';}],
+  ['missing sharp override', x => delete x.manifest.overrides.sharp],
+  ['floating sharp override', x => x.manifest.overrides.sharp = '^0.35.5'],
+  ['vulnerable root', x => x.lock.packages['node_modules/sharp'] = node('sharp', '0.35.4')],
+  ['unapproved sharp major', x => x.lock.packages['node_modules/sharp'] = node('sharp', '1.0.0')],
   ['vulnerable nested', x => x.lock.packages['node_modules/other/node_modules/sharp'] = node('sharp', '0.35.3')],
   ['vulnerable alias', x => x.lock.packages['node_modules/alias'] = {...node('sharp', '0.35.3'), name: 'sharp'}],
   ['prerelease', x => x.lock.packages['node_modules/other/node_modules/sharp'] = node('sharp', '0.35.4-rc.1')],
@@ -53,9 +56,9 @@ const mutations = [
 for (const [name, mutate] of mutations) test(`reject ${name}`, () => {
   const x = fixture(); mutate(x); assert.throws(() => validateDependencyLock(x.manifest, x.lock));
 });
-for (const value of ['0.35.4', '0.35.10', '0.36.0', '1.0.0']) test(`numeric minimum ${value}`, () => assert.equal(versionAtLeast(value, '0.35.4'), true));
-for (const value of ['0.35.3', '0.34.100', '0.0.0']) test(`numeric rejection ${value}`, () => assert.equal(versionAtLeast(value, '0.35.4'), false));
-for (const value of ['', null, '0.35', '0.35.4-rc.1', '0.35.4+build', '00.35.4', '9007199254740992.0.0']) test(`malformed version ${value}`, () => assert.throws(() => versionAtLeast(value, '0.35.4')));
+for (const value of ['0.35.5', '0.35.10', '0.36.0', '1.0.0']) test(`numeric minimum ${value}`, () => assert.equal(versionAtLeast(value, '0.35.5'), true));
+for (const value of ['0.35.4', '0.34.100', '0.0.0']) test(`numeric rejection ${value}`, () => assert.equal(versionAtLeast(value, '0.35.5'), false));
+for (const value of ['', null, '0.35', '0.35.5-rc.1', '0.35.5+build', '00.35.5', '9007199254740992.0.0']) test(`malformed version ${value}`, () => assert.throws(() => versionAtLeast(value, '0.35.5')));
 test('full audit scope and recursive dependency changes remain enforced', () => {
   const source = fs.readFileSync('.github/workflows/kidults-security-assurance-empirical-r1.yml', 'utf8');
   for (const text of ['"**/package.json"', '"**/package-lock.json"', 'node --test tests/kidults/kpmo/security-dependency-lock-v1.test.mjs',
