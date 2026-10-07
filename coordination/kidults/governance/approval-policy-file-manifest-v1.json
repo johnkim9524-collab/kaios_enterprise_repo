@@ -3323,8 +3323,8 @@
     {
       "path": "scripts/kidults/kpmo/canonical-generation-v3.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6446aff7770b27d7b4bd17c5a0ab226e5bd354a1",
-      "sha256": "sha256:8d69823d920fc2a8277713d0847bd87040387fea171e5bb8436f637807be86cf",
+      "git_blob": "1fedf66d11e19cd7e52bbe605a90a0d695e6bad7",
+      "sha256": "sha256:d9be86f6e49b037fe596b67606ed80f45acc4cc7be6d1e504db243dd09a5c30a",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:42e22c22bd4e3f506074ca06e97a8dfbb571a2d37ee91d897fa81dc3df510e78"
+  "manifest_sha256": "sha256:fb7854eb74cb85632ee2d959b03fca27bc36b9f3c0b41f44c3bcf127dba20503"
 }
