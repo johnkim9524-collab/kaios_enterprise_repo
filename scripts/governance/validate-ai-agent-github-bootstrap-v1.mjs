@@ -434,6 +434,20 @@ const digestReceipt = (receipt, nonce) => {
     .update(stableStringify(withoutDigest), 'utf8')
     .digest('hex')}`;
 };
+// GitHub Actions checkouts may be shallow/promisor repositories. Cloning that
+// worktree directly makes Git try to materialize unrelated historical objects
+// even though this validator only needs the exact committed tree under test.
+// Seed a temporary bare repository with the exact commit and expose it through
+// one synthetic branch so the isolation test remains self-contained without
+// changing the source repository or weakening any trust assertions.
+const createExactCommitSource = (repositoryRoot, commitSha, temporaryRoot) => {
+  const sourceRepository = path.join(temporaryRoot, 'exact-commit-source.git');
+  git(null, ['init', '--bare', '--quiet', sourceRepository]);
+  git(sourceRepository, ['fetch', '--quiet', '--depth=1', repositoryRoot, commitSha], { allowFile: true });
+  git(sourceRepository, ['update-ref', 'refs/heads/exact-commit', commitSha]);
+  git(sourceRepository, ['symbolic-ref', 'HEAD', 'refs/heads/exact-commit']);
+  return sourceRepository;
+};
 const unkeyedDigestReceipt = (receipt) => {
   const { receipt_digest: ignored, ...withoutDigest } = receipt;
   void ignored;
@@ -1177,8 +1191,10 @@ try {
 
 const isolationParent = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-agent-git-isolation-negative-'));
 const isolationRoot = path.join(isolationParent, 'repository');
+let exactCommitSource;
 try {
-  git(null, ['clone', '--no-local', '--quiet', root, isolationRoot], {
+      exactCommitSource = createExactCommitSource(root, workingSha, isolationParent);
+    git(null, ['clone', '--no-local', '--quiet', exactCommitSource, isolationRoot], {
     allowFile: true,
     stdio: ['ignore', 'pipe', 'pipe']
   });
