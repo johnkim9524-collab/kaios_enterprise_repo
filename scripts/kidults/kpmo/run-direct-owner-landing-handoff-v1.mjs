@@ -265,8 +265,12 @@ try {
   if (runAttempt !== 1) fail('DIRECT_OWNER_HANDOFF_RERUN_FORBIDDEN');
   if (!Number.isInteger(handoffWindowSeconds) || handoffWindowSeconds < 60 || handoffWindowSeconds > 900) fail('DIRECT_OWNER_HANDOFF_WINDOW_INVALID');
 
-  const repositoryMetadata = await request('');
-  const owner = repositoryMetadata?.owner?.login;
+  // Derive the repository owner from the immutable repository binding.  The
+  // trusted workflow token is deliberately limited to read/status scopes and
+  // may reject an otherwise unnecessary repository-metadata GET with 403.
+  // The dispatch actor is still checked against this owner before any status
+  // or landing operation, so no authority is inferred from an API response.
+  const owner = repository.split('/')[0];
   if (!owner || actor !== owner) fail('DIRECT_OWNER_HANDOFF_DISPATCH_ACTOR_NOT_OWNER');
 
   await publish('pending', 'Direct Owner exact-head handoff validation in progress');
