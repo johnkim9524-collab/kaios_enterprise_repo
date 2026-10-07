@@ -483,8 +483,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5062632be29c2da9f0d319bc69b2fb3d815069c0",
-      "sha256": "sha256:7f9d1f0f244573cf1b7e6e1e242ab4a97410b1f3c85db85b8629d53f82708d69",
+      "git_blob": "c56ae0865a7c830b39c553955a62dd6f231718c3",
+      "sha256": "sha256:ce3e388b36c656a6f0373674a25551fd8da380952168ddaaf19b7a945ec17440",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:664a130197784b31f79a39eaca7a4a46b65c91be837de38c9b223f0e356fa33e"
+  "manifest_sha256": "sha256:77ee44f98501ad54c3303eddad6d498171b492eaddc680d02b9d70852a3bf713"
 }
