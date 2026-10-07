@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   checkPolicyVersionConsistency,
   createStagePolicyAuthorities,
+  loadStageEvidence,
 } from './a32-production-reality-gate.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -73,3 +74,42 @@ test('wrong stage-specific version fails closed', () => {
   assert.equal(result.mismatches[0].stage, 'a31');
   assert.equal(result.mismatches[0].reason, 'POLICY_VERSION_MISMATCH');
 });
+
+test('SIMULATION never reads persisted operational evidence', () => {
+  const generatedAt = '2026-10-07T00:00:00.000Z';
+  const evidence = loadStageEvidence({
+    mode: 'SIMULATION',
+    reportRoots: { a24: '/persisted/a24' },
+    generatedAt,
+    readLatest: () => {
+      throw new Error('SIMULATION attempted to read persisted evidence');
+    },
+  });
+
+  assert.deepEqual(evidence, {
+    a24: { _fallback: true, stage: 'a24', generatedAt },
+  });
+});
+
+for (const mode of ['EVIDENCE', 'LIVE_SAFE']) {
+  test(`${mode} reads persisted evidence for fail-closed validation`, () => {
+    let reads = 0;
+    const persisted = {
+      policyVersion: 'stale-or-mismatched-policy',
+      generatedAt: '2026-01-01T00:00:00.000Z',
+    };
+    const evidence = loadStageEvidence({
+      mode,
+      reportRoots: { a24: '/persisted/a24' },
+      generatedAt: '2026-10-07T00:00:00.000Z',
+      readLatest: (dir) => {
+        reads += 1;
+        assert.equal(dir, '/persisted/a24');
+        return persisted;
+      },
+    });
+
+    assert.equal(reads, 1);
+    assert.equal(evidence.a24, persisted);
+  });
+}
