@@ -14,7 +14,7 @@
   "semantic_freshness": {
     "status": "CURRENT_CANONICAL_BASELINE",
     "policy_baseline": "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
-    "track_registry_version": "1.6.0",
+    "track_registry_version": "1.7.0",
     "blocker_registry_version": "1.4.0",
     "snapshot_registry_version": "1.3.0",
     "evidence_registry_version": "1.6.0",
