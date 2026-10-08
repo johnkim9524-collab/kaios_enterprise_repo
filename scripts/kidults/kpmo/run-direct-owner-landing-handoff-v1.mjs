@@ -11,6 +11,7 @@ import {
   reconcileAtomicLandingCurrentRunIndex,
 } from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
+import {validateOwnerRecoveryBootstrapResume} from '../../governance/lib/owner-recovery-bootstrap-resume-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -359,12 +360,19 @@ try {
   const finalApproval = selectApproval(finalComments, owner, finalPr, finalHeadCommit, finalReady, {landingAttemptStartedAt});
   if (finalApproval.comment_id !== approval.comment_id || finalApproval.comment_body_sha256 !== approval.comment_body_sha256) fail('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT');
 
+  let resumeRecovery=null;
+  if(purpose==='RESUME_LEDGER_BOOTSTRAP') {
+    resumeRecovery=validateOwnerRecoveryBootstrapResume({
+      policy:JSON.parse(fs.readFileSync('coordination/kidults/governance/resume-contract-v1.json','utf8')),
+      purpose,repository,actor,executionRef,approval:finalApproval,ready:finalReady,oneUse,runId,runAttempt,handoffWindowSeconds});
+  }
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();
   receipt = {
     id: 'kidults-direct-owner-landing-handoff-receipt-v1',
     version: '1.0.0',
     state: 'AUTHORIZED_HANDOFF_WINDOW_OPEN',
+    resume_recovery_bootstrap: resumeRecovery,
     repository,
     pull_request: Number(prNumber),
     exact_base_sha: expectedBaseSha,
