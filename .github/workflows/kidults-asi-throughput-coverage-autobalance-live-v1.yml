@@ -191,6 +191,24 @@ jobs:
             /tmp/asi-throughput-coverage-autobalance-live-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
 
+      - name: Recheck exact protected main before artifact finalization
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FINAL_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test -n "$FINAL_PROTECTED_MAIN_SHA"
+          if [ "$FINAL_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error title=Protected main advanced during autobalance::STALE_FINALIZATION_SOURCE_SHA:${GITHUB_SHA}:${FINAL_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
+          if [ "$AUTOBALANCE_EXPECTED_PRODUCER_SHA" != "$FINAL_PROTECTED_MAIN_SHA" ]; then
+            echo "::error title=Producer generation no longer matches protected main::FINAL_PRODUCER_SHA_MISMATCH:${AUTOBALANCE_EXPECTED_PRODUCER_SHA}:${FINAL_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
+          echo "FINAL_PROTECTED_MAIN_SHA=$FINAL_PROTECTED_MAIN_SHA" >> "$GITHUB_ENV"
       - name: Emit exact producer provenance receipt
         if: github.event_name != 'pull_request'
         shell: bash
@@ -214,6 +232,9 @@ jobs:
           if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
             throw new Error('PRODUCER_SHA_MISMATCH');
           }
+          if (process.env.FINAL_PROTECTED_MAIN_SHA !== process.env.GITHUB_SHA || process.env.FINAL_PROTECTED_MAIN_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
+            throw new Error('FINAL_PROTECTED_MAIN_SHA_MISMATCH');
+          }
           for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_DISC_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
@@ -222,6 +243,7 @@ jobs:
             status: 'VERIFIED_EXACT_PRODUCER_BINDING',
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
+            final_protected_main_sha: process.env.FINAL_PROTECTED_MAIN_SHA,
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,

@@ -19,7 +19,7 @@ on:
       - 'tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs'
       - 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json'
   workflow_run:
-    workflows: ['KIDULTS Platform Continuous Assurance V1']
+    workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']
     branches: [main]
     types: [completed]
 
@@ -58,6 +58,74 @@ jobs:
           node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
 
+  sentinel-failure-authority-gate:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
+      github.event.workflow_run.status == 'completed' &&
+      github.event.workflow_run.conclusion != 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    env:
+      SENTINEL_RUN_ID: ${{ github.event.workflow_run.id }}
+      SENTINEL_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      SENTINEL_SHA: ${{ github.event.workflow_run.head_sha }}
+      SENTINEL_EVENT: ${{ github.event.workflow_run.event }}
+      SENTINEL_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      NEGATIVE_GATE_DIR: /tmp/kpmo-negative-authority-gate
+    steps:
+      - name: Emit direct terminal negative authority receipt
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NEGATIVE_GATE_DIR"
+          CURRENT_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test -n "$CURRENT_MAIN_SHA"
+          export CURRENT_MAIN_SHA
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const base={
+            receipt_id:'kpmo-continuous-assurance-negative-authority-gate-v1',
+            version:'1.0.0',
+            state:'VERIFIED_FAIL',
+            failure_class:'SENTINEL_TERMINAL_NON_SUCCESS',
+            authority_invalidated:true,
+            invalidates_prior_success:true,
+            repository:process.env.GITHUB_REPOSITORY,
+            upstream_observation:{
+              workflow_name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',
+              run_id:Number(process.env.SENTINEL_RUN_ID),
+              run_attempt:Number(process.env.SENTINEL_RUN_ATTEMPT),
+              head_sha:process.env.SENTINEL_SHA,
+              event:process.env.SENTINEL_EVENT,
+              conclusion:process.env.SENTINEL_CONCLUSION
+            },
+            current_protected_main_sha:process.env.CURRENT_MAIN_SHA,
+            source_sha_matches_current_main:process.env.CURRENT_MAIN_SHA===process.env.SENTINEL_SHA,
+            whole_platform_authority:false,
+            promotion_eligible:false,
+            empirical_authority:false,
+            public:'HOLD', production:'HOLD', g5:'HOLD'
+          };
+          const digest='sha256:'+crypto.createHash('sha256').update(JSON.stringify(base)).digest('hex');
+          fs.writeFileSync(`${process.env.NEGATIVE_GATE_DIR}/kpmo-continuous-assurance-negative-authority-gate-v1.json`,JSON.stringify({...base,receipt_digest:digest},null,2)+'\n');
+          NODE
+      - name: Upload direct terminal negative authority receipt
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kpmo-continuous-assurance-negative-authority-gate-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ env.NEGATIVE_GATE_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
   success-authority-gate:
     if: >-
       github.event_name == 'workflow_run' &&

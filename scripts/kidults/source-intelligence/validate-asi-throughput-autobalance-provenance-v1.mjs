@@ -31,6 +31,10 @@ function validate(text) {
   requireText('CURRENT_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')"', 'protected-main source lookup');
   requireText('if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then', 'stale scheduled source rejection');
   requireText('STALE_SCHEDULE_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'precise stale scheduled source diagnosis');
+  requireText('FINAL_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')"', 'final protected-main recheck');
+  requireText('STALE_FINALIZATION_SOURCE_SHA:${GITHUB_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'finalization stale-source rejection');
+  requireText('FINAL_PRODUCER_SHA_MISMATCH:${AUTOBALANCE_EXPECTED_PRODUCER_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'final producer-source mismatch rejection');
+  requireText('final_protected_main_sha: process.env.FINAL_PROTECTED_MAIN_SHA', 'final protected-main receipt binding');
   requireText('AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10', 'bounded producer wait attempt cap');
   requireText('AUTOBALANCE_PRODUCER_WAIT_SECONDS=3', 'bounded producer wait interval');
   requireText('for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS")', 'bounded producer poll loop');
@@ -69,6 +73,8 @@ const requireConsumerText = (source, needle, label) => {
   if (!source.includes(needle)) failures.push(`missing ${label}`);
 };
 requireConsumerText(selfDriving, '--expected-source-sha "$GITHUB_SHA"', 'self-driving exact-source artifact selection');
+requireConsumerText(selfDriving, "if: github.event_name != 'pull_request'", 'self-driving natural execution guard');
+if (selfDriving.includes("if: github.event_name == 'workflow_dispatch'")) failures.push('self-driving schedule and push paths remain no-op');
 requireConsumerText(selfDriving, 'STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'self-driving live-main stale-source guard');
 if (selfDriving.indexOf('Reject stale scheduled or manual consumer source SHA')
     > selfDriving.indexOf('node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs')) {
