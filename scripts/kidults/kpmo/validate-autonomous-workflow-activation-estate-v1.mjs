@@ -25,9 +25,17 @@ const protectedManual = new Set([
   'kidults-pcgs-live-single-record-probe-r1.yml',
   'kidults-production-release-evidence-v1.yml',
   'kidults-runtime-remote-readonly-inventory.yml',
+  'kidults-staging-ssh-postgres-readonly-v1.yml',
   'p0-postgres-target-time-restore-verification.yml',
   'p0-remote-postgres-persistence-pitr.yml',
 ]);
+
+// Credential-bearing STAGING diagnostics remain deliberately manual-only.
+// Their classification prevents the natural activation audit from treating
+// the protected recovery surface as an abandoned autonomous producer.
+const requiredProtectedManual = [
+  'kidults-staging-ssh-postgres-readonly-v1.yml',
+];
 
 const autonomousRequired = new Map([
   ['kidults-asi-p0b-bounded-discovery-candidates-v1.yml', ['schedule']],
@@ -55,8 +63,19 @@ for (const file of files) {
   if (observed.length === 1 && observed[0] === 'workflow_dispatch') pureManual.push(file);
 }
 
-const unclassifiedManual = pureManual.filter(file => !protectedManual.has(file));
+const findUnclassifiedManual = (catalog) => pureManual.filter(file => !catalog.has(file));
+const unclassifiedManual = findUnclassifiedManual(protectedManual);
 assert(unclassifiedManual.length === 0, `UNCLASSIFIED_MANUAL_WORKFLOW:${JSON.stringify(unclassifiedManual)}`);
+let protectedManualMutationsRejected = 0;
+for (const file of requiredProtectedManual) {
+  assert(pureManual.includes(file), `PROTECTED_MANUAL_WORKFLOW_TRIGGER_DRIFT:${file}`);
+  assert(protectedManual.has(file), `PROTECTED_MANUAL_WORKFLOW_CLASSIFICATION_MISSING:${file}`);
+  const mutatedCatalog = new Set(protectedManual);
+  mutatedCatalog.delete(file);
+  const detected = findUnclassifiedManual(mutatedCatalog);
+  assert(detected.length === 1 && detected[0] === file, `PROTECTED_MANUAL_CLASSIFICATION_NEGATIVE_NOT_REJECTED:${file}:${JSON.stringify(detected)}`);
+  protectedManualMutationsRejected += 1;
+}
 for (const [file, required] of autonomousRequired) {
   const source = fs.readFileSync(path.join(workflowRoot, file), 'utf8');
   const observed = new Set(triggers(source));
@@ -135,6 +154,7 @@ console.log(JSON.stringify({
   protected_manual_catalog_count: protectedManual.size,
   protected_manual_catalog_may_include_non_pure_manual_controls: true,
   unclassified_manual_count: unclassifiedManual.length,
+  protected_manual_adversarial_mutations_rejected: protectedManualMutationsRejected,
   natural_chain_workflow_run_depth: naturalChainDepth,
   natural_chain_workflow_run_maximum: 3,
   natural_chain_adversarial_mutations_rejected: naturalChainMutationsRejected,
