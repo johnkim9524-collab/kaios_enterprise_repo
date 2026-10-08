@@ -71,7 +71,7 @@ if (executionPlan.live_execution !== 'HOLD_UNTIL_PRECONDITIONS') throw new Error
 
 const key = randomBytes(32);
 const observedAt = new Date('2026-08-28T00:00:00.000Z');
-const record = buildPrivatePsaRecord({ certNumber: syntheticCert, payload: { PSACert: { Brand: 'TEST', TotalPopulation: 1 } }, key, observedAt });
+const record = buildPrivatePsaRecord({ certNumber: syntheticCert, payload: { PSACert: { CertNumber: syntheticCert, Brand: 'TEST', TotalPopulation: 1 } }, key, observedAt });
 if (record.record_version !== '1.1.0' || record.classification !== 'PRIVATE_ONLY' || record.plaintext_persisted !== false || record.delete_at !== '2026-09-27T00:00:00.000Z') throw new Error('PSA_PRIVATE_RECORD_CONTRACT_INVALID');
 if (!/^sha256:[0-9a-f]{64}$/.test(record.record_digest) || !/^sha256:[0-9a-f]{64}$/.test(record.aad_digest)) throw new Error('PSA_PRIVATE_RECORD_INTEGRITY_BINDING_INVALID');
 const decoded = decryptPrivatePsaRecord(record, key);
@@ -86,7 +86,7 @@ negativePass = false;
 try { buildPrivatePsaRecord({ certNumber: syntheticCert, payload: { PSACert: { Brand: 'TEST', Price: 100 } }, key, observedAt }); } catch (e) { negativePass = e.message === 'PSA_PAYLOAD_FIELD_NOT_ALLOWED:Price'; }
 if (!negativePass) throw new Error('PSA_UNAPPROVED_FIELD_NEGATIVE_TEST_FAILED');
 negativePass = false;
-try { buildPrivatePsaRecord({ certNumber: syntheticCert, payload: { PSACert: { Brand: 'TEST' } }, key: Buffer.alloc(16), observedAt }); } catch (e) { negativePass = e.message === 'PSA_AES_256_KEY_REQUIRED'; }
+try { buildPrivatePsaRecord({ certNumber: syntheticCert, payload: { PSACert: { CertNumber: syntheticCert, Brand: 'TEST' } }, key: Buffer.alloc(16), observedAt }); } catch (e) { negativePass = e.message === 'PSA_AES_256_KEY_REQUIRED'; }
 if (!negativePass) throw new Error('PSA_WEAK_KEY_NEGATIVE_TEST_FAILED');
 negativePass = false;
 try { decryptPrivatePsaRecord({ ...record, delete_at: '2026-09-28T00:00:00.000Z' }, key); } catch (e) { negativePass = e.message === 'PSA_RECORD_DIGEST_INVALID'; }

@@ -12,6 +12,7 @@ import {
 } from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {validateOwnerRecoveryBootstrapResume} from '../../governance/lib/owner-recovery-bootstrap-resume-v1.mjs';
+import {verifyDirectOwnerMergeWindow} from './lib/direct-owner-merge-window-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -439,13 +440,8 @@ try {
     if (parentShas.length !== 2 || parentShas[0] !== expectedBaseSha || parentShas[1] !== expectedHeadSha) {
       fail('DIRECT_OWNER_HANDOFF_ORDERED_PARENTS_MISMATCH');
     }
-    const mergedAt = parseTime(after?.merged_at, 'DIRECT_OWNER_HANDOFF_MERGED_AT_INVALID');
-    const openedAtMs = parseTime(openedAt, 'DIRECT_OWNER_HANDOFF_OPENED_AT_INVALID');
-    const closesAtMs = openedAtMs + handoffWindowSeconds * 1000;
-    const approvalExpiresAtMs = parseTime(approval.expires_at, 'DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_INVALID');
-    if (mergedAt < openedAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_BEFORE_WINDOW_OPEN');
-    if (mergedAt > closesAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_AFTER_WINDOW');
-    if (mergedAt > approvalExpiresAtMs) fail('DIRECT_OWNER_HANDOFF_MERGE_AFTER_APPROVAL_EXPIRY');
+    const mergeTimePrecision = verifyDirectOwnerMergeWindow({mergedAt: after?.merged_at,
+      openedAt, handoffWindowSeconds, approvalExpiresAt: approval.expires_at});
     if (afterMain?.commit?.sha !== after.merge_commit_sha) fail('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
     receipt = {
       ...receipt,
@@ -455,6 +451,7 @@ try {
       ordered_parent_shas: parentShas,
       merged_by: after.merged_by.login,
       merged_at: after.merged_at || null,
+      merge_time_precision: mergeTimePrecision,
       handoff_closed_at: new Date().toISOString(),
     };
     writeReceipt(receipt);
@@ -478,7 +475,9 @@ try {
     try { await publish('failure', failureCode); } catch {}
   }
   try {
-    writeReceipt({...receipt, state: 'VERIFIED_FAIL', failure_code: failureCode, handoff_closed_at: new Date().toISOString()});
+    writeReceipt({...receipt, state: 'VERIFIED_FAIL', failure_code: failureCode,
+      ...(error.merge_time_precision ? {merge_time_precision: error.merge_time_precision} : {}),
+      handoff_closed_at: new Date().toISOString()});
   } catch {}
   throw error;
 }

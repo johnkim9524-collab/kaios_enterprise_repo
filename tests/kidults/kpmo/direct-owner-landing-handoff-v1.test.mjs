@@ -228,16 +228,18 @@ test('head tree is explicit in input, structured approval, receipt, preflight an
 
 test('consumed merge is explicitly bounded to opened window and approval expiry', () => {
   const mergedBranch = runner.indexOf('if (after?.merged === true)');
+  const guard = runner.indexOf('verifyDirectOwnerMergeWindow({mergedAt: after?.merged_at');
+  assert.ok(guard > mergedBranch && guard < runner.indexOf("state: 'CONSUMED_BY_DIRECT_OWNER_MERGE'"));
+  const helper = fs.readFileSync('scripts/kidults/kpmo/lib/direct-owner-merge-window-v1.mjs', 'utf8');
   for (const code of [
     'DIRECT_OWNER_HANDOFF_MERGE_BEFORE_WINDOW_OPEN',
     'DIRECT_OWNER_HANDOFF_MERGE_AFTER_WINDOW',
     'DIRECT_OWNER_HANDOFF_MERGE_AFTER_APPROVAL_EXPIRY',
   ]) {
-    const index = runner.indexOf(code);
-    assert.ok(index > mergedBranch, `${code} must be enforced inside merged classification`);
+    assert.ok(helper.includes(code), `${code} must be enforced by the consumed interval guard`);
   }
-  assert.match(runner, /const closesAtMs = openedAtMs \+ handoffWindowSeconds \* 1000/);
-  assert.match(runner, /const approvalExpiresAtMs = parseTime\(approval\.expires_at/);
+  assert.match(runner, /openedAt, handoffWindowSeconds, approvalExpiresAt: approval\.expires_at/);
+  assert.match(helper, /const closes = opened \+ handoffWindowSeconds \* 1000/);
 });
 
 test('terminal Handoff consumption is followed by exact merge-SHA push-suite consumption before artifact upload', () => {

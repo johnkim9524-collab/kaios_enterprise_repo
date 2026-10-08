@@ -126,6 +126,14 @@ jobs:
           node --test tests/kidults/kpmo/assurance-failure-retention-v1.test.mjs
           node --test tests/kidults/kpmo/private-acquisition-receipt-v1.test.mjs
 
+      - name: Verify holistic correction negative and boundary cases
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs tests/governance/autonomous-approval-policy-envelope-v1.test.mjs tests/kidults/staging-operations/provider-control-v1.test.mjs tests/kidults/kpmo/direct-owner-merge-window-v1.test.mjs
+          node --test services/kidults-control-plane/scripts/provider-control-runtime-v1.test.mjs services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs services/kidults-control-plane/scripts/psa-private-evaluation-v1.test.mjs services/kidults-control-plane/scripts/psa-cert-verification-adapter-v1.test.mjs
+          node scripts/kidults/provider/validate-psa-120-admission-controls-v1.mjs
+
       - name: Reject unbounded GitHub Actions API access
         run: |
           set -euo pipefail

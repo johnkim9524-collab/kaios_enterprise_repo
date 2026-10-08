@@ -2,11 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import { spawnSync } from "node:child_process";
-import {routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
+import {MUTATING_EXECUTION_LIBRARIES,EXPLICIT_EXECUTION_CONTROLS,routeAuthorizationControl,validateAuthorizationRoutingCoverage} from "../../scripts/governance/lib/approval-policy-routing-v1.mjs";
 import {assertAutonomousFileScope,collectPaginatedApiValues,sha256,validateLiveChangedPaths} from "../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs";
 import {sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from "../../scripts/kidults/kpmo/lib/required-gate-evidence-v1.mjs";
 const root = process.cwd();
 const envelope = JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json", "utf8"));
+test("protected mutation libraries cannot be exempted as non-mutating based on their directory",()=>{
+  const fail=code=>{throw new Error(code)};
+  for(const file of MUTATING_EXECUTION_LIBRARIES){
+    assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(file));
+    const source=fs.readFileSync(file,'utf8');
+    const routing=routeAuthorizationControl(file,source);
+    assert.equal(routing.route,'STAGING_BOUNDED');
+    assert.equal(routing.coverage.reason_code,'LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER');
+    const stale={path:file,classification:'EXECUTION_AUTHORIZATION_CONTROL',authorization_routing:{route:'DOMAIN_ADJUDICATION',coverage:{mode:'EXEMPTION',reason_code:'NON_MUTATING_VALIDATOR_OR_LIBRARY'}}};
+    assert.throws(()=>validateAuthorizationRoutingCoverage({files:[stale],readSource:()=>source,fail}),/EXECUTION_CONTROL_EXEMPTION_SOURCE_MISMATCH/);
+    assert.equal(validateAuthorizationRoutingCoverage({files:[{...stale,authorization_routing:routing}],readSource:()=>source,fail}).exemptions,1);
+  }
+  for(const source of ["call(['s3api','put-object']);","return invoke({action:'CREATE_RECOVERY_APPROVAL'});","await this.request('Put',payload);","return resumeOperation({execute});","fetch(url,{method:'POST'});"]){
+    assert.equal(routeAuthorizationControl('scripts/renamed/lib/adapter.mjs',source).route,'STAGING_BOUNDED');
+  }
+  for(const source of ['export const ok=true;','writeFileSync(path,value);','await query("INSERT INTO ledger VALUES (?)");']){
+    assert.equal(routeAuthorizationControl('scripts/example/lib/unknown.mjs',source).route,'INTERNAL_REVERSIBLE');
+    assert.notEqual(routeAuthorizationControl('scripts/example/lib/unknown.mjs',source).coverage.reason_code,'NON_MUTATING_VALIDATOR_OR_LIBRARY');
+  }
+  assert.equal(routeAuthorizationControl('scripts/example/lib/direct-owner-write.mjs','writeFileSync(path,value);').route,'OWNER_RESERVED');
+  for(const source of ["fetch(url,{method:'POST'});","call(['s3api','delete-object']);"]){
+    assert.equal(routeAuthorizationControl('scripts/example/lib/direct-owner-write.mjs',source).route,'OWNER_RESERVED');
+  }
+});
 test("repository-wide approval envelope is internally consistent", () => {
   const result = spawnSync(process.execPath, ["scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs"], {cwd:root,encoding:"utf8"});
   assert.equal(result.status, 0, result.stderr);
