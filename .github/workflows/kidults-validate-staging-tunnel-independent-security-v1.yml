@@ -5,6 +5,8 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, converted_to_draft, ready_for_review]
     paths:
+      - .github/workflows/kidults-validate-staging-tunnel-independent-security-v1.yml
+      - scripts/kidults/kpmo/verify-staging-tunnel-independent-v1.py
       - scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh
       - tests/kidults/kpmo/test_postgres_pitr_contract.py
   push:
