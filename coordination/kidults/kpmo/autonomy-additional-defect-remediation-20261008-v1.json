@@ -2,7 +2,7 @@
   "id": "kidults-autonomy-additional-defect-remediation-20261008-v1",
   "version": "1.0.0",
   "agent_id": "atlas-autonomy-correction",
-  "as_of": "2026-10-08T14:51:14.269351+00:00",
+  "as_of": "2026-10-08T15:10:34.203478+00:00",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "Six additional defects and one timestamp precision boundary case",
@@ -90,7 +90,10 @@
     "BIND_TESTS_TO_EXISTING_EXACT_HEAD_CI",
     "CROSS_REVIEW_BY_DISTINCT_RED_TEAM_AGENT",
     "REJECT_MISSING_DUPLICATE_SHADOW_APPROVAL_IDENTITY",
-    "BIND_ACTUAL_AUDIT_UPSTREAM_TO_SELECTED_SENTINEL"
+    "BIND_ACTUAL_AUDIT_UPSTREAM_TO_SELECTED_SENTINEL",
+    "PUBLISH_EXPECTED_HEAD_NONFORCED_DEVELOPMENT_BRANCH",
+    "RESEAL_740_FILE_INVENTORY_AND_VALIDATE_ROUTING",
+    "RECONCILE_AND_VERIFY_PREVIOUSLY_UNEXECUTED_EVENT_SCHEMA_CHECK"
   ],
   "exit_criteria": [
     "EXACT_HEAD_INDEPENDENT_MACHINE_VERIFICATION",
@@ -125,17 +128,19 @@
   },
   "local_verification": {
     "state": "VERIFIED_PASS",
-    "scope": "TARGETED_SYNTHETIC_REGRESSIONS_BEFORE_DERIVED_INVENTORY_RESEAL",
-    "targeted_test_count": 148,
+    "scope": "EXACT_COMMITTED_SOURCE_LOCAL_REGRESSION_NOT_REMOTE_RUNTIME_PROOF",
+    "verification_source_sha": "4f4b3ff75d4fdefae5b94e1e008c249bfc0c345b",
+    "targeted_test_count": 167,
     "targeted_failed_count": 0,
-    "independent_cross_review": "DISTINCT_RED_TEAM_AGENTS_REPRODUCED_IDENTITY_RETENTION_TIMESTAMP_AND_CAUSAL_BINDINGS",
+    "control_plane_test_count": 136,
+    "control_plane_failed_count": 0,
+    "provider_event_contract_test_count": 2,
+    "provider_event_contract_failed_count": 0,
+    "routing_test_count": 13,
+    "routing_failed_count": 0,
+    "independent_cross_review": "DISTINCT_RED_TEAM_AGENTS_EXACT_SOURCE_BOOTSTRAP_AND_NEGATIVE_REPRODUCTION",
     "remote_runtime_proof": false
   },
-  "unexecuted_checks": [
-    {
-      "check": "tests/kidults/staging-operations/autonomous-provider-contract-v1.test.mjs",
-      "reason": "AJV_NOT_INSTALLED_OFFLINE_CACHE_MISSING_REQUIRE_FROM_STRING",
-      "claims_pass": false
-    }
-  ]
+  "unexecuted_checks": [],
+  "dependency_resolution": "LOCAL_EXISTING_PACKAGES_MATCHED_NPM_SHRINKWRAP_VERSIONS_NO_NETWORK"
 }
