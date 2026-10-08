@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {buildSecurityRuntimeDomainReceipt} from '../../../scripts/kidults/kpmo/lib/security-runtime-domain-producer-v1.mjs';
+import {buildSecurityRuntimeDomainReceipt,verifyRawPythonAudit} from '../../../scripts/kidults/kpmo/lib/security-runtime-domain-producer-v1.mjs';
 import {verifyValueChainDomainReceipt} from '../../../scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs';
 const source='a'.repeat(40);
 // Synthetic unit inputs exercise the producer; they are never published as native proof.
@@ -42,3 +42,13 @@ test('registered native producer has automatic main execution and success-only e
   assert.equal(c.runtime_domain_sources.filter(s=>s.domain_id==='SECURITY_SUPPLY_CHAIN').length,1);
   assert.equal(c.runtime_domain_registry_required_count,14);
 });
+
+test('raw Python audit accepts an authenticated empty dependency set',()=>{
+  assert.equal(verifyRawPythonAudit({dependencies:[],fixes:[]}),0);
+});
+for(const [name,audit] of [
+  ['legacy top-level array',[]],['missing fixes',{dependencies:[]}],
+  ['unexpected fixes',{dependencies:[],fixes:[{}]}],
+  ['vulnerability',{dependencies:[{name:'unsafe',version:'1.0',vulns:[{id:'CVE-test'}]}],fixes:[]}],
+  ['malformed vulnerability list',{dependencies:[{name:'unsafe',version:'1.0'}],fixes:[]}],
+])test(`raw Python audit rejects ${name}`,()=>assert.throws(()=>verifyRawPythonAudit(audit),/SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_AUDIT/));
