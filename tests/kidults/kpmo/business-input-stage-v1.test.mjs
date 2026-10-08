@@ -1,11 +1,18 @@
 import {test} from 'node:test';
+// Keep the native transport adversaries in the existing required CI suite.
+import './authenticated-business-input-v1.test.mjs';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
 import {executeBoundBusinessInput} from '../../../scripts/kidults/runtime/execute-bound-business-input-v1.mjs';
 import {executeBusinessInputStage} from '../../../scripts/kidults/runtime/execute-business-input-stage-v1.mjs';
 import {canonicalJsonDigest} from '../../../scripts/kidults/market/current-sold-batch-v1.mjs';
 import {NOW,batchEnvelope,rawObservation,receiptRegistryFor,sealObservation} from '../market/current-sold-test-helpers-v1.mjs';
 import {verifyValueChainDomainReceipt} from '../../../scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs';
+test('pair bytes stay pinned across downstream processing and drift is rejected before dispatch',()=>{
+  const result=spawnSync('python3',['-I','tests/kidults/integration/exact-pair-input-connection-v1.test.py'],{encoding:'utf8',timeout:20000});
+  assert.equal(result.status,0,result.stderr);
+});
 function fixture(){const r=sealObservation(rawObservation()),envelope=batchEnvelope([r]),receiptRegistry=receiptRegistryFor(r);
   const binding={purpose:'CURRENT_SOLD_TRANSACTION',source_roles:['SOLD_TRANSACTION'],
     evidence_classes:['CURRENT_SOLD_TRANSACTION'],fields:['transaction_id','sold_status','realized_price','currency','sale_date'],
