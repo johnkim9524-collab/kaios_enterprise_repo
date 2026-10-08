@@ -45,7 +45,11 @@ def probe(run=subprocess.run, which=shutil.which, hostname=socket.gethostname, e
     return report
 
 
+def receipt_exit_code(receipt):
+    return 0 if receipt.get('identity_verified') is True and receipt.get('state') == 'LOCAL_READ_ONLY_VERIFIED' else 1
+
+
 if __name__ == '__main__':
     receipt = probe()
     print(json.dumps(receipt, separators=(',', ':')))
-    raise SystemExit(0 if receipt['identity_verified'] else 1)
+    raise SystemExit(receipt_exit_code(receipt))

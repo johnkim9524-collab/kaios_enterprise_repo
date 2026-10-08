@@ -95,6 +95,9 @@ jobs:
           p=Path('artifacts/staging-postgres-readonly/receipt.json')
           r=json.loads(p.read_text())
           assert r['identity_verified'] is True
+          assert r['state'] == 'LOCAL_READ_ONLY_VERIFIED'
+          assert r['psql_present'] is True
+          assert r['exit_code'] == 0
           assert r['mutation_performed'] is False
           assert r['provider_call_performed'] is False
           assert r['promotion_authorized'] is False
