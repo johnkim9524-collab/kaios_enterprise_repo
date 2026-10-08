@@ -66,7 +66,7 @@ for(const [name,change] of [
 ])test(`rejects ${name}`,()=>{const f=fixture();change(f);assert.throws(()=>buildSecurityRuntimeDomainReceipt(f));});
 test('registered native producer has automatic main execution and success-only exact-run upload',()=>{
   const w=fs.readFileSync('.github/workflows/kidults-security-assurance-empirical-r1.yml','utf8');
-  assert.match(w,/python -m pip_audit --disable-pip --no-deps -r "\\$req"/);
+  assert.ok(w.includes('python -m pip_audit --disable-pip --no-deps -r "$req"'));
   assert.match(w,/push:\s+branches: \[main\]/);
   assert.match(w,/if: success\(\) && github.event_name == 'push' && github.ref == 'refs\/heads\/main'/);
   assert.match(w,/kidults-security-runtime-domain-\$\{\{ github.sha \}\}-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/);
