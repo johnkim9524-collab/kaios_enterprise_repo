@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {verifyAssuranceReadiness,verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
 
@@ -44,6 +45,23 @@ function fixture(){
 }
 test('accepts a direct exact-main audit, 14 runtime receipts, and exact Sentinel artifact tuple',()=>{
   const f=fixture();assert.equal(verifyAssuranceReadiness(f).state,'VERIFIED_PASS');
+});
+test('real workflow audit producer emits exact upstream repository and main branch',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+  const expression=workflow.match(/upstream: (process\.env\.KPMO_UPSTREAM_RUN_ID \? \{[\s\S]*?\} : null),/)[1];
+  const f=fixture();
+  const env={KPMO_UPSTREAM_RUN_ID:'10',KPMO_UPSTREAM_RUN_ATTEMPT:'1',
+    KPMO_UPSTREAM_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',KPMO_UPSTREAM_HEAD_BRANCH:'main',
+    KPMO_UPSTREAM_WORKFLOW_NAME:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',
+    KPMO_UPSTREAM_WORKFLOW_PATH:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+    KPMO_UPSTREAM_EVENT:'workflow_run',KPMO_UPSTREAM_CONCLUSION:'success'};
+  f.audit.execution.upstream=JSON.parse(JSON.stringify(vm.runInNewContext(`(${expression})`,{process:{env}})));
+  f.audit=seal(Object.fromEntries(Object.entries(f.audit).filter(([k])=>k!=='receipt_digest')));
+  assert.equal(verifyAssuranceReadiness(f).state,'VERIFIED_PASS');
+  delete env.KPMO_UPSTREAM_REPOSITORY;
+  f.audit.execution.upstream=JSON.parse(JSON.stringify(vm.runInNewContext(`(${expression})`,{process:{env}})));
+  f.audit=seal(Object.fromEntries(Object.entries(f.audit).filter(([k])=>k!=='receipt_digest')));
+  assert.throws(()=>verifyAssuranceReadiness(f),/AUDIT_SENTINEL_CAUSAL_BINDING/);
 });
 test('rejects skipped or failed audit jobs even if the workflow itself succeeded',()=>{
   const f=fixture();f.auditJob.conclusion='skipped';

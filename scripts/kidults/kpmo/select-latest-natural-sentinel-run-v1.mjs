@@ -1,3 +1,4 @@
+import {verifyAuthenticatedSentinelContinuation} from './lib/authenticated-sentinel-continuation-v1.mjs';
 const SHA=/^[0-9a-f]{40}$/;
 // Select only authoritative natural Sentinel outcomes for the Assurance cohort.
 // Administrative skipped/stale/neutral outcomes must never shadow a real terminal receipt.
@@ -8,14 +9,21 @@ const NON_AUTHORITATIVE_CONCLUSIONS=new Set(['skipped','stale','neutral','action
 const TERMINAL_CONCLUSIONS=new Set(['success','failure','cancelled','timed_out','startup_failure']);
 const positive=value=>Number.isSafeInteger(value)&&value>0;
 
-export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observedAt}){
+export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observedAt,continuationEvidence=[]}){
   if(!Array.isArray(runs)||!SHA.test(String(sourceSha||''))||typeof repository!=='string'||
     !Number.isFinite(Date.parse(observedAt||'')))throw new TypeError('SENTINEL_SELECTION_INPUT_INVALID');
   const cutoff=Date.parse(observedAt);
   const candidates=[];
   const seen=new Map();
   for(const run of runs){
-    if(run?.head_sha!==sourceSha||run?.head_branch!=='main'||!NATURAL_EVENTS.has(run?.event))continue;
+    if(run?.head_sha!==sourceSha||run?.head_branch!=='main')continue;
+    if(!NATURAL_EVENTS.has(run?.event)){
+      if(run?.event!=='workflow_dispatch')continue;
+      const matches=continuationEvidence.filter(x=>x.run?.id===run.id);
+      if(matches.length===0)continue;
+      if(matches.length!==1||JSON.stringify(matches[0].run)!==JSON.stringify(run))throw new Error('SENTINEL_SELECTION_CONTINUATION_NATIVE_DRIFT');
+      if(!verifyAuthenticatedSentinelContinuation({...matches[0],sourceSha,repository}))continue;
+    }
     if(run?.path!==WORKFLOW_PATH)throw new Error('SENTINEL_SELECTION_WORKFLOW_PATH_INVALID');
     if(run?.repository?.full_name!==repository)throw new Error('SENTINEL_SELECTION_REPOSITORY_INVALID');
     if(!positive(run.id)||run.run_attempt!==1)throw new Error('SENTINEL_SELECTION_RUN_IDENTITY_INVALID');
@@ -50,9 +58,10 @@ export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observ
 
 if(import.meta.url==='file://'+process.argv[1]){
   try{
-    const [inputPath,sourceSha,observedAt,repository]=process.argv.slice(2);
+    const [inputPath,sourceSha,observedAt,repository,evidencePath]=process.argv.slice(2);
     const input=JSON.parse(await (await import('node:fs/promises')).readFile(inputPath,'utf8'));
-    const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt});
+    const continuationEvidence=evidencePath?JSON.parse(await (await import('node:fs/promises')).readFile(evidencePath,'utf8')):[];
+    const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt,continuationEvidence});
     process.stdout.write(JSON.stringify(result)+'\n');
   }catch(error){
     process.stderr.write('SENTINEL_LATEST_RUN_SELECTION_FAILED\n');

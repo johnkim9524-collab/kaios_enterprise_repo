@@ -1,21 +1,22 @@
 {
   "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
-  "version": "1.1.0",
-  "agent_id": "atlas-autonomy-remediation",
-  "as_of": "2026-10-08T11:35:37.765690Z",
+  "version": "1.2.0",
+  "agent_id": "atlas-autonomy-correction",
+  "as_of": "2026-10-08T21:40:58.815425Z",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "12 holistic findings and subsequent bounded PSA validation",
-  "state": "IMPLEMENTED_NOT_VERIFIED",
-  "source_main_sha": "b016cc4b7db1706d5dfcc5ed397a542c548c8e02",
-  "development_branch": "codex/capability-derived-metadata-normalization-74ff455",
-  "existing_pull_request": 2609,
+  "state": "CORRECTIONS_LANDED_RUNTIME_INCOMPLETE",
+  "source_main_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+  "development_branch": "codex/assurance-continuation-correction-20261009",
+  "existing_pull_request": 2617,
   "facts": [
-    "Main unchanged at fresh external read",
-    "Reuse existing PR #2609; no duplicate PR",
-    "Provider-supplied PSA test cert confirmed from authenticated current Gmail thread; no new outreach",
-    "Remote whole-platform completion, PSA live execution and release are not claimed",
-    "Existing PSA single-cert connection run 33123384792 is remotely SUCCESS; original artifact is no longer returned, so no fresh artifact authentication is claimed"
+    "PR #2609 and PR #2617 are merged; reuse their native receipts and do not reissue landing operations",
+    "PR #2617 exact approved base/head/tree and native Owner lifecycle were verified by protected handoff run 37846897821 attempt 1",
+    "Exact merge-SHA push suite has 24 successful runs; six required landing workflows were consumed successfully",
+    "Landing proof is not Producer Health or whole-platform promotion authority",
+    "Two additional Assurance producer/continuation defects are under separate development correction",
+    "No new provider calls, provider outreach, deployment or permission expansion were performed"
   ],
   "items": [
     {
@@ -45,21 +46,21 @@
     {
       "id": "F03",
       "priority": "P0",
-      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "state": "VERIFIED_LANDED_STRUCTURAL",
       "scope": "Inventory digest guards",
-      "facts": "Both digest copies normalized only after consistency validation; local positive and negative tests verified",
+      "facts": "Digest normalization guards landed through existing PR #2609; exact current main CI and protected landing suite passed. Runtime ledger activation is tracked separately.",
       "exit_criteria": "Existing PR #2609 exact-head CI, governed landing and actual automatic lifecycle terminal",
       "evidence_refs": [
         "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs"
       ],
-      "completion_claimed": false
+      "completion_claimed": true
     },
     {
       "id": "F04",
       "priority": "P1",
-      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "state": "ADDITIONAL_CORRECTION_IN_PROGRESS",
       "scope": "Assurance completion routing",
-      "facts": "Exact run/attempt/job classifier distinguishes full audit from classification-only without granting authority",
+      "facts": "Completion routing and exact tuple guards landed. Native review exposed audit repository/branch emission and authenticated workflow_dispatch continuation consumer incompatibilities; subsequent development correction required.",
       "exit_criteria": "Exact-head CI and landed natural classification/full-audit runs; retain 14-domain proof requirements",
       "evidence_refs": [
         ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml"
@@ -129,10 +130,10 @@
     {
       "id": "F10",
       "priority": "P1",
-      "state": "BLOCKED",
+      "state": "PARTIAL_PROVIDER_CONFIRMATION",
       "scope": "Provider PITR confirmation",
-      "facts": "Ticket #12887418 has no human timestamp/operation confirmation in latest connected mail evidence",
-      "exit_criteria": "Provider/physical receipt bound to source UUID, restored UUID, exact target UTC, successful completion and operation ID",
+      "facts": "DigitalOcean support Anadi confirms intended source kidults-staging-postgres forked to kidults-pitr-37746452670 and online at 2026-10-08T08:41Z. Provider backend does not separately record the selected target timestamp; exact 07:56:49Z data-state verification remains customer-side.",
+      "exit_criteria": "Preserve provider source/completion confirmation and verify expected timestamp-bound records from the restored DB; do not claim provider confirmation of the exact selected PITR timestamp.",
       "evidence_refs": [
         "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1464"
       ],
@@ -181,10 +182,12 @@
     "RECONCILE_HISTORICAL_PSA_CONNECTION_WITH_CURRENT_RUNTIME_HOLD"
   ],
   "blockers": [
-    "PROTECTED_OPERATION_LEDGER_ADAPTER_NOT_CALLABLE_FOR_MERGE_DISPATCH_DEPLOY",
     "AUTHENTICATED_NATIVE_BUSINESS_INPUTS_AND_DOMAIN_RECEIPTS_INCOMPLETE",
-    "PROVIDER_PITR_EXACT_TARGET_COMPLETION_RECEIPT_MISSING",
-    "PSA_CREDENTIAL_BOUND_PROTECTED_RUNNER_NOT_CALLABLE"
+    "PROTECTED_RUNTIME_OPERATION_LEDGER_AND_EXTERNAL_LAUNCHER_ACTIVATION_NOT_PROVEN",
+    "RESTORED_DB_EXACT_TARGET_DATA_STATE_AND_VERIFY_FULL_RECEIPT_REQUIRED",
+    "PSA_PERSISTENT_PRIVATE_SECRET_STORE_AND_DELETION_BINDINGS_REQUIRED",
+    "CAMERA_RIGHTS_REVIEW_EXPIRED_2026_09_23",
+    "ASSURANCE_CONTINUATION_CORRECTION_PENDING"
   ],
   "psa_next_stage": {
     "state": "BLOCKED",
@@ -214,7 +217,7 @@
     "last_incomplete_stage": "PERSISTENT_PRIVATE_RUNTIME_SECRET_STORE_AND_DELETION_BINDINGS",
     "connection_probe_repeated_for_status": false
   },
-  "next_action": "Verify exact committed correction and machine evidence; advance existing protected lifecycle only after operation-ledger reconciliation; resume each external stage from its authenticated last-incomplete receipt",
+  "next_action": "Complete and verify the separate Assurance correction; prepare one immutable Draft proposal. Reuse completed landing receipts. Then resume authenticated last-incomplete protected runtime stages within their existing authority; Production/Public/G5 and provider activation remain HOLD.",
   "authority_boundary": {
     "development_branch_route": "resume-contract-v1 development_branch_resume",
     "production": "HOLD",
@@ -226,7 +229,8 @@
     "whole_platform_complete": false
   },
   "truth_sync_refs": [
-    "Existing PR #2609 branch history and this checkpoint; no fabricated GitHub issue closure"
+    "PR #2617 native merge and protected handoff artifact",
+    "This durable checkpoint; root Issue #344 remains open and historical records are preserved"
   ],
   "improvement_proposal": "Use measured business receipts to update current truth and close each finding; preserve historical proof and failed receipts",
   "effects": {
@@ -234,5 +238,46 @@
     "global_effect": "No global coverage claim from one provider canary; actual multi-domain inputs still required",
     "irreplaceable_value_effect": "Preserve owned mission identity, operation bindings, immutable lineage and provider-independent evidence",
     "transparency_effect": "Explicit incomplete stages and historical/current boundary; no 12-item complete claim"
+  },
+  "landing_stage": {
+    "state": "VERIFIED_EXACT_LANDED_POSTMERGE_LIFECYCLE",
+    "pull_request": 2617,
+    "base_sha": "c90c986f7a5ca414f64e7108d36fbb29936ef18b",
+    "head_sha": "2374a3ab5819d275d31ed2acec627b899ba13672",
+    "head_tree_sha": "33123205635061d0df398a0ec4023de20248704f",
+    "merge_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+    "handoff_run_id": 37846897821,
+    "handoff_attempt": 1,
+    "handoff_conclusion": "success",
+    "ready_event_id": 32826670972,
+    "approval_comment_id": 6069356261,
+    "merged_event_id": 32827182645,
+    "artifact_id": 11580726331,
+    "artifact_digest": "sha256:f93d93f1c56e41d413e2c31f77d2d8dd8ffebc9e041356d86fc8119f9d50a4a1",
+    "exact_merge_push_run_count": 24,
+    "required_success_count": 6,
+    "required_failure_count": 0,
+    "producer_health_authority": false,
+    "promotion_eligible": false
+  },
+  "additional_source_corrections": {
+    "landed_pull_request": 2617,
+    "landed_findings": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "F13",
+      "F14",
+      "F15"
+    ],
+    "pending_findings": [
+      "ASSURANCE_AUDIT_UPSTREAM_IDENTITY_EMISSION",
+      "AUTHENTICATED_SENTINEL_CONTINUATION_CONSUMER_ADMISSION"
+    ],
+    "draft_intent_ancestry_review": "13ceaaba5529003ac9c50c47fd9ca8afc6d60ca4 is an actual ancestor of approved head and merge; negative review claim was not reproduced"
   }
 }
