@@ -146,7 +146,7 @@ jobs:
       UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
       UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
       UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
-      DISPOSITION_DIR: ${{ runner.temp }}/assurance-completion-disposition
+      DISPOSITION_DIR: /tmp/kpmo-assurance-completion-disposition
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

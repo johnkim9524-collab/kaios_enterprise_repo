@@ -164,7 +164,8 @@
     "B": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     "C": "ACTIVE",
     "D": "SHADOW_RUNTIME_FOUNDATION_ACTIVE",
-    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE"
+    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE",
+    "R": "IMPLEMENTED_NOT_VERIFIED"
   },
   "control_tower_state": {
     "program_phase": "PHASE_3_FAST_IMPROVEMENT_BEFORE_REAL_POC",
@@ -256,5 +257,5 @@
     "memory_fixture_publication": "PROHIBITED",
     "production": "HOLD"
   },
-  "generated_at": "2026-08-19T01:45:29.768Z"
+  "generated_at": "2026-10-08T11:07:51.356Z"
 }

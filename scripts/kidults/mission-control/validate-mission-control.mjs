@@ -35,6 +35,7 @@ const coreTrackIds = [
   'track-d-data-platform-production-reliability',
   'track-e-executive-operating-system'
 ];
+coreTrackIds.push('track-r-independent-red-team');
 const supportedTrackIds = new Set([...coreTrackIds, 'track-r-independent-red-team']);
 const trackRecords = track?.records ?? [];
 const trackIds = new Set(trackRecords.map(record => record.id));
@@ -57,10 +58,11 @@ const trackState = Object.fromEntries((track?.records ?? []).map((record) => {
     : record.id.includes('track-c-') ? 'C'
     : record.id.includes('track-d-') ? 'D'
     : record.id.includes('track-e-') ? 'E'
+    : record.id.includes('track-r-') ? 'R'
     : record.id;
   return [letter, record.status];
 }));
-for (const letter of ['A', 'B', 'C', 'D', 'E']) {
+for (const letter of ['A', 'B', 'C', 'D', 'E', 'R']) {
   assert(twin?.track_states?.[letter] === trackState[letter],
     `Digital Twin Track ${letter} state '${twin?.track_states?.[letter]}' does not match Track Registry '${trackState[letter]}'.`);
 }

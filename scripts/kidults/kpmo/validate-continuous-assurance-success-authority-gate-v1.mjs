@@ -15,6 +15,7 @@ for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verifi
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
   'classify-assurance-completion:',
+  'DISPOSITION_DIR: /tmp/kpmo-assurance-completion-disposition',
   'needs: [classify-assurance-completion]',
   "needs.classify-assurance-completion.outputs.eligible_full_audit == 'true'",
   'classify-assurance-completion-disposition-v1.mjs',
