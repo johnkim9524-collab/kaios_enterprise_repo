@@ -1,19 +1,19 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv, timingSafeEqual } from 'node:crypto';
 
-const root=process.argv[2]||path.join(os.tmpdir(),'kidults-private-market-store-r1');
+// A supplied path is a parent directory, never a recursively deleted test root.
+const parent=process.argv[2]||os.tmpdir();
+const root=await fs.mkdtemp(path.join(parent,'kidults-private-market-store-r1-'));
 const now=new Date('2026-08-20T00:00:00.000Z');
 const payload={kind:'SYNTHETIC_SENTINEL_NOT_PROVIDER_DATA',event_id:'sentinel-001',value:'non-market-test-only'};
-const encKey=createHash('sha256').update('ephemeral-local-encryption-key').digest();
-const hmacKey=Buffer.from('ephemeral-local-hmac-key-never-provider-secret');
+const encKey=randomBytes(32);
+const hmacKey=randomBytes(32);
 const canonical=v=>JSON.stringify(v,Object.keys(v).sort());
 const sha=v=>`sha256:${createHash('sha256').update(typeof v==='string'?v:JSON.stringify(v)).digest('hex')}`;
 const hmac=v=>createHmac('sha256',hmacKey).update(v).digest('hex');
 
-await fs.rm(root,{recursive:true,force:true});
-await fs.mkdir(root,{recursive:true,mode:0o700});
 await fs.chmod(root,0o700);
 const audit=[];
 const receiptId='receipt-sentinel-001';
@@ -51,7 +51,8 @@ audit.push({at:now.toISOString(),action:'RECEIPT_CREATE',receipt_id:receiptId,re
 const verifyReceipt=r=>{
   const {tamper_hmac_sha256,...fields}=r;
   const c=JSON.stringify(fields,Object.keys(fields).sort());
-  return hmac(c)===tamper_hmac_sha256;
+  if(typeof tamper_hmac_sha256!=='string'||!/^[a-f0-9]{64}$/.test(tamper_hmac_sha256))return false;
+  return timingSafeEqual(Buffer.from(hmac(c),'hex'),Buffer.from(tamper_hmac_sha256,'hex'));
 };
 if(!verifyReceipt(receipt)) throw new Error('RECEIPT_HMAC_VERIFY_FAILED');
 const tampered={...receipt,payload_sha256:'sha256:'+'0'.repeat(64)};
