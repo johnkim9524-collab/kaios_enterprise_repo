@@ -2015,8 +2015,8 @@
     {
       "path": "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7df5dfa2b7b82ef52f61574d63e3ac33d6135267",
-      "sha256": "sha256:636a8c6b4a0c8bf0637da85944e17478754ade2e8d1bb031e6efb14e812f5edf",
+      "git_blob": "501dccc3ae38d9a209fafc5004b7ce813ac76cdb",
+      "sha256": "sha256:0c3a9b8c8320008c555c33eb92f78b4723711b964b1fc9ce95359629e5181b93",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5846,5 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d81637aa0d829f235cb3be55ae0a47b4765b1a6e502b5c44b2fd1a7f844776eb"
+  "manifest_sha256": "sha256:1bcf2299c3f9d601801278cfa69e966a029da46ec6963fb7e09247e867447f01"
 }
