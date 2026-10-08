@@ -73,6 +73,8 @@ const requireConsumerText = (source, needle, label) => {
   if (!source.includes(needle)) failures.push(`missing ${label}`);
 };
 requireConsumerText(selfDriving, '--expected-source-sha "$GITHUB_SHA"', 'self-driving exact-source artifact selection');
+requireConsumerText(selfDriving, "if: github.event_name != 'pull_request'", 'self-driving natural execution guard');
+if (selfDriving.includes("if: github.event_name == 'workflow_dispatch'")) failures.push('self-driving schedule and push paths remain no-op');
 requireConsumerText(selfDriving, 'STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'self-driving live-main stale-source guard');
 if (selfDriving.indexOf('Reject stale scheduled or manual consumer source SHA')
     > selfDriving.indexOf('node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs')) {
