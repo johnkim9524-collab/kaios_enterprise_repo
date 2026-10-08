@@ -1,5 +1,10 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 const fail=code=>{throw new Error(`SECURITY_RUNTIME_PRODUCER_${code}`);};
+export function verifyRawPythonAudit(audit){
+  if(!audit||Array.isArray(audit)||!Array.isArray(audit.dependencies)||!Array.isArray(audit.fixes)
+    ||audit.fixes.length!==0||audit.dependencies.some(d=>!Array.isArray(d?.vulns)||d.vulns.length!==0))fail('RAW_PYTHON_AUDIT');
+  return audit.dependencies.length;
+}
 export function buildSecurityRuntimeDomainReceipt({context,report,evidence}){
   if(context?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
     ||context.ref!=='refs/heads/main'||context.event!=='push'
