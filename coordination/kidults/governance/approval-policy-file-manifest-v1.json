@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "61694640878149b7e8528d8341c069936fc54f97",
+  "revision": "5be2a4279a5e98f754cfe30591d19d36d66d5d35",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2283,8 +2283,8 @@
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "9354febf6836542acd5eb41a63075495e6035958",
-      "sha256": "sha256:be3f9cad2a198970a911d68f74c951df2d0366f6e374c542ac7b76ee4b222eb7"
+      "git_blob": "7ab228d06753d3b0f1dbc6f73b50d21f0e04db03",
+      "sha256": "sha256:f58331953768257f8a86576e316d709e75772bd7eb8632053b93eccbc0839544"
     },
     {
       "path": "coordination/kidults/runtime/cf-kidults-14501ac-01-approval.json",
@@ -5852,5 +5852,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:836dffd3cff6fdb2a804393b029da06a673cebc23562fff15aa938c10023ff27"
+  "manifest_sha256": "sha256:a4d11dce8db109640a59444f03b4dc5f5d58298f7e36b0cbce5e6cacea480245"
 }
