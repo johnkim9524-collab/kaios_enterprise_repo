@@ -678,8 +678,8 @@
     {
       "path": ".github/workflows/kpmo-exact-head-ci-supersession-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "146b01d7d6f04fdc8a95f77cfbf34b2fe769b95e",
-      "sha256": "sha256:72ca036dec4963638fc8e7b8b5a04c0516c5087c2fbbcd0b37403020221f33da",
+      "git_blob": "922aeb7e5ebde9b7263e134aa4ac22d0535e13a8",
+      "sha256": "sha256:835d8b03d43bc360f02d2dc1047680919df2444da0f4e11f1c6a921e99db51fa",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1950,8 +1950,8 @@
     {
       "path": "coordination/kidults/kpmo/platform-continuous-assurance-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "db366728509d65682e9e8c503a3c59c81101a250",
-      "sha256": "sha256:98e5f2f147cf6c4b6c7476b523283c0ad8f04bacc0d2dca7fc2cb983a00af761",
+      "git_blob": "f0b191f5a82cb4a49d61900bbdc6c693fb3772d7",
+      "sha256": "sha256:0624f1db738c0685e1cec07459a872f4618e3adf5e8d55b372d795a26671cb8b",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5663,8 +5663,8 @@
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "914191794098c2ebd135890dd08e4702bb7ae56b",
-      "sha256": "sha256:30056b01c5f359bee3158f9af84375dbc0d0b5a519cf2377c851a5a992ac559c"
+      "git_blob": "bfd3e5711096d2082b61f9fd22878c90223232b4",
+      "sha256": "sha256:256b38ee61e6d5b8cd77a5b092c9c64c320eeff26ed6cdd6615cd9e9b57a26d6"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -5781,5 +5781,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c45b4419b1ab2527784670e4380fc76222eda12dc5d668de023b3fc3ae7bed84"
+  "manifest_sha256": "sha256:2d2e31dcba958bc32128030a0395f7e85a5d301ce6a0e3e92954f305feed30ff"
 }
