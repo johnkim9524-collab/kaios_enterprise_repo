@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "657534aa73dc71735ae6861ad546f95a0f7bc34e",
+  "revision": "6dbc788bb2aa70c5afc08331c016c8ad5124623f",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,20 +9,33 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 733
+    "file_count": 743
   },
   "files": [
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9251b8e236d8328aae2d8022e6581a46bf9b51fc",
-      "sha256": "sha256:ac3e1d0c1b99ea140f5545fcf65fab3c32355b24feb8c25c11bdb97d2e50bb6f"
+      "git_blob": "7f4ac229bcecff13da4f30ca346bb6d354fa48c8",
+      "sha256": "sha256:be00afe0ec19e19967b1ca7d353d3670950cde2300161b816df9416a6b3c7972"
     },
     {
       "path": ".github/copilot-instructions.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "88feb48d6949036a3471aa7e415f3e58fb600ad9",
       "sha256": "sha256:6fd2df8b5608ed8c2e255acb30ed8fa3340d871563aa813f8a4f964935fc3ee2"
+    },
+    {
+      "path": ".github/workflows/ci-validation.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "1b7ccbe5818054db9368bb39df1281686a5aa755",
+      "sha256": "sha256:76a0663e67cb346b948d8f6006c448acba140a1705ead32e7e46ca30af0a0a14",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
     },
     {
       "path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
@@ -743,8 +756,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "d380c8acf709fb19db8998eb099332f7569f1373",
-      "sha256": "sha256:6969d14943ceaff01ee44f603b0c55ee181cdf7a6777323b81098ae19d47199c"
+      "git_blob": "a0c8ad5e5a17e01b4edacab69aebc2d4e4028c67",
+      "sha256": "sha256:844a26a46572c7d02d5a5967a399e54fb4fe0e88d163a33faed92a8a0b5f3927"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1713,8 +1726,8 @@
     {
       "path": "coordination/kidults/governance/resume-contract-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "defb08ed5b4a4694113bed37755ecacd519b2241",
-      "sha256": "sha256:4253105bc6156d00f69fe0687f7e2ef78b760eaf89a59a57675edbc76f376213",
+      "git_blob": "596afc99b6f324e1289c917a2333fa317ac7a3f9",
+      "sha256": "sha256:873b20da7ac8e8499185deddc20bba58a6bc2ac0fdba72b50eb464086496eb47",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1834,6 +1847,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "a1051c91c83411fa9d07cbd089f86052cc64a9fa",
       "sha256": "sha256:0e0500ac36682997b317149bd7ff50c934b465cd285ee53d16bdd236b8134fc3",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/autonomy-additional-defect-remediation-20261008-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "955e53392cd288574e6f55e8871b77923f4308e8",
+      "sha256": "sha256:9dacebd65f302461482e1d3809004be4bea0dbc07f7b079dfbf0401541dc9b91",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3025,8 +3051,8 @@
     {
       "path": "scripts/governance/lib/approval-policy-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a13a928936e0f9f9d27cdf3e385d98e96376b412",
-      "sha256": "sha256:838512539a0176460ed90c778cbaf466f002bd7c907f80e2affb7025aad6a7ed",
+      "git_blob": "9414de4d04899648c7cc106ef0600fac025ca03f",
+      "sha256": "sha256:d6ea112624fba70407cf2398621054a8489003b24fafe8c35119568e9b2adbf5",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3042,10 +3068,23 @@
       "git_blob": "46da2b9032908d81e036e55562cb9ea201823149",
       "sha256": "sha256:d64d716f96546d3cf1a37edf7c9e71c75fb67fcba646ebcf73cbfee865d8af99",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/governance/lib/development-draft-proposal-resume-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "13b0858abc22faac5fc05b81d3d9762478d618a2",
+      "sha256": "sha256:9435a246c54525be8cfb6ba34c1ba582db2e869e496970ac0d4b1c929d056ce9",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3055,10 +3094,10 @@
       "git_blob": "c95f870f5bf21f53a363db2f1571e9f9a831dad3",
       "sha256": "sha256:094b93b7d7103ebeadeb69183371c87e074d137a49435f4fc770355b55cdd331",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3068,10 +3107,10 @@
       "git_blob": "5e66ebbb5c8b6c30c2895ae2f8032872653c72d0",
       "sha256": "sha256:9b2bfb2e3a6407cabe260ced04b9b72e92794effae80f5044577a0efdd6ab943",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3081,10 +3120,10 @@
       "git_blob": "bdd3260bf133ed33d619f26890d032fa20dffdc4",
       "sha256": "sha256:bb345f539fef3883e871492bf462167e336a87652007042e65d29f1c5d20f0fb",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3108,10 +3147,10 @@
       "git_blob": "135a7d17c8d68d8dd6dfbe6815290cb4e353bc19",
       "sha256": "sha256:19707b07c2c15b4fa39c40c2fd056a9652b92642330e3212bc833bc166acf5d4",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3121,10 +3160,10 @@
       "git_blob": "22e65eca1e51e24ec2cb51afd784fa32fa8c49e8",
       "sha256": "sha256:c759a4218c2e052584578033be1c7f5be4f4b78c2aceb42075e85cb7fef9237b",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3134,10 +3173,10 @@
       "git_blob": "7ea489718bf1340839d236854cce50a0228203e9",
       "sha256": "sha256:2b3b7c90e4ab428b88c34cb841eede59cb1068fd24a11d9380939dc3dcbefa36",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3147,10 +3186,10 @@
       "git_blob": "c05e193263b4ab1b523562d61b92a6737cd21058",
       "sha256": "sha256:844ab8a396ae924d9c8dc2e2fad13873f8749c5eb8512ddca5aa5a9d130606c9",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3462,10 +3501,10 @@
       "git_blob": "7b63de2a56a8fca4859194ec909e149b7b0ea78c",
       "sha256": "sha256:0482ffacd36fa41e4f3af3c561ef2f7cd9e02e93847de9b9d595b10ce280ed1d",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3475,10 +3514,10 @@
       "git_blob": "a8c071421028a2c3d27dd785ca66f1bbe18744fa",
       "sha256": "sha256:5d0892aed3f396ba71ffef9d387bef4b18e1187e55d1e5f458e077967bc1b3a8",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3488,10 +3527,10 @@
       "git_blob": "7f623a424f37d141aa039ae4ef367fc71da119fd",
       "sha256": "sha256:d3e5c7461fc4e6371cebb47ebfd531819908fc80cdad729f93165dc045fa01b9",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3501,10 +3540,10 @@
       "git_blob": "44709e90703b1e7b754f3448e24b7f1d86fc91c1",
       "sha256": "sha256:d65ee2874cc73b430ed91dd13d20b7dff1bd677668bea104d28e34489713f06e",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3514,10 +3553,10 @@
       "git_blob": "61a01cffb338eec0c7738c1dfe4ec0d55ddb601a",
       "sha256": "sha256:15ed3c37bd95fed04f26b67cf3cb509a4e154857bed85af288408d7b54bbdbe4",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3527,10 +3566,10 @@
       "git_blob": "5d84f8e897b77da9d8418dadaa88c389e6a433a4",
       "sha256": "sha256:a8ffa47b30b0ff427481b20c43cb338cca4b820e3f82924c7277b950b1d30ecb",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3540,10 +3579,10 @@
       "git_blob": "2230e550ff041628dff60481b02154a13a45840b",
       "sha256": "sha256:554166a13ba8cffd8a7c7fb51a170befb19d99c103f714260ae637f62d10a625",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3553,10 +3592,10 @@
       "git_blob": "9e5452c7930036533c910935d8cf1c622e248f92",
       "sha256": "sha256:18c887c04910dcbe1aa2da75194f13158a8dc20b5d099ea2e754d8fc9e0d6e24",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3566,10 +3605,23 @@
       "git_blob": "8e44745c8c94414b901056d5b0156ad1ebe8ee92",
       "sha256": "sha256:ff0a153fad37013833bcdb037809c6569a9d7576f5d839b5bb1732158554c134",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/lib/direct-owner-merge-window-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "f4be674f62efda2a04e229391c92a5eaf0563448",
+      "sha256": "sha256:de64f28a76dd2e26d1e8dea7c6973b10ee839dbf716a03cc4651ffe4e173eff2",
+      "authorization_routing": {
+        "route": "OWNER_RESERVED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -3579,10 +3631,10 @@
       "git_blob": "cde5da72ca4f8896fcaff3a044d96349aa2e3767",
       "sha256": "sha256:2b23f2f214e20165267472f1b2da635ff847428ca27eb626fa789ba5e302ce7a",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -3592,10 +3644,10 @@
       "git_blob": "65ed40103ec73d0943c5a058bd202da55107d6c8",
       "sha256": "sha256:6ae1f9ae228954295588213ef075bead0a2666cd27089a64bb740474e1f8b21a",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -3605,10 +3657,10 @@
       "git_blob": "5363bd72731aeb1eb223877e56589870005389d2",
       "sha256": "sha256:c1ade885f2d8397941787c2927d405b570632e39d03ff64856c17297aa9e49c8",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -3618,10 +3670,10 @@
       "git_blob": "9cdde1573e3d221aa98b5860d609d19735450e90",
       "sha256": "sha256:ffaf5dd02c66cb27e4ebe135d3eb2bfd649db5a032aa65b84226e2aff1ddc38d",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3631,10 +3683,10 @@
       "git_blob": "706d753f6f1195e8b3698f746e0cde26197b5ff9",
       "sha256": "sha256:495971db6989e52393cbd4695520c3fed7c29e27af78b0bdd9f644a1c99c24e7",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3644,10 +3696,10 @@
       "git_blob": "de752602d218d64c6c765bbd87a56d3051ca0caa",
       "sha256": "sha256:b4e7a77d64eca0e1d8725db3c08ea9feec9cdf5672bed30fbfe141a2163cedce",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3657,10 +3709,10 @@
       "git_blob": "17b68645ae4a12f4438db08ae57a566c3e6d7e74",
       "sha256": "sha256:c74526b9c5d212456542bda2b7952488dae0c8369c2127e51fc33b01555bb628",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3670,10 +3722,10 @@
       "git_blob": "16ae96c10d5f088024a65a91773430e65cb384e6",
       "sha256": "sha256:29f3fea8240b8ecdedfa6f780f1a51b9eddcf433a12e0ee0d803c73eaf804c2e",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3683,10 +3735,10 @@
       "git_blob": "0c6a5a8e47b9517946bf385298a8f8529ec29c68",
       "sha256": "sha256:67a3a548f1e01106587e459ffd9f4267ee2b72e25211c1b2b38ee57ca7d60ade",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3696,10 +3748,10 @@
       "git_blob": "1c9639a3be623958ded1ca9103d9729a604aa0c3",
       "sha256": "sha256:fdfd21778d7e08fab074f31345470368381abcf6d6e3d72bb03e02685f167fec",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3709,10 +3761,10 @@
       "git_blob": "ca378a335457570d1a45642ccecfd25066e3842c",
       "sha256": "sha256:eb0d9553e8ba138e5c4d9ae54f0ff85cbd9c183d6d4c7ed64b9659cfce119dcb",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3722,10 +3774,10 @@
       "git_blob": "87e5be799b4767ed04e31e0857c5c2dd940c1984",
       "sha256": "sha256:acfc754a95124e60b18f17661ac3f5381569fc313d0c558c228e78d2245b5f4a",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3735,10 +3787,10 @@
       "git_blob": "c3af9be3453ce4d7d2dde54c67da1a9cf942667a",
       "sha256": "sha256:214e1d9ff818e0faa4901e92e111fe1cdb88981668ace6c239ac5a6071387c6c",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3836,8 +3888,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "355207b288c5a0bdd900c32b9db8a90473b4daa5",
-      "sha256": "sha256:3379db0402d59c8c0e61e38f10b55eae311e38372d12e067b16a9b3ccf9402f2",
+      "git_blob": "f876754df4d189c2e7e9f298c1ebe2c402101cdf",
+      "sha256": "sha256:20b352e390c14c748bfb1936e3658d562023d45b7225227fa16f508256ab3501",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -3849,8 +3901,8 @@
     {
       "path": "scripts/kidults/kpmo/run-durable-canonical-ledger-canary-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5a05711c712fd4c6381087330f0e2c626bca93fc",
-      "sha256": "sha256:9971c5479736830c8811b4e80b54b0660cdbf1f32a9bb08264206239f0a591b3",
+      "git_blob": "36182d4753ac492511d1399308358ca7fb31cafb",
+      "sha256": "sha256:c2c711b6e3d899f111f621340884b381bca1b19173eed1fa0e3afec6edc367ff",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3904,10 +3956,10 @@
       "git_blob": "d8b1e10896901ae18a78ce85188181526af9fdd2",
       "sha256": "sha256:883e60141991b321f478885d53bbc6cd18c1698bafdd6ddb776511fb334fa64f",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3917,10 +3969,10 @@
       "git_blob": "983180e7b34d6a822465a16b0e7d57602bd5b6bd",
       "sha256": "sha256:c5f1eeaafd21af4ca030eb33594d39a174cf1292a114d8692fbc0134fb4a223d",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3930,10 +3982,10 @@
       "git_blob": "a99a4c44b4680eebc24d67a4b1421adfb4a081d5",
       "sha256": "sha256:678d0bc252ddca8b7122f9b8844e04b012d88836363711bc47fae738a9107f0e",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3943,10 +3995,10 @@
       "git_blob": "d37888076e7d7d5b5028226bbacbf94bff24bf5e",
       "sha256": "sha256:ac9621a3d0ca846ddbb7dd7c40cfff722c7e2c5cd30f64805d3119f255964d12",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3956,10 +4008,10 @@
       "git_blob": "7d4387785e425d4c35e423c72574ce72cfcd7e89",
       "sha256": "sha256:6a55bb8316fe75cdd027d54aab7a8ee00df40a1c7042660de2c3bf1836afa009",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3969,10 +4021,10 @@
       "git_blob": "d3460d595da0392761c96ff555ad998d96a6d2a4",
       "sha256": "sha256:25a63623d3df515be74a5b793870b465b82ffcf8281aa29648b4e7af3b3fbc11",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3982,10 +4034,10 @@
       "git_blob": "aedae6a9c09c225dae90eb041e5bdf72e5f45cc0",
       "sha256": "sha256:aef080913d1b13291a5f139fbeb3fe6c3e6f8ea02ba81116f1d4c9daf0fe7ac2",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -3995,10 +4047,10 @@
       "git_blob": "91783edb0fc1fc01abed962298a6667c5bfa6a9b",
       "sha256": "sha256:481e3fe4915dc94a64335eeccbcbf3ef2425f31b71fdcbe55fec33787aea0d67",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4008,10 +4060,10 @@
       "git_blob": "32552ce292295688d3fd411c017cb4e281b12d3a",
       "sha256": "sha256:3ed29d089a4d12d1611f057a907f662ed9676c9975e54f2de3ffdb4f8e6e1a42",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4021,10 +4073,10 @@
       "git_blob": "f21ef926169399e26b96b60325ee6ec32f25fe4f",
       "sha256": "sha256:1c04916318d05ae82721f54df574403a5e60f85de0f2cc7c0ed28ac249130c3e",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4034,10 +4086,10 @@
       "git_blob": "cb063cbb330ccea33aac2d9e25e14ad4f64f98ca",
       "sha256": "sha256:fc010a1a201981bce210f5a6699a84221fdff7ae31ece0da1296c0a548cd5ed1",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -4047,10 +4099,10 @@
       "git_blob": "448ca935e45da2a33b0d3c7ba635d11877c86341",
       "sha256": "sha256:9a937952a922ad71dcee49c85899c497fcb9f960ec89da72837ce4d182a5dd08",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4060,10 +4112,10 @@
       "git_blob": "5923e96fb9f8b45ff5b27905f3ca587b7f056def",
       "sha256": "sha256:8a9df2b34ce198e16e64e737978379547574f906d9a6da1aad95be874ff8e7e6",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4073,10 +4125,10 @@
       "git_blob": "5a9d6521f04386da410c732e5e8f6d77c48413e5",
       "sha256": "sha256:938ed23899cdffb2c2c0909ee98c8a53719997a8506e6b82b51cdea02ae5fec4",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4086,10 +4138,10 @@
       "git_blob": "fb8725acb31d2f4d8e74c8f9a7a97d83d5cd7353",
       "sha256": "sha256:990ed27fce2e88f553dc9a40e53ec56ed212e76d2fbc778aac6509a44fe9f055",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "STAGING_BOUNDED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4099,10 +4151,10 @@
       "git_blob": "7cb3501d21300fc93c52a7038a98212e85b35fa9",
       "sha256": "sha256:09b14570d8cbf62b9bc86363267cc15dc0e9e3306d151bda2797cbd475800740",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -4112,10 +4164,10 @@
       "git_blob": "e00c50df894c55a73881d8b1e643de5e21440e5a",
       "sha256": "sha256:1dcdad5371425310d917318ee0ffcd9384575679a63a6456672d7c1a732c09cd",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "OWNER_RESERVED",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
         }
       }
     },
@@ -4125,10 +4177,10 @@
       "git_blob": "d805fc157cd5fab9e5163c7ee14c1702d09ed23d",
       "sha256": "sha256:6a4bdd42f3444beff989d62b9770cb03a93d6f657f698af6627013868fcae80c",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4138,10 +4190,10 @@
       "git_blob": "62ca4e80871f27a58e6b5d29ecb900bc348cbbde",
       "sha256": "sha256:69dede7b180efefb034268af11c12d502c87be45d0377e3d22fababf59c11be3",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4151,10 +4203,10 @@
       "git_blob": "af06deab5b70f6dc89947b112c0eb67659c2d33e",
       "sha256": "sha256:4681cdbc612246f9b9ffea1ce6be94f5a89abb92477fa81cc5c01b79874f6469",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4164,10 +4216,10 @@
       "git_blob": "cbb1abf9047721e64adfedcf724d478e166abf47",
       "sha256": "sha256:e5129723a8ce1c3c1611ad4add09ee3562c132ce0fb3953cebc91cd5ddd824ff",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4177,10 +4229,10 @@
       "git_blob": "1ed1bdd174438c04c83c915582866d8fd248cd8d",
       "sha256": "sha256:f12a13cc4bab0c844c5da4543092fc810d1151c60b472df803aae107dfcbf107",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4190,10 +4242,10 @@
       "git_blob": "4c569a7beef71d6ad43adea25dee286c073eeaca",
       "sha256": "sha256:ea0d3fc790ae6be3a8cf384fca8824959496b59118a4a66cae788dd3c9d4eb06",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4203,10 +4255,10 @@
       "git_blob": "7023483b8ae7e037a9691044b67f32cb5cd55be5",
       "sha256": "sha256:4a2fe82793c746b24acd74b3c0d98b63217d70578fe2165f4835d4587de1272c",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4216,10 +4268,10 @@
       "git_blob": "a6bbf5f0a971ccabb339257110ba6cc68058ee83",
       "sha256": "sha256:a0428bd0654e78bcf56ec54db20ab49647b41fa420d74df52982ca5ea1e2a5d4",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4229,10 +4281,10 @@
       "git_blob": "32e0266045c406e348bdaed019b97effa8b61284",
       "sha256": "sha256:de3becdb0ace567e978d4b1cd620dff896d441bda067999b891e3e595fef1661",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4242,10 +4294,10 @@
       "git_blob": "b872b2421efe420d5be911c5670f030319bf746d",
       "sha256": "sha256:2d70f3d6327e37b20b765d77d5e3b5eda3165275b4c85337750f76a253fb9b55",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4255,10 +4307,10 @@
       "git_blob": "8cd188715ca4277b9c9a3fba0f3aae8fe7d23bed",
       "sha256": "sha256:74ecdbc68a24c9d759d9ecfd674afdadabe14bf8623806ebc4701b82e5344d7d",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4268,10 +4320,10 @@
       "git_blob": "84676656c27823253f74f7696eaab9c714767bfe",
       "sha256": "sha256:142adaef415a6c079a8fa3ddff60d64fdd4053ad2749b362c04cf3dcb073fe6a",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4281,10 +4333,10 @@
       "git_blob": "b90159641eaa629dada6ff7f232e721633dfede8",
       "sha256": "sha256:d3f21afb7835799da70ba002695befc238f697f1b49aef1700ea85401a51675a",
       "authorization_routing": {
-        "route": "DOMAIN_ADJUDICATION",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
           "mode": "EXEMPTION",
-          "reason_code": "NON_MUTATING_VALIDATOR_OR_LIBRARY"
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -4674,9 +4726,29 @@
     },
     {
       "path": "scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "03ae7cb14a28d1ecf254e1c2b375651833da4293",
-      "sha256": "sha256:4c9029624d407a5e74bdbef0351b94a1b7cb763c397fbcc222553e60511d9888"
+      "sha256": "sha256:4c9029624d407a5e74bdbef0351b94a1b7cb763c397fbcc222553e60511d9888",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/staging-operations/lib/dynamodb-operation-ledger-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "5a6b0f633480061582a8458f49fcdd42e70f7211",
+      "sha256": "sha256:c4fbc8c96f47f66a4577187c52e04cfebb231c4931cc70cf7eee461c2f202ba9",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
     },
     {
       "path": "scripts/kidults/staging-operations/lib/github-lifecycle-executor-v1.mjs",
@@ -4718,10 +4790,36 @@
       }
     },
     {
+      "path": "scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "ae0ed28009b52827c71851b5743d827a30075a70",
+      "sha256": "sha256:53e9e4622b27e331e242226b3d0366c94142cd87d76f8625db6124f0aa6d9221",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/staging-operations/lib/provider-control-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "2e879ab777e2d674699db2e77284ec13585fbc18",
-      "sha256": "sha256:bc51ab17de58c2d1d49f368541808f6356ef4633be675dc221080ab2578e2a76"
+      "git_blob": "21537b32378dec82385606f2d436d2869cd7aa64",
+      "sha256": "sha256:a0bd9551d1187010195f95e40fc4d945f111378adaa85d86eadb50db5e501a81"
+    },
+    {
+      "path": "scripts/kidults/staging-operations/lib/resume-operation-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "5bc81ae77c20cfeb1561c96f37ed959bb6a82c43",
+      "sha256": "sha256:bf40253a1e1ca4a43deee8f3af80363924cb45cf225349c1f6dde2592f1b543f",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
     },
     {
       "path": "scripts/kidults/staging-operations/run-shadow-vertical-cycle-v1.mjs",
@@ -5464,8 +5562,8 @@
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9218d453bae37e72ddb39adccfaed0f3174de53c",
-      "sha256": "sha256:34479c026054d064411eeecb8100d3667784b62bd9fc74fe331c24c6dbaf2d3b",
+      "git_blob": "2f948b07497aea88dbf9ff7a4b7be556835ffa66",
+      "sha256": "sha256:ebc2ea011921bedfc5a99520d053c0ff7329c9df3158e4293496f409dbc7a6c5",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5532,6 +5630,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "abac53ed602eac35069d489ac496bdc80a685609",
       "sha256": "sha256:816f7b1192d5a00de9c29f324bc74e26662359c76370daca2b9ed449be61c614",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "tests/governance/development-draft-proposal-resume-v1.test.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "3568662fe9eae066f3793895d51d6f81a78e23c5",
+      "sha256": "sha256:9c1e4a169d4efa3a3c131af9c7e5d09ef04c3b58904aabdbddd58ca967fd0317",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5715,14 +5826,26 @@
     {
       "path": "tests/kidults/kpmo/direct-owner-landing-handoff-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "92bc1b7306d78288ffee561d749b6998b11257a2",
-      "sha256": "sha256:dec40f7a596cf2c7e1dd3f381f7a6038e1a304ad64d3f2527c59160b9ea09cce"
+      "git_blob": "45a22a379a88f1e4962f2bc90fc4636dc74ecd29",
+      "sha256": "sha256:9425e023359f9cb9c506c6807f3a63a2bef232bc3909b989d0eb62e7aff33002"
+    },
+    {
+      "path": "tests/kidults/kpmo/direct-owner-merge-window-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "188e6764ed9fcc956c647967bc45b95968f16f38",
+      "sha256": "sha256:5c3ec590f4cfdacb4120c2f7a3e5ffef94e0dca996fb8304fbb8077c5ea82b3e"
     },
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "03e642c20fae4f26eb0c980124f936f0fe4c11a2",
       "sha256": "sha256:4bb2b27688562ce316670773f39440ec88831f6486d8f4569ec8f6c297da2b0d"
+    },
+    {
+      "path": "tests/kidults/kpmo/durable-canonical-ledger-canary-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "b40a87627b9c9b418225392550677121fa6b9cb9",
+      "sha256": "sha256:9a50c94d5f99c7c65bb578f95f4b5e853766078b52fb5cca8ea1aec401fc3d0b"
     },
     {
       "path": "tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs",
@@ -5877,8 +6000,8 @@
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "dc142b29b45fd1cfff2436634458bda4b2300e74",
-      "sha256": "sha256:bce06738eca7af65239b6e1866cff880221dc4bc897f22d813c50725cd4e2b31"
+      "git_blob": "80c0c15d35209de2046aad180d520fb087091fba",
+      "sha256": "sha256:9897ee77a8d981100cee9e85409a39c3bb56b6a902fec747d6cc5661cfb47e08"
     },
     {
       "path": "tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs",
@@ -5917,5 +6040,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:0933730ddc942f42f4b02b3b75a48f75a93ff10bdaa345051dca6f0532808b87"
+  "manifest_sha256": "sha256:9f2386a60b454016898944bc985781cfdc7367707b090a1769d007652d31ae43"
 }

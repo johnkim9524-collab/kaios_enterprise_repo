@@ -96,10 +96,14 @@ export async function waitForCohort({
   triggerRunId = '',
   triggerRunAttempt = '',
   triggerRunPath = '',
-  triggerRunCreatedAt = ''
+  triggerRunCreatedAt = '',
+  deadlineMs = process.env.KPMO_PRODUCER_COHORT_DEADLINE_MS ? Number(process.env.KPMO_PRODUCER_COHORT_DEADLINE_MS) : null
 } = {}) {
   if (!repo || !sha || !token) throw new Error('COHORT_INPUT_MISSING');
-  const deadline = Date.now() + maxWaitSeconds * 1000;
+  if (!Number.isSafeInteger(maxWaitSeconds) || maxWaitSeconds < 0 || maxWaitSeconds > DEFAULT_MAX_WAIT_SECONDS) throw new Error('COHORT_WAIT_BOUND');
+  const started = Date.now();
+  if (deadlineMs !== null && (!Number.isSafeInteger(deadlineMs) || deadlineMs < 1 || deadlineMs > started + maxWaitSeconds * 1000)) throw new Error('COHORT_SHARED_DEADLINE_INVALID');
+  const deadline = deadlineMs ?? started + maxWaitSeconds * 1000;
   while (true) {
     const snapshot = await read(repo, sha, token, {
       id: triggerRunId,
@@ -112,7 +116,7 @@ export async function waitForCohort({
     if (snapshot.state === 'INDEX_ERROR') throw new Error('EXACT_SHA_PRODUCER_INDEX_INCOMPLETE');
     if (snapshot.state === 'TERMINAL_FAILURE') throw new Error('EXACT_SHA_PRODUCER_TERMINAL_FAILURE');
     if (Date.now() >= deadline) throw new Error('EXACT_SHA_PRODUCER_COHORT_TIMEOUT');
-    await sleep(pollSeconds);
+    await sleep(Math.max(0, Math.min(pollSeconds, (deadline - Date.now()) / 1000)));
   }
 }
 

@@ -37,11 +37,57 @@ test('expired rights are quarantined', () => {
   assert.equal(control([{ provider_id: 'fixture-open-metadata', kill_switch: false }]).decide(request({ rights: { snapshot_id: 'rights:old', expires_at: '2026-09-20T00:00:00.000Z' } })).decision, 'QUARANTINE');
 });
 
+test('missing, malformed, nonfinite and timezone-free expiries fail closed without consuming approvals', () => {
+  for (const expiry of [undefined, null, '', 'not-a-time', Infinity, nowMs + 1000,
+    '2026-09-22T16:00:00', '2026-02-30T16:00:00Z', '2026-09-22T24:00:00Z']) {
+    for (const field of ['rights', 'approval_a', 'approval_z']) {
+      const consumed = new Set();
+      const instance = new ProviderControl({now: () => nowMs, providers: [{provider_id: 'fixture-open-metadata'}], consumedApprovals: consumed});
+      const value = request(); value[field].expires_at = expiry;
+      const result = instance.decide(value);
+      assert.equal(result.decision, field === 'rights' ? 'QUARANTINE' : 'DENY');
+      assert.equal(consumed.size, 0);
+    }
+  }
+});
+
+test('expiry equality and invalid clocks cannot admit authority; explicit timezone remains supported', () => {
+  for (const field of ['rights', 'approval_a', 'approval_z']) {
+    const value = request(); value[field].expires_at = new Date(nowMs).toISOString();
+    assert.notEqual(control([{provider_id: 'fixture-open-metadata'}]).decide(value).decision, 'ALLOW_SHADOW');
+  }
+  const badClock = new ProviderControl({now: () => NaN, providers: [{provider_id: 'fixture-open-metadata'}]});
+  assert.equal(badClock.decide(request()).decision, 'QUARANTINE');
+  const value = request(); value.rights.expires_at = '2026-09-22T02:00:00+09:00';
+  assert.equal(control([{provider_id: 'fixture-open-metadata'}]).decide(value).decision, 'ALLOW_SHADOW');
+});
+
 test('approval consumption is single-use', () => {
   const instance = control([{ provider_id: 'fixture-open-metadata', kill_switch: false }]);
   const value = request();
   assert.equal(instance.decide(value).decision, 'ALLOW_SHADOW');
   assert.equal(instance.decide(value).reason, 'APPROVAL_REPLAY');
+});
+
+test('request, rights and approval identities must be present and canonical before consumption', () => {
+  for (const [scope, field] of [['request', 'task_id'], ['request', 'provider_id'], ['rights', 'snapshot_id'],
+    ...['approval_a', 'approval_z'].flatMap(scope => ['approval_id', 'approver_id', 'task_id'].map(field => [scope, field]))]) {
+    for (const invalid of [undefined, null, '', ' ', ' padded ', 42, {}]) {
+      const consumed = new Set();
+      const instance = new ProviderControl({now: () => nowMs, providers: [{provider_id: 'fixture-open-metadata'}], consumedApprovals: consumed});
+      const value = request(); (scope === 'request' ? value : value[scope])[field] = invalid;
+      assert.notEqual(instance.decide(value).decision, 'ALLOW_SHADOW', `${scope}.${field}`);
+      assert.equal(consumed.size, 0);
+    }
+  }
+});
+
+test('duplicate approval IDs cannot satisfy separated authority or be consumed', () => {
+  const consumed = new Set();
+  const instance = new ProviderControl({now: () => nowMs, providers: [{provider_id: 'fixture-open-metadata'}], consumedApprovals: consumed});
+  const value = request(); value.approval_z.approval_id = value.approval_a.approval_id;
+  assert.equal(instance.decide(value).reason, 'APPROVAL_SEPARATION_INVALID');
+  assert.equal(consumed.size, 0);
 });
 
 test('provider kill switch produces zero broker fetches', () => {

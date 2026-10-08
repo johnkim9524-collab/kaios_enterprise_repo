@@ -302,6 +302,8 @@ jobs:
           # Compatibility markers keep the bounded 2100-second/spec-index contract visible to existing policy tests.
           # Contract markers: SECONDS + 2100; for (const spec of SPECS); SPECS, workflowRuns.
           # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
+          export KPMO_PRODUCER_COHORT_DEADLINE_MS="$(node -e 'process.stdout.write(String(Date.now()+2100*1000))')"
+          printf 'KPMO_PRODUCER_COHORT_DEADLINE_MS=%s\n' "$KPMO_PRODUCER_COHORT_DEADLINE_MS" >> "$GITHUB_ENV"
           node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health
         if: always()

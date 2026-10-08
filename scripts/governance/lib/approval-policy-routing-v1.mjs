@@ -1,11 +1,21 @@
 export const CANONICAL_ENVELOPE_PATH="coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json";
 export const CANONICAL_ENVELOPE_ID="kidults-autonomous-approval-policy-envelope-v1";
+export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
+  "scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs",
+  "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
+  "scripts/kidults/kpmo/lib/resume-dispatch-fanout-v1.mjs",
+  "scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs",
+  "scripts/kidults/staging-operations/lib/resume-operation-v1.mjs",
+  "scripts/kidults/staging-operations/lib/dynamodb-operation-ledger-v1.mjs",
+  "scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs",
+]);
 export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
   "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-resume-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-readback-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-executor-v1.mjs",
+  ...MUTATING_EXECUTION_LIBRARIES,
 ]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
@@ -16,6 +26,9 @@ export const ALLOWED_EXEMPTIONS=new Set([
   "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER",
   "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER",
 ]);
+// Conservative source indicators cover renamed/new adapters as well as the
+// exact registry above. Classification grants no execution authority.
+const protectedMutationSource=/\b(?:put-object|CREATE_RECOVERY_APPROVAL|CONSUME_RECOVERY_RESERVATION|ACK_RECOVERY_IMMUTABLE_RECEIPT)\b|\b(?:resumeOperation|resumeDispatchFanout)\s*\(|\bawait\s+(?:execute|send)\s*\(|\.request\(\s*['"](?:Put|Update|Delete)['"]|\bmethod\s*:\s*['"](?:POST|PUT|PATCH|DELETE)['"]/;
 
 export const routeAuthorizationControl = (file, source) => {
   if (/OWNER_RESERVED_(STAGING_INFRA_CHANGE|EXTERNAL_SECRET_CALL)/.test(source)) return {
@@ -32,8 +45,10 @@ export const routeAuthorizationControl = (file, source) => {
   // These libraries compose actual protected writes; /lib/ does not make
   // them non-mutating validators. Keep activation fail-closed and inventoried.
   if (/^scripts\/kidults\/staging-operations\/lib\/github-lifecycle-(resume|readback|executor)-v1\.mjs$/.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
-  if (/validate-|\/lib\//.test(file)) return {route:"DOMAIN_ADJUDICATION",coverage:{mode:"EXEMPTION",reason_code:"NON_MUTATING_VALIDATOR_OR_LIBRARY"}};
   if (/(production-release|direct-owner|emergency|legal-commercial|provider-contact|credential|atomic-governed-landing|governed-landing-authorization)/i.test(file)) return {route:"OWNER_RESERVED",coverage:{mode:"EXEMPTION",reason_code:"EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"}};
+  if (MUTATING_EXECUTION_LIBRARIES.includes(file)||/\/lib\//.test(file)&&protectedMutationSource.test(source)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
+  // A validator name or /lib/ directory is not evidence of non-mutation.
+  // Unknown implementations retain the fail-closed pending-consumer route.
   if (/(staging|shadow|postgres|object-lock|cloudtrail)/i.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
   return {route:"INTERNAL_REVERSIBLE",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
 };
@@ -56,6 +71,9 @@ export const validateAuthorizationRoutingCoverage = ({files,readSource,fail}) =>
     } else if (routing.coverage.mode==="EXEMPTION") {
       exemptions+=1;
       if (!ALLOWED_EXEMPTIONS.has(routing.coverage.reason_code)) fail(`EXECUTION_CONTROL_EXEMPTION_INVALID:${entry.path}`);
+      const actual=routeAuthorizationControl(entry.path,source);
+      if(actual.route!==routing.route||actual.coverage.mode!=="EXEMPTION"
+        ||actual.coverage.reason_code!==routing.coverage.reason_code) fail(`EXECUTION_CONTROL_EXEMPTION_SOURCE_MISMATCH:${entry.path}`);
     } else fail(`EXECUTION_CONTROL_COVERAGE_MODE_INVALID:${entry.path}`);
   }
   return {execution_authorization_controls:executionControls.length,consumers,exemptions,route_counts:Object.fromEntries(Object.entries(routeCounts).sort())};

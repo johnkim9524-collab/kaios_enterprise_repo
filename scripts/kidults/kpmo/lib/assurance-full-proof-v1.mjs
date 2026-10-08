@@ -5,29 +5,52 @@ import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 
 const fail=(code,detail='')=>{throw new Error(`ASSURANCE_FULL_PROOF_${code}${detail?`:${detail}`:''}`);};
 const isId=value=>Number.isSafeInteger(Number(value))&&Number(value)>0;
+const runtimeContract=()=>JSON.parse(fs.readFileSync(new URL('../../../../coordination/kidults/kpmo/whole-platform-operating-proof-v1.json',import.meta.url),'utf8'));
+const sameSet=(left,right)=>Array.isArray(left)&&Array.isArray(right)
+  &&new Set(left).size===left.length&&new Set(right).size===right.length
+  &&JSON.stringify([...left].sort())===JSON.stringify([...right].sort());
 const verifyDigest=(value,excluded=[])=>{
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
   const body=Object.fromEntries(Object.entries(value).filter(([key])=>!excluded.includes(key)));
   return value.receipt_digest===sha256(canonicalJson(body));
 };
 
-export function verifyAssuranceRuntimeReadiness(proof, sourceSha) {
+export function verifyAssuranceRuntimeReadiness(proof, sourceSha, contract=runtimeContract()) {
+  const ids=contract?.value_chain_dimensions;
+  const sources=contract?.runtime_domain_sources;
+  if(contract?.id!=='kidults-whole-platform-operating-proof-v1'
+    ||contract?.runtime_domain_registry_required_count!==14
+    ||!Array.isArray(ids)||ids.length!==14||new Set(ids).size!==14
+    ||!Array.isArray(sources)||!sameSet(sources.map(x=>x.domain_id),ids))fail('RUNTIME_CONTRACT_DOMAIN_SET');
   if(proof?.id!=='kidults-whole-platform-operating-proof-v1'||proof?.source_sha!==sourceSha
     ||proof?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
     ||proof?.assurance_runtime_readiness_proven!==true
     ||proof?.assurance_runtime_readiness?.state!=='VERIFIED_PASS'
     ||proof?.assurance_runtime_readiness?.verified_domain_count!==14
     ||proof?.assurance_runtime_readiness?.required_domain_count!==14
+    ||proof?.runtime_domain_registry?.state!=='VERIFIED_PASS'
+    ||proof?.runtime_domain_registry?.registered_domain_count!==14
+    ||proof?.runtime_domain_registry?.required_domain_count!==14
+    ||!sameSet(proof?.assurance_runtime_readiness?.domain_ids,ids)
     ||!verifyDigest(proof,['receipt_digest']))fail('RUNTIME_READINESS_RECEIPT',
       `verified=${proof?.assurance_runtime_readiness?.verified_domain_count??'missing'},required=${proof?.assurance_runtime_readiness?.required_domain_count??'missing'},registered=${proof?.runtime_domain_registry?.registered_domain_count??'missing'}`);
   if(!Array.isArray(proof.value_chain)||proof.value_chain.length!==14
-    ||new Set(proof.value_chain.map(x=>x.id)).size!==14
+    ||!sameSet(proof.value_chain.map(x=>x.id),ids)
     ||proof.value_chain.some(x=>x.runtime_state!=='VERIFIED_PASS'
       ||!/^sha256:[a-f0-9]{64}$/.test(x.runtime_receipt_digest||'')))fail('RUNTIME_DOMAIN_SET');
+  for(const domain of proof.value_chain){
+    const source=sources.find(x=>x.domain_id===domain.id);
+    if(typeof source.workflow!=='string'||!/^[-a-zA-Z0-9_.]+\.yml$/.test(source.workflow)
+      ||!isId(domain.run_id)||!Array.isArray(proof.protected_evidence))fail('RUNTIME_DOMAIN_PRODUCER_BINDING');
+    const matches=proof.protected_evidence.filter(x=>x.workflow_path===`.github/workflows/${source.workflow}`
+      &&String(x.run_id)===String(domain.run_id)&&Number(x.run_attempt)===1&&x.source_sha===sourceSha
+      &&isId(x.artifact_id)&&/^sha256:[a-f0-9]{64}$/.test(x.artifact_digest||''));
+    if(matches.length!==1)fail('RUNTIME_DOMAIN_PRODUCER_BINDING',domain.id);
+  }
   return {state:'VERIFIED_PASS', verified_domain_count:14};
 }
 
-export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sourceSha,sentinel,archivePacket,archiveReceipt,assuranceArtifact}){
+export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sourceSha,sentinel,archivePacket,archiveReceipt,assuranceArtifact,runtimeDomainContract}){
   const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
   const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
   if(!/^[a-f0-9]{40}$/.test(sourceSha))fail('SOURCE_SHA');
@@ -63,7 +86,16 @@ export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sour
     ||String(audit?.execution?.workflow_run_attempt)!==String(assuranceRun.run_attempt)
     ||audit?.states?.internal_control_state!=='VERIFIED_PASS'
     ||!verifyDigest(audit,['receipt_digest','observed_at']))fail('AUDIT_RECEIPT');
-  verifyAssuranceRuntimeReadiness(proof, sourceSha);
+  verifyAssuranceRuntimeReadiness(proof, sourceSha, runtimeDomainContract);
+  const upstream=audit.execution.upstream;
+  if(assuranceRun.event!=='workflow_run'||audit.execution.trigger!=='workflow_run'
+    ||String(upstream?.run_id)!==String(sentinel?.run_id)
+    ||Number(upstream?.run_attempt)!==Number(sentinel?.run_attempt)
+    ||upstream?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
+    ||upstream?.head_branch!=='main'||upstream?.workflow_path!==sentinelPath
+    ||upstream?.workflow_name!=='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
+    ||!['workflow_run','repository_dispatch','schedule'].includes(upstream?.workflow_event)
+    ||upstream?.conclusion!=='success')fail('AUDIT_SENTINEL_CAUSAL_BINDING');
   if(!isId(sentinel?.run_id)||Number(sentinel?.run_attempt)!==1
     ||!isId(sentinel?.artifact_id)||!/^sha256:[a-f0-9]{64}$/.test(sentinel?.artifact_digest||''))fail('SENTINEL_INPUT');
   const bindings=(proof.protected_evidence||[]).filter(x=>x.workflow_path===sentinelPath
