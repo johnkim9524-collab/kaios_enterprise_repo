@@ -64,11 +64,11 @@ test('reports missing registered domains instead of an opaque readiness failure'
   f.proof.runtime_domain_registry={registered_domain_count:0};
   assert.throws(()=>verifyAssuranceRuntimeReadiness(f.proof,source),/verified=0,required=14,registered=0/);
 });
-test('full audit enforces the same runtime predicate before uploading and reporting success',()=>{
+test('full audit distinguishes internal recovery from the unchanged whole-platform runtime predicate',()=>{
   const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
   const validation=workflow.indexOf('- name: Require actual full-audit runtime readiness');
   const upload=workflow.indexOf('- name: Upload exact-run assurance packet');
   const preserve=workflow.indexOf('- name: Preserve control result');
   assert.ok(validation>0&&validation<upload&&upload<preserve);
-  assert.match(workflow,/node scripts\/kidults\/kpmo\/validate-assurance-runtime-readiness-v1\.mjs/);
+  assert.match(workflow,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
 });
