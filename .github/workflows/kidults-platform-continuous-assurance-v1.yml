@@ -457,6 +457,8 @@ jobs:
               upstream: process.env.KPMO_UPSTREAM_RUN_ID ? {
                 run_id: process.env.KPMO_UPSTREAM_RUN_ID,
                 run_attempt: process.env.KPMO_UPSTREAM_RUN_ATTEMPT || '1',
+                repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
+                head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
                 workflow_name: process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
                 workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
                 workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',

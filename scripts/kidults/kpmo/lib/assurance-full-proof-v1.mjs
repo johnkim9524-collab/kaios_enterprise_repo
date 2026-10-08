@@ -1,3 +1,4 @@
+import {verifyAuthenticatedSentinelContinuation} from './authenticated-sentinel-continuation-v1.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -50,7 +51,7 @@ export function verifyAssuranceRuntimeReadiness(proof, sourceSha, contract=runti
   return {state:'VERIFIED_PASS', verified_domain_count:14};
 }
 
-export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sourceSha,sentinel,archivePacket,archiveReceipt,assuranceArtifact,runtimeDomainContract}){
+export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sourceSha,sentinel,archivePacket,archiveReceipt,assuranceArtifact,runtimeDomainContract,sentinelContinuationEvidence}){
   const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
   const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
   if(!/^[a-f0-9]{40}$/.test(sourceSha))fail('SOURCE_SHA');
@@ -88,13 +89,21 @@ export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sour
     ||!verifyDigest(audit,['receipt_digest','observed_at']))fail('AUDIT_RECEIPT');
   verifyAssuranceRuntimeReadiness(proof, sourceSha, runtimeDomainContract);
   const upstream=audit.execution.upstream;
+  let continuation=null;
+  if(upstream?.workflow_event==='workflow_dispatch'){
+    if(!sentinelContinuationEvidence)fail('AUDIT_SENTINEL_CAUSAL_BINDING');
+    continuation=verifyAuthenticatedSentinelContinuation({...sentinelContinuationEvidence,sourceSha});
+    if(!continuation||continuation.run_id!==Number(sentinel?.run_id)||continuation.run_attempt!==Number(sentinel?.run_attempt)||
+      continuation.artifact_id!==Number(sentinel?.artifact_id)||continuation.artifact_digest!==sentinel?.artifact_digest||
+      sentinelContinuationEvidence.run.status!=='completed'||sentinelContinuationEvidence.run.conclusion!=='success')fail('SENTINEL_CONTINUATION');
+  }
   if(assuranceRun.event!=='workflow_run'||audit.execution.trigger!=='workflow_run'
     ||String(upstream?.run_id)!==String(sentinel?.run_id)
     ||Number(upstream?.run_attempt)!==Number(sentinel?.run_attempt)
     ||upstream?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
     ||upstream?.head_branch!=='main'||upstream?.workflow_path!==sentinelPath
     ||upstream?.workflow_name!=='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
-    ||!['workflow_run','repository_dispatch','schedule'].includes(upstream?.workflow_event)
+    ||(!['workflow_run','repository_dispatch','schedule'].includes(upstream?.workflow_event)&&!continuation)
     ||upstream?.conclusion!=='success')fail('AUDIT_SENTINEL_CAUSAL_BINDING');
   if(!isId(sentinel?.run_id)||Number(sentinel?.run_attempt)!==1
     ||!isId(sentinel?.artifact_id)||!/^sha256:[a-f0-9]{64}$/.test(sentinel?.artifact_digest||''))fail('SENTINEL_INPUT');
@@ -109,11 +118,11 @@ export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sour
     archive_validation_receipt_digest:archiveReceipt.receipt_digest,
     verified_domain_count:14,sentinel_run_id:Number(sentinel.run_id),sentinel_run_attempt:1,
     sentinel_artifact_id:Number(sentinel.artifact_id),sentinel_artifact_digest:sentinel.artifact_digest,
-    production:'HOLD',public:'HOLD',g5:'HOLD'};
+    sentinel_continuation:continuation,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){
-  const [auditPath,proofPath,runPath,jobPath,sentinelPath,packetPath,archiveReceiptPath,artifactPath]=process.argv.slice(2);
+  const [auditPath,proofPath,runPath,jobPath,sentinelPath,packetPath,archiveReceiptPath,artifactPath,continuationPath]=process.argv.slice(2);
   if(![auditPath,proofPath,runPath,jobPath,sentinelPath,packetPath,archiveReceiptPath,artifactPath].every(Boolean))fail('CLI_ARGUMENTS');
   const result=verifyAssuranceReadiness({
     audit:JSON.parse(fs.readFileSync(auditPath,'utf8')),proof:JSON.parse(fs.readFileSync(proofPath,'utf8')),
@@ -121,6 +130,7 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1]
     sourceSha:process.env.UPSTREAM_SHA,sentinel:JSON.parse(fs.readFileSync(sentinelPath,'utf8')),
     archivePacket:JSON.parse(fs.readFileSync(packetPath,'utf8')),
     archiveReceipt:JSON.parse(fs.readFileSync(archiveReceiptPath,'utf8')),
-    assuranceArtifact:JSON.parse(fs.readFileSync(artifactPath,'utf8'))});
+    assuranceArtifact:JSON.parse(fs.readFileSync(artifactPath,'utf8')),
+    sentinelContinuationEvidence:continuationPath?JSON.parse(fs.readFileSync(continuationPath,'utf8')):undefined});
   process.stdout.write(JSON.stringify(result)+'\n');
 }

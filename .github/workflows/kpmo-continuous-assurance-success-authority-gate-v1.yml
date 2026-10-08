@@ -10,6 +10,9 @@ on:
       - 'scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs'
       - 'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'
       - 'scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs'
+      - 'scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/authenticated-sentinel-continuation-v1.mjs'
+      - 'tests/kidults/kpmo/authenticated-sentinel-continuation-v1.test.mjs'
       - 'scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs'
       - 'scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs'
       - 'scripts/kidults/kpmo/lib/assurance-completion-disposition-v1.mjs'
@@ -57,7 +60,7 @@ jobs:
           node --check scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
           node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs
-          node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs
+          node --test tests/kidults/kpmo/authenticated-sentinel-continuation-v1.test.mjs tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs
           node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
 
@@ -348,17 +351,21 @@ jobs:
             > "$GATE_DIR/sentinel-runs.json"
           jq -e '.workflow_runs as $runs | ($runs|length)==.total_count and ($runs|length)==($runs|map(.id)|unique|length)' \
             "$GATE_DIR/sentinel-runs.json" >/dev/null
+          node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json"
           node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" \
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" \
             > "$GATE_DIR/sentinel-selection.json"
           jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
           SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_RUN_ATTEMPT=$(jq -r '.run_attempt // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_EVENT=$(jq -r '.event // empty' "$GATE_DIR/selected-sentinel-run.json")
           SENTINEL_CONCLUSION=$(jq -r '.conclusion // empty' "$GATE_DIR/selected-sentinel-run.json")
+          jq --argjson run "$SENTINEL_RUN_ID" '[.[] | select(.run.id==$run)][0] // null' \
+            "$GATE_DIR/sentinel-continuation-evidence.json" > "$GATE_DIR/selected-sentinel-continuation.json"
           [[ "$SENTINEL_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           test "$SENTINEL_RUN_ATTEMPT" = 1
-          [[ "$SENTINEL_EVENT" =~ ^(workflow_run|repository_dispatch|schedule)$ ]]
+          [[ "$SENTINEL_EVENT" =~ ^(workflow_run|repository_dispatch|schedule|workflow_dispatch)$ ]]
           {
             echo "PRODUCER_HEALTH_RUN_ID=$SENTINEL_RUN_ID"
             echo "PRODUCER_HEALTH_RUN_ATTEMPT=$SENTINEL_RUN_ATTEMPT"
@@ -484,6 +491,7 @@ jobs:
             "$GATE_DIR/assurance-packet.json" \
             "$GATE_DIR/assurance-archive-validation-receipt.json" \
             "$GATE_DIR/assurance-artifact-binding.json" \
+            "$GATE_DIR/selected-sentinel-continuation.json" \
             > "$GATE_DIR/assurance-runtime-readiness.json"
           jq -e '.state=="VERIFIED_PASS" and .verified_domain_count==14' \
             "$GATE_DIR/assurance-runtime-readiness.json" >/dev/null
@@ -538,7 +546,8 @@ jobs:
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA||null,
             producer_health_run_id:/^[1-9][0-9]*$/.test(process.env.PRODUCER_HEALTH_RUN_ID||'')?Number(process.env.PRODUCER_HEALTH_RUN_ID):null,
             producer_health_run_attempt:process.env.PRODUCER_HEALTH_RUN_ATTEMPT==='1'?1:null,
-            producer_health_event:/^(workflow_run|repository_dispatch|schedule)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
+            producer_health_event:/^(workflow_run|repository_dispatch|schedule|workflow_dispatch)$/.test(process.env.PRODUCER_HEALTH_EVENT||'')?process.env.PRODUCER_HEALTH_EVENT:null,
+            producer_health_continuation: (()=>{try{return JSON.parse(fs.readFileSync(`${process.env.GATE_DIR}/assurance-runtime-readiness.json`,'utf8')).sentinel_continuation||null;}catch{return null;}})(),
             producer_health_receipt_digest:healthDigest,
             producer_health_conclusion:process.env.PRODUCER_HEALTH_CONCLUSION||null,
             producer_health_state:health?.state||'UNAVAILABLE'
@@ -575,7 +584,7 @@ jobs:
             .current_protected_main_sha==env.UPSTREAM_SHA and
             (.producer_health_run_id|type)=="number" and
             .producer_health_run_attempt==1 and
-            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule" or .producer_health_event=="workflow_run") and
+            (.producer_health_event=="repository_dispatch" or .producer_health_event=="schedule" or .producer_health_event=="workflow_run" or (.producer_health_event=="workflow_dispatch" and .producer_health_continuation.state=="VERIFIED_PASS" and .producer_health_continuation.run_id==.producer_health_run_id and .producer_health_continuation.run_attempt==.producer_health_run_attempt and .producer_health_continuation.artifact_id==.producer_health_artifact_id and .producer_health_continuation.artifact_digest==.producer_health_artifact_digest)) and
             .producer_health_conclusion=="success" and
             (.producer_health_receipt_digest|test("^sha256:[0-9a-f]{64}$")) and
             .producer_health_state=="VERIFIED_PASS" and
