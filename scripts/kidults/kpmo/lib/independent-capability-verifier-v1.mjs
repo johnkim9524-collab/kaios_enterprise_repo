@@ -20,6 +20,7 @@ const normalizedDerivedApprovalMetadata=(source,filename)=>{
     value.manifest_sha256='DERIVED';
     for(const entry of value.files||[]){entry.git_blob='DERIVED';entry.sha256='DERIVED';}
   } else if(filename.endsWith('approval-policy-inventory-v1.json')) {
+    value.manifest_sha256='DERIVED';
     if(value.audit) value.audit.manifest_sha256='DERIVED';
   }
   return value;
@@ -28,7 +29,9 @@ const isDerivedApprovalMetadataShape=(source,filename)=>{
   try {
     const value=JSON.parse(source||'{}');
     if(filename.endsWith('approval-policy-file-manifest-v1.json')) return Array.isArray(value.files)&&typeof value.manifest_sha256==='string';
-    if(filename.endsWith('approval-policy-inventory-v1.json')) return typeof value.audit?.manifest_sha256==='string';
+    if(filename.endsWith('approval-policy-inventory-v1.json')) return typeof value.manifest_sha256==='string'
+      && typeof value.audit?.manifest_sha256==='string'
+      && value.manifest_sha256===value.audit.manifest_sha256;
   } catch {}
   return false;
 };

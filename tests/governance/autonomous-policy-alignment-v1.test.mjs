@@ -296,8 +296,8 @@ test('derived approval metadata digest rebinding is autonomous but routing mutat
   const inventory='coordination/kidults/governance/approval-policy-inventory-v1.json';
   const manifestBase=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'a',sha256:'sha256:a',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:old'});
   const manifestHead=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'INTERNAL_REVERSIBLE'}}],manifest_sha256:'sha256:new'});
-  const inventoryBase=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
-  const inventoryHead=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}}});
+  const inventoryBase=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:old'});
+  const inventoryHead=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:new'});
   for(const [filename,base_content,head_content] of [[manifest,manifestBase,manifestHead],[inventory,inventoryBase,inventoryHead]]){
     const file={filename,base_content,head_content};
     assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
@@ -306,6 +306,10 @@ test('derived approval metadata digest rebinding is autonomous but routing mutat
   const routed=JSON.stringify({files:[{path:'scripts/a.mjs',classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob:'b',sha256:'sha256:b',authorization_routing:{route:'OWNER_RESERVED'}}],manifest_sha256:'sha256:new'});
   assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename:manifest,base_content:manifestBase,head_content:routed}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
+
+  const inventoryMismatch=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:old'});
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename:inventory,base_content:inventoryBase,head_content:inventoryMismatch}],policy:landing}),/CAPABILITY_EXISTING_VALUE_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename:inventory,base_content:inventoryBase,head_content:inventoryMismatch}],policy:landing}),/INDEPENDENT_POLICY_VALUE_CHANGED/);
 });
 
 test('safe monotonic workflow hardening passes both independent models',()=>{

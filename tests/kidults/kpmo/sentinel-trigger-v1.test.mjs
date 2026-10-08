@@ -306,14 +306,17 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.match(barrier,/run_attempt === 1/);
 });
 
-test('inventory audit digest rebinding is non-semantic while routing drift fails closed',()=>{
+test('inventory digest rebinding is non-semantic while mismatched copies and routing drift fail closed',()=>{
  const filename='coordination/kidults/governance/approval-policy-inventory-v1.json';
- const base_content=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:legacy'});
- const head_content=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:legacy'});
+ const base_content=JSON.stringify({audit:{manifest_sha256:'sha256:old',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:old'});
+ const head_content=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:new'});
  const file={filename,base_content,head_content};
  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
- const drifted=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{OWNER_RESERVED:1}}},manifest_sha256:'sha256:legacy'});
+ const mismatched=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:'sha256:old'});
+ assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:mismatched}],policy:landing}),/CAPABILITY_EXISTING_VALUE_CHANGED/);
+ assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:mismatched}],policy:landing}),/INDEPENDENT_POLICY_VALUE_CHANGED/);
+ const drifted=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{OWNER_RESERVED:1}}},manifest_sha256:'sha256:new'});
  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
 });
