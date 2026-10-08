@@ -1,5 +1,7 @@
 import {test} from 'node:test';
+import {createHash} from 'node:crypto';
 import assert from 'node:assert/strict';
+import {executeBoundBusinessInput} from '../../../scripts/kidults/runtime/execute-bound-business-input-v1.mjs';
 import {executeBusinessInputStage} from '../../../scripts/kidults/runtime/execute-business-input-stage-v1.mjs';
 import {canonicalJsonDigest} from '../../../scripts/kidults/market/current-sold-batch-v1.mjs';
 import {NOW,batchEnvelope,rawObservation,receiptRegistryFor,sealObservation} from '../market/current-sold-test-helpers-v1.mjs';
@@ -30,3 +32,37 @@ for(const [name,mutate] of [
   ['registry digest drift',f=>f.expectedRegistryDigest='sha256:'+'b'.repeat(64)],
   ['unregistered acquisition',f=>f.envelope.observations[0].acquisition_receipt_id='missing'],
 ])test(`rejects ${name}`,()=>{const f=fixture();mutate(f);assert.throws(()=>executeBusinessInputStage(f));});
+
+function boundFixture(){
+  const f=fixture(),files=Object.fromEntries(['envelope','receiptRegistry','purposeRights'].map(k=>[k,Buffer.from(JSON.stringify(f[k]))]));
+  return {...f,files,binding:{schema_version:'business-input-file-binding-v1',source_sha:f.sourceSha,canonical_run_id:f.runId,
+    file_digests:Object.fromEntries(Object.entries(files).map(([k,b])=>[k,'sha256:'+createHash('sha256').update(b).digest('hex')]))}};
+}
+function replaceFile(f,key,value){f.files[key]=Buffer.isBuffer(value)?value:Buffer.from(JSON.stringify(value));
+  f.binding.file_digests[key]='sha256:'+createHash('sha256').update(f.files[key]).digest('hex');}
+test('binds all three exact byte inputs while retaining unauthenticated native HOLD',()=>{
+  const f=boundFixture(),r=executeBoundBusinessInput(f);
+  assert.equal(r.file_integrity_verified,true);assert.equal(r.binding_authority_authenticated,false);
+  assert.equal(r.bundle.evidence.length,1);assert.equal(r.empirical_inputs_authenticated,false);
+  assert.equal(r.native_domain_receipt_emitted,false);assert.equal(r.native_domain_state,'HOLD');
+  assert.equal(r.file_binding_digest,canonicalJsonDigest(f.binding));
+  const {content_digest,...body}=r;assert.equal(content_digest,canonicalJsonDigest(body));
+  assert.throws(()=>verifyValueChainDomainReceipt(r,'ASI_EXECUTION',{id:1,run_attempt:1},f.sourceSha));
+});
+for(const [name,mutate] of [
+  ['foreign SHA',f=>f.binding.source_sha='b'.repeat(40)],
+  ['foreign run',f=>f.binding.canonical_run_id='foreign'],
+  ['missing binding',f=>delete f.binding],
+  ['unknown schema',f=>f.binding.schema_version='future'],
+  ['missing file',f=>delete f.files.purposeRights],
+  ['extra file',f=>f.files.extra=Buffer.from('{}')],
+  ['missing digest',f=>delete f.binding.file_digests.envelope],
+  ['malformed digest',f=>f.binding.file_digests.envelope='sha256:x'],
+  ['changed envelope bytes',f=>f.files.envelope=Buffer.concat([f.files.envelope,Buffer.from(' ')])],
+  ['changed registry bytes',f=>f.files.receiptRegistry=Buffer.from('{}')],
+  ['changed rights bytes',f=>f.files.purposeRights=Buffer.from('[]')],
+  ['oversized bytes',f=>replaceFile(f,'envelope',Buffer.alloc(2*1024*1024+1))],
+  ['invalid UTF-8',f=>replaceFile(f,'envelope',Buffer.from([0xff]))],
+  ['invalid JSON',f=>replaceFile(f,'envelope',Buffer.from('{'))],
+  ['rights denied despite matching digest',f=>{const rights=JSON.parse(f.files.purposeRights);rights[0].rights_state='DENY';replaceFile(f,'purposeRights',rights);}]
+])test(`bound loader rejects ${name}`,()=>{const f=boundFixture();mutate(f);assert.throws(()=>executeBoundBusinessInput(f));});
