@@ -6,7 +6,7 @@ import {createGitHubLifecycleReadback,createGitHubLifecycleReceiptAuthenticator}
 // ledger transport, signing keys, authority and native UI executor cannot be
 // selected by an RPC event. No default authority or write transport is supplied.
 export function createProtectedGitHubLifecycleExecutor({config,request,ledgerRequest,getSigningKey,
-  signingPublicKey,authorize,executeNative,writer}) {
+  signingPublicKey,authorize,executeNative,writer,readDispatchReceipt,authenticateDispatchReceipt}) {
   if (!config || !config.operationTable || !config.rootMissionId || !config.stageId
       || !Array.isArray(config.enabledOperations) || !config.enabledOperations.length
       || [request,ledgerRequest,getSigningKey,authorize,executeNative].some(v=>typeof v!=='function')
@@ -15,7 +15,7 @@ export function createProtectedGitHubLifecycleExecutor({config,request,ledgerReq
   const enabledOperations=new Set(config.enabledOperations);
   const ledger=new DynamoDBOperationLedger({request:ledgerRequest,table:config.operationTable,repository});
   const readExternal=createGitHubLifecycleReadback({repository,repositoryId:config.repositoryId,
-    repositoryOwner:config.repositoryOwner,request,getSigningKey});
+    repositoryOwner:config.repositoryOwner,request,getSigningKey,readDispatchReceipt,authenticateDispatchReceipt});
   const authenticateReceipt=createGitHubLifecycleReceiptAuthenticator(signingPublicKey);
   return async event => {
     if (!event || Object.keys(event).sort().join(',')!=='operation,payload,target'

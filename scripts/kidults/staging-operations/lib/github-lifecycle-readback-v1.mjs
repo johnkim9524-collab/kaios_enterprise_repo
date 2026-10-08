@@ -13,7 +13,8 @@ const absent = () => ({state:'ABSENT'});
 
 // request is an authenticated protected transport. All URLs, methods, bounds
 // and timeouts are selected here; no caller endpoint or redirect is followed.
-export function createGitHubLifecycleReadback({repository, repositoryId, repositoryOwner, request, getSigningKey}) {
+export function createGitHubLifecycleReadback({repository, repositoryId, repositoryOwner, request, getSigningKey,
+  readDispatchReceipt, authenticateDispatchReceipt}) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) || !validId(repositoryId)
       || repositoryOwner !== repository.split('/')[0] || typeof request !== 'function'
       || typeof getSigningKey !== 'function') fail('CONFIG');
@@ -41,6 +42,11 @@ export function createGitHubLifecycleReadback({repository, repositoryId, reposit
     const expected=githubLifecycleBinding({repository, rootMissionId:binding?.root_mission_id,
       stageId:binding?.stage_id, operation, target, payload});
     if (canonicalJson(binding)!==canonicalJson(expected) || key!==operationKey(expected)) fail('BINDING');
+    // Native Actions run metadata does not expose workflow inputs. Matching a
+    // display title is insufficient; require the protected actual-input proof
+    // adapters before even admitting an ABSENT observation or claiming a write.
+    if (operation==='WORKFLOW_DISPATCH' && (typeof readDispatchReceipt!=='function'
+        || typeof authenticateDispatchReceipt!=='function')) fail('DISPATCH_INPUT_PROOF_ADAPTER_REQUIRED');
     const number=target.pull_request;
     const [pr, main, head]=await Promise.all([api(`/pulls/${number}`), api('/branches/main'), api(`/commits/${target.head_sha}`)]);
     if (pr.number!==number || pr.base?.ref!=='main'
@@ -76,7 +82,8 @@ export function createGitHubLifecycleReadback({repository, repositoryId, reposit
       // expiry. This receipt proves the exact immutable comment was posted.
       evidence={kind:'NATIVE_OWNER_COMMENT_CREATED',comment_id:c.id,created_at:c.created_at,body_sha256:payload.body_sha256};
     } else if (operation==='WORKFLOW_DISPATCH') {
-      if (!exactKeys(payload,['workflow_id','run_name','ref']) || !validId(payload.workflow_id)
+      if (!exactKeys(payload,['workflow_id','run_name','ref','inputs']) || !validId(payload.workflow_id)
+          || !payload.inputs || Object.getPrototypeOf(payload.inputs)!==Object.prototype
           || payload.ref!=='main' || typeof payload.run_name!=='string' || !payload.run_name || payload.run_name.length>256) fail('PAYLOAD');
       const runs=await pages(`/actions/workflows/${payload.workflow_id}/runs`,'workflow_runs');
       const matched=runs.filter(r=>r.display_title===payload.run_name && r.event==='workflow_dispatch'
@@ -87,7 +94,15 @@ export function createGitHubLifecycleReadback({repository, repositoryId, reposit
       if (!validId(r.id) || r.workflow_id!==payload.workflow_id || r.run_attempt!==1
           || r.repository?.id!==repositoryId || r.repository?.full_name!==repository
           || !nativeOwner(r.actor,repositoryOwner) || !nativeOwner(r.triggering_actor,repositoryOwner)) return unknown();
-      evidence={kind:'WORKFLOW_DISPATCH_ACCEPTED_NOT_JOB_COMPLETION',run_id:r.id,run_attempt:r.run_attempt,workflow_id:r.workflow_id};
+      const inputsDigest=sha256(canonicalJson(payload.inputs));
+      const proof=await readDispatchReceipt({run_id:r.id,run_attempt:r.run_attempt,workflow_id:r.workflow_id});
+      if (proof?.id!=='kidults-native-workflow-dispatch-input-receipt-v1' || proof.state!=='DISPATCH_ACCEPTED'
+          || proof.repository!==repository || proof.repository_id!==repositoryId
+          || proof.run_id!==r.id || proof.run_attempt!==r.run_attempt || proof.workflow_id!==r.workflow_id
+          || proof.head_sha!==target.base_sha || proof.inputs_sha256!==inputsDigest
+          || await authenticateDispatchReceipt(proof,{...context,run_id:r.id,inputs_sha256:inputsDigest})!==true) return unknown();
+      evidence={kind:'WORKFLOW_DISPATCH_ACCEPTED_NOT_JOB_COMPLETION',run_id:r.id,run_attempt:r.run_attempt,
+        workflow_id:r.workflow_id,inputs_sha256:inputsDigest};
     } else if (operation==='MERGE_PROTECTED_MAIN') {
       if (!exactKeys(payload,[])) fail('PAYLOAD');
       if (pr.merged!==true) return pr.state==='open' && pr.base?.sha===target.base_sha && main.commit?.sha===target.base_sha ? absent() : unknown();

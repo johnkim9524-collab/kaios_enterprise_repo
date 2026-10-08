@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {githubLifecycleBinding} from '../../../scripts/kidults/staging-operations/lib/github-lifecycle-resume-v1.mjs';
 import {operationKey} from '../../../scripts/kidults/staging-operations/lib/resume-operation-v1.mjs';
-import {sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {sha256,canonicalJson} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {createGitHubLifecycleReadback,createGitHubLifecycleReceiptAuthenticator} from '../../../scripts/kidults/staging-operations/lib/github-lifecycle-readback-v1.mjs';
 const {privateKey,publicKey}=crypto.generateKeyPairSync('rsa',{modulusLength:2048});
 const publicPem=publicKey.export({type:'spki',format:'pem'});
@@ -16,7 +16,7 @@ function fixture(operation='READY_FOR_REVIEW',payload={}) {
     base:{ref:'main',sha:target.base_sha,repo},head:{sha:target.head_sha,repo}},
     main:{commit:{sha:target.base_sha}},head:{sha:target.head_sha,commit:{tree:{sha:target.head_tree_sha},committer:{date:'2026-10-08T01:00:00Z'}}},
     timeline:[{id:91,event:'ready_for_review',actor:owner,performed_via_github_app:null,created_at:'2026-10-08T02:00:00Z'}],
-    comments:[],runs:[],merge:{}};
+    comments:[],runs:[],merge:{},dispatchProof:null};
   let reads=0,signs=0;
   const request=async(url,options)=>{
     assert.ok(url.startsWith('https://api.github.com/repos/owner/repo/'));assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.ok(options.signal);reads++;
@@ -27,7 +27,9 @@ function fixture(operation='READY_FOR_REVIEW',payload={}) {
     return {ok:true,json:async()=>structuredClone(value)};
   };
   return {data,context,reads:()=>reads,signs:()=>signs,
-    read:createGitHubLifecycleReadback({repository:target.repository,repositoryId:128,repositoryOwner:'owner',request,getSigningKey:async()=>{signs++;return privateKey;}}),
+    request,
+    read:createGitHubLifecycleReadback({repository:target.repository,repositoryId:128,repositoryOwner:'owner',request,getSigningKey:async()=>{signs++;return privateKey;},
+      readDispatchReceipt:async()=>data.dispatchProof,authenticateDispatchReceipt:async p=>p.authenticated===true}),
     auth:createGitHubLifecycleReceiptAuthenticator(publicPem)};
 }
 test('Ready uses native exact-head evidence and protected signature',async()=>{
@@ -55,11 +57,21 @@ test('only one immutable native Owner comment proves exact posting',async()=>{
   f.data.comments=[{...c,updated_at:'2026-10-08T04:00:00Z'}];assert.equal((await f.read(f.context)).state,'UNKNOWN');
 });
 test('workflow dispatch acceptance never means job completion; duplicate or rerun is ambiguous',async()=>{
-  const payload={workflow_id:12,run_name:'exact handoff',ref:'main'},f=fixture('WORKFLOW_DISPATCH',payload);
+  const payload={workflow_id:12,run_name:'exact handoff',ref:'main',inputs:{pull_request_number:'2609',expected_head_sha:target.head_sha}},f=fixture('WORKFLOW_DISPATCH',payload);
   const r={id:100,display_title:payload.run_name,event:'workflow_dispatch',head_sha:target.base_sha,head_branch:'main',workflow_id:12,run_attempt:1,repository:repo,actor:owner,triggering_actor:owner,status:'queued'};
-  f.data.runs=[r];const result=await f.read(f.context);assert.equal(result.state,'SUCCESS');assert.equal(result.receipt.evidence.kind,'WORKFLOW_DISPATCH_ACCEPTED_NOT_JOB_COMPLETION');
+  f.data.runs=[r];assert.equal((await f.read(f.context)).state,'UNKNOWN');
+  f.data.dispatchProof={id:'kidults-native-workflow-dispatch-input-receipt-v1',state:'DISPATCH_ACCEPTED',repository:target.repository,repository_id:128,
+    run_id:100,run_attempt:1,workflow_id:12,head_sha:target.base_sha,inputs_sha256:sha256(canonicalJson(payload.inputs)),authenticated:true};
+  const result=await f.read(f.context);assert.equal(result.state,'SUCCESS');assert.equal(result.receipt.evidence.kind,'WORKFLOW_DISPATCH_ACCEPTED_NOT_JOB_COMPLETION');
   f.data.runs=[r,{...r,id:101}];assert.equal((await f.read(f.context)).state,'UNKNOWN');
   f.data.runs=[{...r,run_attempt:2}];assert.equal((await f.read(f.context)).state,'UNKNOWN');
+  f.data.runs=[r];f.data.dispatchProof.inputs_sha256=sha256(canonicalJson({pull_request_number:'9999'}));assert.equal((await f.read(f.context)).state,'UNKNOWN');
+  f.data.dispatchProof.inputs_sha256=sha256(canonicalJson(payload.inputs));f.data.dispatchProof.authenticated=false;assert.equal((await f.read(f.context)).state,'UNKNOWN');
+});
+test('missing protected dispatch-input adapters denies before source reads or write admission',async()=>{
+  const f=fixture('WORKFLOW_DISPATCH',{workflow_id:12,run_name:'handoff',ref:'main',inputs:{}});
+  const read=createGitHubLifecycleReadback({repository:target.repository,repositoryId:128,repositoryOwner:'owner',request:f.request,getSigningKey:async()=>privateKey});
+  await assert.rejects(read(f.context),/DISPATCH_INPUT_PROOF_ADAPTER_REQUIRED/);assert.equal(f.reads(),0);
 });
 test('merge requires exact two parents, tree, native Owner event and current main',async()=>{
   const f=fixture('MERGE_PROTECTED_MAIN');assert.equal((await f.read(f.context)).state,'ABSENT');
