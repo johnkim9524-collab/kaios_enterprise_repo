@@ -1,5 +1,7 @@
 # Native security runtime producer v1
 
+The receipt grants no authorization for acquisition, external infrastructure mutation or release.
+
 The first registered native domain is `SECURITY_SUPPLY_CHAIN`. Its inputs are the actual committed repository files and full dependency lockfiles, not synthetic business records. The existing pinned security workflow performs committed-secret scanning and native npm/pip vulnerability audits. On protected-main push only, after all steps succeed, the new producer binds these results to exact checkout SHA, GitHub repository/workflow identity, run ID and attempt 1.
 
 The emitter re-reads report components, checks full tracked-file integrity against the actual checkout, requires complete raw audit files, rejects vulnerability/unavailable/partial results, and emits the canonical domain receipt. The collector authenticates the native successful run and archive digest before consuming it. A receipt digest alone is not a trust root. PR and manual runs remain observations and cannot emit registered live-domain evidence.
