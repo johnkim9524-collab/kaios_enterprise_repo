@@ -600,8 +600,8 @@
     {
       "path": ".github/workflows/kidults-security-assurance-empirical-r1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9747ff45a493fc2b99b917b4a71ef3409c0f97d8",
-      "sha256": "sha256:ad4aea24ad56757bcdb7ae81f0d3cc427b4f16baf649dac77265ef89aa18ea67",
+      "git_blob": "4a1f88576c35f34fffc0f1e98cc6af2cc80c645f",
+      "sha256": "sha256:9648bab23175e96caaaaa20f40259d0b00540d165426fa9933644c38f4a34df6",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5846,5 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3496a3dc2af20a111727c26212b803f401ba7585e678897017eddbec03ec935e"
+  "manifest_sha256": "sha256:6357f5790fa6042efa1630dcc99608f8fac791d12dcc7fa85f294a4e92fd2852"
 }
