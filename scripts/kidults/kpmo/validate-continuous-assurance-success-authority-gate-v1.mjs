@@ -14,7 +14,7 @@ for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verifi
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
-  "workflows: ['KIDULTS Platform Continuous Assurance V1']",
+  "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']",
   "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
   "github.event.workflow_run.conclusion == 'success'",
   'ref: ${{ github.event.workflow_run.head_sha }}',
@@ -110,8 +110,16 @@ if (workflow.includes('.conclusion=="success"') && workflow.includes('.created_a
   fail('SUCCESS_AUTHORITY_GATE_STALE_SUCCESS_FILTER');
 }
 
-if (workflow.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'")) {
-  fail('SUCCESS_AUTHORITY_GATE_PREMATURE_SENTINEL_TRIGGER_FORBIDDEN');
+for (const token of [
+  "sentinel-failure-authority-gate:",
+  "github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'",
+  "github.event.workflow_run.conclusion != 'success'",
+  "failure_class:'SENTINEL_TERMINAL_NON_SUCCESS'",
+  "authority_invalidated:true",
+  "invalidates_prior_success:true",
+  "kpmo-continuous-assurance-negative-authority-gate-v1"
+]) {
+  if (!workflow.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_NEGATIVE_PATH_MISSING:${token}`);
 }
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
