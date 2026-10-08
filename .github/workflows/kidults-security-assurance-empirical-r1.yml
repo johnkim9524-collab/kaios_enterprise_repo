@@ -192,7 +192,7 @@ jobs:
             [ -n "$req" ] || continue
             count=$((count+1))
             safe=$(echo "$req" | tr '/.' '__')
-            if ! python -m pip_audit -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
+            if ! python -m pip_audit --disable-pip --no-deps -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
           done <<< "$reqs"
           python - "$count" "$failed" <<'PY'
           import json,sys,pathlib
