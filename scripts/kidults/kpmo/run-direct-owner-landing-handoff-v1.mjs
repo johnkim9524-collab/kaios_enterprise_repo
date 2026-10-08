@@ -364,7 +364,10 @@ try {
   if(purpose==='RESUME_LEDGER_BOOTSTRAP') {
     resumeRecovery=validateOwnerRecoveryBootstrapResume({
       policy:JSON.parse(fs.readFileSync('coordination/kidults/governance/resume-contract-v1.json','utf8')),
-      purpose,repository,actor,executionRef,approval:finalApproval,ready:finalReady,oneUse,runId,runAttempt,handoffWindowSeconds});
+      purpose,repository,actor,executionRef,approval:finalApproval,ready:finalReady,
+      rawApproval:finalComments.find(comment=>comment.id===finalApproval.comment_id),
+      rawReady:finalTimeline.find(event=>event.id===finalReady.id),
+      oneUse,runId,runAttempt,handoffWindowSeconds});
   }
   await publish('success', `Direct Owner UI merge authorized for ${handoffWindowSeconds}s`);
   const openedAt = new Date().toISOString();

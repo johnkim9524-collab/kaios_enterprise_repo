@@ -1,8 +1,9 @@
 // Internal composition guard, not an RPC authority or self-approved exception.
 // approval, ready and oneUse are outputs of the protected controller's native
 // validators. Keep their validation and GREEN/ruleset gates before this call.
+import {createHash} from 'node:crypto';
 export function validateOwnerRecoveryBootstrapResume({policy,purpose,repository,actor,executionRef,
-  approval,ready,oneUse,runId,runAttempt,handoffWindowSeconds}) {
+  approval,ready,rawApproval,rawReady,oneUse,runId,runAttempt,handoffWindowSeconds}) {
   const fail=code=>{throw new Error(`OWNER_RECOVERY_BOOTSTRAP_${code}`);};
   const route=policy?.owner_recovery_bootstrap;
   const expected={scope:'EXACT_HEAD_OWNER_AUTHORIZED_RESUME_LEDGER_BOOTSTRAP_ONLY',purpose:'RESUME_LEDGER_BOOTSTRAP',
@@ -22,6 +23,18 @@ export function validateOwnerRecoveryBootstrapResume({policy,purpose,repository,
     || !/^sha256:[a-f0-9]{64}$/.test(approval.comment_body_sha256 || '')
     || !ready || ready.actor!==actor || ready.direct_repository_owner!==true
     || ready.performed_via_github_app!==null || ready.synthetic_lifecycle_boundary===true) fail('NATIVE_OWNER_EVIDENCE');
+  // Normalized selectors cannot establish absence of app involvement: missing
+  // fields may have been normalized to null. Bind strict original API evidence.
+  if(!rawReady || rawReady.id!==ready.id || rawReady.event!=='ready_for_review'
+    || rawReady.actor?.login!==actor || rawReady.actor?.type!=='User'
+    || rawReady.performed_via_github_app!==null || !ready.created_at
+    || rawReady.created_at!==ready.created_at
+    || !rawApproval || rawApproval.id!==approval.comment_id
+    || rawApproval.user?.login!==actor || rawApproval.user?.type!=='User'
+    || rawApproval.author_association!=='OWNER' || rawApproval.performed_via_github_app!==null
+    || !approval.comment_created_at || rawApproval.created_at!==approval.comment_created_at
+    || rawApproval.updated_at!==rawApproval.created_at || typeof rawApproval.body!=='string'
+    || 'sha256:'+createHash('sha256').update(rawApproval.body,'utf8').digest('hex')!==approval.comment_body_sha256) fail('RAW_NATIVE_OWNER_EVIDENCE');
   if(!oneUse || oneUse.matching_run_count!==1 || oneUse.matching_run_id!==Number(runId)
     || oneUse.matching_run_attempt!==1 || oneUse.bounded_attempt_ordinal!==1
     || oneUse.prior_non_success_attempt_count!==0) fail('ONE_USE');
