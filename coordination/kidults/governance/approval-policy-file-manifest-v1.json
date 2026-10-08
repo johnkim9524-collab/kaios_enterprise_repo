@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 726
+    "file_count": 727
   },
   "files": [
     {
@@ -5846,6 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:8e11b30edb4cafa8730c88208dfa4b086ac945d406d2486aa051570728153153",
-  "file_count": 727
+  "manifest_sha256": "sha256:8e11b30edb4cafa8730c88208dfa4b086ac945d406d2486aa051570728153153"
 }
