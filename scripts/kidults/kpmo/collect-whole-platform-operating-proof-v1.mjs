@@ -8,6 +8,7 @@ import {inventoryWholePlatform} from './lib/whole-platform-operating-proof-v1.mj
 import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt,verifyNaturalChainTerminal} from './lib/whole-platform-runtime-evidence-v1.mjs';
 import {verifyNativeResumeReuse} from './lib/native-resume-reuse-proof-v1.mjs';
 import {canonicalJson,sha256} from './lib/canonical-json-v1.mjs';
+import {buildRuntimeEvidenceDemand} from './lib/runtime-domain-evidence-demand-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 const spec=(id,workflow,events)=>({id,workflow,path:`.github/workflows/${workflow}`,events});
 const sentinel=spec('SENTINEL','kpmo-continuous-assurance-sentinel-health-v1.yml',['push','workflow_run','repository_dispatch']);
@@ -21,6 +22,7 @@ const member=(packet,basename)=>{
   requireEvidence(values.length===1,'MEMBER_CARDINALITY');return JSON.parse(values[0].text);
 };
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
+  demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
   listRuns=null,observedAt=new Date().toISOString()}){
   const out=inventoryWholePlatform(contract,scorecard,sourceSha);
   out.observed_at=observedAt;out.repository=REPOSITORY;out.protected_evidence=[];
@@ -209,6 +211,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   const assuranceRuntimeReady=out.runtime_domain_registry?.state==='VERIFIED_PASS'&&out.runtime_domain_registry.registered_domain_count===14&&out.value_chain.length===14&&verifiedDomains.length===14&&new Set(verifiedDomains.map(d=>d.id)).size===14;
   out.assurance_runtime_readiness={state:assuranceRuntimeReady?'VERIFIED_PASS':'VERIFIED_HOLD',verified_domain_count:verifiedDomains.length,required_domain_count:14,registered_domain_count:out.runtime_domain_registry?.registered_domain_count??0,domain_ids:verifiedDomains.map(d=>d.id).sort()};
   out.assurance_runtime_readiness_proven=assuranceRuntimeReady;
+  out.runtime_evidence_demand=buildRuntimeEvidenceDemand({definition:demandDefinition,contract,proof:out});
   out.whole_platform_runtime_proven=out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';
   out.receipt_digest=sha256(canonicalJson(out));return out;

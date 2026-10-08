@@ -70,6 +70,7 @@
     "policy_grants_no_new_credentials_spend_contract_release_or_irreversible_authority": true
   },
   "session_resume": {
+    "development_branch_resume_contract": "coordination/kidults/governance/resume-contract-v1.json#development_branch_resume",
     "durable_checkpoint_required": true,
     "original_session_provenance_preserved": true,
     "root_incident_and_completion_owner_must_match": true,

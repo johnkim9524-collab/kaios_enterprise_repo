@@ -30,7 +30,10 @@ test('latest in-flight generation holds instead of choosing an older green or ca
   const f=fixture({active:true}),r=await f.run();assert.equal(r.state,'VERIFIED_INCOMPLETE');
   assert.equal(r.operating_checks.find(c=>c.id==='CORE_FOUR_CONTENT').state,'VERIFIED_HOLD');
   assert.equal(f.counts().downloads,0);assert.equal(r.whole_platform_runtime_proven,false);
-  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'HOLD');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,0);
+  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'HOLD');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,contract.runtime_domain_sources.length);
+  assert.equal(r.runtime_evidence_demand.demands.length,14);
+  assert.equal(r.runtime_evidence_demand.dispatch_authority,false);
+  assert.equal(r.runtime_evidence_demand.verified_domain_count,0);
 });
 test('foreign producer metadata and duplicate artifacts never become partial PASS',async()=>{
   for(const options of [{foreign:true},{duplicate:true}]){
@@ -54,7 +57,7 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
     throw Error('unexpected GET');
   };
   const result=await collectWholePlatform({sourceSha:source,contract,scorecard,read,observedAt:'2026-10-04T12:30:00Z'});
-  assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,6);
+  assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,6+contract.runtime_domain_sources.length);
   for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'100');assert.equal(q.get('page'),'1');
     const [after,before]=q.get('created').split('..');const duration=Date.parse(before)-Date.parse(after);
     assert.equal(duration,q.get('head_sha')===source?contract.maximum_evidence_age_seconds*1000:7200000);
