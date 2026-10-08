@@ -148,6 +148,7 @@ jobs:
           node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
           test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Validate canonical classifier and negative cases
+        id: classifier_contract
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
@@ -159,6 +160,7 @@ jobs:
           node --test tests/kidults/kpmo/kir-coverage-assurance-continuation-v1.test.mjs
           node --test tests/kidults/kpmo/requirement-coverage-observation-v1.test.mjs
       - name: Reject partial forwarded Coverage continuation inputs
+        id: coverage_input_shape
         if: github.event_name == 'workflow_dispatch'
         env:
           COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
@@ -186,6 +188,7 @@ jobs:
             exit 1
           fi
       - name: Validate and consume forwarded exact Coverage continuation
+        id: coverage_continuation_binding
         if: github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -318,6 +321,38 @@ jobs:
             ADMISSION_PATH=/tmp/coverage-admission-not-applicable.json
           fi
           node scripts/kidults/kpmo/classify-requirement-coverage-observation-v1.mjs /tmp/coverage-observation-run.json /tmp/coverage-observation-artifacts.json "$ADMISSION_PATH" "$RUNNER_TEMP/$KPMO_CLASSIFIER_PACKET/coverage-observation-receipt.json"
+      - name: Retain failed canonical classification observation
+        if: failure()
+        env:
+          REQUESTED_SOURCE_SHA: ${{ inputs.coverage_source_sha }}
+          REQUESTED_COVERAGE_RUN_ID: ${{ inputs.coverage_run_id }}
+          CLASSIFIER_STEP_RESULTS: ${{ toJSON(steps) }}
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY'
+          import json, os
+          from pathlib import Path
+          destination = Path(os.environ['RUNNER_TEMP']) / os.environ['KPMO_CLASSIFIER_PACKET']
+          destination.mkdir(parents=True, exist_ok=True)
+          receipt = {
+              'receipt_id': 'assurance-canonical-classification-failure-v1',
+              'state': 'VERIFIED_FAIL',
+              'failure_class': 'CANONICAL_CLASSIFICATION_JOB_FAILED',
+              'failed_steps': [key for key, value in json.loads(os.environ.get('CLASSIFIER_STEP_RESULTS', '{}')).items() if value.get('outcome') == 'failure'],
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'observer_source_sha': os.environ['GITHUB_SHA'],
+              'observer_run_id': int(os.environ['GITHUB_RUN_ID']),
+              'observer_run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'requested_source_sha': os.environ.get('REQUESTED_SOURCE_SHA', ''),
+              'requested_coverage_run_id': os.environ.get('REQUESTED_COVERAGE_RUN_ID', ''),
+              'requested_inputs_authenticated': False,
+              'audit_executed': False,
+              'whole_platform_authority': False,
+              'promotion_eligible': False,
+              'production': 'HOLD', 'public': 'HOLD', 'g5': 'HOLD'
+          }
+          (destination / 'canonical-classification-failure-observation.json').write_text(json.dumps(receipt, indent=2) + '\n')
+          PY
       - name: Upload exact-run canonical classification receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -1253,6 +1288,14 @@ jobs:
           };
           const digest = (value) => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
           const packet = `${process.env.RUNNER_TEMP}/${process.env.KPMO_PACKET_SUFFIX}`;
+          const missing = ['audit-receipt.json', 'remediation-plan.json', 'ephemeral-guard-receipt.json']
+            .filter(name => !fs.existsSync(`${packet}/${name}`));
+          if (missing.length) {
+            console.error(JSON.stringify({state:'VERIFIED_FAIL',failure_class:'ASSURANCE_PREREQUISITE_RECEIPTS_NOT_CREATED',
+              missing_receipts:missing,source_sha:process.env.KPMO_SOURCE_SHA,observer_run_id:process.env.GITHUB_RUN_ID,
+              promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'}));
+            process.exit(1);
+          }
           const receipt = JSON.parse(fs.readFileSync(`${packet}/audit-receipt.json`, 'utf8'));
           const plan = JSON.parse(fs.readFileSync(`${packet}/remediation-plan.json`, 'utf8'));
           const guard = JSON.parse(fs.readFileSync(`${packet}/ephemeral-guard-receipt.json`, 'utf8'));

@@ -123,6 +123,7 @@ jobs:
           node --test tests/kidults/kpmo/internal-operating-recovery-v1.test.mjs
           node --test tests/kidults/kpmo/security-runtime-domain-producer-v1.test.mjs
           node --test tests/kidults/kpmo/business-input-stage-v1.test.mjs
+          node --test tests/kidults/kpmo/assurance-failure-retention-v1.test.mjs
 
       - name: Reject unbounded GitHub Actions API access
         run: |
