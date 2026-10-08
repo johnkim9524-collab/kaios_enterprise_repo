@@ -28,7 +28,24 @@ const blocker = readJson('blocker/index.json');
 const twinIndex = readJson('digital-twin/index.json');
 const twin = readJson('digital-twin/records/twin-current-program-state-v1.json');
 
-assert(track?.record_count === 5, 'Track Registry must contain exactly five registered tracks (A–E).');
+const coreTrackIds = [
+  'track-a-120-intelligence-factory',
+  'track-b-rankability-validation-gate',
+  'track-c-portal-v502-experience-layer',
+  'track-d-data-platform-production-reliability',
+  'track-e-executive-operating-system'
+];
+coreTrackIds.push('track-r-independent-red-team');
+const supportedTrackIds = new Set([...coreTrackIds, 'track-r-independent-red-team']);
+const trackRecords = track?.records ?? [];
+const trackIds = new Set(trackRecords.map(record => record.id));
+assert(track?.record_count === trackRecords.length, 'Track Registry record_count must match its registered records.');
+for (const id of coreTrackIds) {
+  assert(trackIds.has(id), `Track Registry must retain required core track '${id}'.`);
+}
+for (const record of trackRecords) {
+  assert(supportedTrackIds.has(record.id), `Track Registry contains unsupported track '${record.id}'.`);
+}
 assert(milestone?.current_record_id === 'milestone-ms-0001-first-canonical-snapshot', 'MS-0001 remains the historical milestone pointer until a versioned milestone transition is registered.');
 assert(mission?.record_count === 5, 'Mission Registry must preserve the five registered mission ledger records.');
 assert(workQueue?.record_count >= 6, 'Work Queue must retain at least six bootstrap work items.');
@@ -41,10 +58,11 @@ const trackState = Object.fromEntries((track?.records ?? []).map((record) => {
     : record.id.includes('track-c-') ? 'C'
     : record.id.includes('track-d-') ? 'D'
     : record.id.includes('track-e-') ? 'E'
+    : record.id.includes('track-r-') ? 'R'
     : record.id;
   return [letter, record.status];
 }));
-for (const letter of ['A', 'B', 'C', 'D', 'E']) {
+for (const letter of ['A', 'B', 'C', 'D', 'E', 'R']) {
   assert(twin?.track_states?.[letter] === trackState[letter],
     `Digital Twin Track ${letter} state '${twin?.track_states?.[letter]}' does not match Track Registry '${trackState[letter]}'.`);
 }

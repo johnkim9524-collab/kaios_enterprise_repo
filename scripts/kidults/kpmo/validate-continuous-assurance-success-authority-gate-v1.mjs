@@ -14,6 +14,12 @@ for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verifi
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
+  'classify-assurance-completion:',
+  'DISPOSITION_DIR: /tmp/kpmo-assurance-completion-disposition',
+  'needs: [classify-assurance-completion]',
+  "needs.classify-assurance-completion.outputs.eligible_full_audit == 'true'",
+  'classify-assurance-completion-disposition-v1.mjs',
+  'assurance-completion-disposition-v1.test.mjs',
   "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']",
   "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
   "github.event.workflow_run.conclusion == 'success'",
@@ -49,7 +55,7 @@ const requiredWorkflowTokens = [
   'select-latest-natural-sentinel-run-v1.mjs',
   'PRODUCER_HEALTH_CONCLUSION',
   'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
-  'node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs',
+  'node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs',
   'node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs',
   '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"',
   'actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100',

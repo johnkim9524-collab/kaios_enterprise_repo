@@ -12,6 +12,9 @@ on:
       - 'scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs'
       - 'scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs'
       - 'scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/assurance-completion-disposition-v1.mjs'
+      - 'scripts/kidults/kpmo/classify-assurance-completion-disposition-v1.mjs'
+      - 'tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs'
       - 'tests/kidults/kpmo/assurance-full-proof-v1.test.mjs'
       - 'tests/kidults/kpmo/whole-platform-collector-v1.test.mjs'
       - 'tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs'
@@ -54,7 +57,7 @@ jobs:
           node --check scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
           node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs
-          node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs
+          node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs
           node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs
           node scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs
 
@@ -126,8 +129,68 @@ jobs:
           path: ${{ env.NEGATIVE_GATE_DIR }}/
           if-no-files-found: error
           retention-days: 90
-  success-authority-gate:
+  classify-assurance-completion:
     if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.repository.full_name == github.repository &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
+      github.event.workflow_run.status == 'completed' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      eligible_full_audit: ${{ steps.disposition.outputs.eligible_full_audit }}
+    env:
+      UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+      UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+      UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+      DISPOSITION_DIR: /tmp/kpmo-assurance-completion-disposition
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Classify exact attempt audit disposition without granting authority
+        id: disposition
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"
+          mkdir -p "$DISPOSITION_DIR"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > "$DISPOSITION_DIR/run.json"
+          TOTAL=''
+          for PAGE in $(seq 1 10); do
+            gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/attempts/${UPSTREAM_RUN_ATTEMPT}/jobs?per_page=100&page=${PAGE}" > "$DISPOSITION_DIR/jobs-page-$PAGE.json"
+            PAGE_TOTAL=$(jq -er '.total_count | select(type=="number" and .>=1 and .<=1000)' "$DISPOSITION_DIR/jobs-page-$PAGE.json")
+            if [[ -z "$TOTAL" ]]; then TOTAL="$PAGE_TOTAL"; fi
+            test "$TOTAL" = "$PAGE_TOTAL"
+            COUNT=$(jq '.jobs|length' "$DISPOSITION_DIR/jobs-page-$PAGE.json")
+            if (( PAGE * 100 >= TOTAL )); then break; fi
+            test "$COUNT" -eq 100
+          done
+          jq -s '{total_count: .[0].total_count, jobs: [.[].jobs[]]}' "$DISPOSITION_DIR"/jobs-page-*.json > "$DISPOSITION_DIR/jobs.json"
+          node scripts/kidults/kpmo/classify-assurance-completion-disposition-v1.mjs "$DISPOSITION_DIR/run.json" "$DISPOSITION_DIR/jobs.json" "$DISPOSITION_DIR/disposition.json"
+      - name: Preserve non-authorizing completion disposition
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-assurance-completion-disposition-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+          path: ${{ env.DISPOSITION_DIR }}/
+          if-no-files-found: error
+          retention-days: 90
+  success-authority-gate:
+    needs: [classify-assurance-completion]
+    if: >-
+      needs.classify-assurance-completion.result == 'success' &&
+      needs.classify-assurance-completion.outputs.eligible_full_audit == 'true' &&
       github.event_name == 'workflow_run' &&
       github.event.workflow_run.repository.full_name == github.repository &&
       github.event.workflow_run.head_repository.full_name == github.repository &&

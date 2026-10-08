@@ -7,6 +7,7 @@ on:
       - 'coordination/kidults/registry-engine/**'
       - 'coordination/kidults/bootstrap/**'
       - 'scripts/kidults/registry/**'
+      - 'tests/kidults/registry/**'
       - 'scripts/kidults/coordination/**'
       - '.github/workflows/kidults-operational-registry-validate.yml'
   push:
@@ -16,6 +17,7 @@ on:
       - 'coordination/kidults/registry-engine/**'
       - 'coordination/kidults/bootstrap/**'
       - 'scripts/kidults/registry/**'
+      - 'tests/kidults/registry/**'
       - 'scripts/kidults/coordination/**'
       - '.github/workflows/kidults-operational-registry-validate.yml'
   workflow_dispatch:
@@ -39,4 +41,6 @@ jobs:
         run: node scripts/kidults/coordination/validate-coordination.mjs
 
       - name: Validate operational registry indexes and records
-        run: node scripts/kidults/registry/validate-operational-registry.mjs
+        run: |
+          node --test tests/kidults/registry/strict-json-v1.test.mjs
+          node scripts/kidults/registry/validate-operational-registry.mjs

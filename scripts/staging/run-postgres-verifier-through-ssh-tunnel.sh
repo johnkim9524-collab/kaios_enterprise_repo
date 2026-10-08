@@ -109,6 +109,41 @@ if len(ssl_modes) != 1 or ssl_modes[0] not in {'require', 'verify-ca', 'verify-f
     raise SystemExit('PostgreSQL URI must require TLS with one approved sslmode')
 ssl_mode = ssl_modes[0]
 
+# Bind the CA bytes independently of URI/env defaults. Verification modes
+# require an explicit trusted digest; copy verified bytes into the private
+# runtime directory so a later source-file replacement cannot change trust.
+ca_path = os.environ.get('KAIOS_POSTGRES_CA_PATH', '')
+ca_digest = os.environ.get('KAIOS_POSTGRES_CA_SHA256', '')
+require_identity = os.environ.get('KAIOS_POSTGRES_REQUIRE_SERVER_IDENTITY', 'false')
+if require_identity not in {'true', 'false'}:
+    raise SystemExit('invalid PostgreSQL server identity requirement')
+if require_identity == 'true' and ssl_mode != 'verify-full':
+    raise SystemExit('PostgreSQL server identity requires verify-full')
+bound_ca = None
+if ca_path or ca_digest or ssl_mode in {'verify-ca', 'verify-full'}:
+    if not ca_path or not re.fullmatch(r'sha256:[a-f0-9]{64}', ca_digest):
+        raise SystemExit('PostgreSQL explicit trusted CA path and digest required')
+    import stat
+    ca_source = Path(ca_path)
+    if ca_source.is_symlink() or not ca_source.is_file():
+        raise SystemExit('PostgreSQL CA must be a regular non-symlink file')
+    fd = os.open(ca_source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        ca_stat = os.fstat(fd)
+        if not stat.S_ISREG(ca_stat.st_mode) or ca_stat.st_size > 1048576:
+            raise SystemExit('PostgreSQL CA file boundary invalid')
+        with os.fdopen(fd, 'rb', closefd=False) as handle:
+            ca_bytes = handle.read(1048577)
+    finally:
+        os.close(fd)
+    if len(ca_bytes) > 1048576 or 'sha256:' + hashlib.sha256(ca_bytes).hexdigest() != ca_digest:
+        raise SystemExit('PostgreSQL CA digest mismatch')
+    if b'-----BEGIN CERTIFICATE-----' not in ca_bytes or b'PRIVATE KEY' in ca_bytes:
+        raise SystemExit('PostgreSQL CA content invalid')
+    bound_ca = root / 'trusted-root-ca.pem'
+    bound_ca.write_bytes(ca_bytes)
+    bound_ca.chmod(0o600)
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
     listener.bind(('127.0.0.1', 0))
     local_port = listener.getsockname()[1]
@@ -117,6 +152,8 @@ query = [
     ('sslmode', ssl_mode),
     ('connect_timeout', '10'),
 ]
+if bound_ca is not None:
+    query.append(('sslrootcert', str(bound_ca)))
 
 # Use libpq's keyword/value format for the tunneled connection.  Keeping the
 # certificate/DNS identity in `host` while binding the socket explicitly with
@@ -169,6 +206,7 @@ values = {
     'local_port': str(local_port),
     'tunneled_dsn': tunneled,
     'tls_mode': ssl_mode,
+    'tls_ca_digest': ca_digest if bound_ca is not None else '',
     'destination_policy': 'DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT',
     'connection_identity_digest': 'sha256:' + hashlib.sha256(json.dumps({
         'scheme': 'postgresql',
@@ -599,7 +637,7 @@ if (( verifier_rc != 0 )); then
   exit "$verifier_rc"
 fi
 
-python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" "$network_diagnostic_path" <<'PY'
+python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" "$network_diagnostic_path" "$runtime_root/tls_ca_digest" <<'PY'
 import json
 import re
 import sys
@@ -611,6 +649,7 @@ identity_digest = Path(sys.argv[2]).read_text(encoding='utf-8')
 tls_mode = Path(sys.argv[3]).read_text(encoding='utf-8')
 destination_policy = Path(sys.argv[4]).read_text(encoding='utf-8')
 network_diagnostic = json.loads(Path(sys.argv[5]).read_text(encoding='utf-8'))
+ca_digest = Path(sys.argv[6]).read_text(encoding='utf-8')
 if not re.fullmatch(r'sha256:[a-f0-9]{64}', identity_digest):
     raise SystemExit('invalid connection identity digest')
 if receipt.get('status') != 'PASS' or receipt.get('environment') != 'STAGING':
@@ -619,6 +658,8 @@ receipt['connection_identity_digest'] = identity_digest
 receipt['tls_encryption_required'] = tls_mode in {'require', 'verify-ca', 'verify-full'}
 receipt['tls_ca_chain_verified'] = tls_mode in {'verify-ca', 'verify-full'}
 receipt['tls_hostname_verified'] = tls_mode == 'verify-full'
+receipt['tls_trusted_ca_digest'] = ca_digest or None
+receipt['tls_explicit_ca_bound'] = bool(ca_digest)
 receipt['destination_policy'] = destination_policy
 receipt['network_diagnostic'] = network_diagnostic
 print(json.dumps(receipt, separators=(',', ':'), sort_keys=True))

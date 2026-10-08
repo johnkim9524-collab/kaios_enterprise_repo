@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+
 import hashlib
 import importlib.util
 import json
@@ -1022,6 +1023,9 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
         "postgres://source-user:source-password@source.db.ondigitalocean.com:25060/kaios"
         "?sslmode=verify-full"
     )
+    ca = tmp_path / 'trusted-ca.pem'
+    ca.write_text('-----BEGIN CERTIFICATE-----\nfixture-ca\n-----END CERTIFICATE-----\n')
+    ca_digest = 'sha256:' + __import__('hashlib').sha256(ca.read_bytes()).hexdigest()
     environment = os.environ.copy()
     environment.update(
         {
@@ -1038,6 +1042,7 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
         }
     )
 
+    environment.update({'KAIOS_POSTGRES_CA_PATH':str(ca), 'KAIOS_POSTGRES_CA_SHA256':ca_digest, 'KAIOS_POSTGRES_REQUIRE_SERVER_IDENTITY':'true'})
     environment.update({'PGDATABASE':'host=wrong dbname=wrong', 'PGHOST':'wrong',
                         'PGPASSWORD':'inherited-private-password', 'PGSSLMODE':'disable',
                         'PGSERVICE':'wrong', 'PGSERVICEFILE':'/untrusted/service'})
@@ -1058,6 +1063,8 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     assert receipt["tls_encryption_required"] is True
     assert receipt["tls_ca_chain_verified"] is True
     assert receipt["tls_hostname_verified"] is True
+    assert receipt["tls_trusted_ca_digest"] == ca_digest
+    assert receipt["tls_explicit_ca_bound"] is True
     assert receipt["destination_policy"] == (
         "DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT"
     )
@@ -1361,3 +1368,86 @@ def test_initializer_rejects_authority_or_connection_drift(tmp_path, override):
         env=environment, capture_output=True, text=True)
     assert result.returncode == 64
     assert not (tmp_path / "psql-state.json").exists()
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("missing", "trusted CA path and digest required"),
+    ("mismatch", "CA digest mismatch"),
+    ("symlink", "regular non-symlink"),
+    ("private-key", "CA content invalid"),
+    ("oversize", "CA file boundary invalid"),
+    ("identity-require", "server identity requires verify-full"),
+])
+def test_tunnel_ca_binding_rejects_drift_before_network(tmp_path, case, expected):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    marker = tmp_path / "external-ran"
+    for command in ("ssh", "psql"):
+        _write_executable(fake_bin / command, f"#!/bin/sh\ntouch '{marker}'\nexit 99\n")
+    key = tmp_path / "key"
+    hosts = tmp_path / "hosts"
+    verifier = tmp_path / "verifier"
+    for p in (key, hosts, verifier):
+        p.write_text("fixture")
+    ca = tmp_path / "ca.pem"
+    ca.write_text("-----BEGIN CERTIFICATE-----\nfixture-ca\n-----END CERTIFICATE-----\n")
+    if case == "private-key":
+        ca.write_text("-----BEGIN CERTIFICATE-----\nPRIVATE KEY\n")
+    if case == "oversize":
+        ca.write_bytes(b"x" * 1048577)
+    digest = "sha256:" + hashlib.sha256(ca.read_bytes()).hexdigest()
+    if case == "symlink":
+        link = tmp_path / "link.pem"
+        link.symlink_to(ca)
+        ca = link
+    env = os.environ.copy()
+    env.update({
+        "PATH": str(fake_bin) + os.pathsep + env["PATH"],
+        "RUNNER_TEMP": str(tmp_path),
+        "KAIOS_ENVIRONMENT": "staging",
+        "KAIOS_PRODUCTION_PROMOTION_AUTHORIZED": "false",
+        "KAIOS_STAGING_SSH_HOST": "192.0.2.10",
+        "KAIOS_STAGING_SSH_USER": "kidults-staging",
+        "KAIOS_STAGING_SSH_KEY_PATH": str(key),
+        "KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH": str(hosts),
+        "KAIOS_SOURCE_VERIFIER_PATH": str(verifier),
+        "KAIOS_POSTGRES_DSN": "postgresql://u:private-password@source.db.ondigitalocean.com:25060/db?sslmode=" + ("require" if case == "identity-require" else "verify-full"),
+        "KAIOS_POSTGRES_CA_PATH": "" if case == "missing" else str(ca),
+        "KAIOS_POSTGRES_CA_SHA256": "sha256:" + "0" * 64 if case == "mismatch" else digest,
+        "KAIOS_POSTGRES_REQUIRE_SERVER_IDENTITY": "true",
+    })
+    result = subprocess.run(["bash", str(TUNNEL_HELPER), "source"], cwd=ROOT, env=env,
+                            text=True, capture_output=True, timeout=10)
+    assert result.returncode != 0
+    assert expected in result.stderr
+    assert not marker.exists()
+    assert "private-password" not in result.stdout + result.stderr
+    assert "fixture-ca" not in result.stdout + result.stderr
+    assert not list(tmp_path.glob("kaios-postgres-tunnel-*"))
+
+def test_tunnel_ca_fifo_replacement_cannot_block_or_reach_network(tmp_path):
+    ca = tmp_path / "ca.pem"
+    ca.write_text("-----BEGIN CERTIFICATE-----\nfixture-ca\n")
+    digest = "sha256:" + hashlib.sha256(ca.read_bytes()).hexdigest()
+    source = TUNNEL_HELPER.read_text()
+    builder = source.split('python3 - "$runtime_root" <<\'PY\'\n', 1)[1].split("\nPY\nunset KAIOS_TUNNEL_INPUT_DSN", 1)[0]
+    prelude = """
+import os
+original_open = os.open
+def replace_ca_before_open(path, flags, *args, **kwargs):
+    if str(path) == os.environ['KAIOS_POSTGRES_CA_PATH']:
+        os.unlink(path)
+        os.mkfifo(path)
+    return original_open(path, flags, *args, **kwargs)
+os.open = replace_ca_before_open
+"""
+    env = os.environ.copy()
+    env.update({"KAIOS_TUNNEL_INPUT_DSN":"postgresql://u:p@source.db.ondigitalocean.com:25060/db?sslmode=verify-full",
+                "KAIOS_POSTGRES_CA_PATH":str(ca), "KAIOS_POSTGRES_CA_SHA256":digest})
+    root = tmp_path / "runtime"
+    root.mkdir()
+    result = subprocess.run(["python3","-",str(root)],input=prelude+builder,env=env,
+                            text=True,capture_output=True,timeout=3)
+    assert result.returncode != 0
+    assert "CA file boundary invalid" in result.stderr
+    assert not (root / "pg_service.conf").exists()
