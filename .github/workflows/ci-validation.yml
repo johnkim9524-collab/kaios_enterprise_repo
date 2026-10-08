@@ -202,6 +202,7 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           node --test tests/kidults/staging-operations/github-lifecycle-resume-v1.test.mjs
+          node --test tests/kidults/staging-operations/github-lifecycle-readback-v1.test.mjs tests/kidults/staging-operations/github-lifecycle-executor-v1.test.mjs
           node --test tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs tests/kidults/staging-operations/dynamodb-operation-ledger-v1.test.mjs tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
 
       - name: Validate Kidults staging intelligence
