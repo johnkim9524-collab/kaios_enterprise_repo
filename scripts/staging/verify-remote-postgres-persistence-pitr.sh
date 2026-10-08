@@ -13,7 +13,11 @@ for command_name in psql sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
-export PGDATABASE="$KAIOS_POSTGRES_DSN"
+if [[ "${KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND:-false}" == true ]]; then
+  unset PGDATABASE
+else
+  export PGDATABASE="$KAIOS_POSTGRES_DSN"
+fi
 
 psql_scalar() {
   psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"

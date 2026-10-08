@@ -141,6 +141,28 @@ tunneled = ' '.join(
     f'{key}={conninfo_value(value)}' for key, value in connection_values
 )
 
+# PGDATABASE defaults are not expanded as conninfo by libpq. Use its native
+# service and password files, leaving the certificate host and socket hostaddr
+# as distinct parameters without exposing a password in argv or environment.
+service_values = [(key, value) for key, value in connection_values if key != 'password']
+for _key, value in connection_values:
+    if any(character in str(value) for character in ('\n', '\r', '\x00')):
+        raise SystemExit('PostgreSQL connection value contains unsupported control characters')
+for _key, value in service_values:
+    if str(value) != str(value).strip():
+        raise SystemExit('PostgreSQL service value contains unsupported boundary whitespace')
+service = root / 'pg_service.conf'
+service.write_text('[kaios-staging]\n' + ''.join(f'{key}={value}\n' for key, value in service_values), encoding='utf-8')
+service.chmod(0o600)
+def passfile_value(value):
+    return str(value).replace('\\', '\\\\').replace(':', '\\:')
+password_file = root / 'pgpass'
+password_file.write_text(':'.join(passfile_value(value) for value in (
+    host, local_port, urllib.parse.unquote(parts.path.lstrip('/')),
+    urllib.parse.unquote(parts.username or ''), urllib.parse.unquote(parts.password or ''),
+)) + '\n', encoding='utf-8')
+password_file.chmod(0o600)
+
 values = {
     'database_host': host,
     'database_port': str(remote_port),
@@ -488,19 +510,20 @@ case "$mode" in
   restore) export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
 esac
 
-case "$mode" in
-  source) probe_dsn="$KAIOS_POSTGRES_DSN" ;;
-  restore) probe_dsn="$KAIOS_POSTGRES_PITR_RESTORE_DSN" ;;
-esac
+# Exclude inherited libpq settings, including an unrelated password or service.
+for pg_name in ${!PG@}; do unset "$pg_name"; done
+export PGSERVICE=kaios-staging
+export PGSERVICEFILE="$runtime_root/pg_service.conf"
+export PGPASSFILE="$runtime_root/pgpass"
+export KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND=true
 set +e
-PGDATABASE="$probe_dsn" psql \
-  --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+psql \
+  --no-psqlrc --no-password --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --command='SELECT 1' \
   > "$runtime_root/libpq-probe.stdout" \
   2> "$runtime_root/libpq-probe.stderr"
 libpq_probe_rc=$?
 set -e
-unset probe_dsn
 
 libpq_probe_classification="$(python3 - "$network_diagnostic_path" "$runtime_root/libpq-probe.stderr" "$libpq_probe_rc" <<'PY'
 import json
@@ -521,12 +544,13 @@ if return_code == 0:
 else:
     state = 'FAIL'
     classifiers = (
+        ('UNEXPECTED_LOCAL_SOCKET', r'connection to server on socket'),
         ('PASSWORD_AUTHENTICATION_REJECTED', r'password authentication failed|no password supplied'),
         ('NO_PG_HBA_OR_TRUSTED_SOURCE_ADMISSION', r'no pg_hba\.conf entry|not in trusted sources|trusted source'),
         ('DATABASE_NOT_FOUND', r'database [^\n]+ does not exist'),
         ('ROLE_NOT_FOUND', r'role [^\n]+ does not exist'),
         ('TLS_CERTIFICATE_VERIFICATION_FAILED', r'certificate verify failed|root certificate file|server certificate'),
-        ('TLS_OR_CONNECTION_EOF', r'unexpected eof|ssl syscall error|connection.*closed unexpectedly'),
+        ('TLS_OR_CONNECTION_EOF', r'unexpected eof|ssl syscall error|connection.*closed unexpectedly|server closed the connection unexpectedly'),
         ('CONNECTION_TIMEOUT', r'timeout expired|connection timed out'),
         ('CONNECTION_REFUSED', r'connection refused'),
         ('DNS_RESOLUTION_FAILED', r'could not translate host name|name or service not known|temporary failure in name resolution'),
