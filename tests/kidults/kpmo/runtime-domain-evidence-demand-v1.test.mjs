@@ -7,7 +7,8 @@ const definition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_def
 const fixture=()=>({contract:structuredClone(contract),definition:structuredClone(definition),
   proof:{source_sha:'a'.repeat(40),value_chain:contract.value_chain_dimensions.map(id=>({id,runtime_state:'UNVERIFIED'}))}});
 test('all fourteen missing native producers receive concrete non-authorizing recovery demands',()=>{
-  const r=buildRuntimeEvidenceDemand(fixture());
+  const x=fixture();x.contract.runtime_domain_sources=[];
+  const r=buildRuntimeEvidenceDemand(x);
   assert.equal(r.required_domain_count,14);assert.equal(r.registered_domain_count,0);assert.equal(r.verified_domain_count,0);
   assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.demands.length,14);
   assert.ok(r.demands.every(d=>d.owner&&d.required_input&&d.blocker==='NATIVE_DOMAIN_PRODUCER_NOT_REGISTERED'
