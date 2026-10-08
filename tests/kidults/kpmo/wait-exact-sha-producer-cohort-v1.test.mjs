@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyProducerCohort} from '../../../scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs';
+import {classifyProducerCohort, DEFAULT_MAX_WAIT_SECONDS} from '../../../scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs';
 
 test('cohort is pending until every producer succeeds', () => {
   assert.equal(classifyProducerCohort([{state:'SUCCESS'},{state:'PENDING'}]).state, 'PENDING');
@@ -16,4 +16,8 @@ test('cohort fails closed on terminal producer failure', () => {
 });
 test('cohort passes only when all four producers succeed', () => {
   assert.equal(classifyProducerCohort([{state:'SUCCESS'},{state:'SUCCESS'},{state:'SUCCESS'},{state:'SUCCESS'}]).state, 'SUCCESS');
+});
+
+test('cohort timeout spans the full natural reserve window', () => {
+  assert.equal(DEFAULT_MAX_WAIT_SECONDS, 2100);
 });
