@@ -19,7 +19,18 @@ test('raw Python audit requires complete exact package identities and no vulnera
   assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[],error:'unavailable'},''));
   assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[]},'-r unverified.txt'));
 });
-test('raw Python audit accepts exact inline-hashed lock identities',()=>{\n  const hash='a'.repeat(64);\n  const text=`pip==26.2.1 --hash=sha256:${hash}\\npackaging==26.3 --hash=sha256:${hash}\\n`;\n  const good={dependencies:[\n    {name:'pip',version:'26.2.1',vulns:[]},\n    {name:'packaging',version:'26.3',vulns:[]},\n  ],fixes:[]};\n  assert.equal(verifyRawPythonAudit(good,text).dependency_count,2);\n  assert.throws(()=>verifyRawPythonAudit({...good,dependencies:good.dependencies.slice(1)},text));\n  assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[]},'pip==26.2.1 --hash=sha256:not-a-digest\\n'));\n});\nfor(const [name,audit] of [
+test('raw Python audit accepts exact inline-hashed lock identities',()=>{
+  const hash='a'.repeat(64);
+  const text=`pip==26.2.1 --hash=sha256:${hash}\npackaging==26.3 --hash=sha256:${hash}\n`;
+  const good={dependencies:[
+    {name:'pip',version:'26.2.1',vulns:[]},
+    {name:'packaging',version:'26.3',vulns:[]},
+  ],fixes:[]};
+  assert.equal(verifyRawPythonAudit(good,text).dependency_count,2);
+  assert.throws(()=>verifyRawPythonAudit({...good,dependencies:good.dependencies.slice(1)},text));
+  assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[]},'pip==26.2.1 --hash=sha256:not-a-digest\n'));
+});
+for(const [name,audit] of [
   ['legacy array',[]],['missing fixes',{dependencies:[]}],['unexpected fixes',{dependencies:[],fixes:[{}]}],
   ['vulnerable package',{dependencies:[{name:'unsafe',version:'1.0',vulns:[{id:'CVE-test'}]}],fixes:[]}],
   ['missing vulnerability list',{dependencies:[{name:'unsafe',version:'1.0'}],fixes:[]}],
@@ -54,7 +65,8 @@ for(const [name,change] of [
   ['release elevation',f=>f.report.production='PASS'],
 ])test(`rejects ${name}`,()=>{const f=fixture();change(f);assert.throws(()=>buildSecurityRuntimeDomainReceipt(f));});
 test('registered native producer has automatic main execution and success-only exact-run upload',()=>{
-  const w=fs.readFileSync('.github/workflows/kidults-security-assurance-empirical-r1.yml','utf8');\n  assert.match(w,/python -m pip_audit --disable-pip --no-deps -r "\\$req"/);
+  const w=fs.readFileSync('.github/workflows/kidults-security-assurance-empirical-r1.yml','utf8');
+  assert.match(w,/python -m pip_audit --disable-pip --no-deps -r "\\$req"/);
   assert.match(w,/push:\s+branches: \[main\]/);
   assert.match(w,/if: success\(\) && github.event_name == 'push' && github.ref == 'refs\/heads\/main'/);
   assert.match(w,/kidults-security-runtime-domain-\$\{\{ github.sha \}\}-\$\{\{ github.run_id \}\}-\$\{\{ github.run_attempt \}\}/);
