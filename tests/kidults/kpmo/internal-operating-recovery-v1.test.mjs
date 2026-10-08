@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {INTERNAL_RECOVERY_CHECKS,verifyInternalOperatingRecovery} from '../../../scripts/kidults/kpmo/lib/internal-operating-recovery-v1.mjs';
+import {INTERNAL_RECOVERY_CHECKS,verifyInternalOperatingRecovery,observeInternalOperatingRecovery} from '../../../scripts/kidults/kpmo/lib/internal-operating-recovery-v1.mjs';
 import {verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
 const source='a'.repeat(40);
 const seal=p=>{const {receipt_digest,...body}=p;return {...body,receipt_digest:sha256(canonicalJson(body))};};
@@ -30,8 +30,32 @@ test('drift, tampering and authority elevation fail closed',()=>{
 test('audit emits a distinct internal artifact while strict whole-platform consumer remains unchanged',()=>{
   const w=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
   assert.match(w,/validate-internal-operating-recovery-v1\.mjs/);
-  assert.match(w,/internal-operating-recovery-v1\.json/);
+  assert.match(w,/internal-operating-recovery-observation-v1\.json/);
+  assert.match(w,/--observe/);
   const consumer=fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs','utf8');
   assert.match(consumer,/verified_domain_count!==14/);
   assert.doesNotMatch(consumer,/verifyInternalOperatingRecovery/);
+});
+test('pending observation is not a completion receipt and strict completion still rejects it',()=>{
+  const p=fixture();p.operating_checks[0]={id:INTERNAL_RECOVERY_CHECKS[0],state:'UNVERIFIED'};
+  const sealed=seal(p),r=observeInternalOperatingRecovery(sealed,source);
+  assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.operating_recovery_proven,false);
+  assert.equal(r.recovery_receipt,null);assert.equal(r.promotion_authority,false);
+  assert.throws(()=>verifyInternalOperatingRecovery(sealed,source));
+  assert.throws(()=>verifyAssuranceRuntimeReadiness(r,source));
+});
+test('observation rejects real failures, malformed checks, tampering and authority elevation',()=>{
+  for(const state of ['VERIFIED_FAIL','PASS','UNKNOWN']){
+    const p=fixture();p.operating_checks[0].state=state;assert.throws(()=>observeInternalOperatingRecovery(seal(p),source));
+  }
+  const duplicate=fixture();duplicate.operating_checks.push(duplicate.operating_checks[0]);
+  assert.throws(()=>observeInternalOperatingRecovery(seal(duplicate),source));
+  const missing=fixture();missing.operating_checks.pop();assert.throws(()=>observeInternalOperatingRecovery(seal(missing),source));
+  const p=fixture();p.production='PASS';assert.throws(()=>observeInternalOperatingRecovery(seal(p),source));
+  assert.throws(()=>observeInternalOperatingRecovery({...fixture(),receipt_digest:'bad'},source));
+});
+test('complete observation embeds only strictly verified internal recovery',()=>{
+  const r=observeInternalOperatingRecovery(fixture(),source);
+  assert.equal(r.operating_recovery_proven,true);assert.equal(r.recovery_receipt.state,'VERIFIED_PASS');
+  assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.natural_chain_terminal_authority,false);
 });

@@ -1,9 +1,26 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 const fail=code=>{throw new Error(`SECURITY_RUNTIME_PRODUCER_${code}`);};
-export function verifyRawPythonAudit(audit){
-  if(!audit||Array.isArray(audit)||!Array.isArray(audit.dependencies)||!Array.isArray(audit.fixes)
-    ||audit.fixes.length!==0||audit.dependencies.some(d=>!Array.isArray(d?.vulns)||d.vulns.length!==0))fail('RAW_PYTHON_AUDIT');
-  return audit.dependencies.length;
+export function verifyRawPythonAudit(audit, requirementsText){
+  if(!audit||Array.isArray(audit)||!Array.isArray(audit.fixes)||audit.fixes.length!==0)fail('RAW_PYTHON_AUDIT');
+  const normalize=name=>name.toLowerCase().replace(/[-_.]+/g,'-');
+  const expected=new Map();
+  for(const raw of requirementsText.split('\n')){
+    const line=raw.trim();
+    if(!line||line.startsWith('#')||/^--hash=sha256:[a-f0-9]{64}(?:\s+\\)?$/.test(line))continue;
+    const m=/^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)(?:\s+\\)?$/.exec(line);
+    if(!m||expected.has(normalize(m[1])))fail('RAW_PYTHON_REQUIREMENTS');
+    expected.set(normalize(m[1]),m[2]);
+  }
+  const deps=audit.dependencies;
+  if(!Array.isArray(deps)||audit?.error||deps.length!==expected.size)fail('RAW_PYTHON_AUDIT');
+  const seen=new Set();
+  for(const d of deps){
+    const name=typeof d?.name==='string'?normalize(d.name):'';
+    if(seen.has(name)||!expected.has(name)||d.version!==expected.get(name)
+      ||d.skip_reason||!Array.isArray(d.vulns)||d.vulns.length!==0)fail('RAW_PYTHON_AUDIT');
+    seen.add(name);
+  }
+  return {dependency_count:deps.length,state:expected.size===0?'VERIFIED_EMPTY_REQUIREMENTS':'VERIFIED_COMPLETE_AUDIT'};
 }
 export function buildSecurityRuntimeDomainReceipt({context,report,evidence}){
   if(context?.repository!=='johnkim9524-collab/kaios_enterprise_repo'

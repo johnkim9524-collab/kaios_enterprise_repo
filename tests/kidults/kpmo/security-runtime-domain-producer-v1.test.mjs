@@ -4,6 +4,26 @@ import fs from 'node:fs';
 import {buildSecurityRuntimeDomainReceipt,verifyRawPythonAudit} from '../../../scripts/kidults/kpmo/lib/security-runtime-domain-producer-v1.mjs';
 import {verifyValueChainDomainReceipt} from '../../../scripts/kidults/kpmo/lib/whole-platform-runtime-evidence-v1.mjs';
 const source='a'.repeat(40);
+test('empty native audit is accepted only for committed empty requirements',()=>{
+  assert.equal(verifyRawPythonAudit({dependencies:[],fixes:[]},'# intentionally empty\n').state,'VERIFIED_EMPTY_REQUIREMENTS');
+  assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[]},'requests==2.32.0\n'));
+});
+test('raw Python audit requires complete exact package identities and no vulnerabilities',()=>{
+  const text='Example_Pkg==1.2.3 \\\n    --hash=sha256:'+ 'a'.repeat(64)+'\n';
+  const good={dependencies:[{name:'example-pkg',version:'1.2.3',vulns:[]}],fixes:[]};
+  assert.equal(verifyRawPythonAudit(good,text).dependency_count,1);
+  for(const d of [{name:'other',version:'1.2.3',vulns:[]},{name:'example-pkg',version:'0',vulns:[]},
+    {name:'example-pkg',version:'1.2.3',vulns:[{}]},{name:'example-pkg',version:'1.2.3',skip_reason:'unavailable'}])
+    assert.throws(()=>verifyRawPythonAudit({dependencies:[d],fixes:[]},text));
+  assert.throws(()=>verifyRawPythonAudit({dependencies:[...good.dependencies,...good.dependencies],fixes:[]},text));
+  assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[],error:'unavailable'},''));
+  assert.throws(()=>verifyRawPythonAudit({dependencies:[],fixes:[]},'-r unverified.txt'));
+});
+for(const [name,audit] of [
+  ['legacy array',[]],['missing fixes',{dependencies:[]}],['unexpected fixes',{dependencies:[],fixes:[{}]}],
+  ['vulnerable package',{dependencies:[{name:'unsafe',version:'1.0',vulns:[{id:'CVE-test'}]}],fixes:[]}],
+  ['missing vulnerability list',{dependencies:[{name:'unsafe',version:'1.0'}],fixes:[]}],
+])test(`preserves #2603 rejection of ${name}`,()=>assert.throws(()=>verifyRawPythonAudit(audit,'unsafe==1.0\n')));
 // Synthetic unit inputs exercise the producer; they are never published as native proof.
 function fixture(){return {context:{repository:'johnkim9524-collab/kaios_enterprise_repo',ref:'refs/heads/main',event:'push',
   source_sha:source,actual_sha:source,run_id:123,run_attempt:1,workflow_path:'.github/workflows/kidults-security-assurance-empirical-r1.yml'},
@@ -42,13 +62,3 @@ test('registered native producer has automatic main execution and success-only e
   assert.equal(c.runtime_domain_sources.filter(s=>s.domain_id==='SECURITY_SUPPLY_CHAIN').length,1);
   assert.equal(c.runtime_domain_registry_required_count,14);
 });
-
-test('raw Python audit accepts an authenticated empty dependency set',()=>{
-  assert.equal(verifyRawPythonAudit({dependencies:[],fixes:[]}),0);
-});
-for(const [name,audit] of [
-  ['legacy top-level array',[]],['missing fixes',{dependencies:[]}],
-  ['unexpected fixes',{dependencies:[],fixes:[{}]}],
-  ['vulnerability',{dependencies:[{name:'unsafe',version:'1.0',vulns:[{id:'CVE-test'}]}],fixes:[]}],
-  ['malformed vulnerability list',{dependencies:[{name:'unsafe',version:'1.0'}],fixes:[]}],
-])test(`raw Python audit rejects ${name}`,()=>assert.throws(()=>verifyRawPythonAudit(audit),/SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_AUDIT/));

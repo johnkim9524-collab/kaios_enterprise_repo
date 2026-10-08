@@ -36,7 +36,11 @@ for(const name of audits){const a=read(`npm-audit/${name}`),v=a?.metadata?.vulne
   if(a.error||!v||v.high!==0||v.critical!==0)throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_NODE_AUDIT');}
 const pythonAudits=fs.readdirSync(path.join(root,'pip-audit')).filter(n=>n.endsWith('.json'));
 if(pythonAudits.length!==report.pip_audit?.requirements_file_count)throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_COVERAGE');
-for(const name of pythonAudits)verifyRawPythonAudit(read(`pip-audit/${name}`));
+const requirements=tracked.filter(n=>/(^|\/)requirements[^/]*\.txt$/.test(n));
+const expectedAuditNames=requirements.map(n=>n.replace(/[/.]/g,'_')+'.json');
+if(new Set(expectedAuditNames).size!==requirements.length
+  ||canonicalJson([...pythonAudits].sort())!==canonicalJson([...expectedAuditNames].sort()))throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_COVERAGE');
+for(let i=0;i<requirements.length;i++)verifyRawPythonAudit(read(`pip-audit/${expectedAuditNames[i]}`),fs.readFileSync(requirements[i],'utf8'));
 const context={repository:process.env.GITHUB_REPOSITORY,ref:process.env.GITHUB_REF,event:process.env.GITHUB_EVENT_NAME,
   source_sha:process.env.GITHUB_SHA,actual_sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
