@@ -3,7 +3,7 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {canonicalJson} from './lib/canonical-json-v1.mjs';
-import {buildSecurityRuntimeDomainReceipt} from './lib/security-runtime-domain-producer-v1.mjs';
+import {buildSecurityRuntimeDomainReceipt,verifyRawPythonAudit} from './lib/security-runtime-domain-producer-v1.mjs';
 const [root]=process.argv.slice(2);
 if(!root)throw new Error('SECURITY_RUNTIME_PRODUCER_INPUT_DIRECTORY');
 if(process.env.GITHUB_ACTIONS!=='true'
@@ -36,8 +36,7 @@ for(const name of audits){const a=read(`npm-audit/${name}`),v=a?.metadata?.vulne
   if(a.error||!v||v.high!==0||v.critical!==0)throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_NODE_AUDIT');}
 const pythonAudits=fs.readdirSync(path.join(root,'pip-audit')).filter(n=>n.endsWith('.json'));
 if(pythonAudits.length!==report.pip_audit?.requirements_file_count)throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_COVERAGE');
-for(const name of pythonAudits){const a=read(`pip-audit/${name}`),deps=Array.isArray(a)?a:a.dependencies;
-  if(!Array.isArray(deps)||deps.length===0||deps.some(d=>!Array.isArray(d.vulns)||d.vulns.length!==0))throw new Error('SECURITY_RUNTIME_PRODUCER_RAW_PYTHON_AUDIT');}
+for(const name of pythonAudits)verifyRawPythonAudit(read(`pip-audit/${name}`));
 const context={repository:process.env.GITHUB_REPOSITORY,ref:process.env.GITHUB_REF,event:process.env.GITHUB_EVENT_NAME,
   source_sha:process.env.GITHUB_SHA,actual_sha:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),
   run_id:Number(process.env.GITHUB_RUN_ID),run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),
