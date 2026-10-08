@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 
 import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
@@ -387,6 +388,47 @@ const rejectGuardDependencyMutation=file=>{
   assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/INDEPENDENT_GUARD_DEPENDENCY_CHANGED/);
 };
+
+test('line-preserving guard insertion alone does not prove a delegated capability refinement',()=>{
+  const before="const decision = evaluatePolicy(input);\nif (!decision.allowed) throw new Error('AUTHORIZATION_REQUIRED');\nexport const normalize = value => String(value).trim();\n";
+  for(const extra of ["if (!input.valid) throw new Error('INPUT_DENIED');", "if (typeof input.name !== 'string') throw new Error('TYPE_REQUIRED');"]){
+    const file=scriptFile(before,extra+'\n'+before);
+    rejectGuardDependencyMutation(file);
+  }
+});
+
+test('inserted guard cannot steal an unbraced if body or evaluate a side-effecting getter',()=>{
+  const cases=[
+    {before:'if (input.allowed)\n  mutate();\n',after:"if (input.allowed)\nif (!input.valid) throw new Error('INPUT_DENIED');\n  mutate();\n",input:{allowed:false,valid:true}},
+    {before:'const input = {get valid(){ mutate(); return true; }};\n',after:"const input = {get valid(){ mutate(); return true; }};\nif (!input.valid) throw new Error('INPUT_DENIED');\n",input:{}},
+  ];
+  for(const example of cases){
+    let writes=0;runInNewContext(example.before,{input:example.input,mutate:()=>writes++});assert.equal(writes,0);
+    runInNewContext(example.after,{input:example.input,mutate:()=>writes++});assert.equal(writes,1);
+    rejectGuardDependencyMutation(scriptFile(example.before,example.after));
+  }
+});
+
+test('deny-only refinement cannot hide calls, control flow, dependency changes, deletion or order drift',()=>{
+  const before="const decision = evaluatePolicy(input);\nif (!decision.allowed) throw new Error('AUTHORIZATION_REQUIRED');\nexport const normalize = value => String(value).trim();\n";
+  const extra="if (!input.valid) throw new Error('INPUT_DENIED');\n";
+  const heads=[
+    "if (!grantPermission()) throw new Error('INPUT_DENIED');\n"+before,
+    "if (!input.valid) return true;\n"+before,
+    extra+before.replace('evaluatePolicy(input)','{allowed:true}'),
+    extra+before.replace("if (!decision.allowed) throw new Error('AUTHORIZATION_REQUIRED');\n",''),
+    extra+before.split('\n').reverse().join('\n'),
+    extra+"return true;\n"+before,
+    extra+before.replace('String(value).trim()','String(value)'),
+    "if (!input.valid) throw new Error('INPUT_DENIED'); /* mixed */\n"+before,
+  ];
+  for(const head of heads){const file=scriptFile(before,head);
+    assert.throws(()=>{
+      evaluateSemanticCapabilityDelta({files:[file],policy:landing});
+      independentlyVerifyCapabilityDelta({files:[file],policy:landing});
+    },/(?:CAPABILITY_|INDEPENDENT_)/);
+  }
+});
 
 test('guard predicate constants cannot bypass either semantic verifier',()=>{
   rejectGuardDependencyMutation(scriptFile(

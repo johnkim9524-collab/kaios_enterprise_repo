@@ -25,6 +25,9 @@ export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const scopeDigest=sha256(changedPaths.join('\n'));
   return {
     state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
+    classification_failure:{code:error.code,
+      changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
+      stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
       base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
@@ -183,5 +186,8 @@ if(import.meta.url===`file://${process.argv[1]}`){
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
-    skipped:results.filter(x=>x.state==='SKIPPED').length}));
+    skipped:results.filter(x=>x.state==='SKIPPED').length,
+    blocked_candidates:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED'||x.state==='SKIPPED')
+      .map(x=>({pull_request:x.pull_request,state:x.state,reason:x.reason,
+        classification_failure:x.classification_failure||null}))}));
 }

@@ -1,8 +1,8 @@
 {
   "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "agent_id": "atlas-autonomy-correction",
-  "as_of": "2026-10-08T21:40:58.815425Z",
+  "as_of": "2026-10-08T22:08:29.149930+00:00",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "12 holistic findings and subsequent bounded PSA validation",
@@ -217,7 +217,7 @@
     "last_incomplete_stage": "PERSISTENT_PRIVATE_RUNTIME_SECRET_STORE_AND_DELETION_BINDINGS",
     "connection_probe_repeated_for_status": false
   },
-  "next_action": "Complete and verify the separate Assurance correction; prepare one immutable Draft proposal. Reuse completed landing receipts. Then resume authenticated last-incomplete protected runtime stages within their existing authority; Production/Public/G5 and provider activation remain HOLD.",
+  "next_action": "Authenticate existing AWS session; read protected broker/ledger deployed resources and current authority; implement authenticated capability refinements only with independent semantic proof, then consume existing Draft and verify normal role/finalizer/postmerge stages.",
   "authority_boundary": {
     "development_branch_route": "resume-contract-v1 development_branch_resume",
     "production": "HOLD",
@@ -279,5 +279,55 @@
       "AUTHENTICATED_SENTINEL_CONTINUATION_CONSUMER_ADMISSION"
     ],
     "draft_intent_ancestry_review": "13ceaaba5529003ac9c50c47fd9ca8afc6d60ca4 is an actual ancestor of approved head and merge; negative review claim was not reproduced"
+  },
+  "normal_autonomous_path_resume": {
+    "state": "BLOCKED",
+    "scope": "NORMAL_AUTONOMOUS_LANDING_AND_PROTECTED_RUNTIME_RESUME",
+    "live_main_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+    "existing_draft_pull_request": 2618,
+    "observed_draft_head_sha": "8803e4971cb936cc104c0600c28a95d1ef0ebc68",
+    "dispatcher_run_id": 37849802083,
+    "dispatcher_job_id": 113559621516,
+    "dispatcher_scan": {
+      "eligible": 0,
+      "owner_review_required": 1,
+      "skipped": 0
+    },
+    "broker_mint_step": "SKIPPED_NO_ELIGIBLE_CANDIDATE",
+    "immediate_landing_blocker": "IMMUTABLE_CAPABILITY_DELTA_NOT_ADMITTED",
+    "independent_remote_blocker": "AWS_SSO_EXPIRED_REFRESH_FAILED",
+    "remote_ledger_configuration": "UNKNOWN_NOT_READ_WHILE_SESSION_EXPIRED",
+    "role_run_37850568663": "HOLD_JOB_SUCCESS_APPROVAL_AND_FINALIZER_JOBS_SKIPPED",
+    "correction_to_prior_explanation": "The observed PR landing stopped at capability classification before broker/ledger invocation; absence of callable remote ledger alone does not explain this scan.",
+    "corrections": [
+      "Expose allowlisted classification code, exact changed path and stage without raw error payload",
+      "Reject line-only deny-guard insertion as insufficient semantic proof; preserve both existing classifiers"
+    ],
+    "red_team_rejected_proposal": {
+      "committed": false,
+      "activated": false,
+      "cases": [
+        "UNBRACED_IF_BODY_CAPTURE",
+        "PROPERTY_GETTER_SIDE_EFFECT"
+      ],
+      "actual_fixture_mutations_before": 0,
+      "actual_fixture_mutations_after": 1,
+      "final_verifiers_reject_both": true
+    },
+    "verification": {
+      "targeted_tests": 68,
+      "targeted_failures": 0,
+      "independent_policy_dispatcher_tests": 37,
+      "independent_failures": 0
+    },
+    "auth_request": "EXISTING_AWS_SSO_LOGIN_ONLY_NO_NEW_ROLE_OR_SECRET",
+    "next_action": "Authenticate existing AWS session; read protected broker/ledger deployed resources and current authority; implement authenticated capability refinements only with independent semantic proof, then consume existing Draft and verify normal role/finalizer/postmerge stages.",
+    "automatic_landing_proven": false,
+    "all_operation_resume_proven": false,
+    "whole_platform_complete": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "credential_or_iam_expansion_performed": false
   }
 }

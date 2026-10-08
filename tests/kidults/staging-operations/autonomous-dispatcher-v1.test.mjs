@@ -20,6 +20,12 @@ const ownerReview=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:inp
   error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED','scripts/guard.mjs')});
 assert.equal(ownerReview.state,'OWNER_REVIEW_REQUIRED');
 assert.equal(ownerReview.reason,'CAPABILITY_GUARD_DEPENDENCY_CHANGED');
+assert.deepEqual(ownerReview.classification_failure,{code:'CAPABILITY_GUARD_DEPENDENCY_CHANGED',changed_path:'scripts/guard.mjs',
+  stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false});
+const privateDetail=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,
+  files:[{filename:'scripts/guard.mjs'}],error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED','secret command payload')});
+assert.equal(privateDetail.classification_failure.changed_path,null);
+assert.doesNotMatch(JSON.stringify(privateDetail),/secret command payload/);
 assert.equal(ownerReview.autonomous_eligible,false);
 assert.equal(ownerReview.landing_authorization_created,false);
 assert.equal(ownerReview.merge_authorized,false);
