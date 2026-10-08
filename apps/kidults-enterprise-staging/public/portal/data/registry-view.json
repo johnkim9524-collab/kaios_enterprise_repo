@@ -253,7 +253,7 @@
   "freshness": {
     "status": "CURRENT_CANONICAL_BASELINE",
     "source_projection_generated_at": "2026-08-19T01:45:29.768Z",
-    "source_track_registry_version": "1.6.0",
+    "source_track_registry_version": "1.7.0",
     "source_blocker_registry_version": "1.4.0",
     "policy_baseline": "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
     "as_of": "2026-08-19T01:45:29.861Z"
