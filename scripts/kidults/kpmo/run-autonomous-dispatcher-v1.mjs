@@ -15,8 +15,75 @@ const OWNER_REVIEW_CODES=new Set([
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
+const UNKNOWN_CLASSIFICATION_CODES=new Set([
+  'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN','CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',
+  'CAPABILITY_JSON_PARSE_FAILED','CAPABILITY_SCRIPT_PARSE_FAILED','CAPABILITY_SOURCE_MISSING',
+  'CAPABILITY_YAML_INDENT_UNKNOWN','CAPABILITY_YAML_UNCLASSIFIED','CAPABILITY_YAML_UNSUPPORTED_SYNTAX',
+  'INDEPENDENT_SCRIPT_PARSE_FAILED','INDEPENDENT_JSON_PARSE_FAILED','INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',
+]);
+export const isUnknownClassification=error=>UNKNOWN_CLASSIFICATION_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+
+// Read-only uncertainty recovery. It never relaxes either classifier or turns
+// definite Owner-reserved changes into UNKNOWN. Only full existing validation
+// may return a candidate; an unresolved receipt grants no authority.
+export async function reclassifyUnknownCandidate({context,error,approvalPolicy,readCandidate}) {
+  if(!isUnknownClassification(error)) fail('DISPATCH_RECLASSIFICATION_NOT_UNKNOWN');
+  const rule=approvalPolicy?.classes?.UNKNOWN;
+  if(rule?.decision!=='QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED'
+    ||rule.automatic_reclassification_required!==true||rule.automatic_reclassification_max_attempts!==2
+    ||rule.repository_mutation_during_reclassification!==false
+    ||rule.owner_escalation_only_after_unresolved_reclassification!==true
+    ||rule.final_unresolved_decision!=='FAIL_CLOSED_OWNER_REQUIRED'
+    ||typeof readCandidate!=='function') fail('DISPATCH_RECLASSIFICATION_POLICY_INVALID');
+  const bind=value=>{
+    const {pr,mainSha,treeSha,files}=value;
+    const mode=value.classificationMode||'CURRENT_BASE';
+    if(!['CURRENT_BASE','STALE_BASE'].includes(mode)||!pr||pr.state!=='open'||pr.merged===true||pr.base?.ref!=='main'
+      ||!SHA.test(String(pr.base.sha))||(mode==='CURRENT_BASE'?pr.base.sha!==mainSha:pr.base.sha===mainSha)
+      ||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))||!SHA.test(String(treeSha))
+      ||pr.head?.repo?.full_name!==pr.base?.repo?.full_name||!Number.isSafeInteger(pr.number)
+      ||!Array.isArray(files)||!files.length) fail('DISPATCH_RECLASSIFICATION_BINDING_INVALID');
+    return {repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:pr.number,
+      base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:mode,
+      head_sha:pr.head.sha,head_tree_sha:treeSha,draft:pr.draft===true,
+      protected_ruleset_digest:value.protectedRulesetDigest||null,
+      changed_paths:files.map(f=>f.filename).sort()};
+  };
+  const binding=bind(context),attempts=[];
+  const receiptBase={id:'kidults-readonly-reclassification-receipt-v1',version:'1.0.0',
+    budget_scope:'ONE_READ_ONLY_SCAN_EXACT_TUPLE',maximum_attempts:2,
+    repository_mutation_performed:false,authority_created:false};
+  for(let attempt=1;attempt<=2;attempt++) {
+    let fresh;
+    try {fresh=await readCandidate();}
+    catch(readError) {
+      attempts.push({attempt,result:'READ_FAILED',code:'DISPATCH_RECLASSIFICATION_READ_FAILED'});
+      continue;
+    }
+    let freshBinding;
+    try {freshBinding=bind(fresh);} catch(bindingError) {freshBinding=null;}
+    if(!freshBinding||canonicalJson(freshBinding)!==canonicalJson(binding)) {
+      return {error:new DispatcherError('DISPATCH_RECLASSIFICATION_SOURCE_DRIFT'),context,
+        receipt:{...receiptBase,state:'HOLD_SOURCE_DRIFT',binding,attempts:[...attempts,{attempt,result:'SOURCE_DRIFT'}],
+          authority_created:false,repository_mutation_performed:false}};
+    }
+    try {
+      const candidate=fresh.classificationMode==='STALE_BASE'?classifyStaleBaseCandidate(fresh):classifyCandidate(fresh);
+      attempts.push({attempt,result:'CLASSIFIED_BY_EXISTING_FULL_VALIDATION'});
+      return {candidate,receipt:{...receiptBase,state:'RECLASSIFIED',binding,attempts,authority_created:false}};
+    } catch(next) {
+      if(!isCandidateRejection(next)) throw next;
+      attempts.push({attempt,result:'REJECTED',code:next.code});
+      if(!isUnknownClassification(next)) return {error:next,context:fresh,
+        receipt:{...receiptBase,state:'RECLASSIFIED_REJECTED',binding,attempts,authority_created:false}};
+      error=next;
+    }
+  }
+  return {unresolved:true,error,receipt:{...receiptBase,state:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',binding,attempts,
+    authority_created:false,repository_mutation_performed:false}};
+}
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
@@ -135,7 +202,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
   }));
 }
 
-export async function discover({repository,token,prNumber,policy,generationSeed}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
@@ -154,12 +221,13 @@ export async function discover({repository,token,prNumber,policy,generationSeed}
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
-      const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
+      const [fileRecords,commit]=await Promise.all([pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)]);
       if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
       }
       const files=await attachImmutableContents({repository,baseSha:pr.base.sha,headSha:pr.head.sha,files:fileRecords,token});
+      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
       const binding=classifyStaleBaseCandidate({pr,mainSha,files,policy});
       results.push({state:'STALE_RECOVERABLE',pull_request:pr.number,binding});
       continue;
@@ -171,23 +239,44 @@ export async function discover({repository,token,prNumber,policy,generationSeed}
       : baseRequiredChecks;
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
-    candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files};
+    candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
     results.push({state:'ELIGIBLE',envelope:candidate});
   }catch(error){if(!isCandidateRejection(error))throw error;
-    if(candidateContext&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
+    if(candidateContext&&isUnknownClassification(error)) {
+      const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
+        readCandidate:async()=>{
+          const [freshPr,freshMain,freshRuleset]=await Promise.all([api(`/repos/${repository}/pulls/${pr.number}`,token),api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets/${solo.id}`,token)]);
+          const [commit,records,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${freshPr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${freshPr.head.sha}/status`,token),checkPages(repository,freshPr.head.sha,token)]);
+          const files=await attachImmutableContents({repository,baseSha:freshPr.base.sha,headSha:freshPr.head.sha,files:records,token});
+          const requiredChecks=freshPr.draft===true?baseRequiredChecks.map(x=>x.context==='KIDULTS Scope-Aware Authoritative Status V1'?{context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}:x):baseRequiredChecks;
+          return {pr:freshPr,mainSha:freshMain.commit.sha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,classificationMode:candidateContext.classificationMode,protectedRulesetDigest:sha256(canonicalJson(freshRuleset))};
+        }});
+      if(recovered.candidate) {results.push(candidateContext.classificationMode==='STALE_BASE'
+        ?{state:'STALE_RECOVERABLE',pull_request:pr.number,binding:recovered.candidate,reclassification:recovered.receipt}
+        :{state:'ELIGIBLE',envelope:recovered.candidate,reclassification:recovered.receipt});continue;}
+      if(recovered.unresolved) {results.push({state:'OWNER_REVIEW_REQUIRED',pull_request:pr.number,
+        reason:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',reclassification:recovered.receipt,
+        autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
+        production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
+      if(!isOwnerReviewRequired(recovered.error)) {results.push({state:'SKIPPED',pull_request:pr.number,
+        reason:recovered.error.code,reclassification:recovered.receipt});continue;}
+      error=recovered.error;candidateContext=recovered.context;
+    }
+    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
     else results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,generationSeed:process.env.GITHUB_RUN_ID});
+  const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json','utf8'));
+  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID});
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
     skipped:results.filter(x=>x.state==='SKIPPED').length,
     blocked_candidates:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED'||x.state==='SKIPPED')
       .map(x=>({pull_request:x.pull_request,state:x.state,reason:x.reason,
-        classification_failure:x.classification_failure||null}))}));
+        classification_failure:x.classification_failure||null,reclassification:x.reclassification||null}))}));
 }

@@ -4,13 +4,69 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import {buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
+const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
+const unknown=new CapabilityDeltaError('CAPABILITY_SOURCE_MISSING','private payload');
+let reads=0;
+const recovered=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
+  readCandidate:async()=>{reads++;return input;}});
+assert.equal(reads,1);
+assert.deepEqual(recovered.candidate,classifyCandidate(input));
+assert.equal(recovered.receipt.authority_created,false);
+assert.doesNotMatch(JSON.stringify(recovered.receipt),/private payload/);
+reads=0;
+const unknownContext={...input,files:[{filename:'.github/workflows/x.yml',base_content:'name: x\n',head_content:'name: x\n odd: unsupported\n',patch:'@@ -1 +1,2 @@\n name: x\n+ odd: unsupported'}]};
+const unresolved=await reclassifyUnknownCandidate({context:unknownContext,error:unknown,approvalPolicy,
+  readCandidate:async()=>{reads++;return unknownContext;}});
+assert.equal(reads,2);
+assert.equal(unresolved.unresolved,true);
+assert.equal(unresolved.candidate,undefined);
+assert.equal(unresolved.receipt.authority_created,false);
+assert.equal(unresolved.receipt.repository_mutation_performed,false);
+assert.deepEqual(unresolved.receipt.attempts.map(x=>x.attempt),[1,2]);
+for(const code of policy.capability_guard_owner_review_handoff.trigger_codes||[
+  'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
+  'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
+  'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED']) {
+  assert.equal(isUnknownClassification({code}),false);
+  await assert.rejects(()=>reclassifyUnknownCandidate({context:input,error:{code},approvalPolicy,
+    readCandidate:async()=>{throw new Error('MUST_NOT_READ');}}),/DISPATCH_RECLASSIFICATION_NOT_UNKNOWN/);
+}
+for(const fresh of [{...input,mainSha:sha('d')},{...input,treeSha:sha('d')},
+  {...input,pr:{...pr,draft:true}},{...input,files:[{filename:'src/b.js'}]},
+  {...input,protectedRulesetDigest:'sha256:'+ 'a'.repeat(64)}]) {
+  const drift=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,readCandidate:async()=>fresh});
+  assert.equal(drift.error.code,'DISPATCH_RECLASSIFICATION_SOURCE_DRIFT');
+  assert.equal(drift.candidate,undefined);
+}
+const readFailed=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
+  readCandidate:async()=>{throw new Error('REMOTE_READ_FAILED_PRIVATE');}});
+assert.equal(readFailed.unresolved,true);
+assert.equal(readFailed.receipt.attempts.length,2);
+assert.doesNotMatch(JSON.stringify(readFailed.receipt),/PRIVATE/);
+const injectedClassify=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
+  readCandidate:async()=>input,classify:()=>({merge_authorized:true})});
+assert.deepEqual(injectedClassify.candidate,classifyCandidate(input));
+assert.equal(injectedClassify.candidate.merge_authorized,undefined);
+for(const code of ['INDEPENDENT_SCRIPT_PARSE_FAILED','INDEPENDENT_JSON_PARSE_FAILED','INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED']) {
+  assert.equal(isUnknownClassification({code}),true);
+}
+const invalidMode=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
+  readCandidate:async()=>({...input,classificationMode:'OWNER_BYPASS'})});
+assert.equal(invalidMode.error.code,'DISPATCH_RECLASSIFICATION_SOURCE_DRIFT');
+const changedRisk=await reclassifyUnknownCandidate({context:unknownContext,error:unknown,approvalPolicy,
+  readCandidate:async()=>({...unknownContext,files:[{filename:'.github/workflows/x.yml',base_content:'name: x\n',head_content:'name: x\npermissions: write-all\n',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]})});
+assert.equal(changedRisk.error.code,'DISPATCH_OWNER_RESERVED_ACTION');
+assert.equal(changedRisk.receipt.attempts.length,1);
+assert.equal(changedRisk.candidate,undefined);
+await assert.rejects(()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy:{classes:{UNKNOWN:{}}},
+  readCandidate:async()=>input}),/DISPATCH_RECLASSIFICATION_POLICY_INVALID/);
 const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
 assert.equal(policy.capability_guard_owner_review_handoff.disposition,'OWNER_REVIEW_REQUIRED');
 assert.equal(policy.capability_guard_owner_review_handoff.autonomous_quorum_before_owner_decision,false);
@@ -60,6 +116,14 @@ assert.throws(()=>transitionDispatchReceipt(acceptedFanout,{state:'DISPATCH_ACCE
 const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
 const stalePr={...pr,base:{...pr.base,sha:sha('d')}};
 const staleBinding=classifyStaleBaseCandidate({pr:stalePr,mainSha:sha('a'),files:[governedFile('src/a.js','const a=1;\n','const a=2;\n','@@ -1 +1 @@\n-const a=1;\n+const a=2;')],policy});
+const staleContext={...input,pr:stalePr,classificationMode:'STALE_BASE',
+  files:[governedFile('src/a.js','const a=1;\n','const a=2;\n','@@ -1 +1 @@\n-const a=1;\n+const a=2;')]};
+const staleRecovered=await reclassifyUnknownCandidate({context:staleContext,error:unknown,approvalPolicy,
+  readCandidate:async()=>staleContext});
+assert.equal(staleRecovered.candidate.state,'STALE_RECOVERABLE');
+assert.equal(staleRecovered.candidate.authorization_generation,undefined);
+assert.equal(staleRecovered.receipt.binding.base_sha,sha('d'));
+assert.equal(staleRecovered.receipt.binding.current_main_sha,sha('a'));
 assert.equal(staleBinding.state,'STALE_RECOVERABLE');
 assert.equal(staleBinding.old_base_sha,sha('d'));
 assert.equal(staleBinding.current_main_sha,sha('a'));

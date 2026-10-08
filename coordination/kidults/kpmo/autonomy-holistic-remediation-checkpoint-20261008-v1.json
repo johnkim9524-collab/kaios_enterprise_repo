@@ -1,8 +1,8 @@
 {
   "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "agent_id": "atlas-autonomy-correction",
-  "as_of": "2026-10-08T22:08:29.149930+00:00",
+  "as_of": "2026-10-08T22:32:04.975878+00:00",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "12 holistic findings and subsequent bounded PSA validation",
@@ -285,9 +285,9 @@
     "scope": "NORMAL_AUTONOMOUS_LANDING_AND_PROTECTED_RUNTIME_RESUME",
     "live_main_sha": "010493400f06f4ea13806152350d89411dd0d39d",
     "existing_draft_pull_request": 2618,
-    "observed_draft_head_sha": "8803e4971cb936cc104c0600c28a95d1ef0ebc68",
-    "dispatcher_run_id": 37849802083,
-    "dispatcher_job_id": 113559621516,
+    "observed_draft_head_sha": "402c7f8f6d49131e4e31768ae5297546c5bce45a",
+    "dispatcher_run_id": 37852100184,
+    "dispatcher_job_id": 113567250277,
     "dispatcher_scan": {
       "eligible": 0,
       "owner_review_required": 1,
@@ -295,13 +295,14 @@
     },
     "broker_mint_step": "SKIPPED_NO_ELIGIBLE_CANDIDATE",
     "immediate_landing_blocker": "IMMUTABLE_CAPABILITY_DELTA_NOT_ADMITTED",
-    "independent_remote_blocker": "AWS_SSO_EXPIRED_REFRESH_FAILED",
-    "remote_ledger_configuration": "UNKNOWN_NOT_READ_WHILE_SESSION_EXPIRED",
+    "independent_remote_blocker": null,
+    "remote_ledger_configuration": "ACTIVE_AUTHENTICATED_READBACK",
     "role_run_37850568663": "HOLD_JOB_SUCCESS_APPROVAL_AND_FINALIZER_JOBS_SKIPPED",
     "correction_to_prior_explanation": "The observed PR landing stopped at capability classification before broker/ledger invocation; absence of callable remote ledger alone does not explain this scan.",
     "corrections": [
       "Expose allowlisted classification code, exact changed path and stage without raw error payload",
-      "Reject line-only deny-guard insertion as insufficient semantic proof; preserve both existing classifiers"
+      "Reject line-only deny-guard insertion as insufficient semantic proof; preserve both existing classifiers",
+      "Connect UNKNOWN-only bounded readonly reclassification to current/stale dispatcher candidates; preserve definite Owner-reserved handoff"
     ],
     "red_team_rejected_proposal": {
       "committed": false,
@@ -321,13 +322,46 @@
       "independent_failures": 0
     },
     "auth_request": "EXISTING_AWS_SSO_LOGIN_ONLY_NO_NEW_ROLE_OR_SECRET",
-    "next_action": "Authenticate existing AWS session; read protected broker/ledger deployed resources and current authority; implement authenticated capability refinements only with independent semantic proof, then consume existing Draft and verify normal role/finalizer/postmerge stages.",
+    "next_action": "Consume this development correction and exact-head CI; resolve the genuine capability-guard Owner boundary through the existing protected recovery path with exact authority and authenticated lifecycle-ledger executor, then verify normal distinct-role/finalizer/postmerge stages. Do not reinterpret recovery or CI as normal-operation completion.",
     "automatic_landing_proven": false,
     "all_operation_resume_proven": false,
     "whole_platform_complete": false,
     "production": "HOLD",
     "public": "HOLD",
     "g5": "HOLD",
-    "credential_or_iam_expansion_performed": false
+    "credential_or_iam_expansion_performed": false,
+    "aws_authentication": {
+      "state": "AUTHENTICATED",
+      "account": "528314240275",
+      "profile": "kidults-provisioning",
+      "role": "AWSReservedSSO_KIDULTS-Provisioning-Admin_b9864e815cd7866b"
+    },
+    "remote_resources": {
+      "resume_operation_table": "kidults-autonomous-resume-staging-ledger",
+      "table_status": "ACTIVE",
+      "broker_function": "kidults-autonomous-event-token-broker-staging",
+      "function_state": "Active",
+      "last_update_status": "Successful",
+      "deployed_source_sha256": "345f1c7cedddaa5703e690758127002451b110df23752e85d37934171d1c934e",
+      "deployed_source_matches_repository": true,
+      "redeployment_performed": false
+    },
+    "latest_exact_head_ci": {
+      "head_sha": "402c7f8f6d49131e4e31768ae5297546c5bce45a",
+      "successful_runs": 25,
+      "landing_or_runtime_authority_proven": false
+    },
+    "unknown_reclassification_correction": {
+      "state": "IMPLEMENTED_NOT_LANDED",
+      "mode": "READ_ONLY_FRESH_IMMUTABLE_SOURCE_AND_RULESET",
+      "maximum_attempts": 2,
+      "budget_scope": "ONE_READ_ONLY_SCAN_EXACT_TUPLE",
+      "current_and_stale_base_supported": true,
+      "definite_owner_guard_codes_unchanged": true,
+      "classification_override_removed": true,
+      "full_existing_validation_required": true,
+      "unresolved_grants_authority": false,
+      "mission_wide_durable_retry_budget_proven": false
+    }
   }
 }
