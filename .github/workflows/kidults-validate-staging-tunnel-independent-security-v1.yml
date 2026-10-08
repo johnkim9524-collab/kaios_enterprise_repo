@@ -5,6 +5,8 @@ on:
     branches: [main]
     types: [opened, synchronize, reopened, converted_to_draft, ready_for_review]
     paths:
+      - .github/workflows/kidults-validate-staging-tunnel-independent-security-v1.yml
+      - scripts/kidults/kpmo/verify-staging-tunnel-independent-v1.py
       - scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh
       - tests/kidults/kpmo/test_postgres_pitr_contract.py
   push:
@@ -32,23 +34,38 @@ jobs:
           path: policy
           persist-credentials: false
 
-      - name: Resolve exact open PR binding without a write token
+      - name: Resolve exact source binding without a write token
         id: binding
         env:
+          EVENT_NAME: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number || '2331' }}
+          PR_NUMBER: ${{ github.event.pull_request.number || '' }}
         run: |
           set -euo pipefail
           test "$(git -C policy rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$PR_NUMBER" = 2331
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > /tmp/pr-binding.json
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg base "$GITHUB_SHA" \
-            '.state=="open" and .head.repo.full_name==$repo and .base.ref=="main" and .base.sha==$base and .number==2331' \
-            /tmp/pr-binding.json >/dev/null
-          echo "head_sha=$(jq -r '.head.sha' /tmp/pr-binding.json)" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT_NAME" == pull_request_target ]]; then
+            [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > /tmp/source-binding.json
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg base "$GITHUB_SHA" --argjson number "$PR_NUMBER" \
+              '.state=="open" and .head.repo.full_name==$repo and .base.ref=="main" and .base.sha==$base and .number==$number' \
+              /tmp/source-binding.json >/dev/null
+            echo "head_sha=$(jq -r '.head.sha' /tmp/source-binding.json)" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          else
+            test "$GITHUB_REF" = refs/heads/main
+            test -z "$PR_NUMBER"
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" > /tmp/source-binding.json
+            jq -e --arg head "$GITHUB_SHA" '.name=="main" and .commit.sha==$head' \
+              /tmp/source-binding.json >/dev/null
+            echo "head_sha=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo "pr_number=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Checkout exact candidate without credentials
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -57,18 +74,31 @@ jobs:
           path: candidate
           persist-credentials: false
 
-      - name: Recheck head and independently exercise negative cases
+      - name: Recheck source and independently exercise negative cases
         env:
+          EVENT_NAME: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ steps.binding.outputs.head_sha }}
+          PR_NUMBER: ${{ steps.binding.outputs.pr_number }}
         run: |
           set -euo pipefail
           test "$(git -C candidate rev-parse HEAD)" = "$HEAD_SHA"
-          curl --fail --silent --show-error \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H 'Accept: application/vnd.github+json' \
-            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/2331" \
-            | jq -e --arg head "$HEAD_SHA" --arg base "$GITHUB_SHA" \
-              '.state=="open" and .head.sha==$head and .base.sha==$base' >/dev/null
+          if [[ "$EVENT_NAME" == pull_request_target ]]; then
+            [[ "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" \
+              | jq -e --arg repo "$GITHUB_REPOSITORY" --arg head "$HEAD_SHA" --arg base "$GITHUB_SHA" --argjson number "$PR_NUMBER" \
+                '.state=="open" and .number==$number and .head.repo.full_name==$repo and .head.sha==$head and .base.ref=="main" and .base.sha==$base' >/dev/null
+          else
+            test "$GITHUB_REF" = refs/heads/main
+            test -z "$PR_NUMBER"
+            curl --fail --silent --show-error \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" \
+              | jq -e --arg head "$HEAD_SHA" '.name=="main" and .commit.sha==$head' >/dev/null
+          fi
           env -u GH_TOKEN -u GITHUB_TOKEN \
             python3 policy/scripts/kidults/kpmo/verify-staging-tunnel-independent-v1.py candidate
