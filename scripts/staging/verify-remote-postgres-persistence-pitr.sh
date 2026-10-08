@@ -196,7 +196,7 @@ boundary_order="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERR
 SELECT (SELECT created_at <= :'target_time'::timestamptz - interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'before_marker') || '|' || (SELECT created_at >= :'target_time'::timestamptz + interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'after_marker');
 SQL
 )"
-[[ "$boundary_order" == 't|t' ]] || { echo "marker timestamps do not satisfy the two-second target guard: $boundary_order" >&2; exit 1; }
+[[ "$boundary_order" == 'true|true' ]] || { echo "marker timestamps do not satisfy the two-second target guard: $boundary_order" >&2; exit 1; }
 
 export KAIOS_RUNTIME_SCHEMA_INITIALIZED="$runtime_schema_initialized"
 python3 - "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$pg_switch_wal_authorized" "$archive_observation_attempted" "$wal_archive_event_verified" "$archived_count_before" "$archived_count" "$failed_count_before" "$failed_count" "$stats_reset" "$switched_wal" "$last_archived_wal" "$before_marker" "$after_marker" "$before_digest" "$after_digest" "$target_time" "$transaction_rollback_digest" "$failure_rollback_digest" "$transaction_rollback_residual" "$failure_rollback_residual" <<'PY'

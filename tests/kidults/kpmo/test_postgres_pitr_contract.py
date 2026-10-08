@@ -200,7 +200,7 @@ if "coalesce(max(marker_digest)" in sql and "pitr_probe" in sql:
         )
     )
 if "created_at <" in sql and "created_at >" in sql and "pitr_probe" in sql:
-    emit(os.environ.get("FAKE_MARKER_BOUNDARY_ORDER", "t|t"))
+    emit(os.environ.get("FAKE_MARKER_BOUNDARY_ORDER", "true|true"))
 if "count(*)" in sql and "pitr_probe" in sql:
     marker_args = [argument for argument in args if argument.startswith("--set=marker=")]
     if marker_args and any("rollback-" in argument for argument in marker_args):
@@ -518,7 +518,7 @@ def test_source_verifier_reads_wal_switch_privilege_without_checkpoint_requireme
             {"FAKE_LAST_ARCHIVED_WAL_AFTER": PREVIOUS_WAL},
             "switched WAL was not archived",
         ),
-        ({"FAKE_MARKER_BOUNDARY_ORDER": "t|f"}, "do not satisfy the two-second target guard"),
+        ({"FAKE_MARKER_BOUNDARY_ORDER": "true|false"}, "do not satisfy the two-second target guard"),
     ],
 )
 def test_source_verifier_rejects_incomplete_integrity_or_archive_evidence(

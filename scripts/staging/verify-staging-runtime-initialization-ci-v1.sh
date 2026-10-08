@@ -25,4 +25,5 @@ SELECT :'marker';
 SQL
 )"
 test "$actual" = "$marker"
+psql --no-psqlrc --no-password --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="SELECT true || '|' || true" | grep -qx 'true|true'
 printf 'STAGING_INITIALIZATION_AND_REAL_PSQL_INTERPOLATION_VERIFIED\n'

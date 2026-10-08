@@ -5734,8 +5734,8 @@
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c137a14a1f33c8d720049772de544a8f22450bd1",
-      "sha256": "sha256:13bb60fc56075ce5ebed34652c78e2dba3fde4cece0f91e9e306b053020e722d"
+      "git_blob": "22abedaaef2efa248d5c0aecbce5cd3bb3449f22",
+      "sha256": "sha256:61483090a73b25ee6e782e5665e36855bb1d6f179f979a9ee2b963c56d8bfa27"
     },
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
@@ -5846,5 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:961ee59df55b7fcd397355739db062c04ff8cdf187c0adea8e977c1643322f71"
+  "manifest_sha256": "sha256:ad2dae9450130eeb2f4f04547962364968eec140aabbf40e9173f8d494d133d5"
 }
