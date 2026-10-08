@@ -3362,8 +3362,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "eb10a4095149c118cdfe7e9ec951b33f6be6aba8",
-      "sha256": "sha256:8d15b23d63ac580f5e9f9ca5a8a550b22d166d7345601981fca1dab8cba30ab9",
+      "git_blob": "c8b340f645fa6e5af69f3340412ebf2600c2801a",
+      "sha256": "sha256:08e2a22f2f0279db70b83eb2a882d37de2406d5adb4b965ee13f935301464ba5",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5820,5 +5820,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:67f72d6c0acecddf98dbfbe05a7260975123b32c712c1c931b8f8d72a7c19ef2"
+  "manifest_sha256": "sha256:d3d8a39062b4578e9bbbebc32d909cde65730f4d6792bdfb0c032a319c509d2a"
 }

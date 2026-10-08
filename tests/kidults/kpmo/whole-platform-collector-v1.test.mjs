@@ -31,6 +31,9 @@ test('latest in-flight generation holds instead of choosing an older green or ca
   assert.equal(r.operating_checks.find(c=>c.id==='CORE_FOUR_CONTENT').state,'VERIFIED_HOLD');
   assert.equal(f.counts().downloads,0);assert.equal(r.whole_platform_runtime_proven,false);
   assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'HOLD');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,0);
+  assert.equal(r.runtime_evidence_demand.demands.length,14);
+  assert.equal(r.runtime_evidence_demand.dispatch_authority,false);
+  assert.equal(r.runtime_evidence_demand.verified_domain_count,0);
 });
 test('foreign producer metadata and duplicate artifacts never become partial PASS',async()=>{
   for(const options of [{foreign:true},{duplicate:true}]){

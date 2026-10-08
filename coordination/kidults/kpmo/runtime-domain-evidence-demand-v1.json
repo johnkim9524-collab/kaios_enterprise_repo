@@ -1,0 +1,23 @@
+{
+  "id": "kidults-runtime-domain-evidence-demand-v1",
+  "version": "1.0.0",
+  "planning_is_runtime_proof": false,
+  "dispatch_authority": false,
+  "domains": [
+    {"id":"VALUE_TRACEABILITY","owner":"KPMO","requires":[],"input":"Actual source-to-decision lineage with protected source and output digests"},
+    {"id":"SOURCE_RIGHTS","owner":"TRACK_Z","requires":[],"input":"Admitted source records and source-specific rights/purpose/retention evidence"},
+    {"id":"ENTITY_RESOLUTION","owner":"TRACK_A","requires":["SOURCE_RIGHTS"],"input":"Actual admitted records, canonical entity decisions and independently validated results"},
+    {"id":"MARKET_EVIDENCE","owner":"TRACK_A","requires":["SOURCE_RIGHTS","ENTITY_RESOLUTION"],"input":"Rights-admitted dated transactions and current-price/liquidity observations; historical/reference-only inputs are insufficient"},
+    {"id":"ASI_EXECUTION","owner":"TRACK_A","requires":["SOURCE_RIGHTS"],"input":"Actual admitted inputs and complete processor execution outputs, not a synthetic control rehearsal"},
+    {"id":"IMMUTABLE_CANDIDATE","owner":"TRACK_A","requires":["ENTITY_RESOLUTION","MARKET_EVIDENCE","ASI_EXECUTION"],"input":"Actual Candidate/Evidence pair with immutable object versions and verified readback"},
+    {"id":"TRACK_B_VALIDATION","owner":"TRACK_B","requires":["IMMUTABLE_CANDIDATE"],"input":"Assessment consuming the exact immutable Candidate/Evidence pair"},
+    {"id":"PROJECTION_TRUTH","owner":"TRACK_C","requires":["TRACK_B_VALIDATION"],"input":"Actual approved Projection derived from the exact assessed pair"},
+    {"id":"PORTAL_TRANSPARENCY_ACCESSIBILITY","owner":"TRACK_C","requires":["PROJECTION_TRUTH"],"input":"Actual rendered Projection and bounded user-flow/accessibility results"},
+    {"id":"EOS_FOUNDER_WORKFLOW","owner":"TRACK_E","requires":["PROJECTION_TRUTH"],"input":"Actual EOS decision workflow consuming the admitted Projection"},
+    {"id":"RUNTIME_RELIABILITY","owner":"TRACK_D","requires":[],"input":"Actual bounded runtime workload and observed failure/recovery/readback results"},
+    {"id":"SECURITY_SUPPLY_CHAIN","owner":"KPMO","requires":[],"input":"Actual execution/source identity and protected trust-boundary validation results"},
+    {"id":"PRIVACY_RETENTION","owner":"TRACK_D","requires":["SOURCE_RIGHTS"],"input":"Actual admitted record classification, retention/deletion and readback evidence"},
+    {"id":"INTEGRATION_GATE","owner":"KPMO","requires":["VALUE_TRACEABILITY","SOURCE_RIGHTS","ENTITY_RESOLUTION","MARKET_EVIDENCE","ASI_EXECUTION","IMMUTABLE_CANDIDATE","TRACK_B_VALIDATION","PROJECTION_TRUTH","PORTAL_TRANSPARENCY_ACCESSIBILITY","EOS_FOUNDER_WORKFLOW","RUNTIME_RELIABILITY","SECURITY_SUPPLY_CHAIN","PRIVACY_RETENTION"],"input":"Actual whole-chain consumption with every required domain independently verified"}
+  ],
+  "production":"HOLD","public":"HOLD","g5":"HOLD","provider_activation":"HOLD"
+}
