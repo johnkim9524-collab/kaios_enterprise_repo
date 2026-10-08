@@ -2,7 +2,7 @@
 import process from 'node:process';
 import {SPECS, workflowRuns} from './resolve-continuous-assurance-sentinel-health-v1.mjs';
 
-const DEFAULT_MAX_WAIT_SECONDS = 900;
+export const DEFAULT_MAX_WAIT_SECONDS = 2100;
 const POLL_SECONDS = 15;
 
 export function classifyProducerCohort(rows) {
