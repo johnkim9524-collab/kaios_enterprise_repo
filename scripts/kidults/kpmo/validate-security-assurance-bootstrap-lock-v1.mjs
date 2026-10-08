@@ -5,6 +5,7 @@ const LOCK_PATH = 'requirements-security-assurance-pip-audit.lock.txt';
 const WORKFLOW_PATH = '.github/workflows/kidults-security-assurance-empirical-r1.yml';
 const EXPECTED_AUDITOR_VERSION = '2.10.1';
 const EXPECTED_REQUIREMENT_COUNT = 29;
+const AUDIT_COMMAND = 'python -m pip_audit --disable-pip --no-deps -r "$req"';
 
 function fail(message) {
   throw new Error(message);
@@ -51,7 +52,7 @@ function validateWorkflow(text) {
     'python -m pip install --disable-pip-version-check --require-hashes --only-binary=:all: -r "$PIP_AUDIT_LOCK"',
     'python -m pip_audit --version',
     'python -m pip --version',
-    'python -m pip_audit -r "$req"',
+    AUDIT_COMMAND,
     'pip-audit-bootstrap.json',
     "pip_audit_bootstrap:read('pip-audit-bootstrap.json')",
   ];
@@ -93,7 +94,9 @@ const mutations = [
   ['missing-wheel-only', () => validateWorkflow(workflow.replace('--only-binary=:all: ', ''))],
   ['mutable-direct-install', () => validateWorkflow(workflow.replace('-r "$PIP_AUDIT_LOCK"', 'pip-audit'))],
   ['missing-validator', () => validateWorkflow(workflow.replace('node scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs', 'echo validator-removed'))],
-  ['unbound-entrypoint', () => validateWorkflow(workflow.replace('python -m pip_audit -r "$req"', 'pip-audit -r "$req"'))],
+  ['missing-disable-pip', () => validateWorkflow(workflow.replace('--disable-pip ', ''))],
+  ['missing-no-deps', () => validateWorkflow(workflow.replace('--no-deps ', ''))],
+  ['unbound-entrypoint', () => validateWorkflow(workflow.replace(AUDIT_COMMAND, 'pip-audit --disable-pip --no-deps -r "$req"'))],
   ['missing-receipt-binding', () => validateWorkflow(workflow.replace("pip_audit_bootstrap:read('pip-audit-bootstrap.json')", "pip_audit_bootstrap:null"))],
 ];
 for (const [label, operation] of mutations) expectRejected(label, operation);
@@ -107,13 +110,14 @@ const result = {
   locked_requirement_count: packages.size,
   pip_audit_version: packages.get('pip-audit').version,
   install_mode: 'HASH_VERIFIED_WHEELS_ONLY',
+  audit_mode: 'EXACT_REQUIREMENTS_NO_RESOLUTION',
   mutation_cases_rejected: mutations.length,
   live_requests: 0,
   secret_material_read: false,
   autonomous_effect: 'The non-Production security auditor resolves from a deterministic bootstrap lock without an operator choosing tool versions.',
   global_effect: 'The lock target is explicit: ubuntu-24.04 x86_64 with CPython 3.11.',
   irreplaceable_value_effect: 'Repeatable dependency findings preserve the integrity of the governed assurance history.',
-  transparency_effect: 'The lock digest, tool version, package count, and install mode are bound into the assurance receipt.',
+  transparency_effect: 'The lock digest, tool version, package count, install mode, and exact no-resolution audit mode are bound into the assurance receipt.',
   evidence_effect: 'NONE',
   empirical_gate_effect: 'NONE',
   production: 'HOLD',

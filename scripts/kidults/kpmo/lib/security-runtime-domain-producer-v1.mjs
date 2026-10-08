@@ -7,7 +7,7 @@ export function verifyRawPythonAudit(audit, requirementsText){
   for(const raw of requirementsText.split('\n')){
     const line=raw.trim();
     if(!line||line.startsWith('#')||/^--hash=sha256:[a-f0-9]{64}(?:\s+\\)?$/.test(line))continue;
-    const m=/^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)(?:\s+\\)?$/.exec(line);
+    const m=/^([A-Za-z0-9][A-Za-z0-9._-]*)==([^\s;\\]+)(?:\s+--hash=sha256:[a-f0-9]{64})?(?:\s+\\)?$/.exec(line);
     if(!m||expected.has(normalize(m[1])))fail('RAW_PYTHON_REQUIREMENTS');
     expected.set(normalize(m[1]),m[2]);
   }
