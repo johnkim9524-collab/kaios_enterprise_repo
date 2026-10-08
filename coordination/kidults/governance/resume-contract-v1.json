@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_RESUME_CONTRACT_V1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "mandatory": true,
   "applies_at": [
     "EVERY_WORK_EXECUTION_START",
@@ -59,6 +59,28 @@
     "durable_change_record": "GIT_COMMIT_HISTORY",
     "ambiguous_or_rejected_write": "RECONCILE_NO_BLIND_RETRY",
     "main_write_merge_approval_dispatch_deploy_generation_reservation_promotion_allowed": false,
+    "grants_new_authority": false
+  },
+  "draft_proposal_resume": {
+    "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+    "allowed_operation": "CREATE_DRAFT_PR",
+    "protected_operation_ledger_required": false,
+    "fresh_exact_head_bootstrap_required": true,
+    "immutable_git_intent_required": true,
+    "intent_source_ancestor_required": true,
+    "descendant_changes": "DERIVED_METADATA_ONLY",
+    "live_base_head_and_all_pr_states_reconciliation_required": true,
+    "complete_pr_index_required": true,
+    "same_writer_control_context_required": true,
+    "github_duplicate_constraint_required": true,
+    "exact_canonical_payload_digest_required": true,
+    "matching_existing_open_draft": "REUSE_NO_WRITE",
+    "closed_merged_or_conflicting_proposal": "HOLD_NO_REISSUE",
+    "maximum_create_attempts": 1,
+    "ambiguous_or_rejected_write": "RECONCILE_NO_BLIND_RETRY",
+    "exact_draft_readback_required": true,
+    "ready_review_approval_merge_dispatch_deploy_generation_reservation_promotion_allowed": false,
+    "cross_system_exactly_once_claimed": false,
     "grants_new_authority": false
   },
   "prohibited_duplicates": [

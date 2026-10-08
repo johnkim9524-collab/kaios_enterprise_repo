@@ -411,13 +411,38 @@ function selfTest(){
 }
 
 // Retry only a moving read snapshot. Authority, digest and main failures remain terminal.
-export async function collectStableHealth({readInput=liveInput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maximumAttempts=3}={}){
+export function isConvergingDynamicHold(result){
+  if(result?.state!=='VERIFIED_HOLD'||!Array.isArray(result.producers)||result.producers.length!==SPECS.length)return false;
+  const pending=result.producers.filter(p=>p.state!=='VERIFIED_PASS');
+  return pending.length>0&&pending.every(p=>SPECS.some(s=>s.id===p.id&&s.cohort==='DYNAMIC')
+    &&p.state==='VERIFIED_HOLD'&&p.failure_class==='NEWER_APPLICABLE_GENERATION_NONTERMINAL');
+}
+
+export async function collectStableHealth({readInput=liveInput,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maximumAttempts=3,
+  now=()=>Date.now(),evaluate=evaluateHealth,pollMs=15000,
+  deadlineMs=process.env.KPMO_PRODUCER_COHORT_DEADLINE_MS?Number(process.env.KPMO_PRODUCER_COHORT_DEADLINE_MS):null}={}){
   if(!Number.isSafeInteger(maximumAttempts)||maximumAttempts<1||maximumAttempts>3)fail('SENTINEL_SNAPSHOT_RETRY_BOUND');
-  for(let attempt=1;attempt<=maximumAttempts;attempt++){
-    try{return evaluateHealth(await readInput());}
+  const started=now();
+  if(!Number.isSafeInteger(started)||!Number.isSafeInteger(pollMs)||pollMs<1||pollMs>15000
+    ||(deadlineMs!==null&&(!Number.isSafeInteger(deadlineMs)||deadlineMs<1||deadlineMs>started+2100*1000)))fail('SENTINEL_SHARED_DEADLINE_INVALID');
+  const deadline=deadlineMs??started+2100*1000;
+  let movingAttempts=0,observations=0;
+  for(;;){
+    try{
+      const result=evaluate(await readInput());observations++;
+      const pending=isConvergingDynamicHold(result);
+      if(!pending||now()>=deadline){
+        if(observations===1&&!pending)return result;
+        const {receipt_digest,...body}=result;
+        return sealReceipt({...body,convergence_wait:{shared_deadline_ms:deadline,started_at_ms:started,
+          observations,timed_out:pending&&now()>=deadline,maximum_total_wait_seconds:2100}});
+      }
+      // Re-read the latest exact generation; never substitute an older PASS.
+      await sleep(Math.max(0,Math.min(pollMs,deadline-now())));
+    }
     catch(error){
-      if(error.message!=='SENTINEL_GENERATION_ADVANCED_DURING_READ'||attempt===maximumAttempts)throw error;
-      await sleep(5000);
+      if(error.message!=='SENTINEL_GENERATION_ADVANCED_DURING_READ'||++movingAttempts>=maximumAttempts||now()>=deadline)throw error;
+      await sleep(Math.max(0,Math.min(5000,deadline-now())));
     }
   }
 }
