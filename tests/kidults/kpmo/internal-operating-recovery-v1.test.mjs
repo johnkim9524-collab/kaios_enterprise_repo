@@ -5,6 +5,8 @@ import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-
 import {INTERNAL_RECOVERY_CHECKS,verifyInternalOperatingRecovery,observeInternalOperatingRecovery} from '../../../scripts/kidults/kpmo/lib/internal-operating-recovery-v1.mjs';
 import {verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
 const source='a'.repeat(40);
+const runtimeContract=(()=>{const contract=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json','utf8'));
+  return {...contract,runtime_domain_sources:contract.value_chain_dimensions.map(domain_id=>({domain_id,workflow:`${domain_id.toLowerCase().replaceAll('_','-')}.yml`}))};})();
 const seal=p=>{const {receipt_digest,...body}=p;return {...body,receipt_digest:sha256(canonicalJson(body))};};
 const fixture=()=>seal({id:'kidults-whole-platform-operating-proof-v1',source_sha:source,
   repository:'johnkim9524-collab/kaios_enterprise_repo',production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
@@ -14,8 +16,8 @@ test('internal recovery is independent of missing business proof, without granti
   const p=fixture(),r=verifyInternalOperatingRecovery(p,source);
   assert.equal(r.state,'VERIFIED_PASS');assert.equal(r.business_runtime_state,'VERIFIED_HOLD');
   for(const k of ['whole_platform_authority','whole_platform_runtime_proven','natural_chain_terminal_authority','promotion_authority'])assert.equal(r[k],false);
-  assert.throws(()=>verifyAssuranceRuntimeReadiness(p,source),/RUNTIME_READINESS/);
-  assert.throws(()=>verifyAssuranceRuntimeReadiness(r,source),/RUNTIME_READINESS/);
+  assert.throws(()=>verifyAssuranceRuntimeReadiness(p,source,runtimeContract),/RUNTIME_READINESS/);
+  assert.throws(()=>verifyAssuranceRuntimeReadiness(r,source,runtimeContract),/RUNTIME_READINESS/);
 });
 for(const id of INTERNAL_RECOVERY_CHECKS)test(`missing, failed, duplicate or evidence-free ${id} rejects recovery`,()=>{
   for(const mutation of [p=>p.operating_checks=p.operating_checks.filter(c=>c.id!==id),p=>p.operating_checks.find(c=>c.id===id).state='VERIFIED_HOLD',p=>p.operating_checks.push(p.operating_checks.find(c=>c.id===id)),p=>p.operating_checks.find(c=>c.id===id).evidence_refs=[]]){
