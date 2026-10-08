@@ -17,15 +17,20 @@ const norm=u=>{try{const x=new URL(String(u||''));if(!/^https?:$/.test(x.protoco
 async function fetchJson(url,opts={},attempt=0){const c=new AbortController();const t=setTimeout(()=>c.abort(),18000);try{const r=await fetch(url,{...opts,signal:c.signal});if((r.status===429||r.status>=500)&&attempt<2){await sleep(700*(2**attempt));return fetchJson(url,opts,attempt+1)}if(!r.ok)throw new Error(`HTTP_${r.status}`);return await r.json()}finally{clearTimeout(t)}}
 function findFile(root,name){if(!fs.existsSync(root))return null;for(const e of fs.readdirSync(root,{withFileTypes:true})){const p=path.join(root,e.name);if(e.isDirectory()){const f=findFile(p,name);if(f)return f;}else if(e.name===name)return p;}return null;}
 async function hydrateIntentFromLatestMainAutobalance(){
- if(fs.existsSync(intentPath))return 'LOCAL_INTENT_PRESENT';
+ const localIntentExists=fs.existsSync(intentPath);
  const currentMainSha=process.env.GITHUB_REF==='refs/heads/main'?process.env.GITHUB_SHA:null;
  if(process.env.GITHUB_REF==='refs/heads/main'&&!/^[a-f0-9]{40}$/.test(currentMainSha||''))throw new Error('CURRENT_MAIN_SOURCE_SHA_INVALID');
- if(!currentMainSha)return 'NON_MAIN_EXACT_SOURCE_BASELINE_ONLY';
+ if(!currentMainSha)return localIntentExists?'LOCAL_INTENT_PRESENT_NON_MAIN_BASELINE_ONLY':'NON_MAIN_EXACT_SOURCE_BASELINE_ONLY';
  const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN||'';const repo=process.env.GITHUB_REPOSITORY||'';
  if(!token||!repo)return 'NO_GITHUB_ACTIONS_CONTEXT_BASELINE_ONLY';
  try{
   const currentMain=await fetchJson(`https://api.github.com/repos/${repo}/commits/main`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'KIDULTS-ASI-Exact-Main-Autobalance-Restore-v1'}});
   if(currentMain.sha!==currentMainSha)throw new Error(`STALE_CONSUMER_SOURCE_SHA:${currentMainSha}:${currentMain.sha||'MISSING'}`);
+  if(localIntentExists){
+   const resolvedIntent=path.resolve(intentPath);
+   if(!resolvedIntent.startsWith('/tmp/'))throw new Error('LOCAL_INTENT_PATH_NOT_EPHEMERAL');
+   fs.rmSync(intentPath,{force:true});
+  }
   const zip='/tmp/asi-source-family-feedback-autobalance.zip';const dir='/tmp/asi-source-family-feedback-autobalance';const receipt='/tmp/asi-source-family-feedback-autobalance-exact-restore-receipt-v1.json';
   execFileSync(process.execPath,[
    'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs',
