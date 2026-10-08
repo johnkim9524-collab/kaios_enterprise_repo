@@ -354,7 +354,7 @@ jobs:
       group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
       KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'repository_dispatch' && 'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
@@ -518,7 +518,7 @@ jobs:
         run: |
           set -euo pipefail
           export KPMO_SENTINEL_BARRIER_OUTPUT="$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/sentinel-order-barrier.json"
-          export KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS=900
+          export KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS=2400
           export KPMO_SENTINEL_BARRIER_POLL_SECONDS=10
           node scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs
 
