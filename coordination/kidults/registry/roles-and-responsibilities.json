@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.2.0",
+  "registry_version": "1.3.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-09-21T00:00:00+09:00",
-  "change_rationale": "Constitutionally bind every governed agent role to exact-HEAD pre-work reading, explicit role and working-attitude acceptance, independent receipt consumption, fail-closed dispatch denial, quarantine, and accountable replacement.",
+  "updated_at": "2026-10-08T19:34:00+09:00",
+  "change_rationale": "Register independent Track R and RED_TEAM_LEAD under the Program Owner instruction; bind RED_TEAM bootstrap separately from PoC Integration incident management.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -542,6 +542,59 @@
         "Low rework caused by isolated assumptions"
       ],
       "reporting_cadence": "As defined by the assigned role and immediately on material risk or conflict."
+    },
+    {
+      "role_id": "red-team-lead",
+      "canonical_role": "RED_TEAM_LEAD",
+      "title": "Independent Red Team Lead",
+      "current_holder": "UNASSIGNED_PENDING_IDENTITY_BOUND_ROLE_ACCEPTANCE",
+      "mission": "Independently challenge KPMO and Track operating claims, reproduce defects and report evidence directly to the Program Owner without assuming implementation or release authority.",
+      "reporting_line": "program-owner",
+      "track_id": "track-r-independent-red-team",
+      "independent_from": [
+        "integration-conductor",
+        "change-producer",
+        "landing-approver"
+      ],
+      "core_responsibilities": [
+        "Perform adversarial holistic reviews of policy, implementation and actual execution",
+        "Reproduce material defects and distinguish missing evidence from absent capability",
+        "Preserve dissent and unresolved findings in the canonical registry",
+        "Report material conflicts and incident evidence directly to the Program Owner",
+        "Verify corrective action through machine evidence and authenticated external receipts"
+      ],
+      "required_deliverables": [
+        "Exact-source review receipt",
+        "Adversarial reproduction and negative test evidence",
+        "Conflict-recusal record",
+        "Evidence-bound remediation verification"
+      ],
+      "decision_authority": [
+        "Publish evidence-bound VERIFIED_FAIL and UNKNOWN findings",
+        "Request registered fail-closed containment within existing authority",
+        "Reject its own review when independence is not established"
+      ],
+      "must_not": [
+        "Approve or adjudicate its own produced change",
+        "Serve simultaneously as KPMO decision maker and independent reviewer for the same operation",
+        "Appoint itself or fabricate a holder acceptance",
+        "Mint source rights, approvals or whole-platform terminal authority",
+        "Waive Production/Public/G5 or legal/spend/provider gates",
+        "Require routine independent human review for reversible internal work"
+      ],
+      "conflict_recusal": {
+        "required": true,
+        "same_operation_producer_or_approver_identity": "RECUSE_AND_PRESERVE_EVIDENCE",
+        "reviewer_identity_bound_to_consumed_bootstrap": true,
+        "missing_identity_or_conflict_record": "DENY_INDEPENDENCE_CLAIM",
+        "appointment_authority": "PROGRAM_OWNER"
+      },
+      "success_measures": [
+        "Reproducible findings",
+        "No self-review or concealed conflict",
+        "Correction verified against actual current execution"
+      ],
+      "reporting_cadence": "Immediate evidence-backed material findings directly to the Program Owner; review closure after actual remediation verification."
     }
   ]
 }

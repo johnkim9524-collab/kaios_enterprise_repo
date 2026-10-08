@@ -1,0 +1,223 @@
+{
+  "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
+  "version": "1.0.0",
+  "agent_id": "atlas-autonomy-remediation",
+  "as_of": "2026-10-08T10:50:08Z",
+  "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "root_incident": 344,
+  "scope": "12 holistic findings and subsequent bounded PSA validation",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "source_main_sha": "b016cc4b7db1706d5dfcc5ed397a542c548c8e02",
+  "development_branch": "codex/capability-derived-metadata-normalization-74ff455",
+  "existing_pull_request": 2609,
+  "facts": [
+    "Main unchanged at fresh external read",
+    "Reuse existing PR #2609; no duplicate PR",
+    "Provider-supplied PSA test cert confirmed from authenticated current Gmail thread; no new outreach",
+    "Remote whole-platform completion, PSA live execution and release are not claimed"
+  ],
+  "items": [
+    {
+      "id": "F01",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "scope": "Native runtime 14-domain completion",
+      "facts": "13 authenticated native producers and admitted business workload are missing",
+      "exit_criteria": "Implement and execute registered domain-specific producers against lawful admitted inputs; same-main 14/14 proof",
+      "evidence_refs": [
+        "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F02",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "scope": "Actual source-to-EOS chain",
+      "facts": "Current input stages verify content/integrity only; actual source acquisition, immutable pair and Track B input unavailable",
+      "exit_criteria": "Authenticated lawful input, private persistence/readback, immutable Candidate/Evidence, exact pair assessment and downstream run receipts",
+      "evidence_refs": [
+        "scripts/kidults/runtime/execute-bound-business-input-v1.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F03",
+      "priority": "P0",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Inventory digest guards",
+      "facts": "Both digest copies normalized only after consistency validation; local positive and negative tests verified",
+      "exit_criteria": "Existing PR #2609 exact-head CI, governed landing and actual automatic lifecycle terminal",
+      "evidence_refs": [
+        "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F04",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Assurance completion routing",
+      "facts": "Exact run/attempt/job classifier distinguishes full audit from classification-only without granting authority",
+      "exit_criteria": "Exact-head CI and landed natural classification/full-audit runs; retain 14-domain proof requirements",
+      "evidence_refs": [
+        ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F05",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "Assurance durable Postgres claim activation",
+      "facts": "No callable protected remote operation-ledger/activation adapter in this session; current state remains REMOTE_LEDGER_ACTIVATION_HOLD",
+      "exit_criteria": "Activate configured atomic claim ledger through governed STAGING path; prove contention, restart, reuse and fencing; no fixture substitution",
+      "evidence_refs": [
+        "coordination/kidults/kpmo/platform-continuous-assurance-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F06",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "External launcher and all-operation RESUME",
+      "facts": "Actual external launcher/deployed broker side-effect evidence unavailable; no callable protected operation-ledger adapter",
+      "exit_criteria": "Validate actual deployment and all side-effect adapters; reject wrong SHA/replay/unconsumed bootstrap; preserve existing operation owner and budgets",
+      "evidence_refs": [
+        "coordination/kidults/governance/resume-contract-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F07",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Track R independence registry",
+      "facts": "Track R / red-team-lead / direct Owner report line / recusal and both bootstrap mappings implemented; holder remains explicitly unassigned",
+      "exit_criteria": "Exact-head governance tests plus identity-bound holder acceptance and operation-specific recusal evidence",
+      "evidence_refs": [
+        "coordination/kidults/registry/track/records/track-r-independent-red-team.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F08",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Historical truth versus current measurements",
+      "facts": "Old score preserved as historical; collector current completion weight remains null; program registry aligned",
+      "exit_criteria": "Land correction and consume fresh exact-main runtime measurements before updating completion scores",
+      "evidence_refs": [
+        "scripts/kidults/kpmo/lib/whole-platform-operating-proof-v1.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F09",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "Business workload performance/cost/recovery",
+      "facts": "Actual approved Candidate/Evidence workload not available; generic DEV/STAGING baseline already materially complete",
+      "exit_criteria": "Actual business replay with latency, throughput, growth, unit cost and recovery receipts; no repeated generic baseline",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/481"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F10",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "Provider PITR confirmation",
+      "facts": "Ticket #12887418 has no human timestamp/operation confirmation in latest connected mail evidence",
+      "exit_criteria": "Provider/physical receipt bound to source UUID, restored UUID, exact target UTC, successful completion and operation ID",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1464"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F11",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "TLS explicit CA identity binding",
+      "facts": "Trusted CA path/digest and immutable runtime copy implemented; verification modes reject missing CA/digest, symlink, wrong digest, private-key and oversize inputs before networking",
+      "exit_criteria": "Exact-head tests, credential-isolated verify-full live connection and CA/hostname receipt; current require-only receipts remain historical",
+      "evidence_refs": [
+        "scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F12",
+      "priority": "P2",
+      "state": "BLOCKED",
+      "scope": "Global quality/privacy/unit economics",
+      "facts": "Fresh admitted workload and physical deletion/readback/unit-cost measurements unavailable",
+      "exit_criteria": "Measure category/geography/language coverage, source removal loss, record deletion/readback and useful-event cost; unknown is not zero",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/769"
+      ],
+      "completion_claimed": false
+    }
+  ],
+  "verification_evidence_refs": [
+    "tests/governance/autonomous-policy-alignment-v1.test.mjs",
+    "tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs",
+    "tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs",
+    "tests/kidults/kpmo/test_postgres_pitr_contract.py"
+  ],
+  "actions_executed": [
+    "REUSE_EXISTING_DIGEST_FIX_AND_NEGATIVE_TESTS",
+    "CLASSIFY_EXACT_ASSURANCE_AUDIT_DISPOSITION",
+    "REGISTER_TRACK_R_WITHOUT_FABRICATING_APPOINTMENT",
+    "BIND_RED_TEAM_BOOTSTRAP_TO_INDEPENDENT_ROLE",
+    "LABEL_HISTORICAL_SCORES_AND_SEPARATE_CURRENT_UNKNOWN",
+    "IMPLEMENT_EXPLICIT_CA_DIGEST_BINDING_AND_NEGATIVE_TESTS",
+    "REFRESH_PSA_AND_PITR_COMMUNICATION_EVIDENCE"
+  ],
+  "blockers": [
+    "PROTECTED_OPERATION_LEDGER_ADAPTER_NOT_CALLABLE_FOR_MERGE_DISPATCH_DEPLOY",
+    "AUTHENTICATED_NATIVE_BUSINESS_INPUTS_AND_DOMAIN_RECEIPTS_INCOMPLETE",
+    "PROVIDER_PITR_EXACT_TARGET_COMPLETION_RECEIPT_MISSING",
+    "PSA_CREDENTIAL_BOUND_PROTECTED_RUNNER_NOT_CALLABLE"
+  ],
+  "psa_next_stage": {
+    "state": "BLOCKED",
+    "provider_id": "psa-public-api",
+    "scope": "PROVIDER_SUPPLIED_KNOWN_CERT_PRIVATE_TECHNICAL_SCHEMA_CANARY_ONLY",
+    "source_message_id": "1a0ce643d74de351",
+    "thread_id": "1a0cc0e573998bb6",
+    "non_enumeration": true,
+    "raw_cert_value_in_repository": false,
+    "provider_calls_executed_this_task": 0,
+    "new_outreach_executed": false,
+    "canary_is_120_case_completion": false,
+    "canary_is_current_market_evidence": false,
+    "canary_is_candidate_track_b_or_projection_authority": false,
+    "credential_value_required_in_chat": false,
+    "unblock_condition": "Consume confirmed provider source through existing allowed rights lane and protected credential-bound runner after internal correction verification"
+  },
+  "next_action": "Verify exact committed correction and machine evidence; advance existing protected lifecycle only after operation-ledger reconciliation; resume each external stage from its authenticated last-incomplete receipt",
+  "authority_boundary": {
+    "development_branch_route": "resume-contract-v1 development_branch_resume",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD",
+    "pat": "PROHIBITED",
+    "ruleset_bypass": "PROHIBITED",
+    "whole_platform_complete": false
+  },
+  "truth_sync_refs": [
+    "Existing PR #2609 branch history and this checkpoint; no fabricated GitHub issue closure"
+  ],
+  "improvement_proposal": "Use measured business receipts to update current truth and close each finding; preserve historical proof and failed receipts",
+  "effects": {
+    "autonomous_effect": "Fix reversible branch defects and preserve exact resume stage; no routine repeated Owner prompt",
+    "global_effect": "No global coverage claim from one provider canary; actual multi-domain inputs still required",
+    "irreplaceable_value_effect": "Preserve owned mission identity, operation bindings, immutable lineage and provider-independent evidence",
+    "transparency_effect": "Explicit incomplete stages and historical/current boundary; no 12-item complete claim"
+  }
+}

@@ -57,7 +57,7 @@ const TRUST = Object.freeze({
     TRACK_C: 'track-c-portal-v502',
     TRACK_D: 'snapshot-publisher',
     TRACK_E: 'qa-release-manager',
-    RED_TEAM: 'incident-manager',
+    RED_TEAM: 'red-team-lead',
     REVIEW_AGENTS: 'editorial-rights-reviewer',
     TEST_AGENTS: 'qa-release-manager',
     RELEASE_AGENTS: 'qa-release-manager',

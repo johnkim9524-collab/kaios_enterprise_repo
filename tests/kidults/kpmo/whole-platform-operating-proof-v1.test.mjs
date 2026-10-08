@@ -5,6 +5,15 @@ import {inventoryWholePlatform} from '../../../scripts/kidults/kpmo/lib/whole-pl
 const read=p=>JSON.parse(fs.readFileSync(p,'utf8'));
 const contract=read('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json');
 const scorecard=read(contract.value_chain_source);
+test('historical score remains historical even when its source SHA equals the observation',()=>{
+  for(const sha of ['a'.repeat(40),scorecard.protected_main_truth_at_update]){
+    const proof=inventoryWholePlatform(contract,scorecard,sha);
+    assert.equal(proof.scorecard_observation.current_runtime_completion_weight,null);
+    assert.equal(proof.scorecard_observation.static_pass_is_current_runtime_completion,false);
+    assert.equal(proof.scorecard_observation.historical_pass_weight,scorecard.evidenced_pass_weight);
+    assert.equal(proof.whole_platform_runtime_proven,false);
+  }
+});
 test('all fourteen value-chain dimensions remain unverified even when static declarations say PASS',()=>{
   const proof=inventoryWholePlatform(contract,{...scorecard,dimensions:scorecard.dimensions.map(d=>({...d,state:'PASS'}))},'a'.repeat(40));
   assert.equal(proof.value_chain.length,14);

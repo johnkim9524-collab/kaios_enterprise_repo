@@ -65,6 +65,7 @@ test('repository-wide manual-only workflows are an exact reviewed exception set'
     'kidults-graded-authority-probe-gate-v1.yml',
     'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
     'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
+    'kidults-staging-ssh-postgres-readonly-v1.yml',
     'p0-postgres-target-time-restore-verification.yml','p0-remote-postgres-persistence-pitr.yml',
   ]);
   const actual=new Set();

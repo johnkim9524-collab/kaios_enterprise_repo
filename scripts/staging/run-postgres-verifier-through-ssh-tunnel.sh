@@ -109,6 +109,41 @@ if len(ssl_modes) != 1 or ssl_modes[0] not in {'require', 'verify-ca', 'verify-f
     raise SystemExit('PostgreSQL URI must require TLS with one approved sslmode')
 ssl_mode = ssl_modes[0]
 
+# Bind the CA bytes independently of URI/env defaults. Verification modes
+# require an explicit trusted digest; copy verified bytes into the private
+# runtime directory so a later source-file replacement cannot change trust.
+ca_path = os.environ.get('KAIOS_POSTGRES_CA_PATH', '')
+ca_digest = os.environ.get('KAIOS_POSTGRES_CA_SHA256', '')
+require_identity = os.environ.get('KAIOS_POSTGRES_REQUIRE_SERVER_IDENTITY', 'false')
+if require_identity not in {'true', 'false'}:
+    raise SystemExit('invalid PostgreSQL server identity requirement')
+if require_identity == 'true' and ssl_mode != 'verify-full':
+    raise SystemExit('PostgreSQL server identity requires verify-full')
+bound_ca = None
+if ca_path or ca_digest or ssl_mode in {'verify-ca', 'verify-full'}:
+    if not ca_path or not re.fullmatch(r'sha256:[a-f0-9]{64}', ca_digest):
+        raise SystemExit('PostgreSQL explicit trusted CA path and digest required')
+    import stat
+    ca_source = Path(ca_path)
+    if ca_source.is_symlink() or not ca_source.is_file():
+        raise SystemExit('PostgreSQL CA must be a regular non-symlink file')
+    fd = os.open(ca_source, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        ca_stat = os.fstat(fd)
+        if not stat.S_ISREG(ca_stat.st_mode) or ca_stat.st_size > 1048576:
+            raise SystemExit('PostgreSQL CA file boundary invalid')
+        with os.fdopen(fd, 'rb', closefd=False) as handle:
+            ca_bytes = handle.read(1048577)
+    finally:
+        os.close(fd)
+    if len(ca_bytes) > 1048576 or 'sha256:' + hashlib.sha256(ca_bytes).hexdigest() != ca_digest:
+        raise SystemExit('PostgreSQL CA digest mismatch')
+    if b'-----BEGIN CERTIFICATE-----' not in ca_bytes or b'PRIVATE KEY' in ca_bytes:
+        raise SystemExit('PostgreSQL CA content invalid')
+    bound_ca = root / 'trusted-root-ca.pem'
+    bound_ca.write_bytes(ca_bytes)
+    bound_ca.chmod(0o600)
+
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as listener:
     listener.bind(('127.0.0.1', 0))
     local_port = listener.getsockname()[1]
@@ -117,6 +152,8 @@ query = [
     ('sslmode', ssl_mode),
     ('connect_timeout', '10'),
 ]
+if bound_ca is not None:
+    query.append(('sslrootcert', str(bound_ca)))
 
 # Use libpq's keyword/value format for the tunneled connection.  Keeping the
 # certificate/DNS identity in `host` while binding the socket explicitly with
@@ -141,12 +178,35 @@ tunneled = ' '.join(
     f'{key}={conninfo_value(value)}' for key, value in connection_values
 )
 
+# PGDATABASE defaults are not expanded as conninfo by libpq. Use its native
+# service and password files, leaving the certificate host and socket hostaddr
+# as distinct parameters without exposing a password in argv or environment.
+service_values = [(key, value) for key, value in connection_values if key != 'password']
+for _key, value in connection_values:
+    if any(character in str(value) for character in ('\n', '\r', '\x00')):
+        raise SystemExit('PostgreSQL connection value contains unsupported control characters')
+for _key, value in service_values:
+    if str(value) != str(value).strip():
+        raise SystemExit('PostgreSQL service value contains unsupported boundary whitespace')
+service = root / 'pg_service.conf'
+service.write_text('[kaios-staging]\n' + ''.join(f'{key}={value}\n' for key, value in service_values), encoding='utf-8')
+service.chmod(0o600)
+def passfile_value(value):
+    return str(value).replace('\\', '\\\\').replace(':', '\\:')
+password_file = root / 'pgpass'
+password_file.write_text(':'.join(passfile_value(value) for value in (
+    host, local_port, urllib.parse.unquote(parts.path.lstrip('/')),
+    urllib.parse.unquote(parts.username or ''), urllib.parse.unquote(parts.password or ''),
+)) + '\n', encoding='utf-8')
+password_file.chmod(0o600)
+
 values = {
     'database_host': host,
     'database_port': str(remote_port),
     'local_port': str(local_port),
     'tunneled_dsn': tunneled,
     'tls_mode': ssl_mode,
+    'tls_ca_digest': ca_digest if bound_ca is not None else '',
     'destination_policy': 'DIGITALOCEAN_MANAGED_POSTGRESQL_STAGING_HOST_SUFFIX_AND_PORT',
     'connection_identity_digest': 'sha256:' + hashlib.sha256(json.dumps({
         'scheme': 'postgresql',
@@ -488,19 +548,20 @@ case "$mode" in
   restore) export KAIOS_POSTGRES_PITR_RESTORE_DSN="$(<"$runtime_root/tunneled_dsn")" ;;
 esac
 
-case "$mode" in
-  source) probe_dsn="$KAIOS_POSTGRES_DSN" ;;
-  restore) probe_dsn="$KAIOS_POSTGRES_PITR_RESTORE_DSN" ;;
-esac
+# Exclude inherited libpq settings, including an unrelated password or service.
+for pg_name in ${!PG@}; do unset "$pg_name"; done
+export PGSERVICE=kaios-staging
+export PGSERVICEFILE="$runtime_root/pg_service.conf"
+export PGPASSFILE="$runtime_root/pgpass"
+export KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND=true
 set +e
-PGDATABASE="$probe_dsn" psql \
-  --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+psql \
+  --no-psqlrc --no-password --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --command='SELECT 1' \
   > "$runtime_root/libpq-probe.stdout" \
   2> "$runtime_root/libpq-probe.stderr"
 libpq_probe_rc=$?
 set -e
-unset probe_dsn
 
 libpq_probe_classification="$(python3 - "$network_diagnostic_path" "$runtime_root/libpq-probe.stderr" "$libpq_probe_rc" <<'PY'
 import json
@@ -521,12 +582,13 @@ if return_code == 0:
 else:
     state = 'FAIL'
     classifiers = (
+        ('UNEXPECTED_LOCAL_SOCKET', r'connection to server on socket'),
         ('PASSWORD_AUTHENTICATION_REJECTED', r'password authentication failed|no password supplied'),
         ('NO_PG_HBA_OR_TRUSTED_SOURCE_ADMISSION', r'no pg_hba\.conf entry|not in trusted sources|trusted source'),
         ('DATABASE_NOT_FOUND', r'database [^\n]+ does not exist'),
         ('ROLE_NOT_FOUND', r'role [^\n]+ does not exist'),
         ('TLS_CERTIFICATE_VERIFICATION_FAILED', r'certificate verify failed|root certificate file|server certificate'),
-        ('TLS_OR_CONNECTION_EOF', r'unexpected eof|ssl syscall error|connection.*closed unexpectedly'),
+        ('TLS_OR_CONNECTION_EOF', r'unexpected eof|ssl syscall error|connection.*closed unexpectedly|server closed the connection unexpectedly'),
         ('CONNECTION_TIMEOUT', r'timeout expired|connection timed out'),
         ('CONNECTION_REFUSED', r'connection refused'),
         ('DNS_RESOLUTION_FAILED', r'could not translate host name|name or service not known|temporary failure in name resolution'),
@@ -575,7 +637,7 @@ if (( verifier_rc != 0 )); then
   exit "$verifier_rc"
 fi
 
-python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" "$network_diagnostic_path" <<'PY'
+python3 - "$runtime_root/verifier.json" "$runtime_root/connection_identity_digest" "$runtime_root/tls_mode" "$runtime_root/destination_policy" "$network_diagnostic_path" "$runtime_root/tls_ca_digest" <<'PY'
 import json
 import re
 import sys
@@ -587,6 +649,7 @@ identity_digest = Path(sys.argv[2]).read_text(encoding='utf-8')
 tls_mode = Path(sys.argv[3]).read_text(encoding='utf-8')
 destination_policy = Path(sys.argv[4]).read_text(encoding='utf-8')
 network_diagnostic = json.loads(Path(sys.argv[5]).read_text(encoding='utf-8'))
+ca_digest = Path(sys.argv[6]).read_text(encoding='utf-8')
 if not re.fullmatch(r'sha256:[a-f0-9]{64}', identity_digest):
     raise SystemExit('invalid connection identity digest')
 if receipt.get('status') != 'PASS' or receipt.get('environment') != 'STAGING':
@@ -595,6 +658,8 @@ receipt['connection_identity_digest'] = identity_digest
 receipt['tls_encryption_required'] = tls_mode in {'require', 'verify-ca', 'verify-full'}
 receipt['tls_ca_chain_verified'] = tls_mode in {'verify-ca', 'verify-full'}
 receipt['tls_hostname_verified'] = tls_mode == 'verify-full'
+receipt['tls_trusted_ca_digest'] = ca_digest or None
+receipt['tls_explicit_ca_bound'] = bool(ca_digest)
 receipt['destination_policy'] = destination_policy
 receipt['network_diagnostic'] = network_diagnostic
 print(json.dumps(receipt, separators=(',', ':'), sort_keys=True))

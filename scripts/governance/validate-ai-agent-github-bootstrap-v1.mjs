@@ -860,13 +860,19 @@ for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritan
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
 assert(registry.version === '2.0.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.2.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.3.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.constitutional_readiness?.manifest === paths.readiness, 'BOOTSTRAP_ROLE_READINESS_MANIFEST');
 assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true, 'BOOTSTRAP_ROLE_READINESS_PREWORK');
 assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'BOOTSTRAP_ROLE_READINESS_REPLACEMENT');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'BOOTSTRAP_ROLE_JD_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'BOOTSTRAP_ROLE_JD_KPMO_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'BOOTSTRAP_ROLE_JD_EVIDENCE_STANDARD');
+const redTeamRole = roles.roles?.find((role) => role.role_id === 'red-team-lead');
+assert(redTeamRole?.canonical_role === 'RED_TEAM_LEAD' && redTeamRole.reporting_line === 'program-owner', 'RED_TEAM_INDEPENDENT_ROLE');
+assert(redTeamRole.conflict_recusal?.required === true && redTeamRole.conflict_recusal?.missing_identity_or_conflict_record === 'DENY_INDEPENDENCE_CLAIM', 'RED_TEAM_RECUSAL');
+for (const source of [fs.readFileSync(paths.entrypoint,'utf8'),fs.readFileSync(paths.verifier,'utf8')]) {
+  assert(source.includes("RED_TEAM: 'red-team-lead'") && !source.includes("RED_TEAM: 'incident-manager'"), 'RED_TEAM_BOOTSTRAP_ROLE_DRIFT');
+}
 const kpmoRole = roles.roles?.find((role) => role.role_id === 'integration-conductor');
 assert(kpmoRole?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'BOOTSTRAP_KPMO_ROLE_ACCOUNTABILITY');
 assert(kpmoRole?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'BOOTSTRAP_KPMO_ROLE_SELF_EXEMPTION');
