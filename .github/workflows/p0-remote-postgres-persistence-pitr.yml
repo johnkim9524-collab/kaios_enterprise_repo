@@ -3,6 +3,11 @@ name: P0 Remote PostgreSQL Persistence and PITR Readiness
 on:
   workflow_dispatch:
     inputs:
+      initialize_runtime_schema:
+        description: Initialize only absent STAGING kaios_runtime schema using canonical migration
+        required: false
+        default: false
+        type: boolean
       exact_main_sha:
         description: Exact protected-main SHA approved for this STAGING one-shot
         required: true
@@ -266,11 +271,13 @@ jobs:
       - name: Execute source PostgreSQL fixture through pinned SSH tunnel
         env:
           POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
+          INITIALIZE_RUNTIME_SCHEMA: ${{ inputs.initialize_runtime_schema && 'true' || 'false' }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$POSTGRES_DSN"
           mkdir -p artifacts/p0-remote-postgres
+          export KAIOS_STAGING_RUNTIME_SCHEMA_INITIALIZATION_AUTHORIZED="$INITIALIZE_RUNTIME_SCHEMA"
           export KAIOS_ENVIRONMENT=staging
           export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
           export KAIOS_STAGING_SSH_HOST="$HOST"

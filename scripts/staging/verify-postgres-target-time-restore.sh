@@ -37,7 +37,8 @@ probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_S
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
   --set="after_marker=$KAIOS_PITR_AFTER_MARKER" \
   --set="target_time=$KAIOS_PITR_TARGET_TIME" \
-  --command="SELECT json_build_object(
+  --file=- <<'SQL'
+SELECT json_build_object(
     'before_count',(SELECT count(*)::int FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
     'before_digest',(SELECT COALESCE(max(marker_digest),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
     'before_phase',(SELECT COALESCE(max(phase),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
@@ -47,7 +48,9 @@ probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_S
     'force_rls_tables',(SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='kaios_runtime' AND c.relrowsecurity AND c.relforcerowsecurity),
     'migration_rows',(SELECT count(*)::int FROM kaios_runtime.schema_migrations),
     'endpoint_in_recovery',pg_is_in_recovery()
-  )::text")"
+  )::text;
+SQL
+)"
 
 python3 - "$probe_json" "$KAIOS_PITR_TARGET_TIME" "$KAIOS_PITR_BEFORE_MARKER_DIGEST" "$KAIOS_PITR_AFTER_MARKER_DIGEST" <<'PY'
 import json, sys

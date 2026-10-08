@@ -70,17 +70,21 @@ def emit(value):
     raise SystemExit(0)
 
 
+if command and ":'" in command:
+    fail("psql --command does not interpolate SQL variables", code=3)
 if not command:
-    sql = sys.stdin.read().lower()
-    if "pitr_probe" not in sql:
-        fail(f"fake psql received an unknown mutation: {sql!r}")
-    if "select 1 / 0" in sql:
-        fail("division by zero", code=1)
-    if "--output=/dev/null" not in args:
-        print("CREATE TABLE")
-        print("INSERT 0 1")
-        print("CHECKPOINT")
-    raise SystemExit(0)
+    command = sys.stdin.read()
+    sql = command.lower()
+    if "--output=/dev/null" in args:
+        if "pg_advisory_lock" in sql and "schema_absent" in sql:
+            state["initialized"] = True
+            save_state()
+            raise SystemExit(0)
+        if "pitr_probe" not in sql:
+            fail("unknown mutation")
+        if "select 1 / 0" in sql:
+            fail("division by zero", code=1)
+        raise SystemExit(0)
 
 sql = " ".join(command.lower().split())
 
@@ -116,7 +120,7 @@ if sql == "show archive_mode":
 if sql == "show data_checksums":
     emit(os.environ.get("FAKE_DATA_CHECKSUMS", "on"))
 if "to_regnamespace('kaios_runtime') is not null" in sql:
-    emit("t")
+    emit("t" if state.get("initialized") else os.environ.get("FAKE_SCHEMA_PRESENT", "t"))
 if "relforcerowsecurity" in sql:
     emit(os.environ.get("FAKE_RLS_FORCED", "4"))
 if "schema_migrations" in sql:
@@ -1314,3 +1318,46 @@ def test_restore_workflow_truth_claim_mutations_fail_closed(
     mutated = source.replace(before, after)
     with pytest.raises(AssertionError):
         _validate_restore_workflow_contract(mutated)
+
+
+def test_missing_schema_without_initialization_authority_is_read_only(tmp_path):
+    result = _run_source_verifier(tmp_path, {"FAKE_SCHEMA_PRESENT":"f"})
+    assert result.returncode != 0
+    assert "schema is not present" in result.stderr
+    assert not (tmp_path / "psql-state.json").exists()
+
+
+def test_absent_schema_initializes_only_with_bound_service(tmp_path):
+    service, password = tmp_path / "service", tmp_path / "pass"
+    service.touch(); password.touch()
+    result = _run_source_verifier(tmp_path, {
+        "FAKE_SCHEMA_PRESENT":"f", "FAKE_EXPECT_DSN_ENV":"",
+        "KAIOS_STAGING_RUNTIME_SCHEMA_INITIALIZATION_AUTHORIZED":"true",
+        "KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND":"true", "PGSERVICE":"kaios-staging",
+        "PGSERVICEFILE":str(service), "PGPASSFILE":str(password),
+    })
+    receipt = _one_json_line(result)
+    assert receipt["runtime_schema_initialized"] is True
+    assert json.loads((tmp_path / "psql-state.json").read_text())["initialized"] is True
+
+
+@pytest.mark.parametrize("override", [
+    {"KAIOS_STAGING_RUNTIME_SCHEMA_INITIALIZATION_AUTHORIZED":"false"},
+    {"KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND":"false"},
+    {"KAIOS_ENVIRONMENT":"production"},
+    {"KAIOS_PRODUCTION_PROMOTION_AUTHORIZED":"true"},
+    {"PGDATABASE":"wrong"},
+    {"PGPASSWORD":"wrong"},
+])
+def test_initializer_rejects_authority_or_connection_drift(tmp_path, override):
+    environment = _fake_environment(tmp_path, mode="source", dsn="")
+    service, password = tmp_path / "service", tmp_path / "pass"
+    service.touch(); password.touch()
+    environment.update({"KAIOS_STAGING_RUNTIME_SCHEMA_INITIALIZATION_AUTHORIZED":"true",
+        "KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND":"true", "PGSERVICE":"kaios-staging",
+        "PGSERVICEFILE":str(service), "PGPASSFILE":str(password)})
+    environment.update(override)
+    result = subprocess.run(["bash",str(ROOT / "scripts/staging/initialize-staging-runtime-schema-v1.sh")],
+        env=environment, capture_output=True, text=True)
+    assert result.returncode == 64
+    assert not (tmp_path / "psql-state.json").exists()

@@ -11,6 +11,10 @@ on:
       - 'services/kidults-control-plane/migrations/postgres/**'
       - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
       - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'scripts/staging/initialize-staging-runtime-schema-v1.sh'
+      - 'scripts/staging/verify-staging-runtime-initialization-ci-v1.sh'
+      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'scripts/staging/verify-postgres-target-time-restore.sh'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
   push:
     branches:
@@ -25,6 +29,10 @@ on:
       - 'services/kidults-control-plane/migrations/postgres/**'
       - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
       - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'scripts/staging/initialize-staging-runtime-schema-v1.sh'
+      - 'scripts/staging/verify-staging-runtime-initialization-ci-v1.sh'
+      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'scripts/staging/verify-postgres-target-time-restore.sh'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
 
 permissions:
@@ -128,6 +136,9 @@ jobs:
           psql --no-psqlrc --set=ON_ERROR_STOP=1 \
             --dbname='postgresql://postgres:postgres@127.0.0.1:5432/postgres' \
             --command='CREATE DATABASE kaios_restore'
+
+      - name: Verify absent-schema initialization and real psql interpolation
+        run: bash scripts/staging/verify-staging-runtime-initialization-ci-v1.sh
 
       - name: Run canonical greenfield migration
         shell: bash

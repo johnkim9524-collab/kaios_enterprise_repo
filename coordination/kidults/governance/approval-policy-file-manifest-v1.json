@@ -691,8 +691,8 @@
     {
       "path": ".github/workflows/p0-postgres-greenfield-runtime.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c605064f08f5622b0a9a34f888ad0509348a5749",
-      "sha256": "sha256:9ff128b986f0597f99abb5640819420057aee9dc624bf639352aa5f49eca6426",
+      "git_blob": "c532c652bc1c0e134b9ca07141eac20eb1dc23df",
+      "sha256": "sha256:8626b24f44963c2d7e4e67caa49b7f53ce4175e7a0475d4080220afe2496d8d8",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -717,8 +717,8 @@
     {
       "path": ".github/workflows/p0-remote-postgres-persistence-pitr.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a6c87f0954549d0c5f8de756d5f3b73e4360944f",
-      "sha256": "sha256:c3bc85183ed3e5fbfc1e0762fad1a1732262caeaf3553b3d812a94deb5487650",
+      "git_blob": "2d7b604a7be3ba8fc41933dd8356c75dde4e753c",
+      "sha256": "sha256:9fd43913fdb1d0cab9b16aad9d4fd931829dadf16b668321a3f0983aed1fa22d",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -5734,8 +5734,8 @@
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9ff4ea6d72b2ffbbd56be344342093efc823d788",
-      "sha256": "sha256:e131cae459b68a5ba2d3a4cee0bd5eaec8a03094a9887acbc2b9cc1996886022"
+      "git_blob": "c137a14a1f33c8d720049772de544a8f22450bd1",
+      "sha256": "sha256:13bb60fc56075ce5ebed34652c78e2dba3fde4cece0f91e9e306b053020e722d"
     },
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
@@ -5846,5 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:65530888802830bf957a60029de73d7797d53589e92833406f252c16c07d3633"
+  "manifest_sha256": "sha256:961ee59df55b7fcd397355739db062c04ff8cdf187c0adea8e977c1643322f71"
 }
