@@ -25,6 +25,7 @@ assert(policy.completion_gate.producer_health_sentinel_success_required === true
 
 export function validateWorkContinuityPolicy(candidate) {
   const required = {
+  "development_branch_resume_contract": "coordination/kidults/governance/resume-contract-v1.json#development_branch_resume",
   "durable_checkpoint_required": true,
   "original_session_provenance_preserved": true,
   "root_incident_and_completion_owner_must_match": true,

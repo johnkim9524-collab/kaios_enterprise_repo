@@ -4,6 +4,7 @@ const SHA_RE = /^[0-9a-f]{40}$/;
 const NONCE_RE = /^[A-Za-z0-9_-]{32,128}$/;
 const SLOT_RE = /^(POOLING|P0B|RESERVE|SENTINEL|ASSURANCE)$/;
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
+const MAX_QUEUE_DELAY_MS = 2100 * 1000;
 
 export class NaturalClockError extends Error {
   constructor(code) {
@@ -41,10 +42,18 @@ export function canonicalNaturalClockPayload(payload) {
   };
 }
 
-export function verifyNaturalClockDispatch({payload, liveMainSha, now = Date.now(), seenDispatchIds = new Set()}) {
+export function verifyNaturalClockDispatch({payload, liveMainSha, now = Date.now(), seenDispatchIds = new Set(), authenticatedRunCreatedAt}) {
   const canonical = canonicalNaturalClockPayload(payload);
   if (!SHA_RE.test(liveMainSha) || canonical.exact_main_sha !== liveMainSha) fail('NATURAL_CLOCK_EXACT_MAIN_MISMATCH');
-  const age = now - Date.parse(canonical.issued_at);
+  // The issuer must be fresh at GitHub admission; a bounded runner queue is not clock skew.
+  let admission = now;
+  if (authenticatedRunCreatedAt !== undefined) {
+    admission = Date.parse(authenticatedRunCreatedAt);
+    if (!Number.isFinite(admission) || now < admission || now - admission > MAX_QUEUE_DELAY_MS) {
+      fail('NATURAL_CLOCK_QUEUE_DELAY_INVALID');
+    }
+  }
+  const age = admission - Date.parse(canonical.issued_at);
   if (age < -MAX_CLOCK_SKEW_MS || age > MAX_CLOCK_SKEW_MS) fail('NATURAL_CLOCK_OUTSIDE_ACCEPTANCE_WINDOW');
   if (seenDispatchIds.has(canonical.dispatch_id)) fail('NATURAL_CLOCK_REPLAY');
   return {

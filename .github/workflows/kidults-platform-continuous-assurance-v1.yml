@@ -1211,12 +1211,19 @@ jobs:
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
 
       - name: Emit safe remediation packet
+        # Full audit cannot be green while its downstream readiness proof is incomplete.
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-
           node scripts/kidults/kpmo/plan-safe-remediation-v1.mjs
           --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
           --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json"
+
+      - name: Require actual full-audit runtime readiness before reporting audit success
+        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
+        run: >-
+          node scripts/kidults/kpmo/validate-assurance-runtime-readiness-v1.mjs
+          "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
 
       - name: Upload exact-run assurance packet
         if: always()

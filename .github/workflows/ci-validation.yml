@@ -115,6 +115,10 @@ jobs:
           node scripts/governance/validate-ai-agent-github-bootstrap-v1.mjs \
             > /tmp/kpmo-ci-agent-bootstrap-static-validation-v1.json
           node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs --self-test-event-sha-binding
+          node --test tests/governance/bootstrap-workflow-run-consumption-v1.test.mjs
+          node --test tests/governance/development-branch-resume-v1.test.mjs
+          node --test tests/kidults/kpmo/natural-clock-dispatch-v1.test.mjs tests/kidults/kpmo/natural-clock-intake-v1.test.mjs
+          node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/whole-platform-collector-v1.test.mjs
 
       - name: Reject unbounded GitHub Actions API access
         run: |
