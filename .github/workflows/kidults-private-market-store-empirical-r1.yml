@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs'
+      - 'tests/kidults/kpmo/private-market-store-isolation-v1.test.mjs'
       - 'coordination/kidults/source-intelligence/private-market-store-empirical-r1.json'
       - '.github/workflows/kidults-private-market-store-empirical-r1.yml'
       - 'coordination/kidults/source-intelligence/private-market-evidence-reacquisition-r1.json'
@@ -17,7 +18,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: {node-version: '22.23.2'}
       - name: Prove private-store mechanics with synthetic sentinel only
-        run: node scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs /tmp/kidults-private-market-store-r1 | tee /tmp/private-store-result.json
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/kpmo/private-market-store-isolation-v1.test.mjs
+          node scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs "$RUNNER_TEMP" | tee /tmp/private-store-result.json
       - name: Enforce no provider/market overclaim
         run: |
           node - <<'NODE'
