@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "6dbc788bb2aa70c5afc08331c016c8ad5124623f",
+  "revision": "07c5f78ff74a10a6abdb6ee5b7629136b956ced3",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 743
+    "file_count": 744
   },
   "files": [
     {
@@ -561,8 +561,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b4eec647bbbd06f64a444c042f328a94b0218b8b",
-      "sha256": "sha256:bd8a86cfb1e590405443bb821916453a1f3144ecf51cd5ec5db0e3ed1f214bfd",
+      "git_blob": "cb42812f7aae27f0ae668f83a1e8a4d9d001c825",
+      "sha256": "sha256:e584b9e424128caf04d57e7dff5df99cc8b63ca8cc39d6fa7764ea61c9db98a0",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1860,6 +1860,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "955e53392cd288574e6f55e8871b77923f4308e8",
       "sha256": "sha256:9dacebd65f302461482e1d3809004be4bea0dbc07f7b079dfbf0401541dc9b91",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/autonomy-holistic-remediation-checkpoint-20261008-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "c3778250846f6b38b34ecd3b9cb6a89a78e7bc6c",
+      "sha256": "sha256:115f5f0eefaaa35a2a195f7e9a6fa68b86d6d66eeecfdabe6c2d9d052e7a18eb",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6040,5 +6053,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9f2386a60b454016898944bc985781cfdc7367707b090a1769d007652d31ae43"
+  "manifest_sha256": "sha256:15fe7e2f0472ecf926c704d344775d2ea40a2622f95229bf1d155d048eef4a23"
 }
