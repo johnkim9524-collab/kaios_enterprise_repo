@@ -2,12 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {validateOwnerRecoveryBootstrapResume} from '../../scripts/governance/lib/owner-recovery-bootstrap-resume-v1.mjs';
+import {EXPLICIT_EXECUTION_CONTROLS,routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/resume-contract-v1.json'));
 const good={policy,purpose:'RESUME_LEDGER_BOOTSTRAP',repository:'owner/repo',actor:'owner',executionRef:'refs/heads/main',
   runId:123,runAttempt:1,handoffWindowSeconds:600,
   approval:{actor:'owner',comment_id:20,comment_body_sha256:'sha256:'+'a'.repeat(64)},
   ready:{actor:'owner',direct_repository_owner:true,performed_via_github_app:null,synthetic_lifecycle_boundary:false},
   oneUse:{matching_run_count:1,matching_run_id:123,matching_run_attempt:1,bounded_attempt_ordinal:1,prior_non_success_attempt_count:0}};
+test('protected lifecycle libraries remain inventoried write controls',()=>{
+  for(const name of ['resume','readback','executor']) {
+    const path=`scripts/kidults/staging-operations/lib/github-lifecycle-${name}-v1.mjs`;
+    assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(path));
+    assert.equal(routeAuthorizationControl(path,fs.readFileSync(path,'utf8')).route,'STAGING_BOUNDED');
+  }
+});
 test('native exact Owner one-use recovery does not prove external ledger or normal operations',()=>{
   const result=validateOwnerRecoveryBootstrapResume(good);assert.equal(result.external_ledger_proven,false);assert.equal(result.normal_operations_proven,false);
 });

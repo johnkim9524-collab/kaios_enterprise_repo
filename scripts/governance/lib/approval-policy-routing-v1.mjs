@@ -3,6 +3,9 @@ export const CANONICAL_ENVELOPE_ID="kidults-autonomous-approval-policy-envelope-
 export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
   "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
+  "scripts/kidults/staging-operations/lib/github-lifecycle-resume-v1.mjs",
+  "scripts/kidults/staging-operations/lib/github-lifecycle-readback-v1.mjs",
+  "scripts/kidults/staging-operations/lib/github-lifecycle-executor-v1.mjs",
 ]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
@@ -26,6 +29,9 @@ export const routeAuthorizationControl = (file, source) => {
   };
   if (/^infrastructure\/aws\/staging\//.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
   if (/^(tests\/|docs\/)|\.(md|json)$/.test(file)) return {route:"NON_EXECUTING_REFERENCE",coverage:{mode:"EXEMPTION",reason_code:"NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"}};
+  // These libraries compose actual protected writes; /lib/ does not make
+  // them non-mutating validators. Keep activation fail-closed and inventoried.
+  if (/^scripts\/kidults\/staging-operations\/lib\/github-lifecycle-(resume|readback|executor)-v1\.mjs$/.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
   if (/validate-|\/lib\//.test(file)) return {route:"DOMAIN_ADJUDICATION",coverage:{mode:"EXEMPTION",reason_code:"NON_MUTATING_VALIDATOR_OR_LIBRARY"}};
   if (/(production-release|direct-owner|emergency|legal-commercial|provider-contact|credential|atomic-governed-landing|governed-landing-authorization)/i.test(file)) return {route:"OWNER_RESERVED",coverage:{mode:"EXEMPTION",reason_code:"EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"}};
   if (/(staging|shadow|postgres|object-lock|cloudtrail)/i.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
