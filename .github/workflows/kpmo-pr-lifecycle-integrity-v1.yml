@@ -117,7 +117,8 @@ jobs:
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           RECEIPT_PATH: /tmp/kpmo-pr-lifecycle/receipt.json
           LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS: '60'
-          LIFECYCLE_CONVERGENCE_DELAY_MS: '3000'\n          LIFECYCLE_EVENT_UPDATED_AT: ${{ github.event.pull_request.updated_at }}
+          LIFECYCLE_CONVERGENCE_DELAY_MS: '3000'
+          LIFECYCLE_EVENT_UPDATED_AT: ${{ github.event.pull_request.updated_at }}
         run: node scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs
 
       - name: Persist fail-closed receipt if evaluator did not write one
