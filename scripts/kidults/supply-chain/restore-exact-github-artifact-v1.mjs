@@ -137,6 +137,7 @@ function parseArguments(argv) {
     archivePath: single.get('archive'),
     extractDir: single.get('extract-dir'),
     receiptPath: single.get('receipt'),
+    expectedSourceSha: single.get('expected-source-sha') || null,
     requiredBasenames: multiple.get('required-basename'),
     allowedEvents: multiple.get('allowed-event').length
       ? multiple.get('allowed-event')
@@ -165,6 +166,9 @@ function validateSpecification(specification) {
     fail('WORKFLOW_PATH_INVALID', specification.workflowPath);
   }
   if (!specification.workflowName.trim()) fail('WORKFLOW_NAME_INVALID');
+  if (specification.expectedSourceSha != null && !SHA_PATTERN.test(specification.expectedSourceSha)) {
+    fail('EXPECTED_SOURCE_SHA_INVALID', specification.expectedSourceSha);
+  }
   if (!/^[A-Za-z0-9_.-]+$/.test(specification.artifactName)) fail('ARTIFACT_NAME_INVALID');
   if (!/^[A-Za-z0-9._\/-]+$/.test(specification.branch)) fail('BRANCH_INVALID');
   if (new Set(specification.requiredBasenames).size !== specification.requiredBasenames.length) {
@@ -228,6 +232,8 @@ export function selectAllowedProducerRuns(rows, specification, repository) {
   return rows
     .filter((run) => specification.allowedEvents.includes(run?.event))
     .map((run) => validateProducerRun(run, specification, repository))
+    .filter((run) => specification.expectedSourceSha == null
+      || run.head_sha === specification.expectedSourceSha)
     .sort((left, right) => {
       const byCreated = Date.parse(right.created_at) - Date.parse(left.created_at);
       return byCreated || right.id - left.id;
@@ -409,6 +415,36 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
   const runs = selectAllowedProducerRuns(runReadback.rows, specification, repository);
 
   if (!runs.length) {
+    if (specification.expectedSourceSha != null) {
+      if (!specification.allowNoProducerHistory) fail('NO_EXACT_SOURCE_SHA_PRODUCER_HISTORY');
+      const baselineArchivePath = path.resolve(specification.archivePath);
+      const baselineExtractDir = path.resolve(specification.extractDir);
+      fs.rmSync(baselineArchivePath, { force: true });
+      fs.rmSync(`${baselineArchivePath}.safe-zip-receipt.json`, { force: true });
+      fs.rmSync(baselineExtractDir, { recursive: true, force: true });
+      fs.mkdirSync(baselineExtractDir, { recursive: true });
+      return writeReceipt(specification.receiptPath, {
+        id: 'kidults-exact-github-artifact-restore-receipt-v1',
+        version: '1.0.0',
+        state: 'NO_EXACT_SOURCE_SHA_PRODUCER_HISTORY_BASELINE_ONLY',
+        repository,
+        producer_workflow_name: specification.workflowName,
+        producer_workflow_path: specification.workflowPath,
+        producer_branch: specification.branch,
+        artifact_name: specification.artifactName,
+        expected_source_sha: specification.expectedSourceSha,
+        lookback_start: lookbackStart,
+        run_total_count: runReadback.totalCount,
+        run_pages_fetched: runReadback.pagesFetched,
+        exact_source_sha_match_count: 0,
+        pagination_reconciled_complete: true,
+        historical_producer_artifact_consumed: false,
+        exact_source_generation_required: true,
+        public_release: 'HOLD',
+        production: 'HOLD',
+        g5: 'HOLD',
+      });
+    }
     if (runReadback.totalCount > 0) fail('NO_ALLOWED_PRODUCER_HISTORY', runReadback.totalCount);
     if (!specification.allowNoProducerHistory) fail('NO_PRODUCER_HISTORY');
     let allHistoryTotal = 0;
@@ -450,6 +486,7 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
       producer_workflow_path: specification.workflowPath,
       producer_branch: specification.branch,
       artifact_name: specification.artifactName,
+      expected_source_sha: specification.expectedSourceSha,
       lookback_start: lookbackStart,
       run_total_count: 0,
       run_pages_fetched: runReadback.pagesFetched,
@@ -503,8 +540,11 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
       producer_workflow_path: specification.workflowPath,
       producer_branch: specification.branch,
       artifact_name: specification.artifactName,
+      expected_source_sha: specification.expectedSourceSha,
       lookback_start: lookbackStart,
       successful_producer_run_count: runs.length,
+      exact_source_sha_match_count: specification.expectedSourceSha == null ? null : runs.length,
+      exact_source_generation_required: specification.expectedSourceSha != null,
       run_total_count: runReadback.totalCount,
       run_pages_fetched: runReadback.pagesFetched,
       pagination_reconciled_complete: true,
@@ -594,6 +634,10 @@ export async function restoreExactArtifact(specification, dependencies = {}) {
     producer_run_id: exactRun.id,
     producer_run_attempt: exactRun.run_attempt,
     producer_source_sha: exactRun.head_sha,
+    expected_source_sha: specification.expectedSourceSha,
+    exact_source_generation_required: specification.expectedSourceSha != null,
+    exact_source_generation_bound: specification.expectedSourceSha == null
+      || exactRun.head_sha === specification.expectedSourceSha,
     producer_status: exactRun.status,
     producer_conclusion: exactRun.conclusion,
     artifact_name: exactArtifact.name,

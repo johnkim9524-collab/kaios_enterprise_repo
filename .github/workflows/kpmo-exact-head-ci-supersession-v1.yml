@@ -247,6 +247,11 @@ jobs:
 
                 cat /tmp/cancel-response.json
                 if [[ -f /tmp/force-cancel-response.json ]]; then cat /tmp/force-cancel-response.json; fi
+                cancel_message="$(jq -r '.message // ""' /tmp/cancel-response.json 2>/dev/null || true)"
+                force_message="$(jq -r '.message // ""' /tmp/force-cancel-response.json 2>/dev/null || true)"
+                if [[ "${code}" == "409" && "${force_code:-}" == "409" && "${cancel_message}" == *"not been queued yet"* && "${force_message}" == *"not been queued yet"* ]]; then
+                  echo "::error title=GitHub pre-queue cancellation race::GITHUB_PREQUEUE_CANCELLATION_RACE:run=${run_id}:reported_status=${latest_status}:normal_code=${code}:force_code=${force_code}" >&2
+                fi
                 echo "Cancellation not terminally confirmed for run ${run_id} status=${latest_status} conclusion=${latest_conclusion} normal_code=${code} force_code=${force_code:-NOT_ATTEMPTED}" >&2
                 exit 1
               else
