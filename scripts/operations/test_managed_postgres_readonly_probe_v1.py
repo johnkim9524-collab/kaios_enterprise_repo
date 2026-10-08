@@ -12,6 +12,8 @@ class ManagedProbeTests(unittest.TestCase):
     def call(self, run, **extra):
         env = {'KAIOS_ENVIRONMENT': 'staging', 'KAIOS_PRODUCTION_PROMOTION_AUTHORIZED': 'false',
                'KAIOS_POSTGRES_DSN': "host='secret-host' password='secret-password'",
+               'KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND':'true', 'PGSERVICE':'kaios-staging',
+               'PGSERVICEFILE':'/private/pg_service.conf', 'PGPASSFILE':'/private/pgpass',
                'PGPASSWORD': 'inherited-secret', 'PGOPTIONS': 'unsafe'}
         env.update(extra)
         return m.probe(run=run, env=env)
@@ -20,6 +22,9 @@ class ManagedProbeTests(unittest.TestCase):
         def run(args, **kw):
             self.assertNotIn('secret', str(args))
             self.assertNotIn('PGPASSWORD', kw['env'])
+            self.assertNotIn('PGDATABASE', kw['env'])
+            self.assertEqual(kw['env']['PGSERVICE'],'kaios-staging')
+            self.assertEqual(kw['env']['PGPASSFILE'],'/private/pgpass')
             self.assertNotIn('KAIOS_POSTGRES_DSN', kw['env'])
             self.assertIn('BEGIN READ ONLY', args[-1])
             self.assertIn('ROLLBACK', args[-1])
@@ -55,7 +60,7 @@ class ManagedProbeTests(unittest.TestCase):
         self.assertNotIn('secret', str(r))
 
     def test_wrong_environment_or_missing_dsn_never_connects(self):
-        for change in [{'KAIOS_ENVIRONMENT':'production'}, {'KAIOS_PRODUCTION_PROMOTION_AUTHORIZED':'true'}, {'KAIOS_POSTGRES_DSN':''}]:
+        for change in [{'KAIOS_ENVIRONMENT':'production'}, {'KAIOS_PRODUCTION_PROMOTION_AUTHORIZED':'true'}, {'KAIOS_POSTGRES_DSN':''}, {'KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND':'false'}, {'PGSERVICE':'other'}]:
             r = self.call(lambda *a, **kw: self.fail('connection attempted'), **change)
             self.assertEqual(r['state'], 'CONFIGURATION_REJECTED')
 

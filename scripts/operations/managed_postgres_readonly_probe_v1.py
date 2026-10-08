@@ -23,11 +23,14 @@ def probe(run=subprocess.run, env=None):
     }
     if (env.get('KAIOS_ENVIRONMENT') != 'staging'
             or env.get('KAIOS_PRODUCTION_PROMOTION_AUTHORIZED') != 'false'
-            or not env.get('KAIOS_POSTGRES_DSN')):
+            or not env.get('KAIOS_POSTGRES_DSN')
+            or env.get('KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND') != 'true'
+            or env.get('PGSERVICE') != 'kaios-staging'
+            or not env.get('PGSERVICEFILE') or not env.get('PGPASSFILE')):
         return report
     child_env = {k: v for k, v in env.items() if not k.startswith('PG') and k != 'KAIOS_POSTGRES_DSN'}
-    child_env.update(PGDATABASE=env['KAIOS_POSTGRES_DSN'], PGCONNECT_TIMEOUT='5',
-                     PGPASSFILE='/dev/null', PGSERVICEFILE='/dev/null',
+    child_env.update(PGSERVICE='kaios-staging', PGSERVICEFILE=env['PGSERVICEFILE'],
+                     PGPASSFILE=env['PGPASSFILE'], PGCONNECT_TIMEOUT='5',
                      PGOPTIONS='-c default_transaction_read_only=on -c statement_timeout=5000')
     try:
         result = run(['psql', '--no-psqlrc', '--no-password', '--quiet', '--tuples-only',

@@ -952,7 +952,34 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
     fake_bin = tmp_path / "bin"
     fake_bin.mkdir()
     _write_executable(fake_bin / "ssh", FAKE_SSH_TUNNEL)
-    _write_executable(fake_bin / "psql", "#!/usr/bin/env bash\nexit 0\n")
+    _write_executable(fake_bin / "psql", textwrap.dedent('''\
+        #!/usr/bin/env python3
+        import configparser, os, stat, sys
+        from pathlib import Path
+        assert 'PGDATABASE' not in os.environ
+        assert 'PGPASSWORD' not in os.environ
+        assert os.environ['PGSERVICE']=='kaios-staging'
+        assert os.environ['KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND']=='true'
+        service=Path(os.environ['PGSERVICEFILE'])
+        password_file=Path(os.environ['PGPASSFILE'])
+        assert stat.S_IMODE(service.stat().st_mode)==0o600
+        assert stat.S_IMODE(password_file.stat().st_mode)==0o600
+        config=configparser.ConfigParser(interpolation=None)
+        config.read(service)
+        values=config['kaios-staging']
+        assert values['host']=='source.db.ondigitalocean.com'
+        assert values['hostaddr']=='127.0.0.1'
+        assert values['port']!='25060'
+        assert values['dbname']=='kaios'
+        assert values['user']=='source-user'
+        assert values['sslmode']=='verify-full'
+        assert values['connect_timeout']=='10'
+        assert 'password' not in values
+        assert password_file.read_text()=='source.db.ondigitalocean.com:'+values['port']+':kaios:source-user:source-password\\n'
+        assert '--no-password' in sys.argv
+        assert 'source-password' not in str(sys.argv)
+        print('1')
+        '''))
 
     verifier = tmp_path / "non-executable-verifier.sh"
     verifier.write_text(
@@ -1007,6 +1034,10 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
         }
     )
 
+    environment.update({'PGDATABASE':'host=wrong dbname=wrong', 'PGHOST':'wrong',
+                        'PGPASSWORD':'inherited-private-password', 'PGSSLMODE':'disable',
+                        'PGSERVICE':'wrong', 'PGSERVICEFILE':'/untrusted/service'})
+
     result = subprocess.run(
         ["bash", str(TUNNEL_HELPER), "source"],
         cwd=ROOT,
@@ -1051,6 +1082,18 @@ def test_tunnel_helper_rewrites_dsn_without_leaking_and_cleans_up(tmp_path: Path
         (
             "postgresql://u:p@source.db.ondigitalocean.com:25060/kaios",
             "must require TLS",
+        ),
+        (
+            "postgresql://u%0Ahost%3Devil:p@source.db.ondigitalocean.com:25060/kaios?sslmode=require",
+            "unsupported control characters",
+        ),
+        (
+            "postgresql://u:p%0Ainjected@source.db.ondigitalocean.com:25060/kaios?sslmode=require",
+            "unsupported control characters",
+        ),
+        (
+            "postgresql://u:p@source.db.ondigitalocean.com:25060/kaios%0Ahost%3Devil?sslmode=require",
+            "unsupported control characters",
         ),
     ],
 )
