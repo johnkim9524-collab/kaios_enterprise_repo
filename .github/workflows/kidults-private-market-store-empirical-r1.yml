@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs'
+      - 'scripts/kidults/source-intelligence/lib/verify-private-acquisition-receipt-v1.mjs'
+      - 'tests/kidults/kpmo/private-acquisition-receipt-v1.test.mjs'
       - 'tests/kidults/kpmo/private-market-store-isolation-v1.test.mjs'
       - 'coordination/kidults/source-intelligence/private-market-store-empirical-r1.json'
       - '.github/workflows/kidults-private-market-store-empirical-r1.yml'
@@ -21,6 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           node --test tests/kidults/kpmo/private-market-store-isolation-v1.test.mjs
+          node --test tests/kidults/kpmo/private-acquisition-receipt-v1.test.mjs
           node scripts/kidults/source-intelligence/prove-private-market-store-r1.mjs "$RUNNER_TEMP" | tee /tmp/private-store-result.json
       - name: Enforce no provider/market overclaim
         run: |
