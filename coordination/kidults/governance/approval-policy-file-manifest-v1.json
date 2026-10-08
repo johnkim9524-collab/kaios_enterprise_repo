@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "a1733930c2a0c1385d5188bfb3979d09d06f0b12",
+  "revision": "25877e939040fa57092ac98a81f58c728e05c2d9",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1858,8 +1858,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomy-additional-defect-remediation-20261008-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f08f2a5c4ae369f2f42b5d0402536548f5455ae9",
-      "sha256": "sha256:f603393c128f48d7e8ca821d1ba28d5b0a633281e97ae19c1d7d9065e1421caf",
+      "git_blob": "59410890f424a33a698ab1bd4f44b3a6827d18b2",
+      "sha256": "sha256:3a1fc4a7cee578b73260795ea609c421eea261b709d0a8ded8f421dddad91200",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6008,5 +6008,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:82aeca1d62fa24a109b1bd4804d5e9608f2cfc2561dc99e38dce63740a672f85"
+  "manifest_sha256": "sha256:22cae9128fd843f036b973bdd07290deafa4e85c0009077f34086f5e950a1c1a"
 }
