@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
+import {sentinelOrderBarrierBudget, withinSentinelObservationWindow} from './lib/sentinel-order-barrier-budget-v1.mjs';
 
 const REPOSITORY = process.env.GITHUB_REPOSITORY || '';
 const SOURCE_SHA = process.env.KPMO_SOURCE_SHA || process.env.GITHUB_SHA || '';
@@ -25,9 +26,7 @@ const stable = value => Array.isArray(value)
 const digest = value => `sha256:${crypto.createHash('sha256').update(value).digest('hex')}`;
 const outputPath = process.env.KPMO_SENTINEL_BARRIER_OUTPUT ||
   path.join(process.env.RUNNER_TEMP || '/tmp', 'kpmo-sentinel-barrier.json');
-const timeoutSeconds = Math.min(Math.max(Number(process.env.KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS || 900), 60), 1800);
-const pollSeconds = Math.min(Math.max(Number(process.env.KPMO_SENTINEL_BARRIER_POLL_SECONDS || 10), 2), 60);
-const cutoffWindowSeconds = 1800;
+const {timeoutSeconds, pollSeconds, cutoffWindowSeconds} = sentinelOrderBarrierBudget(process.env);
 
 function writeReceipt(body) {
   fs.mkdirSync(path.dirname(outputPath), {recursive: true});
@@ -118,9 +117,7 @@ function candidatesFrom(runs, cutoffMs) {
     run?.event === sentinelEvent &&
     positive(run?.id) &&
     run?.run_attempt === 1 &&
-    Number.isFinite(Date.parse(run?.created_at || '')) &&
-    Date.parse(run.created_at) <= cutoffMs &&
-    Date.parse(run.created_at) >= cutoffMs - cutoffWindowSeconds * 1000
+    withinSentinelObservationWindow(Date.parse(run?.created_at || ''), cutoffMs, cutoffWindowSeconds)
   ).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
 }
 async function observe(run) {
