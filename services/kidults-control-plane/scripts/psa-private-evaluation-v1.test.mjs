@@ -69,3 +69,14 @@ test('expired PSA deletion fails closed when store cannot verify deletion', asyn
   privateStore.delete = async input => { privateStore.calls.push(['delete', input]); return { deletion_verified: false, raw_payload_retained: false }; };
   await assert.rejects(() => deleteExpiredPsaEvaluations({ privateStore, now: '2026-09-26T00:00:00Z' }), /DELETION_RECEIPT_NOT_VERIFIED/);
 });
+
+for (const admission of [undefined, {}, {state:'FAILED'}, {state:'COMMITTED'}, {state:'COMMITTED',commandId:' '}]) {
+  test(`evaluation rejects incomplete normalized admission ${JSON.stringify(admission)}`, async () => {
+    const privateStore=store();
+    await assert.rejects(() => stagePsaPrivateEvaluation({
+      rawPayload:{cert:{number:syntheticCert,grade:'10'}},certReferenceDigest:hash('c'),
+      rightsReceipt:rights,fieldMap,privateStore,acquiredAt:'2026-08-27T00:00:00Z',
+      admitNormalized:async()=>admission,
+    }), /PSA_NORMALIZED_ADMISSION_NOT_COMMITTED/);
+  });
+}

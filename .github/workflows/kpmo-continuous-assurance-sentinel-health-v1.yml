@@ -299,8 +299,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # Compatibility markers keep the bounded 900-second/spec-index contract visible to existing policy tests.
-          # Contract markers: SECONDS + 900; for (const spec of SPECS); SPECS, workflowRuns.
+          # Compatibility markers keep the bounded 2100-second/spec-index contract visible to existing policy tests.
+          # Contract markers: SECONDS + 2100; for (const spec of SPECS); SPECS, workflowRuns.
           # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
           node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
       - name: Resolve latest applicable exact-SHA producer health

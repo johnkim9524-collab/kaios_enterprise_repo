@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_RESUME_CONTRACT_V1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "mandatory": true,
   "applies_at": [
     "EVERY_WORK_EXECUTION_START",
@@ -48,6 +48,18 @@
     "unknown_outcome": "RECONCILE_REMOTE_STATE_BEFORE_RETRY",
     "no_provider_idempotency": "RECONCILE_THEN_RECORD_INTENT_UNDER_EXCLUSIVE_FENCE_AMBIGUITY_FAILS_CLOSED",
     "atomic_cross_system_exactly_once_claimed": false
+  },
+  "development_branch_resume": {
+    "scope": "EXPLICITLY_AUTHORIZED_REVERSIBLE_DEVELOPMENT_BRANCH_CODE_OR_POLICY_CORRECTION",
+    "protected_operation_ledger_required": false,
+    "fresh_exact_head_bootstrap_required": true,
+    "live_head_reconciliation_required": true,
+    "exact_parent_and_payload_digest_required": true,
+    "expected_head_non_forced_update_required": true,
+    "durable_change_record": "GIT_COMMIT_HISTORY",
+    "ambiguous_or_rejected_write": "RECONCILE_NO_BLIND_RETRY",
+    "main_write_merge_approval_dispatch_deploy_generation_reservation_promotion_allowed": false,
+    "grants_new_authority": false
   },
   "prohibited_duplicates": [
     "PUSH",

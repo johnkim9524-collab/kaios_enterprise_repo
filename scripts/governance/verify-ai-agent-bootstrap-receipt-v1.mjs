@@ -819,6 +819,10 @@ const currentGithubEventContextBinding = (workingSha) => {
   } else if (eventName === 'push') {
     trustedSha = payload?.after ?? null;
     source = 'push.after';
+  } else if (eventName === 'workflow_run') {
+    // Match the producer's exact triggering-run checkout, not the default branch.
+    trustedSha = payload?.workflow_run?.head_sha ?? null;
+    source = 'workflow_run.head_sha';
   } else {
     trustedSha = process.env.GITHUB_SHA ?? null;
   }

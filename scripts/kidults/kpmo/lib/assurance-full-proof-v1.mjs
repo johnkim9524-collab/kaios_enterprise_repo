@@ -3,13 +3,29 @@ import path from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 
-const fail=(code)=>{throw new Error(`ASSURANCE_FULL_PROOF_${code}`);};
+const fail=(code,detail='')=>{throw new Error(`ASSURANCE_FULL_PROOF_${code}${detail?`:${detail}`:''}`);};
 const isId=value=>Number.isSafeInteger(Number(value))&&Number(value)>0;
 const verifyDigest=(value,excluded=[])=>{
   if(!value||typeof value!=='object'||Array.isArray(value))return false;
   const body=Object.fromEntries(Object.entries(value).filter(([key])=>!excluded.includes(key)));
   return value.receipt_digest===sha256(canonicalJson(body));
 };
+
+export function verifyAssuranceRuntimeReadiness(proof, sourceSha) {
+  if(proof?.id!=='kidults-whole-platform-operating-proof-v1'||proof?.source_sha!==sourceSha
+    ||proof?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
+    ||proof?.assurance_runtime_readiness_proven!==true
+    ||proof?.assurance_runtime_readiness?.state!=='VERIFIED_PASS'
+    ||proof?.assurance_runtime_readiness?.verified_domain_count!==14
+    ||proof?.assurance_runtime_readiness?.required_domain_count!==14
+    ||!verifyDigest(proof,['receipt_digest']))fail('RUNTIME_READINESS_RECEIPT',
+      `verified=${proof?.assurance_runtime_readiness?.verified_domain_count??'missing'},required=${proof?.assurance_runtime_readiness?.required_domain_count??'missing'},registered=${proof?.runtime_domain_registry?.registered_domain_count??'missing'}`);
+  if(!Array.isArray(proof.value_chain)||proof.value_chain.length!==14
+    ||new Set(proof.value_chain.map(x=>x.id)).size!==14
+    ||proof.value_chain.some(x=>x.runtime_state!=='VERIFIED_PASS'
+      ||!/^sha256:[a-f0-9]{64}$/.test(x.runtime_receipt_digest||'')))fail('RUNTIME_DOMAIN_SET');
+  return {state:'VERIFIED_PASS', verified_domain_count:14};
+}
 
 export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sourceSha,sentinel,archivePacket,archiveReceipt,assuranceArtifact}){
   const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
@@ -47,17 +63,7 @@ export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sour
     ||String(audit?.execution?.workflow_run_attempt)!==String(assuranceRun.run_attempt)
     ||audit?.states?.internal_control_state!=='VERIFIED_PASS'
     ||!verifyDigest(audit,['receipt_digest','observed_at']))fail('AUDIT_RECEIPT');
-  if(proof?.id!=='kidults-whole-platform-operating-proof-v1'||proof?.source_sha!==sourceSha
-    ||proof?.repository!=='johnkim9524-collab/kaios_enterprise_repo'
-    ||proof?.assurance_runtime_readiness_proven!==true
-    ||proof?.assurance_runtime_readiness?.state!=='VERIFIED_PASS'
-    ||proof?.assurance_runtime_readiness?.verified_domain_count!==14
-    ||proof?.assurance_runtime_readiness?.required_domain_count!==14
-    ||!verifyDigest(proof,['receipt_digest']))fail('RUNTIME_READINESS_RECEIPT');
-  if(!Array.isArray(proof.value_chain)||proof.value_chain.length!==14
-    ||new Set(proof.value_chain.map(x=>x.id)).size!==14
-    ||proof.value_chain.some(x=>x.runtime_state!=='VERIFIED_PASS'
-      ||!/^sha256:[a-f0-9]{64}$/.test(x.runtime_receipt_digest||'')))fail('RUNTIME_DOMAIN_SET');
+  verifyAssuranceRuntimeReadiness(proof, sourceSha);
   if(!isId(sentinel?.run_id)||Number(sentinel?.run_attempt)!==1
     ||!isId(sentinel?.artifact_id)||!/^sha256:[a-f0-9]{64}$/.test(sentinel?.artifact_digest||''))fail('SENTINEL_INPUT');
   const bindings=(proof.protected_evidence||[]).filter(x=>x.workflow_path===sentinelPath

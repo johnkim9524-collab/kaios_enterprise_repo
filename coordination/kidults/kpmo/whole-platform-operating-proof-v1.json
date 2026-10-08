@@ -16,7 +16,10 @@
   ],
   "value_chain_source": "coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json",
   "runtime_domain_registry_required_count": 14,
-  "runtime_domain_sources": [],
+  "runtime_domain_sources": [
+    {"domain_id":"SECURITY_SUPPLY_CHAIN","workflow":"kidults-security-assurance-empirical-r1.yml","artifact_prefix":"kidults-security-runtime-domain"}
+  ],
+  "runtime_evidence_demand_definition": "coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json",
   "value_chain_dimensions": [
     "VALUE_TRACEABILITY", "SOURCE_RIGHTS", "ENTITY_RESOLUTION", "MARKET_EVIDENCE", "ASI_EXECUTION",
     "IMMUTABLE_CANDIDATE", "TRACK_B_VALIDATION", "PROJECTION_TRUTH",

@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {verifyAssuranceReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
+import {verifyAssuranceReadiness,verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
 
 const source='a'.repeat(40),sentinelDigest='sha256:'+'b'.repeat(64);
 const seal=value=>({...value,receipt_digest:sha256(canonicalJson(value))});
@@ -54,4 +55,21 @@ test('rejects an archive validation receipt with a mismatched archive digest',()
   const f=fixture();f.archiveReceipt.archive_digest='sha256:'+'c'.repeat(64);
   f.archiveReceipt=seal(Object.fromEntries(Object.entries(f.archiveReceipt).filter(([k])=>k!=='receipt_digest')));
   assert.throws(()=>verifyAssuranceReadiness(f),/ASSURANCE_FULL_PROOF_ARCHIVE_VALIDATION_RECEIPT/);
+});
+
+test('reports missing registered domains instead of an opaque readiness failure',()=>{
+  const f=fixture();
+  f.proof.assurance_runtime_readiness={state:'VERIFIED_HOLD',verified_domain_count:0,required_domain_count:14};
+  f.proof.assurance_runtime_readiness_proven=false;
+  f.proof.runtime_domain_registry={registered_domain_count:0};
+  assert.throws(()=>verifyAssuranceRuntimeReadiness(f.proof,source),/verified=0,required=14,registered=0/);
+});
+test('full audit distinguishes internal recovery from the unchanged whole-platform runtime predicate',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+  const validation=workflow.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs');
+  const upload=workflow.indexOf('- name: Upload exact-run assurance packet');
+  const preserve=workflow.indexOf('- name: Preserve control result');
+  assert.ok(validation>0&&validation<upload&&upload<preserve);
+  assert.match(workflow,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
+  assert.match(workflow.slice(validation,upload),/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
 });

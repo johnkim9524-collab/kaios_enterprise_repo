@@ -47,3 +47,18 @@ test('accepts Pooling as the governed producer root', () => {
   pooling.dispatch_id = `kidults-natural-clock-v1:POOLING:${sha}:${pooling.nonce}`;
   assert.equal(verifyNaturalClockDispatch({payload:pooling,liveMainSha:sha,now}).slot,'POOLING');
 });
+
+test('a seven-minute authenticated runner queue does not stale a fresh dispatch', () => {
+  assert.equal(verifyNaturalClockDispatch({payload, liveMainSha: sha, now: now + 7 * 60000,
+    authenticatedRunCreatedAt: new Date(now).toISOString()}).state, 'VERIFIED_PASS');
+});
+test('authenticated admission does not admit a dispatch already stale when GitHub received it', () => {
+  assert.throws(() => verifyNaturalClockDispatch({payload, liveMainSha: sha, now: now + 15 * 60000,
+    authenticatedRunCreatedAt: new Date(now + 6 * 60000).toISOString()}), /OUTSIDE_ACCEPTANCE_WINDOW/);
+});
+test('queue delay remains bounded and cannot be future or malformed', () => {
+  for (const admission of [new Date(now - 2100001).toISOString(), new Date(now + 1).toISOString(), 'bad']) {
+    assert.throws(() => verifyNaturalClockDispatch({payload, liveMainSha: sha, now,
+      authenticatedRunCreatedAt: admission}), /QUEUE_DELAY_INVALID/);
+  }
+});

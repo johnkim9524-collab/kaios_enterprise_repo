@@ -122,7 +122,7 @@ test('Sentinel triggers only on the final Requirement edge and waits for the exa
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
- assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*900/);
+ assert.match(waiter,/DEFAULT_MAX_WAIT_SECONDS\s*=\s*2100/);
  assert.ok(waiter.includes('SPECS, workflowRuns'));
 });
 

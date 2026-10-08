@@ -27,7 +27,11 @@ if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value):
 datetime.datetime.fromisoformat(value[:-1] + '+00:00')
 PY
 
-export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
+if [[ "${KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND:-false}" == true ]]; then
+  unset PGDATABASE
+else
+  export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
+fi
 
 probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
