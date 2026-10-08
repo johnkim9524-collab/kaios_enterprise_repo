@@ -1,8 +1,8 @@
 {
   "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "agent_id": "atlas-autonomy-remediation",
-  "as_of": "2026-10-08T10:50:08Z",
+  "as_of": "2026-10-08T11:35:37.765690Z",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "12 holistic findings and subsequent bounded PSA validation",
@@ -14,7 +14,8 @@
     "Main unchanged at fresh external read",
     "Reuse existing PR #2609; no duplicate PR",
     "Provider-supplied PSA test cert confirmed from authenticated current Gmail thread; no new outreach",
-    "Remote whole-platform completion, PSA live execution and release are not claimed"
+    "Remote whole-platform completion, PSA live execution and release are not claimed",
+    "Existing PSA single-cert connection run 33123384792 is remotely SUCCESS; original artifact is no longer returned, so no fresh artifact authentication is claimed"
   ],
   "items": [
     {
@@ -175,7 +176,9 @@
     "BIND_RED_TEAM_BOOTSTRAP_TO_INDEPENDENT_ROLE",
     "LABEL_HISTORICAL_SCORES_AND_SEPARATE_CURRENT_UNKNOWN",
     "IMPLEMENT_EXPLICIT_CA_DIGEST_BINDING_AND_NEGATIVE_TESTS",
-    "REFRESH_PSA_AND_PITR_COMMUNICATION_EVIDENCE"
+    "REFRESH_PSA_AND_PITR_COMMUNICATION_EVIDENCE",
+    "REJECT_DUPLICATE_REGISTRY_JSON_KEYS_BEFORE_CONSUMPTION",
+    "RECONCILE_HISTORICAL_PSA_CONNECTION_WITH_CURRENT_RUNTIME_HOLD"
   ],
   "blockers": [
     "PROTECTED_OPERATION_LEDGER_ADAPTER_NOT_CALLABLE_FOR_MERGE_DISPATCH_DEPLOY",
@@ -197,7 +200,19 @@
     "canary_is_current_market_evidence": false,
     "canary_is_candidate_track_b_or_projection_authority": false,
     "credential_value_required_in_chat": false,
-    "unblock_condition": "Consume confirmed provider source through existing allowed rights lane and protected credential-bound runner after internal correction verification"
+    "unblock_condition": "Reconcile protected runner, persistent private store/key and deletion scheduler; validate lawful input provenance and existing field map before bounded private acquisition. Reuse historical connection evidence within its scope; any new canary requires exact governed execution binding.",
+    "prior_schema_canary": {
+      "workflow_run_id": 33123384792,
+      "source_sha": "957759043f46c711d18065896cbf438bb3dcf5bd",
+      "remote_run_conclusion": "success",
+      "historical_receipt_http_status": 200,
+      "historical_receipt_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+      "original_artifact_currently_available": false,
+      "fresh_artifact_authenticated": false,
+      "current_business_completion_proven": false
+    },
+    "last_incomplete_stage": "PERSISTENT_PRIVATE_RUNTIME_SECRET_STORE_AND_DELETION_BINDINGS",
+    "connection_probe_repeated_for_status": false
   },
   "next_action": "Verify exact committed correction and machine evidence; advance existing protected lifecycle only after operation-ledger reconciliation; resume each external stage from its authenticated last-incomplete receipt",
   "authority_boundary": {
