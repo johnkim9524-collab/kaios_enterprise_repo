@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 727
+    "file_count": 726
   },
   "files": [
     {
@@ -2569,19 +2569,6 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "bf6ac243f1760a3174356991e093bda4b18d7deb",
       "sha256": "sha256:fe2e206bb7d5f4da2ad32ba6cfd012f468decc62046a506d1d842a92fed3d07f",
-      "authorization_routing": {
-        "route": "NON_EXECUTING_REFERENCE",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
-        }
-      }
-    },
-    {
-      "path": "docs/governance/NATIVE_SECURITY_RUNTIME_PRODUCER_V1.md",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e3d695b9899fd5e1904140c95a94d35fd00f449a",
-      "sha256": "sha256:1e311ae790897462ae67a2f7e2a2cd349cb5b0424caf505613424f0f615b605b",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5846,5 +5833,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3c0692ecb1b2c00a504f2321e8bbefd719607f891019bd7a1b79cc0209418baf"
+  "manifest_sha256": "sha256:39a7ce1c6eeeec8ab8f88f61eaf5ab73061b13b2d84ecdd29663e34559c99201"
 }
