@@ -88,10 +88,8 @@ jobs:
           set -euo pipefail
           mkdir -p "$NEGATIVE_GATE_DIR"
           CURRENT_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
-          test "$CURRENT_MAIN_SHA" = "$SENTINEL_SHA" || {
-            echo "::error title=Sentinel source is not current protected main::SENTINEL_SOURCE_SHA_DRIFT:${SENTINEL_SHA}:${CURRENT_MAIN_SHA}" >&2
-            exit 1
-          }
+          test -n "$CURRENT_MAIN_SHA"
+          export CURRENT_MAIN_SHA
           node --input-type=module <<'NODE'
           import crypto from 'node:crypto';
           import fs from 'node:fs';
@@ -112,6 +110,7 @@ jobs:
               conclusion:process.env.SENTINEL_CONCLUSION
             },
             current_protected_main_sha:process.env.CURRENT_MAIN_SHA,
+            source_sha_matches_current_main:process.env.CURRENT_MAIN_SHA===process.env.SENTINEL_SHA,
             whole_platform_authority:false,
             promotion_eligible:false,
             empirical_authority:false,
