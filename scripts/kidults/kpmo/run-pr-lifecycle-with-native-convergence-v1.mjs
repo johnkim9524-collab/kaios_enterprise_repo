@@ -29,7 +29,12 @@ export function nativeGovernanceConverged(statuses, requiredContexts) {
       && status.state === 'pending'
       && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
       && githubActionsIdentity;
-    return normalReadyControl || isAtomicLandingNativeStatusReady(status);
+    const nonGovernedProtectedMainControl = context === 'KIDULTS Governed Landing Authorization V1'
+      && status.state === 'success'
+      && status.description === 'Ready lifecycle verified; non-governed scope uses protected-main status path'
+      && githubActionsIdentity;
+    return normalReadyControl || nonGovernedProtectedMainControl
+      || isAtomicLandingNativeStatusReady(status);
   });
 }
 
@@ -60,6 +65,18 @@ function runSelfTest() {
   const normalReadyApiShape={...normalReady,creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4'};
   assert(nativeGovernanceConverged([scope, normalReadyApiShape], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_GITHUB_ACTIONS_AVATAR_REJECTED');
+  const nonGovernedProtectedMain = {
+    context: required[1],
+    state: 'success',
+    description: 'Ready lifecycle verified; non-governed scope uses protected-main status path',
+    creator: {login: 'github-actions[bot]'},
+  };
+  assert(nativeGovernanceConverged([scope, nonGovernedProtectedMain], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_PROTECTED_MAIN_REJECTED');
+  assert(!nativeGovernanceConverged([scope, {...nonGovernedProtectedMain, description: 'generic success'}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_DESCRIPTION_REQUIRED');
+  assert(!nativeGovernanceConverged([scope, {...nonGovernedProtectedMain, creator: {login: 'untrusted'}}], required),
+    'LIFECYCLE_CONVERGENCE_SELFTEST_NON_GOVERNED_TRUSTED_CREATOR_REQUIRED');
   assert(!nativeGovernanceConverged([scope, {...normalReady, creator:undefined,avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
     'LIFECYCLE_CONVERGENCE_SELFTEST_UNTRUSTED_AVATAR_ACCEPTED');
   assert(!nativeGovernanceConverged([scope, {...normalReady, creator: {login: 'untrusted'},avatar_url:'https://avatars.githubusercontent.com/in/99999?v=4'}], required),
@@ -99,72 +116,13 @@ async function main() {
   assert(/^[0-9a-f]{40}$/.test(expectedBaseSha || ''),
     'LIFECYCLE_CONVERGENCE_BASE_INVALID');
 
-  const policy = JSON.parse(fs.readFileSync(
-    'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json',
-    'utf8',
-  ));
-  const required = [...new Set(policy.native_required_status_contexts || [])];
-  assert(required.length > 0, 'LIFECYCLE_CONVERGENCE_CONTEXT_SET_EMPTY');
-
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-    'User-Agent': 'kpmo-pr-lifecycle-native-convergence-v1',
-  };
-  const request = async endpoint => {
-    const url = `https://api.github.com/repos/${repository}${endpoint}`;
-    let response = await fetch(
-      url,
-      {headers, redirect: 'error'},
-    );
-    if (response.status === 403) response = await fetch(url, {headers: {'Accept': headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_${response.status}:${endpoint}`);
-    }
-    return payload;
-  };
-
-  const maxAttempts = Number(process.env.LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS
-    || DEFAULT_MAX_ATTEMPTS);
-  const delayMs = Number(process.env.LIFECYCLE_CONVERGENCE_DELAY_MS
-    || DEFAULT_DELAY_MS);
-  assert(Number.isInteger(maxAttempts) && maxAttempts >= 1 && maxAttempts <= 60,
-    'LIFECYCLE_CONVERGENCE_MAX_ATTEMPTS_INVALID');
-  assert(Number.isInteger(delayMs) && delayMs >= 250 && delayMs <= 5000,
-    'LIFECYCLE_CONVERGENCE_DELAY_INVALID');
-
-  let converged = false;
-  let attempts = 0;
-  for (attempts = 1; attempts <= maxAttempts; attempts += 1) {
-    const [pr, main, status] = await Promise.all([
-      request(`/pulls/${prNumber}`),
-      request('/branches/main'),
-      request(`/commits/${expectedHeadSha}/status`),
-    ]);
-    const stableReadyCandidate = pr?.state === 'open'
-      && pr?.merged !== true
-      && pr?.draft === false
-      && pr?.head?.sha === expectedHeadSha
-      && pr?.base?.ref === 'main'
-      && pr?.base?.sha === expectedBaseSha
-      && main?.commit?.sha === expectedBaseSha;
-    if (!stableReadyCandidate) break;
-    const statuses = Array.isArray(status?.statuses) ? status.statuses : [];
-    if (nativeGovernanceConverged(statuses, required)) {
-      converged = true;
-      break;
-    }
-    if (attempts < maxAttempts) await sleep(delayMs);
-  }
-
+  // The validator owns one complete, exact-head snapshot and writes the fail-closed receipt.
+  // A separate polling phase multiplied read requests (up to 180 per PR event) and could
+  // fail before the validator had a chance to persist diagnostic evidence.
   console.log(JSON.stringify({
     id: 'kpmo-pr-lifecycle-native-convergence-receipt-v1',
-    state: converged ? 'CONVERGED' : 'DELEGATE_FAIL_CLOSED_CLASSIFICATION',
-    attempts,
-    max_attempts: maxAttempts,
-    delay_ms: delayMs,
+    state: 'SINGLE_SNAPSHOT_DELEGATED_TO_VALIDATOR',
+    attempts: 0,
     status_write_authority: false,
     status_write_performed: false,
   }));

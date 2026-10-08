@@ -191,5 +191,15 @@
   },
   "production": "HOLD",
   "public": "HOLD",
-  "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  "g5": "EXPLICIT_APPROVAL_REQUIRED",
+  "sentinel_negative_authority_gate": {
+    "workflow": "KPMO Continuous Assurance Success Authority Gate V1",
+    "receipt_id": "kpmo-continuous-assurance-negative-authority-gate-v1",
+    "terminal_state": "VERIFIED_FAIL",
+    "authority_invalidates_prior_success": true,
+    "current_main_sha_binding_required": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
 }

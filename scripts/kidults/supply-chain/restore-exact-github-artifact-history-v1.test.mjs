@@ -8,11 +8,11 @@ const repository='fixture/estate';
 const workflowPath='.github/workflows/autobalance.yml';
 const workflowName='Autobalance';
 const makeRun=(event,ageDays=40)=>({id:17,run_attempt:1,repository:{full_name:repository},name:workflowName,path:workflowPath,head_branch:'main',head_sha:'a'.repeat(40),status:'completed',conclusion:'success',event,created_at:new Date(Date.now()-ageDays*86400000).toISOString()});
-async function scenario({oldLive=false,allowOld=true,allowEmpty=true,badEvent=false,recentInProbe=false,pageMismatch=false,freshLive=false}={}){
+async function scenario({oldLive=false,allowOld=true,allowEmpty=true,badEvent=false,recentInProbe=false,pageMismatch=false,freshLive=false,expectedSourceSha=null}={}){
  const saved=Object.fromEntries(['GITHUB_REPOSITORY','GH_TOKEN','RUNNER_TEMP'].map(key=>[key,process.env[key]]));
  process.env.GITHUB_REPOSITORY=repository;process.env.GH_TOKEN='fixture-only-not-a-credential';process.env.RUNNER_TEMP=os.tmpdir();
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'kpmo-live-history-test-'));
- const spec={workflowPath,workflowName,artifactName:'balance',branch:'main',archivePath:path.join(dir,'archive.zip'),extractDir:path.join(dir,'extract'),receiptPath:path.join(dir,'receipt.json'),requiredBasenames:['balance.json'],allowedEvents:['schedule','workflow_dispatch','push'],maxPages:40,lookbackDays:35,maxCompressedBytes:4194304,allowNoProducerHistory:allowEmpty,allowProducerHistoryOutsideLookbackBaseline:allowOld,allowProducerHistoryWithoutArtifactBaseline:true};
+ const spec={workflowPath,workflowName,artifactName:'balance',branch:'main',archivePath:path.join(dir,'archive.zip'),extractDir:path.join(dir,'extract'),receiptPath:path.join(dir,'receipt.json'),requiredBasenames:['balance.json'],allowedEvents:['schedule','workflow_dispatch','push'],maxPages:40,lookbackDays:35,maxCompressedBytes:4194304,allowNoProducerHistory:allowEmpty,allowProducerHistoryOutsideLookbackBaseline:allowOld,allowProducerHistoryWithoutArtifactBaseline:true,expectedSourceSha};
  const calls=[];
  const fetchImpl=async raw=>{
   const u=new URL(raw);calls.push(u);let body;
@@ -42,3 +42,4 @@ test('API returning a forbidden event remains fail closed',async()=>{await asser
 test('history that appears between live queries and all-history probes remains fail closed',async()=>{await assert.rejects(scenario({recentInProbe:true}),/ALLOWED_HISTORY_LOOKBACK_INCONSISTENT/);});
 test('incomplete pagination remains fail closed',async()=>{await assert.rejects(scenario({pageMismatch:true}),/PAGINATION_INCOMPLETE/);});
 test('fresh permitted producer stays selected and never falls through to absent-history baseline',async()=>{const {receipt}=await scenario({freshLive:true});assert.equal(receipt.state,'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY');assert.equal(receipt.successful_producer_run_count,1);});
+test('newer successful producer from a different SHA is excluded before artifact lookup',async()=>{const {receipt,calls}=await scenario({freshLive:true,expectedSourceSha:'b'.repeat(40)});assert.equal(receipt.state,'NO_EXACT_SOURCE_SHA_PRODUCER_HISTORY_BASELINE_ONLY');assert.equal(receipt.exact_source_sha_match_count,0);assert.equal(receipt.historical_producer_artifact_consumed,false);assert.equal(calls.some(u=>/\/runs\/\d+\/artifacts$/.test(u.pathname)),false);});

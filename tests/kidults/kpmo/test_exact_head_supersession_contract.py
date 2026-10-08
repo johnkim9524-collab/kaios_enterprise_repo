@@ -19,6 +19,13 @@ def validate_contract(text: str) -> None:
     assert 'readback_result="$(read_run_terminal "${run_id}" 30)"' in text
     assert 'if [[ "${latest_conclusion}" == "cancelled" ]]' in text
     assert 'Cancellation not terminally confirmed for run' in text
+    assert 'GITHUB_PREQUEUE_CANCELLATION_RACE:run=${run_id}' in text
+    assert 'read_live_exact_head() {' in text
+    assert 'EXACT_HEAD_MOVED_BEFORE_SUPERSESSION' in text
+    assert 'EXACT_HEAD_MOVED_DURING_SUPERSESSION' in text
+    assert 'CURRENT_LIVE_HEAD_SHA="$(read_live_exact_head)"' in text
+    assert '"${cancel_message}" == *"not been queued yet"*' in text
+    assert '"${force_message}" == *"not been queued yet"*' in text
     assert 'same_head_runs_cancelled:0' in text
     assert 'generation_bridge_runs_retained:$generation_bridge_retained' in text
     assert ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml" in text
@@ -26,6 +33,9 @@ def validate_contract(text: str) -> None:
     assert ".workflow_runs[] | [.id, .head_sha, .status, .event, .path] | @tsv" in text
     assert '[[ "${run_event}" == "workflow_dispatch" ]] || return 1' in text
 
+    live_head_guard = text.index('CURRENT_LIVE_HEAD_SHA="$(read_live_exact_head)"')
+    normal_cancel_call = text.index('/actions/runs/${run_id}/cancel', live_head_guard)
+    assert live_head_guard < normal_cancel_call
     bridge_guard = text.index('if retain_generation_bridge "${run_event}" "${workflow_path}"; then')
     normal_cancel_call = text.index('/actions/runs/${run_id}/cancel', bridge_guard)
     assert bridge_guard < normal_cancel_call
@@ -36,6 +46,11 @@ def validate_contract(text: str) -> None:
 
     forbidden = 'if [[ "${code}" == "202" || "${code}" == "409" ]]; then\n                cancelled=$((cancelled + 1))'
     assert forbidden not in text
+
+    prequeue_diagnosis = text.index('GITHUB_PREQUEUE_CANCELLATION_RACE:run=${run_id}')
+    terminal_failure = text.index('Cancellation not terminally confirmed for run', prequeue_diagnosis)
+    explicit_failure = text.index('exit 1', terminal_failure)
+    assert prequeue_diagnosis < terminal_failure < explicit_failure
 
 
 def test_exact_head_supersession_contract() -> None:
