@@ -87,6 +87,9 @@ export async function stagePsaPrivateEvaluation({
     rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
     fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
   });
+  if (admission?.state !== 'COMMITTED' || typeof admission.commandId !== 'string' || !admission.commandId.trim()) {
+    throw new Error('PSA_NORMALIZED_ADMISSION_NOT_COMMITTED');
+  }
   return {
     receipt_id: 'KIDULTS_PSA_PRIVATE_EVALUATION_STAGE_RECEIPT_V1',
     state: 'VERIFIED_PASS', provider_id: 'psa-public-api',

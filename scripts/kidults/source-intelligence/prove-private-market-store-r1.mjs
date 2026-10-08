@@ -1,7 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, createCipheriv, createDecipheriv } from 'node:crypto';
+import {verifyPrivateAcquisitionReceipt} from './lib/verify-private-acquisition-receipt-v1.mjs';
 
 // A supplied path is a parent directory, never a recursively deleted test root.
 const parent=process.argv[2]||os.tmpdir();
@@ -49,10 +50,10 @@ await fs.chmod(receiptPath,0o600);
 audit.push({at:now.toISOString(),action:'RECEIPT_CREATE',receipt_id:receiptId,result:'PASS'});
 
 const verifyReceipt=r=>{
-  const {tamper_hmac_sha256,...fields}=r;
-  const c=JSON.stringify(fields,Object.keys(fields).sort());
-  if(typeof tamper_hmac_sha256!=='string'||!/^[a-f0-9]{64}$/.test(tamper_hmac_sha256))return false;
-  return timingSafeEqual(Buffer.from(hmac(c),'hex'),Buffer.from(tamper_hmac_sha256,'hex'));
+  try{
+    verifyPrivateAcquisitionReceipt({receipt:r,key:hmacKey,expected:receiptFields,now});
+    return true;
+  }catch{return false;}
 };
 if(!verifyReceipt(receipt)) throw new Error('RECEIPT_HMAC_VERIFY_FAILED');
 const tampered={...receipt,payload_sha256:'sha256:'+'0'.repeat(64)};
@@ -68,6 +69,10 @@ audit.push({at:now.toISOString(),action:'READ_VERIFY',receipt_id:receiptId,resul
 
 const expiredAt=new Date(now.getTime()+25*60*60*1000);
 if(expiredAt<=new Date(receipt.expires_at)) throw new Error('TTL_TEST_CLOCK_INVALID');
+let expiredRejected=false;
+try{verifyPrivateAcquisitionReceipt({receipt,key:hmacKey,expected:receiptFields,now:expiredAt});}
+catch(error){if(error.message==='PRIVATE_ACQUISITION_RECEIPT_TTL')expiredRejected=true;else throw error;}
+if(!expiredRejected)throw new Error('EXPIRED_RECEIPT_NOT_REJECTED');
 await fs.rm(objectPath,{force:true});
 audit.push({at:expiredAt.toISOString(),action:'TTL_DELETE',receipt_id:receiptId,result:'PASS'});
 let objectExists=true;try{await fs.stat(objectPath);}catch{objectExists=false;}
@@ -91,6 +96,7 @@ const result={
   opaque_receipt_hmac_verify:'PASS',
   tamper_mutation_rejected:'PASS',
   ttl_delete:'PASS',
+  expired_receipt_rejected:'PASS',
   audit_events:audit.length,
   root_mode:'0700',receipt_mode:'0600',audit_mode:'0600',
   active_market_claim:'NONE',

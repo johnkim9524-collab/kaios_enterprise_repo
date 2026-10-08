@@ -548,8 +548,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "148d9ddd11afe6abb7b8464ca9882439cd86dc96",
-      "sha256": "sha256:ca49c5127e86d43f3949cc643659efa8fd12a40a2cf3f60162cd36ad050c3a5a",
+      "git_blob": "b4eec647bbbd06f64a444c042f328a94b0218b8b",
+      "sha256": "sha256:bd8a86cfb1e590405443bb821916453a1f3144ecf51cd5ec5db0e3ed1f214bfd",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -2015,8 +2015,8 @@
     {
       "path": "coordination/kidults/kpmo/secret-bearing-workflow-dispatch-registry-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "56c0892b053d81e290e74b71a64d3372cecefc17",
-      "sha256": "sha256:b1d0d33ddbfc4763ced6cfc27e06261da9cf372fc904b41d3f3708aa52a4d650",
+      "git_blob": "7df5dfa2b7b82ef52f61574d63e3ac33d6135267",
+      "sha256": "sha256:636a8c6b4a0c8bf0637da85944e17478754ade2e8d1bb031e6efb14e812f5edf",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5433,8 +5433,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4f9079b00e3341e46933363293be68f07044d97a",
-      "sha256": "sha256:46e75be815948a6cdf5a82745d203dd0188f9eb028e34c32ad9079b22528f596",
+      "git_blob": "68cd8a378f1c4ced7dab193c36566c5471388a9a",
+      "sha256": "sha256:8a9bb117f0cc772832fa4e7826b5b580093383f35a92acb400182be20a49549a",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5846,5 +5846,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:1d5ad52d3be1edcc90df94acf333a9e6c3b7b460e60a4758d1a33267ec02a674"
+  "manifest_sha256": "sha256:d81637aa0d829f235cb3be55ae0a47b4765b1a6e502b5c44b2fd1a7f844776eb"
 }

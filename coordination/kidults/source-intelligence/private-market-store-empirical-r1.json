@@ -1,10 +1,17 @@
 {
   "id":"kidults-private-market-store-empirical-r1",
-  "version":"1.0.0",
+  "version":"1.1.0",
   "parent_issue":637,
   "status":"LOCAL_DEV_SENTINEL_PROOF_EXECUTABLE_NOT_PROVIDER_EVIDENCE",
   "scope":"PRIVATE_STORE_MECHANICS_ONLY",
-  "required_proof":["AT_REST_ENCRYPTION_ROUNDTRIP","OPAQUE_RECEIPT_HMAC_VERIFY","TAMPER_MUTATION_REJECTION","TTL_DELETE","AUDIT_LOG","LEAST_PRIVILEGE_0700_0600"],
+  "required_proof":["AT_REST_ENCRYPTION_ROUNDTRIP","OPAQUE_RECEIPT_HMAC_VERIFY","TAMPER_MUTATION_REJECTION","PRIVATE_ACQUISITION_RECEIPT_EXACT_FIELD_SET","EXPECTED_BINDING_MATCH","CANONICAL_TIMESTAMP_TTL_WINDOW","EXPIRED_RECEIPT_REJECTION","CONSTANT_TIME_HMAC_COMPARE","TTL_DELETE","AUDIT_LOG","LEAST_PRIVILEGE_0700_0600"],
+  "receipt_verifier":{
+    "path":"scripts/kidults/source-intelligence/lib/verify-private-acquisition-receipt-v1.mjs",
+    "state":"LOCAL_SYNTHETIC_INTEGRITY_AND_BINDING_ONLY",
+    "authority_authenticated":false,
+    "provider_runtime_verified":false,
+    "promotion_eligible":false
+  },
   "provider_network_requests":0,
   "provider_payloads_allowed":false,
   "synthetic_sentinel_only":true,
