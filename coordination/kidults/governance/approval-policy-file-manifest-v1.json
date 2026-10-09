@@ -2651,8 +2651,8 @@
     {
       "path": "docs/governance/WHOLE_PLATFORM_OPERATING_PROOF_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "dbadbffcce71e5a5538301ecc89c36674b9b6594",
-      "sha256": "sha256:c3c52533e7e5d853d8f3d1b88782503220e2170c897dc357dac8ad528c3adf4d",
+      "git_blob": "ee1189daa985ce8e9394713fc46e1b45af976da0",
+      "sha256": "sha256:32c03c335205f4467aa2af2b9b7596866e124ffb32bbd097594ac3361801a8f9",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6054,5 +6054,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:74a451dca3241720f53d13c8a41807345e98337b7521e0efc30da03f67cf35e1"
+  "manifest_sha256": "sha256:31d3637555d28a3088d0262193373d6238b6663bd4b68b36eb49225bce838a3e"
 }
