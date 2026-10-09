@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
+import fs from 'node:fs';
 import {analyzeCapabilityRepair} from '../../../scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs';
 import {withCapabilityRepairAnalysis} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {routeAuthorizationControl} from '../../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
 const fixture=()=>({repository:'johnkim9524-collab/kaios_enterprise_repo',repositoryId:'1',pullRequest:2621,
   baseSha:'a'.repeat(40),headSha:'b'.repeat(40),treeSha:'c'.repeat(40),
@@ -50,6 +52,23 @@ test('authority policy edits retain denials and an explicit protected activation
 test('source and raw rejection text are never copied into diagnostic output',()=>{
   const input=fixture();input.files[0].head_content+='\n// PRIVATE_SOURCE_MARKER\n';
   assert.doesNotMatch(JSON.stringify(analyzeCapabilityRepair(input)),/PRIVATE_SOURCE_MARKER/);
+});
+test('diagnostics use canonical reserved paths without becoming an envelope consumer',()=>{
+  const input=fixture(),path='coordination/kidults/governance/protected-policy.json';
+  input.policy.owner_reserved_exact_paths=[path];
+  input.files=[{filename:path,base_content:'{}',head_content:'{"note":"updated"}'}];
+  const report=analyzeCapabilityRepair(input);
+  assert.deepEqual(report.authority_policy_changes,[path]);
+  assert.equal(report.activation_constraint,'CANDIDATE_CANNOT_AUTHORIZE_ITS_OWN_POLICY_ACTIVATION');
+  const source=fs.readFileSync('scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs','utf8');
+  const route=routeAuthorizationControl('scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs',source);
+  assert.equal(route.coverage.mode,'EXEMPTION');
+  assert.equal(route.route,'INTERNAL_REVERSIBLE');
+});
+test('diagnostic binding records changes to the classification policy',()=>{
+  const input=fixture(),before=analyzeCapabilityRepair(input);
+  input.policy.owner_reserved_exact_paths=['CONSTITUTION.md'];
+  assert.notEqual(analyzeCapabilityRepair(input).binding.classifier_policy_digest,before.binding.classifier_policy_digest);
 });
 test('paired immutable metadata retains the other changed source during per-file probes',()=>{
   const input=fixture();input.policy.delegated_internal_exact_path_exceptions=['coordination/kidults/governance/approval-policy-file-manifest-v1.json'];

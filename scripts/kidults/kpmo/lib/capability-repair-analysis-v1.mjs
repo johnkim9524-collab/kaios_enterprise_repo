@@ -9,11 +9,6 @@ const classifierPaths=new Set([
   'scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs',
   'scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs',
 ]);
-const authorityPaths=new Set([
-  'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
-  'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',
-  'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',
-]);
 const invalid=()=>{throw new Error('CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID');};
 
 // Diagnostic evidence only. Both whole-scope results remain authoritative for
@@ -33,6 +28,10 @@ export function analyzeCapabilityRepair({repository,repositoryId,pullRequest,bas
     seen.add(file.filename);bytes+=Buffer.byteLength(file.base_content)+Buffer.byteLength(file.head_content);
   }
   if(bytes>4*1024*1024)invalid();
+  // Use the supplied protected policy's canonical reserved-path registry;
+  // this diagnostic does not load or consume an approval envelope itself.
+  const authorityPaths=new Set(['coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
+    ...(policy.owner_reserved_exact_paths||[])]);
   const ordered=[...files].sort((a,b)=>a.filename<b.filename?-1:a.filename>b.filename?1:0);
   const sourceBinding=ordered.map(file=>({path:file.filename,base_digest:digest(file.base_content),head_digest:digest(file.head_content)}));
   const probe=(verifier,input)=>{
@@ -63,7 +62,7 @@ export function analyzeCapabilityRepair({repository,repositoryId,pullRequest,bas
     claim_scope:'DIAGNOSTIC_ONLY_NOT_PROTECTED_AUTHORIZATION',
     binding:{repository,repository_id:String(repositoryId),pull_request:pullRequest,base_sha:baseSha,head_sha:headSha,head_tree_sha:treeSha,
       changed_paths:ordered.map(file=>file.filename),scope_digest:digest(ordered.map(file=>file.filename).join('\n')),
-      immutable_sources_digest:digest(JSON.stringify(sourceBinding))},
+      immutable_sources_digest:digest(JSON.stringify(sourceBinding)),classifier_policy_digest:digest(JSON.stringify(policy))},
     whole_scope:wholeScope,findings,
     findings_scope:'FIRST_REJECTION_PER_GOVERNED_FILE_PER_ENGINE_NOT_ALL_PREDICATE_FAILURES',
     blocked_path_count:new Set(findings.map(item=>item.path)).size,

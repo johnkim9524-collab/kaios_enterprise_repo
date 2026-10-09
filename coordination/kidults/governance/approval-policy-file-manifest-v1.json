@@ -3628,14 +3628,13 @@
     {
       "path": "scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "50977c1ee38b43cd99fd8b675e280004d4b9406d",
-      "sha256": "sha256:1d6b20fb40a0568ee9b9211635eea58edc8bf9e4830ae03d089bc1fae191729b",
+      "git_blob": "f563fcbbfb265c9127395af942ba695c797b1c05",
+      "sha256": "sha256:73017503dc590c72436133450b5b4c5feded1c1f42b4a2890cb4df75d31ba7e2",
       "authorization_routing": {
-        "route": "CANONICAL_ENVELOPE",
+        "route": "INTERNAL_REVERSIBLE",
         "coverage": {
-          "mode": "CONSUMER",
-          "consumer": "scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs",
-          "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -6041,8 +6040,8 @@
     {
       "path": "tests/kidults/staging-operations/capability-repair-analysis-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e307dec5ad95be555abdecbaf54174754a2358d4",
-      "sha256": "sha256:3db53991a20f81056ca61736208ea532c6741314115066f7f7f583efac2abe45"
+      "git_blob": "803b776aef70013cd68cf77b40a88c53ef05148c",
+      "sha256": "sha256:452b0e07f650a06cf5e038e3a80decce4052e99f8ffc7942484c7540125d143a"
     },
     {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
@@ -6087,5 +6086,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:40cc7ce590b9dfc98bc4cd4b64e5ce8fc2b001ec4b55978a0dea436742e6862f"
+  "manifest_sha256": "sha256:9ad3f7ee46d8f1f3eae3f4ae3a0de070cf7f8c7ee39e2e2b38fb66abb130f8c0"
 }
