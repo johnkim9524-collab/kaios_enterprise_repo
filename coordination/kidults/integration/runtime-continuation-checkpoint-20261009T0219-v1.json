@@ -1,0 +1,96 @@
+{
+  "id": "kidults-runtime-continuation-checkpoint-20261009T0219-v1",
+  "observed_at": "2026-10-09T02:19:12Z",
+  "mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "scope": "READ_ONLY_RECONCILIATION_AND_INACTIVE_DEVELOPMENT_CHECKPOINT",
+  "active_pr": 2621,
+  "active_head": "ba12f5c7f0e83d5c5d1b4c8ecf564bba003f5fd2",
+  "main": "c32293a0bb2107f88326c9ae279f7b72bf307c98",
+  "merged": false,
+  "head_runs": {
+    "total": 20,
+    "success": 15,
+    "failure": 5,
+    "pending": 0
+  },
+  "local_tests": {
+    "primary": 190,
+    "adjacent": 16,
+    "repeated_this_turn": false
+  },
+  "unresolved_review_threads": 0,
+  "active_head_runtime_observation": {
+    "run_id": 37873240390,
+    "artifact_id": 11591375901,
+    "archive_digest": "sha256:076e2864179fa94fd2fbc32e41ab9d5a40768140ad89dbd3b923e89f69d4a9b9",
+    "receipt_digest": "sha256:070be8adec2cd4c2051e256cce070ef4a86fa1a8a2dc39b4e5e9198707b7173e",
+    "digests_verified_in_previous_turn": true,
+    "native_business_domains": 0,
+    "required_business_domains": 13,
+    "blockers": [
+      "BUSINESS_INPUT_PRODUCER_NOT_REGISTERED",
+      "REGISTERED_PRODUCER_READ_TOKEN_MISSING"
+    ]
+  },
+  "root_failures": [
+    {
+      "kind": "EXTERNAL_SHARED_INSTALLATION_RATE_LIMIT",
+      "run_id": 37873240168,
+      "job_id": 113635830977,
+      "observed_error": "API rate limit exceeded for installation",
+      "reset_time": "NOT_OBSERVED"
+    },
+    {
+      "kind": "FINALIZER_HTTP_403_ON_PRIOR_HEAD",
+      "run_id": 37872715697,
+      "job_id": 113634268577,
+      "head": "011742eda4f19614e8ad38b3b29c790fef785944",
+      "is_current_head_evidence": false
+    },
+    {
+      "kind": "GUARD_DEPENDENCY_CHANGE_REJECTED",
+      "proposal_is_active": false,
+      "primary": "CAPABILITY_GUARD_DEPENDENCY_CHANGED",
+      "independent": "INDEPENDENT_GUARD_DEPENDENCY_CHANGED",
+      "minimal_exact_immutable_read_cache_also_rejected": true
+    }
+  ],
+  "recent_completed_recovery_runs": [
+    37873715781,
+    37873715774,
+    37873715779
+  ],
+  "recent_recovery_is_current_pr_generation_proof": false,
+  "provider_lane": {
+    "provider": "CLASSIC.COM",
+    "source_layer": "VERTICAL_AUTHORITY",
+    "brands": [
+      "KIDULTS",
+      "Autobit"
+    ],
+    "owner": "TRACK_Z / KPMO",
+    "state": "WAITING_FOR_WRITTEN_TERMS",
+    "last_sent_message": "1a11e56c04b24a34",
+    "thread": "1a0b5669d94b054b",
+    "new_inbound_since_20261009": false,
+    "cost_exposure": "NO_NEW_SPEND_AUTHORIZED",
+    "deadline": null,
+    "next_action": "Consume a substantive written response without repeating the sent followup; independently assess rights, dates, provenance and liquidity scope before real acquisition or producer registration"
+  },
+  "resume_conditions": [
+    "Observe normal protected statuses after installation capacity recovery; do not infer a reset deadline or trigger a manual rerun",
+    "The existing guard classifiers must admit any finalizer change through an authorized protected change route; do not weaken them or apply the inactive proposal to the eligible PR",
+    "Existing execution must have lawful current input, a real registered native producer and existing scoped read authority before domain connection",
+    "Only consume new exact-head role evidence and then exact-landed-main terminal and two distinct natural generations"
+  ],
+  "manual_dispatch": false,
+  "protection_bypass": false,
+  "credential_expansion": false,
+  "old_head_role_receipts_reused": false,
+  "whole_platform_runtime_proven": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD",
+  "digitalocean_email_84216_touched": false
+}
