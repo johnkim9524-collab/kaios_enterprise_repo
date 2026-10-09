@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "6bfd10c8d4d9d824114ae62c1a9546594dd5302e",
+  "revision": "20ce3332c80f11def6dc8388c71858f93404ebe7",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3416,8 +3416,8 @@
     {
       "path": "scripts/kidults/integration/build-official-track-b-assessment-v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "97b24032abec88738e5483a69a664b04d6374392",
-      "sha256": "sha256:b16f0840cded430a9b78f35c031ee9609ddfedcf4ffec2556ea79654cb5045c8"
+      "git_blob": "69a5626c21e288b11e200a3b896de768c5b14dc9",
+      "sha256": "sha256:bce870da74b623d99293302a6eb23cf60ad10c50511ea7d2ee98c2ac89b453c5"
     },
     {
       "path": "scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs",
@@ -6207,5 +6207,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b84c7cc3afb56333946a00b996de0721c662c10adc39d7c454fee28e6c4e5f19"
+  "manifest_sha256": "sha256:757a167551b7249c04b1ed012f0543992b51f20cab4c9a31077d9ddce5d1cf90"
 }
