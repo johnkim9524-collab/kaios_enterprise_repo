@@ -5,6 +5,7 @@ import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-i
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {analyzeCapabilityRepair} from './lib/capability-repair-analysis-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
@@ -42,6 +43,21 @@ const UNKNOWN_CLASSIFICATION_CODES=new Set([
 export const isUnknownClassification=error=>UNKNOWN_CLASSIFICATION_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+
+export function withCapabilityRepairAnalysis(record,context,policy) {
+  if(!context||! /^(CAPABILITY_|INDEPENDENT_)/.test(String(record.reason||'')))return record;
+  const {pr,treeSha,files}=context;
+  try {
+    const analysis=analyzeCapabilityRepair({repository:pr.base.repo.full_name,repositoryId:pr.base.repo.id,
+      pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha,files,policy});
+    return {...record,capability_repair_analysis:analysis};
+  } catch(error) {
+    if(error.message!=='CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID')throw error;
+    return {...record,capability_repair_analysis:{state:'DIAGNOSTIC_INPUT_UNAVAILABLE',
+      code:'CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID',authority_created:false,
+      landing_authorization_created:false,merge_authorized:false}};
+  }
+}
 
 // Read-only uncertainty recovery. It never relaxes either classifier or turns
 // definite Owner-reserved changes into UNKNOWN. Only full existing validation
@@ -279,14 +295,14 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
       if(!isOwnerReviewRequired(recovered.error)) {
         const repair=recovered.context?.pr.base.sha===mainSha?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;
-        results.push(repair?{...repair,reclassification:recovered.receipt}:{state:'SKIPPED',pull_request:pr.number,
-          reason:recovered.error.code,reclassification:recovered.receipt});continue;}
+        results.push(withCapabilityRepairAnalysis(repair?{...repair,reclassification:recovered.receipt}:{state:'SKIPPED',pull_request:pr.number,
+          reason:recovered.error.code,reclassification:recovered.receipt},recovered.context,policy));continue;}
       error=recovered.error;candidateContext=recovered.context;
     }
-    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
-    else results.push(candidateContext?.pr.base.sha===mainSha
+    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
+    else results.push(withCapabilityRepairAnalysis(candidateContext?.pr.base.sha===mainSha
       ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
-      :{state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+      :{state:'SKIPPED',pull_request:pr.number,reason:error.code},candidateContext,policy));}}
   return results;
 }
 
@@ -301,5 +317,9 @@ if(import.meta.url===`file://${process.argv[1]}`){
     skipped:results.filter(x=>x.state==='SKIPPED').length,
     blocked_candidates:results.filter(x=>['OWNER_REVIEW_REQUIRED','POLICY_REPAIR_REQUIRED','SKIPPED'].includes(x.state))
       .map(x=>({pull_request:x.pull_request,state:x.state,reason:x.reason,
-        classification_failure:x.classification_failure||null,reclassification:x.reclassification||null}))}));
+        classification_failure:x.classification_failure||null,reclassification:x.reclassification||null,
+        capability_repair_analysis:x.capability_repair_analysis?{
+          state:x.capability_repair_analysis.state,blocked_path_count:x.capability_repair_analysis.blocked_path_count,
+          activation_constraint:x.capability_repair_analysis.activation_constraint,
+          receipt_digest:x.capability_repair_analysis.receipt_digest}:null}))}));
 }

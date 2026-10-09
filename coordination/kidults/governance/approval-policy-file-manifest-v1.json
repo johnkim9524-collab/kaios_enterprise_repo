@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 745
+    "file_count": 747
   },
   "files": [
     {
@@ -3626,6 +3626,20 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "50977c1ee38b43cd99fd8b675e280004d4b9406d",
+      "sha256": "sha256:1d6b20fb40a0568ee9b9211635eea58edc8bf9e4830ae03d089bc1fae191729b",
+      "authorization_routing": {
+        "route": "CANONICAL_ENVELOPE",
+        "coverage": {
+          "mode": "CONSUMER",
+          "consumer": "scripts/kidults/kpmo/lib/capability-repair-analysis-v1.mjs",
+          "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/lib/consumed-recovery-observation-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "0cbc5440ddd7c7e0a03170cab71fc4eefbdd9d53",
@@ -3888,8 +3902,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a1231ef425ff423f9aba73ee6e1c5d8d7c369973",
-      "sha256": "sha256:4d999f546eedfc3e7d86b6aab344aced90927a11a5d80a55bd419505fa6fd370",
+      "git_blob": "763a9bd3d2e2b107277ba4875fa85b81330fc005",
+      "sha256": "sha256:e7db0da140cf4ff141770c7d23648943bc855047765e7252378cda934fff6a19",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -6025,6 +6039,12 @@
       "sha256": "sha256:6ac17e96ef9c6b73eaf105ab85e5c1dc263fd73daa455cb464d9c233df61a6fd"
     },
     {
+      "path": "tests/kidults/staging-operations/capability-repair-analysis-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "e307dec5ad95be555abdecbaf54174754a2358d4",
+      "sha256": "sha256:3db53991a20f81056ca61736208ea532c6741314115066f7f7f583efac2abe45"
+    },
+    {
       "path": "tests/kidults/staging-operations/provider-control-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "80c0c15d35209de2046aad180d520fb087091fba",
@@ -6067,5 +6087,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d2cad87bb688056767cf98d3f706b6cfbf1b99ff8a58d77b1cf5409a83bc01f6"
+  "manifest_sha256": "sha256:1db6239e9879574022371ea1c6d7a34a9a9e6f1f7ba6cc605e94ca7dbc29fe74"
 }
