@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "240cd17a5e4cf9543d54559c44a3d59a8b59bc03",
+  "head_branch": "codex/autonomous-causal-lifecycle-20261010",
+  "source_head_sha": "bd271aa5f19b7c5f0152d0305cfe1c8f2fe5d205",
+  "source_head_tree_sha": "9f95c22cc22ae9c290e5df98bd0bff4d15c8d24c",
+  "payload_digest": "sha256:9d1b47bcc467809980d765a8da060360fc201875b6e7cd860fbf6aeb39341f9b",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
