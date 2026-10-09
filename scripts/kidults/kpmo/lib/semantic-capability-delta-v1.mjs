@@ -8,6 +8,22 @@ export class CapabilityDeltaError extends Error {
 }
 const fail=(code,detail='')=>{throw new CapabilityDeltaError(code,detail)};
 const digest=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
+const matchesProtectedDiagnosticRepair=(file,policy)=>{
+  if(file.filename!=='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs')return false;
+  const r=policy.protected_code_repair;
+  if(!r)return false;
+  const expected=['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions'];
+  if(Object.keys(r).sort().join(',')!==expected.sort().join(',')||r.enabled!==true
+    ||r.executor!=='EXACT_PROTECTED_MAIN'||r.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
+    ||r.primary_and_independent_required!==true||r.track_kpmo_quorum_required!==true
+    ||r.candidate_policy_authority!==false||!Array.isArray(r.transitions)||r.transitions.length!==1)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
+  const t=r.transitions[0];
+  if(Object.keys(t).sort().join(',')!=='base_digest,head_digest,id,path'
+    ||t.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||t.path!==file.filename
+    ||!/^sha256:[0-9a-f]{64}$/.test(t.base_digest)||!/^sha256:[0-9a-f]{64}$/.test(t.head_digest)
+    ||t.base_digest===t.head_digest)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
+  return file.status==='modified'&&digest(file.base_content)===t.base_digest&&digest(file.head_content)===t.head_digest;
+};
 const isComment=line=>/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line);
 const riskyValue=/\b(secrets\.|vars\.|id-token|curl\b|wget\b|gh\s+api\b|aws\s|gcloud\s|az\s|terraform\b|kubectl\b|https?:\/\/|configure-aws-credentials|--admin-bypass|force\s*:\s*true)\b/i;
 const writeKey=/^(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events)$/;
@@ -246,7 +262,7 @@ const assertDerivedApprovalMetadataDelta=(before,after,filename,files)=>{
   if(JSON.stringify(left)!==JSON.stringify(right)) fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };
 
-const autonomousPolicyAuthorityFields=['owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
+const autonomousPolicyAuthorityFields=['protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
 const assertAutonomousPolicyAuthorityFields=(before,after,filename)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {fail('CAPABILITY_JSON_PARSE_FAILED',filename)}
@@ -295,6 +311,7 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(typeof filename!=='string'||!filename) fail('CAPABILITY_PATH_INVALID');
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
+    if(matchesProtectedDiagnosticRepair(file,policy)){evidence.push({filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){evidence.push({filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content)});continue;}
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
     else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename,files);

@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -550,5 +550,21 @@
       "RULESET_OR_SECURITY_BOUNDARY_WEAKENING"
     ],
     "path_name_alone_is_owner_gate": false
+  },
+  "protected_code_repair": {
+    "enabled": true,
+    "executor": "EXACT_PROTECTED_MAIN",
+    "scope": "REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS",
+    "primary_and_independent_required": true,
+    "track_kpmo_quorum_required": true,
+    "candidate_policy_authority": false,
+    "transitions": [
+      {
+        "id": "DISPATCH_READ_DIAGNOSTICS_V1",
+        "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
+        "base_digest": "sha256:8ad9d9b4f9fc17158cf8ab3e2f59e535c54c1226c4425b7c0e4b8bdfdeb7dd4b",
+        "head_digest": "sha256:26664977c2422ca885295b1ad751dc105cd6e171daaadce184348f5651c952eb"
+      }
+    ]
   }
 }

@@ -211,14 +211,22 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
   if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
     ||!Number.isSafeInteger(reserve)||reserve<0)fail('DISPATCH_CONFIGURATION_INVALID');
   let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
+  const counts={branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:0};
+  const family=path=>/\/contents\//.test(path)?'contents':/\/pulls\/\d+\/files(?:\?|$)/.test(path)?'files':/\/check-runs(?:\?|$)/.test(path)?'checks':/\/status(?:\?|$)/.test(path)?'status':/\/git\/commits\//.test(path)?'commits':/\/branches\//.test(path)?'branches':/\/rulesets(?:\/|\?|$)/.test(path)?'rulesets':/\/pulls(?:\/|\?|$)/.test(path)?'pulls':'other';
   const request=path=>{
     const immutable=/^\/repos\/[^/]+\/[^/]+\/contents\/[^?]+\?ref=[a-f0-9]{40}$/.test(path);
     if(terminal)return Promise.reject(terminal);
     if(immutable&&cache.has(path))return cache.get(path);
     const pending=tail.then(async()=>{
       if(terminal)throw terminal;
-      if(requests>=maxRequests){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');throw terminal;}
+      if(requests>=maxRequests){
+        terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');
+        // Categories and counts only: never persist URLs, credentials, or bodies.
+        terminal.read_diagnostics={request_count:requests,max_requests:maxRequests,resource_counts:{...counts},next_resource_family:family(path)};
+        throw terminal;
+      }
       requests++;
+      counts[family(path)]++;
       const response=await fetchImpl(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
       const remaining=response.headers?.get('x-ratelimit-remaining');
       if(response.status===429||(remaining!==null&&remaining!==undefined&&/^\d+$/.test(remaining)&&Number(remaining)<=reserve)) {
@@ -363,11 +371,22 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
     fs.writeFileSync(`${outputDirectory}/failure.json`,JSON.stringify({
       id:'kidults-autonomous-dispatcher-scan-failure-v1',state:'VERIFIED_FAIL',
       failure_class:code,stage:'DISCOVER_EXACT_ELIGIBLE_PR_BINDINGS',binding,
+      ...(validReadDiagnostics(error?.read_diagnostics)?{read_diagnostics:error.read_diagnostics}:{}),
       partial_candidates_consumable:false,fanout_authorized:false,
       production:'HOLD',public:'HOLD',g5:'HOLD'
     },null,2));
     throw error;
   }
+}
+
+function validReadDiagnostics(value){
+  const families=['branches','rulesets','pulls','files','commits','status','checks','contents','other'];
+  if(!value||Object.keys(value).sort().join(',')!=='max_requests,next_resource_family,request_count,resource_counts'
+    ||!Number.isSafeInteger(value.max_requests)||value.max_requests<1||value.max_requests>256
+    ||value.request_count!==value.max_requests||!families.includes(value.next_resource_family)
+    ||!value.resource_counts||Object.keys(value.resource_counts).sort().join(',')!==families.slice().sort().join(','))return false;
+  const counts=Object.values(value.resource_counts);
+  return counts.every(n=>Number.isSafeInteger(n)&&n>=0)&&counts.reduce((a,b)=>a+b,0)===value.request_count;
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){
