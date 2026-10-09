@@ -7,11 +7,28 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 // Keep repair diagnostics in the existing protected-main and PR CI entrypoint.
 import './capability-repair-analysis-v1.test.mjs';
-import {createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
+test('failed scan retains its original error and invalidates old eligible results without leaking details',async()=>{
+  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-failure-'));
+  try {
+    fs.writeFileSync(path.join(outputDirectory,'results.json'),JSON.stringify([{state:'ELIGIBLE'}]));
+    const error=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED','secret-token');
+    await assert.rejects(recordDispatcherScan({outputDirectory,repository:'owner/repo',sourceSha:sha('a'),runId:'123',scan:async()=>{throw error;}}),e=>e===error);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
+    const failure=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
+    assert.equal(failure.failure_class,error.code);
+    assert.equal(failure.fanout_authorized,false);
+    assert.equal(failure.partial_candidates_consumable,false);
+    assert.equal(failure.binding.source_sha,sha('a'));
+    assert.doesNotMatch(JSON.stringify(failure),/secret-token/);
+    await recordDispatcherScan({outputDirectory,scan:async()=>[]});
+    assert.equal(fs.existsSync(path.join(outputDirectory,'failure.json')),false);
+  } finally {fs.rmSync(outputDirectory,{recursive:true,force:true});}
+});
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
 for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
@@ -658,6 +675,24 @@ test('global API failure inside a candidate does not become SKIPPED or trigger l
       throw new Error('unexpected follow-on request');
     }}),error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
   assert.equal(paths.length,5);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
+});
+test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
+  let calls=0,blobReads=0;
+  const candidates=Array.from({length:20},(_,i)=>({...pr,number:100+i,base:{...pr.base,sha:sha('d')}}));
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:64,
+    fetchImpl:async url=>{
+      calls++;const p=new URL(url).pathname;
+      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+      if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
+      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
+      if(p.includes('/contents/'))blobReads++;
+      throw new Error('unexpected immutable read');
+    }});
+  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,44);
+  assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
 });
 test('global read failure cannot be swallowed by uncertainty reclassification',async()=>{
   const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));

@@ -288,6 +288,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
       const [fileRecords,commit]=await Promise.all([pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)]);
+      // Path-only denials need no blob reads. This is the same mandatory
+      // scope gate used by classification, never a grant based on metadata.
+      assertDelegatedPathScope(fileRecords,policy);
       if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
@@ -304,6 +307,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         : x)
       : baseRequiredChecks;
     const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    assertDelegatedPathScope(fileRecords,policy);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
@@ -338,11 +342,36 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   return results;
 }
 
+export async function recordDispatcherScan({scan,outputDirectory='out/autonomous-dispatcher-v1',repository,sourceSha,runId}) {
+  fs.mkdirSync(outputDirectory,{recursive:true});
+  // Replace any previous result before reading authority. Failed scans never
+  // publish partial candidates or leave a prior successful result consumable.
+  fs.writeFileSync(`${outputDirectory}/results.json`,'[]\n');
+  fs.rmSync(`${outputDirectory}/failure.json`,{force:true});
+  try {
+    const results=await scan();
+    fs.writeFileSync(`${outputDirectory}/results.json`,JSON.stringify(results,null,2));
+    return results;
+  } catch(error) {
+    const code=/^[A-Z][A-Z0-9_]{0,100}$/.test(String(error?.code||''))?error.code:'DISPATCH_UNCLASSIFIED_FAILURE';
+    const binding={repository:typeof repository==='string'?repository:null,
+      source_sha:SHA.test(String(sourceSha||''))?sourceSha:null,
+      run_id:/^[1-9][0-9]{0,19}$/.test(String(runId||''))?String(runId):null};
+    fs.writeFileSync(`${outputDirectory}/failure.json`,JSON.stringify({
+      id:'kidults-autonomous-dispatcher-scan-failure-v1',state:'VERIFIED_FAIL',
+      failure_class:code,stage:'DISCOVER_EXACT_ELIGIBLE_PR_BINDINGS',binding,
+      partial_candidates_consumable:false,fanout_authorized:false,
+      production:'HOLD',public:'HOLD',g5:'HOLD'
+    },null,2));
+    throw error;
+  }
+}
+
 if(import.meta.url===`file://${process.argv[1]}`){
   const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
   const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json','utf8'));
-  const results=await discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID});
-  fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
+  const results=await recordDispatcherScan({repository:process.env.GITHUB_REPOSITORY,sourceSha:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,
+    scan:()=>discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID})});
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
     policy_repair_required:results.filter(x=>x.state==='POLICY_REPAIR_REQUIRED').length,
