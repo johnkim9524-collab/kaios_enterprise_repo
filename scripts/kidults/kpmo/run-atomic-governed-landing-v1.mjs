@@ -4,12 +4,13 @@ import path from 'node:path';
 import {
   assertNativeRequiredContexts,
   assertLandingActorAndAuthorization,
+  assertExactOwnerMergeDuringFinalReread,
   selectExactHeadProgramOwnerApproval,
   assertStableFinalReread,
   evaluateRequiredCheckRuns,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 import {
   assertAtomicLandingStagedLifecycleAuthority,
@@ -18,15 +19,21 @@ import {
   assertAtomicLandingConsumptionReceipt,
   buildAtomicLandingRunName,
   evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
 } from './run-atomic-landing-one-use-preflight-v1.mjs';
 import {
   assertChangedApprovalGenerationEquality,
 } from './lib/approval-generation-equality-v1.mjs';
+import {
+  requireEnabledRepositoryMergeCommit,
+} from './run-atomic-event-emitting-transport-preflight-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
 const prNumber = process.env.PR_NUMBER;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+const expectedBaseSha = process.env.EXPECTED_BASE_SHA;
+const expectedHeadTreeSha = process.env.EXPECTED_HEAD_TREE_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const executionRef = process.env.GITHUB_REF;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
@@ -36,8 +43,17 @@ const githubOutput = process.env.GITHUB_OUTPUT;
 const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH;
 const lifecycleAuthorityPath = process.env.LIFECYCLE_AUTHORITY_PATH;
 const runnerTemp = process.env.RUNNER_TEMP;
+const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH;
+const transportWaitSeconds = Number(process.env.ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS || '600');
+const authorityClass = process.env.KIDULTS_AUTHORITY_CLASS || 'OWNER_RESERVED_RECOVERY';
+if (authorityClass === 'INTERNAL_REVERSIBLE' || authorityClass === 'STAGING_BOUNDED') {
+  throw new Error('LEGACY_ATOMIC_OWNER_PATH_FORBIDDEN_FOR_DELEGATED_AUTHORITY');
+}
 if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
   throw new Error('ATOMIC_LANDING_ENVIRONMENT_BINDING_INVALID');
+}
+if (!/^[0-9a-f]{40}$/.test(expectedBaseSha || '') || !/^[0-9a-f]{40}$/.test(expectedHeadTreeSha || '')) {
+  throw new Error('ATOMIC_LANDING_EXACT_IDENTITY_BINDING_INVALID');
 }
 if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') || !githubOutput) {
   throw new Error('ATOMIC_LANDING_WORKFLOW_OUTPUT_BINDING_INVALID');
@@ -45,6 +61,10 @@ if (!/^\d+$/.test(landingRunId || '') || !/^\d+$/.test(landingRunAttempt || '') 
 if (Number(landingRunAttempt) !== 1) throw new Error('ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
 if (!consumptionPath) throw new Error('ATOMIC_LANDING_CONSUMPTION_PATH_REQUIRED');
 if (!lifecycleAuthorityPath || !runnerTemp) throw new Error('ATOMIC_LIFECYCLE_AUTHORITY_PATH_REQUIRED');
+if (!transportReceiptPath || !Number.isInteger(transportWaitSeconds)
+  || transportWaitSeconds < 60 || transportWaitSeconds > 900) {
+  throw new Error('ATOMIC_EVENT_TRANSPORT_BINDING_INVALID');
+}
 if (executionRef !== 'refs/heads/main') throw new Error('ATOMIC_LANDING_MAIN_REF_REQUIRED');
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
@@ -123,6 +143,8 @@ const currentSoldPathMatchers = [
   /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-event-emitting-transport-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/consume-atomic-postmerge-push-suite-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
 ];
@@ -143,6 +165,67 @@ const readConsumptionReceipt = () => {
   if (!fs.existsSync(consumptionPath)) throw new Error('ATOMIC_LANDING_CONSUMPTION_RECEIPT_MISSING');
   return JSON.parse(fs.readFileSync(consumptionPath, 'utf8'));
 };
+
+const readTransportReceipt = repositoryOwner => {
+  if (!fs.existsSync(transportReceiptPath)) throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_MISSING');
+  const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
+  if (receipt?.id !== 'kidults-atomic-event-emitting-transport-availability-v1'
+    || receipt?.version !== '1.1.0'
+    || receipt?.state !== 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_INVALID');
+  }
+  if (receipt.repository !== repository || Number(receipt.pull_request) !== Number(prNumber)
+    || receipt.exact_base_sha !== expectedBaseSha || receipt.exact_head_sha !== expectedHeadSha
+    || receipt.exact_head_tree_sha !== expectedHeadTreeSha) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_IDENTITY_MISMATCH');
+  }
+  if (receipt.repository_owner !== repositoryOwner || receipt.dispatch_actor !== repositoryOwner
+    || receipt.transport !== 'DIRECT_OWNER_GITHUB_UI') {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_ACTOR_MISMATCH');
+  }
+  if (receipt.merge_performed_by_workflow !== false
+    || receipt.transport_available !== true
+    || receipt.authorization_consumed !== false
+    || receipt.repository_github_token_merge_forbidden !== true
+    || receipt.event_emitting_push_required !== true
+    || receipt.new_secret_required !== false
+    || receipt.permission_expansion_required !== false) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_BOUNDARY_INVALID');
+  }
+  const observation = receipt.repository_merge_commit_observation;
+  const observationSourceValid = (
+    observation?.api_surface === 'GET /repos/{owner}/{repo}'
+      && observation?.field_name === 'allow_merge_commit'
+      && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+  ) || (
+    observation?.api_surface === 'POST /graphql Repository.mergeCommitAllowed'
+      && observation?.field_name === 'mergeCommitAllowed'
+      && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA'
+  );
+  if (!observationSourceValid
+    || observation?.http_status !== 200
+    || observation?.response_ok !== true
+    || observation?.response_json_parsed !== true
+    || observation?.field_present !== true
+    || observation?.value_type !== 'boolean'
+    || observation?.boolean_value !== true
+    || observation?.raw_response_persisted !== false
+    || observation?.classification !== 'ENABLED'
+    || observation?.failure_code !== null) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_OBSERVATION_INVALID');
+  }
+  if (receipt.owner_view_comparison?.state !== 'NOT_AVAILABLE_NO_OWNER_CREDENTIAL_USED'
+    || receipt.owner_view_comparison?.mismatch !== null) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_OWNER_VIEW_INVALID');
+  }
+  requireEnabledRepositoryMergeCommit(observation, receipt.owner_view_comparison);
+  if (!Number.isFinite(Date.parse(receipt.expires_at)) || Date.now() >= Date.parse(receipt.expires_at)) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_RECEIPT_EXPIRED');
+  }
+  return receipt;
+};
+
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 
 const readStagedLifecycleAuthorityReceipt = () => {
   const trustedRoot = fs.realpathSync(runnerTemp);
@@ -206,12 +289,16 @@ const assertLifecycleAuthorityAgainstReady = (readyEvent, baseSha) =>
 
 const sameReadyEvent = (left, right) =>
   left?.id === right?.id
+  && left?.event === right?.event
   && left?.created_at === right?.created_at
   && left?.actor === right?.actor
-  && left?.direct_repository_owner === true
-  && right?.direct_repository_owner === true
-  && left?.performed_via_github_app === null
-  && right?.performed_via_github_app === null;
+  && JSON.stringify(left?.performed_via_github_app ?? null) === JSON.stringify(right?.performed_via_github_app ?? null)
+  && left?.direct_repository_owner === right?.direct_repository_owner
+  && left?.synthetic_lifecycle_boundary === right?.synthetic_lifecycle_boundary
+  && left?.authority === 'LIFECYCLE_ONLY'
+  && right?.authority === 'LIFECYCLE_ONLY'
+  && left?.grants_authorization === false
+  && right?.grants_authorization === false;
 
 const sameLifecycleAuthority = (left, right) =>
   left?.state === right?.state
@@ -235,17 +322,27 @@ const sameApproval = (left, right) =>
   && left?.authorization_id_sha256 === right?.authorization_id_sha256
   && left?.expires_at === right?.expires_at;
 
-const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
+const assertLiveOneUseConsumption = async (baseSha, repositoryOwner, authorizationApprovedAt) => {
+  if (!authorizationApprovedAt || !Number.isFinite(Date.parse(authorizationApprovedAt))) {
+    throw new Error('ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+  }
   const currentRun = await request(`/actions/runs/${landingRunId}`);
   if (currentRun?.display_title !== expectedRunName) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
   if (currentRun?.head_sha !== baseSha) throw new Error('ATOMIC_ONE_USE_CURRENT_RUN_BASE_MISMATCH');
-  const oneUse = evaluateAtomicLandingOneUseRunSet(await workflowRuns(currentRun.workflow_id), {
+  const oneUseOptions = {
     currentRunId: landingRunId,
     currentRunAttempt: landingRunAttempt,
     workflowId: currentRun.workflow_id,
     expectedRunName,
     protectedMainShaAtDispatch: baseSha,
-  });
+    authorizationApprovedAt,
+  };
+  const oneUse = evaluateAtomicLandingOneUseRunSet(
+    reconcileAtomicLandingCurrentRunIndex(
+      await workflowRuns(currentRun.workflow_id), currentRun, oneUseOptions,
+    ),
+    oneUseOptions,
+  );
   const receipt = assertAtomicLandingConsumptionReceipt(readConsumptionReceipt(), {
     repository,
     repositoryOwner,
@@ -257,7 +354,17 @@ const assertLiveOneUseConsumption = async (baseSha, repositoryOwner) => {
     runAttempt: landingRunAttempt,
     expectedRunName,
   });
-  return {oneUse, receipt};
+  if (receipt.matching_run_count !== oneUse.matching_run_count
+    || receipt.bounded_attempt_ordinal !== oneUse.bounded_attempt_ordinal
+    || receipt.prior_non_success_attempt_count !== oneUse.prior_non_success_attempt_count
+    || receipt.landing_workflow_run_id !== oneUse.matching_run_id
+    || receipt.landing_workflow_run_attempt !== oneUse.matching_run_attempt) {
+    throw new Error('ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT');
+  }
+  if (receipt.program_owner_approval?.comment_created_at !== authorizationApprovedAt) {
+    throw new Error('ATOMIC_LANDING_CONSUMPTION_APPROVAL_TIME_DRIFT');
+  }
+  return {oneUse, receipt, currentRun};
 };
 
 let statusTouched = false;
@@ -267,6 +374,7 @@ try {
   const repositoryState = await request('');
   const repositoryOwner = repositoryState.owner?.login;
   assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);
+  const eventEmittingTransport = readTransportReceipt(repositoryOwner);
   const initial = await request(`/pulls/${prNumber}`);
   const initialMain = await request('/branches/main');
   const changedFileRecords = await pages(`/pulls/${prNumber}/files`);
@@ -276,9 +384,8 @@ try {
     noMergePolicy: policy.no_merge_policy,
   });
   if (initial.user?.login !== repositoryOwner) throw new Error('PROGRAM_OWNER_AUTHOR_REQUIRED');
+  if (initial.base?.sha !== expectedBaseSha) throw new Error('ATOMIC_LANDING_EXPECTED_BASE_MISMATCH');
   if (initial.base?.sha !== initialMain?.commit?.sha) throw new Error('ATOMIC_LANDING_BASE_NOT_CURRENT_PROTECTED_MAIN');
-
-  const authorizationConsumption = await assertLiveOneUseConsumption(initial.base.sha, repositoryOwner);
 
   const approvalGeneration = await assertChangedApprovalGenerationEquality({
     files: changedFileRecords,
@@ -310,12 +417,16 @@ try {
   if (aggregator?.state !== 'success') throw new Error('SCOPE_AWARE_AUTHORITATIVE_STATUS_NOT_SUCCESS');
   evaluateRequiredCheckRuns(await checkRuns(expectedHeadSha), scopePolicy.technical_base_contexts);
 
-  const [timeline, approvalComments, headCommit] = await Promise.all([
+  const [timeline, approvalComments, headCommit, currentLandingRun] = await Promise.all([
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
     request(`/commits/${expectedHeadSha}`),
+    request(`/actions/runs/${landingRunId}`),
   ]);
-  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  if (headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
+    throw new Error('ATOMIC_LANDING_EXPECTED_HEAD_TREE_MISMATCH');
+  }
+  const latestReady = selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest: initial});
   const lifecycleAuthority = assertLifecycleAuthorityAgainstReady(latestReady, initial.base.sha);
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
@@ -327,8 +438,14 @@ try {
     prCreatedAt: initial.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: latestReady.created_at,
+    landingAttemptStartedAt: currentLandingRun.run_started_at || currentLandingRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
+  const authorizationConsumption = await assertLiveOneUseConsumption(
+    initial.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
   const reviews = await pages(`/pulls/${prNumber}/reviews`);
   const exactHeadBlockers = reviews.filter(review => review.commit_id === expectedHeadSha && review.state === 'CHANGES_REQUESTED');
   if (exactHeadBlockers.length) throw new Error('EXACT_HEAD_CHANGES_REQUESTED');
@@ -345,19 +462,38 @@ try {
   }
   assertAtomicLandingMergeable(final, 'FINAL_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
+  const authorizationWindowOpenedAt = new Date(Math.floor(Date.now() / 1000) * 1000);
+  const authorizationWindowDeadline = authorizationWindowOpenedAt.getTime() + transportWaitSeconds * 1000;
   await publish('success', 'Exact-head atomic landing authorized');
   const immediatePreMerge = await request(`/pulls/${prNumber}`);
   const immediateMain = await request('/branches/main');
   const immediateStatuses = await request(`/commits/${expectedHeadSha}/status`);
   const immediateTimeline = await pages(`/issues/${prNumber}/timeline`);
   const immediateApprovalComments = await pages(`/issues/${prNumber}/comments`);
-  assertStableFinalReread(initial, immediatePreMerge, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: policy.no_merge_policy,
-  });
-  if (immediatePreMerge.base?.sha !== immediateMain?.commit?.sha || immediateMain.commit.sha !== initialMain.commit.sha) {
-    throw new Error('IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT');
+  const immediateMergeObserved = immediatePreMerge?.merged === true;
+  if (immediateMergeObserved) {
+    assertExactOwnerMergeDuringFinalReread(initial, immediatePreMerge, {
+      repository,
+      repositoryOwner,
+      expectedHeadSha,
+      expectedBaseSha,
+      noMergePolicy: policy.no_merge_policy,
+      notBefore: authorizationWindowOpenedAt.toISOString(),
+      notAfter: new Date(authorizationWindowDeadline).toISOString(),
+    });
+    if (immediateMain?.commit?.sha !== immediatePreMerge.merge_commit_sha) {
+      throw new Error('IMMEDIATE_EXACT_OWNER_MERGE_MAIN_MISMATCH');
+    }
+  } else {
+    assertStableFinalReread(initial, immediatePreMerge, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: policy.no_merge_policy,
+    });
+    if (immediatePreMerge.base?.sha !== immediateMain?.commit?.sha
+      || immediateMain.commit.sha !== initialMain.commit.sha) {
+      throw new Error('IMMEDIATE_PREMERGE_LIVE_MAIN_DRIFT');
+    }
   }
   const immediateAggregator = (immediateStatuses.statuses || []).find(value => value.context === scopePolicy.required_status_context);
   if (immediateAggregator?.state !== 'success') throw new Error('IMMEDIATE_PREMERGE_SCOPE_STATUS_DRIFT');
@@ -366,12 +502,13 @@ try {
     files: changedFileRecords,
     readJson: filename => readJsonAtRef(filename, expectedHeadSha),
     prBaseSha: immediatePreMerge.base.sha,
-    liveMainSha: immediateMain.commit.sha,
+    liveMainSha: initialMain.commit.sha,
   });
 
-  const immediateReady = selectLatestDirectOwnerReadyEvent({
+  const immediateReady = selectLatestLifecycleReadyEvent({
     timeline: immediateTimeline,
     repositoryOwner,
+    pullRequest: immediatePreMerge,
   });
   const immediateLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
     immediateReady,
@@ -387,6 +524,8 @@ try {
     prCreatedAt: immediatePreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: immediateReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(immediateProgramOwnerApproval, programOwnerApproval)) {
@@ -399,7 +538,11 @@ try {
     throw new Error('IMMEDIATE_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
 
-  await assertLiveOneUseConsumption(immediatePreMerge.base.sha, repositoryOwner);
+  await assertLiveOneUseConsumption(
+    immediatePreMerge.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
 
   const [finalPreMerge, finalPreMergeMain, finalPreMergeTimeline, finalPreMergeApprovalComments] = await Promise.all([
     request(`/pulls/${prNumber}`),
@@ -407,20 +550,37 @@ try {
     pages(`/issues/${prNumber}/timeline`),
     pages(`/issues/${prNumber}/comments`),
   ]);
-  assertStableFinalReread(initial, finalPreMerge, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: policy.no_merge_policy,
-  });
-  if (finalPreMerge.base?.sha !== finalPreMergeMain?.commit?.sha
-    || finalPreMergeMain.commit.sha !== initialMain.commit.sha) {
-    throw new Error('FINAL_PREMERGE_LIVE_MAIN_DRIFT');
+  const finalMergeObserved = finalPreMerge?.merged === true;
+  if (finalMergeObserved) {
+    assertExactOwnerMergeDuringFinalReread(initial, finalPreMerge, {
+      repository,
+      repositoryOwner,
+      expectedHeadSha,
+      expectedBaseSha,
+      noMergePolicy: policy.no_merge_policy,
+      notBefore: authorizationWindowOpenedAt.toISOString(),
+      notAfter: new Date(authorizationWindowDeadline).toISOString(),
+    });
+    if (finalPreMergeMain?.commit?.sha !== finalPreMerge.merge_commit_sha) {
+      throw new Error('FINAL_EXACT_OWNER_MERGE_MAIN_MISMATCH');
+    }
+  } else {
+    assertStableFinalReread(initial, finalPreMerge, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: policy.no_merge_policy,
+    });
+    if (finalPreMerge.base?.sha !== finalPreMergeMain?.commit?.sha
+      || finalPreMergeMain.commit.sha !== initialMain.commit.sha) {
+      throw new Error('FINAL_PREMERGE_LIVE_MAIN_DRIFT');
+    }
+    assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
   }
-  assertAtomicLandingMergeable(finalPreMerge, 'FINAL_PREMERGE_PULL_REQUEST_NOT_SERVER_MERGEABLE');
 
-  const finalPreMergeReady = selectLatestDirectOwnerReadyEvent({
+  const finalPreMergeReady = selectLatestLifecycleReadyEvent({
     timeline: finalPreMergeTimeline,
     repositoryOwner,
+    pullRequest: finalPreMerge,
   });
   const finalPreMergeLifecycleAuthority = assertLifecycleAuthorityAgainstReady(
     finalPreMergeReady,
@@ -436,6 +596,8 @@ try {
     prCreatedAt: finalPreMerge.created_at,
     headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
     latestReadyAt: finalPreMergeReady.created_at,
+    landingAttemptStartedAt: authorizationConsumption.currentRun.run_started_at
+      || authorizationConsumption.currentRun.created_at,
     evaluationTime: new Date().toISOString(),
   });
   if (!sameApproval(finalPreMergeProgramOwnerApproval, immediateProgramOwnerApproval)) {
@@ -447,20 +609,78 @@ try {
   if (!sameLifecycleAuthority(finalPreMergeLifecycleAuthority, immediateLifecycleAuthority)) {
     throw new Error('FINAL_PREMERGE_LIFECYCLE_AUTHORITY_DRIFT');
   }
+  await assertLiveOneUseConsumption(
+    finalPreMerge.base.sha,
+    repositoryOwner,
+    programOwnerApproval.comment_created_at,
+  );
 
-  const merged = await request(`/pulls/${prNumber}/merge`, {
-    method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({sha: expectedHeadSha, merge_method: 'merge'}),
-  });
-  if (merged?.merged !== true || !/^[0-9a-f]{40}$/.test(merged?.sha || '')) throw new Error('SERVER_ATOMIC_MERGE_NOT_CONFIRMED');
+  const transportWindowOpenedAt = finalMergeObserved
+    ? authorizationWindowOpenedAt
+    : new Date(Math.floor(Date.now() / 1000) * 1000);
+  const transportDeadline = finalMergeObserved
+    ? authorizationWindowDeadline
+    : Date.now() + transportWaitSeconds * 1000;
+  let mergedPr = null;
+  let postMergeMain = null;
+  if (finalMergeObserved) {
+    mergedPr = finalPreMerge;
+    postMergeMain = finalPreMergeMain;
+    await publish('success', 'Exact owner merge observed during final reread; validating post-merge binding');
+  } else {
+    await publish('success', `Direct Owner event-emitting merge window open for ${transportWaitSeconds}s`);
+    while (Date.now() <= transportDeadline) {
+      [mergedPr, postMergeMain] = await Promise.all([
+        request(`/pulls/${prNumber}`),
+        request('/branches/main'),
+      ]);
+      if (mergedPr?.merged === true) break;
+      if (mergedPr?.state !== 'open' || mergedPr?.draft === true
+        || mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
+        throw new Error('ATOMIC_EVENT_TRANSPORT_PR_DRIFT_DURING_WINDOW');
+      }
+      if (postMergeMain?.commit?.sha !== expectedBaseSha) {
+        // GitHub can expose main before the PR REST projection reports merged=true.
+        // Retry only this exact bound PR for a short consistency window.
+        for (let visibilityAttempt = 1; visibilityAttempt <= 10; visibilityAttempt += 1) {
+          await sleep(1000);
+          mergedPr = await request(`/pulls/${prNumber}`);
+          if (mergedPr?.merged === true) break;
+        }
+        if (mergedPr?.merged === true) break;
+        throw new Error('ATOMIC_EVENT_TRANSPORT_MAIN_MOVED_WITHOUT_BOUND_MERGE');
+      }
+      await sleep(5000);
+    }
+  }
+  if (mergedPr?.merged !== true) throw new Error('ATOMIC_EVENT_TRANSPORT_TIMEOUT_UNCONSUMED');
+  postMergeMain = await request('/branches/main');
+  if (mergedPr?.head?.sha !== expectedHeadSha || mergedPr?.base?.sha !== expectedBaseSha) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_IDENTITY_MISMATCH');
+  }
+  if (mergedPr?.merged_by?.login !== repositoryOwner) throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_BY_NON_OWNER');
+  const mergedAt = Date.parse(mergedPr?.merged_at || '');
+  if (!Number.isFinite(mergedAt) || mergedAt < transportWindowOpenedAt.getTime()
+    || mergedAt > transportDeadline) {
+    throw new Error('ATOMIC_EVENT_TRANSPORT_MERGED_OUTSIDE_WINDOW');
+  }
+  const mergeSha = mergedPr?.merge_commit_sha;
+  if (!/^[0-9a-f]{40}$/.test(mergeSha || '')) throw new Error('ATOMIC_EVENT_TRANSPORT_MERGE_SHA_INVALID');
+  if (postMergeMain?.commit?.sha !== mergeSha) throw new Error('POST_MERGE_MAIN_SHA_MISMATCH');
+  const mergeCommit = await request(`/git/commits/${mergeSha}`);
+  if (mergeCommit?.tree?.sha !== expectedHeadTreeSha) throw new Error('POST_MERGE_TREE_SHA_MISMATCH');
+  if (!Array.isArray(mergeCommit?.parents) || mergeCommit.parents.length !== 2
+    || mergeCommit.parents[0]?.sha !== expectedBaseSha
+    || mergeCommit.parents[1]?.sha !== expectedHeadSha) {
+    throw new Error('POST_MERGE_PARENT_BINDING_MISMATCH');
+  }
 
-  const postMergeMain = await request('/branches/main');
-  if (postMergeMain?.commit?.sha !== merged.sha) throw new Error('POST_MERGE_MAIN_SHA_MISMATCH');
+  const merged = {sha: mergeSha};
 
   const currentSoldChanged = currentSoldChangedFiles.length > 0;
   fs.appendFileSync(githubOutput, [
     `merge_commit_sha=${merged.sha}`,
+    `merged_at=${mergedPr.merged_at}`,
     `premerge_main_sha=${initial.base.sha}`,
     `merged_pr_head_sha=${expectedHeadSha}`,
     `pull_request_number=${prNumber}`,
@@ -474,8 +694,8 @@ try {
 
   console.log(JSON.stringify({
     id: 'kidults-atomic-governed-landing-receipt-v1',
-    version: '1.4.0',
-    state: currentSoldChanged ? 'MERGED_VERIFIED_POSTLANDING_REQUIRED' : 'MERGED_VERIFIED',
+    version: '1.5.0',
+    state: 'MERGE_COMMITTED_POSTMERGE_SUITE_REQUIRED',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
     exact_base_sha: initial.base.sha,
@@ -500,11 +720,18 @@ try {
     final_premerge_lifecycle_authority_reread: true,
     direct_owner_ready_event_bound: true,
     post_merge_main_reread: true,
-    server_side_expected_head_compare: true,
+    event_emitting_transport: eventEmittingTransport.transport,
+    merge_performed_by_workflow: false,
+    repository_github_token_merge_forbidden: true,
+    exact_head_tree_sha: expectedHeadTreeSha,
+    exact_merge_tree_verified: true,
+    exact_merge_parents_verified: true,
+    merged_by_direct_owner: true,
     no_merge_label_server_transactionality_claimed: false,
     native_contexts_verified: policy.bypass_policy.required_status_contexts,
     current_sold_changed_file_count: currentSoldChangedFiles.length,
-    post_landing_validation: currentSoldChanged ? 'REQUIRED_SAME_TRUSTED_JOB' : 'NOT_REQUIRED',
+    post_landing_validation: currentSoldChanged ? 'REQUIRED_SAME_TRUSTED_JOB' : 'NOT_APPLICABLE',
+    exact_merge_sha_push_suite: 'REQUIRED_BEFORE_TERMINAL_PASS',
     public_release: 'HOLD', production: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {

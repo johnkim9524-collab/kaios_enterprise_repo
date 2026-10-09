@@ -4,14 +4,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
+import { classifyUpstreamAuditHealth } from './continuous-assurance-upstream-health-v1.mjs';
 
 const DEFAULT_CONTRACT = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const SHA_PATTERN = /^[a-f0-9]{40}$/;
 const DIGEST_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const POSITIVE_INTEGER_PATTERN = /^[1-9][0-9]*$/;
 const CLASS_PATTERN = /^[A-Z][A-Z0-9_]{2,95}$/;
-const DIRECT_EVENTS = new Set(['push', 'pull_request', 'schedule', 'workflow_dispatch']);
-const UPSTREAM_EVENTS = new Set(['push', 'pull_request', 'workflow_run', 'schedule', 'workflow_dispatch']);
+const DIRECT_EVENTS = new Set(['push', 'pull_request', 'schedule', 'repository_dispatch', 'workflow_dispatch']);
+const UPSTREAM_EVENTS = new Set(['push', 'pull_request', 'workflow_run', 'schedule', 'repository_dispatch', 'workflow_dispatch']);
 
 function fail(code, detail = '') {
   throw new Error(detail ? `${code}:${detail}` : code);
@@ -73,8 +74,16 @@ export function validateCanonicalIdentityContract(contract) {
   if (contract.non_success_policy?.dedupe_eligible !== false || contract.non_success_policy?.generation_discriminator !== 'UPSTREAM_RUN_ID_ATTEMPT_CONCLUSION') {
     fail('NON_SUCCESS_POLICY_INVALID');
   }
+  const expectedSkipPaths = contract.expected_workflow_run_skip_paths;
+  const exactExpectedSkipPaths = [
+    '.github/workflows/kidults-asi-intelligence-preparation-wave-v1.yml',
+    '.github/workflows/kidults-asi-p0-mission-consumption-v1.yml',
+  ];
+  if (!Array.isArray(expectedSkipPaths) || stableJson([...expectedSkipPaths].sort()) !== stableJson(exactExpectedSkipPaths.sort())) {
+    fail('EXPECTED_WORKFLOW_RUN_SKIP_PATHS_INVALID');
+  }
   const allowlist = contract.workflow_run_class_allowlist;
-  if (!Array.isArray(allowlist) || allowlist.length !== 19) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
+  if (!Array.isArray(allowlist) || allowlist.length !== 20) fail('WORKFLOW_CLASS_ALLOWLIST_COUNT');
   const names = new Set();
   const pairs = new Set();
   const paths = new Set();
@@ -182,6 +191,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
   let logicalSlotValue = null;
   let specialExactArtifactClass = false;
   let ephemeralActionsAliasEligible = false;
+  let upstreamAuditHealth = null;
 
   if (eventName === 'workflow_run') {
     const workflowName = required(input.upstream_workflow_name, 'UPSTREAM_WORKFLOW_NAME_REQUIRED');
@@ -194,6 +204,7 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     const conclusion = required(input.upstream_conclusion, 'UPSTREAM_CONCLUSION_REQUIRED');
     if (!contract.terminal_conclusions.includes(conclusion)) fail('UPSTREAM_CONCLUSION_INVALID', conclusion);
     upstreamClass = entry.upstream_class;
+    upstreamAuditHealth = classifyUpstreamAuditHealth({ workflowPath, workflowEvent: upstreamEvent, conclusion }, contract);
     specialExactArtifactClass = contract.special_exact_artifact_classes.includes(upstreamClass);
     terminalObservation = conclusion !== 'success';
     dedupeEligible = !terminalObservation;
@@ -208,6 +219,10 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
       generationKind = contract.workflow_run_success_generation_rules.schedule;
       logicalSlotValue = logicalSlot(input.upstream_created_at, contract.logical_schedule_slot_minutes, 'UPSTREAM_CREATED_AT_REQUIRED');
       generationDiscriminator = `upstream-schedule-slot:${logicalSlotValue}`;
+    } else if (upstreamEvent === 'repository_dispatch') {
+      generationKind = contract.workflow_run_success_generation_rules.repository_dispatch;
+      generationDiscriminator = `upstream-external-clock-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
+      dedupeEligible = false;
     } else if (upstreamEvent === 'workflow_dispatch') {
       generationKind = contract.workflow_run_success_generation_rules.workflow_dispatch;
       generationDiscriminator = `upstream-manual-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
@@ -239,6 +254,15 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     generationKind = contract.direct_event_generation_rules.schedule;
     logicalSlotValue = logicalSlot(input.observed_at, contract.logical_schedule_slot_minutes, 'OBSERVED_AT_REQUIRED');
     generationDiscriminator = `assurance-schedule:${required(input.schedule_expression, 'SCHEDULE_EXPRESSION_REQUIRED')}:slot:${logicalSlotValue}`;
+    dedupeEligible = true;
+    terminalObservation = false;
+  } else if (eventName === 'repository_dispatch') {
+    const dispatchId=required(input.natural_clock_dispatch_id,'NATURAL_CLOCK_DISPATCH_ID_REQUIRED');
+    if(!/^kidults-natural-clock-v1:ASSURANCE:[a-f0-9]{40}:[A-Za-z0-9_-]{32,128}$/.test(dispatchId)) fail('NATURAL_CLOCK_DISPATCH_ID_INVALID');
+    upstreamClass = 'ASSURANCE_EXTERNAL_NATURAL_CLOCK';
+    generationKind = contract.direct_event_generation_rules.repository_dispatch;
+    logicalSlotValue = logicalSlot(input.natural_clock_issued_at, contract.logical_schedule_slot_minutes, 'NATURAL_CLOCK_ISSUED_AT_REQUIRED');
+    generationDiscriminator = `assurance-external-clock:${dispatchId}:slot:${logicalSlotValue}`;
     dedupeEligible = true;
     terminalObservation = false;
   } else if (eventName === 'workflow_dispatch') {
@@ -317,6 +341,8 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     special_exact_artifact_class: specialExactArtifactClass,
     ephemeral_actions_alias_eligible: ephemeralActionsAliasEligible,
     upstream,
+    upstream_audit_conclusion_acceptable: upstreamAuditHealth?.acceptable ?? true,
+    upstream_audit_disposition: upstreamAuditHealth?.disposition ?? 'DIRECT_EVENT_NOT_APPLICABLE',
     runtime_dedupe_state: contract.runtime_dedupe.state,
     leader_election_authority: contract.runtime_dedupe.leader_election_authority,
     ephemeral_actions_guard_state: contract.runtime_dedupe.ephemeral_actions_guard.state,
@@ -370,6 +396,8 @@ function emitGithubOutputs(receipt) {
     canonical_input_digest: receipt.canonical_input_digest,
     dedupe_eligible: String(receipt.dedupe_eligible),
     terminal_observation_non_dedupable: String(receipt.terminal_observation_non_dedupable),
+    upstream_audit_conclusion_acceptable: String(receipt.upstream_audit_conclusion_acceptable),
+    upstream_audit_disposition: receipt.upstream_audit_disposition,
     special_exact_artifact_class: String(receipt.special_exact_artifact_class),
     ephemeral_actions_alias_eligible: String(receipt.ephemeral_actions_alias_eligible),
     runtime_dedupe_state: receipt.runtime_dedupe_state,
@@ -400,6 +428,8 @@ async function main() {
       upstream_run_attempt: process.env.KPMO_UPSTREAM_RUN_ATTEMPT,
       upstream_conclusion: process.env.KPMO_UPSTREAM_CONCLUSION,
       upstream_created_at: process.env.KPMO_UPSTREAM_CREATED_AT,
+      natural_clock_dispatch_id: process.env.KPMO_NATURAL_CLOCK_DISPATCH_ID,
+      natural_clock_issued_at: process.env.KPMO_NATURAL_CLOCK_ISSUED_AT,
     }, contract, contractText);
     writeOutput(args.output, receipt);
     emitGithubOutputs(receipt);

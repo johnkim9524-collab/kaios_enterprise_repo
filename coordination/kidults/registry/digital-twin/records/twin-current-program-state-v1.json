@@ -47,7 +47,8 @@
     "B": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     "C": "ACTIVE",
     "D": "SHADOW_RUNTIME_FOUNDATION_ACTIVE",
-    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE"
+    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE",
+    "R": "IMPLEMENTED_NOT_VERIFIED"
   },
   "mission_states": {
     "mission-track-a-first-canonical-snapshot": "HANDOFF_SUBMITTED",
@@ -67,7 +68,7 @@
     "blocker-live-approved-projection-gap"
   ],
   "open_decision_count": 0,
-  "generated_at": "2026-08-19T01:45:29.818Z",
+  "generated_at": "2026-10-08T11:07:51.479Z",
   "generated_from": [
     "coordination/kidults/registry/projection/index.json",
     "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"

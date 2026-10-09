@@ -1,12 +1,45 @@
 {
   "policy_id": "KIDULTS_CLOUDFLARE_WORKER_ESTATE_POLICY_V1",
-  "as_of": "2026-08-25T12:38:00+09:00",
+  "as_of": "2026-09-05T16:00:00+09:00",
   "canonical_keep": [
     "kidults",
     "kidults-autonomous-intelligence"
   ],
   "temporary_staging_keep": [
     "kidults-workspace-staging"
+  ],
+  "temporary_staging_lifecycle": {
+    "kidults-workspace-staging": {
+      "current_state": "KEEP_FROZEN",
+      "role": "CONTROLLED_REMOTE_PORTAL_VALIDATION_SURFACE",
+      "is_platform_product_asset": false,
+      "is_platform_production_surface": false,
+      "automatic_deployments": "DISABLED",
+      "preview_deployments_expected": 0,
+      "mutation_state": "HOLD_UNLESS_SEPARATELY_AUTHORIZED",
+      "retirement_target": "AFTER_PLATFORM_PRODUCTION_STABILIZATION",
+      "retirement_preconditions": [
+        "PLATFORM_PRODUCTION_CUTOVER_COMPLETED",
+        "PRODUCTION_SMOKE_AND_E2E_VERIFIED",
+        "STAGING_RUNTIME_ROUTE_DOMAIN_AND_SERVICE_DEPENDENCIES_ZERO",
+        "STAGING_REQUIRED_VALIDATION_DEPENDENCIES_ZERO",
+        "OBSERVE_24H_PASS",
+        "OBSERVE_72H_PASS",
+        "FINAL_INVENTORY_AND_DEPENDENCY_PROOF_PASS"
+      ],
+      "retirement_sequence_ref": "retirement_sequence",
+      "delete_before_preconditions": "PROHIBITED",
+      "post_delete_requirement": "POST_DELETE_SMOKE_TEST",
+      "production_public_g5_effect": "NONE"
+    }
+  },
+  "platform_assets_preserved_independently_of_staging": [
+    "KIDULTS Portal",
+    "KIDULTS Workspace",
+    "KIDULTS Intelligence Runtime (KIR)",
+    "Registry and Evidence chain",
+    "Track B validation chain",
+    "Projection chain"
   ],
   "inspect_before_decision": [
     "kidults-autonomous-intelligence-dev",

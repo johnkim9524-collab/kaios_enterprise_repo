@@ -52,6 +52,7 @@ import {
   buildRetryRecord,
   buildRollbackRecord,
   rollbackAllowsContinuation,
+  classifyActivationAvailability,
   createMetrics,
   buildCycleEvidence,
 } from './lib/autonomous-production-runtime.mjs';
@@ -411,10 +412,12 @@ async function runProductionRuntimeCycle() {
 
   if (activationResult.eligibleCount === 0) {
     warn('ACTIVATION_CHECK', 'No eligible targets for this cycle — halting gracefully');
-    currentState = transition(currentState, RuntimeState.FAILED_CLOSED);
+    const availability = classifyActivationAvailability(activationResult.eligibleCount);
+    currentState = transition(currentState, availability.state);
     failureClass = FailureClass.POLICY;
-    failureReason = 'no-eligible-targets-for-cycle';
+    failureReason = availability.reason;
     metrics.activation_denials++;
+    metrics.halt_count++;
     return finalize(currentState, metrics, targetResults, rollback, retryRecords, failureClass, failureReason, a24EvidenceRef, healthDimensions, overallHealth, bounds, runtimePolicy);
   }
 

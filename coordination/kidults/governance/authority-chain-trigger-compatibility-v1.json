@@ -1,0 +1,26 @@
+{
+  "id": "kidults-authority-chain-trigger-compatibility-v1",
+  "version": "1.1.0",
+  "status": "ACTIVE_MANDATORY_FAIL_CLOSED",
+  "allowed_events": ["workflow_run", "workflow_dispatch"],
+  "requirements": {
+    "producer_event_registered": true,
+    "consumer_event_registered": true,
+    "producer_consumer_event_equal": true,
+    "exact_triggering_run_bound": true,
+    "relay_edges_are_explicit_and_receipt_bound": true
+  },
+  "relay_edges": [
+    {
+      "id": "coverage-to-sentinel-authenticated-continuation-v1",
+      "producer_event": "workflow_run",
+      "consumer_event": "workflow_dispatch",
+      "producer_workflow_path": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+      "consumer_workflow_path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+      "event_type": "kidults.assurance.continuation.v1",
+      "exact_triggering_run_bound": true,
+      "authenticated_receipt_bound": true
+    }
+  ],
+  "authority_boundary": {"production": "HOLD", "public": "HOLD", "g5": "HOLD"}
+}

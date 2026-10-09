@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   GateFailure,
+  assertDraftReadyPostMutation,
+  assertDraftReadyTransitionCandidate,
+  assertExactOwnerMergeDuringFinalReread,
+  assertTerminalNonAuthorizingPullRequest,
   assertPromotablePullRequest,
   assertStableFinalReread,
   resolveScopeRequirements,
@@ -11,6 +15,7 @@ import {
   assertLandingActorAndAuthorization,
   selectExactHeadProgramOwnerApproval,
   selectLatestProgramOwnerReadyEvent,
+  validateDraftReadyBrokerResponse,
 } from '../../../scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
 
 const sha = 'a'.repeat(40);
@@ -24,8 +29,16 @@ const basePr = () => ({
   title: 'Correct ARL provenance',
   labels: [],
   updated_at: '2026-08-29T08:50:00Z',
-  base: {ref: 'main'},
+  base: {ref: 'main', sha: baseSha},
   head: {sha, repo: {full_name: repository}},
+});
+const mergedPr = () => ({
+  ...basePr(),
+  state: 'closed',
+  merged: true,
+  merged_by: {login: 'johnkim9524-collab'},
+  merged_at: '2026-09-01T01:30:10Z',
+  merge_commit_sha: 'c'.repeat(40),
 });
 const noMergePolicy = {
   closed_pull_request_blocks: true,
@@ -57,6 +70,134 @@ test('close/NO-MERGE race between initial and final read is rejected', () => {
 test('head replacement between initial and final read is rejected', () => {
   const final = basePr(); final.head.sha = 'b'.repeat(40);
   code(() => assertStableFinalReread(basePr(), final, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('closed or merged final lifecycle states can be classified without regranting authority', () => {
+  assert.equal(assertTerminalNonAuthorizingPullRequest(mergedPr(), options).merge_commit_sha, 'c'.repeat(40));
+  const closed = basePr(); closed.state = 'closed';
+  assert.equal(assertTerminalNonAuthorizingPullRequest(closed, options).merged, false);
+  const wrongHead = mergedPr(); wrongHead.head.sha = 'd'.repeat(40);
+  code(() => assertTerminalNonAuthorizingPullRequest(wrongHead, options), 'PULL_REQUEST_HEAD_CHANGED');
+});
+
+test('draft ready transition requires exact draft, repo, base, head, and trigger binding', () => {
+  const draft = {...basePr(), draft: true, node_id: 'PR_node_1'};
+  assert.equal(assertDraftReadyTransitionCandidate(draft, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: true,
+  }).node_id, 'PR_node_1');
+  code(() => assertDraftReadyTransitionCandidate(draft, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: false,
+  }), 'DRAFT_READY_TRIGGER_DRAFT_REQUIRED');
+  code(() => assertDraftReadyTransitionCandidate({...draft, base: {ref: 'main', sha: 'c'.repeat(40)}}, {
+    repository,
+    expectedPullRequestNumber: 1580,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    expectedTriggerDraft: true,
+  }), 'DRAFT_READY_BASE_DRIFT');
+});
+
+test('draft ready broker token validation rejects substitution, identity drift, and missing minimum permissions', () => {
+  const githubToken = 'workflow-token-abcdefghijklmnopqrstuvwxyz';
+  const response = {
+    ok: true,
+    token_type: 'GITHUB_APP_INSTALLATION',
+    permission_profile: 'DRAFT_READY_TRANSITION',
+    repository,
+    repository_id: '321',
+    app_id: '654',
+    installation_id: '987',
+    permissions: ['pull_requests:write', 'metadata:read'],
+    expires_at: '2026-09-01T03:00:00Z',
+    token: 'installation-token-1234567890',
+  };
+  assert.equal(validateDraftReadyBrokerResponse(response, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }).permission_profile, 'DRAFT_READY_TRANSITION');
+  code(() => validateDraftReadyBrokerResponse({...response, token: githubToken}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_GITHUB_TOKEN_SUBSTITUTION_FORBIDDEN');
+  code(() => validateDraftReadyBrokerResponse({...response, installation_id: '111'}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_INSTALLATION_REPOSITORY_MISMATCH');
+  code(() => validateDraftReadyBrokerResponse({...response, permissions: ['pull_requests:read', 'metadata:read']}, {
+    repository,
+    repositoryId: '321',
+    appId: '654',
+    installationId: '987',
+    githubToken,
+  }), 'DRAFT_READY_INSTALLATION_PERMISSION_INSUFFICIENT');
+});
+
+test('draft ready post-mutation reread fails closed on identity or lifecycle drift', () => {
+  const before = {number: 1580, node_id: 'PR_node_1'};
+  const after = {...basePr(), draft: false, node_id: 'PR_node_1'};
+  assert.equal(assertDraftReadyPostMutation(before, after, {
+    repository,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+  }).draft, false);
+  code(() => assertDraftReadyPostMutation(before, {...after, node_id: 'PR_node_2'}, {
+    repository,
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+  }), 'DRAFT_READY_POST_MUTATION_DRIFT');
+});
+
+test('exact owner merge during the final reread is accepted only inside the authorization window', () => {
+  const result = assertExactOwnerMergeDuringFinalReread(basePr(), mergedPr(), {
+    repository,
+    repositoryOwner: 'johnkim9524-collab',
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    noMergePolicy,
+    notBefore: '2026-09-01T01:30:00Z',
+    notAfter: '2026-09-01T01:31:00Z',
+  });
+  assert.equal(result.exact_owner_merge_observed_during_final_reread, true);
+  assert.equal(result.final.merge_commit_sha, 'c'.repeat(40));
+});
+
+test('final-reread merge tolerance rejects actor, identity, policy, and time drift', () => {
+  const mergeOptions = {
+    repository,
+    repositoryOwner: 'johnkim9524-collab',
+    expectedHeadSha: sha,
+    expectedBaseSha: baseSha,
+    noMergePolicy,
+    notBefore: '2026-09-01T01:30:00Z',
+    notAfter: '2026-09-01T01:31:00Z',
+  };
+  const nonOwner = mergedPr(); nonOwner.merged_by.login = 'automation-bot';
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), nonOwner, mergeOptions), 'FINAL_REREAD_MERGED_BY_NON_OWNER');
+  const wrongHead = mergedPr(); wrongHead.head.sha = 'd'.repeat(40);
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), wrongHead, mergeOptions), 'FINAL_REREAD_MERGED_HEAD_MISMATCH');
+  const wrongBase = mergedPr(); wrongBase.base.sha = 'e'.repeat(40);
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), wrongBase, mergeOptions), 'FINAL_REREAD_MERGED_BASE_MISMATCH');
+  const held = mergedPr(); held.labels = [{name: 'no-merge'}];
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), held, mergeOptions), 'FINAL_REREAD_NO_MERGE_BLOCKED');
+  const late = mergedPr(); late.merged_at = '2026-09-01T01:31:01Z';
+  code(() => assertExactOwnerMergeDuringFinalReread(basePr(), late, mergeOptions), 'FINAL_REREAD_MERGE_OUTSIDE_AUTHORIZED_WINDOW');
 });
 
 test('deterministic LAND input does not substitute for live repository-owner actor', () => {
@@ -103,8 +244,8 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
     user: {login: 'johnkim9524-collab'},
     author_association: 'OWNER',
     performed_via_github_app: null,
-    created_at: '2026-09-01T01:10:00Z',
-    updated_at: '2026-09-01T01:10:00Z',
+    created_at: '2026-09-01T01:25:00Z',
+    updated_at: '2026-09-01T01:25:00Z',
     ...overrides,
   });
   const input = {
@@ -117,6 +258,7 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
     prCreatedAt: '2026-09-01T00:00:00Z',
     headCommittedAt: '2026-09-01T01:00:00Z',
     latestReadyAt: '2026-09-01T01:20:00Z',
+    landingAttemptStartedAt: '2026-09-01T01:29:00Z',
     evaluationTime: '2026-09-01T01:30:00Z',
   };
   const selected = selectExactHeadProgramOwnerApproval([comment(1, sha)], input);
@@ -125,21 +267,28 @@ test('exact-head Program Owner approval cannot be inherited, app-mediated, expir
   assert.equal(selected.raw_authorization_persisted, false);
   assert.equal(selected.raw_nonce_persisted, false);
   code(() => selectExactHeadProgramOwnerApproval([], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
-  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha), comment(2, 'c'.repeat(40), {
-    created_at: '2026-09-01T01:11:00Z', updated_at: '2026-09-01T01:11:00Z',
-  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_HEAD_MISMATCH');
+  code(() => selectExactHeadProgramOwnerApproval([comment(2, 'c'.repeat(40), {
+    created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z',
+  })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_MISSING');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     updated_at: '2026-09-01T01:12:00Z',
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EDITED');
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     performed_via_github_app: {id: 1144995, slug: 'chatgpt-codex-connector'},
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED');
+  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T01:10:00Z', updated_at: '2026-09-01T01:10:00Z',
+  })], input).exact_head_sha, sha);
+  assert.equal(selectExactHeadProgramOwnerApproval([comment(1, sha, {
+    created_at: '2026-09-01T01:20:00Z', updated_at: '2026-09-01T01:20:00Z',
+  })], input).exact_head_sha, sha);
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
-    created_at: '2026-09-01T00:59:00Z', updated_at: '2026-09-01T00:59:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_PRECEDES_EXACT_HEAD');
-  code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
-    created_at: '2026-09-01T01:21:00Z', updated_at: '2026-09-01T01:21:00Z',
-  })], input), 'PROGRAM_OWNER_APPROVAL_MUST_PRECEDE_READY_EVENT');
+    created_at: '2026-09-01T01:29:00Z', updated_at: '2026-09-01T01:29:00Z',
+  })], input), 'PROGRAM_OWNER_APPROVAL_NOT_BEFORE_LANDING_ATTEMPT');
+  assert.equal(selectExactHeadProgramOwnerApproval([
+    comment(1, sha),
+    comment(2, sha, {created_at: '2026-09-01T01:26:00Z', updated_at: '2026-09-01T01:26:00Z'}),
+  ], input).comment_id, 2);
   code(() => selectExactHeadProgramOwnerApproval([comment(1, sha, {
     body: approvalBody(sha, {expiresAt: '2026-09-01T03:00:01Z'}),
   })], input), 'PROGRAM_OWNER_EXACT_HEAD_APPROVAL_EXPIRY_WINDOW_INVALID');

@@ -13,27 +13,37 @@ const runHistoryPath = 'scripts/kidults/source-intelligence/resolve-asi-orchestr
 function failuresFor(workflowSource, builderSource, runHistorySource) {
   const failures = [];
   const required = [
-    "run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || format('recovery-{0}', github.sha) }}",
+    "run-name: KIDULTS ARL / ${{ github.event_name == 'workflow_run' && format('p1-{0}', github.event.workflow_run.id) || github.event_name == 'workflow_dispatch' && format('p1-{0}', inputs.p1_run_id) || format('recovery-{0}', github.sha) }}",
+    'p1_run_id:',
+    'description: Exact successful protected-main P1 workflow_dispatch run ID',
     "group: kidults-asi-autonomous-resolution-layer-v1-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha }}",
     'cancel-in-progress: false',
-    'request-p1-recovery:',
-    "if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'",
-    "artifact_role:'RECOVERY_NON_CONSUMABLE'",
-    'authoritative_producer:false',
-    'downstream_consumable:false',
-    'canonical_artifact_published:false',
-    "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'",
-    'UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}',
-    'UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}',
+    'classify-p1-generation:',
+    "CURRENT_MAIN_SHA=$(gh api -H 'Accept: application/vnd.github+json'",
+    'classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"',
+    "steps.classify.outputs.classification != 'CURRENT_MAIN_EXACT'",
+    'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}',
+    'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error',
+    "if: github.event_name == 'workflow_run' || github.event_name == 'workflow_dispatch'",
+    "always() && (github.event_name == 'workflow_dispatch' ||",
+    "needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'",
+    "UPSTREAM_RUN_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.p1_run_id || github.event.workflow_run.id }}",
+    "UPSTREAM_HEAD_SHA: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}",
+    'EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED',
+    '.event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha',
     "test \"$UPSTREAM_PATH\" = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'",
     '/actions/runs/${P1_RUN_ID}',
     '/actions/runs/${P1_RUN_ID}/artifacts?per_page=100',
     'test \"$P1_ARTIFACT_COUNT\" = 1',
+    'test \"$P0B_ARTIFACT_COUNT\" = 1',
+    "artifact.name==='kidults-asi-p0b-bounded-discovery-candidates-v1'",
+    'p0b_artifact_digest:process.env.P0B_DIGEST',
+    'transactionally_paired_artifacts:true',
     'artifact.workflow_run?.id===Number(process.env.P1_RUN_ID)',
     'artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA',
     'artifact_digest:process.env.P1_DIGEST',
     'exact_generation_bound:true',
-    "exact_triggering_run_bound:process.env.GITHUB_EVENT_NAME==='workflow_run'",
+    "exact_triggering_run_bound:['workflow_run','workflow_dispatch'].includes(process.env.GITHUB_EVENT_NAME)",
     'validation_only:process.env.P1_VALIDATION_ONLY',
     'promotion_authority:false',
     'artifact_cardinality:1',
@@ -42,6 +52,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '-f created="$CREATED_WINDOW" -f per_page=100 -f page="$ARL_HISTORY_PAGE"',
     '--mode arl-generation-pages',
     'validate-safe-zip-archive-v1.py',
+    '--expected-digest "$P0B_DIGEST"',
+    '--receipt /tmp/p0b-archive-validation-receipt-v1.json',
+    '--required-basename p0b-source-candidate-registry-v1.json',
+    '--required-basename p0b-mission-candidate-binding-ledger-v1.json',
     '--expected-digest "$P1_DIGEST"',
     '--receipt /tmp/p1-archive-validation-receipt-v1.json',
     '--required-basename p1-preflight-action-queue-v1.json',
@@ -70,9 +84,10 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     'MAX_ARL_HISTORY_PAGES = 20',
     'pagination_reconciled_complete: true',
   ]) if (!runHistorySource.includes(marker)) failures.push(`missing run-history marker: ${marker}`);
-  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) {
-    failures.push('P1 safe ZIP validation must precede extraction');
-  }
+  if (workflowSource.indexOf('--expected-digest "$P0B_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p0b.zip')) failures.push('P0B safe ZIP validation must precede extraction');
+  if (workflowSource.indexOf('--expected-digest "$P1_DIGEST"') > workflowSource.indexOf('unzip -q -o /tmp/p1.zip')) failures.push('P1 safe ZIP validation must precede extraction');
+  const p1ValidationBlock = workflowSource.slice(workflowSource.indexOf('--archive /tmp/p1.zip'), workflowSource.indexOf('unzip -q -o /tmp/p1.zip'));
+  if (p1ValidationBlock.includes('--required-basename p0b-')) failures.push('P0B files must not be required from the P1 archive');
 
   const forbidden = [
     'git merge-base --is-ancestor',
@@ -80,11 +95,13 @@ function failuresFor(workflowSource, builderSource, runHistorySource) {
     '/actions/artifacts?per_page=100',
     'group: kidults-asi-autonomous-resolution-layer-v1-${{ github.ref }}',
     "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch'",
-    "artifact_role:'RECOVERY_NON_CONSUMABLE',authoritative_producer:true"
+    "artifact_role:'RECOVERY_NON_CONSUMABLE',authoritative_producer:true",
+    '/kidults-asi-p1-source-preflight-v1.yml/dispatches'
   ];
   for (const marker of forbidden) {
     if (workflowSource.includes(marker)) failures.push(`forbidden provenance marker: ${marker}`);
   }
+  if (/^  schedule:/m.test(workflowSource)) failures.push('forbidden automatic provider recovery trigger');
   if (builderSource.includes('KIDULTS_ARL_RUNTIME_LINEAGE_MODE')) {
     failures.push('forbidden runtime-lineage bypass marker: KIDULTS_ARL_RUNTIME_LINEAGE_MODE');
   }
@@ -107,17 +124,21 @@ const workflowMutations = [
   ["test \"$UPSTREAM_PATH\" = '.github/workflows/kidults-asi-p1-source-preflight-v1.yml'", 'test -n "$UPSTREAM_PATH"', 'producer workflow identity'],
   ["github.event_name == 'workflow_run' && github.event.workflow_run.id || github.sha", 'github.sha', 'workflow_run generation leadership'],
   ['artifact.workflow_run?.head_sha===process.env.P1_SOURCE_SHA', 'true', 'artifact source SHA binding'],
-  ["artifact_role:'RECOVERY_NON_CONSUMABLE'", "artifact_role:'AUTHORITATIVE_CONSUMABLE'", 'recovery artifact non-consumability'],
-  ["resolve-current-p1-actions:\n    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'", "resolve-current-p1-actions:\n    if: github.event_name == 'workflow_dispatch'", 'canonical producer event boundary'],
+  ["always() && (github.event_name == 'workflow_dispatch' ||", "always() && (github.event_name == 'push' ||", 'canonical producer event boundary'],
+  ['EXACT_P1_WORKFLOW_DISPATCH_INPUT_VERIFIED', 'UNVERIFIED_P1_WORKFLOW_DISPATCH_INPUT', 'direct P1 input provenance'],
+  ['.event=="workflow_dispatch" and .head_branch=="main" and .head_sha==$sha', '.head_branch=="main" and .head_sha==$sha', 'direct P1 event binding'],
   ['--expected-digest "$P1_DIGEST"', '--expected-digest "sha256:unbound"', 'pre-extraction archive digest binding'],
   ['--required-basename p1-preflight-action-queue-v1.json', '--required-basename unbound.json', 'pre-extraction required-file cardinality'],
+  ["needs.classify-p1-generation.outputs.classification == 'CURRENT_MAIN_EXACT'", "needs.classify-p1-generation.outputs.classification != 'INVALID_TRIGGER'", 'current-main classifier authority gate'],
+  ['classify-workflow-run-generation-v1.mjs             "$GITHUB_EVENT_PATH"', 'node scripts/kidults/source-intelligence/classify-workflow-run-generation-bypassed-v1.mjs \\\n            "$GITHUB_EVENT_PATH"', 'generation classifier invocation'],
+  ['kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\n          path: /tmp/arl-p1-generation-classification-v1.json\n          retention-days: 90\n          if-no-files-found: error', 'kidults-asi-arl-p1-generation-classification-v1-${{ github.run_id }}-${{ github.run_attempt }}\\n          path: /tmp/arl-p1-generation-classification-v1.json\\n          retention-days: 90\\n          if-no-files-found: ignore', 'classification receipt retention'],
 ];
 for (const [from, to, label] of workflowMutations) {
   if (!workflowSource.includes(from)) {
     console.error(`Autonomous Resolution provenance self-test fixture missing: ${label}`);
     process.exit(2);
   }
-  if (failuresFor(workflowSource.replace(from, to), builderSource, runHistorySource).length === 0) {
+  if (failuresFor(workflowSource.replaceAll(from, to), builderSource, runHistorySource).length === 0) {
     console.error(`Autonomous Resolution provenance self-test failed to reject: ${label}`);
     process.exit(3);
   }
@@ -204,11 +225,11 @@ console.log(JSON.stringify({
   exact_artifact_cardinality: true,
   producer_workflow_path_bound: true,
   recovery_artifact_non_consumable: true,
-  canonical_producer_event: 'workflow_run',
+  canonical_producer_events: ['workflow_run', 'workflow_dispatch_exact_p1_input'],
   exact_generation_leader_serialized: true,
   duplicate_authoritative_producer_rejected: true,
   transitive_p0b_to_p1_to_arl_runtime_lineage: true,
-  manual_schedule_push_p1_artifacts_rejected: true,
+  unbound_manual_schedule_push_p1_artifacts_rejected: true,
   ancestor_fallback: false,
   validation_only_non_promotable: true,
   public_release: 'HOLD',

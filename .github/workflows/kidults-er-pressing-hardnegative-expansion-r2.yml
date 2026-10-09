@@ -17,6 +17,7 @@ permissions:
   contents: read
 jobs:
   expand-hard-negatives:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

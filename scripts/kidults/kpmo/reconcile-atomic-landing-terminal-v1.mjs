@@ -2,12 +2,16 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {isDeepStrictEqual} from 'node:util';
+import {buildAtomicDispatchTerminalReceipt} from './initialize-atomic-dispatch-terminal-receipt-v1.mjs';
 
 const mode = process.argv[2];
 const repository = process.env.GH_REPOSITORY || process.env.GITHUB_REPOSITORY;
 const token = process.env.GH_TOKEN || '';
 const prNumber = process.env.PR_NUMBER;
+const expectedBaseSha = process.env.EXPECTED_BASE_SHA;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+const expectedHeadTreeSha = process.env.EXPECTED_HEAD_TREE_SHA;
 const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
 const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR || null;
 const landingRunId = process.env.GITHUB_RUN_ID;
@@ -15,9 +19,14 @@ const landingRunAttempt = process.env.GITHUB_RUN_ATTEMPT;
 const runnerTemp = process.env.RUNNER_TEMP || '/tmp';
 const receiptPath = process.env.ATOMIC_LANDING_TERMINAL_RECEIPT_PATH || path.join(runnerTemp, 'kidults-atomic-landing-terminal', 'receipt.json');
 const consumptionPath = process.env.ATOMIC_LANDING_CONSUMPTION_PATH || path.join(runnerTemp, 'kidults-atomic-landing-consumption', 'receipt.json');
+const transportReceiptPath = process.env.ATOMIC_EVENT_TRANSPORT_RECEIPT_PATH
+  || path.join(runnerTemp, 'kpmo-atomic-landing', 'event-transport-availability.json');
 const postLandingReceiptPath = process.env.CURRENT_SOLD_RECEIPT_PATH || 'out/current-sold-postlanding/receipt.json';
 const landingOutcome = process.env.LANDING_STEP_OUTCOME || null;
 const postLandingOutcome = process.env.CURRENT_SOLD_POSTLANDING_OUTCOME || null;
+const postMergeSuiteOutcome = process.env.ATOMIC_POSTMERGE_PUSH_SUITE_OUTCOME || null;
+const postMergeSuiteReceiptPath = process.env.ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH
+  || path.join(runnerTemp, 'kidults-atomic-landing-postmerge', 'receipt.json');
 const landingCurrentSoldChanged = process.env.CURRENT_SOLD_CHANGED || null;
 const shaPattern = /^[0-9a-f]{40}$/;
 const digestPattern = /^[0-9a-f]{64}$/;
@@ -32,11 +41,33 @@ function assert(condition, code) {
   }
 }
 
+// Retain the earliest source/identity rejection before token, lifecycle or API gates.
+// Recompute against this exact invocation; a copied or modified packet cannot be
+// used to authorize anything or silently replace the diagnostic of another run.
+if (mode === '--finalize' && fs.existsSync(receiptPath)) {
+  const metadata = fs.lstatSync(receiptPath);
+  assert(metadata.isFile() && !metadata.isSymbolicLink() && metadata.nlink === 1
+    && metadata.size <= 65536, 'ATOMIC_DISPATCH_REJECTION_FILE_INVALID');
+  const prior = JSON.parse(fs.readFileSync(receiptPath, 'utf8'));
+  if (prior.version === '2.5.0' && prior.terminal_class === 'PREMUTATION_DISPATCH_REJECTED') {
+    const expected = buildAtomicDispatchTerminalReceipt({repository, prNumber, expectedHeadSha,
+      authorizationId, landingActor, landingRunId, landingRunAttempt,
+      executionSourceSha: process.env.GITHUB_SHA, checkoutSha: prior.checked_out_sha, now: prior.created_at});
+    assert(isDeepStrictEqual(prior, expected) && prior.state === 'VERIFIED_FAIL'
+      && prior.merge_committed === false, 'ATOMIC_DISPATCH_REJECTION_BINDING_MISMATCH');
+    console.error(JSON.stringify({state:'VERIFIED_FAIL', failure_code:prior.failure_code,
+      dispatch_rejection_preserved:true, remote_request_performed:false, merge_committed:false}));
+    process.exit(1);
+  }
+}
+
 assert(mode === '--initialize' || mode === '--finalize', 'ATOMIC_TERMINAL_MODE_INVALID');
 assert(repository && /^[^/]+\/[^/]+$/.test(repository), 'ATOMIC_TERMINAL_REPOSITORY_INVALID');
 assert(token, 'ATOMIC_TERMINAL_GITHUB_TOKEN_REQUIRED');
 assert(/^\d+$/.test(prNumber || ''), 'ATOMIC_TERMINAL_PR_INVALID');
+assert(shaPattern.test(expectedBaseSha || ''), 'ATOMIC_TERMINAL_BASE_INVALID');
 assert(shaPattern.test(expectedHeadSha || ''), 'ATOMIC_TERMINAL_HEAD_INVALID');
+assert(shaPattern.test(expectedHeadTreeSha || ''), 'ATOMIC_TERMINAL_HEAD_TREE_INVALID');
 assert(/^\d+$/.test(landingRunId || ''), 'ATOMIC_TERMINAL_RUN_ID_INVALID');
 assert(/^\d+$/.test(landingRunAttempt || ''), 'ATOMIC_TERMINAL_RUN_ATTEMPT_INVALID');
 assert(authorizationId === `LAND-PR-${prNumber}-${expectedHeadSha.slice(0, 12)}`, 'ATOMIC_TERMINAL_AUTHORIZATION_BINDING_INVALID');
@@ -85,24 +116,75 @@ function readConsumptionReceipt() {
 
 const authorizationConsumption = readConsumptionReceipt();
 
+function readTransportAvailability() {
+  if (!fs.existsSync(transportReceiptPath)) return { state: 'NOT_ESTABLISHED_FAIL_CLOSED' };
+  const receipt = JSON.parse(fs.readFileSync(transportReceiptPath, 'utf8'));
+  assert(receipt?.id === 'kidults-atomic-event-emitting-transport-availability-v1', 'ATOMIC_TERMINAL_TRANSPORT_ID_INVALID');
+  assert(receipt?.version === '1.1.0', 'ATOMIC_TERMINAL_TRANSPORT_VERSION_INVALID');
+  assert(['AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED', 'VERIFIED_FAIL'].includes(receipt?.state),
+    'ATOMIC_TERMINAL_TRANSPORT_STATE_INVALID');
+  assert(receipt?.repository === repository, 'ATOMIC_TERMINAL_TRANSPORT_REPOSITORY_MISMATCH');
+  assert(Number(receipt?.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_TRANSPORT_PR_MISMATCH');
+  assert(receipt?.exact_base_sha === expectedBaseSha, 'ATOMIC_TERMINAL_TRANSPORT_BASE_MISMATCH');
+  assert(receipt?.exact_head_sha === expectedHeadSha, 'ATOMIC_TERMINAL_TRANSPORT_HEAD_MISMATCH');
+  assert(receipt?.exact_head_tree_sha === expectedHeadTreeSha, 'ATOMIC_TERMINAL_TRANSPORT_TREE_MISMATCH');
+  assert(receipt?.dispatch_actor === landingActor && receipt?.transport === 'DIRECT_OWNER_GITHUB_UI',
+    'ATOMIC_TERMINAL_TRANSPORT_ACTOR_MISMATCH');
+  if (receipt.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    assert(receipt?.repository_owner === landingActor, 'ATOMIC_TERMINAL_TRANSPORT_OWNER_MISMATCH');
+  }
+  assert(receipt?.repository_github_token_merge_forbidden === true
+    && receipt?.authorization_consumed === false
+    && receipt?.new_secret_required === false
+    && receipt?.permission_expansion_required === false, 'ATOMIC_TERMINAL_TRANSPORT_BOUNDARY_INVALID');
+  if (receipt.state === 'AVAILABLE_POSTMERGE_EVENT_PROOF_REQUIRED') {
+    assert(receipt?.transport_available === true, 'ATOMIC_TERMINAL_TRANSPORT_AVAILABLE_INVALID');
+  } else {
+    assert(receipt?.transport_available === false, 'ATOMIC_TERMINAL_TRANSPORT_FAILURE_AVAILABILITY_INVALID');
+    assert(typeof receipt?.failure_code === 'string' && /^ATOMIC_EVENT_TRANSPORT_[A-Z0-9_]+$/.test(receipt.failure_code),
+      'ATOMIC_TERMINAL_TRANSPORT_FAILURE_CODE_INVALID');
+    const observation = receipt?.repository_merge_commit_observation;
+    const observationSourceValid = (
+      observation?.api_surface === 'GET /repos/{owner}/{repo}'
+        && observation?.field_name === 'allow_merge_commit'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_REPOSITORY_METADATA'
+    ) || (
+      observation?.api_surface === 'POST /graphql Repository.mergeCommitAllowed'
+        && observation?.field_name === 'mergeCommitAllowed'
+        && observation?.provenance === 'GITHUB_ACTIONS_WORKFLOW_TOKEN_GRAPHQL_REPOSITORY_METADATA'
+    );
+    assert(observationSourceValid
+      && observation?.raw_response_persisted === false
+      && typeof observation?.classification === 'string',
+    'ATOMIC_TERMINAL_TRANSPORT_OBSERVATION_INVALID');
+  }
+  return receipt;
+}
+
+const transportAvailability = readTransportAvailability();
+
 const baseReceipt = (state, terminalClass, extra = {}) => ({
   id: 'kidults-atomic-governed-landing-terminal-receipt-v2',
-  version: '2.2.0',
+  version: '2.5.0',
   state,
   terminal_class: terminalClass,
   repository,
   pull_request: Number(prNumber),
   exact_head_sha: expectedHeadSha,
+  exact_base_sha: expectedBaseSha,
+  exact_head_tree_sha: expectedHeadTreeSha,
   landing_actor: landingActor,
   landing_workflow_run_id: Number(landingRunId),
   landing_workflow_run_attempt: Number(landingRunAttempt),
   authorization_id_sha256: authorizationIdSha256,
   authorization_consumption: authorizationConsumption,
+  event_emitting_transport_availability: transportAvailability,
   raw_authorization_persisted: false,
   merge_commit_sha: null,
   premerge_main_sha: null,
   current_sold_changed: null,
   post_landing_proof: 'NOT_ESTABLISHED',
+  post_merge_push_suite: 'NOT_ESTABLISHED',
   terminal_status_context: terminalStatusContext,
   empirical_authority_created: false,
   provider_authority_created: false,
@@ -177,7 +259,7 @@ if (mode === '--initialize') {
       request('/branches/main'),
     ]);
     assert(pr?.head?.sha === expectedHeadSha, 'ATOMIC_TERMINAL_PREMERGE_HEAD_DRIFT');
-    assert(pr?.base?.ref === 'main' && shaPattern.test(pr?.base?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_BASE_INVALID');
+    assert(pr?.base?.ref === 'main' && pr?.base?.sha === expectedBaseSha, 'ATOMIC_TERMINAL_PREMERGE_BASE_INVALID');
     assert(shaPattern.test(mainBranch?.commit?.sha || ''), 'ATOMIC_TERMINAL_PREMERGE_MAIN_INVALID');
     assert(pr.base.sha === mainBranch.commit.sha, 'ATOMIC_TERMINAL_PREMERGE_MAIN_BASE_DRIFT');
     if (authorizationConsumption.state === 'CONSUMED_BY_FIRST_MATCHING_DISPATCH') {
@@ -210,6 +292,8 @@ const currentSoldPathMatchers = [
   /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-event-emitting-transport-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/consume-atomic-postmerge-push-suite-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
 ];
@@ -221,7 +305,7 @@ try {
     pages(`/pulls/${prNumber}/files`),
   ]);
   assert(pr?.head?.sha === expectedHeadSha, 'ATOMIC_TERMINAL_PR_HEAD_DRIFT');
-  assert(pr?.base?.ref === 'main' && shaPattern.test(pr?.base?.sha || ''), 'ATOMIC_TERMINAL_PR_BASE_INVALID');
+  assert(pr?.base?.ref === 'main' && pr?.base?.sha === expectedBaseSha, 'ATOMIC_TERMINAL_PR_BASE_INVALID');
   assert(fileRecords.every(record => typeof record?.filename === 'string'), 'ATOMIC_TERMINAL_FILE_SHAPE_INVALID');
   const changedFiles = fileRecords.map(record => record.filename);
   const currentSoldChangedFiles = changedFiles.filter(file => currentSoldPathMatchers.some(pattern => pattern.test(file)));
@@ -238,7 +322,7 @@ try {
     writeReceipt(receipt);
     await postHeadStatus('failure', 'Merge rejected or not committed; no landing authority');
     console.log(JSON.stringify(receipt));
-    process.exit(0);
+    process.exit(1);
   }
 
   assert(landingCurrentSoldChanged === 'true' || landingCurrentSoldChanged === 'false', 'ATOMIC_TERMINAL_CURRENT_SOLD_OUTPUT_INVALID');
@@ -255,21 +339,37 @@ try {
     assert(Number(postLandingReceipt?.pull_request) === Number(prNumber), 'ATOMIC_TERMINAL_POSTLANDING_PR_MISMATCH');
   }
 
-  let state = 'MERGE_COMMITTED_PROOF_PENDING';
-  let terminalClass = exactMainMatchesMerge ? 'POSTLANDING_PROOF_PENDING' : 'POSTMERGE_MAIN_READBACK_MISMATCH';
-  let proof = 'PENDING';
-  if (!currentSoldChanged && landingOutcome === 'success' && exactMainMatchesMerge) {
+  let postMergeSuiteReceipt = null;
+  if (fs.existsSync(postMergeSuiteReceiptPath)) {
+    postMergeSuiteReceipt = JSON.parse(fs.readFileSync(postMergeSuiteReceiptPath, 'utf8'));
+    assert(postMergeSuiteReceipt?.id === 'kidults-atomic-postmerge-push-suite-receipt-v1',
+      'ATOMIC_TERMINAL_POSTMERGE_SUITE_ID_INVALID');
+    assert(postMergeSuiteReceipt?.exact_merge_sha === mergeSha,
+      'ATOMIC_TERMINAL_POSTMERGE_SUITE_MERGE_SHA_MISMATCH');
+    assert(postMergeSuiteReceipt?.exact_head_sha === expectedHeadSha,
+      'ATOMIC_TERMINAL_POSTMERGE_SUITE_HEAD_MISMATCH');
+    assert(postMergeSuiteReceipt?.exact_base_sha === pr.base.sha,
+      'ATOMIC_TERMINAL_POSTMERGE_SUITE_BASE_MISMATCH');
+  }
+
+  const pushSuitePassed = postMergeSuiteOutcome === 'success'
+    && postMergeSuiteReceipt?.state === 'VERIFIED_PASS'
+    && postMergeSuiteReceipt?.all_required_terminal === true
+    && postMergeSuiteReceipt?.all_required_success === true;
+  let state = 'VERIFIED_FAIL';
+  let terminalClass = exactMainMatchesMerge
+    ? 'MERGE_COMMITTED_POSTMERGE_SUITE_FAILED'
+    : 'POSTMERGE_MAIN_READBACK_MISMATCH';
+  let proof = 'VERIFIED_FAIL';
+  if (landingOutcome === 'success' && exactMainMatchesMerge && pushSuitePassed
+    && (!currentSoldChanged
+      || (postLandingReceipt?.state === 'VERIFIED_PASS' && postLandingOutcome === 'success'))) {
     state = 'VERIFIED_PASS';
-    terminalClass = 'MERGE_COMMITTED_VERIFIED';
-    proof = 'NOT_REQUIRED_NON_CURRENT_SOLD';
-  } else if (currentSoldChanged && postLandingReceipt?.state === 'VERIFIED_PASS' && postLandingOutcome === 'success' && exactMainMatchesMerge) {
-    state = 'VERIFIED_PASS';
-    terminalClass = 'MERGE_COMMITTED_POSTLANDING_VERIFIED';
+    terminalClass = 'MERGE_COMMITTED_EXACT_SHA_POSTMERGE_VERIFIED';
     proof = 'VERIFIED_PASS';
-  } else if (currentSoldChanged && (postLandingReceipt?.state === 'VERIFIED_FAIL' || postLandingOutcome === 'failure')) {
-    state = 'VERIFIED_FAIL';
+  } else if (currentSoldChanged
+    && (postLandingReceipt?.state === 'VERIFIED_FAIL' || postLandingOutcome === 'failure')) {
     terminalClass = 'MERGE_COMMITTED_POSTLANDING_FAILED';
-    proof = 'VERIFIED_FAIL';
   }
 
   const receipt = baseReceipt(state, terminalClass, {
@@ -283,6 +383,9 @@ try {
     landing_step_outcome: landingOutcome,
     current_sold_postlanding_outcome: postLandingOutcome,
     post_landing_proof: proof,
+    post_merge_push_suite_outcome: postMergeSuiteOutcome,
+    post_merge_push_suite: postMergeSuiteReceipt,
+    terminal_pass_requires_exact_merge_sha_postmerge_success: true,
     merge_committed: true,
     remote_intent_status: state === 'VERIFIED_PASS' ? 'SUCCESS' : state === 'VERIFIED_FAIL' ? 'FAILURE' : 'PENDING',
   });
@@ -295,12 +398,14 @@ try {
     await postHeadStatus('pending', terminalClass);
   }
   console.log(JSON.stringify(receipt));
+  if (state !== 'VERIFIED_PASS') process.exitCode = 1;
 } catch (error) {
   const errorCode = String(error?.code || error?.message || 'ATOMIC_TERMINAL_RECONCILE_FAILED').split(':')[0].slice(0, 120);
   const receipt = baseReceipt('VERIFIED_FAIL', errorCode, {
     merge_commit_state: 'UNKNOWN_FAIL_CLOSED',
     landing_step_outcome: landingOutcome,
     current_sold_postlanding_outcome: postLandingOutcome,
+    post_merge_push_suite_outcome: postMergeSuiteOutcome,
     remote_intent_status: 'FAILURE',
   });
   try { writeReceipt(receipt); } catch {}

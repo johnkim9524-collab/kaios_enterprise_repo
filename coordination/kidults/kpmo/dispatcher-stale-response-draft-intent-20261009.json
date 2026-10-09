@@ -1,0 +1,23 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "9ce1ce6f7279e03eb3a3458f9c1c3e12ede1438d",
+  "head_branch": "codex/dispatcher-stale-response-20261009",
+  "source_head_sha": "1cec6f3d420fe8da960aea7c68ade439b6cd4896",
+  "source_head_tree_sha": "02292e871440954b9655f6daadbb30cb712faca4",
+  "canonical_proposal_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/dispatcher-stale-response-20261009",
+    "title": "fix(kpmo): preserve bounded stale-branch rejection reasons",
+    "body": "자연 Dispatcher 37923827129(보호 main 9ce1ce6f7279e03eb3a3458f9c1c3e12ede1438d)의 검증된 실패 archive 11612992830 / sha256:172733336c6ac620aad5b928b521324cafe2a1e1e9633ada78bdb34505faebc8에서 #1903의 STALE_BASE_UPDATE_HTTP_403과 #2286의 422를 확인했습니다. #1903은 ci-validation.yml만 변경하며 현재 head 78369f54f13603199b7f138eabf0775f57cf3c12는 그대로입니다. 당시 응답은 UNAVAILABLE로 기록되어 정확한 거절 사유는 UNKNOWN입니다.\n\n이 변경은 update-branch 응답의 알려진 워크플로 권한 거절을 WORKFLOW_WRITE_PERMISSION_REQUIRED로 정규화하고, 알려진 충돌 사유도 제한된 코드로 기록합니다. 임의 응답·경로·토큰은 출력하지 않습니다. 실제 workflow shell 구간에서 403 권한/불명/비정상JSON/integration 거절 4건을 회귀검증하고, 단일 mutation 후 retry 금지와 UNKNOWN mutation 상태를 확인했습니다. broker 권한과 동작, 실패 뒤 중단, force-push 금지 정책은 변경하지 않습니다.\n\n검증: Dispatcher node tests 169/169; 별도 실제 shell 11/11(403 4건 포함); token failure propagation 52/52; broker 21/21; approval envelope VERIFIED_PASS; diff check 정상. Source commit 1cec6f3d420fe8da960aea7c68ade439b6cd4896 / tree 02292e871440954b9655f6daadbb30cb712faca4. 최종 head는 GitHub PR live metadata가 권위이며 source commit 뒤 변경은 immutable Draft intent와 파생 inventory만 허용합니다. 로컬 시험은 native 운영 증거가 아닙니다.\n\nSTATE: IMPLEMENTED_NOT_VERIFIED(native main). 운영 403 원인·해결은 미확정이며, 이 PR은 진단 누락 교정에 한정됩니다. 기존 #2625 Ready/승인/dispatch/병합/복구 종결은 반복하지 않습니다. 새로운 Ready/approval/merge/explicit dispatch/credential 또는 IAM 확대/manual stale update는 수행하지 않습니다. 보호 main 반영 후 별도 자연 증거가 필요합니다. Rollback: 이 제한된 변경을 governed revert하고 기존 실패 이력을 보존합니다.\n\nagent_id: Atlas-KPMO; scope: stale branch rejection diagnostics; inferences: workflow write permission mismatch is plausible but unproven; blocker: historical response reason was discarded; next_action: native exact-head CI, governed diagnostic landing authority, natural readback without replay. Production/Public/G5/provider activation HOLD; actual business 0/13 remains unproven.\nautonomous_effect: 자연 실패의 사유를 가시화하되 새로운 실행 권한을 만들지 않음.\nglobal_effect: 모든 동일 저장소 후보에 공통 제한 진단 적용; 실증된 글로벌 확장 효과 UNKNOWN.\nirreplaceable_value_effect: 기존 mission/receipt 계보 보존.\ntransparency_effect: 사실·추정·원인 미확정을 분리하고 비밀자료 없이 제한된 거절 사유 기록.\n",
+    "draft": true
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:276053fa0b1d79bbf4ade0cd358f6965ab91ec1669f6b2c919b3a971778f71b7"
+}

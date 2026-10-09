@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {assertConsumedWorkflowInactive} from './validate-cloudflare-consumed-workflow-v1.mjs';
 
 const authPath = 'coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json';
 const workflowPath = '.github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml';
@@ -30,7 +31,7 @@ ok(contract.implementation_state?.secret_registry_mutated_for_v2 === false, 'CON
 ok(spec.status === 'CONSUMED_ZERO_AUTHORITY_TOMBSTONE', 'SPEC_STATUS');
 ok(spec.environment === null && spec.provider_step === null, 'SPEC_ZERO_AUTHORITY');
 
-ok(/^on:\s*\[\]\n\npermissions:\n  contents: read\n/m.test(workflow), 'NO_TRIGGER_PERMISSIONS');
+assertConsumedWorkflowInactive(workflow);
 ok(!workflow.includes('workflow_dispatch'), 'MANUAL_DISPATCH_REINTRODUCED');
 ok(workflow.includes('runs-on: ubuntu-24.04'), 'PINNED_RUNNER');
 ok(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'DETERMINISTIC_RED');

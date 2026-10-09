@@ -30,6 +30,7 @@ defaults:
 
 jobs:
   prove-current-constructed-control-fails-closed:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     timeout-minutes: 38
     steps:

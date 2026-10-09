@@ -6,6 +6,15 @@ on:
       - 'apps/dual-staging-http-runtime/**'
       - 'infrastructure/postgres/dual-staging/**'
       - 'scripts/staging/*dual-staging-postgres*'
+      - 'infrastructure/postgres/current-sold/**'
+      - 'infrastructure/postgres/source-intelligence/**'
+      - 'services/kidults-control-plane/migrations/postgres/**'
+      - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
+      - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'scripts/staging/initialize-staging-runtime-schema-v1.sh'
+      - 'scripts/staging/verify-staging-runtime-initialization-ci-v1.sh'
+      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'scripts/staging/verify-postgres-target-time-restore.sh'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
   push:
     branches:
@@ -15,6 +24,15 @@ on:
       - 'apps/dual-staging-http-runtime/**'
       - 'infrastructure/postgres/dual-staging/**'
       - 'scripts/staging/*dual-staging-postgres*'
+      - 'infrastructure/postgres/current-sold/**'
+      - 'infrastructure/postgres/source-intelligence/**'
+      - 'services/kidults-control-plane/migrations/postgres/**'
+      - 'scripts/staging/verify-kir-postgres-payload-binding-v1.py'
+      - 'tests/kidults/market/current-sold-sql-null-boundary-v1.test.mjs'
+      - 'scripts/staging/initialize-staging-runtime-schema-v1.sh'
+      - 'scripts/staging/verify-staging-runtime-initialization-ci-v1.sh'
+      - 'scripts/staging/verify-remote-postgres-persistence-pitr.sh'
+      - 'scripts/staging/verify-postgres-target-time-restore.sh'
       - '.github/workflows/p0-postgres-greenfield-runtime.yml'
 
 permissions:
@@ -69,6 +87,26 @@ jobs:
         with:
           node-version: '24.19.0'
 
+      - name: Verify KIR payload binding upgrades in isolated pinned PostgreSQL
+        id: kir_sql_boundary
+        shell: bash
+        env:
+          KIR_SQL_TEST_CONTAINER_ID: ${{ job.services.postgres.id }}
+          KIR_EXPECTED_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          python3 scripts/staging/verify-kir-postgres-payload-binding-v1.py --self-test
+          python3 scripts/staging/verify-kir-postgres-payload-binding-v1.py --run-ci
+
+      - name: Preserve KIR SQL boundary receipt without operational authority
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kir-sql-boundary-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/kir-sql-boundary/receipt.json
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Verify pinned PostgreSQL supply chain
         shell: bash
         run: |
@@ -98,6 +136,9 @@ jobs:
           psql --no-psqlrc --set=ON_ERROR_STOP=1 \
             --dbname='postgresql://postgres:postgres@127.0.0.1:5432/postgres' \
             --command='CREATE DATABASE kaios_restore'
+
+      - name: Verify absent-schema initialization and real psql interpolation
+        run: bash scripts/staging/verify-staging-runtime-initialization-ci-v1.sh
 
       - name: Run canonical greenfield migration
         shell: bash

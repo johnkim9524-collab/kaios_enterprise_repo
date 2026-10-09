@@ -1,16 +1,9 @@
 name: KIDULTS Autonomous Smithsonian Open Access Sample
+# OWNER_RESERVED_EXTERNAL_SECRET_CALL: this sample resolves a provider secret and performs an external API call.
+# Manual dispatch is intentional under the current external-communication/secret boundary.
+# OWNER_RESERVED_EXTERNAL_SECRET_CALL: resolves a provider secret and performs an external API call.
 
 on:
-  push:
-    branches:
-      - "feat/kidults-phase2-content-data-provider-foundation"
-    paths:
-      - "coordination/kidults/autonomous/source-discovery/contracts/smithsonian-open-access-r1.json"
-      - "scripts/kidults/autonomous/collect-smithsonian-open-access-sample.mjs"
-      - "scripts/kidults/autonomous/validate-smithsonian-open-access-sample.mjs"
-      - ".github/workflows/kidults-autonomous-smithsonian-sample.yml"
-  schedule:
-    - cron: "10 23 * * 2,5"
   workflow_dispatch:
 
 permissions:

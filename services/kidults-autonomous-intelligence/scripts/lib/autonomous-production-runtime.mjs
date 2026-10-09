@@ -278,6 +278,32 @@ export function checkActivationEligibility(target) {
   return { permitted: false, reason: 'unknown-activation-class-fail-closed' };
 }
 
+/**
+ * Classifies the aggregate A24 activation result without widening authority.
+ * Zero eligible targets is a controlled halt: it authorizes no execution,
+ * mutation, provider call, release, or promotion. Invalid counts fail closed.
+ * @param {number} eligibleCount
+ * @returns {{ state: string, reason: string }}
+ */
+export function classifyActivationAvailability(eligibleCount) {
+  if (!Number.isSafeInteger(eligibleCount) || eligibleCount < 0) {
+    return {
+      state: RuntimeState.FAILED_CLOSED,
+      reason: 'invalid-eligible-target-count-fail-closed',
+    };
+  }
+  if (eligibleCount === 0) {
+    return {
+      state: RuntimeState.HALTED,
+      reason: 'no-eligible-targets-for-cycle',
+    };
+  }
+  return {
+    state: RuntimeState.READY,
+    reason: 'eligible-targets-present',
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Retry policy
 // ---------------------------------------------------------------------------

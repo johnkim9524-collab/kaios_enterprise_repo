@@ -28,6 +28,18 @@ function validatePayload(payload) {
   if (disallowed.length) throw new Error(`PSA_PAYLOAD_FIELD_NOT_ALLOWED:${disallowed[0]}`);
 }
 
+export function assertPsaPayloadCertificateBinding(payload, certReferenceDigest) {
+  validatePayload(payload);
+  const value = payload.PSACert.CertNumber;
+  if ((typeof value !== 'string' && typeof value !== 'number')
+    || (typeof value === 'number' && !Number.isSafeInteger(value))) {
+    throw new Error('PSA_PAYLOAD_CERT_NUMBER_INVALID');
+  }
+  const cert = String(value).trim();
+  if (!/^\d{4,16}$/.test(cert)) throw new Error('PSA_PAYLOAD_CERT_NUMBER_INVALID');
+  if (digest(cert) !== certReferenceDigest) throw new Error('PSA_PAYLOAD_CERT_IDENTITY_MISMATCH');
+}
+
 function authenticatedMetadata({ certReferenceDigest, observedAt, deleteAt }) {
   return {
     record_version: '1.1.0', provider_id: 'psa-public-api', classification: 'PRIVATE_ONLY',
@@ -45,6 +57,7 @@ function encryptRecord({ certReferenceDigest, payload, key, observedAt, deleteAt
   if (!/^sha256:[0-9a-f]{64}$/.test(String(certReferenceDigest || ''))) throw new Error('PSA_CERT_REFERENCE_DIGEST_INVALID');
   validatePayload(payload);
   if (!Buffer.isBuffer(key) || key.length !== 32) throw new Error('PSA_AES_256_KEY_REQUIRED');
+  assertPsaPayloadCertificateBinding(payload, certReferenceDigest);
   const observed = new Date(observedAt);
   const deletion = new Date(deleteAt);
   if (Number.isNaN(observed.valueOf())) throw new Error('PSA_OBSERVED_AT_INVALID');
@@ -87,6 +100,11 @@ export function decryptPrivatePsaRecord(record, key) {
   if (record.record_version !== '1.1.0' || record.provider_id !== 'psa-public-api' || record.encryption !== 'AES-256-GCM') throw new Error('PSA_PRIVATE_RECORD_METADATA_INVALID');
   if (!Buffer.isBuffer(key) || key.length !== 32) throw new Error('PSA_AES_256_KEY_REQUIRED');
   if (!/^sha256:[0-9a-f]{64}$/.test(record.record_digest ?? '') || recordDigest(record) !== record.record_digest) throw new Error('PSA_RECORD_DIGEST_INVALID');
+  const observed = new Date(record.observed_at), deletion = new Date(record.delete_at);
+  if (!Number.isFinite(observed.valueOf()) || !Number.isFinite(deletion.valueOf())
+    || deletion <= observed || deletion.valueOf() > observed.valueOf() + 30 * DAY_MS) {
+    throw new Error('PSA_RETENTION_WINDOW_INVALID');
+  }
   const metadata = authenticatedMetadata({
     certReferenceDigest: record.cert_reference_digest, observedAt: record.observed_at, deleteAt: record.delete_at
   });
@@ -97,7 +115,7 @@ export function decryptPrivatePsaRecord(record, key) {
   decipher.setAuthTag(Buffer.from(record.tag_b64, 'base64'));
   const plaintext = Buffer.concat([decipher.update(Buffer.from(record.ciphertext_b64, 'base64')), decipher.final()]);
   const payload = JSON.parse(plaintext.toString('utf8'));
-  validatePayload(payload);
+  assertPsaPayloadCertificateBinding(payload, record.cert_reference_digest);
   return payload;
 }
 
@@ -179,12 +197,16 @@ export function createPsaPrivateFileStore({ rootDir, key, now = () => new Date()
       const entries = await readdir(root, { withFileTypes: true });
       const expired = [];
       for (const entry of entries) {
-        if (!entry.isFile() || !/^[0-9a-f-]{36}\.json$/.test(entry.name)) continue;
+        if (!/^[0-9a-f-]{36}\.json$/.test(entry.name)) continue;
+        if (!entry.isFile()) throw new Error('PSA_PRIVATE_RECORD_TYPE_INVALID');
         const path = resolve(root, entry.name);
         const fileStat = await stat(path);
         if (!fileStat.isFile()) throw new Error('PSA_PRIVATE_RECORD_TYPE_INVALID');
         const record = JSON.parse(await readFile(path, 'utf8'));
         if (record.provider_id !== 'psa-public-api' || record.classification !== 'PRIVATE_ONLY') throw new Error('PSA_PRIVATE_RECORD_INVALID');
+        // Authenticate every record before its metadata can exclude it from
+        // deletion. Corruption must not silently become an empty PASS batch.
+        decryptPrivatePsaRecord(record, key);
         if (Date.parse(record.delete_at) <= cutoff.valueOf()) expired.push({ handle: `psa-private-file:${entry.name}` });
       }
       await audit({ operation: 'LIST_EXPIRED', provider_id: providerId, at: new Date(now()).toISOString(), cutoff: cutoff.toISOString(), count: expired.length });

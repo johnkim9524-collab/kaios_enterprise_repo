@@ -8,12 +8,14 @@ on:
       - '.github/workflows/kidults-governed-landing-authorization-v1.yml'
       - 'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'
       - 'scripts/kidults/kpmo/lib/approval-generation-equality-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/governed-landing-authorization-policy-v1.mjs'
       - 'scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs'
       - 'scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs'
       - 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs'
       - 'scripts/kidults/kpmo/run-scope-aware-authoritative-status-v1.mjs'
       - 'scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs'
       - 'tests/kidults/kpmo/approval-generation-equality-v1.test.mjs'
+      - 'tests/kidults/kpmo/governed-landing-authorization-policy-v1.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -50,7 +52,7 @@ jobs:
           package-manager-cache: false
 
       - name: Run exact-main approval generation negative tests
-        run: node --test tests/kidults/kpmo/approval-generation-equality-v1.test.mjs
+        run: node --test tests/kidults/kpmo/approval-generation-equality-v1.test.mjs tests/kidults/kpmo/governed-landing-authorization-policy-v1.test.mjs
 
       - name: Validate enforcement integration
         run: node scripts/kidults/kpmo/validate-approval-generation-equality-integration-v1.mjs

@@ -141,8 +141,7 @@ function validate(overrides = new Map()) {
       findings.push('control observer special exact-artifact class drift');
     }
     for (const marker of [
-      'needs.classify-canonical-identity.outputs.concurrency_group',
-      'cancel-in-progress: false',
+      'group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}\n      cancel-in-progress: false',
       'resolve-continuous-assurance-ephemeral-guard-v1.mjs',
       '-f name="$CANONICAL_ARTIFACT_NAME"',
       'Publish successful bounded canonical leader artifact',
@@ -234,7 +233,10 @@ const unapprovedEdgeMutation = assuranceOriginal.replace(
 if (validate(new Map([[assurancePath, unapprovedEdgeMutation]])).findings.length === 0) {
   fail('unapproved control observer edge mutation escaped');
 }
-const cancelMutation = assuranceOriginal.replace('cancel-in-progress: false', 'cancel-in-progress: true');
+const cancelMutation = assuranceOriginal.replace(
+  'group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}\n      cancel-in-progress: false',
+  'group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}\n      cancel-in-progress: true',
+);
 if (validate(new Map([[assurancePath, cancelMutation]])).findings.length === 0) fail('canonical guard cancellation mutation escaped');
 const blindShaMutation = assuranceOriginal.replace('-f name="$CANONICAL_ARTIFACT_NAME"', '-f head_sha="$KPMO_SOURCE_SHA"');
 if (validate(new Map([[assurancePath, blindShaMutation]])).findings.length === 0) fail('blind source-SHA election mutation escaped');

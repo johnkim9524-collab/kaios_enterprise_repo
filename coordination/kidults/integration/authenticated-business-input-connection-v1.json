@@ -1,0 +1,15 @@
+{
+  "id": "kidults-authenticated-business-input-connection-v1",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "maximum_age_seconds": 7200,
+  "producers": [],
+  "producer_registration_state": "WAITING_FOR_PROTECTED_ACQUISITION_AND_SOURCE_SPECIFIC_ADMISSION",
+  "domain_receipt_emission": false,
+  "transport_authentication_is_legal_admission": false,
+  "transport_authentication_is_immutable_storage": false,
+  "transport_authentication_is_remote_workload": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

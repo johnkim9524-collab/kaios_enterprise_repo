@@ -26,6 +26,7 @@ if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 90 || !Nu
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
 const landingPolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json', 'utf8'));
 const context = policy.required_status_context;
+const draftDevelopmentContext = policy.draft_development_status_context;
 const headers = {
   Authorization: `Bearer ${token}`,
   Accept: 'application/vnd.github+json',
@@ -33,18 +34,20 @@ const headers = {
   'User-Agent': 'kidults-scope-aware-authoritative-status-v1',
 };
 const api = async (path, options = {}) => {
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+  const url = `https://api.github.com/repos/${repository}${path}`;
+  let response = await fetch(url, {
     ...options,
     headers: {...headers, ...(options.headers || {})},
     redirect: 'error',
   });
+  if (response.status === 403 && (!options.method || options.method === 'GET')) response = await fetch(url, { ...options, headers: {Accept: headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
   if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${path}`);
   if (response.status === 204) return null;
   return response.json();
 };
-const postStatus = (state, description) => api(`/statuses/${expectedHeadSha}`, {
+const postStatus = (state, description, statusContext = context) => api(`/statuses/${expectedHeadSha}`, {
   method: 'POST',
-  body: JSON.stringify({state, context, description: String(description).slice(0, 140)}),
+  body: JSON.stringify({state, context: statusContext, description: String(description).slice(0, 140)}),
   headers: {'Content-Type': 'application/json'},
 });
 const arrayPages = async path => {
@@ -80,20 +83,57 @@ const wait = milliseconds => new Promise(resolve => setTimeout(resolve, millisec
 const retryable = new Set(['REQUIRED_CONTEXT_MISSING', 'REQUIRED_CONTEXT_NOT_TERMINAL']);
 
 let pendingPublished = false;
+let activeStatusContext = context;
 try {
   const [initial, mainBranch] = await Promise.all([
     api(`/pulls/${prNumber}`),
     api('/branches/main'),
   ]);
-  assertStableFinalReread(initial, initial, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: landingPolicy.no_merge_policy,
-  });
+  if (initial.base?.ref !== 'main') throw new Error('SCOPE_AGGREGATOR_BASE_REF_NOT_MAIN');
+  if (initial.head?.sha !== expectedHeadSha) throw new Error('SCOPE_AGGREGATOR_HEAD_CHANGED_FROM_EVENT');
+  if (initial.state !== 'open' || initial.merged === true) {
+    console.log(JSON.stringify({
+      id: 'kidults-scope-aware-authoritative-status-receipt-v1',
+      version: '1.1.0',
+      state: initial.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING',
+      reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+      pull_request: Number(prNumber),
+      exact_head_sha: initial.head.sha,
+      exact_base_sha: initial.base.sha,
+      merge_commit_sha: initial.merged === true ? initial.merge_commit_sha : null,
+      final_live_reread: true,
+      promotion_eligible: false,
+      landing_authorization_created: false,
+      post_landing_verification_required: initial.merged === true,
+      production: 'HOLD',
+      public_release: 'HOLD',
+      g5: 'HOLD',
+    }, null, 2));
+    process.exit(0);
+  }
+  const draftDevelopment = initial.draft === true;
+  if (draftDevelopment) {
+    if (initial.state !== 'open' || initial.merged === true || initial.head?.sha !== expectedHeadSha
+        || initial.head?.repo?.full_name !== repository || initial.base?.ref !== 'main') {
+      throw new Error('DRAFT_DEVELOPMENT_SNAPSHOT_INVALID');
+    }
+    if (typeof draftDevelopmentContext !== 'string' || !draftDevelopmentContext.length) {
+      throw new Error('DRAFT_DEVELOPMENT_CONTEXT_MISSING');
+    }
+    activeStatusContext = draftDevelopmentContext;
+  } else {
+    assertStableFinalReread(initial, initial, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: landingPolicy.no_merge_policy,
+    });
+  }
   if (initial.base?.sha !== mainBranch?.commit?.sha) {
     throw new Error('SCOPE_AGGREGATOR_BASE_NOT_CURRENT_PROTECTED_MAIN');
   }
-  await postStatus('pending', 'Waiting for exact-head scope requirements');
+  await postStatus('pending', draftDevelopment
+    ? 'Draft development validation in progress; landing remains blocked'
+    : 'Waiting for exact-head scope requirements', activeStatusContext);
   pendingPublished = true;
 
   const files = await arrayPages(`/pulls/${prNumber}/files`);
@@ -119,19 +159,29 @@ try {
     api(`/pulls/${prNumber}`),
     api('/branches/main'),
   ]);
-  assertStableFinalReread(initial, final, {
-    repository,
-    expectedHeadSha,
-    noMergePolicy: landingPolicy.no_merge_policy,
-  });
+  if (draftDevelopment) {
+    if (final.state !== 'open' || final.merged === true || final.draft !== true
+        || final.head?.sha !== initial.head.sha || final.base?.sha !== initial.base.sha) {
+      throw new Error('DRAFT_DEVELOPMENT_STATE_DRIFT');
+    }
+  } else {
+    assertStableFinalReread(initial, final, {
+      repository,
+      expectedHeadSha,
+      noMergePolicy: landingPolicy.no_merge_policy,
+    });
+  }
   if (final.base?.sha !== finalMain?.commit?.sha || finalMain.commit.sha !== mainBranch.commit.sha) {
     throw new Error('SCOPE_AGGREGATOR_LIVE_MAIN_DRIFT');
   }
-  await postStatus('success', `${scope.required_contexts.length} exact-head contexts verified`);
+  await postStatus('success', draftDevelopment
+    ? `${scope.required_contexts.length} exact-head contexts verified; Draft non-promotable`
+    : `${scope.required_contexts.length} exact-head contexts verified`, activeStatusContext);
   console.log(JSON.stringify({
     id: 'kidults-scope-aware-authoritative-status-receipt-v1',
     version: '1.1.0',
     state: 'VERIFIED_PASS',
+    validation_lane: draftDevelopment ? 'DRAFT_DEVELOPMENT' : 'READY_PROMOTION',
     pull_request: Number(prNumber),
     exact_head_sha: expectedHeadSha,
     exact_base_sha: initial.base.sha,
@@ -144,11 +194,13 @@ try {
     final_live_reread: true,
     zero_coverage_scopes: 0,
     technical_status_is_merge_authority: false,
+    landing_authorization_created: false,
+    draft_non_promotable: draftDevelopment,
     production: 'HOLD', public_release: 'HOLD', g5: 'HOLD',
   }, null, 2));
 } catch (error) {
   if (pendingPublished) {
-    try { await postStatus('failure', error?.code || error?.message || 'scope aggregation failed'); } catch {}
+    try { await postStatus('failure', error?.code || error?.message || 'scope aggregation failed', activeStatusContext); } catch {}
   }
   throw error;
 }

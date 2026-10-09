@@ -59,6 +59,19 @@ jobs:
           cp tooling/kidults-portal-r001-browser-qa/package.json /tmp/kidults-r001-qa/package.json
           cp tooling/kidults-portal-r001-browser-qa/package-lock.json /tmp/kidults-r001-qa/package-lock.json
           npm ci --prefix /tmp/kidults-r001-qa --ignore-scripts --no-audit --no-fund
+          # The runner's Azure mirror exhausted the job budget downloading
+          # WebKit libraries. Use Ubuntu's official archive, retaining all
+          # suite/component and Signed-By settings and apt signature checks.
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          for filename in ['/etc/apt/sources.list', '/etc/apt/sources.list.d/ubuntu.sources']:
+              source = Path(filename)
+              if source.is_file():
+                  original = source.read_text()
+                  updated = original.replace('http://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu').replace('https://azure.archive.ubuntu.com/ubuntu', 'https://archive.ubuntu.com/ubuntu')
+                  if updated != original:
+                      source.write_text(updated)
+          PY
           node /tmp/kidults-r001-qa/node_modules/playwright/cli.js install --with-deps webkit
 
       - name: Start approved-fixture staging Portal

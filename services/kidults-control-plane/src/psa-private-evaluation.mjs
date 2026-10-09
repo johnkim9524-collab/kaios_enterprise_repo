@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertPsaPayloadCertificateBinding } from './psa-private-evaluation-store.mjs';
 
 const sha256 = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const canonical = value => {
@@ -72,6 +73,7 @@ export async function stagePsaPrivateEvaluation({
   if (Number.isNaN(acquired.valueOf())) throw new Error('PSA_ACQUIRED_AT_INVALID');
   if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) throw new Error('PSA_RAW_PAYLOAD_INVALID');
   const normalized = normalize(rawPayload, fieldMap);
+  assertPsaPayloadCertificateBinding(rawPayload, certReferenceDigest);
   const rawSerialized = canonical(rawPayload);
   const normalizedSerialized = canonical(normalized);
   const rawDigest = sha256(rawSerialized);
@@ -87,6 +89,9 @@ export async function stagePsaPrivateEvaluation({
     rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
     fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
   });
+  if (admission?.state !== 'COMMITTED' || typeof admission.commandId !== 'string' || !admission.commandId.trim()) {
+    throw new Error('PSA_NORMALIZED_ADMISSION_NOT_COMMITTED');
+  }
   return {
     receipt_id: 'KIDULTS_PSA_PRIVATE_EVALUATION_STAGE_RECEIPT_V1',
     state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
@@ -106,19 +111,30 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
   const expired = await privateStore.listExpired({ providerId: 'psa-public-api', beforeOrAt: instant.toISOString() });
   if (!Array.isArray(expired)) throw new Error('PSA_EXPIRED_LIST_INVALID');
   const deleted = [];
+  const deletionReceipts = [];
+  let breaches = 0;
   for (const item of expired) {
     required(item.handle, 'PSA_EXPIRED_HANDLE');
     const deletion = await privateStore.delete({ handle: item.handle, reason: 'RETENTION_EXPIRED', deletedAt: instant.toISOString() });
     if (deletion?.deletion_verified !== true || deletion?.raw_payload_retained !== false) {
       throw new Error('PSA_DELETION_RECEIPT_NOT_VERIFIED');
     }
+    const deadlineMet = deletion.retention_deadline_met;
+    if (!((deletion.state === 'VERIFIED_PASS' && deadlineMet === true)
+      || (deletion.state === 'VERIFIED_RETENTION_BREACH_DELETED' && deadlineMet === false))) {
+      throw new Error('PSA_DELETION_RETENTION_STATE_INVALID');
+    }
+    if (!deadlineMet) breaches += 1;
+    deletionReceipts.push(sha256(canonical(deletion)));
     deleted.push(sha256(String(item.handle)));
   }
   return {
     receipt_id: 'KIDULTS_PSA_RETENTION_DELETION_RECEIPT_V1',
-    state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
+    state: breaches ? 'VERIFIED_RETENTION_BREACH_DELETED' : 'VERIFIED_PASS', provider_id: 'psa-public-api',
     evaluated_at: instant.toISOString(), deleted_count: deleted.length,
     deleted_handle_digests: deleted.sort(), raw_payload_in_receipt: false,
+    retention_deadline_met: breaches === 0, retention_breach_count: breaches,
+    deletion_receipt_digests: deletionReceipts.sort(),
   };
 }
 
