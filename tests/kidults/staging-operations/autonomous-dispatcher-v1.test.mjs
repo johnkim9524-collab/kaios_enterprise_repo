@@ -12,6 +12,31 @@ import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-c
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
+test('exhausted reads retain only bounded resource counts and reject injected diagnostics',async()=>{
+  const client=createDispatcherReadClient({token:'secret-token',maxRequests:2,fetchImpl:async()=>({ok:true,status:200,headers:{get:()=>null},json:async()=>[]})});
+  await client.request('/repos/owner/repo/pulls?state=open');
+  await client.request('/repos/owner/repo/pulls/42/files?per_page=100&page=1');
+  let failure;
+  await assert.rejects(client.request('/repos/owner/repo/contents/secret-path?ref='+sha('a')),error=>{failure=error;return error.code==='DISPATCH_READ_BUDGET_EXHAUSTED';});
+  assert.equal(client.requestCount(),2);
+  assert.equal(failure.read_diagnostics.resource_counts.pulls,1);
+  assert.equal(failure.read_diagnostics.resource_counts.files,1);
+  assert.equal(failure.read_diagnostics.next_resource_family,'contents');
+  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-counts-'));
+  try {
+    await assert.rejects(recordDispatcherScan({outputDirectory,scan:async()=>{throw failure;}}));
+    let receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
+    assert.deepEqual(receipt.read_diagnostics,failure.read_diagnostics);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
+    assert.doesNotMatch(JSON.stringify(receipt),/secret-token|secret-path|\/repos\//);
+    for(const mutate of [d=>({...d,url:'secret-token'}),d=>({...d,resource_counts:{...d.resource_counts,files:99}}),d=>({...d,next_resource_family:'secret-path'})]){
+      const injected=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');injected.read_diagnostics=mutate(failure.read_diagnostics);
+      await assert.rejects(recordDispatcherScan({outputDirectory,scan:async()=>{throw injected;}}));
+      receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
+      assert.equal('read_diagnostics' in receipt,false);
+    }
+  }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
+});
 test('failed scan retains its original error and invalidates old eligible results without leaking details',async()=>{
   const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-failure-'));
   try {
