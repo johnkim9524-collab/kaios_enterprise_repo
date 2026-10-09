@@ -15,6 +15,24 @@ const OWNER_REVIEW_CODES=new Set([
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
+const POLICY_REPAIR_CODES=new Set([
+  'CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
+  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED',
+]);
+export function buildPolicyRepairRequired({pr,mainSha,treeSha,files,error}) {
+  if(!POLICY_REPAIR_CODES.has(String(error?.code||'')))return null;
+  const paths=files?.map(file=>file.filename).sort();
+  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+    ||!SHA.test(String(treeSha))||!paths?.length||paths.some(path=>typeof path!=='string'||!path)) fail('DISPATCH_POLICY_REPAIR_BINDING_INVALID');
+  return {state:'POLICY_REPAIR_REQUIRED',pull_request:Number(pr.number),reason:error.code,
+    classification_failure:{code:error.code,changed_path:paths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
+      stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+    binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
+      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:paths,scope_digest:sha256(paths.join('\n'))},
+    recovery_action:'REPAIR_CANDIDATE_OR_CLASSIFIER_THEN_FRESH_PROTECTED_MAIN_VALIDATION',
+    automatic_retry_performed:false,autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
+    production:'HOLD',public:'HOLD',g5:'HOLD'};
+}
 const UNKNOWN_CLASSIFICATION_CODES=new Set([
   'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN','CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',
   'CAPABILITY_JSON_PARSE_FAILED','CAPABILITY_SCRIPT_PARSE_FAILED','CAPABILITY_SOURCE_MISSING',
@@ -259,12 +277,16 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         reason:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',reclassification:recovered.receipt,
         autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
         production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
-      if(!isOwnerReviewRequired(recovered.error)) {results.push({state:'SKIPPED',pull_request:pr.number,
-        reason:recovered.error.code,reclassification:recovered.receipt});continue;}
+      if(!isOwnerReviewRequired(recovered.error)) {
+        const repair=recovered.context?.pr.base.sha===mainSha?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;
+        results.push(repair?{...repair,reclassification:recovered.receipt}:{state:'SKIPPED',pull_request:pr.number,
+          reason:recovered.error.code,reclassification:recovered.receipt});continue;}
       error=recovered.error;candidateContext=recovered.context;
     }
     if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
-    else results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+    else results.push(candidateContext?.pr.base.sha===mainSha
+      ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
+      :{state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
   return results;
 }
 
@@ -275,8 +297,9 @@ if(import.meta.url===`file://${process.argv[1]}`){
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
+    policy_repair_required:results.filter(x=>x.state==='POLICY_REPAIR_REQUIRED').length,
     skipped:results.filter(x=>x.state==='SKIPPED').length,
-    blocked_candidates:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED'||x.state==='SKIPPED')
+    blocked_candidates:results.filter(x=>['OWNER_REVIEW_REQUIRED','POLICY_REPAIR_REQUIRED','SKIPPED'].includes(x.state))
       .map(x=>({pull_request:x.pull_request,state:x.state,reason:x.reason,
         classification_failure:x.classification_failure||null,reclassification:x.reclassification||null}))}));
 }

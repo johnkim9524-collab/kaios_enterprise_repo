@@ -4,13 +4,31 @@ import path from 'node:path';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import {buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
+for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
+  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED']) {
+  const error=new CapabilityDeltaError(code,'src/a.js:private content must never appear');
+  const repair=buildPolicyRepairRequired({...input,error});
+  assert.equal(repair.state,'POLICY_REPAIR_REQUIRED');
+  assert.equal(repair.classification_failure.changed_path,'src/a.js');
+  assert.equal(repair.binding.head_sha,pr.head.sha);
+  assert.equal(repair.binding.head_tree_sha,input.treeSha);
+  assert.equal(repair.binding.scope_digest,'sha256:'+crypto.createHash('sha256').update('src/a.js').digest('hex'));
+  for(const field of ['automatic_retry_performed','autonomous_eligible','landing_authorization_created','merge_authorized'])assert.equal(repair[field],false);
+  assert.equal(repair.classification_failure.authority_created,false);
+  assert.doesNotMatch(JSON.stringify(repair),/private content/);
+  for(const change of [{mainSha:sha('d')},{treeSha:'invalid'},{files:[]}])
+    assert.throws(()=>buildPolicyRepairRequired({...input,...change,error}),/DISPATCH_POLICY_REPAIR_BINDING_INVALID/);
+}
+assert.equal(buildPolicyRepairRequired({...input,error:new DispatcherError('DISPATCH_CHECKS_NOT_GREEN')}),null);
+assert.equal(buildPolicyRepairRequired({...input,error:new CapabilityDeltaError('CAPABILITY_PERMISSION_EXPANSION')}),null);
+console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'non-authorizing-policy-repair-routing',positive:4,negative:14,authority_created:false}));
 const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
 const unknown=new CapabilityDeltaError('CAPABILITY_SOURCE_MISSING','private payload');
 let reads=0;
