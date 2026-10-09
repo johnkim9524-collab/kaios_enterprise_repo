@@ -41,8 +41,9 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
       && ((permissions.contents===undefined && minted.permissions?.contents===undefined) || minted.permissions?.contents===permissions.contents)
       && minted.permissions?.pull_requests===permissions.pull_requests
+      && minted.permissions?.workflows===permissions.workflows
       && [undefined,'read'].includes(minted.permissions?.metadata)
-      && Object.keys(minted.permissions).every(x=>['contents','pull_requests','metadata'].includes(x))
+      && Object.keys(minted.permissions).every(x=>['contents','pull_requests','metadata',...(permissions.workflows ? ['workflows'] : [])].includes(x))
       && minted.repository_selection==='selected' && minted.repositories?.length===1
       && Number(minted.repositories[0]?.id)===Number(config.repositoryId)
       && minted.repositories[0]?.full_name===repository;
@@ -65,11 +66,16 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
     const writePermissions=needsContentsWrite
       ? {contents:'write',pull_requests:'write'}
       : {pull_requests:'write'};
+    // Updating a PR branch can import workflow files from protected main even
+    // when the PR's own changed-path list contains no workflow. This permission
+    // belongs only to exact-tuple stale convergence, never dispatch or hygiene.
+    if (permission_profile==='AUTONOMOUS_STALE_BASE_CONVERGENCE') writePermissions.workflows='write';
     const minted=await mint(writePermissions,'WRITE');
     if (!validScope(minted,writePermissions)) fail('WRITE_SCOPE');
     const grantedPermissions=needsContentsWrite
       ? ['contents:write','pull_requests:write','metadata:read']
       : ['pull_requests:write','metadata:read'];
+    if (writePermissions.workflows) grantedPermissions.push('workflows:write');
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
       app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
       permissions:grantedPermissions,

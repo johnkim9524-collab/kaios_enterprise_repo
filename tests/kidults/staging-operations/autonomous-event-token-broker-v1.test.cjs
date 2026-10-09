@@ -26,7 +26,7 @@ test('template embeds reviewed source and limits secret and invoke scopes',async
 });
 const stamp=Date.parse('2026-09-24T00:00:00Z');
 function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission='write', readPermission='read',
-  permissionProfile='AUTONOMOUS_EVENT_DISPATCH',
+  permissionProfile='AUTONOMOUS_EVENT_DISPATCH', workflowPermission='write', extraPermissions={},
   repositories=[{id:123,full_name:repo}]}={}) {
   const calls=[];
   const request=async (url,options) => {
@@ -38,13 +38,16 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
       assert.deepEqual(body.permissions,
         calls.filter(x=>x.url.endsWith('/access_tokens')).length===1
           ? {contents:'read',pull_requests:'read'}
-          : ['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_STALE_BASE_CONVERGENCE'].includes(permissionProfile)
+          : permissionProfile==='AUTONOMOUS_STALE_BASE_CONVERGENCE'
+            ? {contents:'write',pull_requests:'write',workflows:'write'}
+          : permissionProfile==='AUTONOMOUS_EVENT_DISPATCH'
             ? {contents:'write',pull_requests:'write'}
             : {pull_requests:'write'});
       value={token:'installation-token-1234567890',expires_at:new Date(stamp+3600000).toISOString(),
         permissions:{...(Object.hasOwn(body.permissions,'contents')
           ? {contents:body.permissions.contents==='read'?readPermission:permission}
-          : {}),pull_requests:body.permissions.pull_requests},
+          : {}),pull_requests:body.permissions.pull_requests,
+          ...(body.permissions.workflows ? {workflows:workflowPermission} : {}),...extraPermissions},
         repository_selection:'selected',repositories};
     } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
       head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase,repo:{full_name:repo}}};
@@ -61,14 +64,17 @@ test('mints one repository scoped token after exact live tuple',async()=>{
   assert.deepEqual(calls.map(x=>x.url.split('/').slice(-2).join('/')),
     ['66/access_tokens','pulls/42','branches/main','66/access_tokens']);
 });
-test('mints exact stale-base convergence token with required head contents write scope',async()=>{
+test('mints exact stale-base convergence token with contents and workflow write scope',async()=>{
   const current='c'.repeat(40);
   const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
   const {handler,calls}=setup({prBase:base,mainBase:current,permissionProfile});
   const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
   assert.equal(result.permission_profile,permissionProfile);
-  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read']);
-  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{contents:'write',pull_requests:'write'});
+  assert.deepEqual(result.permissions,['contents:write','pull_requests:write','metadata:read','workflows:write']);
+  const contract=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/stale-convergence-permission-contract-v1.json'));
+  assert.deepEqual([...result.permissions].sort(),[...contract.permissions].sort());
+  assert.equal(contract.permission_expansion_activation,'EXPLICIT_OWNER_ACTION_TIME_CONFIRMATION_REQUIRED');
+  assert.deepEqual(calls.filter(x=>x.url.endsWith('/access_tokens')).at(-1).permissions,{contents:'write',pull_requests:'write',workflows:'write'});
 });
 test('mints exact redundant-PR hygiene token with pull-request-only write scope',async()=>{
   const current='c'.repeat(40);
@@ -145,4 +151,22 @@ test('stale convergence refuses a granted contents downgrade',async()=>{
   const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
   const {handler}=setup({mainBase:'c'.repeat(40),permissionProfile,permission:'read'});
   await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:WRITE_SCOPE/);
+});
+
+for (const workflowPermission of ['read',undefined,null]) test(`stale convergence rejects workflow permission ${workflowPermission}`,async()=>{
+  const permissionProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
+  const {handler}=setup({mainBase:'c'.repeat(40),permissionProfile,workflowPermission:workflowPermission===undefined?'absent':workflowPermission});
+  await assert.rejects(handler({...event,current_main_sha:'c'.repeat(40),permission_profile:permissionProfile}),/DENIED:WRITE_SCOPE/);
+});
+for (const permissionProfile of ['AUTONOMOUS_EVENT_DISPATCH','AUTONOMOUS_REDUNDANT_PR_HYGIENE']) test(`${permissionProfile} never requests workflow write`,async()=>{
+  const current=permissionProfile==='AUTONOMOUS_EVENT_DISPATCH'?base:'c'.repeat(40);
+  const {handler,calls}=setup({mainBase:current,permissionProfile});
+  const result=await handler({...event,current_main_sha:current,permission_profile:permissionProfile});
+  assert.equal(calls.some(x=>x.permissions?.workflows),false);
+  assert.equal(result.permissions.includes('workflows:write'),false);
+});
+test('unexpected workflows permission in the read token is rejected before write mint',async()=>{
+  const {handler,calls}=setup({extraPermissions:{workflows:'write'}});
+  await assert.rejects(handler(event),/DENIED:READ_SCOPE/);
+  assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
 });
