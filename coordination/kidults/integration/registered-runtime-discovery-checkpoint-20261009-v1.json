@@ -1,0 +1,21 @@
+{
+  "id": "kidults-registered-runtime-discovery-checkpoint-20261009-v1",
+  "source_parent": "edeac43c7031af5b8b3c64a40627dd740bfa64cb",
+  "source_main": "c32293a0bb2107f88326c9ae279f7b72bf307c98",
+  "existing_pull_request": 2621,
+  "state": "IMPLEMENTED_NOT_LANDED_OR_RUNTIME_VERIFIED",
+  "change": "Find missing references from already registered exact-main natural native runs, then retain existing ZIP digest and content authentication",
+  "local_tests": {"passed": 180, "failed": 0, "is_actual_business_completion": false},
+  "business_input_producers_registered": 0,
+  "business_domains_complete": 0,
+  "business_domains_required": 13,
+  "registered_runtime_domain": "SECURITY_SUPPLY_CHAIN",
+  "discovery_requires_existing_read_token": true,
+  "credentials_added": false,
+  "external_writes_by_discovery": 0,
+  "next": "Observe fresh native head checks and normal landing; then verify the landed main and two distinct natural generations. Obtain source-specific lawful current transaction and liquidity inputs before registering real business producers.",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

@@ -1,3 +1,4 @@
+import './registered-runtime-reference-discovery-v1.test.mjs';
 import './native-input-chain-boundary-v1.test.mjs';
 import './runtime-domain-workloads-v1.test.mjs';
 import './runtime-domain-output-consumers-v1.test.mjs';
