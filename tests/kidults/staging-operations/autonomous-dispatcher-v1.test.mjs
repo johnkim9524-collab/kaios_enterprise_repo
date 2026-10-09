@@ -290,7 +290,7 @@ assert.doesNotMatch(dispatcherWorkflow,/DRAFT_DEVELOPMENT_AUTHORITY_TIMEOUT/);
 assert.doesNotMatch(governedWorkflow,/await status\('success','Draft development controls verified; landing remains blocked',scopePolicy\.draft_development_status_context\)/);
 assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
 assert.match(dispatcherWorkflow,/KIDULTS Scope-Aware Authoritative Status V1/);
-assert.doesNotMatch(dispatcherWorkflow,/contents:\s*write/);
+assert.doesNotMatch(dispatcherWorkflow,/^\s+contents:\s*write\s*$/m);
 assert.match(dispatcherWorkflow,/AUTONOMOUS_STALE_BASE_CONVERGENCE/);
 assert.match(dispatcherWorkflow,/AUTONOMOUS_REDUNDANT_PR_HYGIENE/);
 assert.match(dispatcherWorkflow,/permission_profile:\$profile/);
@@ -405,7 +405,7 @@ const lifecycleFunction=dispatcherWorkflow.match(/^          mint_lifecycle_toke
 assert.ok(lifecycleFunction,'lifecycle token function must remain testable');
 const lifecycleBinding={pull_request:2462,old_base_sha:sha('a'),expected_head_sha:sha('b'),current_main_sha:sha('c')};
 const lifecycleProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
-const validBroker={ok:true,token_type:'GITHUB_APP_INSTALLATION',repository:pr.head.repo.full_name,repository_id:'1281328888',permission_profile:lifecycleProfile,token:'ghs_OFFLINE_FIXTURE_TOKEN_NOT_A_CREDENTIAL'};
+const validBroker={ok:true,token_type:'GITHUB_APP_INSTALLATION',repository:pr.head.repo.full_name,repository_id:'1281328888',permission_profile:lifecycleProfile,permissions:['contents:write','pull_requests:write','metadata:read','workflows:write'],token:'ghs_OFFLINE_FIXTURE_TOKEN_NOT_A_CREDENTIAL'};
 const lifecycleCases=[
   {name:'valid'},
   {name:'oidc_transport',code:'LIFECYCLE_OIDC_TOKEN_REQUEST_TRANSPORT'},
@@ -433,7 +433,9 @@ const lifecycleCases=[
   {name:'broker_not_ok',body:{...validBroker,ok:false}},
   {name:'broker_header_injection',body:{...validBroker,token:validBroker.token+'\nX-Other: value'}},
 ];
-lifecycleCases.push({name:'valid_hygiene',profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',body:{...validBroker,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'}});
+lifecycleCases.push({name:'valid_hygiene',profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',body:{...validBroker,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',permissions:['pull_requests:write','metadata:read']}});
+lifecycleCases.push({name:'broker_workflows_missing',body:{...validBroker,permissions:['contents:write','pull_requests:write','metadata:read']}});
+lifecycleCases.push({name:'broker_extra_permission',body:{...validBroker,permissions:[...validBroker.permissions,'administration:write']}});
 const lifecycleMocks=String.raw`set -euo pipefail
 curl() {
   [[ "$MOCK_CASE" != oidc_transport ]] || return 7
@@ -525,7 +527,7 @@ const mockedLifecycleShell = [
   "    echo \"update:$pn:$out\" >> trace",
   "    case \"$FIXTURE_CASE:$pn\" in",
   "      update_422:*|response_isolation:42) echo '{\"message\":\"Validation Failed\"}' >\"$out\"; echo 422; return 22;;",
-  "      update_403_workflow:*) echo '{\"message\":\"refusing to allow a GitHub App to create or update workflow `.github/workflows/ci-validation.yml` without `workflows` permission\"}' >\"$out\"; echo 403; return 22;;",
+  "      update_403_workflow:*|workflow_rejection_isolation:42) echo '{\"message\":\"refusing to allow a GitHub App to create or update workflow `.github/workflows/ci-validation.yml` without `workflows` permission\"}' >\"$out\"; echo 403; return 22;;",
   "      update_403_unknown:*) echo '{\"message\":\"private response ghs_do_not_emit\"}' >\"$out\"; echo 403; return 22;;",
   "      update_403_malformed:*) echo invalid >\"$out\"; echo 403; return 22;;",
   "      update_403_integration:*) echo '{\"message\":\"Resource not accessible by integration\"}' >\"$out\"; echo 403; return 22;;",
@@ -590,6 +592,7 @@ const lifecycleShellCases = [
   ["update_422", "STALE_BASE_UPDATE_422"],
   ["update_401", "STALE_BASE_UPDATE_HTTP_401"],
   ["update_403_workflow", "STALE_BASE_UPDATE_HTTP_403"],
+  ["workflow_rejection_isolation", "STALE_BASE_UPDATE_HTTP_403"],
   ["update_403_unknown", "STALE_BASE_UPDATE_HTTP_403"],
   ["update_403_malformed", "STALE_BASE_UPDATE_HTTP_403"],
   ["update_403_integration", "STALE_BASE_UPDATE_HTTP_403"],
@@ -614,7 +617,7 @@ try {
     const cwd=path.join(fixtureRoot,name);fs.mkdirSync(cwd);
     fs.mkdirSync(path.join(cwd,'out/autonomous-dispatcher-v1'),{recursive:true});
     const binding=n=>({state:'STALE_RECOVERABLE',binding:{pull_request:n,old_base_sha:'a'.repeat(40),expected_head_sha:'b'.repeat(40),current_main_sha:'c'.repeat(40)}});
-    fs.writeFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/results.json'),JSON.stringify(name==='response_isolation'?[binding(42),binding(43)]:[binding(42)]));
+    fs.writeFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/results.json'),JSON.stringify(['response_isolation','workflow_rejection_isolation'].includes(name)?[binding(42),binding(43)]:[binding(42)]));
     const env={PATH:process.env.PATH,SYSTEMROOT:process.env.SYSTEMROOT||'',TEMP:process.env.TEMP||os.tmpdir(),TMP:process.env.TMP||os.tmpdir(),FIXTURE_CASE:name,OLD_HEAD:'b'.repeat(40),CURRENT_MAIN:'c'.repeat(40),NEW_HEAD:'d'.repeat(40)};
     const jqMode=process.platform==='win32'?'jq() { command jq -b "$@"; }'+String.fromCharCode(10):'';
     fs.writeFileSync(path.join(cwd,'fixture.sh'),jqMode+mockedLifecycleShell+String.fromCharCode(10)+workflowShell);
@@ -651,6 +654,16 @@ try {
       assert.equal(receipt.mutation_state,'UNKNOWN');
       assert.equal(mutations.length,2);
       assert.notEqual(mutations[0].split(':').slice(2).join(':'),mutations[1].split(':').slice(2).join(':'));
+    }
+    if(name==='workflow_rejection_isolation'){
+      assert.equal(receipt.github_message,'WORKFLOW_WRITE_PERMISSION_REQUIRED');
+      assert.equal(receipt.mutation_state,'UNKNOWN');
+      assert.equal(mutations.length,2);
+      assert.equal(mutations.filter(x=>x.startsWith('update:42:')).length,1);
+      assert.equal(mutations.filter(x=>x.startsWith('update:43:')).length,1);
+      const next=JSON.parse(fs.readFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/lifecycle/pr-43-convergence.json'),'utf8'));
+      assert.equal(next.state,'STALE_BASE_CONVERGED');
+      assert.notEqual(result.status,0,'preserved candidate failure must fail the aggregate run');
     }
     assert.ok(!JSON.stringify(receipt).includes('synthetic_fixture'));
     assert.deepEqual(fs.readdirSync(path.join(cwd,'tmp')),[],`${name}: token response tempfile leaked`);

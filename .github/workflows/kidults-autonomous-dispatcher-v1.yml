@@ -180,7 +180,7 @@ jobs:
             export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
             request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" --arg generation "$generation" --argjson b "$binding" '{action:"MINT_INSTALLATION_TOKEN",repository:$repo,repository_id:$rid,pull_request:$b.pull_request,base_sha:$b.old_base_sha,head_sha:$b.expected_head_sha,current_main_sha:$b.current_main_sha,authorization_generation:$generation,permission_profile:$profile}') || { fail_lifecycle_mint LIFECYCLE_BROKER_REQUEST_INVALID; return 1; }
             response=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-binary-format raw-in-base64-out --payload "$request" /dev/stderr 2>&1 >/dev/null) || { fail_lifecycle_mint LIFECYCLE_BROKER_INVOKE_FAILED; return 1; }
-            if ! token=$(jq -er --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" 'select(.ok==true and .token_type=="GITHUB_APP_INSTALLATION" and .repository==$repo and (.repository_id|tostring)==$rid and .permission_profile==$profile) | .token | select(type=="string" and length>=20 and length<=2048 and (test("^[^[:space:]]+$")))' <<<"$response" 2>/dev/null); then
+            if ! token=$(jq -er --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg profile "$profile" 'select(.ok==true and .token_type=="GITHUB_APP_INSTALLATION" and .repository==$repo and (.repository_id|tostring)==$rid and .permission_profile==$profile) | select((.permissions|sort)==(if $profile=="AUTONOMOUS_STALE_BASE_CONVERGENCE" then ["contents:write","pull_requests:write","metadata:read","workflows:write"] else ["pull_requests:write","metadata:read"] end|sort)) | .token | select(type=="string" and length>=20 and length<=2048 and (test("^[^[:space:]]+$")))' <<<"$response" 2>/dev/null); then
               broker_reason=$(jq -r '.errorMessage // "" | capture("^EVENT_TOKEN_BROKER_DENIED:(?<code>[A-Z0-9_]{1,32})$").code // empty' <<<"$response" 2>/dev/null || true)
               case "$broker_reason" in
                 INPUT|PRIVATE_KEY|MINT_READ_HTTP|READ_SCOPE|PR_READ_HTTP|MAIN_READ_HTTP|LIVE_TUPLE|MINT_WRITE_HTTP|WRITE_SCOPE)
@@ -198,6 +198,7 @@ jobs:
           }
 
           mkdir -p out/autonomous-dispatcher-v1/lifecycle
+          lifecycle_candidate_failures=0
           while IFS= read -r binding; do
             pr=$(jq -er '.pull_request' <<<"$binding")
             old_base=$(jq -er '.old_base_sha' <<<"$binding")
@@ -264,6 +265,14 @@ jobs:
             if [[ "$http_code" != 202 || "$curl_status" != 0 ]]; then
               write_lifecycle_failure "STALE_BASE_UPDATE_HTTP_${http_code:-000}" "$api_message" || true
               unset token
+              if [[ "$http_code" = 403 && "$curl_status" = 22 && "$api_message" = WORKFLOW_WRITE_PERMISSION_REQUIRED ]]; then
+                # This is a known PR-specific rejection, not a transport or
+                # authentication failure. Preserve failure and never retry it;
+                # allow unrelated candidates their one bounded attempt.
+                lifecycle_candidate_failures=$((lifecycle_candidate_failures + 1))
+                current_lifecycle_receipt=''
+                continue
+              fi
               exit 1
             fi
             test "$http_code" = 202
@@ -292,6 +301,10 @@ jobs:
             current_lifecycle_receipt=''
             unset token
           done < <(jq -c '[.[] | select(.state=="STALE_RECOVERABLE") | .binding] | .[:4][]' out/autonomous-dispatcher-v1/results.json)
+          if (( lifecycle_candidate_failures > 0 )); then
+            echo "::error::STALE_BASE_CANDIDATE_FAILURES_${lifecycle_candidate_failures}" >&2
+            exit 1
+          fi
 
       - name: Upload bounded scan and terminal fanout evidence
         if: ${{ always() }}
