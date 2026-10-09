@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "HEAD",
+  "revision": "873174c573310085e1addf6e4f62663f88d50a34",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 747
+    "file_count": 744
   },
   "files": [
     {
@@ -1775,18 +1775,6 @@
       "sha256": "sha256:59acc8352ede64ab2127706830ef8f7b0c5ab3a8cbc82aad385d1908de0485ea"
     },
     {
-      "path": "coordination/kidults/integration/runtime-domain-implementation-checkpoint-20261009-v1.json",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "69b0f7eb531423c07ea604c31ed145adbe119a1d",
-      "sha256": "sha256:6cc4ccaf4cdaebcaa9a7347125bcf3cd27268a03f13d88aa7011f3d9fbfeff31"
-    },
-    {
-      "path": "coordination/kidults/integration/runtime-domain-workload-draft-proposal-intent-20261009-v1.json",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "9296103edbc87f2f3d7046fadac48ac9cba27c8b",
-      "sha256": "sha256:e961e945677753952091ccf13f91932b57d8fb0449d581483aa37e632b8ac3c3"
-    },
-    {
       "path": "coordination/kidults/internalization/alt-fndata-no-go-decision-receipt-2026-08-26.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "72c96ad0b81535520bb3e366524c200f1066205c",
@@ -2663,8 +2651,8 @@
     {
       "path": "docs/governance/WHOLE_PLATFORM_OPERATING_PROOF_V1.md",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9d4d91b71f31e29dbf597d7f43041de4826e4ce6",
-      "sha256": "sha256:8fbe042e471b98b92edb8a119cc1a98f8efb1e826f78d79063464a1f342b5f19",
+      "git_blob": "149c908d8d1f25f20ac71a19d87d490804f70449",
+      "sha256": "sha256:0c14cc447f332288b9cb4c7bdceb1b530434490532be3e7284622f7bbb0690ff",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2685,12 +2673,6 @@
           "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
         }
       }
-    },
-    {
-      "path": "docs/integration/RUNTIME_DOMAIN_CONNECTION_EXECUTION_V1.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "accd75e011c793b2bb162a5b9af07083078e50de",
-      "sha256": "sha256:5219acf617772c4f214f821f719d443b2f647f96b396576a273c4b8c2159fe6f"
     },
     {
       "path": "docs/kidults/32-scope-adaptive-canonical-design-v1.md",
@@ -6072,5 +6054,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c5a1d98edaff7748c68e6fe85bbbf2d9bf5d7d7a966d11a87165adb4f3ba4254"
+  "manifest_sha256": "sha256:1e3c6f5a1044493ab51f97620c72ca5fcae6b66fcd1f0908e8e81075bb0cab35"
 }
