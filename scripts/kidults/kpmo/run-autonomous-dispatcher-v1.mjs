@@ -5,6 +5,7 @@ import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-i
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
+import {analyzeCapabilityRepair} from './lib/capability-repair-analysis-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
@@ -15,6 +16,24 @@ const OWNER_REVIEW_CODES=new Set([
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
+const POLICY_REPAIR_CODES=new Set([
+  'CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
+  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED',
+]);
+export function buildPolicyRepairRequired({pr,mainSha,treeSha,files,error}) {
+  if(!POLICY_REPAIR_CODES.has(String(error?.code||'')))return null;
+  const paths=files?.map(file=>file.filename).sort();
+  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+    ||!SHA.test(String(treeSha))||!paths?.length||paths.some(path=>typeof path!=='string'||!path)) fail('DISPATCH_POLICY_REPAIR_BINDING_INVALID');
+  return {state:'POLICY_REPAIR_REQUIRED',pull_request:Number(pr.number),reason:error.code,
+    classification_failure:{code:error.code,changed_path:paths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
+      stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+    binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
+      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:paths,scope_digest:sha256(paths.join('\n'))},
+    recovery_action:'REPAIR_CANDIDATE_OR_CLASSIFIER_THEN_FRESH_PROTECTED_MAIN_VALIDATION',
+    automatic_retry_performed:false,autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
+    production:'HOLD',public:'HOLD',g5:'HOLD'};
+}
 const UNKNOWN_CLASSIFICATION_CODES=new Set([
   'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN','CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',
   'CAPABILITY_JSON_PARSE_FAILED','CAPABILITY_SCRIPT_PARSE_FAILED','CAPABILITY_SOURCE_MISSING',
@@ -24,6 +43,21 @@ const UNKNOWN_CLASSIFICATION_CODES=new Set([
 export const isUnknownClassification=error=>UNKNOWN_CLASSIFICATION_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+
+export function withCapabilityRepairAnalysis(record,context,policy) {
+  if(!context||! /^(CAPABILITY_|INDEPENDENT_)/.test(String(record.reason||'')))return record;
+  const {pr,treeSha,files}=context;
+  try {
+    const analysis=analyzeCapabilityRepair({repository:pr.base.repo.full_name,repositoryId:pr.base.repo.id,
+      pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha,files,policy});
+    return {...record,capability_repair_analysis:analysis};
+  } catch(error) {
+    if(error.message!=='CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID')throw error;
+    return {...record,capability_repair_analysis:{state:'DIAGNOSTIC_INPUT_UNAVAILABLE',
+      code:'CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID',authority_created:false,
+      landing_authorization_created:false,merge_authorized:false}};
+  }
+}
 
 // Read-only uncertainty recovery. It never relaxes either classifier or turns
 // definite Owner-reserved changes into UNKNOWN. Only full existing validation
@@ -59,6 +93,7 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
     let fresh;
     try {fresh=await readCandidate();}
     catch(readError) {
+      if(isGlobalReadFailure(readError))throw readError;
       attempts.push({attempt,result:'READ_FAILED',code:'DISPATCH_RECLASSIFICATION_READ_FAILED'});
       continue;
     }
@@ -169,7 +204,38 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     operation:policy.delegated_operation,changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
-async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}
+// One invocation owns its budget and immutable cache. Mutable authority reads
+// are never cached. A global read failure aborts discovery before any fanout.
+export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED)$/.test(String(error?.code||''));
+export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100}) {
+  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
+    ||!Number.isSafeInteger(reserve)||reserve<0)fail('DISPATCH_CONFIGURATION_INVALID');
+  let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
+  const request=path=>{
+    const immutable=/^\/repos\/[^/]+\/[^/]+\/contents\/[^?]+\?ref=[a-f0-9]{40}$/.test(path);
+    if(terminal)return Promise.reject(terminal);
+    if(immutable&&cache.has(path))return cache.get(path);
+    const pending=tail.then(async()=>{
+      if(terminal)throw terminal;
+      if(requests>=maxRequests){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');throw terminal;}
+      requests++;
+      const response=await fetchImpl(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
+      const remaining=response.headers?.get('x-ratelimit-remaining');
+      if(response.status===429||(remaining!==null&&remaining!==undefined&&/^\d+$/.test(remaining)&&Number(remaining)<=reserve)) {
+        terminal=new DispatcherError('DISPATCH_RATE_LIMITED');throw terminal;
+      }
+      if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
+      if(response.status===404&&immutable)return null;
+      if(!response.ok)fail('DISPATCH_GITHUB_API',`${response.status}:${path}`);
+      return response.json();
+    });
+    tail=pending.catch(()=>{});
+    if(immutable){cache.set(path,pending);pending.catch(()=>cache.delete(path));}
+    return pending;
+  };
+  return {request,requestCount:()=>requests};
+}
+async function api(path,client){return client.request(path)}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
@@ -179,31 +245,31 @@ async function immutableContent(repository,path,ref,token){
   return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
 }
 async function contentBlobShaOrNull(repository,path,ref,token){
-  const response=await fetch(`https://api.github.com/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
-  if(response.status===404) return null;
-  if(!response.ok) fail('DISPATCH_GITHUB_API',`${response.status}:content-blob`);
-  const payload=await response.json();
+  const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
 async function staleFilesRedundantAgainstMain({repository,mainSha,headSha,files,token}){
   if(!files.length||files.some(file=>['removed','renamed'].includes(file.status))) return false;
-  const comparisons=await Promise.all(files.map(async file=>{
+  const comparisons=[];for(const file of files){
     const [head,main]=await Promise.all([contentBlobShaOrNull(repository,file.filename,headSha,token),contentBlobShaOrNull(repository,file.filename,mainSha,token)]);
-    return head!==null&&head===main;
-  }));
+    comparisons.push(head!==null&&head===main);
+    if(!comparisons.at(-1))return false;
+  }
   return comparisons.every(Boolean);
 }
 async function attachImmutableContents({repository,baseSha,headSha,files,token}){
-  return Promise.all(files.map(async file=>{
+  const attached=[];for(const file of files){
     if(file.status==='removed'||file.status==='renamed') fail('DISPATCH_OWNER_RESERVED_ACTION',`${file.filename}:${file.status.toUpperCase()}`);
     const head_content=await immutableContent(repository,file.filename,headSha,token);
     const base_content=file.status==='added'?'':await immutableContent(repository,file.filename,baseSha,token);
-    return {...file,base_content,head_content};
-  }));
+    attached.push({...file,base_content,head_content});
+  }
+  return attached;
 }
 
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
+  token=createDispatcherReadClient({token,fetchImpl,maxRequests});
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
@@ -242,7 +308,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
     results.push({state:'ELIGIBLE',envelope:candidate});
-  }catch(error){if(!isCandidateRejection(error))throw error;
+  }catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
     if(candidateContext&&isUnknownClassification(error)) {
       const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
         readCandidate:async()=>{
@@ -259,12 +325,16 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         reason:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',reclassification:recovered.receipt,
         autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
         production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
-      if(!isOwnerReviewRequired(recovered.error)) {results.push({state:'SKIPPED',pull_request:pr.number,
-        reason:recovered.error.code,reclassification:recovered.receipt});continue;}
+      if(!isOwnerReviewRequired(recovered.error)) {
+        const repair=recovered.context?.pr.base.sha===mainSha?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;
+        results.push(withCapabilityRepairAnalysis(repair?{...repair,reclassification:recovered.receipt}:{state:'SKIPPED',pull_request:pr.number,
+          reason:recovered.error.code,reclassification:recovered.receipt},recovered.context,policy));continue;}
       error=recovered.error;candidateContext=recovered.context;
     }
-    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(buildOwnerReviewRequired({...candidateContext,error}));
-    else results.push({state:'SKIPPED',pull_request:pr.number,reason:error.code});}}
+    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
+    else results.push(withCapabilityRepairAnalysis(candidateContext?.pr.base.sha===mainSha
+      ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
+      :{state:'SKIPPED',pull_request:pr.number,reason:error.code},candidateContext,policy));}}
   return results;
 }
 
@@ -275,8 +345,13 @@ if(import.meta.url===`file://${process.argv[1]}`){
   fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});fs.writeFileSync('out/autonomous-dispatcher-v1/results.json',JSON.stringify(results,null,2));
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
+    policy_repair_required:results.filter(x=>x.state==='POLICY_REPAIR_REQUIRED').length,
     skipped:results.filter(x=>x.state==='SKIPPED').length,
-    blocked_candidates:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED'||x.state==='SKIPPED')
+    blocked_candidates:results.filter(x=>['OWNER_REVIEW_REQUIRED','POLICY_REPAIR_REQUIRED','SKIPPED'].includes(x.state))
       .map(x=>({pull_request:x.pull_request,state:x.state,reason:x.reason,
-        classification_failure:x.classification_failure||null,reclassification:x.reclassification||null}))}));
+        classification_failure:x.classification_failure||null,reclassification:x.reclassification||null,
+        capability_repair_analysis:x.capability_repair_analysis?{
+          state:x.capability_repair_analysis.state,blocked_path_count:x.capability_repair_analysis.blocked_path_count,
+          activation_constraint:x.capability_repair_analysis.activation_constraint,
+          receipt_digest:x.capability_repair_analysis.receipt_digest}:null}))}));
 }

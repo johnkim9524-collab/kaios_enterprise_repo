@@ -39,8 +39,11 @@ test('missing business input remains an explicit waiting state with no domain ce
     const terminal=JSON.parse(result.stdout.slice(result.stdout.indexOf('{\n')));
     assert.equal(terminal.state,'WAITING_PAIR');
     assert.equal(terminal.native_runtime_proven,false);
+    assert.equal(terminal.locally_executed_domain_count,0);
+    assert.equal(terminal.authenticated_native_output_count,0);
     const receipt=JSON.parse(fs.readFileSync(path.join(output,'runtime-domain-input-connections.json')));
     assert.equal(receipt.native_input_blocker,'AUTHENTICATED_INPUT_REFERENCE_MISSING');
     assert.equal(receipt.whole_platform_runtime_proven,false);
+    assert.equal(terminal.runtime_domain_observation_digest,receipt.receipt_digest);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

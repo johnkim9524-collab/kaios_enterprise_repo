@@ -1,3 +1,5 @@
+import {EXPLICIT_EXECUTION_CONTROLS,classifyApprovalInventoryPath,routeAuthorizationControl} from '../../../governance/lib/approval-policy-routing-v1.mjs';
+import {matchesReviewedImmutableTransportRepair} from './reviewed-immutable-transport-repair-v1.mjs';
 import crypto from 'node:crypto';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
@@ -185,7 +187,60 @@ const isDerivedApprovalMetadataShape=(source,filename)=>{
   } catch {}
   return false;
 };
-const assertDerivedApprovalMetadataDelta=(before,after,filename)=>{
+const verifyAuditGrowth=(before,after,filename,files)=>{
+  const manifestPath='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const manifestFile=filename===manifestPath?{base_content:before,head_content:after}:files.find(f=>f.filename===manifestPath);
+  if(!manifestFile)return false;
+  let a,b;try{a=JSON.parse(manifestFile.base_content);b=JSON.parse(manifestFile.head_content);}catch{return false;}
+  if(!Array.isArray(a.files)||!Array.isArray(b.files)||b.files.length<=a.files.length)return false;
+  const reject=()=>fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
+  const clean=e=>{const c=structuredClone(e);c.git_blob='DERIVED';c.sha256='DERIVED';return c;};
+  const paths=b.files.map(e=>e.path);
+  if(new Set(paths).size!==paths.length||JSON.stringify(paths)!==JSON.stringify([...paths].sort()))reject();
+  const old=new Map(a.files.map(e=>[e.path,e]));
+  if(old.size!==a.files.length||a.files.some(e=>!b.files.some(h=>h.path===e.path&&JSON.stringify(clean(e))===JSON.stringify(clean(h)))))reject();
+  const additions=b.files.filter(e=>!old.has(e.path));
+  for(const e of additions){
+    const matches=files.filter(f=>f.filename===e.path);
+    if(matches.length!==1||matches[0].base_content!==''||typeof matches[0].head_content!=='string')reject();
+    const source=matches[0].head_content,bytes=Buffer.from(source,'utf8');
+    if(!EXPLICIT_EXECUTION_CONTROLS.includes(e.path)&&!new RegExp(a.scan.pattern).test(source))reject();
+    const blob=crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
+    if(e.git_blob!==blob||e.sha256!==digest(source)||e.classification!==classifyApprovalInventoryPath(e.path))reject();
+    const expected={path:e.path,classification:e.classification,git_blob:blob,sha256:digest(source)};
+    if(e.classification==='EXECUTION_AUTHORIZATION_CONTROL'){
+      const routing=routeAuthorizationControl(e.path,source);
+      if(routing.coverage.mode!=='EXEMPTION')reject();
+      expected.authorization_routing=routing;
+    }
+    if(JSON.stringify(e)!==JSON.stringify(expected))reject();
+  }
+  if(b.scan?.file_count!==b.files.length||a.scan?.file_count!==a.files.length||b.manifest_sha256!==digest(JSON.stringify(b.files)))reject();
+  const left=normalizedDerivedApprovalMetadata(JSON.stringify(a),manifestPath),right=normalizedDerivedApprovalMetadata(JSON.stringify(b),manifestPath);
+  right.files=right.files.filter(e=>old.has(e.path));right.scan.file_count=left.scan.file_count;
+  if(JSON.stringify(left)!==JSON.stringify(right))reject();
+  if(filename!==manifestPath){
+    const l=normalizedDerivedApprovalMetadata(before,filename),r=normalizedDerivedApprovalMetadata(after,filename);
+    const raw=JSON.parse(after);
+    if(raw.manifest_sha256!==b.manifest_sha256||raw.audit?.manifest_sha256!==b.manifest_sha256)reject();
+    const controls=additions.filter(e=>e.classification==='EXECUTION_AUTHORIZATION_CONTROL'),routes={};
+    for(const e of controls)routes[e.authorization_routing.route]=(routes[e.authorization_routing.route]||0)+1;
+    if(r.audit?.approval_related_files_reviewed!==l.audit?.approval_related_files_reviewed+additions.length)reject();
+    r.audit.approval_related_files_reviewed=l.audit.approval_related_files_reviewed;
+    if(r.audit.routing_coverage.execution_authorization_controls!==l.audit.routing_coverage.execution_authorization_controls+controls.length
+      ||r.audit.routing_coverage.exemptions!==l.audit.routing_coverage.exemptions+controls.length)reject();
+    r.audit.routing_coverage.execution_authorization_controls=l.audit.routing_coverage.execution_authorization_controls;
+    r.audit.routing_coverage.exemptions=l.audit.routing_coverage.exemptions;
+    for(const [route,count]of Object.entries(routes)){
+      if(r.audit.routing_coverage.route_counts[route]!==(l.audit.routing_coverage.route_counts[route]||0)+count)reject();
+      if(route in l.audit.routing_coverage.route_counts)r.audit.routing_coverage.route_counts[route]=l.audit.routing_coverage.route_counts[route];else delete r.audit.routing_coverage.route_counts[route];
+    }
+    if(JSON.stringify(l)!==JSON.stringify(r))reject();
+  }
+  return true;
+};
+const assertDerivedApprovalMetadataDelta=(before,after,filename,files)=>{
+  if(verifyAuditGrowth(before,after,filename,files))return;
   const left=normalizedDerivedApprovalMetadata(before,filename);
   const right=normalizedDerivedApprovalMetadata(after,filename);
   if(JSON.stringify(left)!==JSON.stringify(right)) fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
@@ -240,8 +295,9 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(typeof filename!=='string'||!filename) fail('CAPABILITY_PATH_INVALID');
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
+    if(matchesReviewedImmutableTransportRepair(file)){evidence.push({filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content)});continue;}
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
-    else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename);
+    else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename,files);
     else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename); assertJsonMonotonic(file.base_content,file.head_content,filename); }
     else {
       // Markdown is prose, including apostrophes and fenced examples. Do not

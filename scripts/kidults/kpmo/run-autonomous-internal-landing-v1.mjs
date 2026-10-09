@@ -90,22 +90,46 @@ const api = async (endpoint, options={}) => {
     headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-internal-landing-v1',...(options.headers||{})},
   });
   const payload = response.status===204 ? null : await response.json().catch(()=>null);
-  if (!response.ok) throw new AutonomousLandingError(`AUTONOMOUS_GITHUB_API_${response.status}`,endpoint);
+  if (!response.ok) {
+    // Record only bounded transport metadata. Never log the response body or
+    // credentials, retry a write, or convert a rejected read into authority.
+    const rateLimited=(response.status===403||response.status===429)
+      && (response.headers.get('x-ratelimit-remaining')==='0'
+        || /(?:API|secondary) rate limit exceeded/i.test(String(payload?.message||'')));
+    const diagnostic={endpoint,rate_limited:rateLimited};
+    for(const name of ['x-ratelimit-remaining','x-ratelimit-reset','retry-after']){
+      const value=response.headers.get(name);
+      if(typeof value==='string'&&/^[0-9]{1,16}$/.test(value))diagnostic[name]=value;
+    }
+    throw new AutonomousLandingError(`AUTONOMOUS_GITHUB_API_${response.status}`,JSON.stringify(diagnostic));
+  }
   return payload;
 };
 const encodePath=value=>value.split('/').map(encodeURIComponent).join('/');
+// Process-local cache only for exact immutable Git objects. All live candidate,
+// rule, status and main reads continue to execute at every validation boundary.
+const immutableContentCache=new Map();
 const immutableContent=async (filename,ref) => {
+  if(!/^[0-9a-f]{40}$/.test(ref))throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_REF_INVALID');
+  const key=JSON.stringify([repository,filename,ref]);
+  if(immutableContentCache.has(key))return immutableContentCache.get(key);
   const payload=await api(`/contents/${encodePath(filename)}?ref=${ref}`);
   if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') throw new AutonomousLandingError('AUTONOMOUS_IMMUTABLE_BLOB_INVALID',filename);
-  return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
+  const content=Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
+  immutableContentCache.set(key,content);
+  return content;
 };
-const attachImmutableContents=async files=>Promise.all(files.map(async file=>{
+const attachImmutableContents=async files=>{
+  const attached=[];
+  for(const file of files){
   if(file.status==='removed'||file.status==='renamed') throw new AutonomousLandingError('AUTONOMOUS_OWNER_RESERVED_ACTION',`${file.filename}:${String(file.status).toUpperCase()}`);
-  return {...file,
+  attached.push({...file,
     base_content:file.status==='added'?'':await immutableContent(file.filename,envelope.base_sha),
     head_content:await immutableContent(file.filename,envelope.head_sha),
-  };
-}));
+  });
+  }
+  return attached;
+};
 const graphql = async (query, variables, mutationToken) => {
   if(mode!=='FINALIZE'||typeof mutationToken!=='string'||!mutationToken||mutationToken===token) {
     throw new AutonomousLandingError('AUTONOMOUS_READY_EVENT_TOKEN_REQUIRED');

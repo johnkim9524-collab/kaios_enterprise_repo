@@ -1,16 +1,37 @@
+import {test} from 'node:test';
 import {spawnSync} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
-import {buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+// Keep repair diagnostics in the existing protected-main and PR CI entrypoint.
+import './capability-repair-analysis-v1.test.mjs';
+import {createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
+for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
+  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED']) {
+  const error=new CapabilityDeltaError(code,'src/a.js:private content must never appear');
+  const repair=buildPolicyRepairRequired({...input,error});
+  assert.equal(repair.state,'POLICY_REPAIR_REQUIRED');
+  assert.equal(repair.classification_failure.changed_path,'src/a.js');
+  assert.equal(repair.binding.head_sha,pr.head.sha);
+  assert.equal(repair.binding.head_tree_sha,input.treeSha);
+  assert.equal(repair.binding.scope_digest,'sha256:'+crypto.createHash('sha256').update('src/a.js').digest('hex'));
+  for(const field of ['automatic_retry_performed','autonomous_eligible','landing_authorization_created','merge_authorized'])assert.equal(repair[field],false);
+  assert.equal(repair.classification_failure.authority_created,false);
+  assert.doesNotMatch(JSON.stringify(repair),/private content/);
+  for(const change of [{mainSha:sha('d')},{treeSha:'invalid'},{files:[]}])
+    assert.throws(()=>buildPolicyRepairRequired({...input,...change,error}),/DISPATCH_POLICY_REPAIR_BINDING_INVALID/);
+}
+assert.equal(buildPolicyRepairRequired({...input,error:new DispatcherError('DISPATCH_CHECKS_NOT_GREEN')}),null);
+assert.equal(buildPolicyRepairRequired({...input,error:new CapabilityDeltaError('CAPABILITY_PERMISSION_EXPANSION')}),null);
+console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'non-authorizing-policy-repair-routing',positive:4,negative:14,authority_created:false}));
 const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
 const unknown=new CapabilityDeltaError('CAPABILITY_SOURCE_MISSING','private payload');
 let reads=0;
@@ -576,3 +597,74 @@ try {
   }
 } finally {fs.rmSync(fixtureRoot,{recursive:true,force:true});}
 console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'actual-lifecycle-loop-offline',cases:shellCasesPassed,live_network_calls:0,real_credentials_used:false}));
+
+const fakeResponse=(status=200,body={value:1},remaining=null)=>({status,ok:status>=200&&status<300,
+  headers:{get:name=>name==='x-ratelimit-remaining'?remaining:null},json:async()=>body});
+const immutablePath=`/repos/owner/repo/contents/src/a.js?ref=${sha('a')}`;
+test('dispatcher coalesces only exact immutable file reads and serializes requests',async()=>{
+  let calls=0,active=0,peak=0;
+  const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{
+    calls++;active++;peak=Math.max(peak,active);await new Promise(resolve=>setImmediate(resolve));active--;return fakeResponse();}});
+  await Promise.all([client.request(immutablePath),client.request(immutablePath),client.request('/repos/owner/repo/branches/main')]);
+  await client.request('/repos/owner/repo/branches/main');
+  await client.request(immutablePath.replace(sha('a'),sha('b')));
+  assert.equal(calls,4);assert.equal(peak,1);
+});
+test('symbolic refs are never cached',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return fakeResponse();}});
+  await client.request(immutablePath.replace(sha('a'),'main'));await client.request(immutablePath.replace(sha('a'),'main'));
+  assert.equal(calls,2);
+});
+for(const [label,response,code] of [
+  ['exhausted successful response',fakeResponse(200,{},'0'),'DISPATCH_RATE_LIMITED'],
+  ['reserved remaining quota',fakeResponse(200,{},'100'),'DISPATCH_RATE_LIMITED'],
+  ['HTTP 429',fakeResponse(429),'DISPATCH_RATE_LIMITED'],
+  ['HTTP 403',fakeResponse(403),'DISPATCH_READ_ACCESS_DENIED'],
+  ['HTTP 401',fakeResponse(401),'DISPATCH_READ_ACCESS_DENIED'],
+])test(`dispatcher stops all queued reads after ${label}`,async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return response;}});
+  const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
+  assert.ok(results.every(result=>result.status==='rejected'&&result.reason.code===code));
+  await assert.rejects(client.request(immutablePath),error=>error.code===code);assert.equal(calls,1);
+});
+test('dispatcher request budget is invocation scoped and cannot be exceeded',async()=>{
+  let calls=0;const fetchImpl=async()=>{calls++;return fakeResponse();};
+  const client=createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1});await client.request('/one');
+  await assert.rejects(client.request('/two'),error=>error.code==='DISPATCH_READ_BUDGET_EXHAUSTED');
+  await createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1}).request('/two');assert.equal(calls,2);
+});
+test('failed immutable response is not cached and immutable 404 is reused',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>fakeResponse(++calls===1?500:404)});
+  await assert.rejects(client.request(immutablePath),error=>error.code==='DISPATCH_GITHUB_API');
+  assert.equal(await client.request(immutablePath),null);assert.equal(await client.request(immutablePath),null);assert.equal(calls,2);
+});
+test('discovery aborts globally instead of returning partial candidate results',async()=>{
+  let calls=0;
+  await assert.rejects(discover({repository:'owner/repo',token:'offline',policy,generationSeed:'1',
+    fetchImpl:async url=>{calls++;return url.endsWith('/branches/main')?fakeResponse(403):fakeResponse();}}),
+    error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
+  assert.equal(calls,1);
+});
+test('global API failure inside a candidate does not become SKIPPED or trigger later candidates',async()=>{
+  const paths=[];
+  await assert.rejects(discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',
+    fetchImpl:async url=>{
+      const path=new URL(url).pathname;paths.push(path);
+      if(path.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+      if(path.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+      if(path.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+      if(path.endsWith('/pulls'))return fakeResponse(200,[pr,{...pr,number:43}]);
+      if(path.includes('/git/commits/'))return fakeResponse(403);
+      throw new Error('unexpected follow-on request');
+    }}),error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
+  assert.equal(paths.length,5);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
+});
+test('global read failure cannot be swallowed by uncertainty reclassification',async()=>{
+  const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
+  let reads=0;
+  await assert.rejects(reclassifyUnknownCandidate({context:{...input,classificationMode:'CURRENT_BASE'},
+    error:new DispatcherError('CAPABILITY_SOURCE_MISSING'),approvalPolicy,
+    readCandidate:async()=>{reads++;throw new DispatcherError('DISPATCH_RATE_LIMITED');}}),
+    error=>error.code==='DISPATCH_RATE_LIMITED');
+  assert.equal(reads,1);
+});

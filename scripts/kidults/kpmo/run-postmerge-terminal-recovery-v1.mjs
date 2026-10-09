@@ -1,3 +1,4 @@
+import {consumedRecoveryObservation} from './lib/consumed-recovery-observation-v1.mjs';
 // Protected workflow entry point for one historic terminal-only incident.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,13 +22,20 @@ assert(event.action==='completed'&&upstream?.name==='KPMO Continuous Assurance S
   &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_UPSTREAM');
 assert(['production','public','g5'].every(key=>env[`KIDULTS_${key.toUpperCase()}_STATE`]==='HOLD'),'RECOVERY_RUNTIME_HOLD');
 assert(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===env.GITHUB_SHA,'RECOVERY_RUNTIME_CHECKOUT');
-const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
-assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name'].every(key=>live[key]===upstream[key])
-  &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
 const role=env.KIDULTS_RECOVERY_ROLE;
 assert(['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER','FINALIZER'].includes(role),'RECOVERY_RUNTIME_ROLE');
 if(role==='FINALIZER')assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main`,'RECOVERY_RUNTIME_FINALIZER_WORKFLOW');
 const ledger=await createRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA});
+const historical=consumedRecoveryObservation(await ledger.discoverContext());
+if(historical){
+  const dir='out/postmerge-terminal-recovery-v1';fs.mkdirSync(dir,{recursive:true});
+  fs.writeFileSync(path.join(dir,'historical-noop.json'),JSON.stringify(historical,null,2)+'\n');
+  if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`approval_run_id=${env.GITHUB_RUN_ID}\nrecovery_needed=false\n`);
+  console.log(JSON.stringify(historical));process.exit(0);
+}
+const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
+assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name'].every(key=>live[key]===upstream[key])
+  &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
 const github=createRecoveryGitHubObservation({token:env.GITHUB_TOKEN});
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json','utf8'));
 const evidence=createRecoveryExactMainEvidence({policy});

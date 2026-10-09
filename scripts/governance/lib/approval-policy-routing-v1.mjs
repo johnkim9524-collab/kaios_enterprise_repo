@@ -19,6 +19,10 @@ export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
 ]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
+export const classifyApprovalInventoryPath=file=>{
+  if(EXPLICIT_EXECUTION_CONTROLS.includes(file)||/^(coordination\/kidults\/(governance|kpmo)\/|docs\/governance\/|\.github\/workflows\/|scripts\/(governance|kidults\/kpmo)\/|tests\/governance\/)/.test(file))return 'EXECUTION_AUTHORIZATION_CONTROL';
+  return /^(docs\/|coordination\/)/.test(file)?'DOMAIN_ADJUDICATION_OR_DOCUMENTATION':'REFERENCE_OR_IMPLEMENTATION';
+};
 export const ALLOWED_EXEMPTIONS=new Set([
   "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD",
   "NON_MUTATING_VALIDATOR_OR_LIBRARY",

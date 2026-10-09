@@ -1,3 +1,5 @@
+import {EXPLICIT_EXECUTION_CONTROLS,classifyApprovalInventoryPath,routeAuthorizationControl} from '../../../governance/lib/approval-policy-routing-v1.mjs';
+import {matchesReviewedImmutableTransportRepair} from './reviewed-immutable-transport-repair-v1.mjs';
 import crypto from 'node:crypto';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
@@ -35,7 +37,62 @@ const isDerivedApprovalMetadataShape=(source,filename)=>{
   } catch {}
   return false;
 };
-const verifyDerivedApprovalMetadata=(before,after,filename)=>{
+const independentlyVerifyAuditGrowth=(before,after,filename,files)=>{
+  const manifest='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const pair=filename===manifest?{base_content:before,head_content:after}:files.find(f=>f.filename===manifest);
+  if(!pair)return false;
+  let base,head;try{base=JSON.parse(pair.base_content);head=JSON.parse(pair.head_content);}catch{return false;}
+  if(!Array.isArray(base.files)||!Array.isArray(head.files)||head.files.length<=base.files.length)return false;
+  const reject=()=>deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
+  const remaining=new Map(base.files.map(e=>[e.path,e]));
+  if(remaining.size!==base.files.length)reject();
+  const seen=new Set(),newControls=[],additions=[];
+  const expected=structuredClone(base);
+  expected.files=[];
+  for(const entry of head.files){
+    if(typeof entry.path!=='string'||seen.has(entry.path))reject();seen.add(entry.path);
+    const old=remaining.get(entry.path);
+    if(old){
+      const copy=structuredClone(old);copy.git_blob=entry.git_blob;copy.sha256=entry.sha256;
+      expected.files.push(copy);remaining.delete(entry.path);continue;
+    }
+    const candidates=files.filter(file=>file.filename===entry.path);
+    if(candidates.length!==1||candidates[0].base_content!==''||typeof candidates[0].head_content!=='string')reject();
+    const source=candidates[0].head_content,body=Buffer.from(source);
+    if(!EXPLICIT_EXECUTION_CONTROLS.includes(entry.path)&&!new RegExp(base.scan.pattern).test(source))reject();
+    const object=crypto.createHash('sha1');object.update('blob '+body.byteLength);object.update(Buffer.from([0]));object.update(body);
+    const classification=classifyApprovalInventoryPath(entry.path);
+    const generated={path:entry.path,classification,git_blob:object.digest('hex'),sha256:hash(source)};
+    if(classification==='EXECUTION_AUTHORIZATION_CONTROL'){
+      generated.authorization_routing=routeAuthorizationControl(entry.path,source);
+      if(generated.authorization_routing.coverage.mode!=='EXEMPTION')reject();
+      newControls.push(generated);
+    }
+    expected.files.push(generated);additions.push(generated);
+  }
+  if(remaining.size||base.scan?.file_count!==base.files.length)reject();
+  // Git's manifest ordering compares code units, not locale collation.
+  expected.files.sort((a,b)=>a.path<b.path?-1:a.path>b.path?1:0);
+  expected.scan.file_count=expected.files.length;
+  expected.manifest_sha256=hash(JSON.stringify(expected.files));
+  if(JSON.stringify(expected)!==JSON.stringify(head))reject();
+  if(filename!==manifest){
+    const expectedInventory=JSON.parse(before),actual=JSON.parse(after);
+    if(!Number.isSafeInteger(expectedInventory.audit?.approval_related_files_reviewed))reject();
+    expectedInventory.manifest_sha256=head.manifest_sha256;
+    expectedInventory.audit.manifest_sha256=head.manifest_sha256;
+    expectedInventory.audit.approval_related_files_reviewed+=additions.length;
+    const coverage=expectedInventory.audit.routing_coverage;
+    coverage.execution_authorization_controls+=newControls.length;
+    coverage.exemptions+=newControls.length;
+    for(const entry of newControls){const route=entry.authorization_routing.route;coverage.route_counts[route]=(coverage.route_counts[route]||0)+1;}
+    coverage.route_counts=Object.fromEntries(Object.entries(coverage.route_counts).sort());
+    if(JSON.stringify(expectedInventory)!==JSON.stringify(actual))reject();
+  }
+  return true;
+};
+const verifyDerivedApprovalMetadata=(before,after,filename,files)=>{
+  if(independentlyVerifyAuditGrowth(before,after,filename,files))return;
   if(JSON.stringify(normalizedDerivedApprovalMetadata(before,filename))!==JSON.stringify(normalizedDerivedApprovalMetadata(after,filename))) deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };
 
@@ -154,14 +211,17 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    if(matchesReviewedImmutableTransportRepair(file)){receipts.push({filename:file.filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;}
+    if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)){
+      verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename,files);
+      receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;
+    }
     verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename);
     if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
     for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
-    if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)) {
-      verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename);
-    } else if(file.filename.endsWith('.json')) {
+    if(file.filename.endsWith('.json')) {
       let a,b; try {a=JSON.parse(file.base_content||'{}');b=JSON.parse(file.head_content||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',file.filename)}
       const walk=(left,right,path='')=>{if(left&&typeof left==='object'){for(const key of Object.keys(left)){if(!(key in (right||{})))deny('INDEPENDENT_POLICY_KEY_REMOVED',`${file.filename}:${path}${key}`);walk(left[key],right[key],`${path}${key}.`)}}else if(JSON.stringify(left)!==JSON.stringify(right))deny('INDEPENDENT_POLICY_VALUE_CHANGED',`${file.filename}:${path}`)};
       walk(a,b);

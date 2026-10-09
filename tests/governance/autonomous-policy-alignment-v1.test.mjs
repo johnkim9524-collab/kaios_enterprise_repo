@@ -10,6 +10,71 @@ import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
 import {routeAuthorizationControl} from '../../scripts/governance/lib/approval-policy-routing-v1.mjs';
 
+const auditGrowthFixture=()=>{
+ const path='scripts/kidults/kpmo/lib/new-audit-reference.mjs',source='// approval\nexport const value=1;\n';
+ const bytes=Buffer.from(source),git_blob=crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
+ const old={path:'scripts/a.mjs',classification:'REFERENCE_OR_IMPLEMENTATION',git_blob:'a'.repeat(40),sha256:'sha256:'+'a'.repeat(64)};
+ const entry={path,classification:'EXECUTION_AUTHORIZATION_CONTROL',git_blob,sha256:sha256(source),authorization_routing:routeAuthorizationControl(path,source)};
+ const base={id:'audit',scan:{file_count:1,pattern:'approval',method:'GIT_OBJECT_CONTENT_SCAN'},files:[old]};base.manifest_sha256=sha256(JSON.stringify(base.files));
+ const head=structuredClone(base);head.files=[entry,structuredClone(old)].sort((a,b)=>a.path<b.path?-1:1);head.scan.file_count=2;head.manifest_sha256=sha256(JSON.stringify(head.files));
+ const inv={policies:[],holds:{production:'HOLD'},manifest_sha256:base.manifest_sha256,audit:{manifest_sha256:base.manifest_sha256,approval_related_files_reviewed:1,routing_coverage:{execution_authorization_controls:0,consumers:0,exemptions:0,route_counts:{}}}};
+ const next=structuredClone(inv);next.manifest_sha256=head.manifest_sha256;next.audit.manifest_sha256=head.manifest_sha256;next.audit.approval_related_files_reviewed=2;next.audit.routing_coverage={execution_authorization_controls:1,consumers:0,exemptions:1,route_counts:{INTERNAL_REVERSIBLE:1}};
+ return {path,source,base,head,inv,next};
+};
+const auditGrowthFiles=f=>[
+ {filename:'coordination/kidults/governance/approval-policy-file-manifest-v1.json',base_content:JSON.stringify(f.base),head_content:JSON.stringify(f.head)},
+ {filename:'coordination/kidults/governance/approval-policy-inventory-v1.json',base_content:JSON.stringify(f.inv),head_content:JSON.stringify(f.next)},
+ {filename:f.path,base_content:'',head_content:f.source},
+];
+test('source-bound audit growth preserves old routing and creates no execution authority',()=>{
+ const f=auditGrowthFixture();
+ for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta])assert.doesNotThrow(()=>verify({files:auditGrowthFiles(f),policy:landing}));
+});
+for(const [name,change]of [
+ ['old classification',f=>f.head.files.find(e=>e.path==='scripts/a.mjs').classification='EXECUTION_AUTHORIZATION_CONTROL'],
+ ['source digest',f=>f.head.files.find(e=>e.path===f.path).sha256='sha256:'+'0'.repeat(64)],
+ ['git blob',f=>f.head.files.find(e=>e.path===f.path).git_blob='0'.repeat(40)],
+ ['downgraded new control',f=>{const e=f.head.files.find(e=>e.path===f.path);e.classification='REFERENCE_OR_IMPLEMENTATION';delete e.authorization_routing;}],
+ ['new authority consumer',f=>f.head.files.find(e=>e.path===f.path).authorization_routing={route:'CANONICAL_ENVELOPE',coverage:{mode:'CONSUMER'}}],
+ ['duplicate path',f=>f.head.files.push(f.head.files[0])],
+ ['path order',f=>f.head.files.reverse()],
+ ['scan definition',f=>f.head.scan.pattern='nothing'],
+ ['file count',f=>f.head.scan.file_count=100],
+ ['inventory count',f=>f.next.audit.approval_related_files_reviewed=3],
+ ['route count',f=>f.next.audit.routing_coverage.route_counts.INTERNAL_REVERSIBLE=2],
+ ['consumer count',f=>f.next.audit.routing_coverage.consumers=1],
+ ['policy authority',f=>f.next.policies.push({authority:'new'})],
+ ['hold weakening',f=>f.next.holds.production='PASS'],
+ ['manifest digest',f=>f.head.manifest_sha256='sha256:'+'0'.repeat(64)],
+ ['source bytes',f=>f.source+='//changed\n'],
+])test('audit growth rejects '+name,()=>{
+ const f=auditGrowthFixture();change(f);
+ if(name!=='manifest digest')f.head.manifest_sha256=sha256(JSON.stringify(f.head.files));
+ f.next.manifest_sha256=f.head.manifest_sha256;f.next.audit.manifest_sha256=f.head.manifest_sha256;
+ for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta])assert.throws(()=>verify({files:auditGrowthFiles(f),policy:landing}));
+});
+test('audit growth requires the added immutable source and paired inventory evidence',()=>{
+ const f=auditGrowthFixture(),files=auditGrowthFiles(f);
+ for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta]){
+  assert.throws(()=>verify({files:files.slice(0,2),policy:landing}));
+  assert.throws(()=>verify({files:[files[1]],policy:landing}));
+  assert.throws(()=>verify({files:[...files,files[2]],policy:landing}));
+ }
+});
+test('source-authenticated authority consumers and unscanned entries still cannot join audit growth',()=>{
+ for(const source of ["export const value='kidults-autonomous-approval-policy-envelope-v1';\n",'export const value=1;\n']){
+  const f=auditGrowthFixture(),entry=f.head.files.find(e=>e.path===f.path),bytes=Buffer.from(source);f.source=source;
+  entry.git_blob=crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
+  entry.sha256=sha256(source);entry.authorization_routing=routeAuthorizationControl(f.path,source);
+  f.head.manifest_sha256=sha256(JSON.stringify(f.head.files));f.next.manifest_sha256=f.head.manifest_sha256;f.next.audit.manifest_sha256=f.head.manifest_sha256;
+  for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta])assert.throws(()=>verify({files:auditGrowthFiles(f),policy:landing}));
+ }
+});
+test('valid audit growth never exempts a different guard removal',()=>{
+ const files=auditGrowthFiles(auditGrowthFixture());
+ files.push({filename:'scripts/kidults/kpmo/lib/unrelated.mjs',base_content:"if(!token)throw Error('HOLD');",head_content:"console.log('ok');"});
+ for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta])assert.throws(()=>verify({files,policy:landing}));
+});
 const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
 const landing=read('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json');

@@ -1,3 +1,4 @@
+import '../kidults/kpmo/reviewed-immutable-transport-repair-v1.test.mjs';
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

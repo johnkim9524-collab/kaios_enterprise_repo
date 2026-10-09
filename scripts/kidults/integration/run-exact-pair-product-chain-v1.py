@@ -62,11 +62,17 @@ def main(argv: list[str]) -> int:
     ], cwd=ROOT, check=True)
 
     if not manifest_path.exists():
+        observation = json.loads((output_dir / "runtime-domain-input-connections.json").read_text(encoding="utf-8"))
+        require(observation.get("source_sha") == subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "RUNTIME_DOMAIN_OBSERVATION_SOURCE_MISMATCH")
         print(json.dumps({
             "suite": "KIDULTS_EXACT_PAIR_PRODUCT_CHAIN_V1",
             "result": "PASS",
             "state": "WAITING_PAIR",
             "native_runtime_proven": False,
+            "runtime_domain_observation_digest": observation["receipt_digest"],
+            "locally_executed_domain_count": observation["workload_execution"]["locally_executed_domain_count"],
+            "authenticated_native_output_count": observation["native_output_connections"]["authenticated_output_count"],
             "evidence_scope": "LOCAL_CONTENT_PROCESSING_NOT_NATIVE_DOMAIN_PROOF",
             "runtime_manifest": None,
             "assessment": "NOT_CREATED",

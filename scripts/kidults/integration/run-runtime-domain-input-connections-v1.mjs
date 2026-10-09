@@ -4,6 +4,9 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {connectAuthenticatedBusinessInput} from './authenticated-business-input-v1.mjs';
 import {canonicalJson,sha256} from '../kpmo/lib/canonical-json-v1.mjs';
+import {executeRuntimeDomainWorkloads} from '../runtime/runtime-domain-workloads-v1.mjs';
+import {reconcileRuntimeDomainOutputs} from './authenticated-runtime-domain-outputs-v1.mjs';
+import {discoverRegisteredRuntimeReferences} from './discover-registered-runtime-references-v1.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 const [manifestArgument,outputArgument]=process.argv.slice(2);
@@ -24,8 +27,15 @@ const manifest=fs.existsSync(manifestPath)?read(manifestPath):null;
 const contract=read(path.join(root,'coordination/kidults/integration/authenticated-business-input-connection-v1.json'));
 const definition=read(path.join(root,'coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json'));
 const sourceSha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
-const connection=await connectAuthenticatedBusinessInput({reference:manifest?.native_business_input_reference,
+const outputContract=read(path.join(root,'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'));
+const discovery=await discoverRegisteredRuntimeReferences({inputContract:contract,domainContract:outputContract,sourceSha,
+  token:process.env.GH_TOKEN||process.env.GITHUB_TOKEN,inputReference:manifest?.native_business_input_reference,
+  domainReferences:manifest?.native_domain_output_references});
+const connection=await connectAuthenticatedBusinessInput({reference:discovery.input_reference,
   contract,sourceSha,token:process.env.GH_TOKEN||process.env.GITHUB_TOKEN});
+const workloads=executeRuntimeDomainWorkloads({connection,definition,sourceSha});
+const nativeOutputs=await reconcileRuntimeDomainOutputs({references:discovery.domain_references,
+  connection,definition,contract:outputContract,sourceSha,token:process.env.GH_TOKEN||process.env.GITHUB_TOKEN});
 // A separate registered native producer is still necessary for each domain.
 // Never publish raw business data, rights documents or credentials in this receipt.
 const required={
@@ -47,6 +57,8 @@ const domains=definition.domains.filter(d=>d.id!=='SECURITY_SUPPLY_CHAIN');
 if(domains.length!==13||new Set(domains.map(d=>d.id)).size!==13
   ||Object.keys(required).length!==13||domains.some(d=>!required[d.id]))throw new Error('RUNTIME_INPUT_CONNECTION_DOMAIN_SET');
 const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSha,state:'VERIFIED_INCOMPLETE',
+  workload_execution:workloads,
+  native_output_connections:nativeOutputs,
   evidence_scope:'INPUT_CONNECTION_OBSERVATION_NOT_RUNTIME_DOMAIN_CERTIFICATION',
   native_input_transport_state:connection.state,native_input_blocker:connection.blocker??null,
   native_input_reference:connection.state==='INPUT_TRANSPORT_AND_CONTENT_VERIFIED'?{
@@ -56,7 +68,7 @@ const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSh
     required_evidence:required[d.id],state:'HOLD',native_domain_proven:false,
     input_transport_connected:connection.state==='INPUT_TRANSPORT_AND_CONTENT_VERIFIED'
       &&['VALUE_TRACEABILITY','SOURCE_RIGHTS','ENTITY_RESOLUTION','MARKET_EVIDENCE','ASI_EXECUTION','PRIVACY_RETENTION'].includes(d.id)})),
-  native_domain_receipt_emitted:false,whole_platform_runtime_proven:false,
+  reference_discovery:discovery,native_domain_receipt_emitted:false,whole_platform_runtime_proven:false,
   legal_admission_independently_verified:false,immutable_pair_created:false,remote_workload_verified:false,
   production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
   autonomous_effect:'Bounded native input reconciliation precedes business processing; absent authority remains HOLD.',
