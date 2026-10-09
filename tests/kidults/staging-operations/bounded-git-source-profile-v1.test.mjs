@@ -15,6 +15,13 @@ test('normal CLI selects only the installed protected profile and refuses policy
 import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 const policyPath='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+test('installed repository profile matches the actual protected source bytes',()=>{
+ const policy=JSON.parse(fs.readFileSync(policyPath));
+ assert.equal(enabled(policy,path=>fs.readFileSync(path)),true);
+ for(const path of paths){
+  assert.throws(()=>enabled(policy,source=>source===path?Buffer.concat([fs.readFileSync(source),Buffer.from('\n// drift')]):fs.readFileSync(source)),/PROTECTED_PROFILE_INVALID/);
+ }
+});
 for(const [name,verify] of [['primary',evaluateSemanticCapabilityDelta],['independent',independentlyVerifyCapabilityDelta]])test(name+' treats source profile installation or mutation as protected activation authority',()=>{
  const before=JSON.parse(fs.readFileSync(policyPath));delete before.immutable_source_read_profile;const after={...before,immutable_source_read_profile:profile};
  assert.throws(()=>verify({files:[{filename:policyPath,status:'modified',base_content:JSON.stringify(before),head_content:JSON.stringify(after)}],policy:before}),/AUTHORITY_POLICY_CHANGED/);

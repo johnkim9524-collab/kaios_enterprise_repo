@@ -218,6 +218,7 @@ jobs:
           pytest -q
           node tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs
           node tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs
+          node --test tests/kidults/staging-operations/bounded-git-source-profile-v1.test.mjs
 
       - name: Verify resume reconciliation and retained authority guards
         run: |
