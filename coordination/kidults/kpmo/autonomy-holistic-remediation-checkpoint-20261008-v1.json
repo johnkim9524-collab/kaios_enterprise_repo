@@ -1,0 +1,367 @@
+{
+  "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
+  "version": "1.4.0",
+  "agent_id": "atlas-autonomy-correction",
+  "as_of": "2026-10-08T22:32:04.975878+00:00",
+  "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "root_incident": 344,
+  "scope": "12 holistic findings and subsequent bounded PSA validation",
+  "state": "CORRECTIONS_LANDED_RUNTIME_INCOMPLETE",
+  "source_main_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+  "development_branch": "codex/assurance-continuation-correction-20261009",
+  "existing_pull_request": 2617,
+  "facts": [
+    "PR #2609 and PR #2617 are merged; reuse their native receipts and do not reissue landing operations",
+    "PR #2617 exact approved base/head/tree and native Owner lifecycle were verified by protected handoff run 37846897821 attempt 1",
+    "Exact merge-SHA push suite has 24 successful runs; six required landing workflows were consumed successfully",
+    "Landing proof is not Producer Health or whole-platform promotion authority",
+    "Two additional Assurance producer/continuation defects are under separate development correction",
+    "No new provider calls, provider outreach, deployment or permission expansion were performed"
+  ],
+  "items": [
+    {
+      "id": "F01",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "scope": "Native runtime 14-domain completion",
+      "facts": "13 authenticated native producers and admitted business workload are missing",
+      "exit_criteria": "Implement and execute registered domain-specific producers against lawful admitted inputs; same-main 14/14 proof",
+      "evidence_refs": [
+        "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F02",
+      "priority": "P0",
+      "state": "BLOCKED",
+      "scope": "Actual source-to-EOS chain",
+      "facts": "Current input stages verify content/integrity only; actual source acquisition, immutable pair and Track B input unavailable",
+      "exit_criteria": "Authenticated lawful input, private persistence/readback, immutable Candidate/Evidence, exact pair assessment and downstream run receipts",
+      "evidence_refs": [
+        "scripts/kidults/runtime/execute-bound-business-input-v1.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F03",
+      "priority": "P0",
+      "state": "VERIFIED_LANDED_STRUCTURAL",
+      "scope": "Inventory digest guards",
+      "facts": "Digest normalization guards landed through existing PR #2609; exact current main CI and protected landing suite passed. Runtime ledger activation is tracked separately.",
+      "exit_criteria": "Existing PR #2609 exact-head CI, governed landing and actual automatic lifecycle terminal",
+      "evidence_refs": [
+        "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs"
+      ],
+      "completion_claimed": true
+    },
+    {
+      "id": "F04",
+      "priority": "P1",
+      "state": "ADDITIONAL_CORRECTION_IN_PROGRESS",
+      "scope": "Assurance completion routing",
+      "facts": "Completion routing and exact tuple guards landed. Native review exposed audit repository/branch emission and authenticated workflow_dispatch continuation consumer incompatibilities; subsequent development correction required.",
+      "exit_criteria": "Exact-head CI and landed natural classification/full-audit runs; retain 14-domain proof requirements",
+      "evidence_refs": [
+        ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F05",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "Assurance durable Postgres claim activation",
+      "facts": "No callable protected remote operation-ledger/activation adapter in this session; current state remains REMOTE_LEDGER_ACTIVATION_HOLD",
+      "exit_criteria": "Activate configured atomic claim ledger through governed STAGING path; prove contention, restart, reuse and fencing; no fixture substitution",
+      "evidence_refs": [
+        "coordination/kidults/kpmo/platform-continuous-assurance-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F06",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "External launcher and all-operation RESUME",
+      "facts": "Actual external launcher/deployed broker side-effect evidence unavailable; no callable protected operation-ledger adapter",
+      "exit_criteria": "Validate actual deployment and all side-effect adapters; reject wrong SHA/replay/unconsumed bootstrap; preserve existing operation owner and budgets",
+      "evidence_refs": [
+        "coordination/kidults/governance/resume-contract-v1.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F07",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Track R independence registry",
+      "facts": "Track R / red-team-lead / direct Owner report line / recusal and both bootstrap mappings implemented; holder remains explicitly unassigned",
+      "exit_criteria": "Exact-head governance tests plus identity-bound holder acceptance and operation-specific recusal evidence",
+      "evidence_refs": [
+        "coordination/kidults/registry/track/records/track-r-independent-red-team.json"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F08",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Historical truth versus current measurements",
+      "facts": "Old score preserved as historical; collector current completion weight remains null; program registry aligned",
+      "exit_criteria": "Land correction and consume fresh exact-main runtime measurements before updating completion scores",
+      "evidence_refs": [
+        "scripts/kidults/kpmo/lib/whole-platform-operating-proof-v1.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F09",
+      "priority": "P1",
+      "state": "BLOCKED",
+      "scope": "Business workload performance/cost/recovery",
+      "facts": "Actual approved Candidate/Evidence workload not available; generic DEV/STAGING baseline already materially complete",
+      "exit_criteria": "Actual business replay with latency, throughput, growth, unit cost and recovery receipts; no repeated generic baseline",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/481"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F10",
+      "priority": "P1",
+      "state": "PARTIAL_PROVIDER_CONFIRMATION",
+      "scope": "Provider PITR confirmation",
+      "facts": "DigitalOcean support Anadi confirms intended source kidults-staging-postgres forked to kidults-pitr-37746452670 and online at 2026-10-08T08:41Z. Provider backend does not separately record the selected target timestamp; exact 07:56:49Z data-state verification remains customer-side.",
+      "exit_criteria": "Preserve provider source/completion confirmation and verify expected timestamp-bound records from the restored DB; do not claim provider confirmation of the exact selected PITR timestamp.",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1464"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F11",
+      "priority": "P1",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "TLS explicit CA identity binding",
+      "facts": "Trusted CA path/digest and immutable runtime copy implemented; verification modes reject missing CA/digest, symlink, wrong digest, private-key and oversize inputs before networking",
+      "exit_criteria": "Exact-head tests, credential-isolated verify-full live connection and CA/hostname receipt; current require-only receipts remain historical",
+      "evidence_refs": [
+        "scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "F12",
+      "priority": "P2",
+      "state": "BLOCKED",
+      "scope": "Global quality/privacy/unit economics",
+      "facts": "Fresh admitted workload and physical deletion/readback/unit-cost measurements unavailable",
+      "exit_criteria": "Measure category/geography/language coverage, source removal loss, record deletion/readback and useful-event cost; unknown is not zero",
+      "evidence_refs": [
+        "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/769"
+      ],
+      "completion_claimed": false
+    }
+  ],
+  "verification_evidence_refs": [
+    "tests/governance/autonomous-policy-alignment-v1.test.mjs",
+    "tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs",
+    "tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs",
+    "tests/kidults/kpmo/test_postgres_pitr_contract.py"
+  ],
+  "actions_executed": [
+    "REUSE_EXISTING_DIGEST_FIX_AND_NEGATIVE_TESTS",
+    "CLASSIFY_EXACT_ASSURANCE_AUDIT_DISPOSITION",
+    "REGISTER_TRACK_R_WITHOUT_FABRICATING_APPOINTMENT",
+    "BIND_RED_TEAM_BOOTSTRAP_TO_INDEPENDENT_ROLE",
+    "LABEL_HISTORICAL_SCORES_AND_SEPARATE_CURRENT_UNKNOWN",
+    "IMPLEMENT_EXPLICIT_CA_DIGEST_BINDING_AND_NEGATIVE_TESTS",
+    "REFRESH_PSA_AND_PITR_COMMUNICATION_EVIDENCE",
+    "REJECT_DUPLICATE_REGISTRY_JSON_KEYS_BEFORE_CONSUMPTION",
+    "RECONCILE_HISTORICAL_PSA_CONNECTION_WITH_CURRENT_RUNTIME_HOLD"
+  ],
+  "blockers": [
+    "AUTHENTICATED_NATIVE_BUSINESS_INPUTS_AND_DOMAIN_RECEIPTS_INCOMPLETE",
+    "PROTECTED_RUNTIME_OPERATION_LEDGER_AND_EXTERNAL_LAUNCHER_ACTIVATION_NOT_PROVEN",
+    "RESTORED_DB_EXACT_TARGET_DATA_STATE_AND_VERIFY_FULL_RECEIPT_REQUIRED",
+    "PSA_PERSISTENT_PRIVATE_SECRET_STORE_AND_DELETION_BINDINGS_REQUIRED",
+    "CAMERA_RIGHTS_REVIEW_EXPIRED_2026_09_23",
+    "ASSURANCE_CONTINUATION_CORRECTION_PENDING"
+  ],
+  "psa_next_stage": {
+    "state": "BLOCKED",
+    "provider_id": "psa-public-api",
+    "scope": "PROVIDER_SUPPLIED_KNOWN_CERT_PRIVATE_TECHNICAL_SCHEMA_CANARY_ONLY",
+    "source_message_id": "1a0ce643d74de351",
+    "thread_id": "1a0cc0e573998bb6",
+    "non_enumeration": true,
+    "raw_cert_value_in_repository": false,
+    "provider_calls_executed_this_task": 0,
+    "new_outreach_executed": false,
+    "canary_is_120_case_completion": false,
+    "canary_is_current_market_evidence": false,
+    "canary_is_candidate_track_b_or_projection_authority": false,
+    "credential_value_required_in_chat": false,
+    "unblock_condition": "Reconcile protected runner, persistent private store/key and deletion scheduler; validate lawful input provenance and existing field map before bounded private acquisition. Reuse historical connection evidence within its scope; any new canary requires exact governed execution binding.",
+    "prior_schema_canary": {
+      "workflow_run_id": 33123384792,
+      "source_sha": "957759043f46c711d18065896cbf438bb3dcf5bd",
+      "remote_run_conclusion": "success",
+      "historical_receipt_http_status": 200,
+      "historical_receipt_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+      "original_artifact_currently_available": false,
+      "fresh_artifact_authenticated": false,
+      "current_business_completion_proven": false
+    },
+    "last_incomplete_stage": "PERSISTENT_PRIVATE_RUNTIME_SECRET_STORE_AND_DELETION_BINDINGS",
+    "connection_probe_repeated_for_status": false
+  },
+  "next_action": "Authenticate existing AWS session; read protected broker/ledger deployed resources and current authority; implement authenticated capability refinements only with independent semantic proof, then consume existing Draft and verify normal role/finalizer/postmerge stages.",
+  "authority_boundary": {
+    "development_branch_route": "resume-contract-v1 development_branch_resume",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD",
+    "pat": "PROHIBITED",
+    "ruleset_bypass": "PROHIBITED",
+    "whole_platform_complete": false
+  },
+  "truth_sync_refs": [
+    "PR #2617 native merge and protected handoff artifact",
+    "This durable checkpoint; root Issue #344 remains open and historical records are preserved"
+  ],
+  "improvement_proposal": "Use measured business receipts to update current truth and close each finding; preserve historical proof and failed receipts",
+  "effects": {
+    "autonomous_effect": "Fix reversible branch defects and preserve exact resume stage; no routine repeated Owner prompt",
+    "global_effect": "No global coverage claim from one provider canary; actual multi-domain inputs still required",
+    "irreplaceable_value_effect": "Preserve owned mission identity, operation bindings, immutable lineage and provider-independent evidence",
+    "transparency_effect": "Explicit incomplete stages and historical/current boundary; no 12-item complete claim"
+  },
+  "landing_stage": {
+    "state": "VERIFIED_EXACT_LANDED_POSTMERGE_LIFECYCLE",
+    "pull_request": 2617,
+    "base_sha": "c90c986f7a5ca414f64e7108d36fbb29936ef18b",
+    "head_sha": "2374a3ab5819d275d31ed2acec627b899ba13672",
+    "head_tree_sha": "33123205635061d0df398a0ec4023de20248704f",
+    "merge_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+    "handoff_run_id": 37846897821,
+    "handoff_attempt": 1,
+    "handoff_conclusion": "success",
+    "ready_event_id": 32826670972,
+    "approval_comment_id": 6069356261,
+    "merged_event_id": 32827182645,
+    "artifact_id": 11580726331,
+    "artifact_digest": "sha256:f93d93f1c56e41d413e2c31f77d2d8dd8ffebc9e041356d86fc8119f9d50a4a1",
+    "exact_merge_push_run_count": 24,
+    "required_success_count": 6,
+    "required_failure_count": 0,
+    "producer_health_authority": false,
+    "promotion_eligible": false
+  },
+  "additional_source_corrections": {
+    "landed_pull_request": 2617,
+    "landed_findings": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5",
+      "R6",
+      "R7",
+      "F13",
+      "F14",
+      "F15"
+    ],
+    "pending_findings": [
+      "ASSURANCE_AUDIT_UPSTREAM_IDENTITY_EMISSION",
+      "AUTHENTICATED_SENTINEL_CONTINUATION_CONSUMER_ADMISSION"
+    ],
+    "draft_intent_ancestry_review": "13ceaaba5529003ac9c50c47fd9ca8afc6d60ca4 is an actual ancestor of approved head and merge; negative review claim was not reproduced"
+  },
+  "normal_autonomous_path_resume": {
+    "state": "BLOCKED",
+    "scope": "NORMAL_AUTONOMOUS_LANDING_AND_PROTECTED_RUNTIME_RESUME",
+    "live_main_sha": "010493400f06f4ea13806152350d89411dd0d39d",
+    "existing_draft_pull_request": 2618,
+    "observed_draft_head_sha": "402c7f8f6d49131e4e31768ae5297546c5bce45a",
+    "dispatcher_run_id": 37852100184,
+    "dispatcher_job_id": 113567250277,
+    "dispatcher_scan": {
+      "eligible": 0,
+      "owner_review_required": 1,
+      "skipped": 0
+    },
+    "broker_mint_step": "SKIPPED_NO_ELIGIBLE_CANDIDATE",
+    "immediate_landing_blocker": "IMMUTABLE_CAPABILITY_DELTA_NOT_ADMITTED",
+    "independent_remote_blocker": null,
+    "remote_ledger_configuration": "ACTIVE_AUTHENTICATED_READBACK",
+    "role_run_37850568663": "HOLD_JOB_SUCCESS_APPROVAL_AND_FINALIZER_JOBS_SKIPPED",
+    "correction_to_prior_explanation": "The observed PR landing stopped at capability classification before broker/ledger invocation; absence of callable remote ledger alone does not explain this scan.",
+    "corrections": [
+      "Expose allowlisted classification code, exact changed path and stage without raw error payload",
+      "Reject line-only deny-guard insertion as insufficient semantic proof; preserve both existing classifiers",
+      "Connect UNKNOWN-only bounded readonly reclassification to current/stale dispatcher candidates; preserve definite Owner-reserved handoff"
+    ],
+    "red_team_rejected_proposal": {
+      "committed": false,
+      "activated": false,
+      "cases": [
+        "UNBRACED_IF_BODY_CAPTURE",
+        "PROPERTY_GETTER_SIDE_EFFECT"
+      ],
+      "actual_fixture_mutations_before": 0,
+      "actual_fixture_mutations_after": 1,
+      "final_verifiers_reject_both": true
+    },
+    "verification": {
+      "targeted_tests": 68,
+      "targeted_failures": 0,
+      "independent_policy_dispatcher_tests": 37,
+      "independent_failures": 0
+    },
+    "auth_request": "EXISTING_AWS_SSO_LOGIN_ONLY_NO_NEW_ROLE_OR_SECRET",
+    "next_action": "Consume this development correction and exact-head CI; resolve the genuine capability-guard Owner boundary through the existing protected recovery path with exact authority and authenticated lifecycle-ledger executor, then verify normal distinct-role/finalizer/postmerge stages. Do not reinterpret recovery or CI as normal-operation completion.",
+    "automatic_landing_proven": false,
+    "all_operation_resume_proven": false,
+    "whole_platform_complete": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "credential_or_iam_expansion_performed": false,
+    "aws_authentication": {
+      "state": "AUTHENTICATED",
+      "account": "528314240275",
+      "profile": "kidults-provisioning",
+      "role": "AWSReservedSSO_KIDULTS-Provisioning-Admin_b9864e815cd7866b"
+    },
+    "remote_resources": {
+      "resume_operation_table": "kidults-autonomous-resume-staging-ledger",
+      "table_status": "ACTIVE",
+      "broker_function": "kidults-autonomous-event-token-broker-staging",
+      "function_state": "Active",
+      "last_update_status": "Successful",
+      "deployed_source_sha256": "345f1c7cedddaa5703e690758127002451b110df23752e85d37934171d1c934e",
+      "deployed_source_matches_repository": true,
+      "redeployment_performed": false
+    },
+    "latest_exact_head_ci": {
+      "head_sha": "402c7f8f6d49131e4e31768ae5297546c5bce45a",
+      "successful_runs": 25,
+      "landing_or_runtime_authority_proven": false
+    },
+    "unknown_reclassification_correction": {
+      "state": "IMPLEMENTED_NOT_LANDED",
+      "mode": "READ_ONLY_FRESH_IMMUTABLE_SOURCE_AND_RULESET",
+      "maximum_attempts": 2,
+      "budget_scope": "ONE_READ_ONLY_SCAN_EXACT_TUPLE",
+      "current_and_stale_base_supported": true,
+      "definite_owner_guard_codes_unchanged": true,
+      "classification_override_removed": true,
+      "full_existing_validation_required": true,
+      "unresolved_grants_authority": false,
+      "mission_wide_durable_retry_budget_proven": false
+    }
+  }
+}

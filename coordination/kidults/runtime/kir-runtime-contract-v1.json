@@ -1,0 +1,151 @@
+{
+  "id": "kidults-intelligence-runtime-contract-v1",
+  "version": "1.0.0",
+  "program": "KIDULTS_INTELLIGENCE_RUNTIME",
+  "short_name": "KIR",
+  "mode": "CONTROL_ONLY_DRAFT_NOT_LANDED",
+  "runtime_activation_authorized": false,
+  "protected_main_reference": "f46bdcd9003eb5c4b58208789956644f4ba19fe2",
+  "truth_sources": {
+    "current_sold_readiness": "coordination/kidults/market/current-sold-value-chain-readiness-v1.json",
+    "module_registry": "coordination/kidults/runtime/kir-module-registry-v1.json"
+  },
+  "principles": [
+    "FAIL_CLOSED",
+    "EXACT_GENERATION_IDENTITY",
+    "RECEIPT_BOUND_AUTHORITY",
+    "NO_FIXTURE_OR_REPLAY_EMPIRICAL_PROMOTION",
+    "WHOLE_CHAIN_TRUTH_BEFORE_PROMOTION",
+    "SEPARATION_OF_TRACK_AUTHORITY",
+    "DURABLE_TERMINAL_TRUTH"
+  ],
+  "kernel": {
+    "identity_required": [
+      "repository",
+      "source_sha",
+      "run_id",
+      "run_attempt",
+      "trigger_event"
+    ],
+    "source_sha_format": "^[0-9a-f]{40}$",
+    "receipt_digest_format": "^sha256:[0-9a-f]{64}$",
+    "run_id_positive_integer": true,
+    "run_attempt_positive_integer": true,
+    "dependency_policy": "EXACT_DECLARED_DAG_AND_ALL_DEPENDENCIES_SATISFIED_BEFORE_FORWARD_STATE",
+    "unknown_module_policy": "REJECT",
+    "unknown_state_policy": "REJECT",
+    "missing_receipt_policy": "REJECT_WHEN_RUNTIME_TRANSITION_REQUIRES_RECEIPT",
+    "fixture_or_replay_empirical_delta_allowed": false,
+    "detached_receipt_authority_allowed": false,
+    "self_issued_rights_authority_allowed": false,
+    "self_approved_track_b_allowed": false,
+    "implicit_database_write_authority_allowed": false,
+    "implicit_publication_authority_allowed": false,
+    "control_only_forward_state_allowed": false
+  },
+  "module_state_classes": [
+    "BLOCKED_EXTERNAL_AUTHORITY",
+    "CONTROL_IMPLEMENTATION_ADDED_PENDING_PROTECTED_MAIN_AND_EXTERNAL_TRUST_ROOT",
+    "CORE_COMPLETE_CONTROL_VALIDATED",
+    "CODE_COMPLETE_NOT_ACTIVATED",
+    "BLOCKED_NO_LAWFUL_LEDGER_ROWS",
+    "NOT_STARTED_EXACT_PAIR_ABSENT",
+    "HOLD_NO_APPROVED_PROJECTION"
+  ],
+  "transition_evidence_requirements": {
+    "SOURCE_RIGHTS_READY": [
+      "source_manifest_sha256",
+      "acquisition_receipt_sha256",
+      "rights_receipt_set_sha256"
+    ],
+    "RECEIPT_AUTHORITY_READY": [
+      "trusted_keyring_sha256",
+      "signed_authority_envelope_sha256",
+      "nonce_consumption_receipt_sha256"
+    ],
+    "CURRENT_SOLD_ADMISSION_EMPIRICAL_VALIDATED": [
+      "whole_batch_admission_receipt_sha256",
+      "event_manifest_sha256",
+      "rights_receipt_set_sha256"
+    ],
+    "CURRENT_SOLD_EVIDENCE_EMPIRICAL_VALIDATED": [
+      "canonical_event_manifest_sha256",
+      "evidence_manifest_sha256"
+    ],
+    "APPEND_ONLY_LEDGER_EMPIRICAL_VALIDATED": [
+      "migration_receipt_sha256",
+      "write_receipt_sha256",
+      "readback_receipt_sha256",
+      "pitr_receipt_sha256"
+    ],
+    "CANDIDATE_EVIDENCE_PAIR_READY": [
+      "candidate_sha256",
+      "evidence_package_sha256",
+      "ledger_generation_sha256"
+    ],
+    "TRACK_B_ASSESSMENT_COMPLETE": [
+      "candidate_evidence_pair_sha256",
+      "assessment_sha256",
+      "assessor_independence_receipt_sha256"
+    ],
+    "PROJECTION_RELEASE_READY": [
+      "track_b_assessment_sha256",
+      "projection_sha256",
+      "approval_receipt_sha256"
+    ]
+  },
+  "promotion_contract": {
+    "control_validation_is_empirical_proof": false,
+    "branch_success_is_protected_main_natural_canary": false,
+    "fixture_state_machine_success_is_empirical_proof": false,
+    "provider_or_rights_authority_may_be_inferred": false,
+    "database_authority_may_be_inferred": false,
+    "track_b_authority_may_be_inferred": false,
+    "public_production_g5_authority_may_be_inferred": false,
+    "control_only_forward_states_allowed": false,
+    "future_forward_states_require_new_governed_contract_mode": true,
+    "lawful_empirical_current_sold_minimum_for_forward_chain": 1,
+    "candidate_evidence_pair_required_for_track_b": true,
+    "approved_projection_required_for_release": true
+  },
+  "terminal_receipt": {
+    "required_fields": [
+      "id",
+      "version",
+      "state",
+      "repository",
+      "source_sha",
+      "run_id",
+      "run_attempt",
+      "trigger_event",
+      "contract_sha256",
+      "registry_sha256",
+      "readiness_sha256",
+      "blockers",
+      "promotion_eligible",
+      "public_release",
+      "production",
+      "g5"
+    ],
+    "digest_algorithm": "SHA-256",
+    "promotion_eligible_under_this_control_contract": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "authority_boundary": {
+    "provider_call": false,
+    "credential_resolution": false,
+    "rights_grant": false,
+    "postgresql_write": false,
+    "d1_write": false,
+    "deployment": false,
+    "external_spend_or_contract": false,
+    "empirical_admission": false,
+    "track_b_start": false,
+    "projection_approval": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

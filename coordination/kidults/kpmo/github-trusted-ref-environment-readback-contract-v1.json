@@ -1,6 +1,6 @@
 {
   "id": "kidults-github-trusted-ref-environment-readback-contract-v1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "issue": 974,
   "parent_gate_issue": 881,
   "status": "IMPLEMENTED_READ_ONLY_PROOF_PATH_EXTERNAL_POLICY_NOT_VERIFIED",
@@ -36,7 +36,10 @@
       "branch_controlled_workflow_replacement_negative_control_must_be_rejected": true,
       "allowed_trigger_classes_bound_per_workflow_job": true,
       "remote_mutation_class_bound_per_workflow_job": true,
-      "push_secret_lane_requires_explicit_activation_guard": true
+      "push_secret_lane_requires_explicit_activation_guard": true,
+      "workflow_token_permissions_are_exact_per_registry_binding": true,
+      "actions_read_is_limited_to_registered_production_artifact_readback": true,
+      "github_token_use_steps_are_exact_per_registry_binding": true
     },
     "trusted_default_branch_or_release_handoff": {
       "repository_declaration_alone_is_sufficient": false,

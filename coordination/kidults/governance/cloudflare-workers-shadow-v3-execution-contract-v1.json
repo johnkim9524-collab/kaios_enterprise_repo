@@ -1,0 +1,86 @@
+{
+  "id": "kidults-cloudflare-workers-shadow-v3-execution-contract-v1",
+  "version": "1.0.0",
+  "status": "CONSUMED_FAIL_CLOSED_PROVIDER_API_7003_NO_DEPLOYMENT_READBACK",
+  "owner": "KPMO",
+  "approval_id": "CF-WORKERS-SHADOW-20260901-03",
+  "approval_issue": 1743,
+  "incident_issue": 1755,
+  "landing": {
+    "pull_request": 1749,
+    "candidate_head_sha": "7cd46ac41dd6765fb628a954be6eb8677bb11faa",
+    "merge_sha": "b467787d358b85968ebfe7d993a538faa8b70e13",
+    "atomic_landing_run_id": 33465546384
+  },
+  "execution": {
+    "workflow_run_id": 33465807642,
+    "job_id": 99725309548,
+    "run_attempt": 1,
+    "source_sha": "b467787d358b85968ebfe7d993a538faa8b70e13",
+    "unique_first_dispatch_verified": true,
+    "authorization_consumed": true,
+    "provider_attempt_marker_written": true,
+    "provider_process_invoked": true,
+    "provider_deployment_attempt_count": 1,
+    "cloudflare_error_code": 7003,
+    "root_cause_class": "CLOUDFLARE_ACCOUNT_ID_OR_TOKEN_ACCOUNT_SCOPE_MISMATCH",
+    "worker_deployment_success": false,
+    "workers_dev_url": null,
+    "readback_executed": false,
+    "remote_mutation_evidenced": false,
+    "terminal_artifact_id": 9784793397,
+    "terminal_artifact_digest": "sha256:0ab4517f47cfbb2cdf3de1a81e03af981df2dd5285df403dc8b4f611c5267c05"
+  },
+  "preflight_proof": {
+    "root_owner_approval_verified": true,
+    "post_landing_binding_verified": true,
+    "live_main_verified": true,
+    "wrangler_exact_version": "4.127.1",
+    "locked_dry_run_verified": true,
+    "asset_count": 128,
+    "asset_path_resolution_verified": true,
+    "source_and_artifact_digests_bound": true
+  },
+  "consumed_lane": {
+    "workflow": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v3.yml",
+    "trigger": [],
+    "environment": null,
+    "secret_references": [],
+    "provider_tooling_present": false,
+    "provider_network_path_present": false,
+    "secret_registry_membership": false,
+    "executable_authority": false,
+    "rerun_authorized": false,
+    "replay_authorized": false,
+    "second_dispatch_authorized": false
+  },
+  "credential_identity_root_correction": {
+    "contract": "coordination/kidults/governance/cloudflare-workers-shadow-credential-identity-preflight-v1.json",
+    "environment": "kidults-cloudflare-staging-deploy",
+    "account_id_secret": "CLOUDFLARE_ACCOUNT_ID",
+    "api_token_secret": "CLOUDFLARE_API_TOKEN",
+    "environment_secret_is_runtime_authority_when_duplicate_name_exists": true,
+    "manual_account_id_correction_required": true,
+    "token_account_scope_match_required": true,
+    "separately_approved_read_only_identity_preflight_required": true,
+    "secret_values_must_remain_opaque": true
+  },
+  "future_execution": {
+    "current_approval_reusable": false,
+    "new_versioned_workflow_required": true,
+    "new_explicit_program_owner_approval_required": true,
+    "identity_preflight_must_pass_before_deployment_approval": true,
+    "worker_mutation_count_before_identity_pass": 0,
+    "maximum_future_provider_deployment_attempts_per_new_approval": 1,
+    "success_requires_workers_dev_https_2xx_nonempty_readback": true
+  },
+  "release_boundary": {
+    "production_routes": 0,
+    "custom_domains": 0,
+    "pages_delete": "FORBIDDEN",
+    "pages_domain_detach": "FORBIDDEN",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}

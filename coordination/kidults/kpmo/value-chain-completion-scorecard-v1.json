@@ -3,7 +3,7 @@
   "version":"1.13.8",
   "status":"ACTIVE",
   "scoring_policy":"ONLY_EVIDENCED_PASS_COUNTS_AS_COMPLETE",
-  "canonical_main_binding":"PROTECTED_MAIN_HEAD_AT_READ",
+  "canonical_main_binding":"HISTORICAL_CHECKPOINT_NOT_CURRENT_MAIN",
   "protected_main_truth_at_update":"d7437af106092366abebcc69118e7d5fa401a6a2",
   "dimensions":[
     {"id":"VALUE_TRACEABILITY","weight":10,"state":"PASS","evidence_refs":["Program Registry and Track Registry aligned to A-E with KPMO master #344 and integration gate #238.","Canonical living-board checkpoint synchronized through protected main #1245; architecture/control/CI/runtime/staging evidence remains separated from empirical provider/market/human proof."]},
@@ -23,7 +23,8 @@
   ],
   "weights_total":100,
   "evidenced_pass_weight":17,
-  "note":"Strict evidenced completion remains 17/100 through protected main #1245 (`d7437af106092366abebcc69118e7d5fa401a6a2`). Current-main control progress includes fail-closed Workspace cutover sequencing, Registry-sourced Workspace staging, stale-preview metric removal, six confirmed Cloudflare retirements, and successful `kidults-workspace-staging` Pages deployment. These are control/operational/staging results only. `enterprise.kidults.com` cutover is not authorized; #1232/#1234 remain open; #1244 is behind current main and non-promotable with current exact-head failures. GRADED_POPULATION remains 0/120; human reviews 0; active lawful collector-current-market dated-SOLD/current-price/liquidity/exposure remain 0/NONE; empirical ASI rebalancer remains 13/0/0/0; Candidate/Evidence absent; Track B not started; final real workload and live approved Projection/Portal/EOS acceptance remain downstream-dependent. Production/G5 HOLD.",
+  "note":"HISTORICAL CHECKPOINT ONLY; not a current completion measurement. Strict evidenced completion at that checkpoint remains 17/100 through protected main #1245 (`d7437af106092366abebcc69118e7d5fa401a6a2`). Current-main control progress includes fail-closed Workspace cutover sequencing, Registry-sourced Workspace staging, stale-preview metric removal, six confirmed Cloudflare retirements, and successful `kidults-workspace-staging` Pages deployment. These are control/operational/staging results only. `enterprise.kidults.com` cutover is not authorized; #1232/#1234 remain open; #1244 is behind current main and non-promotable with current exact-head failures. GRADED_POPULATION remains 0/120; human reviews 0; active lawful collector-current-market dated-SOLD/current-price/liquidity/exposure remain 0/NONE; empirical ASI rebalancer remains 13/0/0/0; Candidate/Evidence absent; Track B not started; final real workload and live approved Projection/Portal/EOS acceptance remain downstream-dependent. Production/G5 HOLD.",
   "target":100,
+  "measurement_semantics":{"historical_values_preserved":true,"current_runtime_measurement":"UNKNOWN_UNTIL_AUTHENTICATED_EXACT_MAIN_RECEIPTS","historical_numbers_are_current_completion":false,"runtime_proof_source":"coordination/kidults/kpmo/whole-platform-operating-proof-v1.json","correction_reference":"KPMO_AUTONOMY_HOLISTIC_REVIEW_20261008_F08"},
   "production":"HOLD"
 }

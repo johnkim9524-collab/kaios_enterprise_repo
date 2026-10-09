@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import {classifyAnySiteCandidate} from './asi-any-site-source-family-common-v1.mjs';
 
 const discoveryPath=process.argv[2]||'discovery-out/global-low-risk-discovery.json';
 const gate1Path=process.argv[3]||'/tmp/asi-gate1-safe-candidate-pool-v1.json';
@@ -14,9 +15,16 @@ const scopes=JSON.parse(fs.readFileSync('coordination/kidults/scope-data/collect
 const macroregions=['NORTH_AMERICA','EUROPE','JAPAN','KOREA','GREATER_CHINA','SOUTHEAST_ASIA','OCEANIA','LATAM_MEA'];
 const families=['PRIMARY_OR_OFFICIAL_AUTHORITY','OPEN_MARKETPLACE_OR_DEALER','GRADING_AUTHENTICATION_OR_CONDITION','MEDIA_COMMUNITY_OR_EVENT_CONTEXT','MUSEUM_OR_INSTITUTIONAL_CONTEXT','UNCLASSIFIED_ANY_SITE_CANDIDATE'];
 const candidates=d.candidates||[];
+// Coverage describes discovery, not the subset admitted by the product-value gate.
+const gate1Candidates=[...(g1.safe_candidate_pool||[]),...(g1.review_required_queue||[]),...(g1.hard_block_queue||[])];
+const ids=new Set(candidates.map(c=>c.candidate_id));
+if(d.candidate_count!==candidates.length||ids.size!==candidates.length||candidates.some(c=>typeof c.candidate_id!=='string'||!c.candidate_id))throw new Error('DISCOVERY_IDENTITY_PARTITION');
+if(new Set(gate1Candidates.map(c=>c.candidate_id)).size!==gate1Candidates.length||gate1Candidates.some(c=>!ids.has(c.candidate_id)))throw new Error('GATE1_DISCOVERY_SUBSET_BINDING');
+if(g1.input_candidate_count!==undefined&&g1.input_candidate_count!==gate1Candidates.length)throw new Error('GATE1_INPUT_PARTITION');
+if(g1.safe_candidate_count!==(g1.safe_candidate_pool||[]).length)throw new Error('GATE1_SAFE_PARTITION');
 const byScope=Object.fromEntries(scopes.map(s=>[s.scope_id,0]));const byRegion=Object.fromEntries(macroregions.map(r=>[r,0]));const byProvider={};const byFamily=Object.fromEntries(families.map(f=>[f,0]));
 for(const c of candidates){for(const s of c.scope_hints||[c.scope_hint].filter(Boolean))if(s in byScope)byScope[s]++;for(const r of c.target_regions||[])if(r in byRegion)byRegion[r]++;for(const p of c.discovery_providers||[c.discovery_provider].filter(Boolean))byProvider[p]=(byProvider[p]||0)+1;}
-for(const c of [...(g1.safe_candidate_pool||[]),...(g1.review_required_queue||[]),...(g1.hard_block_queue||[])]){const f=c.source_family_hint||'UNCLASSIFIED_ANY_SITE_CANDIDATE';if(f in byFamily)byFamily[f]++;}
+for(const c of candidates){const f=classifyAnySiteCandidate(c).source_family_hint;byFamily[f]++;}
 const safeRate=d.candidate_count?g1.safe_candidate_count/d.candidate_count:0;const gate2Rate=g1.safe_candidate_count?g2.verified_for_gate3_count/g1.safe_candidate_count:0;const gate3Rate=g2.verified_for_gate3_count?g3.admitted_count/g2.verified_for_gate3_count:0;const activeAdmitted=ap.active_admitted_count??g3.admitted_count??0;
 function budgets(counts,kind){const vals=Object.values(counts);const max=Math.max(1,...vals);return Object.entries(counts).map(([id,count])=>({id,count,coverage_ratio:Number((count/max).toFixed(4)),priority_weight:Number((1+(max-count)/max*2).toFixed(4)),reason:count===0?`ZERO_${kind}_COVERAGE`:(count<max*0.35?`LOW_${kind}_COVERAGE`:'NORMAL')})).sort((a,b)=>b.priority_weight-a.priority_weight||a.id.localeCompare(b.id));}
 const scopeBudget=budgets(byScope,'SCOPE'),regionBudget=budgets(byRegion,'REGION'),familyBudget=budgets(byFamily,'SOURCE_FAMILY');

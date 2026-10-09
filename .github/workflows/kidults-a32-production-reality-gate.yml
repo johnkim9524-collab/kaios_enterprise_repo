@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - 'services/kidults-autonomous-intelligence/scripts/a32-production-reality-gate.mjs'
+      - 'services/kidults-autonomous-intelligence/scripts/a32-production-reality-gate.test.mjs'
       - 'services/kidults-autonomous-intelligence/fixtures/a32/**'
       - 'services/kidults-autonomous-intelligence/package.json'
       - 'scripts/a32-production-reality-gate.mjs'
@@ -47,6 +48,10 @@ jobs:
       - name: Typecheck
         working-directory: services/kidults-autonomous-intelligence
         run: npm run typecheck
+
+      - name: Run A32 unit and negative tests
+        working-directory: services/kidults-autonomous-intelligence
+        run: node --test scripts/a32-production-reality-gate.test.mjs
 
       - name: Run A32 production reality gate
         working-directory: services/kidults-autonomous-intelligence

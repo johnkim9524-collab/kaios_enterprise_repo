@@ -1,0 +1,66 @@
+{
+  "id": "kidults-cloudflare-workers-shadow-v2-workflow-spec-v1",
+  "version": "1.0.0",
+  "status": "CONSUMED_ZERO_AUTHORITY_TOMBSTONE",
+  "approval_id": "CF-WORKERS-SHADOW-20260901-02",
+  "approval_issue": 1711,
+  "authorization_record": "coordination/kidults/governance/cloudflare-workers-shadow-v2-authorization-20260901-v1.json",
+  "materialized_workflow_path": ".github/workflows/kidults-cloudflare-workers-shadow-deploy-v2.yml",
+  "materialized_workflow_present": true,
+  "provider_mutation_authorized": false,
+  "trigger": [
+    "workflow_dispatch"
+  ],
+  "permissions": [
+    "contents:read"
+  ],
+  "environment": null,
+  "runner": "ubuntu-24.04",
+  "timeout_minutes": 5,
+  "concurrency": {
+    "group": "kidults-cloudflare-workers-shadow-deploy-v2-consumed",
+    "cancel_in_progress": false
+  },
+  "canonical_runtime_paths": {
+    "receipt": "${RUNNER_TEMP}/kidults-cloudflare-workers-shadow-v2-consumed/receipt.json"
+  },
+  "ordered_steps": [
+    "Create consumed authorization tombstone",
+    "Upload consumed authorization tombstone",
+    "Enforce consumed authorization no replay"
+  ],
+  "provider_step": null,
+  "always_finalizer": {
+    "required": true,
+    "artifact_upload_before_deterministic_failure": true,
+    "release_boundary": {
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    }
+  },
+  "success_acceptance": [],
+  "forbidden": [
+    "PUSH_TRIGGER",
+    "PULL_REQUEST_TRIGGER",
+    "WORKFLOW_RUN_TRIGGER",
+    "RERUN",
+    "SECOND_DISPATCH",
+    "NPX_RUNTIME_RESOLUTION",
+    "WORKSPACE_SCOPED_CANONICAL_RECEIPT",
+    "PRODUCTION_ROUTE",
+    "CUSTOM_DOMAIN",
+    "PAGES_DELETE_OR_DOMAIN_DETACH",
+    "PUBLIC_PROMOTION",
+    "PRODUCTION_PROMOTION",
+    "G5_PROMOTION",
+    "APPROVAL_SELF_ATTESTATION",
+    "ENVIRONMENT_BINDING",
+    "SECRET_REFERENCE",
+    "CHECKOUT",
+    "NETWORK_PROVIDER_CALL",
+    "PROVIDER_TOOLING",
+    "EMPIRICAL_PASS",
+    "REPLAY_AFTER_CONSUMPTION"
+  ]
+}

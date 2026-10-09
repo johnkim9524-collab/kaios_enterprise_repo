@@ -52,6 +52,7 @@ import {
   buildRetryRecord,
   buildRollbackRecord,
   rollbackAllowsContinuation,
+  classifyActivationAvailability,
   createMetrics,
   buildCycleEvidence,
 } from './lib/autonomous-production-runtime.mjs';
@@ -162,6 +163,9 @@ function runPreflightCheck(policy, a24Policy) {
 function runActivationCheck(targetsConfig, a24Evidence, policy) {
   const targets = targetsConfig?.targets ?? [];
   const evidenceTargets = a24Evidence?.evidence?.targets ?? [];
+  const reportReady = a24Evidence?.evidence?.status === 'PASS'
+    && a24Evidence?.evidence?.production === 'READY_REQUIRES_SEPARATE_EXECUTION'
+    && evidenceTargets.length === targets.length;
 
   // Build lookup map from A24 evidence (authoritative)
   const evidenceMap = Object.fromEntries(
@@ -171,16 +175,19 @@ function runActivationCheck(targetsConfig, a24Evidence, policy) {
   const results = [];
   for (const target of targets) {
     const productKey = target.product ?? target.name;
-    const evidenceEntry = evidenceMap[productKey];
+    const evidenceEntry = reportReady ? evidenceMap[productKey] : null;
 
     // Merge static config with live A24 evidence for deterministic eligibility
     const mergedTarget = {
       ...target,
       ...(evidenceEntry ? {
         activationClass: evidenceEntry.activationDecision ?? evidenceEntry.activationClass ?? target.activationClass,
-        productionEligible: evidenceEntry.productionEligible ?? target.productionEligible,
+        productionEligible: evidenceEntry.productionEligible === true,
         rollbackRequired: evidenceEntry.rollbackRequired ?? target.rollbackRequired,
-      } : {}),
+      } : {
+        activationClass: 'DENIED',
+        productionEligible: false,
+      }),
       providerEvidencePresent: Boolean(evidenceEntry?.providerEvidencePresent),
       policyExplicitlyPermits: Boolean(evidenceEntry?.policyExplicitlyPermits),
     };
@@ -405,10 +412,12 @@ async function runProductionRuntimeCycle() {
 
   if (activationResult.eligibleCount === 0) {
     warn('ACTIVATION_CHECK', 'No eligible targets for this cycle — halting gracefully');
-    currentState = transition(currentState, RuntimeState.FAILED_CLOSED);
+    const availability = classifyActivationAvailability(activationResult.eligibleCount);
+    currentState = transition(currentState, availability.state);
     failureClass = FailureClass.POLICY;
-    failureReason = 'no-eligible-targets-for-cycle';
+    failureReason = availability.reason;
     metrics.activation_denials++;
+    metrics.halt_count++;
     return finalize(currentState, metrics, targetResults, rollback, retryRecords, failureClass, failureReason, a24EvidenceRef, healthDimensions, overallHealth, bounds, runtimePolicy);
   }
 

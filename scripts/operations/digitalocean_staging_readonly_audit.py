@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import sys
 import urllib.error
@@ -27,6 +28,104 @@ def api_get(url: str, token: str) -> dict:
     )
     with urllib.request.urlopen(request, timeout=10) as response:
         return json.loads(response.read().decode('utf-8'))
+
+
+def digest(value: str) -> str:
+    return 'sha256:' + hashlib.sha256(value.encode('utf-8')).hexdigest()
+
+
+def postgres_database_inventory(
+    token: str,
+    droplet_id: str,
+    staging_public_ip: str,
+    staging_private_ip: str,
+    droplet_tags: list[str],
+) -> dict:
+    try:
+        payload = api_get('https://api.digitalocean.com/v2/databases?per_page=200', token)
+    except urllib.error.HTTPError as error:
+        return {
+            'state': 'CONTROL_PLANE_READ_UNAVAILABLE',
+            'failure_class': f'HTTP_{error.code}',
+            'postgres_cluster_count': None,
+            'clusters': [],
+        }
+
+    databases = payload.get('databases')
+    if not isinstance(databases, list):
+        return {
+            'state': 'CONTROL_PLANE_RESPONSE_INVALID',
+            'failure_class': 'DATABASES_NOT_LIST',
+            'postgres_cluster_count': None,
+            'clusters': [],
+        }
+
+    clusters = []
+    for database in databases:
+        if database.get('engine') != 'pg':
+            continue
+        database_id = str(database.get('id') or '')
+        public_host = str(database.get('connection', {}).get('host') or '').lower().rstrip('.')
+        private_host = str(database.get('private_connection', {}).get('host') or '').lower().rstrip('.')
+        firewall_state = 'NOT_QUERIED_ID_MISSING'
+        rules: list[dict] = []
+        if database_id:
+            try:
+                firewall_payload = api_get(
+                    'https://api.digitalocean.com/v2/databases/'
+                    + urllib.parse.quote(database_id, safe='')
+                    + '/firewall',
+                    token,
+                )
+                raw_rules = firewall_payload.get('rules')
+                if isinstance(raw_rules, list):
+                    rules = raw_rules
+                    firewall_state = 'READ'
+                else:
+                    firewall_state = 'RESPONSE_INVALID'
+            except urllib.error.HTTPError as error:
+                firewall_state = f'HTTP_{error.code}'
+
+        matched_rule_classes = []
+        rule_classes: dict[str, int] = {}
+        for rule in rules:
+            rule_type = str(rule.get('type') or 'unknown')
+            value = str(rule.get('value') or '')
+            rule_classes[rule_type] = rule_classes.get(rule_type, 0) + 1
+            if rule_type == 'ip_addr' and value in {staging_public_ip, staging_private_ip}:
+                matched_rule_classes.append('STAGING_IP')
+            elif rule_type == 'droplet' and value == droplet_id:
+                matched_rule_classes.append('STAGING_DROPLET')
+            elif rule_type == 'tag' and value in droplet_tags:
+                matched_rule_classes.append('STAGING_DROPLET_TAG')
+
+        clusters.append({
+            'cluster_identity_digest': digest(database_id) if database_id else None,
+            'public_endpoint_digest': digest(public_host) if public_host else None,
+            'private_endpoint_digest': digest(private_host) if private_host else None,
+            'public_endpoint_present': bool(public_host),
+            'private_endpoint_present': bool(private_host),
+            'status': database.get('status'),
+            'region': database.get('region'),
+            'engine': database.get('engine'),
+            'version': database.get('version'),
+            'port': database.get('connection', {}).get('port'),
+            'private_network_bound': bool(database.get('private_network_uuid')),
+            'trusted_sources': {
+                'state': firewall_state,
+                'rule_count': len(rules),
+                'rule_classes': rule_classes,
+                'staging_source_admitted': bool(matched_rule_classes),
+                'matched_rule_classes': sorted(set(matched_rule_classes)),
+            },
+        })
+
+    return {
+        'state': 'READ',
+        'postgres_cluster_count': len(clusters),
+        'online_postgres_cluster_count': sum(cluster.get('status') == 'online' for cluster in clusters),
+        'clusters': clusters,
+    }
 
 
 def ip_by_type(networks: dict, ip_type: str) -> str | None:
@@ -70,6 +169,13 @@ def main() -> int:
         'locked': droplet.get('locked'),
         'tags': droplet.get('tags', []),
     }
+    database_inventory = postgres_database_inventory(
+        token,
+        droplet_id,
+        expected_public_ip,
+        expected_private_ip,
+        observed['tags'],
+    )
 
     expected = {
         'id': droplet_id,
@@ -94,6 +200,7 @@ def main() -> int:
         'governing_issue': 899,
         'expected': expected,
         'observed': observed,
+        'managed_postgres': database_inventory,
         'result': 'PASS' if not errors else 'FAIL',
         'errors': errors,
         'mutation_performed': False,

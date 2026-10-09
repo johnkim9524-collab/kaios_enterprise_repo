@@ -1,6 +1,6 @@
 {
   "id": "kidults-asi-snapshot-readiness-factory-contract-v2",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "status": "ACTIVE_MANDATORY_FAIL_CLOSED_AFTER_MAIN_MERGE",
   "owner": "KPMO",
   "priority": "P3",
@@ -47,6 +47,38 @@
     "IMMUTABLE_EVIDENCE_PACKAGE",
     "TRACK_B_INPUT_PAIR"
   ],
+  "current_sold_sample_governance": {
+    "canonical_policy": "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json",
+    "policy_id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1",
+    "policy_version": "1.1.0",
+    "tier_selection": "DERIVE_EXACTLY_FROM_CANONICAL_TIER_PURPOSE_AND_CLAIM_TARGET",
+    "pair_purpose": "SCHEMA_AND_BOUNDARY_SMOKE",
+    "claim_target": "DATED_OBSERVED_SOLD_TRANSACTION",
+    "cohort_class": "LAWFUL_CURRENT_SOLD_SAMPLE",
+    "cohort_mode": "EMPIRICAL_CANARY",
+    "required_current_sold_evidence_fields": [
+      "sample_purpose",
+      "claim_target",
+      "source_id",
+      "source_record_id",
+      "sample_plan_id",
+      "sample_plan_sha256",
+      "sample_plan_registration_receipt_id",
+      "sample_plan_registration_receipt_sha256",
+      "sample_plan_artifact_ref",
+      "sample_plan_registered_at",
+      "sampling_frame_id",
+      "sample_unit_id",
+      "license_evidence_refs"
+    ],
+    "required_rights_assertion_fields": [
+      "source_content_snapshot_sha256"
+    ],
+    "sample_plan_must_precede_observation": true,
+    "sample_units_must_be_unique": true,
+    "all_current_sold_records_must_share_one_pre_registered_plan_and_frame": true,
+    "fixed_platform_wide_sample_minimum_forbidden": true
+  },
   "prerequisite_dimensions": [
     "MISSION_SOURCE_CANDIDATE_COVERAGE",
     "PRIMARY_FALLBACK_REPLACEMENT_COVERAGE",
@@ -67,7 +99,7 @@
     "all_prerequisite_dimensions_must_pass_before_generation": true,
     "output_existence_is_prerequisite": false,
     "admitted_evidence_minimum": 1,
-    "admitted_current_sold_minimum": 1,
+    "admitted_current_sold_minimum_from_canonical_sample_tier": true,
     "admitted_liquidity_minimum": 1,
     "market_event_graph_nodes_minimum": 1,
     "current_evidence_maximum_window_days": 30,
@@ -105,7 +137,7 @@
     "projection-admission-receipt.json"
   ],
   "pair_generation": {
-    "methodology_version": "kidults-asi-snapshot-pair-generation-v2.1.0",
+    "methodology_version": "kidults-asi-snapshot-pair-generation-v2.2.0",
     "atomic_directory_commit_required": true,
     "canonical_payload_digest_algorithm": "SHA-256_CANONICAL_SORTED_JSON",
     "admitted_record_rights_allow_required": true,
@@ -156,6 +188,8 @@
     "BLOCKER_PACKAGE_IS_NOT_EVIDENCE_PACKAGE",
     "SNAPSHOT_READINESS_IS_NOT_SNAPSHOT_CANDIDATE",
     "PAIR_GENERATED_IS_NOT_TRACK_B_READY",
+    "ONE_CURRENT_SOLD_RECORD_IS_NOT_CANARY",
+    "SAMPLE_TIER_IS_DERIVED_FROM_PURPOSE_AND_CLAIM_NOT_CALLER_COUNT",
     "TRACK_B_WAITING_IS_NOT_TRACK_B_STARTED"
   ],
   "public_release": "HOLD",

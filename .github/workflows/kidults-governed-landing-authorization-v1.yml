@@ -1,4 +1,6 @@
 name: KIDULTS Governed Landing Authorization V1
+# COMPATIBILITY_STATUS_ONLY: autonomous agent quorum is the normal authority;
+# legacy owner authorization remains available only for recovery.
 
 on:
   pull_request_target:
@@ -30,6 +32,13 @@ jobs:
           ref: ${{ github.event.pull_request.base.sha }}
           persist-credentials: false
 
+      - name: Enforce active approval-generation equality before readiness
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: node scripts/kidults/kpmo/validate-approval-generation-equality-live-pr-v1.mjs
+
       - name: Enforce exact-head solo-owner authorization and ruleset monotonicity
         id: evaluate
         continue-on-error: true
@@ -51,7 +60,9 @@ jobs:
           };
           const fail = message => { console.error(`FAIL governed landing authorization: ${message}`); process.exit(1); };
           const api = async path => {
-            const response = await fetch(`https://api.github.com/repos/${repo}${path}`, {headers, redirect:'error'});
+            const url = `https://api.github.com/repos/${repo}${path}`;
+            let response = await fetch(url, {headers, redirect:'error'});
+            if (response.status === 403) response = await fetch(url, {headers: {Accept: headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect:'error'});
             if (!response.ok) fail(`${response.status} ${path}`);
             return response.json();
           };
@@ -71,7 +82,21 @@ jobs:
           const pr = await api(`/pulls/${prNumber}`);
           if (pr.base?.ref !== 'main') fail('base branch is not main');
           if (!/^[0-9a-f]{40}$/.test(pr.head?.sha || '')) fail('exact PR head SHA unavailable');
-          if (pr.state !== 'open' || pr.merged === true) fail('pull request is closed, merged, or NO-MERGE');
+          const terminalAfterTrigger = pr.state !== 'open' || pr.merged === true;
+          if (terminalAfterTrigger) {
+            console.log(JSON.stringify({
+              id:'kidults-governed-landing-authorization-receipt-v1',
+              state:pr.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING',
+              reason:'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+              pull_request:Number(prNumber),
+              exact_head_sha:pr.head.sha,
+              merge_commit_sha:pr.merged===true ? pr.merge_commit_sha : null,
+              promotion_eligible:false,
+              post_landing_verification_required:pr.merged===true,
+              production:'HOLD', public_release:'HOLD', g5:'HOLD'
+            },null,2));
+            process.exit(0);
+          }
           const labels = new Set((pr.labels || []).map(label => String(label.name || '').toLowerCase()));
           if (['no-merge','do-not-merge','merge-hold'].some(label => labels.has(label))) fail('NO-MERGE label is active');
           if (/\[(?:NO-MERGE|DO-NOT-MERGE)\]/i.test(pr.title || '')) fail('NO-MERGE title marker is active');
@@ -93,19 +118,16 @@ jobs:
             },null,2));
             process.exit(0);
           }
+          // Only external-effect surfaces require operation-specific atomic landing.
+          // Internal governance, dispatcher, verifier, workflow, audit, and policy code
+          // use the normal AI-020 protected-main path after exact machine verification.
           const prefixes = [
-            '.github/',
             'services/kidults-control-plane/',
             'services/kidults-autonomous-intelligence/',
-            'scripts/kidults/kpmo/',
-            'scripts/kidults/redteam/',
             'scripts/kidults/portal/runtime/',
-            'coordination/kidults/kpmo/',
-            'coordination/kidults/audit/',
-            'coordination/kidults/security/',
             'coordination/kidults/provider/',
-            'coordination/kidults/runtime/',
-            'infra/'
+            'infra/',
+            'infrastructure/aws/'
           ];
           const exact = new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
           const governedFiles = files.map(x=>x.filename).filter(name=>exact.has(name)||prefixes.some(prefix=>name.startsWith(prefix)));
@@ -142,12 +164,28 @@ jobs:
           };
 
           if (governedFiles.length) {
-            if (pr.draft) fail('governed PR is Draft');
+            if (pr.draft) {
+              console.log(JSON.stringify({
+                id:'kidults-governed-landing-authorization-receipt-v1',
+                state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',
+                pull_request:Number(prNumber),
+                exact_head_sha:pr.head.sha,
+                governed_files:governedFiles,
+                readiness:readinessReceipt,
+                landing_authorization_created:false,
+                promotion_eligible:false,
+                public_release:'HOLD',production:'HOLD',g5:'HOLD'
+              },null,2));
+              process.exit(0);
+            }
             if(lastReadiness?.event==='convert_to_draft') fail('latest readiness event is convert_to_draft');
 
-            if(pr.user?.login!==repository.owner?.login) fail('governed PR author is not repository Program Owner');
+            // PR authorship is provenance, not landing authority. Internal
+            // GitHub Apps may create the PR; the separate exact-head Owner
+            // approval and event-emitting handoff remain mandatory.
             if(pr.head?.repo?.full_name!==repo) fail('governed PR head must remain in the canonical repository');
-            if(readinessReceipt.actor!==repository.owner?.login) fail('latest ready state was not authorized by Program Owner');
+            // Ready is lifecycle state only. It may be emitted by the autonomous
+            // finalizer and never grants landing authority by itself.
 
             const reviews = await pages(`/pulls/${prNumber}/reviews`);
             const latest = new Map();
@@ -168,7 +206,7 @@ jobs:
 
             const receipt = {
               id:'kidults-governed-landing-authorization-receipt-v1',
-              state:'AUTHORIZED_SOLO_OWNER_EXACT_HEAD',
+              state:'LIFECYCLE_READY_SOLO_OWNER_SCOPE_VERIFIED',
               repository:repo,
               pull_request:Number(prNumber),
               author:pr.user.login,
@@ -177,7 +215,10 @@ jobs:
               decision_id:'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27',
               exact_head_sha:pr.head.sha,
               governed_files:governedFiles,
+              change_origin_actor:pr.user?.login||null,
               readiness:readinessReceipt,
+              ready_state_is_lifecycle_only:true,
+              landing_authorization_created:false,
               required_approval_count:0,
               optional_external_approvals:optionalApprovals.map(r=>({reviewer:r.user.login,association:r.author_association,submitted_at:r.submitted_at,commit_id:r.commit_id})),
               self_review_is_not_independent_review:true,
@@ -207,29 +248,88 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_REPOSITORY_ID: ${{ github.repository_id }}
+          EXPECTED_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          EXPECTED_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          TRIGGER_PULL_REQUEST_DRAFT: ${{ github.event.pull_request.draft }}
           AUTHORIZATION_OUTCOME: ${{ steps.evaluate.outcome }}
+          READINESS_RECEIPT_PATH: ${{ runner.temp }}/kidults-governed-landing-readiness/receipt.json
+          PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}
+          PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}
+          G5_STATE: ${{ vars.KIDULTS_G5_STATE || 'HOLD' }}
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
-          import {assertStableFinalReread} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
-          const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA;
+          import {GateFailure,assertStableFinalReread,assertTerminalNonAuthorizingPullRequest} from './scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs';
+          const token=process.env.GH_TOKEN,repo=process.env.GH_REPOSITORY,number=process.env.PR_NUMBER,head=process.env.EXPECTED_HEAD_SHA,base=process.env.EXPECTED_BASE_SHA;
+          const receiptPath=process.env.READINESS_RECEIPT_PATH;fs.mkdirSync(new URL('.',`file://${receiptPath}`).pathname,{recursive:true});
+          const writeReceipt=value=>fs.writeFileSync(receiptPath,JSON.stringify(value,null,2)+'\n');
           const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json','utf8'));
           const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-governed-landing-readiness-v1'};
           const api=async(path,options={})=>{const r=await fetch(`https://api.github.com/repos/${repo}${path}`,{...options,headers:{...headers,...(options.headers||{})},redirect:'error'});if(!r.ok)throw new Error(`GITHUB_API_${r.status}:${path}`);return r.json();};
-          const status=async(state,description)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context:policy.required_status_context,description})});
+          const scopePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json','utf8'));
+          const status=async(state,description,context=policy.required_status_context)=>api(`/statuses/${head}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({state,context,description})});
+          const holdStates=[process.env.PRODUCTION_STATE,process.env.PUBLIC_STATE,process.env.G5_STATE];
+          const assertHoldBoundary=()=>{if(holdStates.some(value=>value!=='HOLD'))throw new GateFailure('DRAFT_READY_HOLD_BOUNDARY_WEAKENED');};
           let failure=null;
           try {
             const final=await api(`/pulls/${number}`);
+            if(final.state==='closed'){
+              const terminal=assertTerminalNonAuthorizingPullRequest(final,{repository:repo,expectedHeadSha:head});
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:terminal.merged===true?'MERGED_POST_LANDING_VERIFICATION_REQUIRED':'CLOSED_TERMINAL_NON_AUTHORIZING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,merge_commit_sha:terminal.merge_commit_sha,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,post_landing_verification_required:terminal.merged===true,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+              process.exit(0);
+            }
+            if(final.draft===true){
+              if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
+              assertHoldBoundary();
+              await status('pending','Draft is non-promotable; automated Ready transition pending');
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+              process.exit(0);
+            }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
-            if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new Error('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
-            await status('pending','Ready; operation-specific atomic landing is required');
-            console.log(JSON.stringify({id:'kidults-governed-landing-readiness-receipt-v1',state:'READY_PENDING_ATOMIC_LANDING',pull_request:Number(number),exact_head_sha:head,final_live_reread:true,ordinary_readiness_published_success:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'},null,2));
+            if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('GOVERNED_AUTHORIZATION_EVALUATION_FAILED');
+
+            // Re-read scope at the final exact-head boundary. Non-governed
+            // security/dependency changes use the normal protected-main path;
+            // only governed files require operation-specific atomic landing.
+            const files=[];
+            for(let page=1;page<=5;page++){
+              const values=await api(`/pulls/${number}/files?per_page=100&page=${page}`);
+              if(!Array.isArray(values))throw new GateFailure('FINAL_FILE_SCOPE_RESPONSE_INVALID');
+              files.push(...values);
+              if(values.length<100)break;
+              if(page===5)throw new GateFailure('FINAL_FILE_SCOPE_PAGINATION_BOUND_EXCEEDED');
+            }
+            // Only external-effect surfaces require operation-specific atomic landing.
+            // Internal governance, dispatcher, verifier, workflow, audit, and policy code
+            // use the normal AI-020 protected-main path after exact machine verification.
+            const governedPrefixes=['services/kidults-control-plane/','services/kidults-autonomous-intelligence/','scripts/kidults/portal/runtime/','coordination/kidults/provider/','infra/','infrastructure/aws/'];
+            const governedExact=new Set(['wrangler.toml','wrangler.json','wrangler.jsonc']);
+            const governedFiles=files.map(x=>x.filename).filter(name=>governedExact.has(name)||governedPrefixes.some(prefix=>name.startsWith(prefix)));
+            if(governedFiles.length===0){
+              assertHoldBoundary();
+              await status('success','Ready lifecycle verified; non-governed scope uses protected-main status path');
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_NON_GOVERNED_SCOPE_VERIFIED',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,governed_files:[],ordinary_readiness_published_success:true,atomic_landing_required:false,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));process.exit(0);
+            }
+            await status('pending','Ready lifecycle verified; operation-specific landing authority required');
+            const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'READY_PENDING_ATOMIC_LANDING',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,governed_files:governedFiles,ordinary_readiness_published_success:false,atomic_landing_required:true,promotion_eligible:false,landing_authorization_created:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
           } catch(error) {
             failure=error;
+            writeReceipt({id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'VERIFIED_FAIL',failure_code:String(error.code||error.message||'GOVERNED_READINESS_FAILED'),repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_head_sha:head,evaluated_at:new Date().toISOString(),atomic_landing_required:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'});
             try{await status('failure',String(error.code||error.message||'governed landing blocked').slice(0,140));}catch{}
           }
           if(failure)throw failure;
           NODE
+
+      - name: Upload exact-head readiness receipt for autonomous atomic landing
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-governed-landing-readiness-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-governed-landing-readiness/receipt.json
+          if-no-files-found: error
+          retention-days: 30

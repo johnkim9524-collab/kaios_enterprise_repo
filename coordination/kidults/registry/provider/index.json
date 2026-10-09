@@ -1,12 +1,12 @@
 {
   "registry_id": "kidults-provider-registry",
   "registry_name": "Provider Registry",
-  "registry_version": "2.0.0",
+  "registry_version": "2.1.0",
   "schema_version": "1.0.0",
   "owner": "Program Owner / Provider Lead",
   "custodian": "Atlas",
   "status": "ACTIVE",
-  "effective_at": "2026-08-30T02:32:50Z",
+  "effective_at": "2026-08-30T23:26:15Z",
   "record_directory": "records",
   "record_count": 2,
   "current_record_id": "provider-requirements-v1",
@@ -30,11 +30,17 @@
     {
       "id": "provider-operating-state-v1",
       "path": "records/provider-operating-state-v1.json",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "status": "ACTIVE_FAIL_CLOSED"
     }
   ],
   "change_history": [
+    {
+      "version": "2.1.0",
+      "changed_at": "2026-08-30T23:26:15Z",
+      "changed_by": "KPMO / Provider Lead",
+      "change": "Reconciled live Gmail metadata for Cardmarket, Card Ladder, the Market Movers-to-Sports Card Investor support route, PSA, HobbyKorea, CLASSIC.COM, Bonhams, Christie's, Iconic Auctioneers, Mecum and Broad Arrow; registered CGC/CCG and all contacted paths; no rights, spend, credential, acquisition, adapter, Public, Production or G5 state was promoted."
+    },
     {
       "version": "2.0.0",
       "changed_at": "2026-08-30T02:32:50Z",

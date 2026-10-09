@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import subprocess
 import sys
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -26,6 +28,16 @@ SHA256_PREFIX = "sha256:"
 PASS_RECOMMENDATION = "PUBLISHABLE_INTERNAL"
 SAMPLE_POLICY = ROOT / "coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json"
 INTERNAL_PRODUCT_PURPOSE = "KIDULTS_INTERNAL_PRODUCT_ANALYSIS_AND_STAGING_DISPLAY"
+RANKABLE_SAMPLE_CLAIMS = {
+    "BOUNDED_PRIVATE_RELIABILITY",
+    "BOUNDED_BETA_RELIABILITY",
+}
+STATISTICAL_DEFECT_CLASS_BY_TIER = {
+    "ADAPTER_QUALIFICATION": "OPERATIONAL",
+    "PRIVATE_E2E": "MAJOR_B",
+    "BETA_RELIABILITY": "MAJOR_A",
+}
+COUNTED_DEFECT_CLASSES = ("CRITICAL", "MAJOR_A", "MAJOR_B", "OPERATIONAL")
 
 
 def canonical(value: Any) -> Any:
@@ -88,6 +100,210 @@ def validate_rights_assertion(record: dict[str, Any], reference_time: str) -> No
     observed = timestamp_ms(record.get("observed_at"))
     require(None not in {effective, expires, reference, observed}, "RIGHTS_TIME_INVALID")
     require(effective <= observed <= reference < expires, "RIGHTS_NOT_EFFECTIVE_AT_ASSESSMENT")
+
+
+def validate_current_sold_freshness(record: dict[str, Any], reference_time: str) -> None:
+    """Require current-SOLD evidence to remain current when Track B runs.
+
+    The immutable pair's snapshot time proves what was current when the pair was
+    created.  It cannot be reused as the clock for a later assessment, because
+    doing so would replay an expired observation as current evidence.
+    """
+
+    observed = timestamp_ms(record.get("observed_at"))
+    valid_until = timestamp_ms(record.get("valid_until"))
+    reference = timestamp_ms(reference_time)
+    require(None not in {observed, valid_until, reference}, "CURRENT_SOLD_EVIDENCE_TIME_INVALID")
+    require(observed <= reference <= valid_until, "CURRENT_SOLD_EVIDENCE_STALE_AT_ASSESSMENT")
+
+
+def _binomial_cdf(defects: int, effective_n: int, probability: float) -> float:
+    """Return P(X <= defects) for X~Binomial(effective_n, probability).
+
+    The log-sum-exp form avoids the underflow and overflow that a factorial or
+    direct-combination implementation would introduce at the 4,603+ evidence
+    sizes used by the canonical policy.
+    """
+
+    if probability <= 0.0:
+        return 1.0
+    if probability >= 1.0:
+        return 1.0 if defects >= effective_n else 0.0
+    log_probability = math.log(probability)
+    log_inverse = math.log1p(-probability)
+    terms = [
+        math.lgamma(effective_n + 1)
+        - math.lgamma(index + 1)
+        - math.lgamma(effective_n - index + 1)
+        + index * log_probability
+        + (effective_n - index) * log_inverse
+        for index in range(defects + 1)
+    ]
+    maximum = max(terms)
+    return math.exp(maximum) * sum(math.exp(term - maximum) for term in terms)
+
+
+def exact_one_sided_cp_upper(defects: int, effective_n: int, confidence: float) -> float:
+    """Compute the exact one-sided Clopper-Pearson upper confidence bound."""
+
+    require(isinstance(defects, int) and isinstance(effective_n, int), "CP_COUNTS_NOT_INTEGER")
+    require(effective_n > 0 and 0 <= defects <= effective_n, "CP_COUNTS_INVALID")
+    require(isinstance(confidence, (int, float)) and 0 < confidence < 1, "CP_CONFIDENCE_INVALID")
+    if defects == effective_n:
+        return 1.0
+    alpha = 1.0 - float(confidence)
+    lower = 0.0
+    upper = 1.0
+    for _ in range(100):
+        midpoint = (lower + upper) / 2.0
+        if _binomial_cdf(defects, effective_n, midpoint) > alpha:
+            lower = midpoint
+        else:
+            upper = midpoint
+    return upper
+
+
+def validate_sample_governance(
+    evidence: dict[str, Any],
+    current_sold: list[dict[str, Any]],
+    *,
+    require_rankable_claim: bool,
+) -> dict[str, Any]:
+    """Independently recompute the claim-specific Track B sample decision.
+
+    Caller booleans, raw record count, and a declared confidence bound are not
+    authority.  Track B derives effective_n, defects, coverage, concentration,
+    and the exact confidence bound from the immutable evidence records.
+    """
+
+    policy = json.loads(SAMPLE_POLICY.read_text(encoding="utf-8"))
+    cohort = evidence.get("launch_cohort") or {}
+    governance = cohort.get("sample_governance") or {}
+    tier = next((item for item in policy["tiers"] if item["id"] == cohort.get("sample_tier")), None)
+    require(tier is not None, "SAMPLE_TIER_INVALID")
+
+    policy_digest = digest_json(policy)
+    require(governance.get("policy_id") == policy.get("id"), "SAMPLE_POLICY_ID_MISMATCH")
+    require(governance.get("policy_version") == policy.get("version"), "SAMPLE_POLICY_VERSION_MISMATCH")
+    require(governance.get("policy_digest") == policy_digest, "SAMPLE_POLICY_DIGEST_MISMATCH")
+    require(
+        governance.get("interval") == policy.get("statistical_method", {}).get("interval")
+        and governance.get("confidence") == policy.get("statistical_method", {}).get("confidence"),
+        "SAMPLE_STATISTICAL_METHOD_MISMATCH",
+    )
+
+    promotion = (policy.get("promotion_matrix") or {}).get(tier["id"]) or {}
+    maximum_claim = promotion.get("maximum_claim")
+    require(nonempty(maximum_claim), "SAMPLE_TIER_CLAIM_CEILING_MISSING")
+    require(governance.get("requested_claim") == maximum_claim, "REQUESTED_CLAIM_TIER_MISMATCH")
+    require(governance.get("claim_ceiling") == maximum_claim, "SAMPLE_CLAIM_CEILING_MISMATCH")
+    require(promotion.get("release_allowed") is False, "TRACK_B_RELEASE_PREAUTH_FORBIDDEN")
+    if require_rankable_claim:
+        require(maximum_claim in RANKABLE_SAMPLE_CLAIMS, "SAMPLE_TIER_NOT_RANKABLE")
+
+    sealed_at = timestamp_ms(governance.get("plan_sealed_at"))
+    observed_times = [timestamp_ms(record.get("observed_at")) for record in current_sold]
+    require(sealed_at is not None and all(value is not None for value in observed_times), "SAMPLE_PLAN_TIME_INVALID")
+    require(sealed_at <= min(value for value in observed_times if value is not None), "SAMPLE_PLAN_NOT_SEALED_BEFORE_OBSERVATION")
+
+    cluster_ids = [record.get("independence_cluster_id") for record in current_sold]
+    require(all(nonempty(value) for value in cluster_ids), "INDEPENDENCE_CLUSTER_ID_MISSING")
+    effective_n = len(set(cluster_ids))
+    require(governance.get("effective_n") == effective_n, "EFFECTIVE_N_MISMATCH")
+    require(effective_n <= len(current_sold), "EFFECTIVE_N_EXCEEDS_RAW_N")
+    require(tier["min_n"] <= effective_n <= tier["max_n"], "EFFECTIVE_N_OUTSIDE_POLICY_BOUNDS")
+
+    defect_counts: Counter[str] = Counter()
+    for record in current_sold:
+        classes = record.get("defect_classes")
+        require(isinstance(classes, list), "DEFECT_CLASSIFICATION_MISSING")
+        require(len(classes) == len(set(classes)), "DEFECT_CLASSIFICATION_DUPLICATE")
+        require(all(item in COUNTED_DEFECT_CLASSES for item in classes), "DEFECT_CLASSIFICATION_INVALID")
+        defect_counts.update(classes)
+    computed_defect_counts = {key: defect_counts[key] for key in COUNTED_DEFECT_CLASSES}
+    require(governance.get("defect_counts") == computed_defect_counts, "DEFECT_COUNTS_MISMATCH")
+    require(computed_defect_counts["CRITICAL"] == 0, "CRITICAL_DEFECT_TOLERANCE_EXCEEDED")
+
+    coverage_plan = governance.get("coverage_plan") or {}
+    required_strata = policy.get("coverage_gate", {}).get("required_strata") or []
+    require(coverage_plan.get("required_strata") == required_strata, "COVERAGE_REQUIRED_STRATA_MISMATCH")
+    required_values = coverage_plan.get("required_values") or {}
+    minimum_counts = coverage_plan.get("minimum_count_per_value") or {}
+    require(set(required_values) == set(required_strata), "COVERAGE_REQUIRED_VALUES_INCOMPLETE")
+    require(set(minimum_counts) == set(required_strata), "COVERAGE_MINIMUM_COUNTS_INCOMPLETE")
+
+    def stratum_value(record: dict[str, Any], stratum: str) -> Any:
+        if stratum == "ultimate_owner":
+            return record.get("ultimate_owner_id")
+        if stratum == "source":
+            return record.get("source_id")
+        if stratum == "vertical":
+            return record.get("vertical")
+        if stratum == "territory":
+            return record.get("territory")
+        if stratum == "currency":
+            return (record.get("sold_price") or {}).get("currency")
+        if stratum == "time_bucket":
+            return record.get("time_bucket")
+        return None
+
+    observed_strata: dict[str, Counter[str]] = {}
+    for stratum in required_strata:
+        values = [stratum_value(record, stratum) for record in current_sold]
+        require(all(nonempty(value) for value in values), f"COVERAGE_STRATUM_VALUE_MISSING:{stratum}")
+        observed_strata[stratum] = Counter(values)
+        declared = required_values[stratum]
+        minimum = minimum_counts[stratum]
+        require(isinstance(declared, list) and declared and len(declared) == len(set(declared)), f"COVERAGE_PLAN_INVALID:{stratum}")
+        require(isinstance(minimum, int) and minimum >= 1, f"COVERAGE_MINIMUM_INVALID:{stratum}")
+        require(
+            all(observed_strata[stratum][value] >= minimum for value in declared),
+            f"COVERAGE_GATE_FAILED:{stratum}",
+        )
+
+    owner_counts = observed_strata["ultimate_owner"]
+    owner_count = len(owner_counts)
+    max_owner_share = max(owner_counts.values()) / len(current_sold)
+    if "min_independent_ultimate_owners" in tier:
+        require(owner_count >= tier["min_independent_ultimate_owners"], "ULTIMATE_OWNER_INDEPENDENCE_FAILED")
+    if "max_owner_share" in tier:
+        require(max_owner_share <= tier["max_owner_share"], "ULTIMATE_OWNER_CONCENTRATION_FAILED")
+
+    defect_class = STATISTICAL_DEFECT_CLASS_BY_TIER.get(tier["id"])
+    cp_upper_bound = None
+    tolerance = tier.get("defect_tolerance")
+    if tier.get("statistical_claim") is True:
+        require(defect_class is not None and isinstance(tolerance, (int, float)), "STATISTICAL_TIER_CONFIGURATION_INVALID")
+        cp_upper_bound = exact_one_sided_cp_upper(
+            computed_defect_counts[defect_class],
+            effective_n,
+            float(policy["statistical_method"]["confidence"]),
+        )
+        require(cp_upper_bound <= float(tolerance) + 1e-15, "EXACT_CP_UCB_EXCEEDS_TIER_TOLERANCE")
+
+    supplied_governance_digest = governance.get("governance_digest")
+    computed_governance_digest = digest_json({
+        key: value for key, value in governance.items() if key != "governance_digest"
+    })
+    require(supplied_governance_digest == computed_governance_digest, "SAMPLE_GOVERNANCE_DIGEST_MISMATCH")
+    return {
+        "tier": tier["id"],
+        "requested_claim": governance["requested_claim"],
+        "claim_ceiling": maximum_claim,
+        "policy_digest": policy_digest,
+        "governance_digest": computed_governance_digest,
+        "raw_n": len(current_sold),
+        "effective_n": effective_n,
+        "defect_class": defect_class,
+        "defect_count": computed_defect_counts.get(defect_class) if defect_class else None,
+        "cp_upper_bound": cp_upper_bound,
+        "tolerance": tolerance,
+        "critical_defects": computed_defect_counts["CRITICAL"],
+        "coverage_gate": "PASS",
+        "concentration_gate": "PASS",
+        "ultimate_owner_count": owner_count,
+        "max_owner_share": max_owner_share,
+    }
 
 
 def launch_cohort_digest(evidence: dict[str, Any], current_sold: list[dict[str, Any]]) -> str:
@@ -202,7 +418,10 @@ def build_assessment_envelope(
     require(len(current_sold) > 0, "TRACK_B_CURRENT_SOLD_EVIDENCE_MISSING")
     for record in evidence_records:
         validate_rights_assertion(record, generated_at)
+    for record in current_sold:
+        validate_current_sold_freshness(record, generated_at)
     cohort_digest = launch_cohort_digest(evidence, current_sold)
+    sample_decision = validate_sample_governance(evidence, current_sold, require_rankable_claim=True)
     source_owners = sorted({record.get("source_owner_id") for record in evidence_records if nonempty(record.get("source_owner_id"))})
     factual_origins = sorted({record.get("factual_origin_id") for record in evidence_records if nonempty(record.get("factual_origin_id"))})
     require(source_owners and factual_origins, "TRACK_B_SOURCE_INDEPENDENCE_IDENTITIES_MISSING")
@@ -267,6 +486,12 @@ def build_assessment_envelope(
             "provenance": "VERIFIED",
             "freshness": "VERIFIED",
             "confidence": "VERIFIED",
+            "sample_policy": "VERIFIED",
+            "effective_n": "VERIFIED",
+            "exact_cp_upper_bound": "VERIFIED",
+            "coverage": "VERIFIED",
+            "concentration": "VERIFIED",
+            "claim_ceiling": "VERIFIED",
         },
         "quantitative_summary": {
             "evidence_record_count": len(evidence_records),
@@ -280,12 +505,31 @@ def build_assessment_envelope(
             "empirical_overall_accuracy": gates.get("overall_accuracy"),
             "empirical_blind_accuracy": gates.get("blind_accuracy"),
             "launch_cohort_digest": cohort_digest,
+            "sample_governance_digest": sample_decision["governance_digest"],
+            "sample_policy_digest": sample_decision["policy_digest"],
+            "sample_tier": sample_decision["tier"],
+            "requested_claim": sample_decision["requested_claim"],
+            "claim_ceiling": sample_decision["claim_ceiling"],
+            "raw_sample_n": sample_decision["raw_n"],
+            "effective_n": sample_decision["effective_n"],
+            "statistical_defect_class": sample_decision["defect_class"],
+            "statistical_defect_count": sample_decision["defect_count"],
+            "exact_cp_upper_bound": sample_decision["cp_upper_bound"],
+            "tier_defect_tolerance": sample_decision["tolerance"],
+            "critical_defect_count": sample_decision["critical_defects"],
+            "ultimate_owner_count": sample_decision["ultimate_owner_count"],
+            "maximum_owner_share": sample_decision["max_owner_share"],
         },
         "quantitative_reasons": [
             {"dimension": "exact_pair", "observed": pair_digest, "required": "canonical digest equality", "result": "PASS", "evidence_reference": handoff_reference},
             {"dimension": "entity_resolution", "observed": "approved empirical attestation and metric gates verified", "required": "all canonical R2 ER gates", "result": "PASS", "evidence_reference": handoff_reference},
             {"dimension": "current_market", "observed": f"{len(current_sold)} rights-cleared sold record(s)", "required": ">=1 fresh SOLD_TRANSACTION", "result": "PASS", "evidence_reference": evidence_reference},
             {"dimension": "rights", "observed": "all admitted claim inputs ALLOW", "required": "0 unknown or denied inputs", "result": "PASS", "evidence_reference": evidence_reference},
+            {"dimension": "sample_tier", "observed": sample_decision["tier"], "required": "PRIVATE_E2E or BETA_RELIABILITY for internal rankability", "result": "PASS", "evidence_reference": evidence_reference},
+            {"dimension": "effective_n", "observed": str(sample_decision["effective_n"]), "required": "independently recomputed tier minimum", "result": "PASS", "evidence_reference": evidence_reference},
+            {"dimension": "exact_cp_upper_bound", "observed": str(sample_decision["cp_upper_bound"]), "required": f"<= {sample_decision['tolerance']} for {sample_decision['defect_class']}", "result": "PASS", "evidence_reference": evidence_reference},
+            {"dimension": "coverage_and_concentration", "observed": f"{sample_decision['ultimate_owner_count']} ultimate owners; max share {sample_decision['max_owner_share']:.6f}", "required": "canonical tier coverage and concentration gates", "result": "PASS", "evidence_reference": evidence_reference},
+            {"dimension": "claim_ceiling", "observed": sample_decision["requested_claim"], "required": sample_decision["claim_ceiling"], "result": "PASS", "evidence_reference": evidence_reference},
         ],
         "blocking_dimensions": [],
         "test_results": {
@@ -294,6 +538,9 @@ def build_assessment_envelope(
             "empirical_entity_resolution": "PASS",
             "current_market_evidence": "PASS",
             "rights_and_contradictions": "PASS",
+            "sample_policy_and_claim_ceiling": "PASS",
+            "effective_n_and_exact_cp": "PASS",
+            "coverage_and_concentration": "PASS",
             "assessment_reproducibility": "PASS",
             "public_authority": "HOLD",
             "production_authority": "HOLD",
@@ -304,6 +551,10 @@ def build_assessment_envelope(
             "source_owner_count": len(source_owners),
             "factual_origin_count": len(factual_origins),
             "minimum_evidence_confidence": minimum_confidence,
+            "sample_tier": sample_decision["tier"],
+            "claim_ceiling": sample_decision["claim_ceiling"],
+            "effective_n": sample_decision["effective_n"],
+            "exact_cp_upper_bound": sample_decision["cp_upper_bound"],
             "public_release": "HOLD",
             "production": "HOLD",
         },
@@ -311,6 +562,7 @@ def build_assessment_envelope(
             {"criterion": "canonical_handoff", "measure": "R2 blocker count", "observed": "0", "target": "0"},
             {"criterion": "current_market_evidence", "measure": "admitted SOLD_TRANSACTION records", "observed": str(len(current_sold)), "target": ">=1"},
             {"criterion": "critical_contradictions", "measure": "unresolved count", "observed": "0", "target": "0"},
+            {"criterion": "sample_governance", "measure": "tier / effective_n / CP / coverage / concentration", "observed": f"{sample_decision['tier']} / {sample_decision['effective_n']} / PASS", "target": sample_decision["claim_ceiling"]},
         ],
         "requirements_for_publishable": [
             "Public release remains subject to a separate protected approval and release gate.",
@@ -319,6 +571,7 @@ def build_assessment_envelope(
         "provider_spend_recommendation": "ready_for_evaluation",
         "residual_risks": [
             "This assessment is scoped to the exact immutable pair and does not establish global empirical coverage.",
+            f"The claim cannot exceed {sample_decision['claim_ceiling']} even when every Track B sample gate passes.",
             "Rankability does not authorize Public, Production, G5, spend, legal, or credential expansion.",
         ],
         "evidence_references": [candidate_reference, evidence_reference, handoff_reference],
@@ -537,8 +790,8 @@ def main(argv: list[str]) -> int:
     handoff = json.loads(handoff_path.read_text(encoding="utf-8"))
     snapshot = json.loads(candidate_path.read_text(encoding="utf-8"))
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
-    generated_at = snapshot.get("as_of")
-    require(utc_timestamp(generated_at), "SNAPSHOT_AS_OF_INVALID")
+    require(utc_timestamp(snapshot.get("as_of")), "SNAPSHOT_AS_OF_INVALID")
+    generated_at = datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
     if process.returncode != 0 or handoff.get("handoff_state") != "READY_FOR_TRACK_B":
         envelope = build_hold_assessment_envelope(
             snapshot,
@@ -565,15 +818,48 @@ def main(argv: list[str]) -> int:
         }, indent=2))
         return 2
 
-    envelope = build_assessment_envelope(
-        snapshot,
-        evidence,
-        handoff,
-        generated_at=generated_at,
-        candidate_reference=str(candidate_path.relative_to(ROOT)),
-        evidence_reference=str(evidence_path.relative_to(ROOT)),
-        handoff_reference=str(handoff_path.relative_to(ROOT)),
-    )
+    try:
+        envelope = build_assessment_envelope(
+            snapshot,
+            evidence,
+            handoff,
+            generated_at=generated_at,
+            candidate_reference=str(candidate_path.relative_to(ROOT)),
+            evidence_reference=str(evidence_path.relative_to(ROOT)),
+            handoff_reference=str(handoff_path.relative_to(ROOT)),
+        )
+    except RuntimeError as error:
+        policy_blocker = f"TRACK_B_SAMPLE_GOVERNANCE_HOLD:{error}"
+        hold_handoff = {
+            **handoff,
+            "handoff_state": "BLOCKED",
+            "blockers": sorted(set([*(handoff.get("blockers") or []), policy_blocker])),
+        }
+        hold_handoff["blocker_count"] = len(hold_handoff["blockers"])
+        handoff_path.write_text(json.dumps(hold_handoff, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        envelope = build_hold_assessment_envelope(
+            snapshot,
+            evidence,
+            hold_handoff,
+            generated_at=generated_at,
+            candidate_reference=str(candidate_path.relative_to(ROOT)),
+            evidence_reference=str(evidence_path.relative_to(ROOT)),
+            handoff_reference=str(handoff_path.relative_to(ROOT)),
+        )
+        output_path.write_text(json.dumps(envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(json.dumps({
+            "suite": "KIDULTS_OFFICIAL_TRACK_B_ASSESSOR_V1",
+            "result": "HOLD",
+            "state": "TRACK_B_SAMPLE_GOVERNANCE_HOLD",
+            "blockers": hold_handoff["blockers"],
+            "assessment_id": envelope["assessment"]["assessment_id"],
+            "recommendation": envelope["assessment"]["recommendation"],
+            "overall_rankability": False,
+            "production": "HOLD",
+            "public": "HOLD",
+            "g5": "HOLD",
+        }, indent=2))
+        return 2
     output_path.write_text(json.dumps(envelope, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({
         "suite": "KIDULTS_OFFICIAL_TRACK_B_ASSESSOR_V1",

@@ -17,6 +17,12 @@ if (contract.index_gate.min_empirical_regions !== 3) fail('Region threshold chan
 if (contract.index_gate.min_time_depth_months !== 12) fail('Time-depth threshold changed');
 if (contract.index_gate.min_independent_transaction_families !== 3) fail('Family threshold changed');
 if (queue.actions.length < 4) fail('Authorization action queue incomplete');
+const cardmarket = queue.actions.find(action => action.provider === 'Cardmarket');
+if (!cardmarket) fail('Cardmarket authorization action missing');
+if (cardmarket.state !== 'OUTBOUND_SENT_AWAITING_SUBSTANTIVE_PROVIDER_RESPONSE') fail('Cardmarket communication truth drift');
+if (cardmarket.last_outbound_at !== '2026-08-28T00:50:52Z' || cardmarket.last_outbound_evidence_ref !== 'gmail:message:1a045d91e1005d02') fail('Cardmarket outbound evidence drift');
+if (cardmarket.communication_evidence_ref !== 'coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#cardmarket-licensed-data-inquiry-20260828') fail('Cardmarket communication manifest binding drift');
+if (cardmarket.external_communication_authorized !== false || cardmarket.resend_authorized !== false) fail('Cardmarket resend must remain unauthorized');
 if (queue.automatic_resume_rule.minimum_independent_transaction_families_for_index_pass !== 3) fail('Index family rule mismatch');
 if (queue.automatic_resume_rule.production !== 'HOLD') fail('Production must remain HOLD');
 

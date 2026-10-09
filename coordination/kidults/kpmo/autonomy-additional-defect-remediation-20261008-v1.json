@@ -1,0 +1,181 @@
+{
+  "id": "kidults-autonomy-additional-defect-remediation-20261008-v1",
+  "version": "1.0.0",
+  "agent_id": "atlas-autonomy-correction",
+  "as_of": "2026-10-08T15:30:55.082367+00:00",
+  "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "root_incident": 344,
+  "scope": "Six additional defects and one timestamp precision boundary case",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "source_main_sha": "c90c986f7a5ca414f64e7108d36fbb29936ef18b",
+  "development_branch": "codex/autonomy-seven-defect-correction-20261008",
+  "previous_checkpoint": "coordination/kidults/kpmo/autonomy-holistic-remediation-checkpoint-20261008-v1.json",
+  "historical_checkpoint_is_current_truth": false,
+  "items": [
+    {
+      "id": "R1",
+      "priority": "P1",
+      "scope": "Assurance canonical domain and protected producer binding",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "tests/kidults/kpmo/assurance-full-proof-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R2",
+      "priority": "P1",
+      "scope": "Mutating library classification and source-backed routing verification",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R3",
+      "priority": "P1",
+      "scope": "Authenticate every private PSA record before expiry selection",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R4",
+      "priority": "P1",
+      "scope": "Preserve retention breach in aggregate receipt and runner exit",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R5",
+      "priority": "P1",
+      "scope": "Bind requested certificate digest to provider payload and readback",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "services/kidults-control-plane/scripts/psa-private-file-store-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R6",
+      "priority": "P2",
+      "scope": "Reject invalid or absent rights and approval expiry",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "tests/kidults/staging-operations/provider-control-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    },
+    {
+      "id": "R7",
+      "priority": "P2",
+      "scope": "Treat coarse merge timestamps as intervals with ambiguous boundaries denied",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "verification_evidence_refs": [
+        "tests/kidults/kpmo/direct-owner-merge-window-v1.test.mjs"
+      ],
+      "completion_claimed": false
+    }
+  ],
+  "verification_scope": "LOCAL_SYNTHETIC_REGRESSION_AND_NEGATIVE_CASES_NOT_REMOTE_RUNTIME_PROOF",
+  "actions_executed": [
+    "CORRECT_AUTHORIZED_REVERSIBLE_SOURCE",
+    "ADD_NEGATIVE_AND_BOUNDARY_CASES",
+    "BIND_TESTS_TO_EXISTING_EXACT_HEAD_CI",
+    "CROSS_REVIEW_BY_DISTINCT_RED_TEAM_AGENT",
+    "REJECT_MISSING_DUPLICATE_SHADOW_APPROVAL_IDENTITY",
+    "BIND_ACTUAL_AUDIT_UPSTREAM_TO_SELECTED_SENTINEL",
+    "PUBLISH_EXPECTED_HEAD_NONFORCED_DEVELOPMENT_BRANCH",
+    "RESEAL_740_FILE_INVENTORY_AND_VALIDATE_ROUTING",
+    "RECONCILE_AND_VERIFY_PREVIOUSLY_UNEXECUTED_EVENT_SCHEMA_CHECK",
+    "CORRECT_DRAFT_PROPOSAL_PREPARATION_DEADLOCK",
+    "REJECT_UNRELATED_BACKEND_ERRORS_AS_EXPECTED_CANARY_DENIAL",
+    "CORRECT_LATEST_GENERATION_CONVERGENCE_WITH_SHARED_DEADLINE"
+  ],
+  "exit_criteria": [
+    "EXACT_HEAD_INDEPENDENT_MACHINE_VERIFICATION",
+    "GOVERNED_LANDING",
+    "EXACT_LANDED_MAIN_REPRODUCTION",
+    "WHOLE_AUTHORITY_CHAIN_AND_PRODUCER_HEALTH_SENTINEL_SUCCESS"
+  ],
+  "blockers": [
+    "PROTECTED_OPERATION_LEDGER_NOT_CALLABLE_FOR_LANDING_AND_REMOTE_ACTIVATION",
+    "AUTHENTICATED_NATIVE_RUNTIME_PRODUCERS_INCOMPLETE",
+    "PSA_PERSISTENT_PRIVATE_RUNTIME_AND_DELETION_SCHEDULER_NOT_DEPLOYED"
+  ],
+  "facts": [
+    "PR 2609 merged at c90c986f7a5ca414f64e7108d36fbb29936ef18b; its completed landing is reused, never replayed",
+    "DigitalOcean human response confirms intended source and restoration online at 2026-10-08T08:41:00Z; exact selected PITR target is not retained in provider backend logs",
+    "No provider calls, credential expansion, merge, dispatch or deployment performed in this correction",
+    "Observed Sentinel 37798897510 selected a newer nonterminal Reserve generation after its front waiter; that Reserve later completed READY. This is a generation convergence race, not evidence of missing Reserve inputs. Assurance 37798891379 failed the Sentinel barrier."
+  ],
+  "authority_boundary": {
+    "development_branch_route": "resume-contract-v1 development_branch_resume",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD",
+    "whole_platform_complete": false
+  },
+  "next_action": "Commit code/policy correction; bind one Draft proposal to immutable Git intent; reconcile native CI and repair actual failures; then govern exact-head landing through existing authority route",
+  "effects": {
+    "autonomous_effect": "Correct reversible defects without repeated Owner approval; preserve resume fencing",
+    "global_effect": "Apply identity, timestamp and retention guards across governed input surfaces; no empirical global coverage claim",
+    "irreplaceable_value_effect": "Preserve owned canonical identity, authenticated lineage and deletion evidence",
+    "transparency_effect": "Separate local regression, branch publication, governed landing and remote runtime completion"
+  },
+  "local_verification": {
+    "state": "VERIFIED_PASS",
+    "scope": "EXACT_COMMITTED_SOURCE_LOCAL_REGRESSION_NOT_REMOTE_RUNTIME_PROOF",
+    "verification_source_sha": "4f4b3ff75d4fdefae5b94e1e008c249bfc0c345b",
+    "targeted_test_count": 167,
+    "targeted_failed_count": 0,
+    "control_plane_test_count": 136,
+    "control_plane_failed_count": 0,
+    "provider_event_contract_test_count": 2,
+    "provider_event_contract_failed_count": 0,
+    "routing_test_count": 13,
+    "routing_failed_count": 0,
+    "independent_cross_review": "DISTINCT_RED_TEAM_AGENTS_EXACT_SOURCE_BOOTSTRAP_AND_NEGATIVE_REPRODUCTION",
+    "remote_runtime_proof": false
+  },
+  "unexecuted_checks": [],
+  "dependency_resolution": "LOCAL_EXISTING_PACKAGES_MATCHED_NPM_SHRINKWRAP_VERSIONS_NO_NETWORK",
+  "policy_interpretation_correction": "Draft proposal preparation was overbroadly blocked; a narrowly validated draft_proposal_resume route is implemented without granting protected landing authority",
+  "followup_items": [
+    {
+      "id": "F13",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Canonical ledger canary error class and exact positive state/binding validation",
+      "verification_evidence_refs": [
+        "tests/kidults/kpmo/durable-canonical-ledger-canary-v1.test.mjs"
+      ],
+      "remote_execution_proven": false
+    },
+    {
+      "id": "F14",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Bounded immutable Draft proposal route to resume independent native CI",
+      "verification_evidence_refs": [
+        "tests/governance/development-draft-proposal-resume-v1.test.mjs"
+      ],
+      "protected_landing_authority": false
+    },
+    {
+      "id": "F15",
+      "state": "IMPLEMENTED_NOT_VERIFIED",
+      "scope": "Shared 2100-second producer wait and latest-generation Sentinel convergence",
+      "verification_evidence_refs": [
+        "tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs",
+        "tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs"
+      ],
+      "remote_execution_proven": false
+    }
+  ]
+}

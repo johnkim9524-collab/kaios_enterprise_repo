@@ -46,7 +46,7 @@ for (const relative of requiredFiles) {
 const program = parsed.get("coordination/kidults/registry/program-registry.json");
 if (program) {
   const trackIds = new Set(program.tracks?.map((track) => track.track_id));
-  for (const id of ["A", "B", "C", "D", "E"]) {
+  for (const id of ["A", "B", "C", "D", "E", "R"]) {
     if (!trackIds.has(id)) errors.push(`Program registry missing Track ${id}`);
   }
   if (program.program?.canonical_board_issue !== 344) errors.push("Program registry canonical board must be KPMO master #344.");
@@ -66,10 +66,10 @@ if (verticals) {
 const trackIndex = parsed.get("coordination/kidults/registry/track/index.json");
 if (trackIndex) {
   const operationalTrackIds = new Set(trackIndex.records?.map((track) => track.id));
-  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system"]) {
+  for (const id of ["track-a-120-intelligence-factory","track-b-rankability-validation-gate","track-c-portal-v502-experience-layer","track-d-data-platform-production-reliability","track-e-executive-operating-system","track-r-independent-red-team"]) {
     if (!operationalTrackIds.has(id)) errors.push(`Operational Track Registry missing ${id}`);
   }
-  if (trackIndex.record_count !== 5) errors.push(`Operational Track Registry must contain exactly 5 records; found ${trackIndex.record_count}.`);
+  if (trackIndex.record_count !== 6 || trackIndex.records?.length !== 6 || operationalTrackIds.size !== 6) errors.push("Operational Track Registry must contain exactly six unique A-E and R records.");
 }
 
 const operationalVerticals = parsed.get("coordination/kidults/registry/vertical/index.json");
@@ -78,7 +78,7 @@ if (operationalVerticals?.record_count !== 8) errors.push("Operational Core Vert
 const roles = parsed.get("coordination/kidults/registry/roles-and-responsibilities.json");
 if (roles) {
   const roleIds = new Set(roles.roles?.map((role) => role.role_id));
-  for (const id of ["program-owner","integration-conductor","track-a-120-score","track-b-rankability","track-c-portal-v502","registry-custodian","snapshot-publisher","qa-release-manager"]) {
+  for (const id of ["program-owner","integration-conductor","track-a-120-score","track-b-rankability","track-c-portal-v502","registry-custodian","snapshot-publisher","qa-release-manager","red-team-lead"]) {
     if (!roleIds.has(id)) errors.push(`Role registry missing ${id}`);
   }
 }
@@ -89,4 +89,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; five tracks A-E registered; KPMO master #344 canonical).`);
+console.log(`KIDULTS coordination validation passed (${requiredFiles.length} required JSON files; six tracks A-E and R registered; KPMO master #344 canonical).`);

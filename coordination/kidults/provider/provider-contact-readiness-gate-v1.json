@@ -1,24 +1,39 @@
 {
   "id":"kidults-provider-contact-readiness-gate-v1",
-  "version":"1.0.0",
+  "version":"1.1.0",
   "status":"PROGRAM_OWNER_DECISION_READY",
   "canonical_input":"coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+  "communication_evidence_manifest":"coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
   "contact_authorized":false,
   "groups":{
     "HIGH_FIT_APPLICATION_OR_LICENSE_INQUIRY":[
       {"provider":"GIA","capability":"AUTHENTICATION_CONDITION","scopes":["fine_jewelry"],"ask":["Report Results API eligibility for intelligence platform use","commercial reuse/display rights for derived intelligence","sandbox and production key path","rate limits and pricing","revocation/retention terms"],"reason":"Direct grading/analysis report data fit"}
     ],
     "RIGHTS_OR_BULK_ACCESS_INQUIRY":[
-      {"provider":"CGC","capability":"AUTHENTICATION_CONDITION","scopes":["comic_books","trading_cards","video_games_consoles"],"ask":["Whether official bulk/API certification verification access exists","commercial use rights for grade/certification data","population data access","rate limits/pricing","scope by collectible type"],"reason":"Strong public certification semantics but bulk rights/API not verified"},
       {"provider":"Discogs","capability":"SOLD_TRANSACTION_HISTORY","scopes":["vinyl_recorded_music"],"ask":["License path for Restricted Marketplace sales-history data","per-field reuse and derived intelligence rights","time depth and geography","rate limits and pricing"],"reason":"Sales history exists but is Restricted Data"},
-      {"provider":"Cardmarket","capability":"SOLD_TRANSACTION_HISTORY","scopes":["trading_cards"],"ask":["Written agreement path for sales/price data use","transaction-level field availability","commercial derived intelligence rights","coverage/time depth/pricing"],"reason":"Sales-data candidate requires written agreement"},
       {"provider":"StockX","capability":"AUTHENTICATION_CONDITION","scopes":["sneakers","collectible_electronics","trading_cards"],"ask":["Developer access eligibility","whether authenticationDetails can be used beyond own-order context","commercial aggregated intelligence rights","coverage/rate limits/pricing"],"reason":"Authentication fields exist but account-context and reuse scope require confirmation"}
     ],
     "RECONCILED_NO_DUPLICATE_OUTREACH":[
       {"provider":"eBay Marketplace Insights","canonical_provider_id":"EBAY_MARKETPLACE_INSIGHTS","state":"CLOSED","communication_state":"PREVIOUSLY_CONTACTED_CLOSED","resend_authorized":false},
-      {"provider":"PSA Premium","canonical_provider_id":"PSA_PREMIUM","state":"BOUNDED","communication_state":"WRITTEN_PROVIDER_RESPONSES_RECORDED_NO_NEW_OUTBOUND_REQUIRED","resend_authorized":false},
+      {"provider":"PSA Premium","canonical_provider_id":"PSA_PREMIUM","state":"BOUNDED","communication_state":"OUTBOUND_SENT_AWAITING_PROVENANCE_SOURCE_CLARIFICATION","resend_authorized":false},
       {"provider":"GemRate","canonical_provider_id":"GEMRATE","state":"CONDITIONAL","communication_state":"PROVIDER_RESPONSE_RECEIVED_NO_NEW_OUTBOUND_REQUIRED","resend_authorized":false},
-      {"provider":"CLASSIC.COM","canonical_provider_id":"CLASSIC_COM","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_PROVIDER_RESPONSE","resend_authorized":false}
+      {"provider":"CLASSIC.COM","canonical_provider_id":"CLASSIC_COM","state":"HOLD","communication_state":"FOLLOWUP_SENT_AWAITING_PROVIDER_RESPONSE","resend_authorized":false},
+      {"provider":"CGC / CCG","canonical_provider_id":"CGC_CCG","state":"HOLD","communication_state":"PARTIAL_RESPONSE_RECEIVED_NEEDS_CLARIFICATION","resend_authorized":false},
+      {"provider":"Cardmarket","canonical_provider_id":"CARDMARKET","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Card Ladder","canonical_provider_id":"CARD_LADDER","state":"HOLD","communication_state":"OUTBOUND_SENT_RECEIPT_ACKNOWLEDGED_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Market Movers / Sports Card Investor support route","canonical_provider_id":"MARKET_MOVERS_SCI_ROUTE","state":"HOLD","communication_state":"OUTBOUND_ROUTED_TO_SCI_SUPPORT_RECEIPT_ACKNOWLEDGED_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"HobbyKorea PSA provenance path","canonical_provider_id":"HOBBYKOREA_PSA_PROVENANCE","state":"HOLD","communication_state":"FOLLOWUP_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Bonhams","canonical_provider_id":"BONHAMS","state":"HOLD","communication_state":"OUTBOUND_SENT_RECEIPT_ACKNOWLEDGED_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Broad Arrow Auctions","canonical_provider_id":"BROAD_ARROW","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Christie's","canonical_provider_id":"CHRISTIES","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Iconic Auctioneers","canonical_provider_id":"ICONIC_AUCTIONEERS","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false},
+      {"provider":"Mecum Auctions","canonical_provider_id":"MECUM","state":"HOLD","communication_state":"OUTBOUND_SENT_AWAITING_SUBSTANTIVE_RESPONSE","resend_authorized":false}
+    ],
+    "FAST_LANE_NO_VERIFIED_OUTREACH":[
+      {"provider":"Gooding Christie's","canonical_provider_id":"GOODING_CHRISTIES","state":"HOLD","communication_state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","contact_authorized":false},
+      {"provider":"Sotheby's","canonical_provider_id":"SOTHEBYS","state":"HOLD","communication_state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","contact_authorized":false},
+      {"provider":"Barrett-Jackson","canonical_provider_id":"BARRETT_JACKSON","state":"HOLD","communication_state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","contact_authorized":false},
+      {"provider":"Collecting Cars","canonical_provider_id":"COLLECTING_CARS","state":"HOLD","communication_state":"NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY","contact_authorized":false}
     ],
     "REJECT_FOR_SOLD_TRANSACTION_EVIDENCE":[
       {"provider":"StockX Market Data","reason":"Highest Bid / Lowest Ask and pricing signals are not a sold-event corpus"},

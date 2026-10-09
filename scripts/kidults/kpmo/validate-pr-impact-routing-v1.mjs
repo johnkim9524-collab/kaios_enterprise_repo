@@ -4,13 +4,37 @@ import path from 'node:path';
 
 const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
+const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
+const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
+const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
+const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
+const dispatcherTerminalWorkflow = 'workflows: [KIDULTS Scope-Aware Authoritative Status V1]';
+const dispatcherRecoverySchedule = "cron: '17 * * * *'";
 const allowedUnbounded = new Set([
   'ci-validation.yml',
+  autonomousDispatcherWorkflow,
   'kidults-governed-landing-authorization-v1.yml',
   'kidults-scope-aware-authoritative-status-v1.yml',
+  lifecycleWorkflow,
   supersessionWorkflow,
   'solo-owner-preflight.yml'
 ]);
+
+function autonomousDispatcherViolations(source) {
+  const problems = [];
+  const jobsIndex = source.indexOf('\njobs:');
+  const workflowScope = jobsIndex >= 0 ? source.slice(0, jobsIndex) : source;
+  if (/^  pull_request_target:/m.test(workflowScope)) problems.push('DISPATCHER_REDUNDANT_PR_TARGET_PRESENT');
+  if (!source.includes(dispatcherTerminalWorkflow)) problems.push('DISPATCHER_TERMINAL_WORKFLOW_TRIGGER_MISSING');
+  if (!source.includes(dispatcherRecoverySchedule) || source.includes("cron: '*/10 * * * *'")) problems.push('DISPATCHER_RECOVERY_SCAN_NOT_BOUNDED');
+  if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) problems.push('DISPATCHER_WORKFLOW_LEVEL_WRITE');
+  if (!source.includes(dispatcherWorkflowRunRepositoryGuard)
+      || !source.includes("github.event.workflow_run.conclusion == 'success'")
+      || !source.includes("github.event.workflow_run.event == 'pull_request_target'")) problems.push('DISPATCHER_TERMINAL_EVENT_GUARD_MISSING');
+  if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
+  if (!source.includes(dispatcherExactPrBinding)) problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
+  return problems;
+}
 
 function eventBlock(source) {
   const lines = source.split(/\r?\n/);
@@ -54,6 +78,53 @@ function supersessionViolations(source) {
   if (source.includes('/actions/runs?branch=${HEAD_BRANCH}')) {
     problems.push('RAW_BRANCH_QUERY_INTERPOLATION');
   }
+  if (!source.includes('local max_attempts="${2:-8}"') ||
+      !source.includes('[[ "${max_attempts}" -le 30 ]]') ||
+      !source.includes('read_run_terminal "${run_id}" 12') ||
+      !source.includes('read_run_terminal "${run_id}" 30')) {
+    problems.push('TERMINAL_READBACK_RACE_BOUND_MISSING');
+  }
+  return problems;
+}
+
+function lifecycleViolations(source) {
+  const problems = [];
+  const jobsIndex = source.indexOf('\njobs:');
+  const workflowScope = jobsIndex >= 0 ? source.slice(0, jobsIndex) : source;
+
+  if (!/pull_request_target:\s*\n\s{4}branches:\s*\[main\]/.test(source)) {
+    problems.push('LIFECYCLE_TARGET_NOT_RESTRICTED_TO_MAIN');
+  }
+  if (/^\s{2}(?:actions|checks|contents|deployments|issues|packages|pull-requests|statuses):\s*write\s*$/m.test(workflowScope)) {
+    problems.push('LIFECYCLE_WORKFLOW_LEVEL_WRITE');
+  }
+  if (!/^permissions:\s*\n\s{2}contents:\s*read\s*$/m.test(source)) {
+    problems.push('LIFECYCLE_WORKFLOW_READ_ONLY_BASELINE_MISSING');
+  }
+  if (!/classify-live-pr:[\s\S]*?permissions:\s*\n\s{6}contents:\s*read\s*\n\s{6}pull-requests:\s*read\s*\n\s{6}statuses:\s*read/.test(source)) {
+    problems.push('LIFECYCLE_JOB_READ_ONLY_PERMISSIONS_MISSING');
+  }
+  if (/classify-live-pr:[\s\S]*?permissions:[\s\S]*?\n\s{6}[A-Za-z-]+:\s*write\s*$/m.test(source)) {
+    problems.push('LIFECYCLE_JOB_WRITE_PERMISSION');
+  }
+  if (!source.includes('ref: ${{ github.event.pull_request.base.sha }}')) {
+    problems.push('LIFECYCLE_TRUSTED_BASE_CHECKOUT_MISSING');
+  }
+  if (source.includes('ref: ${{ github.event.pull_request.head.sha }}')) {
+    problems.push('LIFECYCLE_UNTRUSTED_HEAD_CHECKOUT');
+  }
+  if (!source.includes('persist-credentials: false')) {
+    problems.push('LIFECYCLE_PERSIST_CREDENTIALS_NOT_DISABLED');
+  }
+  if (!source.includes('EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}')) {
+    problems.push('LIFECYCLE_EVENT_HEAD_BINDING_MISSING');
+  }
+  if (!source.includes('EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}')) {
+    problems.push('LIFECYCLE_EVENT_BASE_BINDING_MISSING');
+  }
+  if (!source.includes('if: always()') || !source.includes('Reapply fail-closed lifecycle verdict')) {
+    problems.push('LIFECYCLE_TERMINAL_RECEIPT_OR_VERDICT_REAPPLY_MISSING');
+  }
   return problems;
 }
 
@@ -65,6 +136,17 @@ function assertSupersessionMutationRejected(label, pristine, mutate, violations)
   }
   if (supersessionViolations(mutated).length === 0) {
     violations.push({ file: supersessionWorkflow, kind: `TRUST_SELF_TEST_FALSE_GREEN:${label}` });
+  }
+}
+
+function assertLifecycleMutationRejected(label, pristine, mutate, violations) {
+  const mutated = mutate(pristine);
+  if (mutated === pristine) {
+    violations.push({ file: lifecycleWorkflow, kind: `LIFECYCLE_TRUST_SELF_TEST_MUTATION_NOT_APPLIED:${label}` });
+    return;
+  }
+  if (lifecycleViolations(mutated).length === 0) {
+    violations.push({ file: lifecycleWorkflow, kind: `LIFECYCLE_TRUST_SELF_TEST_FALSE_GREEN:${label}` });
   }
 }
 
@@ -113,6 +195,46 @@ if (files.includes(supersessionWorkflow)) {
     (text) => text.replace('  pull_request_target:\n    branches: [main]\n    types:', '  pull_request_target:\n    types:'), violations);
   assertSupersessionMutationRejected('REMOVE_RUNTIME_FORK_REJECTION', source,
     (text) => text.replace('            [[ "${HEAD_REPOSITORY}" == "${REPOSITORY}" ]] || { echo "Refusing Actions write for fork PR" >&2; exit 1; }\n', ''), violations);
+  assertSupersessionMutationRejected('REMOVE_TERMINAL_READBACK_RACE_BOUND', source,
+    (text) => text.replace('read_run_terminal "${run_id}" 30', 'read_run_terminal "${run_id}"'), violations);
+}
+
+if (files.includes(lifecycleWorkflow)) {
+  const source = fs.readFileSync(path.join(workflowDir, lifecycleWorkflow), 'utf8');
+  for (const kind of lifecycleViolations(source)) {
+    violations.push({ file: lifecycleWorkflow, kind });
+  }
+
+  assertLifecycleMutationRejected('REMOVE_MAIN_TARGET_RESTRICTION', source,
+    (text) => text.replace('  pull_request_target:\n    branches: [main]\n    types:', '  pull_request_target:\n    types:'), violations);
+  assertLifecycleMutationRejected('ADD_WORKFLOW_LEVEL_CONTENTS_WRITE', source,
+    (text) => text.replace('permissions:\n  contents: read', 'permissions:\n  contents: write'), violations);
+  assertLifecycleMutationRejected('CHECKOUT_UNTRUSTED_HEAD', source,
+    (text) => text.replace('ref: ${{ github.event.pull_request.base.sha }}', 'ref: ${{ github.event.pull_request.head.sha }}'), violations);
+  assertLifecycleMutationRejected('REMOVE_HEAD_BINDING', source,
+    (text) => text.replace('EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}', 'EXPECTED_HEAD_SHA: unbound'), violations);
+  assertLifecycleMutationRejected('REMOVE_VERDICT_REAPPLY', source,
+    (text) => text.replace('      - name: Reapply fail-closed lifecycle verdict', '      - name: Removed lifecycle verdict step'), violations);
+}
+
+if (files.includes(autonomousDispatcherWorkflow)) {
+  const source = fs.readFileSync(path.join(workflowDir, autonomousDispatcherWorkflow), 'utf8');
+  for (const kind of autonomousDispatcherViolations(source)) {
+    violations.push({ file: autonomousDispatcherWorkflow, kind });
+  }
+  const mutations = [
+    source.replace(dispatcherTerminalWorkflow, 'workflows: [CI Validation]'),
+    source.replace(` && ${dispatcherWorkflowRunRepositoryGuard}`, ''),
+    source.replace("github.event.workflow_run.conclusion == 'success'", 'true'),
+    source.replace('          persist-credentials: false', '          persist-credentials: true'),
+    source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}'),
+    source.replace(dispatcherRecoverySchedule, "cron: '*/10 * * * *'")
+  ];
+  for (const [index, mutated] of mutations.entries()) {
+    if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
+      violations.push({ file: autonomousDispatcherWorkflow, kind: `DISPATCHER_TRUST_SELF_TEST_FALSE_GREEN:${index + 1}` });
+    }
+  }
 }
 
 const receipt = {
@@ -127,7 +249,22 @@ const receipt = {
     fork_pr_actions_write: 'DENIED_BY_JOB_GUARD',
     pull_request_target_base: 'main',
     branch_query_encoding: 'DATA_URLENCODE',
+    mutation_cases: 6
+  },
+  pr_lifecycle_trust_boundary: {
+    authorization: 'READ_ONLY_CLASSIFICATION',
+    pull_request_target_base: 'main',
+    source_checkout: 'TRUSTED_BASE_ONLY',
     mutation_cases: 5
+  },
+  autonomous_dispatcher_trust_boundary: {
+    fork_pr_dispatch: 'DENIED_BY_JOB_GUARD',
+    normal_trigger: 'SCOPE_AWARE_TERMINAL_WORKFLOW_RUN_ONLY',
+    pull_request_target_trigger: 'REMOVED',
+    recovery_schedule: 'HOURLY',
+    source_checkout: 'TRUSTED_BASE_ONLY',
+    exact_pr_binding: true,
+    mutation_cases: 6
   },
   violations
 };

@@ -1,0 +1,36 @@
+{
+  "id": "track-r-independent-red-team",
+  "record_type": "track",
+  "version": "1.0.0",
+  "status": "IMPLEMENTED_NOT_VERIFIED",
+  "display_name": "R. Independent Red Team",
+  "role_id": "red-team-lead",
+  "canonical_issue": 344,
+  "role_acceptance": "NOT_YET_IDENTITY_BOUND",
+  "mission_id": "MISSION-R-AUTONOMY-ASSURANCE",
+  "official_input_boundary": [
+    "Exact-source bootstrap and roles",
+    "Current authenticated runtime evidence",
+    "KPMO and Track operation claims and approvals"
+  ],
+  "official_outputs": [
+    "Adversarial review receipt",
+    "Conflict-recusal record",
+    "Verified defect reproduction",
+    "Remediation verification"
+  ],
+  "operating_boundary": [
+    "Reports directly to program-owner independently of integration-conductor",
+    "No self-review, self-appointment, release or source-rights authority",
+    "Machine independent verification remains the routine internal mechanism"
+  ],
+  "current_holder": "UNASSIGNED_PENDING_IDENTITY_BOUND_ROLE_ACCEPTANCE",
+  "canonical_main_binding": "EXACT_COMMITTED_SOURCE_REQUIRED",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "updated_at": "2026-10-08T19:34:00+09:00",
+  "updated_by": "KPMO / Atlas",
+  "created_by": "KPMO / Atlas",
+  "approved_by": null
+}

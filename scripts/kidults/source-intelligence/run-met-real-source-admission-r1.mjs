@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 
-const SEARCH_URL = 'https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=baseball%20card';
+const SEARCH_URL = 'https://collectionapi.metmuseum.org/public/collection/v1.1/search?hasImages=true&q=baseball%20card&offset=0&limit=60';
 const RIGHTS_URLS = [
   'https://www.metmuseum.org/policies/terms-and-conditions',
   'https://www.metmuseum.org/hubs/open-access'
@@ -69,6 +69,7 @@ const artifact = {
   id: 'met-real-source-admission-run-r1',
   execution_mode: 'DEV_SHADOW_ONLY',
   source_id: 'met-open-access-api',
+  search_endpoint: SEARCH_URL,
   rights_basis: 'CC0_OPEN_ACCESS',
   rights_evidence: RIGHTS_URLS,
   retrieved_at: new Date().toISOString(),

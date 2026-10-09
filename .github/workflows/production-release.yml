@@ -5,9 +5,15 @@ on:
     tags:
       - "v*.*.*"
   workflow_dispatch:
+    inputs:
+      evidence_run_id:
+        description: "Run ID containing the exact-SHA signed Production release evidence artifact"
+        required: true
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   certify:
@@ -15,6 +21,9 @@ jobs:
     environment: kidults-production-release
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    env:
+      KIDULTS_CANONICAL_REPOSITORY: johnkim9524-collab/kaios_enterprise_repo
+      KIDULTS_RELEASE_ENVIRONMENT: kidults-production-release
 
     steps:
       - name: Verify live main before provider credential resolution
@@ -23,7 +32,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$KIDULTS_CANONICAL_REPOSITORY"
+          test "$GITHUB_EVENT_NAME" = "workflow_dispatch"
           test "$GITHUB_REF" = "refs/heads/main"
+          [[ "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
           LIVE_MAIN_SHA="$(
             curl --fail-with-body --silent --show-error \
               --connect-timeout 10 \
@@ -32,7 +45,7 @@ jobs:
               --header "Accept: application/vnd.github+json" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
               "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
-              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+              python3 -I -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
           )"
           test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
       - name: Checkout exact source commit
@@ -50,6 +63,278 @@ jobs:
           echo "expected=${EXPECTED_SHA}"
           echo "actual=${ACTUAL_SHA}"
           test "${ACTUAL_SHA}" = "${EXPECTED_SHA}"
+
+      - name: Verify evidence workflow provenance
+        shell: bash
+        env:
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          RUN_METADATA_FILE="$RUNNER_TEMP/kidults-evidence-run.json"
+          curl --disable --fail-with-body --silent --show-error \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID" \
+            > "$RUN_METADATA_FILE"
+          EVIDENCE_RUN_ATTEMPT="$(
+            python3 -I - "$RUN_METADATA_FILE" "$EVIDENCE_RUN_ID" "$GITHUB_REPOSITORY" "$GITHUB_SHA" <<'PY'
+          import json
+          import re
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              run = json.load(handle)
+          expected_run_id = sys.argv[2]
+          expected_repository = sys.argv[3]
+          expected_sha = sys.argv[4]
+          run_attempt = run.get("run_attempt")
+          checks = [
+              str(run.get("id")) == expected_run_id,
+              run.get("repository", {}).get("full_name") == expected_repository,
+              run.get("head_repository", {}).get("full_name") == expected_repository,
+              run.get("head_branch") == "main",
+              run.get("head_sha") == expected_sha,
+              run.get("event") == "workflow_dispatch",
+              run.get("path") == ".github/workflows/kidults-production-release-evidence-v1.yml",
+              run.get("status") == "completed",
+              run.get("conclusion") == "success",
+              isinstance(run_attempt, int) and run_attempt >= 1,
+          ]
+          if not all(checks):
+              raise SystemExit("EVIDENCE_RUN_PROVENANCE_MISMATCH")
+          value = str(run_attempt)
+          if not re.fullmatch(r"[1-9][0-9]*", value):
+              raise SystemExit("EVIDENCE_RUN_ATTEMPT_INVALID")
+          print(value)
+          PY
+          )"
+          echo "EVIDENCE_RUN_ATTEMPT=$EVIDENCE_RUN_ATTEMPT" >> "$GITHUB_ENV"
+          EVIDENCE_ARTIFACT_NAME="kidults-production-release-evidence-$GITHUB_SHA"
+          ARTIFACT_METADATA_FILE="$RUNNER_TEMP/kidults-evidence-artifacts.json"
+          curl --disable --fail-with-body --silent --show-error \
+            --connect-timeout 10 \
+            --max-time 30 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$EVIDENCE_RUN_ID/artifacts?per_page=100&name=$EVIDENCE_ARTIFACT_NAME" \
+            > "$ARTIFACT_METADATA_FILE"
+          read -r EVIDENCE_ARTIFACT_ID EVIDENCE_ARTIFACT_SHA256 < <(
+            python3 -I - "$ARTIFACT_METADATA_FILE" "$EVIDENCE_RUN_ID" "$GITHUB_SHA" "$EVIDENCE_ARTIFACT_NAME" <<'PY'
+          import json
+          import re
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              payload = json.load(handle)
+          expected_run_id = sys.argv[2]
+          expected_sha = sys.argv[3]
+          expected_name = sys.argv[4]
+          matches = [
+              artifact for artifact in payload.get("artifacts", [])
+              if artifact.get("name") == expected_name and artifact.get("expired") is False
+          ]
+          if len(matches) != 1:
+              raise SystemExit("EVIDENCE_ARTIFACT_CARDINALITY")
+          artifact = matches[0]
+          artifact_id = str(artifact.get("id"))
+          artifact_digest = artifact.get("digest")
+          workflow_run = artifact.get("workflow_run") or {}
+          checks = [
+              re.fullmatch(r"[1-9][0-9]*", artifact_id),
+              isinstance(artifact_digest, str) and re.fullmatch(r"sha256:[0-9a-f]{64}", artifact_digest),
+              isinstance(artifact.get("size_in_bytes"), int) and artifact["size_in_bytes"] > 0,
+              str(workflow_run.get("id")) == expected_run_id,
+              workflow_run.get("head_branch") == "main",
+              workflow_run.get("head_sha") == expected_sha,
+          ]
+          if not all(checks):
+              raise SystemExit("EVIDENCE_ARTIFACT_PROVENANCE_MISMATCH")
+          print(artifact_id, artifact_digest)
+          PY
+          )
+          [[ "$EVIDENCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EVIDENCE_ARTIFACT_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "EVIDENCE_ARTIFACT_ID=$EVIDENCE_ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "EVIDENCE_ARTIFACT_NAME=$EVIDENCE_ARTIFACT_NAME" >> "$GITHUB_ENV"
+          echo "EVIDENCE_ARTIFACT_SHA256=$EVIDENCE_ARTIFACT_SHA256" >> "$GITHUB_ENV"
+          ARTIFACT_ZIP="$RUNNER_TEMP/kidults-production-release-evidence.zip"
+          curl --disable --fail-with-body --silent --show-error --location \
+            --proto '=https' \
+            --proto-redir '=https' \
+            --max-redirs 3 \
+            --connect-timeout 10 \
+            --max-time 120 \
+            --header "Authorization: Bearer $GITHUB_TOKEN" \
+            --header "Accept: application/vnd.github+json" \
+            --header "X-GitHub-Api-Version: 2022-11-28" \
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$EVIDENCE_ARTIFACT_ID/zip" \
+            > "$ARTIFACT_ZIP"
+          DOWNLOADED_ARTIFACT_SHA256="sha256:$(sha256sum "$ARTIFACT_ZIP" | awk '{print $1}')"
+          test "$DOWNLOADED_ARTIFACT_SHA256" = "$EVIDENCE_ARTIFACT_SHA256"
+          test ! -e .release-evidence && test ! -L .release-evidence
+          install -d -m 700 .release-evidence
+          python3 -I - "$ARTIFACT_ZIP" .release-evidence <<'PY'
+          import stat
+          import sys
+          import zipfile
+          import os
+          from pathlib import Path, PurePosixPath
+
+          archive = Path(sys.argv[1])
+          destination = Path(sys.argv[2]).resolve(strict=True)
+          os.umask(0o077)
+          seen = set()
+          total_size = 0
+          with zipfile.ZipFile(archive) as handle:
+              entries = handle.infolist()
+              if not entries or len(entries) > 4096:
+                  raise SystemExit("EVIDENCE_ARTIFACT_ENTRY_COUNT")
+              for entry in entries:
+                  member = PurePosixPath(entry.filename)
+                  mode = entry.external_attr >> 16
+                  file_type = stat.S_IFMT(mode)
+                  canonical_name = member.as_posix() + ("/" if entry.is_dir() else "")
+                  if (
+                      member.is_absolute()
+                      or not member.parts
+                      or len(member.parts) > 16
+                      or len(entry.filename) > 512
+                      or any(part in {"", ".", ".."} for part in member.parts)
+                      or "\\" in entry.filename
+                      or entry.filename != canonical_name
+                      or entry.filename in seen
+                      or stat.S_ISLNK(mode)
+                  ):
+                      raise SystemExit("EVIDENCE_ARTIFACT_MEMBER_UNSAFE")
+                  if entry.is_dir():
+                      if file_type not in {0, stat.S_IFDIR}:
+                          raise SystemExit("EVIDENCE_ARTIFACT_DIRECTORY_TYPE")
+                      target = destination.joinpath(*member.parts)
+                      target.mkdir(parents=True, exist_ok=True, mode=0o700)
+                      target.chmod(0o700)
+                      seen.add(entry.filename)
+                      continue
+                  if file_type not in {0, stat.S_IFREG}:
+                      raise SystemExit("EVIDENCE_ARTIFACT_MEMBER_TYPE")
+                  if entry.file_size > 268_435_456:
+                      raise SystemExit("EVIDENCE_ARTIFACT_MEMBER_SIZE_LIMIT")
+                  total_size += entry.file_size
+                  if total_size > 1_073_741_824:
+                      raise SystemExit("EVIDENCE_ARTIFACT_UNCOMPRESSED_SIZE_LIMIT")
+                  target = destination.joinpath(*member.parts)
+                  target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                  with handle.open(entry) as source, target.open("xb") as output:
+                      while chunk := source.read(1024 * 1024):
+                          output.write(chunk)
+                  target.chmod(0o600)
+                  seen.add(entry.filename)
+          PY
+          rm -f -- "$ARTIFACT_ZIP"
+
+      - name: Verify current-SOLD Production gate and Program Owner receipt
+        shell: bash
+        env:
+          EVIDENCE_RUN_ID: ${{ inputs.evidence_run_id }}
+          PROGRAM_OWNER_RELEASE_PUBLIC_KEY_PEM: ${{ secrets.KIDULTS_PROGRAM_OWNER_RELEASE_PUBLIC_KEY_PEM }}
+          PROGRAM_OWNER_RELEASE_EXPECTED_KEY_ID: ${{ secrets.KIDULTS_PROGRAM_OWNER_RELEASE_KEY_ID }}
+          RELEASE_EXECUTOR_PUBLIC_KEY_PEM: ${{ secrets.KIDULTS_RELEASE_EXECUTOR_PUBLIC_KEY_PEM }}
+          RELEASE_EXECUTOR_EXPECTED_KEY_ID: ${{ secrets.KIDULTS_RELEASE_EXECUTOR_KEY_ID }}
+          RELEASE_REPLAY_CONSUMPTION_ATTESTATION_JSON: ${{ secrets.KIDULTS_RELEASE_CONSUMPTION_ATTESTATION_JSON }}
+        run: |
+          set -euo pipefail
+          [[ "$EVIDENCE_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EVIDENCE_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EVIDENCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$EVIDENCE_ARTIFACT_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$EVIDENCE_ARTIFACT_NAME" = "kidults-production-release-evidence-$GITHUB_SHA"
+          test -n "$PROGRAM_OWNER_RELEASE_PUBLIC_KEY_PEM"
+          [[ "$PROGRAM_OWNER_RELEASE_EXPECTED_KEY_ID" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test -n "$RELEASE_EXECUTOR_PUBLIC_KEY_PEM"
+          [[ "$RELEASE_EXECUTOR_EXPECTED_KEY_ID" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test -n "$RELEASE_REPLAY_CONSUMPTION_ATTESTATION_JSON"
+          OWNER_PUBLIC_KEY_FILE="$RUNNER_TEMP/kidults-program-owner-release-public-key.pem"
+          EXECUTOR_PUBLIC_KEY_FILE="$RUNNER_TEMP/kidults-release-executor-public-key.pem"
+          REPLAY_ATTESTATION_FILE="$RUNNER_TEMP/kidults-release-replay-consumption-attestation.json"
+          cleanup_protected_release_material() {
+            rm -f -- "$OWNER_PUBLIC_KEY_FILE" "$EXECUTOR_PUBLIC_KEY_FILE" "$REPLAY_ATTESTATION_FILE"
+          }
+          trap cleanup_protected_release_material EXIT
+          install -m 600 /dev/null "$OWNER_PUBLIC_KEY_FILE"
+          install -m 600 /dev/null "$EXECUTOR_PUBLIC_KEY_FILE"
+          install -m 600 /dev/null "$REPLAY_ATTESTATION_FILE"
+          printf '%s\n' "$PROGRAM_OWNER_RELEASE_PUBLIC_KEY_PEM" > "$OWNER_PUBLIC_KEY_FILE"
+          printf '%s\n' "$RELEASE_EXECUTOR_PUBLIC_KEY_PEM" > "$EXECUTOR_PUBLIC_KEY_FILE"
+          printf '%s\n' "$RELEASE_REPLAY_CONSUMPTION_ATTESTATION_JSON" > "$REPLAY_ATTESTATION_FILE"
+          ACTUAL_OWNER_KEY_ID="$(
+            node - "$OWNER_PUBLIC_KEY_FILE" <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const key = crypto.createPublicKey(fs.readFileSync(process.argv[2]));
+          if (key.asymmetricKeyType !== 'ed25519') process.exit(65);
+          const der = key.export({ type: 'spki', format: 'der' });
+          process.stdout.write(`sha256:${crypto.createHash('sha256').update(der).digest('hex')}`);
+          NODE
+          )"
+          test "$ACTUAL_OWNER_KEY_ID" = "$PROGRAM_OWNER_RELEASE_EXPECTED_KEY_ID"
+          ACTUAL_EXECUTOR_KEY_ID="$(
+            node - "$EXECUTOR_PUBLIC_KEY_FILE" <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const key = crypto.createPublicKey(fs.readFileSync(process.argv[2]));
+          if (key.asymmetricKeyType !== 'ed25519') process.exit(65);
+          const der = key.export({ type: 'spki', format: 'der' });
+          process.stdout.write(`sha256:${crypto.createHash('sha256').update(der).digest('hex')}`);
+          NODE
+          )"
+          test "$ACTUAL_EXECUTOR_KEY_ID" = "$RELEASE_EXECUTOR_EXPECTED_KEY_ID"
+          test "$ACTUAL_EXECUTOR_KEY_ID" != "$ACTUAL_OWNER_KEY_ID"
+          ARCHIVE_FILE=".release-evidence/kidults-production-evidence.tar.gz"
+          test -f "$ARCHIVE_FILE"
+          ARCHIVE_SHA256="sha256:$(sha256sum "$ARCHIVE_FILE" | awk '{print $1}')"
+          [[ "$ARCHIVE_SHA256" =~ ^sha256:[0-9a-f]{64}$ ]]
+          python3 -I - .release-evidence/kidults-production-evidence.tar.gz.manifest.json "$ARCHIVE_SHA256" <<'PY'
+          import json
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8") as handle:
+              manifest = json.load(handle)
+          if manifest.get("archive_sha256") != sys.argv[2]:
+              raise SystemExit("SEALED_MANIFEST_ARCHIVE_DIGEST_MISMATCH")
+          PY
+          node scripts/production/validate-kidults-production-release-v1.mjs \
+            verify-sealed-release \
+            --archive "$ARCHIVE_FILE" \
+            --manifest .release-evidence/kidults-production-evidence.tar.gz.manifest.json \
+            --owner-public-key "$OWNER_PUBLIC_KEY_FILE" \
+            --executor-public-key "$EXECUTOR_PUBLIC_KEY_FILE" \
+            --expected-owner-key-id "$PROGRAM_OWNER_RELEASE_EXPECTED_KEY_ID" \
+            --expected-executor-key-id "$RELEASE_EXECUTOR_EXPECTED_KEY_ID" \
+            --consumption-attestation "$REPLAY_ATTESTATION_FILE" \
+            --repository "$GITHUB_REPOSITORY" \
+            --protected-environment "$KIDULTS_RELEASE_ENVIRONMENT" \
+            --executor-run-id "$GITHUB_RUN_ID" \
+            --executor-run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --evidence-run-id "$EVIDENCE_RUN_ID" \
+            --evidence-run-attempt "$EVIDENCE_RUN_ATTEMPT" \
+            --artifact-id "$EVIDENCE_ARTIFACT_ID" \
+            --artifact-name "$EVIDENCE_ARTIFACT_NAME" \
+            --artifact-sha256 "$EVIDENCE_ARTIFACT_SHA256" \
+            --policy coordination/kidults/source-intelligence/current-sold-sample-governance-v1.json \
+            --execution-mode CERTIFICATION_ONLY \
+            --predeployment-snapshot-manifest-sha256 null \
+            --target-gateway-image-id null \
+            --target-scheduler-image-id null \
+            --deployment-manifest-sha256 null \
+            --nonce-store-receipt null \
+            --expected-source-sha "$GITHUB_SHA"
 
       - name: Record release runner identity
         run: |
@@ -101,9 +386,29 @@ jobs:
           python -m scripts.production_smoke \
             --base-url "${SMOKE_BASE_URL}"
 
+      - name: Reverify live main before release artifact publication
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "$KIDULTS_CANONICAL_REPOSITORY"
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -I -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+
       - name: Upload release artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: kaios-production-release
+          name: kaios-production-release-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: release/
           retention-days: 90

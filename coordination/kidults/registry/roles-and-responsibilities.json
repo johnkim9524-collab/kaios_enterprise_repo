@@ -1,7 +1,39 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.3.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "role_assignment_rule": "A named person, AI agent or service may perform a role only after accepting its mission, authority limits, required outputs and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
+  "updated_at": "2026-10-08T19:34:00+09:00",
+  "change_rationale": "Register independent Track R and RED_TEAM_LEAD under the Program Owner instruction; bind RED_TEAM bootstrap separately from PoC Integration incident management.",
+  "constitutional_readiness": {
+    "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
+    "required_before_task_analysis_or_execution": true,
+    "role_specific_acceptance_required": true,
+    "independent_consumed_receipt_required": true,
+    "missing_or_invalid_behavior": "DENY_DISPATCH_AND_REJECT_OUTPUT",
+    "material_or_repeated_violation_behavior": "REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE",
+    "kpmo_self_exemption_allowed": false,
+    "removed_agent_self_adjudication_or_replacement_approval_allowed": false
+  },
+  "role_assignment_rule": "A named person, AI agent or service may perform a role only after exact-HEAD constitutional readiness and explicit acceptance of its mission, authority limits, required outputs, prohibitions, success measures and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
+  "ai_agent_accountability_enforcement": {
+    "governing_rule": "AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION",
+    "scope": "KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES",
+    "kpmo_ai_agents_orchestrators_and_automations_in_scope": true,
+    "kpmo_self_exemption_allowed": false,
+    "assigned_agent_retains_end_to_end_accountability": true,
+    "codex_or_other_helper_is_bounded_assistance_only": true,
+    "confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence": true,
+    "immediate_consequence": "REMOVE_FROM_ACTIVE_TASK_REJECT_UNVERIFIED_OUTPUT_AND_DISABLE_NEW_DISPATCH",
+    "human_personnel_action_authorized": false,
+    "history_or_evidence_deletion_allowed": false,
+    "reinstatement_authority": "KPMO_EXPLICIT_APPROVAL_ONLY_EXCEPT_KPMO_AI_IDENTITY_REQUIRES_PROGRAM_OWNER_AND_INDEPENDENT_GOVERNANCE_REVIEW",
+    "removed_identity_self_adjudication_or_reinstatement_allowed": false,
+    "permanent_retirement_on": [
+      "INTENTIONAL_FABRICATION_OR_CONCEALMENT",
+      "REFUSAL_TO_REMEDIATE",
+      "DISPATCH_OR_IDENTITY_EVASION",
+      "RECURRENCE_AFTER_REINSTATEMENT"
+    ]
+  },
   "roles": [
     {
       "role_id": "program-owner",
@@ -56,6 +88,7 @@
         "Coordinate contract changes between producer and consumer tracks",
         "Prepare the daily integrated executive digest",
         "Maintain the risk, decision, handoff and release records",
+        "When performed by an AI agent, retain KPMO accountability through authorized execution, helper review, validation, truth-sync and final reporting",
         "Recommend release readiness but not replace the Program Owner's final approval",
         "Coordinate synchronization into the three official Books",
         "Prevent isolated chat sessions from becoming divergent sources of truth"
@@ -80,6 +113,7 @@
         "Alter Track A metrics to make a Portal release easier",
         "Replace Track B's independent assessment",
         "Approve provider contracts or final Production promotion",
+        "When performed by an AI agent, self-exempt from AI-019, transfer KPMO core duties to Codex or another helper, or adjudicate its own removal or reinstatement",
         "Claim work is completed without verifiable artifacts"
       ],
       "success_measures": [
@@ -478,6 +512,7 @@
         "Record material decisions, risks and blockers in GitHub",
         "Protect secrets, rights and data lineage",
         "Escalate conflicts instead of creating isolated workarounds",
+        "When acting as an AI agent, retain end-to-end ownership of assigned execution, helper review, validation, truth-sync and final reporting",
         "Leave the shared record more complete than it was found"
       ],
       "required_deliverables": [
@@ -494,6 +529,8 @@
         "Create private official terminology",
         "Claim completion without evidence",
         "Bypass a required gate",
+        "When acting as an AI agent, transfer a core assigned duty or accountability to Codex, another helper or a human while capable and authorized to perform it",
+        "Present a prompt, draft, recommendation or unverified helper output as completed execution",
         "Modify another track's owned artifact without approved handoff",
         "Treat memory from a separate chat as official truth"
       ],
@@ -505,6 +542,59 @@
         "Low rework caused by isolated assumptions"
       ],
       "reporting_cadence": "As defined by the assigned role and immediately on material risk or conflict."
+    },
+    {
+      "role_id": "red-team-lead",
+      "canonical_role": "RED_TEAM_LEAD",
+      "title": "Independent Red Team Lead",
+      "current_holder": "UNASSIGNED_PENDING_IDENTITY_BOUND_ROLE_ACCEPTANCE",
+      "mission": "Independently challenge KPMO and Track operating claims, reproduce defects and report evidence directly to the Program Owner without assuming implementation or release authority.",
+      "reporting_line": "program-owner",
+      "track_id": "track-r-independent-red-team",
+      "independent_from": [
+        "integration-conductor",
+        "change-producer",
+        "landing-approver"
+      ],
+      "core_responsibilities": [
+        "Perform adversarial holistic reviews of policy, implementation and actual execution",
+        "Reproduce material defects and distinguish missing evidence from absent capability",
+        "Preserve dissent and unresolved findings in the canonical registry",
+        "Report material conflicts and incident evidence directly to the Program Owner",
+        "Verify corrective action through machine evidence and authenticated external receipts"
+      ],
+      "required_deliverables": [
+        "Exact-source review receipt",
+        "Adversarial reproduction and negative test evidence",
+        "Conflict-recusal record",
+        "Evidence-bound remediation verification"
+      ],
+      "decision_authority": [
+        "Publish evidence-bound VERIFIED_FAIL and UNKNOWN findings",
+        "Request registered fail-closed containment within existing authority",
+        "Reject its own review when independence is not established"
+      ],
+      "must_not": [
+        "Approve or adjudicate its own produced change",
+        "Serve simultaneously as KPMO decision maker and independent reviewer for the same operation",
+        "Appoint itself or fabricate a holder acceptance",
+        "Mint source rights, approvals or whole-platform terminal authority",
+        "Waive Production/Public/G5 or legal/spend/provider gates",
+        "Require routine independent human review for reversible internal work"
+      ],
+      "conflict_recusal": {
+        "required": true,
+        "same_operation_producer_or_approver_identity": "RECUSE_AND_PRESERVE_EVIDENCE",
+        "reviewer_identity_bound_to_consumed_bootstrap": true,
+        "missing_identity_or_conflict_record": "DENY_INDEPENDENCE_CLAIM",
+        "appointment_authority": "PROGRAM_OWNER"
+      },
+      "success_measures": [
+        "Reproducible findings",
+        "No self-review or concealed conflict",
+        "Correction verified against actual current execution"
+      ],
+      "reporting_cadence": "Immediate evidence-backed material findings directly to the Program Owner; review closure after actual remediation verification."
     }
   ]
 }

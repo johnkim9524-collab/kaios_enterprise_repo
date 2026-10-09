@@ -37,7 +37,11 @@ function validate(source) {
     '.repository.full_name==$repo',
     '.head_branch=="main"',
     'and .head_sha==$sha',
-    'and .event=="workflow_run"',
+    'SHADOW_UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}',
+    'SHADOW_UPSTREAM_EVENT: ${{ github.event.workflow_run.event }}',
+    'and .run_attempt==$attempt',
+    'and .event==$event',
+    'and (.event=="push" or .event=="schedule" or .event=="workflow_dispatch")',
     '.status=="completed"',
     '.conclusion=="success"',
     '/actions/runs/${SHADOW_UPSTREAM_RUN_ID}/artifacts?per_page=100',
@@ -64,7 +68,9 @@ function validate(source) {
   if (pairedBindingCount !== 3) fail(`ARTIFACT_RUN_SHA_PAIR_CARDINALITY:${pairedBindingCount}`);
 
   const jobHeader = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
-  if (/workflow_run\.conclusion\s*==\s*['\"]success['\"]/.test(jobHeader)) {
+  const hasSuccessOnlyGate = /workflow_run\.conclusion\s*==\s*['"]success['"]/.test(jobHeader);
+  const hasExactSentinelGate = jobHeader.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'");
+  if (hasSuccessOnlyGate && !hasExactSentinelGate) {
     fail('SUCCESS_ONLY_JOB_FILTER_FORBIDDEN');
   }
   return true;
@@ -78,7 +84,9 @@ const mutations = [
   ['test "$SHADOW_UPSTREAM_CONCLUSION" = "success"', 'test -n "$SHADOW_UPSTREAM_CONCLUSION"'],
   ['.path==".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"', '.path!=".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
-  ['and .event=="workflow_run"', 'and .event!="workflow_run"'],
+  ['and .event==$event', 'and .event!=$event'],
+  ['and .run_attempt==$attempt', 'and .run_attempt!=$attempt'],
+  ['and (.event=="push" or .event=="schedule" or .event=="workflow_dispatch")', 'and true'],
   ['test "$SHADOW_ARTIFACT_COUNT" -eq 1', 'test "$SHADOW_ARTIFACT_COUNT" -ge 1'],
   ['.workflow_run.id==$run', '.workflow_run.id!=$run'],
   ['.workflow_run.head_sha==$sha', '.workflow_run.head_sha!=$sha'],
@@ -99,6 +107,9 @@ for (const [from, to] of mutations) {
 const successOnlyMutation = text.replaceAll(
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository &&",
   "(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.conclusion == 'success' &&\n        github.event.workflow_run.repository.full_name == github.repository &&"
+).replaceAll(
+  "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+  "UNTRUSTED SUCCESS-ONLY WORKFLOW"
 );
 if (successOnlyMutation === text) fail('SELF_TEST_SOURCE_MARKER_MISSING:SUCCESS_ONLY_JOB_FILTER');
 let successOnlyRejected = false;

@@ -1,0 +1,39 @@
+{
+  "id": "direct-owner-landing-handoff-natural-canary-2026-09-05",
+  "version": "1.2.0",
+  "issue_refs": [1982, 1987, 1995, 1998, 2002],
+  "base_sha": "14d052e3ea3d9e8c87eac673c415c80f320fd8a2",
+  "mode": "CONTROL_ONLY_NON_PRODUCTION",
+  "purpose": "Use PR #1993 as the post-correction natural Direct Owner canary while preserving its historical malformed approval comment. Prove a newer valid approval opens a bounded handoff under landed selection logic, then prove a direct repository-Owner GitHub UI merge terminalizes as CONSUMED_BY_DIRECT_OWNER_MERGE and emits exact merge-SHA protected-main push workflows.",
+  "phase": "POST_CORRECTION_CANARY_PREPARED_NOT_EXECUTED",
+  "expected": {
+    "historical_malformed_approval_remains_preserved": true,
+    "newest_valid_v2_approval_selected_without_history_poisoning": true,
+    "fresh_approval_must_precede_fresh_direct_owner_ready_event": true,
+    "merge_actor_must_be_repository_owner": true,
+    "merge_transport": "DIRECT_OWNER_GITHUB_UI",
+    "natural_merged_close_pair_preserves_ready_generation": true,
+    "terminal_handoff_state": "CONSUMED_BY_DIRECT_OWNER_MERGE",
+    "natural_protected_main_push_workflows_required": true,
+    "post_merge_workflow_sha_must_equal_merge_sha": true,
+    "predecessor_head_proof_reuse_forbidden": true
+  },
+  "truth_boundary": {
+    "provider_mutation": "NONE",
+    "credential_mutation": "NONE",
+    "database_mutation": "NONE",
+    "empirical_admission": "NONE",
+    "external_spend": "NONE",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "closure": {
+    "issue_1995": "Fresh natural PR #1993 handoff must open while historical malformed approval remains in place.",
+    "issue_2002": "Post-#2003 natural Direct Owner merge must terminalize as CONSUMED_BY_DIRECT_OWNER_MERGE rather than closed-event lifecycle invalidation.",
+    "issue_1982": "Exact merge-SHA natural protected-main push workflow set must be created and terminal without PR-head proof reuse.",
+    "issue_1998": "This canary proves the Direct Owner Handoff generation-bridge half only; Atomic Governed Landing bridge proof remains separately required.",
+    "issue_1987": "Not closed by this success generation; a later open-window approval-mutation canary remains required."
+  },
+  "rollback": "Close the canary PR or revert this single control-only receipt after validation; no runtime, provider, credential, legal, Public, Production or G5 change is authorized."
+}

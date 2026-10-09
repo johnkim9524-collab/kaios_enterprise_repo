@@ -1,6 +1,6 @@
 {
   "id": "kidults-provider-rights-decision-gate-v1",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "parent_issue": 769,
   "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
   "providers": [
@@ -41,7 +41,7 @@
       "written_response": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
       "field_by_purpose_rights": "INCOMPLETE",
       "provider_spec": "PENDING",
-      "latest_detailed_request": "SENT_2026_08_26_AWAITING_RESPONSE",
+      "latest_detailed_request": "FOLLOWUP_SENT_2026_08_30_AWAITING_RESPONSE",
       "response_intake_ref": "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json",
       "decision": "NEEDS_CLARIFICATION",
       "activation": "DISABLED"
@@ -74,7 +74,9 @@
       "activation": "DISABLED"
     },
     "CARDMARKET": {
-      "written_response": "NOT_REQUESTED_CONTACT_NOT_AUTHORIZED",
+      "written_response": "OUTBOUND_SENT_NO_SUBSTANTIVE_PROVIDER_RESPONSE",
+      "last_outbound_at": "2026-08-28T00:50:52Z",
+      "last_outbound_evidence_ref": "gmail:message:1a045d91e1005d02",
       "field_by_purpose_rights": "INCOMPLETE_SEPARATE_LICENSE_PATH_UNCONFIRMED",
       "provider_spec": "MARKETWIDE_TRANSACTION_LEVEL_CURRENT_SOLD_SPEC_ABSENT",
       "product_reality": "PARTIAL_PUBLIC_AGGREGATES_ONLY",
@@ -84,7 +86,8 @@
       "activation": "DISABLED"
     },
     "EBAY_MARKETPLACE_INSIGHTS": {
-      "written_response": "NOT_REQUESTED_CONTACT_NOT_AUTHORIZED",
+      "written_response": "PREVIOUSLY_CONTACTED_NO_AUTHORIZED_LICENSED_PATH",
+      "canonical_operating_state": "CLOSED",
       "field_by_purpose_rights": "INCOMPLETE_SEPARATE_LICENSE_PATH_UNCONFIRMED",
       "provider_spec": "INCOMPLETE_FOR_NEW_USER_CURRENT_SOLD_ADMISSION",
       "product_reality": "SOLD_HISTORY_API_EXISTS_RESTRICTED",

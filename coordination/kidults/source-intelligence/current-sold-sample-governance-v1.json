@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_CURRENT_SOLD_SAMPLE_GOVERNANCE_V1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "purpose": "Pre-register claim-specific sample sizes and stopping rules. Sample size never substitutes for per-record rights or schema admission.",
   "rights_gate": {
     "mode": "CENSUS_NOT_SAMPLE",
@@ -19,12 +19,12 @@
     "pass_formula": "exact_one_sided_CP_UCB(defects,effective_n) <= tier_tolerance AND critical_defects=0 AND rights_census=PASS AND schema_census=PASS AND coverage_gate=PASS AND concentration_gate=PASS"
   },
   "tiers": [
-    {"id":"CONTROL_ONLY_FUNCTIONAL","purpose":"DETERMINISTIC_PLUMBING_REPLAY","min_n":1,"max_n":300,"critical_defect_tolerance":0,"statistical_claim":false},
-    {"id":"CANARY","purpose":"SCHEMA_AND_BOUNDARY_SMOKE","min_n":5,"max_n":5,"critical_defect_tolerance":0,"statistical_claim":false},
-    {"id":"BOUNDED_FUNCTIONAL_PILOT","purpose":"BOUNDED_REAL_DATA_END_TO_END_FUNCTIONAL_PROOF","min_n":30,"max_n":120,"critical_defect_tolerance":0,"statistical_claim":false,"coverage_required":true},
-    {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","defect_tolerance":0.01,"zero_failure_n":459,"min_n":459,"max_n":1000,"critical_defect_tolerance":0,"statistical_claim":true},
-    {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","defect_tolerance":0.0025,"zero_failure_n":1840,"min_n":1840,"max_n":3000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
-    {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","defect_tolerance":0.001,"zero_failure_n":4603,"min_n":4603,"max_n":10000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
+    {"id":"CONTROL_ONLY_FUNCTIONAL","purpose":"DETERMINISTIC_PLUMBING_REPLAY","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","min_n":1,"max_n":300,"critical_defect_tolerance":0,"statistical_claim":false},
+    {"id":"CANARY","purpose":"SCHEMA_AND_BOUNDARY_SMOKE","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","min_n":5,"max_n":5,"critical_defect_tolerance":0,"statistical_claim":false},
+    {"id":"BOUNDED_FUNCTIONAL_PILOT","purpose":"BOUNDED_REAL_DATA_END_TO_END_FUNCTIONAL_PROOF","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","min_n":30,"max_n":120,"critical_defect_tolerance":0,"statistical_claim":false,"coverage_required":true},
+    {"id":"ADAPTER_QUALIFICATION","purpose":"SOURCE_PIPELINE_RELIABILITY","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","defect_tolerance":0.01,"zero_failure_n":459,"min_n":459,"max_n":1000,"critical_defect_tolerance":0,"statistical_claim":true},
+    {"id":"PRIVATE_E2E","purpose":"BOUNDED_INTERNAL_PRODUCT_PROOF","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","defect_tolerance":0.0025,"zero_failure_n":1840,"min_n":1840,"max_n":3000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":2,"max_owner_share":0.70},
+    {"id":"BETA_RELIABILITY","purpose":"RELEASE_EVIDENCE_RELIABILITY","claim_target":"DATED_OBSERVED_SOLD_TRANSACTION","defect_tolerance":0.001,"zero_failure_n":4603,"min_n":4603,"max_n":10000,"critical_defect_tolerance":0,"statistical_claim":true,"min_independent_ultimate_owners":3,"max_owner_share":0.50}
   ],
   "defect_taxonomy": {"CRITICAL":{"tolerance":0,"examples":["illegal_or_unlicensed_use","unknown_provenance","wrong_identity","non_sold_labeled_sold","tampering"]},"MAJOR_A":{"tolerance":0.001},"MAJOR_B":{"tolerance":0.0025},"OPERATIONAL":{"tolerance":0.01},"MINOR_UI":{"tolerance":"separate_ux_data_quality_slo"}},
   "coverage_gate": {

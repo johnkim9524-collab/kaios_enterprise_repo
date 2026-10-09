@@ -4,6 +4,7 @@
   "status": "PROGRAM_OWNER_APPROVED_IMPLEMENTATION_PENDING_NATIVE_BINDING",
   "owner": "KPMO",
   "required_status_context": "KIDULTS Scope-Aware Authoritative Status V1",
+  "draft_development_status_context": "KIDULTS Draft Development Validation V1",
   "exact_head_required": true,
   "zero_diff_policy": "PASS_ONLY_WHEN_PULL_REQUEST_METADATA_COUNTS_ARE_BOTH_ZERO",
   "zero_coverage_policy": "FAIL_CLOSED",
@@ -20,10 +21,10 @@
     {"id":"github","prefixes":[".github/"],"exact_paths":[],"required_contexts":[]},
     {"id":"application","prefixes":["app/","apps/","packages/","public/"],"exact_paths":[],"required_contexts":[]},
     {"id":"control-plane","prefixes":["services/","infrastructure/","infra/","deploy/","release/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"governance-and-data","prefixes":["coordination/","contracts/","config/","data/","artifacts/","backups/","secrets/"],"exact_paths":[],"required_contexts":[]},
+    {"id":"governance-and-data","prefixes":["coordination/","contracts/","config/","data/","artifacts/","evidence/","backups/","secrets/"],"exact_paths":[],"required_contexts":[]},
     {"id":"implementation-and-tests","prefixes":["scripts/","tests/","tooling/"],"exact_paths":[],"required_contexts":[]},
     {"id":"documentation","prefixes":["docs/"],"exact_paths":[],"required_contexts":[]},
-    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitignore","AGENTS.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
+    {"id":"repository-root","prefixes":[],"exact_paths":[".dockerignore",".env.example",".gitattributes",".gitignore","AGENTS.md","CONSTITUTION.md","Dockerfile","LICENSE","README.md","VERSION","docker-compose.yml","npm-shrinkwrap.json","package.json","pyproject.toml","requirements-ci.in","requirements-ci.lock.txt","requirements-runtime.in","requirements-runtime.lock.txt","requirements-security-assurance-pip-audit.lock.txt"],"required_contexts":[]}
   ],
   "aggregation_policy": {
     "latest_completed_result_per_exact_context": true,
@@ -37,6 +38,8 @@
   "authority_boundary": {
     "technical_status_is_merge_authority": false,
     "governed_landing_is_separate_native_context": true,
+    "draft_development_status_is_merge_authority": false,
+    "draft_must_remain_non_promotable": true,
     "production": "HOLD",
     "public_release": "HOLD",
     "g5": "HOLD"

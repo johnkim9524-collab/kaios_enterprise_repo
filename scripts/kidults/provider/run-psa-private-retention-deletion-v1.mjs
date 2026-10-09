@@ -1,6 +1,5 @@
 import { resolve } from 'node:path';
-import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot } from '../../../services/kidults-control-plane/src/psa-private-evaluation-store.mjs';
-import { deleteExpiredPsaEvaluations } from '../../../services/kidults-control-plane/src/psa-private-evaluation.mjs';
+import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot, deleteExpiredPsaEvaluations } from '../../../services/kidults-control-plane/src/psa-cert-verification-adapter.mjs';
 
 const rootInput = process.env.PSA_PRIVATE_STORE_ROOT;
 const keyInput = process.env.PSA_PRIVATE_STORE_KEY_B64;
@@ -25,3 +24,6 @@ process.stdout.write(`${JSON.stringify({
   key_persisted: false,
   production: 'HOLD'
 }, null, 2)}\n`);
+
+// Preserve the deletion receipt while surfacing a missed retention deadline.
+if (receipt.state !== 'VERIFIED_PASS' || receipt.retention_deadline_met !== true) process.exitCode = 1;

@@ -1,0 +1,296 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+
+const templatePath = 'infrastructure/aws/staging/cloudtrail-continuous-assurance-v1.json';
+const workflowPath = '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml';
+const eventAssurancePath = 'scripts/governance/run-cloudtrail-event-assurance-v1.sh';
+const driftValidatorPath = 'scripts/governance/validate-cloudformation-drift-readback-v1.mjs';
+
+const template = JSON.parse(fs.readFileSync(templatePath, 'utf8'));
+const resources = template.Resources || {};
+const outputs = template.Outputs || {};
+
+assert.equal(template.AWSTemplateFormatVersion, '2010-09-09');
+assert.match(template.Description, /STAGING CloudTrail Continuous Assurance/);
+
+const bucket = resources.CloudTrailLogBucket;
+assert.equal(bucket.Type, 'AWS::S3::Bucket');
+assert.equal(bucket.DeletionPolicy, 'Retain');
+assert.equal(bucket.UpdateReplacePolicy, 'Retain');
+assert.equal(bucket.Properties.ObjectLockEnabled, true);
+assert.equal(bucket.Properties.ObjectLockConfiguration.ObjectLockEnabled, 'Enabled');
+assert.equal(bucket.Properties.ObjectLockConfiguration.Rule.DefaultRetention.Mode, 'COMPLIANCE');
+assert.equal(bucket.Properties.ObjectLockConfiguration.Rule.DefaultRetention.Years, 10);
+assert.equal(bucket.Properties.VersioningConfiguration.Status, 'Enabled');
+assert.deepEqual(bucket.Properties.PublicAccessBlockConfiguration, {
+  BlockPublicAcls: true,
+  BlockPublicPolicy: true,
+  IgnorePublicAcls: true,
+  RestrictPublicBuckets: true,
+});
+assert.equal(
+  bucket.Properties.BucketEncryption.ServerSideEncryptionConfiguration[0]
+    .ServerSideEncryptionByDefault.SSEAlgorithm,
+  'AES256',
+);
+
+const bucketPolicy = resources.CloudTrailLogBucketPolicy.Properties.PolicyDocument.Statement;
+assert.ok(bucketPolicy.some((statement) => statement.Sid === 'DenyInsecureTransport'));
+assert.ok(bucketPolicy.some((statement) => statement.Sid === 'CloudTrailAclCheck'));
+assert.ok(bucketPolicy.some((statement) => statement.Sid === 'CloudTrailWrite'));
+
+const negativeBucket = resources.NegativeBoundaryBucket;
+assert.equal(negativeBucket.Type, 'AWS::S3::Bucket');
+assert.equal(negativeBucket.DeletionPolicy, 'Retain');
+assert.equal(negativeBucket.UpdateReplacePolicy, 'Retain');
+assert.deepEqual(negativeBucket.Properties.BucketName, {
+  'Fn::Sub': 'kidults-cloudtrail-negative-boundary-staging-${AWS::AccountId}',
+});
+assert.equal(negativeBucket.Properties.VersioningConfiguration.Status, 'Enabled');
+assert.deepEqual(negativeBucket.Properties.PublicAccessBlockConfiguration, {
+  BlockPublicAcls: true,
+  BlockPublicPolicy: true,
+  IgnorePublicAcls: true,
+  RestrictPublicBuckets: true,
+});
+const negativeBucketPolicy =
+  resources.NegativeBoundaryBucketPolicy.Properties.PolicyDocument.Statement;
+const denyWrites = negativeBucketPolicy.find(
+  (statement) => statement.Sid === 'DenyAllObjectWrites',
+);
+assert.equal(denyWrites.Effect, 'Deny');
+assert.equal(denyWrites.Principal, '*');
+assert.equal(denyWrites.Action, 's3:PutObject');
+assert.deepEqual(denyWrites.Resource, {
+  'Fn::Sub': '${NegativeBoundaryBucket.Arn}/*',
+});
+assert.ok(
+  negativeBucketPolicy.some((statement) => statement.Sid === 'DenyInsecureTransport'),
+);
+
+const trail = resources.StagingAssuranceTrail;
+assert.equal(trail.Type, 'AWS::CloudTrail::Trail');
+assert.equal(trail.Properties.TrailName, 'kidults-staging-continuous-assurance');
+assert.equal(trail.Properties.IsLogging, true);
+assert.equal(trail.Properties.IsMultiRegionTrail, true);
+assert.equal(trail.Properties.IncludeGlobalServiceEvents, true);
+assert.equal(trail.Properties.EnableLogFileValidation, true);
+assert.equal(trail.Properties.EventSelectors.length, 1);
+assert.equal(trail.Properties.EventSelectors[0].IncludeManagementEvents, true);
+assert.equal(trail.Properties.EventSelectors[0].ReadWriteType, 'All');
+assert.equal(trail.Properties.EventSelectors[0].DataResources.length, 1);
+assert.equal(trail.Properties.EventSelectors[0].DataResources[0].Type, 'AWS::S3::Object');
+assert.deepEqual(
+  trail.Properties.EventSelectors[0].DataResources[0].Values,
+  [
+    { 'Fn::Sub': '${ReceiptBucketArn}/' },
+    { 'Fn::Sub': '${NegativeBoundaryBucket.Arn}/' },
+  ],
+);
+
+const logGroup = resources.CloudTrailLogGroup;
+assert.equal(logGroup.DeletionPolicy, 'Retain');
+assert.equal(logGroup.UpdateReplacePolicy, 'Retain');
+assert.equal(logGroup.Properties.LogGroupName, undefined, 'stack-generated name prevents retained-resource redeploy collisions');
+assert.equal(logGroup.Properties.RetentionInDays, 3653);
+assert.deepEqual(resources.StagingAssuranceTrail.Properties.CloudWatchLogsLogGroupArn, {
+  'Fn::GetAtt': ['CloudTrailLogGroup', 'Arn'],
+});
+assert.ok(!JSON.stringify(template).includes('${CloudTrailLogGroup.Arn}:*'), 'LogGroup Arn already carries the stream wildcard');
+
+for (const name of [
+  'CloudTrailMutationMetricFilter',
+  'CloudTrailDeliveryErrorMetricFilter',
+  'CloudTrailMutationAlarm',
+  'CloudTrailDeliveryAlarm',
+  'AssuranceAlertTopic',
+]) {
+  assert.ok(resources[name], `RESOURCE_REQUIRED:${name}`);
+}
+
+const role = resources.CloudTrailAssuranceRole;
+assert.equal(role.Type, 'AWS::IAM::Role');
+assert.equal(role.Properties.MaxSessionDuration, 3600);
+const trust = role.Properties.AssumeRolePolicyDocument.Statement[0];
+assert.equal(trust.Action, 'sts:AssumeRoleWithWebIdentity');
+assert.deepEqual(trust.Principal.Federated, { Ref: 'GitHubOidcProviderArn' });
+assert.equal(
+  trust.Condition.StringEquals['token.actions.githubusercontent.com:aud'],
+  'sts.amazonaws.com',
+);
+assert.deepEqual(
+  trust.Condition.StringEquals['token.actions.githubusercontent.com:sub'],
+  {
+    'Fn::Sub':
+      'repo:${GitHubRepository}:environment:${AssuranceEnvironment}:workflow_ref:${AssuranceWorkflowRef}',
+  },
+);
+
+const statements = role.Properties.Policies[0].PolicyDocument.Statement;
+const readbackActions = statements[0].Action;
+for (const action of [
+  'cloudtrail:DescribeTrails',
+  'cloudtrail:GetEventSelectors',
+  'cloudtrail:GetTrailStatus',
+  'cloudtrail:ListTags',
+  'logs:StartQuery',
+  'logs:GetQueryResults',
+  'logs:StopQuery',
+  'cloudformation:DetectStackDrift',
+  'cloudformation:DetectStackResourceDrift',
+  'cloudformation:DescribeStackResourceDrifts',
+  'cloudwatch:DescribeAlarms',
+  'cloudwatch:ListTagsForResource',
+  'iam:GetRole',
+  'iam:ListAttachedRolePolicies',
+  'iam:ListRolePolicies',
+  'iam:ListRoleTags',
+  'logs:DescribeIndexPolicies',
+  'logs:DescribeMetricFilters',
+  'logs:ListTagsForResource',
+  's3:GetBucketAcl',
+  's3:GetBucketCors',
+  's3:GetEncryptionConfiguration',
+  's3:GetBucketLifecycleConfiguration',
+  's3:GetBucketLogging',
+  's3:GetBucketNotification',
+  's3:GetBucketOwnershipControls',
+  's3:GetBucketPolicy',
+  's3:GetBucketPolicyStatus',
+  's3:GetBucketRequestPayment',
+  's3:GetBucketTagging',
+  's3:GetBucketWebsite',
+  'sns:GetSubscriptionAttributes',
+  'sns:GetTopicAttributes',
+  'sns:ListSubscriptionsByTopic',
+  'sns:ListTagsForResource',
+]) {
+  assert.ok(readbackActions.includes(action), `ACTION_REQUIRED:${action}`);
+}
+assert.deepEqual(statements[1].Resource, {
+  'Fn::Sub': '${ReceiptBucketArn}/receipts/cloudtrail-assurance/*',
+});
+assert.ok(statements[1].Action.includes('s3:PutObjectRetention'));
+assert.ok(statements[1].Action.includes('s3:GetObjectAttributes'));
+assert.ok(statements[1].Action.includes('s3:GetObjectRetention'));
+assert.deepEqual(statements[2].Resource, { Ref: 'ReceiptKeyArn' });
+assert.ok(statements[2].Action.includes('kms:Decrypt'));
+
+for (const key of ['ProductionState', 'PublicState', 'G5State']) {
+  assert.equal(outputs[key].Value, 'HOLD');
+}
+
+const workflow = fs.readFileSync(workflowPath, 'utf8');
+const eventAssurance = fs.readFileSync(eventAssurancePath, 'utf8');
+const driftValidator = fs.readFileSync(driftValidatorPath, 'utf8');
+for (const marker of [
+  'permissions: {}',
+  'id-token: write',
+  'EXPECTED_MAIN_SHA',
+  'refs/heads/main',
+  'kidults-staging-continuous-assurance',
+  'get-event-selectors',
+  'get-trail-status',
+  'LogFileValidationEnabled',
+  'IsMultiRegionTrail',
+  'IncludeManagementEvents',
+  'AWS::S3::Object',
+  'detect-stack-drift',
+  'describe-stack-resource-drifts',
+  'get-bucket-encryption',
+  'get-bucket-ownership-controls',
+  'get-bucket-tagging',
+  'cloudtrail list-tags',
+  'run-cloudtrail-event-assurance-v1.sh',
+  'Production',
+  'Public',
+  'G5',
+]) {
+  assert.ok(workflow.includes(marker), `WORKFLOW_MARKER_REQUIRED:${marker}`);
+}
+assert.ok(eventAssurance.includes('get-object-attributes'));
+assert.equal((eventAssurance.match(/get-object-retention/g) || []).length, 2);
+assert.ok(eventAssurance.includes('probe-object-retention.json'));
+assert.ok(eventAssurance.includes('terminal-object-retention.json'));
+assert.equal(
+  (eventAssurance.match(/\.Retention\.RetainUntilDate/g) || []).length,
+  2,
+  'probe and terminal receipts must bind explicit retention readback',
+);
+assert.equal(
+  (eventAssurance.match(/--object-attributes Checksum ObjectSize/g) || []).length,
+  2,
+  'checksum readback must pass AWS CLI list values as separate arguments',
+);
+assert.ok(!eventAssurance.includes('--object-attributes Checksum,ObjectSize'));
+assert.ok(eventAssurance.includes('probe-object-attributes.json'));
+assert.ok(eventAssurance.includes('terminal-object-attributes.json'));
+assert.ok(eventAssurance.includes('RECEIPT_KEY_ID="${RECEIPT_KEY_ARN##*/}"'));
+assert.ok(eventAssurance.includes('generate-data-key --key-id "$RECEIPT_KEY_ID" --key-spec AES_256 --region "$WRONG_REGION"'));
+assert.ok(eventAssurance.includes("awsRegion = '${WRONG_REGION}' and strcontains(@message, '${RECEIPT_KEY_ID}')"));
+assert.equal(
+  eventAssurance.includes('generate-data-key --key-id "$RECEIPT_KEY_ARN" --key-spec AES_256 --region "$WRONG_REGION"'),
+  false,
+  'wrong-region probe must reach KMS with a region-neutral key ID so the denial is CloudTrail-observable',
+);
+assert.equal(workflow.includes('DeleteTrail'), false);
+assert.equal(workflow.includes('StopLogging'), false);
+assert.equal(workflow.includes('put-event-selectors'), false);
+assert.ok(workflow.includes('DETECTION_FAILED ]; then break'));
+assert.ok(workflow.includes('2>&1 | tee "$evidence_dir/validation-receipt.json"'));
+assert.equal(workflow.includes('length == 2 and'), false);
+assert.ok(workflow.includes('validate-cloudformation-drift-readback-v1.mjs'));
+assert.ok(workflow.includes('validation-receipt.json'));
+assert.ok(driftValidator.includes('UNKNOWN_DRIFT_RESOURCE'));
+assert.ok(driftValidator.includes('UNKNOWN_DRIFT_PROPERTY'));
+assert.ok(driftValidator.includes('REQUIRED_TAG_MISMATCH'));
+assert.equal(workflow.includes('if [ -z "${AWS_ACCESS_KEY_ID:-}" ]'), false);
+assert.ok(workflow.includes('aws sts get-caller-identity --output json >/dev/null 2>&1'));
+
+for (const marker of [
+  'aws logs start-query',
+  'aws logs get-query-results',
+  'LOG_QUERY_${label}_DUPLICATE',
+  'LOG_QUERY_${label}_NOT_OBSERVED',
+  'ASSURANCE_SESSION_NAME',
+  'positive_s3',
+  'positive_kms',
+  'query_event_set positive_kms',
+  'OBSERVED_PROVIDER_EVENT_SET',
+  'map(.eventID) | unique',
+  'negative_forbidden_prefix',
+  'negative_wrong_bucket',
+  'negative_wrong_key',
+  'negative_wrong_region',
+  'negative_wrong_role',
+  'CLOUDTRAIL_EXACT_EVENT_BINDING=PASS',
+  'POSITIVE_CANARY=PASS',
+  'NEGATIVE_CANARY=PASS',
+  'COMPLIANCE',
+  'TERMINAL_RECEIPT=PASS',
+  'OBJECT_LOCK_COMPLIANCE_VERIFIED',
+]) {
+  assert.ok(
+    eventAssurance.includes(marker),
+    `EVENT_ASSURANCE_MARKER_REQUIRED:${marker}`,
+  );
+}
+assert.equal(eventAssurance.includes('cloudtrail lookup-events'), false);
+
+console.log(
+  JSON.stringify({
+    state: 'VERIFIED_PASS',
+    template: templatePath,
+    workflow: workflowPath,
+    identity_model: 'ROLE_SCOPED_CUSTOM_SUB_CLOUDTRAIL_OBJECT_LOCK_V2',
+    trail: 'MULTI_REGION_MANAGEMENT_AND_SCOPED_S3_DATA_EVENTS',
+    retention: 'OBJECT_LOCK_COMPLIANCE_10_YEARS',
+    alerts: 2,
+    exact_sha: 'REQUIRED',
+    negative_canary: 'NON_MUTATING_FAIL_CLOSED',
+    event_observation: 'CLOUDWATCH_LOGS_EXACT_OPERATION_AND_PROVIDER_EVENT_SET_BOUND',
+    production: 'HOLD',
+    public: 'HOLD',
+    g5: 'HOLD',
+  }),
+);

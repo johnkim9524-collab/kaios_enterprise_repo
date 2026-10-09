@@ -1,4 +1,4 @@
-# KIDULTS ASI Snapshot Readiness Factory v2.1
+# KIDULTS ASI Snapshot Readiness Factory v2.2
 
 **Owner:** KPMO  
 **Priority:** P3  
@@ -6,7 +6,7 @@
 
 ## Purpose
 
-This factory consumes an exactly bound P0B → P1 → P2 v2 chain and answers whether the chain contains lawful, current, admitted market evidence sufficient to generate a content-addressed `snapshot-candidate.json` and `evidence-package.json` pair. Content addressing and atomic local creation are not immutable storage or artifact attestation.
+This factory consumes an exactly bound P0B → P1 → P2 v2 chain and answers whether the chain contains lawful, current, admitted market evidence sufficient to generate a content-addressed `snapshot-candidate.json` and `evidence-package.json` pair. The current pair purpose is `SCHEMA_AND_BOUNDARY_SMOKE`, so the canonical sample policy derives the `CANARY` tier and requires exactly five lawful current-SOLD units. A caller-provided count can never select or downgrade the tier. Content addressing and atomic local creation are not immutable storage or artifact attestation.
 
 The factory is fail-closed without being deadlocked. The ten evidence and governance prerequisites are evaluated before generation. The existence of the two outputs is checked only after generation; output absence is never used as an input prerequisite. When every prerequisite passes, the pair is generated in one staging directory and exposed by one atomic directory rename. Pair generation still does not start Track B, authorize publication, authorize production, or claim immutable storage. Track B remains blocked until immutable-storage and cryptographic artifact-attestation receipts exist and the canonical handoff passes.
 
@@ -19,7 +19,7 @@ P1 classification / qualification / Gate 1 / admission preflight
         ↓
 P2 KIDULTS-owned Source Intelligence Graph v2
         ↓
-P3 Snapshot Readiness Factory v2.1
+P3 Snapshot Readiness Factory v2.2
 ```
 
 The verified bounded pre-admission baseline remains:
@@ -54,7 +54,7 @@ The ten pre-generation prerequisites are:
 5. Market-semantic sufficiency;
 6. Factual-origin independence;
 7. Lawful evidence admission with exact event binding;
-8. Current dated SOLD transaction evidence;
+8. Current dated SOLD transaction evidence satisfying the purpose/claim-derived canonical sample tier;
 9. Liquidity and time-to-sale evidence;
 10. A digest-bound Market Event Graph.
 
@@ -70,6 +70,8 @@ Assertions 11 and 12 remain `NOT_EVALUATED` after local content-addressed genera
 Every admitted record must bind through an exact, unique P0 candidate → mission slot → Gate 1 grain → admission identity join. The admission's candidate, mission, market cell, evidence class, rights decision, collection authority, and completed candidate-specific preflight actions must agree with that chain; orphan, duplicate, and cross-mission substitutions fail closed.
 
 Rights evidence is typed at Source × Purpose grain and requires `COLLECT`, `STORE`, `DERIVE`, and `DISPLAY`, owner and purpose identity, jurisdiction, effective/expiry times, a non-zero document digest, and a non-placeholder HTTPS evidence URI. A dated SOLD record additionally requires transaction time, positive amount and ISO currency, canonical asset identity, venue, and grade/condition. Liquidity evidence requires exposure start/end semantics, an explicit censoring state, and a recomputable duration. Placeholder/reserved URLs are forbidden.
+
+Every admitted record also carries non-placeholder HTTPS license evidence and a rights assertion bound to the exact source-content digest. Every current-SOLD record must bind the canonical `DATED_OBSERVED_SOLD_TRANSACTION` claim to the `SCHEMA_AND_BOUNDARY_SMOKE` purpose, one pre-observation sample-plan ID and digest, one sampling frame, and a unique sample-unit ID. The factory derives `CANARY` from the canonical policy purpose, enforces exactly five records, and emits a digest-bound `launch_cohort` with maximum claim `SCHEMA_BOUNDARY_SMOKE_ONLY` and `release_allowed=false`. One SOLD record is not a canary; five canary records are not internal reliability, Beta, Public, or Production evidence.
 
 P2 must expose exactly one market event for each admitted record. Its evidence ID, rights state, observation time, source payload digest, and canonical record digest must match the admitted record. P2 graph, manifest, value receipt, and lineage counts and digests must agree.
 
@@ -125,7 +127,7 @@ The binding validator has mutation cases for run/head mismatch, stale/non-curren
 
 ## Atomic generation and Track B boundary
 
-The factory refuses an existing destination directory, writes all outputs into a new private staging directory, validates conditional absence while still staged, and exposes the complete result with one directory rename. The generated files contain canonical payload digests, file digests, source graph binding, the complete upstream binding receipt and digest, mutual Snapshot/Evidence IDs, and one exact pair digest. A deterministic liveness test proves blocked non-generation, lawful prerequisite-ready generation, identical replay, atomic commit, and 15 fail-closed mutations covering identity, semantics, rights, time, upstream freshness/digests, and false attestation.
+The factory refuses an existing destination directory, writes all outputs into a new private staging directory, validates conditional absence while still staged, and exposes the complete result with one directory rename. The generated files contain canonical payload digests, file digests, source graph binding, canonical sample-policy and launch-cohort binding, the complete upstream binding receipt and digest, mutual Snapshot/Evidence IDs, and one exact pair digest. A deterministic liveness test proves blocked non-generation, exact-five CANARY generation, one-record non-generation, identical replay, atomic commit, and 34 fail-closed mutations covering identity, semantics, rights, canonical policy sealing and tier-weakening rejection, sample purpose/claim/plan/unit binding, strict pre-observation registration, transaction-identity completeness and deduplication, exact claim/cohort equality, contract weakening, cohort tampering, time, upstream freshness/digests, and false attestation.
 
 After pair generation, `track-b-handoff-readiness-v2.json` remains `PAIR_GENERATED_STORAGE_AND_ATTESTATION_REQUIRED`; immutable storage and artifact attestation are false, `track_b_submission_eligible` remains false, and `independent_assessment_started` remains false. The provider artifact receipt is captured after upload but explicitly remains attestation-pending. External immutable storage, cryptographic attestation, and canonical handoff must all pass before Track B may begin.
 
@@ -145,6 +147,8 @@ Unbound Source Intelligence Graph ≠ Market Evidence Graph
 Blocker Package ≠ Evidence Package
 Snapshot Readiness ≠ Snapshot Candidate
 Pair Generated ≠ Track B Ready
+One Current-SOLD Record ≠ CANARY
+CANARY ≠ Internal Reliability or Release
 Track B Waiting ≠ Track B Started
 ```
 

@@ -37,7 +37,7 @@ function validateAssurance(source) {
     '.status=="completed"',
     '.conclusion==$conclusion',
     "RESERVE_UPSTREAM_EVENT=$(jq -r '.event' /tmp/reserve-upstream-run.json)",
-    '[[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|workflow_dispatch|schedule)$ ]]',
+    '[[ "$RESERVE_UPSTREAM_EVENT" =~ ^(push|pull_request|workflow_run|repository_dispatch|workflow_dispatch|schedule)$ ]]',
     '/actions/runs/${RESERVE_UPSTREAM_RUN_ID}/artifacts?per_page=100',
     'kidults-asi-sharded-source-reserve-v1',
     'kidults-asi-sharded-source-reserve-waiting-v1',
@@ -73,11 +73,17 @@ function validateAssurance(source) {
   for (const marker of required) if (!block.includes(marker)) fail(`ASSURANCE_MARKER_MISSING:${marker}`);
   if (block.includes('{status:"VERIFIED_PASS"')) fail('RESERVE_HARD_CODED_PASS_FORBIDDEN');
   const header = source.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
-  if (/workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header)) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
+  const hasSuccessOnlyGate = /workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header);
+  const hasExactSentinelGate = header.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'");
+  if (hasSuccessOnlyGate && !hasExactSentinelGate) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
+
 }
 
 function validateReserve(source) {
   const required = [
+    'workflow_run:',
+    "- 'KIDULTS ASI Global Any-Site Hourly Pooling v2'",
+    "github.event.workflow_run.conclusion == 'success'",
     'KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER',
     'KIDULTS_RESERVE_PRODUCER_STATE=READY',
     'if: env.KIDULTS_RESERVE_PRODUCER_STATE == \'READY\'',
@@ -92,6 +98,7 @@ function validateReserve(source) {
     'production:\'HOLD\''
   ];
   for (const marker of required) if (!source.includes(marker)) fail(`RESERVE_MARKER_MISSING:${marker}`);
+  if (/^  schedule:/m.test(source)) fail('RESERVE_INDEPENDENT_NATIVE_SCHEDULE_FORBIDDEN');
   const waitingUpload = count(source, 'name: kidults-asi-sharded-source-reserve-waiting-v1');
   if (waitingUpload !== 1) fail(`WAITING_ARTIFACT_CARDINALITY:${waitingUpload}`);
 }
@@ -121,6 +128,8 @@ for (const [from, to] of assuranceMutations) {
 }
 
 const reserveMutations = [
+  ["      - 'KIDULTS ASI Global Any-Site Hourly Pooling v2'\n", ''],
+  ["github.event.workflow_run.conclusion == 'success'", "github.event.workflow_run.conclusion == 'failure'"],
   ['KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER', 'KIDULTS_RESERVE_PRODUCER_STATE=READY'],
   ["state:'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'", "state:'VERIFIED_PASS'"],
   ['promotion_eligible:false', 'promotion_eligible:true'],

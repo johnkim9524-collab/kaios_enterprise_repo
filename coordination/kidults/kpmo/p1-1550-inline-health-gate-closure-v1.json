@@ -1,0 +1,17 @@
+{
+  "id": "p1-1550-inline-health-gate-closure-v1",
+  "state": "DRAFT_CONTROL_ONLY",
+  "protected_main_base": "5a0578f52bb6915209d7c5986f1cd3381c136a19",
+  "issue": 1550,
+  "supersedes_pr": 2120,
+  "scope": "CONTINUOUS_ASSURANCE_LIVE_MAIN_FULL_AUDIT_INLINE_CORE_FOUR_HEALTH_GATE",
+  "health_source": "scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs",
+  "required_producers": ["SHADOW", "REQUIREMENT", "RESERVE", "CANONICAL_TRUTH"],
+  "full_audit_guard_states": ["EPHEMERAL_CANONICAL_LEADER_SELECTED", "FULL_AUDIT_BYPASS_NON_ALIASABLE"],
+  "alias_health_authority": false,
+  "raw_workflow_success_authority": false,
+  "promotion_eligible": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

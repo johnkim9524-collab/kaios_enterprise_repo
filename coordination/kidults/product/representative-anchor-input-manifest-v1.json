@@ -6,11 +6,11 @@
   "parent_mission": 344,
   "lane": 1,
   "source": {
-    "workflow_run_id": 32024231380,
-    "artifact_id": 9286462549,
+    "workflow_run_id": 35129257302,
+    "artifact_id": 10460765552,
     "artifact_name": "kidults-representative-product-foundation-v1",
-    "artifact_digest": "sha256:ab69820f3d98ca4acafc29bc03a5910afc79944556bc30ca6a50467cec4736c7",
-    "validated_head": "17364306cd21daafe70841db648df3be708144a2",
+    "artifact_digest": "sha256:7565f7ed7cfa37ef0cb1f4b00f7f599bc398d93ab44a9101449a314c4150ddee",
+    "validated_head": "b76c8e1a42f451f4340d771e5d7d559099aa2977",
     "source_branch": "feat/kidults-phase2-content-data-provider-foundation"
   },
   "official_input_files": [

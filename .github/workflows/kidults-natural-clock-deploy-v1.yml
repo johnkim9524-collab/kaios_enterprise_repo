@@ -1,0 +1,140 @@
+name: KIDULTS Natural Clock STAGING Deploy V1
+run-name: KIDULTS Natural Clock STAGING Deploy ${{ github.sha }}
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs
+      - .github/workflows/kidults-natural-clock-deploy-v1.yml
+  workflow_dispatch:
+    inputs:
+      main_sha:
+        description: Exact protected-main SHA authorized for STAGING deployment
+        required: true
+        type: string
+      authorization_id:
+        description: DEPLOY-STAGING-NATURAL-CLOCK-<first-12-main-sha>
+        required: true
+        type: string
+
+concurrency:
+  group: kidults-natural-clock-staging-deploy
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  deploy-and-verify:
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-NATURAL-CLOCK-DEPLOYER
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-northeast-2
+      AWS_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-natural-clock-deployer-staging-v1
+      CFN_EXECUTION_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-natural-clock-cfn-execution-staging-v1
+      ARTIFACT_BUCKET: kidults-natural-clock-artifacts-528314240275-ap-northeast-2
+      STACK_NAME: kidults-natural-clock-staging-v1
+    steps:
+      - name: Derive exact bounded deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+          else
+            echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
+            echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate exact governed deployment inputs and contracts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$GITHUB_SHA" = "$DEPLOY_MAIN_SHA"
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}"
+          else
+            test "$AUTHORIZATION_ID" = "AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          fi
+          node --test tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs tests/kidults/staging-operations/natural-clock-deployer-v1.test.mjs
+
+      - name: Configure exact workflow-scoped AWS OIDC credential process
+        run: |
+          set -euo pipefail
+          profile_path="$RUNNER_TEMP/kidults-natural-clock-oidc-${GITHUB_RUN_ID}.ini"
+          {
+            echo '[profile kidults-natural-clock-oidc]'
+            echo "credential_process = bash $GITHUB_WORKSPACE/scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh $AWS_ROLE_ARN kidults-natural-clock-${GITHUB_RUN_ID}"
+            echo "region = $AWS_REGION"
+          } > "$profile_path"
+          chmod 600 "$profile_path"
+          {
+            echo "AWS_CONFIG_FILE=$profile_path"
+            echo 'AWS_PROFILE=kidults-natural-clock-oidc'
+            echo 'AWS_SDK_LOAD_CONFIG=1'
+          } >> "$GITHUB_ENV"
+
+      - name: Package and deploy exact-main natural clock
+        env:
+          GITHUB_APP_ID: ${{ vars.KIDULTS_GITHUB_APP_ID }}
+          GITHUB_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
+          GITHUB_PRIVATE_KEY_SECRET_ARN: ${{ vars.KIDULTS_GITHUB_PRIVATE_KEY_SECRET_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "$GITHUB_APP_ID" && test -n "$GITHUB_INSTALLATION_ID" && test -n "$GITHUB_PRIVATE_KEY_SECRET_ARN"
+          if [ "$GITHUB_EVENT_NAME" = push ]; then
+            aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-natural-clock-template.json"
+            node scripts/governance/validate-staging-no-authority-expansion-v1.mjs --current "$RUNNER_TEMP/current-natural-clock-template.json" --desired infrastructure/aws/staging/natural-clock-dispatcher-v1.json
+          fi
+          package_dir=$(mktemp -d)
+          cp infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs "$package_dir/index.cjs"
+          (cd "$package_dir" && zip -q natural-clock.zip index.cjs)
+          artifact_key="natural-clock/${GITHUB_SHA}/${GITHUB_RUN_ID}/natural-clock.zip"
+          aws s3 cp "$package_dir/natural-clock.zip" "s3://${ARTIFACT_BUCKET}/${artifact_key}" --only-show-errors
+          change_set="kidults-natural-clock-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
+          set +e
+          aws cloudformation describe-stacks --stack-name "$STACK_NAME" >/dev/null 2>&1
+          exists=$?
+          set -e
+          change_type=UPDATE
+          [ "$exists" -eq 0 ] || change_type=CREATE
+          aws cloudformation create-change-set --stack-name "$STACK_NAME" --change-set-name "$change_set" --change-set-type "$change_type" --role-arn "$CFN_EXECUTION_ROLE_ARN" --template-body file://infrastructure/aws/staging/natural-clock-dispatcher-v1.json --capabilities CAPABILITY_NAMED_IAM --parameters ParameterKey=ArtifactBucket,ParameterValue="$ARTIFACT_BUCKET" ParameterKey=ArtifactKey,ParameterValue="$artifact_key" ParameterKey=GitHubAppId,ParameterValue="$GITHUB_APP_ID" ParameterKey=GitHubInstallationId,ParameterValue="$GITHUB_INSTALLATION_ID" ParameterKey=GitHubPrivateKeySecretArn,ParameterValue="$GITHUB_PRIVATE_KEY_SECRET_ARN" ParameterKey=GitHubRepositoryId,ParameterValue="$GITHUB_REPOSITORY_ID" ParameterKey=GitHubRepository,ParameterValue="$GITHUB_REPOSITORY" ParameterKey=ScheduleState,ParameterValue=ENABLED >/dev/null
+          aws cloudformation wait change-set-create-complete --stack-name "$STACK_NAME" --change-set-name "$change_set"
+          aws cloudformation execute-change-set --stack-name "$STACK_NAME" --change-set-name "$change_set"
+          if [ "$change_type" = CREATE ]; then aws cloudformation wait stack-create-complete --stack-name "$STACK_NAME"; else aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"; fi
+
+      - name: Read back schedules, ledger, code and negative canary
+        run: |
+          set -euo pipefail
+          mkdir -p out/natural-clock-deploy-v1
+          for schedule in pooling p0b reserve sentinel assurance; do
+            state=$(aws scheduler get-schedule --name "kidults-natural-${schedule}-staging-v1" --query State --output text)
+            test "$state" = ENABLED
+          done
+          test "$(aws dynamodb describe-table --table-name kidults-natural-clock-ledger-staging-v1 --query 'Table.TableStatus' --output text)" = ACTIVE
+          test "$(aws dynamodb describe-time-to-live --table-name kidults-natural-clock-ledger-staging-v1 --query 'TimeToLiveDescription.TimeToLiveStatus' --output text)" = ENABLED
+          test "$(aws dynamodb describe-continuous-backups --table-name kidults-natural-clock-ledger-staging-v1 --query 'ContinuousBackupsDescription.PointInTimeRecoveryDescription.PointInTimeRecoveryStatus' --output text)" = ENABLED
+          deployed_sha=$(aws lambda get-function --function-name kidults-natural-clock-dispatcher-staging-v1 --query 'Configuration.CodeSha256' --output text)
+          set +e
+          aws lambda invoke --function-name kidults-natural-clock-dispatcher-staging-v1 --cli-binary-format raw-in-base64-out --payload '{"source":"manual","slot":"P0B"}' /tmp/natural-clock-deny.json >/tmp/natural-clock-invoke.json
+          set -e
+          test "$(jq -r '.errorMessage' /tmp/natural-clock-deny.json)" = NATURAL_CLOCK_EVENT_DENIED
+          jq -n --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" --arg code_sha "$deployed_sha" --arg authorization_id "$AUTHORIZATION_ID" '{id:"kidults-natural-clock-staging-deploy-receipt-v1",state:"VERIFIED_PASS",exact_main_sha:$sha,run_id:$run_id,authorization_id:$authorization_id,stack:"kidults-natural-clock-staging-v1",lambda_code_sha256:$code_sha,schedules:{pooling:"ENABLED",p0b:"ENABLED",reserve:"ENABLED",sentinel:"ENABLED",assurance:"ENABLED"},ledger:{table:"ACTIVE",ttl:"ENABLED",pitr:"ENABLED"},negative_canary:"PASS",production:"HOLD",public:"HOLD",g5:"HOLD"}' > out/natural-clock-deploy-v1/receipt.json
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-natural-clock-staging-deploy-${{ github.run_id }}
+          path: out/natural-clock-deploy-v1/receipt.json
+          if-no-files-found: error
+          retention-days: 90

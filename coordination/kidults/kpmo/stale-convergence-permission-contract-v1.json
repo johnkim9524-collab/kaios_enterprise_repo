@@ -1,0 +1,21 @@
+{
+  "id": "stale-convergence-permission-contract-v1",
+  "version": "1.0.0",
+  "profile": "AUTONOMOUS_STALE_BASE_CONVERGENCE",
+  "permissions": ["contents:write", "pull_requests:write", "metadata:read", "workflows:write"],
+  "binding": ["repository", "repository_id", "pull_request", "base_sha", "head_sha", "current_main_sha"],
+  "reason": "GitHub update-branch may import workflow files from either PR head or protected main",
+  "same_repository_required": true,
+  "live_tuple_required_before_write_mint": true,
+  "general_dispatch_workflows_permission": false,
+  "redundant_hygiene_workflows_permission": false,
+  "unexpected_or_missing_permissions": "DENY",
+  "known_workflow_403": "PRESERVE_QUARANTINE_CONTINUE_UNRELATED_CANDIDATES_FAIL_AGGREGATE",
+  "unknown_authentication_or_transport_failure": "STOP_FAIL_CLOSED",
+  "mutation_retry": false,
+  "permission_expansion_activation": "EXPLICIT_OWNER_ACTION_TIME_CONFIRMATION_REQUIRED",
+  "activation_evidence": ["APP_INSTALLATION_PERMISSION_READBACK", "EXACT_SOURCE_BROKER_DEPLOYMENT", "FRESH_NATURAL_UPDATE_BRANCH_RECEIPT"],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

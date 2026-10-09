@@ -1,0 +1,128 @@
+{
+  "id": "kpmo-normal-ops-finalizer-terminal-closure-set-v1",
+  "state": "CORRECTIVE_IMPLEMENTATION_PENDING_PROTECTED_LANDING",
+  "protected_main_sha": "35d8fc1589e6dbcf39347999bdbbdcd871bfe2dc",
+  "prior_pull_request": 2556,
+  "corrective_pr_limit": 1,
+  "exception": "Prior PR is merged. Newly verified finalizer cancellation and postmerge evidence selection defects cannot be included in immutable PR 2556.",
+  "root_incident_id": "AUTONOMOUS_FINALIZER_POSTMERGE_TERMINAL_GAP",
+  "observed_at": "2026-10-03T13:59:00Z",
+  "external_evidence": {
+    "merged_pr": 2555,
+    "merge_sha": "ad1bae34fd785cea4aecb00046ca0c5a7323b085",
+    "elected_finalizer_run_id": 37123641239,
+    "elected_finalizer_conclusion": "cancelled",
+    "postmerge_supersession_run_id": 37123688849,
+    "supersession_stale_runs_cancelled": 3,
+    "ledger_reservation_state": "RESERVED",
+    "ledger_reservation_owner_run_id": "37123641239",
+    "authorization_generation": "pr-2555-6a88733e40fc42290053-12cede9977fcc0d7",
+    "immutable_generation_receipt_present": false,
+    "core_four_sentinel_verified_pass_run_id": 37127734948,
+    "natural_assurance_success_run_ids": [
+      37127760529,
+      37127976354
+    ],
+    "natural_success_authority_gate_run_ids": [
+      37127791377,
+      37128009543
+    ]
+  },
+  "root_causes": [
+    "Protected-main supersession does not retain repository_dispatch autonomous authorization workflows during postmerge finalizer consumption.",
+    "Finalizer reads arbitrary commit check runs instead of the governed exact-main push suite and ordered canonical convergence, allowing asynchronous producer startup HOLD to trigger rollback."
+  ],
+  "closure_set": [
+    "Retain only the three exact autonomous authorization workflow paths for repository_dispatch; preserve bounded workflow timeouts and all signed authority gates.",
+    "Consume existing exact-main push suite policy with all six required workflows successful and canonical producer-before-consumer success; retain separate fail-closed producer health gate.",
+    "Behavioral retention tests, adversarial postmerge tests, permanent red-team contract, regenerated approval inventory."
+  ],
+  "authority_readback": {
+    "primary_capability_model": "CAPABILITY_GUARD_WEAKENED",
+    "independent_capability_model": "INDEPENDENT_SECURITY_CAPABILITY_ADDED",
+    "autonomous_self_approval_permitted": false,
+    "owner_reserved_boundary": "Existing classifiers require exact Owner authority for this cancellation and postmerge guard replacement.",
+    "classifier_or_policy_bypass_performed": false
+  },
+  "rollback": "Revert the corrective merge through governed PR; do not reset main or rewrite the existing reservation.",
+  "remaining_verification": [
+    "Protected corrective landing under existing exact-head authority gate.",
+    "Natural elected finalizer consumes reservation and seals immutable terminal receipt.",
+    "At least two natural generations on the final unchanged protected-main implementation.",
+    "Final zero-base audit and immutable final closure evidence."
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD",
+  "completion_declared": false,
+  "stale_base_broker_scope_followup": {
+    "state": "STALE_BASE_RECOVERY_VERIFIED",
+    "root_incident_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+    "source_main_sha": "88c0786e74bc9255bfcd46fac178b8fc0f1c89bd",
+    "failure_evidence": {
+      "dispatcher_run_id": 37229007861,
+      "artifact_id": 11312572823,
+      "pull_request": 2462,
+      "head_sha": "187dbcbfa3a6e8ea4a4872bbf1104632104a6cce",
+      "failure_code": "STALE_BASE_UPDATE_HTTP_403"
+    },
+    "root_cause": "GitHub App update-branch requires contents write on the head repository; the stale convergence profile only mints pull_requests write.",
+    "correction_scope": "Add contents write only to the exact-bound stale convergence profile; preserve hygiene scope, live tuple checks, no force push, and original finalizer reservation owner.",
+    "runtime_state": "DISPATCH_REUSE_RESERVATION_CONSUMPTION_VERIFIED_IMMUTABLE_RETENTION_BLOCKED",
+    "exit_criteria": [
+      "Exact-head regression and negative verification",
+      "Governed protected-main landing",
+      "Exact deployed STAGING broker code and deny canary",
+      "Existing #2462 reconciled before one brokered expected-head update",
+      "Real Dispatcher original receipt reuse and finalizer reservation consumption",
+      "Immutable terminal receipt for the original generation",
+      "Two complete natural generations on the unchanged final main"
+    ],
+    "whole_platform_completion_declared": false,
+    "remaining_human_and_value_chain_gates_unchanged": true,
+    "rollback": "Governed revert of the corrective PR; preserve ledger and reservation history.",
+    "verification_evidence": {
+      "corrective_pr": 2568,
+      "corrective_merge_sha": "795e38b01569555f8a7d866bc60c541fad05ec77",
+      "deployment_run_id": 37244597587,
+      "deployment_artifact_id": 11318627647,
+      "deployed_code_sha256": "LkJLm4XfTgqz+C5r++WI0bWGjCxCN8bbM4JmZXj289A=",
+      "recovery_dispatcher_run_id": 37244806360,
+      "recovery_dispatch_was_natural": false,
+      "convergence_state": "STALE_BASE_CONVERGED",
+      "native_dispatcher_run_id": 37244932995,
+      "native_dispatch_event": "workflow_run",
+      "original_operation_key": "sha256:f243d2e50c0d392c47725efdf36e6cb357b9c3a48ce9a8282f75824994a1cc96",
+      "reuse_state": "REUSED_SUCCESS",
+      "replacement_generation_created": false,
+      "generation": "pr-2462-865a1293ef54674c334d-e617ab9c60d0b95b",
+      "canary_merge_sha": "bc23ad27319b2e3f7d0848d27e11a826beffd254",
+      "reservation_state": "CONSUMED",
+      "elected_finalizer_run_id": 37244958359,
+      "postmerge_state": "VERIFIED_PASS",
+      "immutable_state": "QUARANTINED",
+      "immutable_failure_code": "AUTONOMOUS_IMMUTABLE_RETENTION"
+    }
+  },
+  "immutable_retention_precision_followup": {
+    "state": "CORRECTION_IMPLEMENTED_PENDING_LANDING_AND_OWNER_RESERVED_RECONCILIATION",
+    "root_incident_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+    "observed_finalizer_run_id": 37244958359,
+    "created_at": "2026-10-04T23:49:18.944Z",
+    "minimum_retention": "2036-10-04T23:49:18.944Z",
+    "observed_retention": "2036-10-04T23:49:18Z",
+    "required_whole_second_retention": "2036-10-04T23:49:19Z",
+    "root_cause": "S3 serialized a fractional Object Lock retention deadline to whole seconds; strict ten-year readback rejected the shortened deadline.",
+    "correction": "Round requested retention upward to whole seconds in both native terminal and recovery writers; preserve strict readback, original object, checksum, body, version and reservation identity.",
+    "original_bucket": "kidults-autonomous-interna-autonomousreceiptbucket-udzuswkuo18n",
+    "original_key": "receipts/pr-2462-865a1293ef54674c334d-e617ab9c60d0b95b/bc23ad27319b2e3f7d0848d27e11a826beffd254/terminal.json",
+    "original_version_id": "ng96i.sc2RExqlNLvg6Oc6AOhaXsZgRj",
+    "original_receipt_digest": "sha256:4f732dd63439e58ee8394915dd2c5f23b75ad4b557570025310709ee3beb58cc",
+    "owner_reserved_action": "Extend COMPLIANCE retention only on this exact original version to 2036-10-04T23:49:19Z; do not rewrite the body, create another version, remerge, replace the generation or consume reservation again.",
+    "extension_performed": false,
+    "immutable_terminal_verified": false,
+    "natural_generations_on_final_unchanged_main_verified": 0,
+    "whole_platform_state": "VERIFIED_INCOMPLETE"
+  }
+}

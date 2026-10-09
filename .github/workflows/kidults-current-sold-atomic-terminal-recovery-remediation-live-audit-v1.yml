@@ -1,0 +1,71 @@
+name: KIDULTS Atomic Terminal Recovery Remediation Live Audit V1
+run-name: "KIDULTS Recovery Remediation Live Audit PR #${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-v1.yml'
+      - '.github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-live-audit-v1.yml'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-policy.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-v2-runtime.mjs'
+      - 'scripts/kidults/market/atomic-terminal-recovery-remediation-v1-policy.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-reconcile.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-v2-publish.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs'
+      - 'scripts/kidults/market/current-sold-atomic-terminal-recovery-remediation-v1-live-audit.mjs'
+      - 'scripts/kidults/market/validate-current-sold-atomic-terminal-recovery-remediation-v1.mjs'
+      - 'coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-v2.json'
+
+permissions:
+  contents: read
+
+jobs:
+  live-read-only-audit:
+    name: Verify failed recovery evidence and immutable RED against GitHub
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: read
+      statuses: read
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact candidate head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6.0.2
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Verify exact candidate checkout
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6.0.0
+        with:
+          node-version: 24.19.0
+          package-manager-cache: false
+          check-latest: false
+
+      - name: Run remote read-only remediation audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPOSITORY: ${{ github.repository }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          ATOMIC_TERMINAL_RECOVERY_LIVE_AUDIT_PATH: out/atomic-terminal-recovery-remediation-live-audit/receipt.json
+        run: >-
+          node scripts/kidults/market/current-sold-atomic-terminal-recovery-remediation-v1-live-audit.mjs
+          coordination/kidults/market/current-sold-atomic-terminal-recovery-33603816578-v2.json
+
+      - name: Upload live read-only audit receipt
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-atomic-terminal-recovery-remediation-live-audit-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/atomic-terminal-recovery-remediation-live-audit/receipt.json
+          if-no-files-found: error
+          retention-days: 90

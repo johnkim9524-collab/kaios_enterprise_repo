@@ -208,6 +208,59 @@ test('current exact registry binds every registered secret-bearing lane but exte
   assert.equal(current.empirical_evidence_promoted, false);
 });
 
+test('actions read and GitHub token use stay exact to the registered Production artifact readback lane', () => {
+  const productionWorkflow = '.github/workflows/production-release.yml';
+  const productionLane = currentInventory.lanes.find((lane) => lane.workflow === productionWorkflow);
+  const productionJob = productionLane?.secret_bearing_jobs.find((job) => job.job === 'certify');
+  const productionBinding = registry.required_environment_bindings.find((binding) => (
+    binding.workflow === productionWorkflow && binding.job === 'certify'
+  ));
+  assert.ok(productionJob && productionBinding);
+  assert.deepEqual(productionJob.workflow_token_permissions, [...productionBinding.required_github_token_permissions].sort());
+  assert.deepEqual(
+    [...productionJob.live_main_guard.github_token_step_names].sort(),
+    [...productionBinding.required_github_token_step_names].sort()
+  );
+  assert.equal(
+    registry.required_environment_bindings.filter((binding) => (
+      binding.required_github_token_permissions?.includes('actions:read')
+    )).length,
+    1
+  );
+
+  const missingActionsInventory = structuredClone(currentInventory);
+  const missingActionsJob = missingActionsInventory.lanes
+    .find((lane) => lane.workflow === productionWorkflow)
+    .secret_bearing_jobs.find((job) => job.job === 'certify');
+  missingActionsJob.workflow_token_permissions = ['contents:read'];
+  assert.ok(validateRequiredEnvironmentBindings(missingActionsInventory, registry).some((failure) => (
+    failure.startsWith('GITHUB_TOKEN_PERMISSION_SET_MISMATCH:')
+  )));
+
+  const extraTokenStepInventory = structuredClone(currentInventory);
+  const extraTokenStepJob = extraTokenStepInventory.lanes
+    .find((lane) => lane.workflow === productionWorkflow)
+    .secret_bearing_jobs.find((job) => job.job === 'certify');
+  extraTokenStepJob.live_main_guard.github_token_step_names.push('Unregistered token consumer');
+  assert.ok(validateRequiredEnvironmentBindings(extraTokenStepInventory, registry).some((failure) => (
+    failure.startsWith('GITHUB_TOKEN_STEP_SET_MISMATCH:')
+  )));
+
+  const nonProductionInventory = structuredClone(currentInventory);
+  const nonProductionRegistry = structuredClone(registry);
+  const nonProductionBinding = nonProductionRegistry.required_environment_bindings.find((binding) => (
+    binding.workflow !== productionWorkflow
+  ));
+  const nonProductionJob = nonProductionInventory.lanes
+    .find((lane) => lane.workflow === nonProductionBinding.workflow)
+    .secret_bearing_jobs.find((job) => job.job === nonProductionBinding.job);
+  nonProductionBinding.required_github_token_permissions = ['actions:read', 'contents:read'];
+  nonProductionJob.workflow_token_permissions = ['actions:read', 'contents:read'];
+  assert.ok(validateRequiredEnvironmentBindings(nonProductionInventory, nonProductionRegistry).some((failure) => (
+    failure.startsWith('ACTIONS_READ_OUTSIDE_PRODUCTION_RELEASE:')
+  )));
+});
+
 test('registered lane counts are derived from registry rather than a frozen legacy cardinality', () => {
   assert.equal(contract.scope.secret_bearing_lane_count_is_dynamic_from_registry, true);
   assert.equal(contract.scope.privileged_manual_lane_count_is_dynamic_from_registry, true);
@@ -310,7 +363,7 @@ test('all registered secret-bearing jobs reject unreadable, stale, and non-main 
   ];
   let rejected = 0;
   for (const lane of currentInventory.lanes) {
-    const source = fs.readFileSync(lane.workflow, 'utf8');
+    const source = fs.readFileSync(lane.workflow, 'utf8').replace(/\r\n/g, '\n');
     for (const [id, before, after] of mutations) {
       const mutatedSource = replaceInLiveMainGuard(source, before, after);
       const failures = validateRequiredEnvironmentBindings(
@@ -335,14 +388,15 @@ test('all registered secret-bearing jobs reject secret scope and guard order mut
     const secretExpression = '$' + '{{ secrets.MUTATED_SCOPE_SECRET }}';
 
     const workflowScoped = source.replace(
-      '\njobs:\n',
-      `\nenv:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:\n`
+      /^jobs:\s*$/m,
+      `env:\n  MUTATED_SCOPE_SECRET: ${secretExpression}\njobs:`
     );
     let failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, lane.workflow, workflowScoped),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('WORKFLOW_SCOPE_PROVIDER_SECRET:')));
+    assert.ok(failures.some((failure) => failure.startsWith('WORKFLOW_SCOPE_PROVIDER_SECRET:')),
+      `${lane.workflow} accepted workflow-scoped secret: ${failures.join(',')}`);
     rejected += 1;
 
     const jobScoped = injectJobScopeSecret(source, job.job);
@@ -514,11 +568,11 @@ jobs:
   assert.equal(analysis.secret_bearing_jobs[1].dynamic_secret_context, true);
 });
 
-test('trigger transformation and missing explicit activation guard fail closed', () => {
+test('PostgreSQL activation is dispatch-only and exact-run one-shot', () => {
   const workflow = '.github/workflows/p0-remote-postgres-persistence-pitr.yml';
   const source = fs.readFileSync(workflow, 'utf8');
   const lane = analyzeWorkflow(source, workflow);
-  assert.deepEqual(lane.trigger_classes, ['push', 'workflow_dispatch']);
+  assert.deepEqual(lane.trigger_classes, ['workflow_dispatch']);
 
   const noDispatch = source.replace('  workflow_dispatch:\n', '');
   let failures = validateRequiredEnvironmentBindings(
@@ -527,15 +581,12 @@ test('trigger transformation and missing explicit activation guard fail closed',
   );
   assert.ok(failures.some((failure) => failure.startsWith('TRIGGER_CLASS_MISMATCH:')));
 
-  const noActivationGuard = source.replace(
-    " && vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED == 'true'",
-    ''
-  );
+  const noActivationGuard = source.replaceAll('          test "$EXACT_MAIN_SHA" = "$GITHUB_SHA"\n', '');
   failures = validateRequiredEnvironmentBindings(
     replaceLaneSource(currentInventory, workflow, noActivationGuard),
     registry
   );
-  assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_GUARD_MISSING:')));
+  assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_ACTIVATION_STEP_CONTRACT:')));
 });
 
 test('activation receipt body and first-step ordering fail closed under mutation', () => {
@@ -552,34 +603,34 @@ test('activation receipt body and first-step ordering fail closed under mutation
     assert.equal(job.activation_receipt.before_live_main_guard, true);
     assert.equal(job.activation_receipt.before_all_provider_secret_steps, true);
 
-    const noAuthorizationAssertion = source.replace(
-      '          test "$ACTIVATION_AUTHORIZED" = "true"\n',
-      '          test -n "$ACTIVATION_AUTHORIZED"\n'
+    const noAuthorizationAssertion = source.replaceAll(
+      '          test "$EXACT_MAIN_SHA" = "$GITHUB_SHA"\n',
+      '          test -n "$EXACT_MAIN_SHA"\n'
     );
     let failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, workflow, noAuthorizationAssertion),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_ACTIVATION_STEP_CONTRACT:')));
 
     const reordered = moveNamedStepAfter(source, ACTIVATION_RECEIPT_STEP_NAME, LIVE_MAIN_GUARD_STEP_NAME);
     failures = validateRequiredEnvironmentBindings(
       replaceLaneSource(currentInventory, workflow, reordered),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_ORDER:')));
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_BEFORE_LIVE_MAIN:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_ACTIVATION_STEP_ORDER:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_ACTIVATION_BEFORE_LIVE_MAIN:')));
 
     const secretExpression = '$' + '{{ secrets.MUTATED_ACTIVATION_SECRET }}';
     const activationEnvironmentBlock = (
       `      - name: ${ACTIVATION_RECEIPT_STEP_NAME}\n` +
       '        shell: bash\n' +
       '        env:\n' +
-      '          ACTIVATION_AUTHORIZED: $' +
-      '{{ vars.KIDULTS_REMOTE_POSTGRES_AUTO_ACTIVATION_AUTHORIZED }}\n'
+      '          EXACT_MAIN_SHA: $' +
+      '{{ inputs.exact_main_sha }}\n'
     );
     assert.ok(source.includes(activationEnvironmentBlock));
-    const leaked = source.replace(
+    const leaked = source.replaceAll(
       activationEnvironmentBlock,
       activationEnvironmentBlock + `          MUTATED_ACTIVATION_SECRET: ${secretExpression}\n`
     );
@@ -588,7 +639,7 @@ test('activation receipt body and first-step ordering fail closed under mutation
       replaceLaneSource(currentInventory, workflow, leaked),
       registry
     );
-    assert.ok(failures.some((failure) => failure.startsWith('ACTIVATION_RECEIPT_STEP_CONTRACT:')));
+    assert.ok(failures.some((failure) => failure.startsWith('ONE_SHOT_ACTIVATION_STEP_CONTRACT:')));
   }
 });
 
