@@ -45,6 +45,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
@@ -86,6 +87,8 @@ jobs:
           python scripts/kidults/integration/validate-exact-pair-product-chain-v1.py
 
       - name: Advance genuine pair through official Track B and canonical Projection
+        env:
+          GITHUB_TOKEN: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.token || '' }}
         run: >-
           python scripts/kidults/integration/run-exact-pair-product-chain-v1.py
           coordination/kidults/integration/live-arrival/live-admission-manifest.json

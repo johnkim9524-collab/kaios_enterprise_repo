@@ -61,6 +61,8 @@ const requiredDocuments = [
   [paths.policy, 'HUMAN_READABLE_AI_POLICY'],
   [paths.platform, 'PLATFORM_CONSTITUTION'],
   [paths.operatingContract, 'AI_MACHINE_CONTRACT'],
+  ['coordination/kidults/governance/authority-chain-change-unit-policy-v1.json', 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_POLICY'],
+  ['coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json', 'AUTONOMOUS_CLOSURE_OWNERSHIP_POLICY'],
   [paths.remediationContract, 'FIX_FIRST_BOOTSTRAP_SEQUENCE'],
   [paths.reportAfterGate, 'REPORT_AFTER_REMEDIATION_GATE'],
   [paths.statusSchema, 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
@@ -432,6 +434,20 @@ const digestReceipt = (receipt, nonce) => {
     .update(stableStringify(withoutDigest), 'utf8')
     .digest('hex')}`;
 };
+// GitHub Actions checkouts may be shallow/promisor repositories. Cloning that
+// worktree directly makes Git try to materialize unrelated historical objects
+// even though this validator only needs the exact committed tree under test.
+// Seed a temporary bare repository with the exact commit and expose it through
+// one synthetic branch so the isolation test remains self-contained without
+// changing the source repository or weakening any trust assertions.
+const createExactCommitSource = (repositoryRoot, commitSha, temporaryRoot) => {
+  const sourceRepository = path.join(temporaryRoot, 'exact-commit-source.git');
+  git(null, ['init', '--bare', '--quiet', sourceRepository]);
+  git(sourceRepository, ['fetch', '--quiet', '--depth=1', repositoryRoot, commitSha], { allowFile: true });
+  git(sourceRepository, ['update-ref', 'refs/heads/exact-commit', commitSha]);
+  git(sourceRepository, ['symbolic-ref', 'HEAD', 'refs/heads/exact-commit']);
+  return sourceRepository;
+};
 const unkeyedDigestReceipt = (receipt) => {
   const { receipt_digest: ignored, ...withoutDigest } = receipt;
   void ignored;
@@ -577,12 +593,31 @@ const shellArgumentValue = (command, argument) => {
   return match ? (match[1] ?? match[2] ?? match[3]) : null;
 };
 
+const defaultDispatchExpectedShaBinding = '${{ github.event.pull_request.head.sha || github.sha }}';
+const exactDispatchExpectedShaBindings = new Map([
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:validate-sharded-source-reserve-contract',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ],
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:rolling-live-reserve',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ],
+  [
+    '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml:capacity-100k-proof',
+    '${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}'
+  ]
+]);
+const expectedShaBindingForDispatch = (dispatch) => exactDispatchExpectedShaBindings.get(
+  `${dispatch.workflow}:${dispatch.job}`
+) ?? defaultDispatchExpectedShaBinding;
+
 const validateDispatchJob = (dispatch, workflows) => {
   const jobs = workflows.get(dispatch.workflow);
   assert(jobs, `DISPATCH_WORKFLOW_MISSING:${dispatch.workflow}`);
   const job = jobs.get(dispatch.job);
   assert(job, `DISPATCH_JOB_MISSING:${dispatch.workflow}:${dispatch.job}`);
-  assert(job.env.EXPECTED_SHA === '${{ github.event.pull_request.head.sha || github.sha }}',
+  assert(job.env.EXPECTED_SHA === expectedShaBindingForDispatch(dispatch),
     `DISPATCH_EXPECTED_SHA_ENV_INVALID:${dispatch.workflow}:${dispatch.job}`);
   const taskIndex = job.steps.findIndex((step) => step.name === dispatch.first_task_step);
   assert(taskIndex !== -1, `DISPATCH_FIRST_TASK_STEP_MISSING:${dispatch.workflow}:${dispatch.job}:${dispatch.first_task_step}`);
@@ -650,7 +685,7 @@ for (const relativePath of Object.values(paths)) {
 
 const contract = json(paths.contract);
 assert(contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID');
-assert(contract.version === '1.5.0', 'CONTRACT_VERSION');
+assert(contract.version === '1.7.0', 'CONTRACT_VERSION');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER');
 assert(contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE');
@@ -816,7 +851,7 @@ assert(readiness.enforcement?.material_or_repeated_violation === 'REMOVE_FROM_AC
 assert(readiness.enforcement?.kpmo_self_exemption_allowed === false, 'READINESS_KPMO_SELF_EXEMPTION');
 assert(readiness.enforcement?.production === 'HOLD' && readiness.enforcement?.public_release === 'HOLD' && readiness.enforcement?.g5 === 'HOLD', 'READINESS_HOLDS');
 assert(constitution.includes('## Pre-Work Constitutional Readiness'), 'CONSTITUTION_READINESS_ARTICLE');
-assert(operating.version === '1.8.0', 'OPERATING_CONTRACT_VERSION');
+assert(operating.version === '2.0.0', 'OPERATING_CONTRACT_VERSION');
 assert(operating.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'OPERATING_INDEPENDENT_VERIFICATION');
 assert(operating.enforcement?.local_expected_sha_establishes_github_provenance === false, 'OPERATING_LOCAL_SHA_PROVENANCE');
 assert(remediation.version === '1.2.0', 'REMEDIATION_VERSION');
@@ -824,14 +859,20 @@ assert(remediation.independent_verification_and_one_time_consumption_required ==
 for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritance?.[agentClass] === true, `REMEDIATION_CLASS:${agentClass}`);
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
-assert(registry.version === '1.8.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.2.0', 'ROLE_REGISTRY_VERSION');
+assert(registry.version === '2.0.0', 'REGISTRY_VERSION');
+assert(roles.registry_version === '1.3.0', 'ROLE_REGISTRY_VERSION');
 assert(roles.constitutional_readiness?.manifest === paths.readiness, 'BOOTSTRAP_ROLE_READINESS_MANIFEST');
 assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true, 'BOOTSTRAP_ROLE_READINESS_PREWORK');
 assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'BOOTSTRAP_ROLE_READINESS_REPLACEMENT');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'BOOTSTRAP_ROLE_JD_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.kpmo_ai_agents_orchestrators_and_automations_in_scope === true, 'BOOTSTRAP_ROLE_JD_KPMO_SCOPE');
 assert(roles.ai_agent_accountability_enforcement?.confirmed_material_violation_requires_exact_agent_task_session_authority_and_unmet_jd_evidence === true, 'BOOTSTRAP_ROLE_JD_EVIDENCE_STANDARD');
+const redTeamRole = roles.roles?.find((role) => role.role_id === 'red-team-lead');
+assert(redTeamRole?.canonical_role === 'RED_TEAM_LEAD' && redTeamRole.reporting_line === 'program-owner', 'RED_TEAM_INDEPENDENT_ROLE');
+assert(redTeamRole.conflict_recusal?.required === true && redTeamRole.conflict_recusal?.missing_identity_or_conflict_record === 'DENY_INDEPENDENCE_CLAIM', 'RED_TEAM_RECUSAL');
+for (const source of [fs.readFileSync(paths.entrypoint,'utf8'),fs.readFileSync(paths.verifier,'utf8')]) {
+  assert(source.includes("RED_TEAM: 'red-team-lead'") && !source.includes("RED_TEAM: 'incident-manager'"), 'RED_TEAM_BOOTSTRAP_ROLE_DRIFT');
+}
 const kpmoRole = roles.roles?.find((role) => role.role_id === 'integration-conductor');
 assert(kpmoRole?.core_responsibilities?.some((item) => item.includes('retain KPMO accountability')), 'BOOTSTRAP_KPMO_ROLE_ACCOUNTABILITY');
 assert(kpmoRole?.must_not?.some((item) => item.includes('self-exempt from AI-019')), 'BOOTSTRAP_KPMO_ROLE_SELF_EXEMPTION');
@@ -858,6 +899,15 @@ const parsedWorkflows = new Map(workflowPaths.map((workflowPath) => {
   return [workflowPath, parseWorkflowJobs(workflowPath, fs.readFileSync(absolutePath, 'utf8'))];
 }));
 for (const dispatch of repositoryDefenseInDepthBootstrapJobs) validateDispatchJob(dispatch, parsedWorkflows);
+for (const dispatchKey of exactDispatchExpectedShaBindings.keys()) {
+  assert(repositoryDefenseInDepthBootstrapJobs.some(
+    (dispatch) => `${dispatch.workflow}:${dispatch.job}` === dispatchKey
+  ), `WORKFLOW_RUN_EXPECTED_SHA_ALLOWLIST_TARGET_NOT_REGISTERED:${dispatchKey}`);
+}
+assert(expectedShaBindingForDispatch({
+  workflow: '.github/workflows/kidults-asi-sharded-source-reserve-v1.yml',
+  job: 'unregistered-job'
+}) === defaultDispatchExpectedShaBinding, 'WORKFLOW_RUN_EXPECTED_SHA_ALLOWLIST_SCOPE_BROADENED');
 const spoofWorkflowPath = '.github/workflows/marker-spoof-negative.yml';
 const spoofDispatch = {
   workflow: spoofWorkflowPath,
@@ -894,13 +944,15 @@ assert(markerOnlySpoofRejected, 'DISPATCH_MARKER_ONLY_SPOOF_NOT_REJECTED');
 
 const staticResult = {
   id: 'kidults-ai-agent-github-bootstrap-static-validation-v1',
-  version: '1.5.0',
+  version: '1.7.0',
   state: 'STATIC_VERIFIED_PASS',
   required_documents_validated: requiredDocuments.length,
   governed_agent_classes_validated: governedClasses.length,
   actual_ai_model_dispatch_jobs_validated: 0,
   repository_defense_in_depth_bootstrap_jobs_validated: repositoryDefenseInDepthBootstrapJobs.length,
   marker_only_dispatch_spoof_rejected: markerOnlySpoofRejected,
+  workflow_run_exact_sha_dispatch_bindings_validated: exactDispatchExpectedShaBindings.size,
+  workflow_run_exact_sha_binding_job_scope_enforced: true,
   trusted_git: trustedGitEvidence(),
   git_replacement_refs_rejected: true,
   git_object_alternates_rejected: true,
@@ -975,7 +1027,7 @@ assert(bootstrapResult.source_scope === 'LOCAL_COMMIT_BOUND', 'LOCAL_EXPECTED_SH
 assert(/^receipt-[0-9a-f]{64}\.json$/.test(path.basename(bootstrapResult.receipt_path)),
   'RUNTIME_RECEIPT_FILENAME_NOT_FIXED_DIGEST');
 const receipt = absoluteJson(bootstrapResult.receipt_path);
-assert(receipt.version === '1.5.0', 'RUNTIME_RECEIPT_VERSION');
+assert(receipt.version === '1.7.0', 'RUNTIME_RECEIPT_VERSION');
 assert(stableStringify(Object.keys(receipt).sort()) === stableStringify([...exactRequiredReceiptFields].sort()), 'RUNTIME_RECEIPT_EXACT_KEYS');
 assert(stableStringify(receipt.authority_boundary) === stableStringify(exactAuthorityBoundary), 'RUNTIME_RECEIPT_EXACT_AUTHORITY_BOUNDARY');
 assert(stableStringify(Object.keys(receipt.trusted_git ?? {}).sort()) === stableStringify(['binary_sha256', 'path', 'version']), 'RUNTIME_TRUSTED_GIT_EXACT_KEYS');
@@ -1145,8 +1197,10 @@ try {
 
 const isolationParent = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-agent-git-isolation-negative-'));
 const isolationRoot = path.join(isolationParent, 'repository');
+let exactCommitSource;
 try {
-  git(null, ['clone', '--no-local', '--quiet', root, isolationRoot], {
+      exactCommitSource = createExactCommitSource(root, workingSha, isolationParent);
+    git(null, ['clone', '--no-local', '--quiet', exactCommitSource, isolationRoot], {
     allowFile: true,
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -1169,7 +1223,7 @@ try {
   const isolatedEnv = { ...baseEnv, KIDULTS_BOOTSTRAP_NONCE: isolatedNonce };
   const isolatedBootstrap = JSON.parse(run(paths.entrypoint, isolatedArgs, isolatedEnv, isolationRoot));
   const isolatedReceipt = absoluteJson(isolatedBootstrap.receipt_path);
-  assert(isolatedReceipt.version === '1.5.0', 'ISOLATION_RECEIPT_VERSION');
+  assert(isolatedReceipt.version === '1.7.0', 'ISOLATION_RECEIPT_VERSION');
   assert(stableStringify(Object.keys(isolatedReceipt).sort()) === stableStringify([...exactRequiredReceiptFields].sort()), 'ISOLATION_RECEIPT_EXACT_KEYS');
   assert(stableStringify(isolatedReceipt.authority_boundary) === stableStringify(exactAuthorityBoundary), 'ISOLATION_RECEIPT_EXACT_AUTHORITY_BOUNDARY');
   assertWorktreeState(isolatedReceipt.worktree_state, 'ISOLATION_WORKTREE_STATE', { expectedStatus: 'CLEAN', requireClean: true });
@@ -1440,7 +1494,7 @@ if (dispatchResult.consumption_marker) fs.rmSync(dispatchResult.consumption_mark
 
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-github-bootstrap-validation-v1',
-  version: '1.5.0',
+  version: '1.7.0',
   state: 'VERIFIED_PASS',
   canonical_repository: contract.canonical_repository.slug,
   working_sha: workingSha,

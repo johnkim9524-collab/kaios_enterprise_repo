@@ -34,11 +34,13 @@ const headers = {
   'User-Agent': 'kidults-scope-aware-authoritative-status-v1',
 };
 const api = async (path, options = {}) => {
-  const response = await fetch(`https://api.github.com/repos/${repository}${path}`, {
+  const url = `https://api.github.com/repos/${repository}${path}`;
+  let response = await fetch(url, {
     ...options,
     headers: {...headers, ...(options.headers || {})},
     redirect: 'error',
   });
+  if (response.status === 403 && (!options.method || options.method === 'GET')) response = await fetch(url, { ...options, headers: {Accept: headers.Accept, 'X-GitHub-Api-Version': headers['X-GitHub-Api-Version'], 'User-Agent': headers['User-Agent']}, redirect: 'error'});
   if (!response.ok) throw new Error(`GITHUB_API_${response.status}:${path}`);
   if (response.status === 204) return null;
   return response.json();
@@ -87,6 +89,28 @@ try {
     api(`/pulls/${prNumber}`),
     api('/branches/main'),
   ]);
+  if (initial.base?.ref !== 'main') throw new Error('SCOPE_AGGREGATOR_BASE_REF_NOT_MAIN');
+  if (initial.head?.sha !== expectedHeadSha) throw new Error('SCOPE_AGGREGATOR_HEAD_CHANGED_FROM_EVENT');
+  if (initial.state !== 'open' || initial.merged === true) {
+    console.log(JSON.stringify({
+      id: 'kidults-scope-aware-authoritative-status-receipt-v1',
+      version: '1.1.0',
+      state: initial.merged === true ? 'MERGED_POST_LANDING_VERIFICATION_REQUIRED' : 'CLOSED_TERMINAL_NON_AUTHORIZING',
+      reason: 'CLOSED_AFTER_TRIGGER_NON_PROMOTABLE',
+      pull_request: Number(prNumber),
+      exact_head_sha: initial.head.sha,
+      exact_base_sha: initial.base.sha,
+      merge_commit_sha: initial.merged === true ? initial.merge_commit_sha : null,
+      final_live_reread: true,
+      promotion_eligible: false,
+      landing_authorization_created: false,
+      post_landing_verification_required: initial.merged === true,
+      production: 'HOLD',
+      public_release: 'HOLD',
+      g5: 'HOLD',
+    }, null, 2));
+    process.exit(0);
+  }
   const draftDevelopment = initial.draft === true;
   if (draftDevelopment) {
     if (initial.state !== 'open' || initial.merged === true || initial.head?.sha !== expectedHeadSha

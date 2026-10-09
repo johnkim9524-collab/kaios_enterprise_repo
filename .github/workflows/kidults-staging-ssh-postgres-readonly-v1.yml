@@ -1,0 +1,189 @@
+name: KIDULTS STAGING SSH PostgreSQL Read-Only Discovery
+
+on:
+  workflow_dispatch:
+    inputs:
+      connection_scope:
+        description: Managed STAGING database or optional local peer discovery
+        type: choice
+        required: true
+        default: managed
+        options: [managed, local]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kidults-staging-ssh-postgres-readonly
+  cancel-in-progress: false
+
+jobs:
+  discovery:
+    if: github.ref == 'refs/heads/main'
+    environment: kidults-do-staging-ssh
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      HOST: ${{ vars.KIDULTS_STAGING_PUBLIC_IP }}
+      EXPECTED_FINGERPRINT: ${{ vars.KIDULTS_STAGING_HOST_FINGERPRINT }}
+      CONNECTION_SCOPE: ${{ inputs.connection_scope }}
+    steps:
+      - name: Verify live main before provider credential resolution
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          LIVE_MAIN_SHA="$(
+            curl --fail-with-body --silent --show-error \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --header "Authorization: Bearer $GITHUB_TOKEN" \
+              --header "Accept: application/vnd.github+json" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/branches/main" |
+              python3 -c 'import json,re,sys; sha=str(json.load(sys.stdin).get("commit",{}).get("sha","")); print(sha) if re.fullmatch(r"[0-9a-f]{40}",sha) else sys.exit(65)'
+          )"
+          test "$LIVE_MAIN_SHA" = "$GITHUB_SHA"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify diagnostic contract
+        run: |
+          python3 -m unittest discover -s scripts/operations -p test_staging_postgres_readonly_probe_v1.py
+          python3 -m unittest discover -s scripts/operations -p test_managed_postgres_readonly_probe_v1.py
+      - name: Assert required non-secret STAGING bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HOST"
+          test -n "$EXPECTED_FINGERPRINT"
+          test "$HOST" = '165.232.175.45'
+          case "$CONNECTION_SCOPE" in managed|local) ;; *) exit 64 ;; esac
+
+      - name: Pin and verify ED25519 host key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ssh"
+          timeout 10 ssh-keyscan -t ed25519 "$HOST" > "$RUNNER_TEMP/ssh/known_hosts"
+          observed="$(ssh-keygen -lf "$RUNNER_TEMP/ssh/known_hosts" | awk '{print $2}')"
+          test "$observed" = "$EXPECTED_FINGERPRINT"
+
+      - name: Materialize dedicated STAGING key
+        env:
+          SSH_PRIVATE_KEY_B64: ${{ secrets.KIDULTS_STAGING_SSH_PRIVATE_KEY_B64 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$SSH_PRIVATE_KEY_B64"
+          printf '%s' "$SSH_PRIVATE_KEY_B64" | base64 --decode > "$RUNNER_TEMP/ssh/id_ed25519"
+          tr -d '\r' < "$RUNNER_TEMP/ssh/id_ed25519" > "$RUNNER_TEMP/ssh/id_ed25519.normalized"
+          mv "$RUNNER_TEMP/ssh/id_ed25519.normalized" "$RUNNER_TEMP/ssh/id_ed25519"
+          chmod 600 "$RUNNER_TEMP/ssh/id_ed25519"
+          ssh-keygen -y -f "$RUNNER_TEMP/ssh/id_ed25519" >/dev/null
+          unset SSH_PRIVATE_KEY_B64
+
+      - name: Verify exact non-root STAGING identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          SSH=(ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519")
+          test "$("${SSH[@]}" kidults-staging@"$HOST" 'whoami')" = 'kidults-staging'
+          test "$("${SSH[@]}" kidults-staging@"$HOST" 'hostname')" = 'ih-staging-01'
+
+      - name: Collect bounded read-only discovery receipt
+        if: inputs.connection_scope == 'local'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/staging-postgres-readonly
+          timeout 30 ssh -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=10 -o KexAlgorithms=curve25519-sha256 -o HostKeyAlgorithms=ssh-ed25519 -o StrictHostKeyChecking=yes -o UserKnownHostsFile="$RUNNER_TEMP/ssh/known_hosts" -i "$RUNNER_TEMP/ssh/id_ed25519" kidults-staging@"$HOST" 'python3 -' < scripts/operations/staging_postgres_readonly_probe_v1.py > artifacts/staging-postgres-readonly/receipt.json
+          python3 - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          p=Path('artifacts/staging-postgres-readonly/receipt.json')
+          r=json.loads(p.read_text())
+          assert r['identity_verified'] is True
+          assert r['state'] == 'LOCAL_READ_ONLY_VERIFIED'
+          assert r['psql_present'] is True
+          assert r['exit_code'] == 0
+          assert r['mutation_performed'] is False
+          assert r['provider_call_performed'] is False
+          assert r['promotion_authorized'] is False
+          r['observer']={k:os.environ[k] for k in ['GITHUB_REPOSITORY','GITHUB_SHA','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT']}
+          p.write_text(json.dumps(r,indent=2)+'\n')
+          print(json.dumps(r))
+          PYCODE
+      - name: Verify managed PostgreSQL through pinned SSH tunnel
+        if: inputs.connection_scope == 'managed'
+        env:
+          POSTGRES_DSN: ${{ secrets.KIDULTS_STAGING_POSTGRES_DSN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/staging-postgres-readonly
+          if test -z "$POSTGRES_DSN"; then
+            printf '%s\n' '{"status":"FAIL","environment":"STAGING","state":"MANAGED_DSN_BINDING_MISSING","managed_postgres_connection_verified":false,"mutation_performed":false,"production_touch":false,"public_touch":false,"g5_touch":false}' > artifacts/staging-postgres-readonly/receipt.json
+            exit 66
+          fi
+          export KAIOS_ENVIRONMENT=staging
+          export KAIOS_PRODUCTION_PROMOTION_AUTHORIZED=false
+          export KAIOS_STAGING_SSH_HOST="$HOST"
+          export KAIOS_STAGING_SSH_USER=kidults-staging
+          export KAIOS_STAGING_SSH_KEY_PATH="$RUNNER_TEMP/ssh/id_ed25519"
+          export KAIOS_STAGING_SSH_KNOWN_HOSTS_PATH="$RUNNER_TEMP/ssh/known_hosts"
+          export KAIOS_SOURCE_VERIFIER_PATH="$GITHUB_WORKSPACE/scripts/staging/verify-managed-postgres-readonly-v1.sh"
+          export KAIOS_POSTGRES_DSN="$POSTGRES_DSN"
+          unset POSTGRES_DSN
+          set +e
+          timeout 120 bash scripts/staging/run-postgres-verifier-through-ssh-tunnel.sh source > "$RUNNER_TEMP/managed-readonly-receipt.json"
+          probe_rc=$?
+          set -e
+          PROBE_RC="$probe_rc" python3 - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          source=Path(os.environ['RUNNER_TEMP'])/'managed-readonly-receipt.json'
+          try:
+              r=json.loads(source.read_text())
+              assert isinstance(r,dict)
+          except (ValueError,AssertionError):
+              r={'status':'FAIL','environment':'STAGING','state':'TUNNEL_EXECUTION_FAILED',
+                 'managed_postgres_connection_verified':False,'mutation_performed':False,
+                 'production_touch':False,'public_touch':False,'g5_touch':False}
+          r['probe_process_exit_code']=int(os.environ['PROBE_RC'])
+          Path('artifacts/staging-postgres-readonly/receipt.json').write_text(json.dumps(r)+'\n')
+          PYCODE
+          test "$probe_rc" = 0
+          python3 - <<'PYCODE'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('artifacts/staging-postgres-readonly/receipt.json').read_text())
+          assert r['status']=='PASS' and r['state']=='MANAGED_READ_ONLY_VERIFIED'
+          assert r['managed_postgres_connection_verified'] is True
+          assert r['transaction_read_only_verified'] is True and r['tls_session_verified'] is True
+          assert r['mutation_performed'] is False
+          PYCODE
+      - name: Retain exact-run observer on sanitized receipt
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PYCODE'
+          import json, os
+          from pathlib import Path
+          p=Path('artifacts/staging-postgres-readonly/receipt.json')
+          if p.exists() and p.stat().st_size:
+              r=json.loads(p.read_text())
+              r['observer']={k:os.environ[k] for k in ['GITHUB_REPOSITORY','GITHUB_SHA','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT']}
+              p.write_text(json.dumps(r,indent=2)+'\n')
+              print(json.dumps(r))
+          PYCODE
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: staging-postgres-readonly-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/staging-postgres-readonly
+          if-no-files-found: error
+          retention-days: 30

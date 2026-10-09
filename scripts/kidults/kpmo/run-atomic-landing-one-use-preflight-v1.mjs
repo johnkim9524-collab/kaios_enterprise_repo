@@ -8,7 +8,7 @@ import {
   selectExactHeadProgramOwnerApproval,
 } from './lib/governed-landing-native-gates-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
@@ -16,6 +16,8 @@ const AUTHORIZATION_DIGEST_PATTERN = /^[0-9a-f]{64}$/;
 const MAX_WORKFLOW_RUN_PAGES = 10;
 const EXPECTED_EVENT = 'workflow_dispatch';
 const EXPECTED_BRANCH = 'main';
+const MAX_BOUNDED_ATTEMPTS = 3;
+const BOUNDED_RETRY_WINDOW_MS = 2 * 60 * 60 * 1000;
 
 function fail(code, detail = '') {
   const error = new Error(detail ? `${code}:${detail}` : code);
@@ -54,12 +56,52 @@ export function assertAtomicLandingDispatchAuthority(currentRun, repositoryOwner
   };
 }
 
+export function reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
+  currentRunId,
+  currentRunAttempt,
+  workflowId,
+  expectedRunName,
+  protectedMainShaAtDispatch,
+} = {}) {
+  assert(Array.isArray(runs), 'ATOMIC_ONE_USE_RUN_SET_INVALID');
+  assert(currentRun && typeof currentRun === 'object' && !Array.isArray(currentRun), 'ATOMIC_ONE_USE_CURRENT_RUN_INVALID');
+  assert(/^\d+$/.test(String(currentRunId || '')), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_INVALID');
+  assert(Number(currentRunAttempt) === 1, 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
+  assert(/^\d+$/.test(String(workflowId || '')), 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
+  assert(typeof expectedRunName === 'string' && expectedRunName.length > 0, 'ATOMIC_ONE_USE_RUN_NAME_INVALID');
+  assert(SHA_PATTERN.test(protectedMainShaAtDispatch || ''), 'ATOMIC_ONE_USE_DISPATCH_MAIN_SHA_INVALID');
+  assert(Number(currentRun?.id) === Number(currentRunId), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_MISMATCH');
+  assert(Number(currentRun?.run_attempt) === Number(currentRunAttempt), 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
+  assert(Number(currentRun?.workflow_id) === Number(workflowId), 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
+  assert(currentRun?.event === EXPECTED_EVENT, 'ATOMIC_ONE_USE_CURRENT_RUN_EVENT_INVALID');
+  assert(currentRun?.head_branch === EXPECTED_BRANCH, 'ATOMIC_ONE_USE_CURRENT_RUN_BRANCH_INVALID');
+  assert(currentRun?.display_title === expectedRunName, 'ATOMIC_ONE_USE_CURRENT_RUN_NAME_MISMATCH');
+  assert(currentRun?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
+
+  const currentMatches = runs.filter(run => Number(run?.id) === Number(currentRunId));
+  assert(currentMatches.length <= 1, 'ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID', String(currentMatches.length));
+  // The direct endpoint is authoritative only for the current run. Never
+  // hide duplicate rows, conflicting immutable fields, or prior consumption.
+  if (currentMatches.length === 1) {
+    const indexed = currentMatches[0];
+    for (const field of ['id', 'run_attempt', 'workflow_id', 'event', 'head_branch', 'display_title', 'head_sha']) {
+      const numeric = ['id', 'run_attempt', 'workflow_id'].includes(field);
+      assert(numeric ? Number(indexed?.[field]) === Number(currentRun[field])
+        : indexed?.[field] === currentRun[field],
+      'ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH', field);
+    }
+    return runs;
+  }
+  return [...runs, currentRun];
+}
+
 export function evaluateAtomicLandingOneUseRunSet(runs, {
   currentRunId,
   currentRunAttempt,
   workflowId,
   expectedRunName,
   protectedMainShaAtDispatch,
+  authorizationApprovedAt = null,
 } = {}) {
   assert(Array.isArray(runs), 'ATOMIC_ONE_USE_RUN_SET_INVALID');
   assert(/^\d+$/.test(String(currentRunId || '')), 'ATOMIC_ONE_USE_CURRENT_RUN_ID_INVALID');
@@ -86,12 +128,39 @@ export function evaluateAtomicLandingOneUseRunSet(runs, {
   assert(current?.head_sha === protectedMainShaAtDispatch, 'ATOMIC_ONE_USE_CURRENT_RUN_MAIN_SHA_MISMATCH');
   assert(Number(current?.run_attempt) === 1, 'ATOMIC_LANDING_MATCHING_RUN_ATTEMPT_INVALID');
 
-  if (matches.length > 1) {
-    fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(matches.length));
+  // Count only attempts made under the current immutable Owner approval.
+  // Pre-approval failures cannot consume a later valid authorization.
+  let eligibleMatches = matches;
+  if (authorizationApprovedAt != null) {
+    const approvedAt = Date.parse(String(authorizationApprovedAt));
+    assert(Number.isFinite(approvedAt), 'ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+    eligibleMatches = matches.filter(run => {
+      if (Number(run?.id) === Number(currentRunId)) return true;
+      const createdAt = Date.parse(String(run?.created_at || ''));
+      return Number.isFinite(createdAt) && createdAt >= approvedAt;
+    });
+  }
+
+  const prior = eligibleMatches.filter(run => Number(run?.id) !== Number(currentRunId));
+  if (prior.some(run => run?.status !== 'completed' || run?.conclusion === 'success')) {
+    fail('ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED', String(eligibleMatches.length));
+  }
+  if (eligibleMatches.length > MAX_BOUNDED_ATTEMPTS) {
+    fail('ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED', String(eligibleMatches.length));
+  }
+  const currentCreatedAt = Date.parse(String(current?.created_at || ''));
+  const priorCreatedAt = prior.map(run => Date.parse(String(run?.created_at || '')));
+  assert(Number.isFinite(currentCreatedAt) && priorCreatedAt.every(Number.isFinite),
+    'ATOMIC_LANDING_RETRY_TIME_INVALID');
+  if (priorCreatedAt.some(createdAt => currentCreatedAt - createdAt > BOUNDED_RETRY_WINDOW_MS
+    || createdAt > currentCreatedAt)) {
+    fail('ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
   }
 
   return {
     matching_run_count: 1,
+    bounded_attempt_ordinal: eligibleMatches.length,
+    prior_non_success_attempt_count: prior.length,
     matching_run_id: Number(current.id),
     matching_run_attempt: Number(current.run_attempt),
     matching_run_status: current.status || null,
@@ -145,6 +214,13 @@ export function assertAtomicLandingConsumptionReceipt(receipt, {
   assert(receipt.tuple_sha256 === expectedTupleDigest, 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
   assert(receipt.raw_authorization_persisted === false, 'ATOMIC_CONSUMPTION_RAW_AUTHORIZATION_FORBIDDEN');
   assert(receipt.matching_run_count === 1, 'ATOMIC_CONSUMPTION_MATCHING_RUN_COUNT_INVALID');
+  assert(Number.isInteger(receipt.bounded_attempt_ordinal)
+    && receipt.bounded_attempt_ordinal >= 1
+    && receipt.bounded_attempt_ordinal <= MAX_BOUNDED_ATTEMPTS,
+  'ATOMIC_CONSUMPTION_BOUNDED_ATTEMPT_INVALID');
+  assert(Number.isInteger(receipt.prior_non_success_attempt_count)
+    && receipt.prior_non_success_attempt_count === receipt.bounded_attempt_ordinal - 1,
+  'ATOMIC_CONSUMPTION_PRIOR_ATTEMPT_COUNT_INVALID');
   assert(receipt.pr_head_matches_input === true, 'ATOMIC_CONSUMPTION_PR_HEAD_BINDING_INVALID');
   assert(receipt.pr_base_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_PR_BASE_BINDING_INVALID');
   assert(receipt.live_main_matches_dispatch_main === true, 'ATOMIC_CONSUMPTION_LIVE_MAIN_BINDING_INVALID');
@@ -238,31 +314,25 @@ async function main() {
   assert(Number.isInteger(Number(currentRun?.workflow_id)) && Number(currentRun.workflow_id) > 0, 'ATOMIC_ONE_USE_WORKFLOW_ID_INVALID');
 
   const loadWorkflowRuns = async () => {
-    for (let visibilityAttempt = 1; visibilityAttempt <= 4; visibilityAttempt += 1) {
-      const runs = [];
-      for (let page = 1; page <= MAX_WORKFLOW_RUN_PAGES; page += 1) {
-        const payload = await request(
-          `/actions/workflows/${currentRun.workflow_id}/runs?event=${EXPECTED_EVENT}&branch=${EXPECTED_BRANCH}&per_page=100&page=${page}`,
-        );
-        assert(Array.isArray(payload?.workflow_runs), 'ATOMIC_ONE_USE_WORKFLOW_RUNS_SHAPE_INVALID');
-        runs.push(...payload.workflow_runs);
-        if (payload.workflow_runs.length < 100) break;
-        if (page === MAX_WORKFLOW_RUN_PAGES) fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
+    const runs = [];
+    for (let page = 1; page <= MAX_WORKFLOW_RUN_PAGES; page += 1) {
+      const payload = await request(
+        `/actions/workflows/${currentRun.workflow_id}/runs?event=${EXPECTED_EVENT}&branch=${EXPECTED_BRANCH}&per_page=100&page=${page}`,
+      );
+      assert(Array.isArray(payload?.workflow_runs), 'ATOMIC_ONE_USE_WORKFLOW_RUNS_SHAPE_INVALID');
+      runs.push(...payload.workflow_runs);
+      if (payload.workflow_runs.length < 100) {
+        return reconcileAtomicLandingCurrentRunIndex(runs, currentRun, {
+          currentRunId: runId,
+          currentRunAttempt: runAttempt,
+          workflowId: currentRun.workflow_id,
+          expectedRunName,
+          protectedMainShaAtDispatch: currentRun.head_sha,
+        });
       }
-      if (runs.some(run => Number(run?.id) === Number(runId))) return runs;
-      await new Promise(resolve => setTimeout(resolve, 250 * visibilityAttempt));
     }
-    fail('ATOMIC_LANDING_CURRENT_RUN_NOT_DISCOVERABLE');
+    fail('ATOMIC_ONE_USE_WORKFLOW_RUNS_PAGINATION_BOUND_EXCEEDED');
   };
-
-  const runs = await loadWorkflowRuns();
-  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
-    currentRunId: runId,
-    currentRunAttempt: runAttempt,
-    workflowId: currentRun.workflow_id,
-    expectedRunName,
-    protectedMainShaAtDispatch: currentRun.head_sha,
-  });
 
   const [pr, mainBranch, timeline, approvalComments, headCommit] = await Promise.all([
     request(`/pulls/${prNumber}`),
@@ -282,7 +352,7 @@ async function main() {
   assert(exactBaseSha === currentRun.head_sha, 'ATOMIC_ONE_USE_PR_BASE_DISPATCH_MAIN_DRIFT');
   assert(liveMainSha === currentRun.head_sha, 'ATOMIC_ONE_USE_LIVE_MAIN_DRIFT');
 
-  const latestReady = selectLatestDirectOwnerReadyEvent({timeline, repositoryOwner});
+  const latestReady = selectLatestLifecycleReadyEvent({timeline, repositoryOwner, pullRequest: pr});
   const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
     repository,
     repositoryOwner,
@@ -295,6 +365,19 @@ async function main() {
     latestReadyAt: latestReady.created_at,
     landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
     evaluationTime: new Date().toISOString(),
+  });
+
+  // Retry accounting is scoped to the immutable exact-head Owner approval.
+  // Resolve and validate that approval before evaluating any prior dispatches,
+  // otherwise pre-approval failures can consume a later authorization budget.
+  const runs = await loadWorkflowRuns();
+  const oneUse = evaluateAtomicLandingOneUseRunSet(runs, {
+    currentRunId: runId,
+    currentRunAttempt: runAttempt,
+    workflowId: currentRun.workflow_id,
+    expectedRunName,
+    protectedMainShaAtDispatch: currentRun.head_sha,
+    authorizationApprovedAt: programOwnerApproval.comment_created_at,
   });
 
   const finalPr = await request(`/pulls/${prNumber}`);
@@ -319,6 +402,10 @@ async function main() {
     landing_workflow_run_id: Number(runId),
     landing_workflow_run_attempt: Number(runAttempt),
     matching_run_count: oneUse.matching_run_count,
+    bounded_attempt_ordinal: oneUse.bounded_attempt_ordinal,
+    prior_non_success_attempt_count: oneUse.prior_non_success_attempt_count,
+    bounded_retry_limit: MAX_BOUNDED_ATTEMPTS,
+    bounded_retry_window_seconds: BOUNDED_RETRY_WINDOW_MS / 1000,
     dispatch_actor: dispatchAuthority.dispatch_actor,
     triggering_actor: dispatchAuthority.triggering_actor,
     authorization_id_sha256: sha256(authorizationId),

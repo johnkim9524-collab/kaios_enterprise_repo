@@ -1,8 +1,8 @@
 {
   "id": "kidults-post-landing-platform-runtime-terminal-lifecycle-v1",
-  "version": "1.0.0",
+  "version": "1.3.0",
   "classification": "DEFECT_REMEDIATED",
-  "defect": "A protected-main merge invalidated the exact-main Canonical generation while the only Canonical writer path required a second Program Owner authorization.",
+  "defect": "The health sentinel had acquired producer-dispatch and downstream-dispatch authority, allowing the observer to create the evidence it audited and causing generation races. Restore strict observer/producer separation: natural producer paths create evidence; Sentinel only reads, validates, and fails closed.",
   "governance_boundary": {
     "program_owner_approvals_per_change": 1,
     "approval": "EXACT_HEAD_ATOMIC_GOVERNED_LANDING",
@@ -14,10 +14,15 @@
     "PROTECTED_MAIN_PUSH",
     "CANONICAL_V3_APPEND_ONLY_REFRESH",
     "LIVE_CANONICAL_TRUTH",
+    "NATURAL_EXACT_SHA_PRODUCER_CHAIN",
+    "SHADOW_OPERATING_EVIDENCE",
+    "P0B_P1_ARL_REQUIREMENT_COVERAGE",
     "ANY_SITE_EXACT_MAIN_DISCOVERY",
     "SHARDED_SOURCE_RESERVE",
     "EXACT_MAIN_HEALTH_SENTINEL",
     "CONTINUOUS_ASSURANCE",
+    "CORE_FOUR_CONTROL_GREEN",
+    "WHOLE_PLATFORM_OPERATING_PROOF",
     "PLATFORM_RUNTIME_GREEN"
   ],
   "authority": {
@@ -31,9 +36,20 @@
     "g5": "HOLD"
   },
   "termination": {
+    "whole_platform_contract": "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json",
+    "whole_platform_green_requires_all_runtime_checks_and_value_chain_receipts": true,
+    "core_four_control_green_is_whole_platform_green": false,
+    "static_scorecard_pass_is_runtime_proof": false,
     "approval_loop_possible": false,
     "canonical_refresh_creates_repository_commit": false,
     "evidence_writes_create_protected_main_sha": false,
-    "sentinel_dispatches_terminal_continuous_assurance_only_after_verified_health": true
+    "sentinel_read_only": true,
+    "sentinel_actions_permission": "read",
+    "sentinel_dispatches_producers": false,
+    "sentinel_dispatches_terminal_continuous_assurance": false,
+    "natural_exact_sha_producer_evidence_required": true,
+    "manual_dispatch_not_terminal_natural_proof": true,
+    "producer_mutation_recovery_separate_from_assurance": true,
+    "main_sha_drift_fails_closed": true
   }
 }

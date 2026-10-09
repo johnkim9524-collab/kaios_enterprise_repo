@@ -156,5 +156,13 @@
     "public": "HOLD",
     "production": "HOLD",
     "g5": "HOLD"
+  },
+  "canonical_main_binding": "HISTORICAL_CHECKPOINT_NOT_CURRENT_MAIN",
+  "measurement_semantics": {
+    "historical_values_preserved": true,
+    "current_runtime_measurement": "UNKNOWN_UNTIL_AUTHENTICATED_EXACT_MAIN_RECEIPTS",
+    "historical_numbers_are_current_completion": false,
+    "runtime_proof_source": "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json",
+    "correction_reference": "KPMO_AUTONOMY_HOLISTIC_REVIEW_20261008_F08"
   }
 }

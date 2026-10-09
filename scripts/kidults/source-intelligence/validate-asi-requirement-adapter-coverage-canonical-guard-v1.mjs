@@ -35,7 +35,7 @@ const semanticManifest = {
   ],
 };
 const semanticReceipt = {
-  id: 'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1', version: '1.1.0', state: 'VERIFIED_PASS', source_sha: sourceSha,
+  id: 'kidults-asi-autonomous-resolution-layer-kpmo-receipt-v1', version: '1.2.0', state: 'VERIFIED_PASS', source_sha: sourceSha,
   trigger_event: 'workflow_run', artifact_role: 'AUTHORITATIVE_CONSUMABLE', authoritative_producer: true, downstream_consumable: true,
   p1_source_sha: sourceSha, exact_generation_bound: true, exact_triggering_run_bound: true, validation_only: false, promotion_authority: false,
   artifact_cardinality: 1, results: semanticManifest.results, autonomous_effect: 'POSITIVE', global_effect: 'POSITIVE', irreplaceable_value_effect: 'POSITIVE', transparency_effect: 'POSITIVE',
@@ -46,7 +46,7 @@ const semanticReceipt = {
 };
 const semanticArgs = {
   sourceSha, upstreamClass: 'ASI_AUTONOMOUS_RESOLUTION', queue: semanticQueue, manifest: semanticManifest, receipt: semanticReceipt,
-  coverageContract: { id: 'kidults-asi-requirement-adapter-coverage-contract-v1', version: '1.2.0' }, coverageContractBytes: Buffer.from('{"contract":"stable"}'),
+  coverageContract: { id: 'kidults-asi-requirement-adapter-coverage-contract-v1', version: '1.3.0' }, coverageContractBytes: Buffer.from('{"contract":"stable"}'),
   authoritativeInputDigests: { runtime_contract: { path: 'runtime.json', digest: `sha256:${'9'.repeat(64)}` } },
   authoritativeInputConstants: { replacement_queue_id: 'kidults-asi-replacement-source-mission-queue-v1' },
   implementationDigests: { builder: { path: 'builder.mjs', digest: `sha256:${'0'.repeat(64)}` } },
@@ -124,10 +124,6 @@ assert.equal(leaderSelection.guard.every_noncanonical_trigger_alias_receipt_guar
 const leaderCurrent = {
   ...baseCurrent,
   run_id: 100,
-  upstream_binding_digest: `sha256:${'5'.repeat(64)}`,
-  upstream_workflow_run_id: 45,
-  upstream_artifact_id: 55,
-  upstream_artifact_digest: `sha256:${'6'.repeat(64)}`,
   coverage_consumer_sha: leaderCoverageSha,
   coverage_run_head_sha: leaderCoverageSha,
 };
@@ -140,7 +136,7 @@ const leaderReceipt = finalizeCoverageCanonicalLeader({
   guard_receipt_digest: `sha256:${'9'.repeat(64)}`,
 });
 const artifactName = leaderSelection.guard.canonical_artifact_name;
-assert.equal(artifactName, `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${baseCurrent.canonical_run_key}:${baseCurrent.canonical_input_digest}`).slice(7)}`);
+assert.equal(artifactName, `kidults-asi-requirement-adapter-coverage-canonical-${sha256(`${baseCurrent.canonical_run_key}:${baseCurrent.canonical_input_digest}:${baseCurrent.upstream_workflow_run_id}`).slice(7)}`);
 const candidate = {
   run: {
     id: 100,
@@ -180,9 +176,9 @@ assert.equal(alias.guard.state, 'DEDUPED_ALIAS');
 assert.equal(alias.alias_receipt.state, 'VERIFIED_PASS_EPHEMERAL_ALIAS_NO_FULL_COVERAGE');
 assert.equal(alias.alias_receipt.current_upstream_binding_digest, baseCurrent.upstream_binding_digest);
 assert.equal(alias.alias_receipt.canonical_upstream_binding_digest, leaderReceipt.upstream_binding_digest);
-assert.notEqual(alias.alias_receipt.current_upstream_binding_digest, alias.alias_receipt.canonical_upstream_binding_digest);
-assert.notEqual(alias.alias_receipt.current_upstream_workflow_run_id, alias.alias_receipt.canonical_upstream_workflow_run_id);
-assert.notEqual(alias.alias_receipt.current_upstream_artifact_id, alias.alias_receipt.canonical_upstream_artifact_id);
+assert.equal(alias.alias_receipt.current_upstream_binding_digest, alias.alias_receipt.canonical_upstream_binding_digest);
+assert.equal(alias.alias_receipt.current_upstream_workflow_run_id, alias.alias_receipt.canonical_upstream_workflow_run_id);
+assert.equal(alias.alias_receipt.current_upstream_artifact_id, alias.alias_receipt.canonical_upstream_artifact_id);
 const displayTitleApiInput = structuredClone(aliasInput);
 displayTitleApiInput.candidates[0].run.name = displayTitleApiInput.candidates[0].run.display_title;
 const displayTitleApiAlias = resolveCoverageCanonicalGuard(displayTitleApiInput);
@@ -288,6 +284,15 @@ const distinctSemanticGeneration = resolveCoverageCanonicalGuard({
 });
 assert.equal(distinctSemanticGeneration.execute_full_coverage, true);
 assert.notEqual(distinctSemanticGeneration.guard.canonical_artifact_name, artifactName);
+
+const distinctUpstreamGeneration = resolveCoverageCanonicalGuard({
+  ...emptyInput,
+  current: {...baseCurrent, upstream_workflow_run_id: baseCurrent.upstream_workflow_run_id + 1},
+  readback: {state: 'COMPLETE', total_count: 0, returned_count: 0, prior_success_count: 0, reason_codes: []},
+  candidates: [],
+});
+assert.equal(distinctUpstreamGeneration.execute_full_coverage, true);
+assert.notEqual(distinctUpstreamGeneration.guard.canonical_artifact_name, artifactName);
 
 const manualCurrent = { ...baseCurrent, trigger_event: 'workflow_dispatch', coverage_run_display_title: 'KIDULTS Coverage / manual-200' };
 const manual = resolveCoverageCanonicalGuard({

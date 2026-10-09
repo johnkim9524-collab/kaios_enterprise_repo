@@ -243,7 +243,8 @@ const projection = {
     B: trackState(track, "B"),
     C: trackState(track, "C"),
     D: trackState(track, "D"),
-    E: trackState(track, "E")
+    E: trackState(track, "E"),
+    R: trackState(track, "R")
   },
   control_tower_state: {
     program_phase: "PHASE_3_FAST_IMPROVEMENT_BEFORE_REAL_POC",

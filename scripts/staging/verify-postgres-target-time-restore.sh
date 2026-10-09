@@ -15,7 +15,7 @@ export LC_ALL=C
 [[ "$KAIOS_PRODUCTION_PROMOTION_AUTHORIZED" == 'false' ]] || { echo 'production promotion must remain false' >&2; exit 64; }
 [[ "$KAIOS_PITR_BEFORE_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid BEFORE digest' >&2; exit 64; }
 [[ "$KAIOS_PITR_AFTER_MARKER_DIGEST" =~ ^[a-f0-9]{64}$ ]] || { echo 'invalid AFTER digest' >&2; exit 64; }
-for command_name in psql pg_isready; do
+for command_name in psql; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
@@ -27,14 +27,18 @@ if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', value):
 datetime.datetime.fromisoformat(value[:-1] + '+00:00')
 PY
 
-export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
-pg_isready >/dev/null
+if [[ "${KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND:-false}" == true ]]; then
+  unset PGDATABASE
+else
+  export PGDATABASE="$KAIOS_POSTGRES_PITR_RESTORE_DSN"
+fi
 
 probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
   --set="marker=$KAIOS_PITR_BEFORE_MARKER" \
   --set="after_marker=$KAIOS_PITR_AFTER_MARKER" \
   --set="target_time=$KAIOS_PITR_TARGET_TIME" \
-  --command="SELECT json_build_object(
+  --file=- <<'SQL'
+SELECT json_build_object(
     'before_count',(SELECT count(*)::int FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
     'before_digest',(SELECT COALESCE(max(marker_digest),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
     'before_phase',(SELECT COALESCE(max(phase),'') FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'),
@@ -44,7 +48,9 @@ probe_json="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_S
     'force_rls_tables',(SELECT count(*)::int FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='kaios_runtime' AND c.relrowsecurity AND c.relforcerowsecurity),
     'migration_rows',(SELECT count(*)::int FROM kaios_runtime.schema_migrations),
     'endpoint_in_recovery',pg_is_in_recovery()
-  )::text")"
+  )::text;
+SQL
+)"
 
 python3 - "$probe_json" "$KAIOS_PITR_TARGET_TIME" "$KAIOS_PITR_BEFORE_MARKER_DIGEST" "$KAIOS_PITR_AFTER_MARKER_DIGEST" <<'PY'
 import json, sys

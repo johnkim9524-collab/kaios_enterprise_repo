@@ -38,7 +38,7 @@ const AGENT_CLASS_ROLE_MAP = Object.freeze({
   TRACK_C: 'track-c-portal-v502',
   TRACK_D: 'snapshot-publisher',
   TRACK_E: 'qa-release-manager',
-  RED_TEAM: 'incident-manager',
+  RED_TEAM: 'red-team-lead',
   REVIEW_AGENTS: 'editorial-rights-reviewer',
   TEST_AGENTS: 'qa-release-manager',
   RELEASE_AGENTS: 'qa-release-manager',
@@ -66,6 +66,8 @@ const REQUIRED_DOCUMENTS = [
   ['.github/AI_AGENT_OPERATING_RULES.md', 'HUMAN_READABLE_AI_POLICY'],
   ['coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json', 'PLATFORM_CONSTITUTION'],
   ['coordination/kidults/governance/ai-agent-operating-rules-v1.json', 'AI_MACHINE_CONTRACT'],
+  ['coordination/kidults/governance/authority-chain-change-unit-policy-v1.json', 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_POLICY'],
+  ['coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json', 'AUTONOMOUS_CLOSURE_OWNERSHIP_POLICY'],
   ['coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json', 'FIX_FIRST_BOOTSTRAP_SEQUENCE'],
   ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
   ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
@@ -692,7 +694,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.5.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -817,6 +819,10 @@ const currentGithubEventContextBinding = (workingSha) => {
   } else if (eventName === 'push') {
     trustedSha = payload?.after ?? null;
     source = 'push.after';
+  } else if (eventName === 'workflow_run') {
+    // Match the producer's exact triggering-run checkout, not the default branch.
+    trustedSha = payload?.workflow_run?.head_sha ?? null;
+    source = 'workflow_run.head_sha';
   } else {
     trustedSha = process.env.GITHUB_SHA ?? null;
   }
@@ -917,7 +923,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.5.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.7.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -1034,7 +1040,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.5.0',
+  version: '1.7.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,

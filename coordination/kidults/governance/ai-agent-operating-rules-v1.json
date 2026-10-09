@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-operating-rules-v1",
-  "version": "1.8.0",
+  "version": "2.0.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
-  "change_rationale": "Add fail-closed accountability and non-delegation enforcement for KPMO and all other AI agents that evade assigned duties, transfer core accountability to Codex or another helper, or stop at reporting while authorized work remains executable; bind the Agent JD registry into bootstrap and preserve legitimate bounded assistance, exact-evidence review, protected authority gates, and human personnel boundaries.",
+  "change_rationale": "Retain durable root-incident accountability across freshly verified task sessions and permit nonblocking evidence telemetry without repeated Owner approval; preserve all existing identity, authority, and completion gates.",
   "effective_scope": "REPOSITORY_WIDE_ALL_AI_AGENTS_AND_AGENT_DISPATCHING_AUTOMATIONS",
   "effective_after": "MERGE_TO_MAIN",
   "policy_path": ".github/AI_AGENT_OPERATING_RULES.md",
@@ -12,6 +12,8 @@
   "status_receipt_schema_path": "coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json",
   "registry_path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
   "roles_and_responsibilities_path": "coordination/kidults/registry/roles-and-responsibilities.json",
+  "authority_chain_change_unit_policy_path": "coordination/kidults/governance/authority-chain-change-unit-policy-v1.json",
+  "autonomous_closure_ownership_policy_path": "coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json",
   "platform_constitution": {
     "path": "coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json",
     "precedence": "HIGHEST_PLATFORM_OPERATING_PRINCIPLES",
@@ -140,6 +142,18 @@
       "name": "ACCOUNTABILITY_AND_NON_DELEGATION",
       "severity_on_violation": "P1_OPERATING_DEFECT",
       "requirement": "The assigned AI agent retains end-to-end accountability and may use Codex or another helper only for bounded assistance while owning governing context, authorized execution, review, evidence-bound validation, truth-sync, and final reporting."
+    },
+    {
+      "rule_id": "AI-021",
+      "name": "WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "Every material change must use the whole Producer-to-Artifact-to-Autonomous Resolution Layer-to-Requirement-to-Reserve-to-Canonical Truth-to-Producer Health Sentinel authority chain as its change and validation unit; single-file validation or PR checks alone cannot establish completion."
+    },
+    {
+      "rule_id": "AI-022",
+      "name": "AUTONOMOUS_CLOSURE_OWNERSHIP",
+      "severity_on_violation": "P1_OPERATING_DEFECT",
+      "requirement": "One durable root incident and accountable completion owner persist until exact-main whole-chain reproduction and Producer Health Sentinel success. A replacement task session requires a verified checkpoint, fresh bootstrap, existing actor identity and authority checks, previous-writer fencing, and preserved budgets and completed-effect history. Nonblocking evidence telemetry does not end work; routine progress prompts and repeated Owner approval cannot fragment authorized reversible internal responsibility."
     }
   ],
   "governed_states": {
@@ -308,7 +322,8 @@
   "p1_violations": [
     "REPORT_ONLY_WHILE_AUTHORIZED_REVERSIBLE_REMEDIATION_EXECUTABLE",
     "RESPONSIBILITY_EVASION_WITHIN_GRANTED_AUTHORITY",
-    "UNVERIFIED_CORE_DUTY_TRANSFER_TO_CODEX_OR_HELPER"
+    "UNVERIFIED_CORE_DUTY_TRANSFER_TO_CODEX_OR_HELPER",
+    "FRAGMENTED_COMPLETION_OR_ROUTINE_OWNER_REPROMPT"
   ],
   "github_bootstrap_scope": {
     "ai_or_model_agent_instances_required": true,
@@ -327,6 +342,8 @@
     "verified_closure_and_forward_proposal_required": true,
     "global_scale_stewardship_required": true,
     "accountability_and_non_delegation_required": true,
+    "whole_authority_chain_change_unit_required": true,
+    "autonomous_closure_ownership_required": true,
     "confirmed_material_accountability_violation_requires_immediate_dispatch_removal": true,
     "github_canonical_bootstrap_required": true,
     "bootstrap_receipt_before_task_required": true,
@@ -578,5 +595,11 @@
     "architecture_coverage_counts_as_empirical_global_proof": false,
     "authorized_internal_bottleneck_remediation_required": true,
     "scale_claim_requires_measured_evidence": true
+  },
+  "resume_contract": {
+    "mandatory": true,
+    "path": "coordination/kidults/governance/resume-contract-v1.json",
+    "before_any_task_side_effect": true,
+    "external_enforcement_proven_by_policy_alone": false
   }
 }

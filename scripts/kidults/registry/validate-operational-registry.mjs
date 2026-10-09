@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import {parseRegistryJson} from './lib/strict-json-v1.mjs';
 
 const repoRoot = process.cwd();
 const registryRoot = path.join(repoRoot, 'coordination', 'kidults', 'registry');
@@ -9,7 +10,7 @@ const warnings = [];
 
 function readJson(filePath) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return parseRegistryJson(fs.readFileSync(filePath, 'utf8'));
   } catch (error) {
     errors.push(`JSON parse/read failure: ${path.relative(repoRoot, filePath)}: ${error.message}`);
     return null;

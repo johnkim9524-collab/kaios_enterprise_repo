@@ -1,4 +1,6 @@
 name: KIDULTS Atomic Governed Landing V1
+# RECOVERY_ONLY: normal internal reversible landing is delegated to
+# the role-scoped Track / KPMO / Independent Verifier autonomous workflows under AI-020.
 run-name: "KIDULTS Atomic Landing PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.landing_authorization_id }}"
 
 on:
@@ -164,6 +166,7 @@ jobs:
           EXPECTED_HEAD_TREE_SHA: ${{ inputs.expected_head_tree_sha }}
           LANDING_AUTHORIZATION_ID: ${{ inputs.landing_authorization_id }}
           LANDING_ACTOR: ${{ github.actor }}
+          KIDULTS_AUTHORITY_CLASS: OWNER_RESERVED_RECOVERY
           ATOMIC_LANDING_CONSUMPTION_PATH: ${{ runner.temp }}/kidults-atomic-landing-consumption/receipt.json
           LIFECYCLE_AUTHORITY_PATH: ${{ runner.temp }}/kpmo-atomic-landing/lifecycle-authority.json
           ATOMIC_EVENT_TRANSPORT_WAIT_SECONDS: ${{ inputs.event_emitting_transport_wait_seconds }}
@@ -183,7 +186,10 @@ jobs:
           MERGED_AT: ${{ steps.landing.outputs.merged_at }}
           ATOMIC_POSTMERGE_PUSH_SUITE_RECEIPT_PATH: ${{ runner.temp }}/kidults-atomic-landing-postmerge/receipt.json
           POSTMERGE_PUSH_SUITE_POLICY_PATH: coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json
-          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '120'
+          # Canonical generation and its workflow_run consumer are serial. The
+          # previous 120s whole-chain budget expired after the producer passed
+          # but before the exact-SHA consumer could become terminal.
+          POSTMERGE_PUSH_SUITE_WAIT_SECONDS: '300'
         run: node scripts/kidults/kpmo/consume-atomic-postmerge-push-suite-v1.mjs
 
       - name: Checkout exact merged Current-SOLD target

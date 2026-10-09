@@ -15,7 +15,11 @@ function validate(prep, assurance) {
   const auditJob=assurance.match(/^  audit:\n([\s\S]*)$/m)?.[1]||'';
   need(assurance,"- 'KIDULTS ASI Intelligence Preparation Wave v1'",'Continuous Assurance producer watch');
   need(auditGate,"(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository",'cancellation-aware workflow_run audit gate');
-  reject(auditGate,"github.event.workflow_run.conclusion == 'success'",'success-only workflow_run audit gate');
+  const successOnlyGate="github.event.workflow_run.conclusion == 'success'";
+  const exactSentinelGate="github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'";
+  if(auditGate.includes(successOnlyGate) && !auditGate.includes(exactSentinelGate)){
+    failures.push('forbidden success-only workflow_run audit gate');
+  }
   need(auditJob,"KPMO_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion || '' }}",'native and forwarded upstream conclusion receipt');
   need(auditJob,'KPMO_TERMINAL_OBSERVATION_NON_DEDUPABLE','terminal observation dedupe bypass receipt');
   need(auditJob,'resolve-continuous-assurance-ephemeral-guard-v1.mjs','canonical guard execution');
@@ -32,7 +36,7 @@ if(failures.length){console.error('Intelligence Preparation assurance coverage: 
 const mutations=[
   [prep.replace("group: kidults-asi-intelligence-preparation-wave-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}","group: kidults-asi-intelligence-preparation-wave-v1-${{ github.ref }}"),assurance],
   [prep,assurance.replace("      - 'KIDULTS ASI Intelligence Preparation Wave v1'\n",'')],
-  [prep,assurance.replaceAll("(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository","(github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' &&\n       (github.event.workflow_run.repository.full_name == github.repository")]
+  [prep,assurance.replace("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&\n        github.event.workflow_run.status == 'completed' &&","github.event.workflow_run.name == 'UNTRUSTED SUCCESS-ONLY WORKFLOW' &&\n        github.event.workflow_run.status == 'completed' &&")]
 ];
 for(const [mp,ma] of mutations){if(validate(mp,ma).length===0){console.error('mutation not rejected');process.exit(1)}}
 console.log(JSON.stringify({status:'VERIFIED_PASS',control:'INTELLIGENCE_PREPARATION_CANCELLATION_AWARE_ASSURANCE',mutation_cases_rejected:mutations.length,production:'HOLD',public_release:'HOLD'},null,2));

@@ -7,7 +7,7 @@
     "coordination/kidults/registry/projection/index.json",
     "coordination/kidults/registry/projection/records/projection-agci-os-current-v1.json"
   ],
-  "generated_at": "2026-08-19T01:45:29.861Z",
+  "generated_at": "2026-10-08T11:07:59.994Z",
   "registry_system_version": "2.0.0",
   "catalog_revision": "2.2.0",
   "program_status": "ACTIVE",
@@ -158,7 +158,8 @@
     "B": "WAITING_FOR_EXACT_IMMUTABLE_PACKAGE",
     "C": "ACTIVE",
     "D": "SHADOW_RUNTIME_FOUNDATION_ACTIVE",
-    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE"
+    "E": "FOUNDATION_COMPLETE_INTEGRATION_ACTIVE",
+    "R": "IMPLEMENTED_NOT_VERIFIED"
   },
   "control_tower_state": {
     "program_phase": "PHASE_3_FAST_IMPROVEMENT_BEFORE_REAL_POC",
@@ -252,10 +253,10 @@
   },
   "freshness": {
     "status": "CURRENT_CANONICAL_BASELINE",
-    "source_projection_generated_at": "2026-08-19T01:45:29.768Z",
-    "source_track_registry_version": "1.6.0",
+    "source_projection_generated_at": "2026-10-08T11:07:51.356Z",
+    "source_track_registry_version": "1.7.0",
     "source_blocker_registry_version": "1.4.0",
     "policy_baseline": "coordination/kidults/kpmo/policy-platform-alignment-baseline-v1.md",
-    "as_of": "2026-08-19T01:45:29.861Z"
+    "as_of": "2026-10-08T11:07:59.994Z"
   }
 }

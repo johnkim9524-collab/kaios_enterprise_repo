@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
@@ -26,6 +27,20 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with: {persist-credentials: false}
+      - name: Reject stale scheduled or manual source SHA
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          CURRENT_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test -n "$CURRENT_PROTECTED_MAIN_SHA"
+          if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error title=Stale scheduled source::STALE_SCHEDULE_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: '24.19.0'}
       - name: Verify exact source and provenance guard
@@ -35,6 +50,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs
 
       # PRs prove the producer-selection contract and negative mutations above.
       # Live producer consumption is schedule/manual only because a fresh PR base SHA
@@ -177,6 +193,24 @@ jobs:
             /tmp/asi-throughput-coverage-autobalance-live-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-live-v1.json
 
+      - name: Recheck exact protected main before artifact finalization
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FINAL_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test -n "$FINAL_PROTECTED_MAIN_SHA"
+          if [ "$FINAL_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error title=Protected main advanced during autobalance::STALE_FINALIZATION_SOURCE_SHA:${GITHUB_SHA}:${FINAL_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
+          if [ "$AUTOBALANCE_EXPECTED_PRODUCER_SHA" != "$FINAL_PROTECTED_MAIN_SHA" ]; then
+            echo "::error title=Producer generation no longer matches protected main::FINAL_PRODUCER_SHA_MISMATCH:${AUTOBALANCE_EXPECTED_PRODUCER_SHA}:${FINAL_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
+          echo "FINAL_PROTECTED_MAIN_SHA=$FINAL_PROTECTED_MAIN_SHA" >> "$GITHUB_ENV"
       - name: Emit exact producer provenance receipt
         if: github.event_name != 'pull_request'
         shell: bash
@@ -200,6 +234,9 @@ jobs:
           if (process.env.AUTOBALANCE_HOURLY_SOURCE_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
             throw new Error('PRODUCER_SHA_MISMATCH');
           }
+          if (process.env.FINAL_PROTECTED_MAIN_SHA !== process.env.GITHUB_SHA || process.env.FINAL_PROTECTED_MAIN_SHA !== process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA) {
+            throw new Error('FINAL_PROTECTED_MAIN_SHA_MISMATCH');
+          }
           for (const key of ['AUTOBALANCE_META_DIGEST', 'AUTOBALANCE_DISC_DIGEST']) {
             if (!/^sha256:[0-9a-f]{64}$/.test(process.env[key])) throw new Error(`INVALID_${key}`);
           }
@@ -208,6 +245,7 @@ jobs:
             status: 'VERIFIED_EXACT_PRODUCER_BINDING',
             binding_mode: process.env.AUTOBALANCE_BINDING_MODE,
             consumer_source_sha: process.env.GITHUB_SHA,
+            final_protected_main_sha: process.env.FINAL_PROTECTED_MAIN_SHA,
             expected_producer_sha: process.env.AUTOBALANCE_EXPECTED_PRODUCER_SHA,
             producer: {
               repository: process.env.GITHUB_REPOSITORY,

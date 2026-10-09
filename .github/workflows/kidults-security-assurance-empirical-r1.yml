@@ -1,10 +1,15 @@
 name: KIDULTS Security Assurance Empirical R1
 on:
+  push:
+    branches: [main]
   pull_request:
     paths:
       - ".github/workflows/kidults-security-assurance-empirical-r1.yml"
       - ".github/workflows/**"
       - "scripts/kidults/kpmo/validate-security-assurance-bootstrap-lock-v1.mjs"
+      - "scripts/kidults/kpmo/emit-security-runtime-domain-receipt-v1.mjs"
+      - "scripts/kidults/kpmo/lib/security-runtime-domain-producer-v1.mjs"
+      - "tests/kidults/kpmo/security-runtime-domain-producer-v1.test.mjs"
       - "requirements*.txt"
       - "package*.json"
       - "**/package.json"
@@ -187,7 +192,7 @@ jobs:
             [ -n "$req" ] || continue
             count=$((count+1))
             safe=$(echo "$req" | tr '/.' '__')
-            if ! python -m pip_audit -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
+            if ! python -m pip_audit --disable-pip --no-deps -r "$req" -f json -o "/tmp/kidults-security-r1/pip-audit/${safe}.json"; then failed=$((failed+1)); fi
           done <<< "$reqs"
           python - "$count" "$failed" <<'PY'
           import json,sys,pathlib
@@ -228,6 +233,19 @@ jobs:
           const report={id:'kidults-security-assurance-empirical-r1',production:'HOLD',dependency_inventory:read('inventory-summary.json'),secret_scan:read('secret-scan.json'),npm_audit:read('npm-audit-summary.json'),pip_audit:read('pip-audit-summary.json'),pip_audit_bootstrap:read('pip-audit-bootstrap.json'),source_integrity_manifest_sha256:integ,vulnerability_response_owner:'REGISTERED',truth_boundary:'This is pre-production repository and dependency assurance evidence. It is not a penetration test, external infrastructure security assessment, legal/privacy clearance, or Production authorization.'};
           fs.writeFileSync(`${root}/security-assurance-report.json`,JSON.stringify(report,null,2));
           NODE
+
+      - name: Emit native exact-main security runtime evidence
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: node scripts/kidults/kpmo/emit-security-runtime-domain-receipt-v1.mjs /tmp/kidults-security-r1
+
+      - name: Upload native domain evidence
+        if: success() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: kidults-security-runtime-domain-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-security-r1
+          if-no-files-found: error
+          retention-days: 30
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()

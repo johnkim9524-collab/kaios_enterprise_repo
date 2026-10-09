@@ -2,6 +2,8 @@ name: KIDULTS ASI Discovery Batch 001
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 1 * * 1,4'
 
 permissions:
   contents: read

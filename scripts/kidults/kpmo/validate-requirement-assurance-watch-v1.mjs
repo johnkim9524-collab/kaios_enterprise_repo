@@ -30,13 +30,14 @@ function validate(text) {
     "REQUIREMENT_UPSTREAM_CONCLUSION: ${{ inputs.coverage_run_id != '' && 'success' || github.event.workflow_run.conclusion }}",
     '^(success|failure|cancelled|timed_out|action_required|neutral|skipped|stale)$',
     '/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}',
-    '(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))',
+    '(.event=="workflow_run" and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name)))',
+    '(.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name)',
     '.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"',
     '.repository.full_name==$repo',
     '.run_attempt==$attempt',
     '.head_branch=="main"',
     'and .head_sha==$sha',
-    'and .event=="workflow_run"',
+    'and (.event=="workflow_run" or .event=="workflow_dispatch")',
     '.status=="completed"',
     '.conclusion==$conclusion',
     '/actions/runs/${REQUIREMENT_UPSTREAM_RUN_ID}/artifacts?per_page=100',
@@ -67,6 +68,8 @@ function validate(text) {
     'observe-continuous-assurance-coverage-alias-v1.mjs'
   ];
   for (const marker of required) if (!block.includes(marker)) fail(`REQUIREMENT_MARKER_MISSING:${marker}`);
+  const sentinelBarrier = "if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')";
+  if (!text.includes(sentinelBarrier)) fail('SENTINEL_CHAIN_BARRIER_MISSING');
   const continuationRequired = [
     'coverage_run_id:',
     'coverage_dispatch_artifact_digest:',
@@ -85,19 +88,23 @@ function validate(text) {
   for (const marker of continuationRequired) if (!text.includes(marker)) fail(`CONTINUATION_MARKER_MISSING:${marker}`);
   if (block.includes('{status:"VERIFIED_PASS"')) fail('REQUIREMENT_HARD_CODED_PASS_FORBIDDEN');
   const header = text.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1] || '';
-  if (/workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header)) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
+  const hasSuccessOnlyGate = /workflow_run\.conclusion\s*==\s*['"]success['"]/.test(header);
+  const hasExactSentinelGate = header.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'");
+  if (hasSuccessOnlyGate && !hasExactSentinelGate) fail('SUCCESS_ONLY_FILTER_FORBIDDEN');
+
 }
 
 validate(source);
 
 const block = extractStep(source, 'Validate exact Requirement Coverage upstream evidence binding');
 const mutations = [
-  ['(.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name))', 'true'],
+  ['(.event=="workflow_run" and (.name=="KIDULTS ASI Requirement-to-Adapter Coverage v1" or (.name==("KIDULTS Coverage / source-"+$sha) and .display_title==.name)))', 'true'],
+  ['(.event=="workflow_dispatch" and .name==("KIDULTS Coverage / manual-"+($run|tostring)) and .display_title==.name)', 'true'],
   ['GH_TOKEN: ${{ github.token }}\n', ''],
   ['.path==".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"', '.path!=".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml"'],
   ['and .head_sha==$sha', 'and .head_sha!=$sha'],
   ['.run_attempt==$attempt', '.run_attempt!=$attempt'],
-  ['and .event=="workflow_run"', 'and .event!="workflow_run"'],
+  ['and (.event=="workflow_run" or .event=="workflow_dispatch")', 'and true'],
   ['test "$REQUIREMENT_ARTIFACT_COUNT" -eq 1', 'test "$REQUIREMENT_ARTIFACT_COUNT" -ge 1'],
   ['REQUIREMENT_BINDING_STATUS=VERIFIED_FAIL', 'REQUIREMENT_BINDING_STATUS=VERIFIED_PASS'],
   ['{status:$status', '{status:"VERIFIED_PASS"'],
@@ -115,7 +122,7 @@ for (const [from, to] of mutations) {
 }
 
 const sourceMutations = [
-  ["(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')", "(github.event_name == 'workflow_dispatch' && inputs.coverage_run_id == '')"],
+  ["if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id != '')", "if: github.event_name == 'repository_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.coverage_run_id == '')"],
   ['PARTIAL_COVERAGE_CONTINUATION_INPUTS_FORBIDDEN', 'PARTIAL_INPUTS_ACCEPTED'],
   ['validate-kir-coverage-assurance-continuation-v1.mjs consume', 'validate-kir-coverage-assurance-continuation-v1.mjs issue'],
   ['--argjson prior "$PRIOR_CONSUMPTION_COUNT"', '--argjson prior "0"'],

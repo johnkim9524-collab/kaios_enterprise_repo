@@ -1,0 +1,30 @@
+{
+  "id": "kidults-development-scope-correction-v1",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "pull_request": 2620,
+  "parent_sha": "5c6bb0d2158c65a6117ac17ff6d39c6df57a14c5",
+  "base_sha": "24fae4bfd7c2383ee5719bb9aeade71bb17a43ec",
+  "reason": "NORMAL_DISPATCHER_CAPABILITY_REJECTION",
+  "evidence_run_id": 37864117663,
+  "removed_changes": [
+    "WORKFLOW_PERMISSION_AND_TOKEN_ADDITIONS",
+    "WORKFLOW_TRIGGER_PATH_ADDITIONS",
+    "WORKFLOW_ALWAYS_UPLOAD_ADDITION"
+  ],
+  "preserved_changes": [
+    "AUTHENTICATED_NATIVE_INPUT_PRECONDITION",
+    "BOUNDARY_REGRESSION_THROUGH_EXISTING_CI_ENTRY_POINT"
+  ],
+  "remaining_blockers": [
+    "READ_ONLY_ARTIFACT_ACCESS_NOT_CONNECTED",
+    "LAWFUL_CURRENT_SOLD_AND_LIQUIDITY_INPUT_MISSING",
+    "THIRTEEN_NATIVE_RUNTIME_PRODUCERS_NOT_REGISTERED"
+  ],
+  "revised_pr_body": "A manifest claiming native business input could continue into Candidate/Evidence processing even when the connector returned HOLD. Require a verified exact-source connector result before reading that pair, and run the two boundary regressions through the existing CI test entry point.\n\nValidation: the existing business-input CI entry point passed 57 checks; the exact-pair regression including 27 negative checks passed. Primary semantic capability verification and independent capability verification both pass against main 24fae4bfd7c2383ee5719bb9aeade71bb17a43ec. Rollback: revert this change.\n\nThe workflow permission/token/path changes in the initial Draft were removed after the normal Dispatcher rejected their capability delta. The missing read-only artifact access remains unresolved; no workflow permissions or protected gates are changed by this revision.\n\nScope: reversible internal connection hardening for AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION. No producer is registered, provider data acquired, remote storage authorized, or domain certified. Lawful current transaction/liquidity input and native domain producers remain missing. Production/Public/G5/provider activation remain HOLD.",
+  "authority_granted": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

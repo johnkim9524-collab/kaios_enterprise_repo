@@ -1,11 +1,18 @@
 import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {
+  evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
+} from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
-const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
-const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
-const atomic = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
-const postMergeConsumer = fs.readFileSync('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs', 'utf8');
+const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
+const runner = text('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs');
+const landedLifecycleVerifier = text('scripts/kidults/kpmo/verify-direct-owner-postmerge-lifecycle-v1.mjs');
+const landedLifecycleLibrary = text('scripts/kidults/kpmo/lib/direct-owner-postmerge-lifecycle-v1.mjs');
+const atomic = text('.github/workflows/kidults-atomic-governed-landing-v1.yml');
+const postMergeConsumer = text('scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs');
 const postMergePolicy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json', 'utf8'));
 
 function assertUnfilteredMainPush(requiredWorkflow, name) {
@@ -50,7 +57,8 @@ function loadProductionApprovalParser() {
 
 test('direct-owner handoff separates status authorization from the event-emitting merge', () => {
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /issue_comment:\n    types: \[created, edited, deleted\]/);
+  assert.match(workflow, /issue_comment:\n(?:    #[^\n]*\n)*    types: \[edited, deleted\]/);
+  assert.doesNotMatch(workflow, /types: \[[^\]]*created/);
   assert.match(workflow, /statuses: write/);
   assert.match(workflow, /contents: read/);
   assert.match(workflow, /pull-requests: read/);
@@ -81,7 +89,30 @@ test('handoff is exact-head, direct-owner, unedited, expiring and fail-closed', 
   assert.match(runner, /await publish\('failure'/);
 });
 
-test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
+test('internal app-authored PR provenance is distinct from exact Owner landing authority', () => {
+  assert.doesNotMatch(runner, /pr\.user\?\.login !== owner/);
+  assert.match(runner, /assertInternalPullRequestOrigin\(pr, repository\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED/);
+  assert.match(runner, /change_origin_actor: changeOrigin\.actor/);
+  assert.match(runner, /comment\?\.user\?\.login !== repositoryOwner/);
+  assert.match(runner, /actor !== owner/);
+
+  const start = runner.indexOf('function assertInternalPullRequestOrigin(');
+  const end = runner.indexOf('\n}\n\nconst approvalKeys', start) + 2;
+  assert.ok(start >= 0 && end > start, 'production origin validator source unavailable');
+  const validate = new Function('fail', `${runner.slice(start, end)}\nreturn assertInternalPullRequestOrigin;`)(code => {
+    const error = new Error(code);
+    error.code = code;
+    throw error;
+  });
+  const repository = 'johnkim9524-collab/kaios_enterprise_repo';
+  assert.equal(validate({user: {login: 'johnkim9524-collab', type: 'User'}, head: {repo: {full_name: repository}}}, repository).actor,
+    'johnkim9524-collab');
+  assert.equal(validate({user: {login: 'Copilot', type: 'Bot'}, head: {repo: {full_name: repository}}}, repository).actor,
+    'Copilot');
+  assert.throws(() => validate({user: {login: 'Copilot', type: 'Bot'}, head: {repo: {full_name: 'attacker/fork'}}}, repository),
+    /DIRECT_OWNER_HANDOFF_INTERNAL_HEAD_REQUIRED/);
+});test('production approval parser accepts g5 and rejects unknown or duplicate digit-bearing keys', () => {
   const {approvalKeys, parseApproval} = loadProductionApprovalParser();
   const approval = [
     'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2',
@@ -156,26 +187,30 @@ test('dispatch actor is verified before any governed status mutation', () => {
   assert.ok(actorGuard >= 0 && actorGuard < firstPublish);
 });
 
-test('post-window merge classification revalidates approval, ready event, head and current main', () => {
+test('post-window trusted-base classification preserves transport facts and landed main revalidates lifecycle semantics', () => {
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const approvalRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_APPROVAL_DRIFT_AFTER_WINDOW');
-  const readyRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_READY_EVENT_DRIFT_AFTER_WINDOW');
+  const approvalRecheck = runner.indexOf('assertApprovalCommentUnchanged(afterComments, owner, approval)');
   const headRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGED_HEAD_DRIFT');
   const mainRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_MERGE_NOT_CURRENT_MAIN');
   assert.ok(sleepIndex >= 0);
   const treeRecheck = runner.indexOf('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
-  for (const index of [approvalRecheck, readyRecheck, treeRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+  for (const index of [approvalRecheck, treeRecheck, headRecheck, mainRecheck]) assert.ok(index > sleepIndex);
+  assert.doesNotMatch(runner.slice(sleepIndex), /selectLatestLifecycleReadyEvent/,
+    'stale pre-merge implementation must not reinterpret the post-merge lifecycle');
+  assert.match(workflow, /Verify post-merge lifecycle with exact landed implementation/);
+  assert.match(workflow, /node scripts\/kidults\/kpmo\/verify-direct-owner-postmerge-lifecycle-v1\.mjs/);
+  assert.match(landedLifecycleVerifier, /verifyDirectOwnerPostmergeLifecycle/);
+  assert.match(landedLifecycleLibrary, /selectLatestLifecycleReadyEvent/);
+  assert.match(landedLifecycleLibrary, /DIRECT_OWNER_POSTMERGE_READY_BOUNDARY_DRIFT/);
 });
 
-test('post-window approval reconciliation does not require a second future handoff window', () => {
-  assert.match(runner, /function selectApproval\(comments, repositoryOwner, pr, headCommit, readyEvent, \{/);
-  assert.match(runner, /phase = 'pre_window'/);
-  assert.match(runner, /phase === 'pre_window' && now > expiresAt/);
-  assert.match(runner, /phase === 'pre_window' && expiresAt - now < handoffWindowSeconds \* 1000/);
-  assert.match(runner, /phase: 'post_window',\s+landingAttemptStartedAt/);
+test('post-window approval reconciliation is immutable and does not reinterpret authorization', () => {
+  assert.match(runner, /function assertApprovalCommentUnchanged\(comments, repositoryOwner, approval\)/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_DELETED_AFTER_WINDOW/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_BODY_DRIFT_AFTER_WINDOW/);
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
-  const postPhaseIndex = runner.indexOf("phase: 'post_window'", sleepIndex);
-  assert.ok(postPhaseIndex > sleepIndex, 'post-window selector must explicitly bypass only future-window TTL demand');
+  const immutableRecheck = runner.indexOf('assertApprovalCommentUnchanged(afterComments, owner, approval)', sleepIndex);
+  assert.ok(immutableRecheck > sleepIndex);
 });
 
 test('head tree is explicit in input, structured approval, receipt, preflight and window readbacks', () => {
@@ -193,16 +228,18 @@ test('head tree is explicit in input, structured approval, receipt, preflight an
 
 test('consumed merge is explicitly bounded to opened window and approval expiry', () => {
   const mergedBranch = runner.indexOf('if (after?.merged === true)');
+  const guard = runner.indexOf('verifyDirectOwnerMergeWindow({mergedAt: after?.merged_at');
+  assert.ok(guard > mergedBranch && guard < runner.indexOf("state: 'CONSUMED_BY_DIRECT_OWNER_MERGE'"));
+  const helper = fs.readFileSync('scripts/kidults/kpmo/lib/direct-owner-merge-window-v1.mjs', 'utf8');
   for (const code of [
     'DIRECT_OWNER_HANDOFF_MERGE_BEFORE_WINDOW_OPEN',
     'DIRECT_OWNER_HANDOFF_MERGE_AFTER_WINDOW',
     'DIRECT_OWNER_HANDOFF_MERGE_AFTER_APPROVAL_EXPIRY',
   ]) {
-    const index = runner.indexOf(code);
-    assert.ok(index > mergedBranch, `${code} must be enforced inside merged classification`);
+    assert.ok(helper.includes(code), `${code} must be enforced by the consumed interval guard`);
   }
-  assert.match(runner, /const closesAtMs = openedAtMs \+ handoffWindowSeconds \* 1000/);
-  assert.match(runner, /const approvalExpiresAtMs = parseTime\(approval\.expires_at/);
+  assert.match(runner, /openedAt, handoffWindowSeconds, approvalExpiresAt: approval\.expires_at/);
+  assert.match(helper, /const closes = opened \+ handoffWindowSeconds \* 1000/);
 });
 
 test('terminal Handoff consumption is followed by exact merge-SHA push-suite consumption before artifact upload', () => {
@@ -216,6 +253,7 @@ test('terminal Handoff consumption is followed by exact merge-SHA push-suite con
   assert.match(workflow, /ref: \$\{\{ steps\.handoff\.outputs\.merge_sha \}\}/);
   assert.match(workflow, /clean: false/);
   assert.match(workflow, /Verify exact landed implementation and retained handoff receipt/);
+  assert.match(workflow, /Verify post-merge lifecycle with exact landed implementation/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$MERGE_SHA"/);
   assert.match(workflow, /node scripts\/kidults\/kpmo\/consume-direct-owner-postmerge-push-suite-v1\.mjs/);
   assert.match(workflow, /required_failure_count === 1/);
@@ -245,13 +283,13 @@ test('post-merge suite policy binds core protected-main push controls and preser
 
 test('every required post-merge workflow is guaranteed to run on every main push', () => {
   for (const {path: workflowPath, name} of postMergePolicy.required_workflows) {
-    assertUnfilteredMainPush(fs.readFileSync(workflowPath, 'utf8'), name);
+    assertUnfilteredMainPush(text(workflowPath), name);
   }
 });
 
 test('a path-filtered required main-push workflow is rejected', () => {
   const workflowPath = '.github/workflows/kidults-p0-control-plane-closure-v1.yml';
-  const requiredWorkflow = fs.readFileSync(workflowPath, 'utf8');
+  const requiredWorkflow = text(workflowPath);
   const weakened = requiredWorkflow.replace('    branches: [main]\n',
     "    branches: [main]\n    paths:\n      - 'scripts/kidults/**'\n");
   assert.throws(() => assertUnfilteredMainPush(weakened, 'synthetic weakened P0'), /cannot be path-filtered/);
@@ -269,4 +307,45 @@ test('post-merge consumer rejects PR-head reuse, nonterminal, cancelled and ambi
   assert.match(postMergeConsumer, /state: 'CONSUMED_EXACT_MERGE_SHA_PUSH_SUITE'/);
   assert.match(postMergeConsumer, /post_merge_push_suite_consumed: true/);
   assert.match(postMergeConsumer, /promotion_eligible: false/);
+});
+
+
+// Execute the actual production call site, not a duplicate of its wiring.
+function productionHandoffRunSet(index) {
+  const start = runner.indexOf('  const oneUseOptions = {');
+  const end = runner.indexOf('\n  const solo = ', start);
+  assert.ok(start >= 0 && end > start, 'production reconciliation call site missing');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction('workflowRuns', 'reconcileAtomicLandingCurrentRunIndex',
+    'evaluateAtomicLandingOneUseRunSet', 'currentRun', 'runId', 'runAttempt',
+    'expectedRunName', 'expectedBaseSha', 'approval',
+    `${runner.slice(start, end)}\nreturn oneUse;`);
+  const currentRun = {
+    id: 37328881683, run_attempt: 1, workflow_id: 350643082,
+    event: 'workflow_dispatch', head_branch: 'main',
+    display_title: 'KIDULTS Direct Owner Handoff PR #2575 @ ' + 'a'.repeat(40) + ' / DIRECT-PR-2575-aaaaaaaaaaaa',
+    head_sha: 'b'.repeat(40), status: 'in_progress', conclusion: null,
+    created_at: '2026-10-05T14:57:09Z',
+  };
+  return execute(async () => index(currentRun), reconcileAtomicLandingCurrentRunIndex,
+    evaluateAtomicLandingOneUseRunSet, currentRun, currentRun.id, 1,
+    currentRun.display_title, currentRun.head_sha, {comment_created_at: '2026-10-05T14:50:00Z'});
+}
+
+test('Direct Owner production call site admits exactly one current run when the index omits it', async () => {
+  const result = await productionHandoffRunSet(() => []);
+  assert.equal(result.matching_run_count, 1);
+  assert.equal(result.matching_run_id, 37328881683);
+  assert.equal(result.bounded_attempt_ordinal, 1);
+});
+
+test('Direct Owner production call site rejects conflicting index identity', async () => {
+  await assert.rejects(productionHandoffRunSet(current => [{...current, event: 'push'}]),
+    /ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH/);
+});
+
+test('Direct Owner production call site keeps prior successful authorization consumed', async () => {
+  await assert.rejects(productionHandoffRunSet(current => [{...current,
+    id: current.id - 1, status: 'completed', conclusion: 'success'}]),
+  /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
 });

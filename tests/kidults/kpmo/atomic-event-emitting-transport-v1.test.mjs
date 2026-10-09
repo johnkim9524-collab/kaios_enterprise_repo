@@ -222,7 +222,8 @@ test('terminal reconciler preserves a classified pre-consumption transport failu
         ATOMIC_POSTMERGE_PUSH_SUITE_OUTCOME: 'skipped',
       },
     });
-    assert.equal(result.status, 0, result.stderr);
+    // Retain the transport failure, and propagate that failure to the workflow.
+    assert.equal(result.status, 1, result.stderr);
     const terminalReceipt = JSON.parse(fs.readFileSync(terminalPath, 'utf8'));
     assert.equal(terminalReceipt.version, '2.5.0');
     assert.equal(terminalReceipt.state, 'MERGE_REJECTED');

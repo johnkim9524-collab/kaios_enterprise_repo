@@ -1,0 +1,50 @@
+{
+  "id": "kidults-staging-shadow-vertical-cycle-receipt-v1",
+  "observed_at": "2026-09-21T16:00:00.000Z",
+  "execution_mode": "LOCAL_SHADOW_NO_FETCH",
+  "protected_main_sha": "598ebea42f14730e1227c4af711238ff8b0d30b5",
+  "cycles": [
+    {
+      "verified": true,
+      "evidence_uri": "evidence://staging/staging-operations/shadow-cycle-1/f6e467335f8b0c1873bd4324c7157b2dfed66927f3933e275987e3a37e68d579.json",
+      "receipt_digest": "sha256:f620989e0ed5c110a05b7242bddde097a6d0ab9abb608933512c5b48876bad24",
+      "version_id": "266c4a952400110f9dda775601966059",
+      "signature_verified": true,
+      "readback_verified": true,
+      "state": "COMPLETE_VERIFIED",
+      "task_id": "shadow-cycle-1"
+    },
+    {
+      "verified": true,
+      "evidence_uri": "evidence://staging/staging-operations/shadow-cycle-2/c6033aa8f0d2de439d5775693bf0274ef0ae9dcacd8e1f0f0d2a41d6a7fcb10d.json",
+      "receipt_digest": "sha256:c5d0bbc5aae38f417d97d3f1a7a12012ddb3dd00fa2f5ef2f6ed02ea357d782c",
+      "version_id": "b22d146f75f345ce7b24e6dbac4af94e",
+      "signature_verified": true,
+      "readback_verified": true,
+      "state": "COMPLETE_VERIFIED",
+      "task_id": "shadow-cycle-2"
+    },
+    {
+      "verified": true,
+      "evidence_uri": "evidence://staging/staging-operations/shadow-cycle-3/330b42ec94685270d50088d3d0e58d190e18653b7bf7a4533f8b2df9a5694047.json",
+      "receipt_digest": "sha256:e4947d9cd6da0c9cd022fe23686dfc8fe888228b94a99d0f711cb6c362387b76",
+      "version_id": "bfbeed42f737e4531ff9a495c40214f0",
+      "signature_verified": true,
+      "readback_verified": true,
+      "state": "COMPLETE_VERIFIED",
+      "task_id": "shadow-cycle-3"
+    }
+  ],
+  "consecutive_complete_verified": 3,
+  "ledger_transition_count": 12,
+  "ledger_evidence_one_to_one": true,
+  "external_provider_requests": 0,
+  "postgres_adapter": "NOT_EXECUTED_LOCAL_MEMORY_CONTRACT_ONLY",
+  "aws_adapter": "NOT_EXECUTED_LOCAL_ED25519_AND_IMMUTABLE_STORE_CONTRACT_ONLY",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "usb": "PENDING_PHYSICAL_MEDIA",
+  "state": "LOCAL_SHADOW_COMPLETE_VERIFIED",
+  "receipt_digest": "sha256:6cb073ef2598d579a88daf467b143a8329c97920604a9ad357bde25adf9dda68"
+}

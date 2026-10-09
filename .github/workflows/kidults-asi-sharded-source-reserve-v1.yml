@@ -1,9 +1,9 @@
 name: KIDULTS ASI Sharded Source Reserve v1
 
 on:
+  repository_dispatch:
+    types: [kidults.natural.clock.reserve.v1]
   workflow_dispatch:
-  schedule:
-    - cron: '29 * * * *'
   push:
     branches: [main]
     paths:
@@ -40,7 +40,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
+  group: kidults-asi-sharded-source-reserve-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || 'NA' }}
   cancel-in-progress: true
 
 jobs:
@@ -49,7 +49,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -98,11 +98,11 @@ jobs:
           node scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs
 
   rolling-live-reserve:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'RESERVE') || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
-      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -150,11 +150,40 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-sharded-source-reserve-provenance-v1.mjs
           node - <<'NODE'
           const fs=require('fs');const p=fs.readFileSync('.github/workflows/kidults-asi-sharded-source-reserve-v1.yml','utf8');
-          for(const marker of ['workflow_dispatch:','schedule:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          for(const marker of ['repository_dispatch:','workflow_dispatch:','push:','workflow_run:'])if(!p.includes(marker))throw new Error(`MISSING_AUTONOMOUS_TRIGGER:${marker}`);
+          if(/^  schedule:/m.test(p))throw new Error('RESERVE_MUST_NOT_HAVE_INDEPENDENT_NATIVE_SCHEDULE');
           const c=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json','utf8'));
           if(JSON.stringify(c.constitutional_order)!==JSON.stringify(['AUTONOMOUS','GLOBAL','IRREPLACEABLE_VALUE','TRANSPARENT']))throw new Error('PLATFORM_PRINCIPLE_ORDER');
           if(c.autonomous_activation_rule?.manual_only_normal_activation_forbidden!==true)throw new Error('MANUAL_ONLY_NOT_FORBIDDEN');
           NODE
+      - name: Verify independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: kidults-autonomous-landing-staging[bot]
+          KIDULTS_NATURAL_CLOCK_SLOT: RESERVE
+        run: |
+          set -euo pipefail
+          if ! KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_READ_FAILED' >&2
+            exit 1
+          fi
+          if ! [[ "$KIDULTS_LIVE_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_RESPONSE_INVALID' >&2
+            exit 1
+          fi
+          export KIDULTS_LIVE_MAIN_SHA
+          test "$EXPECTED_SHA" = "$KIDULTS_LIVE_MAIN_SHA"
+          node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
+          test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
+      - name: Preserve independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-natural-clock-reserve-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-natural-clock-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Restore producer-bound discovery and previous successful reserve
         env:
           GH_TOKEN: ${{ github.token }}
@@ -210,27 +239,50 @@ jobs:
             test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"
             DISCOVERY_RUN_ID="$UPSTREAM_RUN_ID"
           else
-            RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
-              -f branch=main -f status=success -f per_page=100 \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
-            DISCOVERY_RUN_ID="$(jq -r --arg sha "$TARGET_SHA" \
-              '[.workflow_runs[] | select(.head_sha==$sha and .conclusion=="success")] | sort_by(.updated_at) | reverse | .[0].id // empty' \
-              <<<"$RUNS")"
-            if [ -z "$DISCOVERY_RUN_ID" ]; then
-              echo "no successful v2 discovery producer exists on exact target SHA ${TARGET_SHA}; emitting WAITING/HOLD receipt"
-              {
-                echo "KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER"
-                echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=NONE"
-                echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${TARGET_SHA}"
-                echo "KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID=NONE"
-                echo "KIDULTS_RESERVE_PREVIOUS_RUN_ID=NONE"
-                echo "KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID=NONE"
-                echo "KIDULTS_RESERVE_VALIDATION_ONLY=${VALIDATION_ONLY}"
-              } >> "$GITHUB_ENV"
-              exit 0
-            fi
+            # Natural Reserve dispatches are independent clock observations. Do
+            # not consume an older pool or emit an immediate HOLD while the
+            # exact-main Pooling producer is still queued/running. Poll the
+            # workflow-specific exact-SHA index until success or a terminal
+            # producer failure; this makes Pooling -> Reserve an enforced
+            # read-after-write boundary.
+            DISCOVERY_RUN_ID=""
+            DISCOVERY_WAIT_DEADLINE=$((SECONDS + 2100))
+            while :; do
+              # no successful v2 discovery producer exists on exact target SHA until this read observes one.
+              RUNS="$(gh api --method GET -H 'Accept: application/vnd.github+json' \
+                -f branch=main -f head_sha="$TARGET_SHA" -f per_page=100 -f page=1 \
+                "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml/runs")"
+              LATEST="$(jq -c --arg sha "$TARGET_SHA" \
+                '[.workflow_runs[] | select(.head_branch=="main" and .head_sha==$sha and (.event=="schedule" or .event=="workflow_dispatch" or .event=="repository_dispatch"))] | sort_by(.created_at) | reverse | .[0] // empty' \
+                <<<"$RUNS")"
+              if [ -n "$LATEST" ]; then
+                DISCOVERY_RUN_ID="$(jq -r '.id' <<<"$LATEST")"
+                DISCOVERY_STATUS="$(jq -r '.status' <<<"$LATEST")"
+                DISCOVERY_CONCLUSION="$(jq -r '.conclusion // empty' <<<"$LATEST")"
+                if [ "$DISCOVERY_STATUS" = "completed" ] && [ "$DISCOVERY_CONCLUSION" = "success" ]; then
+                  break
+                fi
+                if [ "$DISCOVERY_STATUS" = "completed" ] && [ "$DISCOVERY_CONCLUSION" != "success" ]; then
+                  echo "exact-main Pooling producer terminated ${DISCOVERY_CONCLUSION}; Reserve will fail closed." >&2
+                  exit 69
+                fi
+              fi
+              if (( SECONDS >= DISCOVERY_WAIT_DEADLINE )); then
+                echo "no successful v2 discovery producer exists on exact target SHA ${TARGET_SHA} before bounded Reserve wait deadline; emitting WAITING/HOLD receipt" >&2
+                {
+                  echo "KIDULTS_RESERVE_PRODUCER_STATE=WAITING_FOR_EXACT_DISCOVERY_PRODUCER"
+                  echo "KIDULTS_RESERVE_DISCOVERY_RUN_ID=NONE"
+                  echo "KIDULTS_RESERVE_DISCOVERY_HEAD_SHA=${TARGET_SHA}"
+                  echo "KIDULTS_RESERVE_DISCOVERY_ARTIFACT_ID=NONE"
+                  echo "KIDULTS_RESERVE_PREVIOUS_RUN_ID=NONE"
+                  echo "KIDULTS_RESERVE_PREVIOUS_ARTIFACT_ID=NONE"
+                  echo "KIDULTS_RESERVE_VALIDATION_ONLY=${VALIDATION_ONLY}"
+                } >> "$GITHUB_ENV"
+                exit 0
+              fi
+              sleep 15
+            done
           fi
-
           validate_discovery_run "$DISCOVERY_RUN_ID" "$TARGET_SHA"
           DISCOVERY_ID="$(exact_discovery_artifact "$DISCOVERY_RUN_ID")"
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${DISCOVERY_ID}/zip" > /tmp/reserve-discovery.zip
@@ -318,6 +370,11 @@ jobs:
           path: /tmp/asi-sharded-source-reserve-waiting-receipt-v1.json
           retention-days: 30
           if-no-files-found: error
+      - name: Enforce producer-ready reserve semantics
+        if: env.KIDULTS_RESERVE_PRODUCER_STATE == 'WAITING_FOR_EXACT_DISCOVERY_PRODUCER'
+        run: |
+          echo "Reserve emitted an auditable HOLD receipt because its exact-SHA Pooling producer is absent." >&2
+          exit 1
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: env.KIDULTS_RESERVE_PRODUCER_STATE == 'READY'
         with:
@@ -333,7 +390,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
-      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

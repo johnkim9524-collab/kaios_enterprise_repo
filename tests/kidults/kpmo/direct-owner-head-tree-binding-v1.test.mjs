@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const workflow = fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml', 'utf8');
-const runner = fs.readFileSync('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs', 'utf8');
-const preflight = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs', 'utf8');
+const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
+const runner = text('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs');
+const preflight = text('scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs');
 
 test('missing tree input and malformed SHA fail before status authorization', () => {
   const treeGuard = runner.indexOf("!SHA.test(expectedHeadTreeSha)");
@@ -17,8 +18,20 @@ test('missing tree input and malformed SHA fail before status authorization', ()
 test('tampered comment tree and commit-object mismatch fail closed', () => {
   assert.match(runner, /fields\.expected_head_tree_sha !== expectedHeadTreeSha/);
   assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH/);
-  assert.match(preflight, /commitPayload\?\.commit\?\.tree\?\.sha !== expectedHeadTreeSha/);
+  assert.match(preflight, /commitObject\.treeSha !== expectedHeadTreeSha/);
   assert.match(preflight, /ATOMIC_HANDOFF_HEAD_TREE_MISMATCH/);
+});
+
+test('candidate object reads survive REST integration 403 without weakening exact SHA/tree binding', () => {
+  assert.match(preflight, /\/git\/commits\/\$\{expectedHeadSha\}/);
+  assert.match(preflight, /https:\/\/api\.github\.com\/graphql/);
+  assert.match(preflight, /ATOMIC_HANDOFF_HEAD_OBJECT_READ_FAILED/);
+  assert.match(preflight, /ATOMIC_HANDOFF_GRAPHQL_READ_FAILED/);
+  assert.match(preflight, /ATOMIC_HANDOFF_CANDIDATE_GRAPHQL_PATH_INVALID/);
+  assert.match(preflight, /commitObject\.sha !== expectedHeadSha \|\| commitObject\.treeSha !== expectedHeadTreeSha/);
+  assert.match(preflight, /CAPABILITY_BLOCKED/);
+  assert.match(preflight, /head_object_read_transport/);
+  assert.match(preflight, /candidate_read_transport/);
 });
 
 test('tree readbacks surround the window and merge graph is exact', () => {

@@ -57,7 +57,7 @@ const TRUST = Object.freeze({
     TRACK_C: 'track-c-portal-v502',
     TRACK_D: 'snapshot-publisher',
     TRACK_E: 'qa-release-manager',
-    RED_TEAM: 'incident-manager',
+    RED_TEAM: 'red-team-lead',
     REVIEW_AGENTS: 'editorial-rights-reviewer',
     TEST_AGENTS: 'qa-release-manager',
     RELEASE_AGENTS: 'qa-release-manager',
@@ -85,6 +85,8 @@ const TRUST = Object.freeze({
     ['.github/AI_AGENT_OPERATING_RULES.md', 'HUMAN_READABLE_AI_POLICY'],
     ['coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json', 'PLATFORM_CONSTITUTION'],
     ['coordination/kidults/governance/ai-agent-operating-rules-v1.json', 'AI_MACHINE_CONTRACT'],
+    ['coordination/kidults/governance/authority-chain-change-unit-policy-v1.json', 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_POLICY'],
+    ['coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json', 'AUTONOMOUS_CLOSURE_OWNERSHIP_POLICY'],
     ['coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json', 'FIX_FIRST_BOOTSTRAP_SEQUENCE'],
     ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
     ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
@@ -113,7 +115,7 @@ const TRUST = Object.freeze({
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
     'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.5.0',
+  receiptVersion: '1.7.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -667,7 +669,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.5.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -787,6 +789,27 @@ const verifyRemote = (root, workingRef, workingSha) => {
   return { authority_sha: authoritySha, working_ref: workingRemoteRef, working_sha: workingRemoteSha };
 };
 
+export function resolveGithubEventSha(eventName, payload, githubSha) {
+  let sha = null;
+  let source = 'GITHUB_SHA';
+  if (eventName === 'pull_request') {
+    sha = payload?.pull_request?.head?.sha ?? null;
+    source = 'pull_request.head.sha';
+  } else if (eventName === 'push') {
+    sha = payload?.after ?? null;
+    source = 'push.after';
+  } else if (eventName === 'workflow_run') {
+    // workflow_run's default GITHUB_SHA can point at the current default branch,
+    // while this job is intentionally checked out at the triggering run's head.
+    // Bind provenance to the exact upstream event SHA that selected the checkout.
+    sha = payload?.workflow_run?.head_sha ?? null;
+    source = 'workflow_run.head_sha';
+  } else {
+    sha = githubSha ?? null;
+  }
+  return {sha: typeof sha === 'string' ? sha.toLowerCase() : null, source};
+}
+
 const githubEventContextBinding = (workingSha) => {
   if (process.env.GITHUB_ACTIONS !== 'true') return null;
   if (process.env.GITHUB_REPOSITORY !== TRUST.repositorySlug) {
@@ -802,18 +825,11 @@ const githubEventContextBinding = (workingSha) => {
       fail('GITHUB_EVENT_PAYLOAD_UNREADABLE');
     }
   }
-  let trustedSha = null;
-  let source = 'GITHUB_SHA';
-  if (eventName === 'pull_request') {
-    trustedSha = payload?.pull_request?.head?.sha ?? null;
-    source = 'pull_request.head.sha';
-  } else if (eventName === 'push') {
-    trustedSha = payload?.after ?? null;
-    source = 'push.after';
-  } else {
-    trustedSha = process.env.GITHUB_SHA ?? null;
-  }
-  trustedSha = trustedSha?.toLowerCase() ?? null;
+  const {sha: trustedSha, source} = resolveGithubEventSha(
+    eventName,
+    payload,
+    process.env.GITHUB_SHA,
+  );
   if (!/^[0-9a-f]{40}$/.test(trustedSha ?? '')) fail('GITHUB_EVENT_TRUSTED_SHA_UNRESOLVED');
   if (trustedSha !== workingSha) fail('GITHUB_EVENT_CHECKOUT_SHA_MISMATCH', `${trustedSha}!=${workingSha}`);
   return {
@@ -864,6 +880,36 @@ const writeExclusive = (filePath, body) => {
     if (descriptor !== undefined) fs.closeSync(descriptor);
   }
 };
+
+if (process.argv.includes('--self-test-event-sha-binding')) {
+  const sourceSha = 'a'.repeat(40);
+  const githubSha = 'b'.repeat(40);
+  const workflowRun = resolveGithubEventSha(
+    'workflow_run',
+    {workflow_run: {head_sha: sourceSha}},
+    githubSha,
+  );
+  if (workflowRun.sha !== sourceSha || workflowRun.source !== 'workflow_run.head_sha') {
+    throw new Error('WORKFLOW_RUN_HEAD_SHA_BINDING_FAILED');
+  }
+  if (resolveGithubEventSha('workflow_run', {workflow_run: {}}, githubSha).sha !== null) {
+    throw new Error('WORKFLOW_RUN_MISSING_HEAD_SHA_MUST_FAIL_CLOSED');
+  }
+  const pullRequest = resolveGithubEventSha(
+    'pull_request',
+    {pull_request: {head: {sha: sourceSha}}},
+    githubSha,
+  );
+  if (pullRequest.sha !== sourceSha || pullRequest.source !== 'pull_request.head.sha') {
+    throw new Error('PULL_REQUEST_HEAD_SHA_BINDING_REGRESSION');
+  }
+  const push = resolveGithubEventSha('push', {after: sourceSha}, githubSha);
+  if (push.sha !== sourceSha || push.source !== 'push.after') {
+    throw new Error('PUSH_AFTER_SHA_BINDING_REGRESSION');
+  }
+  console.log('GitHub workflow_run event SHA binding self-test: PASS');
+  process.exit(0);
+}
 
 const options = parseArgs(process.argv.slice(2));
 const nonce = process.env.KIDULTS_BOOTSTRAP_NONCE;

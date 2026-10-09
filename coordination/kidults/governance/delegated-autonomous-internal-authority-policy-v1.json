@@ -1,16 +1,23 @@
 {
   "id": "AI-020",
   "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
-  "version": "1.0.0",
+  "version": "1.4.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "KPMO_PLATFORM_GOVERNANCE",
   "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
   "accountability_transfer": false,
+  "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
   "approval_quorum": {
     "minimum": 2,
-    "roles": ["ACCOUNTABLE_TRACK_AGENT", "KPMO"],
+    "roles": [
+      "ACCOUNTABLE_TRACK_AGENT",
+      "KPMO"
+    ],
     "distinct_identities_required": true,
-    "self_approval_forbidden": true
+    "self_approval_forbidden": true,
+    "identity_model": "ROLE_SCOPED_OIDC_KMS_WORKLOAD",
+    "distinct_workflow_refs_required": true,
+    "distinct_signing_keys_required": true
   },
   "binding": {
     "repository_required": true,
@@ -22,32 +29,88 @@
     "rollback_plan_required": true,
     "expiry_required": true,
     "single_consumption_required": true,
-    "drift_invalidates": true
+    "drift_invalidates": true,
+    "same_tree_bounded_recovery_allowed": true,
+    "maximum_attempts": 3,
+    "maximum_lifetime_seconds": 7200,
+    "pre_mutation_failure_consumes_authority": false,
+    "consumption_point": "FIRST_EXTERNAL_OR_REPOSITORY_MUTATION"
   },
   "delegated_actions": [
-    "INTERNAL_DESIGN", "CODE_IMPLEMENTATION", "BUG_FIX", "REFACTOR",
-    "TEST_AND_VALIDATION", "DOCUMENTATION", "REGISTRY_TRUTH_SYNC",
-    "INTERNAL_CI_RERUN", "STAGING_SHADOW_CANARY", "REVERSIBLE_RECOVERY",
-    "PULL_REQUEST_READY", "INTERNAL_REVERSIBLE_LANDING"
+    "INTERNAL_DESIGN",
+    "CODE_IMPLEMENTATION",
+    "BUG_FIX",
+    "REFACTOR",
+    "TEST_AND_VALIDATION",
+    "DOCUMENTATION",
+    "REGISTRY_TRUTH_SYNC",
+    "INTERNAL_CI_RERUN",
+    "STAGING_SHADOW_CANARY",
+    "REVERSIBLE_RECOVERY",
+    "PULL_REQUEST_READY",
+    "INTERNAL_REVERSIBLE_LANDING"
   ],
   "eligibility_all_required": [
-    "REPOSITORY_INTERNAL", "REVERSIBLE", "ROLLBACK_BOUND",
-    "NO_EXTERNAL_SIDE_EFFECT", "NO_OWNER_RESERVED_GATE",
-    "REQUIRED_CHECKS_GREEN", "EVIDENCE_RECEIPT_REQUIRED"
+    "REPOSITORY_INTERNAL",
+    "REVERSIBLE",
+    "ROLLBACK_BOUND",
+    "NO_EXTERNAL_SIDE_EFFECT",
+    "NO_OWNER_RESERVED_GATE",
+    "REQUIRED_CHECKS_GREEN",
+    "EVIDENCE_RECEIPT_REQUIRED"
   ],
   "owner_reserved_actions": [
-    "PRODUCTION", "PUBLIC", "G5", "EXTERNAL_COMMUNICATION",
-    "EXTERNAL_SPEND", "CONTRACTUAL_COMMITMENT", "LEGAL_POLICY_EXCEPTION",
-    "IRREVERSIBLE_SECURITY_CHANGE", "CREDENTIAL_OR_PERMISSION_EXPANSION",
-    "SECRET_CREATE_READ_ROTATE_EXPORT", "TRUST_ROOT_OR_RULESET_WEAKENING",
-    "DESTRUCTIVE_DATA_OPERATION", "PROTECTED_PROMOTION_OR_RELEASE"
+    "PRODUCTION",
+    "PUBLIC",
+    "G5",
+    "EXTERNAL_COMMUNICATION",
+    "EXTERNAL_SPEND",
+    "CONTRACTUAL_COMMITMENT",
+    "LEGAL_POLICY_EXCEPTION",
+    "IRREVERSIBLE_SECURITY_CHANGE",
+    "CREDENTIAL_OR_PERMISSION_EXPANSION",
+    "SECRET_CREATE_READ_ROTATE_EXPORT",
+    "TRUST_ROOT_OR_RULESET_WEAKENING",
+    "DESTRUCTIVE_DATA_OPERATION",
+    "PROTECTED_PROMOTION_OR_RELEASE"
   ],
   "unknown_or_conflict": "FAIL_CLOSED_OWNER_REQUIRED",
-  "holds": {"production":"HOLD","public":"HOLD","g5":"HOLD"},
+  "normal_activation": {
+    "manual_owner_orchestration_for_eligible_work": "FORBIDDEN",
+    "canonical_policy_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "draft_ready_rebind_for_valid_envelope": "AUTOMATIC",
+    "empty_same_tree_recovery_commit": "ALLOWED_NON_FORCE_ONLY",
+    "automatic_event_contract": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+    "manual_dispatch": "RECOVERY_ONLY",
+    "legacy_direct_owner_landing": "RECOVERY_ONLY_UNTIL_RETIREMENT",
+    "durable_single_use_backend_required": true,
+    "manual_independent_review_required": false,
+    "automated_machine_verification_required": true,
+    "automated_machine_verifier_must_be_distinct_from_approvers": true,
+    "draft_machine_preflight_may_run_without_landing": true,
+    "draft_machine_preflight_must_use_protected_main_verifier": true,
+    "draft_machine_preflight_must_bind_exact_base_and_head": true,
+    "draft_machine_preflight_has_no_write_token_cloud_identity_or_secrets": true,
+    "draft_machine_preflight_must_not_approve_ready_or_merge": true,
+    "draft_machine_preflight_does_not_replace_landing_quorum": true,
+    "agent_violation_requires_quarantine_and_fresh_replacement": true,
+    "workflows": [
+      ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
+      ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
+      ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml"
+    ],
+    "github_oidc_subject_customization": "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
+    "workload_registry_required": true
+  },
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
   "principles": {
-    "autonomous_effect":"Removes routine Owner orchestration for eligible work.",
-    "global_effect":"Applies repository-wide across all Tracks.",
-    "irreplaceable_value_effect":"Keeps decisions, evidence and rollback knowledge platform-owned.",
-    "transparency_effect":"Requires exact-bound, auditable, single-use receipts."
+    "autonomous_effect": "Removes routine Owner orchestration for eligible work.",
+    "global_effect": "Applies repository-wide across all Tracks.",
+    "irreplaceable_value_effect": "Keeps decisions, evidence and rollback knowledge platform-owned.",
+    "transparency_effect": "Requires exact-bound, auditable, single-use receipts."
   }
 }

@@ -1,0 +1,23 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "24fae4bfd7c2383ee5719bb9aeade71bb17a43ec",
+  "head_branch": "codex/native-input-chain-boundary-20261009",
+  "source_head_sha": "6ed9677699d7ea8d40d159dd5a74a38e45166db2",
+  "source_head_tree_sha": "d953b010c99749cfc4746de137181ac75de429ca",
+  "payload_digest": "sha256:c23bd350a3a90ee7c246d16ec85b44d912ea5fa085b9a70588a557f50ea3dab1",
+  "canonical_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/native-input-chain-boundary-20261009",
+    "title": "fix(integration): gate native pair processing on authenticated input",
+    "body": "A manifest claiming native business input could continue into Candidate/Evidence processing even when the connector returned HOLD. Require a verified exact-source connector result before reading that pair. Supply the read-only Actions token on main push, include connector contracts in automatic path coverage, and preserve failure diagnostics.\n\nValidation: native-input boundary regression tests, authenticated transport and business-input suites passed; exact-pair regression including 27 negative checks passed. Rollback: revert this change.\n\nScope: reversible internal connection hardening for AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION. This does not register a producer, acquire provider data, prove any of the 13 domains, or authorize remote storage. Lawful current transaction/liquidity input and native domain producers remain missing. Production/Public/G5/provider activation remain HOLD.",
+    "draft": true
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

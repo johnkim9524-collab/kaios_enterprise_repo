@@ -57,24 +57,16 @@ globalThis.fetch=async(value,options={})=>{
  }
  if(method!=='GET')throw Error('OFFLINE_MUTATION_FORBIDDEN');
  if(u.pathname.endsWith('/branches/main'))return json({commit:{sha:main}});
- if(u.pathname==='/search/issues'){
+ if(u.pathname.endsWith('/issues')){
   searchReads++;let items=issues;
-  if(scenario==='prewrite-truth-drift'&&searchReads>=2)items=issues.concat({number:3,state:'open',title:'[P1] synthetic third defect',labels:['P1']});
+  if(scenario==='prewrite-truth-drift'&&searchReads%2===0)items=issues.concat({number:3,state:'open',title:'[P1] synthetic third defect',labels:['P1']});
   if(scenario==='precommit-truth-drift'&&postCount===25)items=issues.concat({number:3,state:'open',title:'[P1] changed before aggregate',labels:['P1']});
   if(scenario==='postwrite-truth-drift'&&postCount===26)items=issues.concat({number:3,state:'open',title:'[P1] changed after aggregate',labels:['P1']});
   const page=Number(u.searchParams.get('page')||1),perPage=Number(u.searchParams.get('per_page')||100);
-  let ordered=items;
-  // Model the incident: after 25 staged comments, an updated-desc search
-  // changes order between page reads as GitHub's search index catches up.
-  // The production query must use immutable created-asc ordering, for which
-  // the result remains stable and complete.
-  if(scenario==='pagination-comment-reorder'&&postCount===25&&u.searchParams.get('sort')==='updated'&&page>1){
-    ordered=[...items.slice(50),...items.slice(0,50)];
-  }
-  return json({incomplete_results:false,total_count:items.length,items:ordered.slice((page-1)*perPage,page*perPage)});
+  return json(items.slice((page-1)*perPage,page*perPage));
  }
- if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},status:'completed',conclusion:'success'});
- if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:process.env.GITHUB_EVENT_NAME,path:WRITER_WORKFLOW,actor:{login:'johnkim9524-collab'},triggering_actor:{login:'johnkim9524-collab'},run_started_at:new Date(Date.now()-30000).toISOString()});
+ if(u.pathname.endsWith('/actions/runs/800'))return json({id:800,run_attempt:1,repository:{full_name:repo},head_branch:'main',head_sha:main,event:scenario==='schedule-prior'?'schedule':'workflow_dispatch',path:WRITER_WORKFLOW,actor:{login:scenario==='schedule-prior'?'scheduled-maintainer':'johnkim9524-collab'},triggering_actor:{login:scenario==='schedule-prior'?'scheduled-maintainer':'johnkim9524-collab'},status:'completed',conclusion:'success'});
+ if(u.pathname.endsWith('/actions/runs/900'))return json({id:run,run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),repository:{full_name:repo},head_branch:'main',head_sha:main,event:process.env.GITHUB_EVENT_NAME,path:WRITER_WORKFLOW,actor:{login:process.env.GITHUB_ACTOR},triggering_actor:{login:scenario==='schedule-actor-drift'?'different':process.env.GITHUB_ACTOR},run_started_at:new Date(Date.now()-30000).toISOString()});
  if(u.pathname.endsWith('/issues/1713/comments')){
   approvalReads++;const time=new Date(Date.now()-(scenario==='stale-approval'?3600000:60000)).toISOString();
   const c={id:1200,user:{login:'johnkim9524-collab'},author_association:'OWNER',body:approvalBody,created_at:time,updated_at:time};
@@ -116,18 +108,37 @@ test('immutable created-order pagination survives staged member-comment timestam
  assert.equal(receipt.state,'VERIFIED_PASS');
  assert.equal(receipt.writes,26);
  assert.equal(posts.length,26);
- const searches=calls.filter(call=>call.path==='/search/issues');
+ const searches=calls.filter(call=>call.path.endsWith('/issues')&&call.method==='GET');
  assert.ok(searches.length>=8);
- assert.ok(searches.every(call=>call.query.includes('sort=created')&&call.query.includes('order=asc')));
+ assert.ok(searches.every(call=>call.query.includes('state=open')&&call.query.includes('sort=created')&&call.query.includes('direction=asc')));
  assertBounded(receipt);
 });
 test('offline identical generation remains a verified no-write idempotent path',()=>{
  const {result,receipt,posts}=exercise('idempotent');assert.equal(result.status,0,result.stderr);assert.equal(receipt.mode,'IDEMPOTENT_EXISTING_GENERATION');assert.equal(posts.length,0);assertBounded(receipt);
 });
 test('natural exact protected-main push appends without a second Program Owner approval',()=>{
- const {result,receipt,posts,final}=exercise('same-main-refresh',{envOverrides:{GITHUB_EVENT_NAME:'push',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_PUSH',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
+ const {result,receipt,posts,final}=exercise('same-main-refresh',{envOverrides:{GITHUB_EVENT_NAME:'push',GITHUB_ACTOR:'trusted-main-landing-bot',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_PUSH',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
  assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);
  assert.equal(receipt.authorization.authority_type,'PROTECTED_MAIN_PUSH');assert.equal(receipt.authorization.program_owner_approval_required,false);assert.equal(final.approvalReads,0);assertBounded(receipt);
+});
+test('protected-main schedule refreshes stale issue truth without a new Owner comment',()=>{
+ const {result,receipt,posts,final}=exercise('schedule-prior',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *',CANONICAL_GENERATION_AUTHORIZATION_ID:''}});
+ assert.equal(result.status,0,result.stderr);assert.equal(receipt.state,'VERIFIED_PASS');assert.equal(receipt.writes,26);assert.equal(posts.length,26);
+ assert.equal(receipt.authorization.authority_type,'PROTECTED_MAIN_SCHEDULE');assert.equal(final.approvalReads,0);assertBounded(receipt);
+});
+for(const [name,overrides] of [
+ ['wrong-cron',{CANONICAL_GENERATION_SCHEDULE_CRON:'* * * * *'}],
+ ['wrong-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED'}],
+ ['rerun',{GITHUB_RUN_ATTEMPT:'2'}],
+ ['wrong-ref',{GITHUB_REF:'refs/heads/other'}],
+ ['wrong-main',{TARGET_MAIN_SHA:'b'.repeat(40)}]
+])test(`schedule rejects ${name} without writes`,()=>{
+ const {result,posts}=exercise('schedule-prior',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *',...overrides}});
+ assert.notEqual(result.status,0);assert.equal(posts.length,0);
+});
+test('schedule rejects run actor drift without writes',()=>{
+ const {result,posts}=exercise('schedule-actor-drift',{envOverrides:{GITHUB_EVENT_NAME:'schedule',GITHUB_ACTOR:'scheduled-maintainer',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'PROTECTED_MAIN_SCHEDULE',CANONICAL_GENERATION_SCHEDULE_CRON:'13,43 * * * *'}});
+ assert.notEqual(result.status,0);assert.equal(posts.length,0);
 });
 test('read-only live validation never turns material drift into PASS or a write',()=>{
  const {result,receipt,posts}=exercise('same-main-refresh',{readOnly:true});assert.notEqual(result.status,0);assert.equal(posts.length,0);assert.equal(receipt.failure_class,'COMMIT_MISMATCH');assert.ok(receipt.mismatch_fields.includes('material_defect_count'));assertBounded(receipt);
@@ -135,7 +146,7 @@ test('read-only live validation never turns material drift into PASS or a write'
 for(const scenario of ['missing-member','member-digest','member-rehashed-drift','member-edited','aggregate-edited','spoofed-member','aggregate-policy','aggregate-repository','aggregate-count-shape','aggregate-run-shape','aggregate-version','stale-approval','app-approval','no-approval','duplicate-approval','prewrite-truth-drift','revoked-during-read'])test(`offline refresh blocks ${scenario} before any write`,()=>{
  const {result,receipt,posts}=exercise(scenario);assert.notEqual(result.status,0);assert.equal(receipt.state,'VERIFIED_FAIL');assert.equal(posts.length,0);assert.notEqual(receipt.failure_class,'BOOTSTRAP_NOT_RUN');assertBounded(receipt);
 });
-for(const [name,env] of [['rerun',{GITHUB_RUN_ATTEMPT:'2'}],['non-owner',{GITHUB_ACTOR:'other'}],['unsupported-event',{GITHUB_EVENT_NAME:'issues'}],['no-explicit-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:''}],['push-without-bounded-authority',{GITHUB_EVENT_NAME:'push',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED'}],['stale-target',{TARGET_MAIN_SHA:'b'.repeat(40)}]])test(`offline refresh preserves ${name} rejection`,()=>{
+for(const [name,env] of [['rerun',{GITHUB_RUN_ATTEMPT:'2'}],['non-owner-manual',{GITHUB_ACTOR:'other'}],['unsupported-event',{GITHUB_EVENT_NAME:'issues'}],['no-explicit-authority',{CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:''}],['push-without-bounded-authority',{GITHUB_EVENT_NAME:'push',GITHUB_ACTOR:'trusted-main-landing-bot',CANONICAL_GENERATION_EXPLICIT_WRITE_AUTHORITY:'AUTHORIZED'}],['stale-target',{TARGET_MAIN_SHA:'b'.repeat(40)}]])test(`offline refresh preserves ${name} rejection`,()=>{
  const {result,receipt,posts}=exercise('same-main-refresh',{envOverrides:env});assert.notEqual(result.status,0);assert.equal(posts.length,0);assert.notEqual(receipt.failure_class,'BOOTSTRAP_NOT_RUN');assertBounded(receipt);
 });
 test('truth movement after members prevents aggregate commit and records 25 acknowledged writes',()=>{

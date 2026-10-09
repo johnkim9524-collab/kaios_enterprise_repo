@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {readSentinelEvent} from './validate-sentinel-trigger-v1.mjs';
+import {generationIdForProducers} from './resolve-continuous-assurance-sentinel-health-v1.mjs';
 
 const stable=x=>Array.isArray(x)?`[${x.map(stable).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${stable(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>`sha256:${crypto.createHash('sha256').update(stable(x)).digest('hex')}`;
@@ -15,7 +16,12 @@ export function validateSentinelObservation(r,env){
   assert.equal(env.GITHUB_REPOSITORY,'johnkim9524-collab/kaios_enterprise_repo');
   assert.match(env.GITHUB_SHA||'',/^[0-9a-f]{40}$/);
   assert.equal(r?.receipt_id,'kpmo-continuous-assurance-sentinel-health-v1');
-  assert.equal(r.version,'1.0.0');
+  assert.ok(r.version==='1.0.0'||r.version==='1.1.0');
+  if(r.version==='1.1.0'){
+    const expectedGenerationId=generationIdForProducers(r.producers,r.source_sha);
+    assert.equal(r.generation_id,expectedGenerationId);
+    if(expectedGenerationId!==null)assert.match(expectedGenerationId,/^kpmo-natural-v1-[0-9a-f]{12}-[0-9a-f]{20}$/);
+  }
   assert.equal(r.repository,env.GITHUB_REPOSITORY);
   assert.equal(r.source_sha,env.GITHUB_SHA);
   for(const [key,value] of [['observer_run_id',env.GITHUB_RUN_ID],['observer_run_attempt',env.GITHUB_RUN_ATTEMPT]]){
@@ -37,7 +43,20 @@ export function validateSentinelObservation(r,env){
     const failures=r.producers.filter(p=>p.state==='VERIFIED_FAIL').map(p=>p.id);
     const waiting=r.producers.filter(p=>p.state==='VERIFIED_HOLD').map(p=>p.id);
     assert.deepEqual(r.failed_producers,failures);assert.deepEqual(r.waiting_producers,waiting);
-    assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length?'VERIFIED_HOLD':'VERIFIED_PASS');
+    // Cohort binding is an aggregate guard, not a producer identity. A
+    // complete four-producer receipt can therefore be VERIFIED_HOLD with an
+    // empty waiting_producers list when the selected generations do not form a
+    // bounded cohort. Preserve fail-closed semantics without accepting a
+    // synthetic `PRODUCER_COHORT` producer id.
+    if(Object.hasOwn(r,'producer_cohort_bound')){
+      assert.equal(typeof r.producer_cohort_bound,'boolean');
+      if(r.producer_cohort_bound){
+        assert.equal(r.producer_cohort_failure_class,null);
+        if(r.version==='1.1.0')assert.equal(r.producer_cohort_scope,'DYNAMIC_PRODUCERS_ONLY');
+      } else assert.equal(typeof r.producer_cohort_failure_class,'string');
+    }
+    const cohortWaiting=Object.hasOwn(r,'producer_cohort_bound')&&r.producer_cohort_bound===false;
+    assert.equal(r.state,failures.length?'VERIFIED_FAIL':waiting.length||cohortWaiting?'VERIFIED_HOLD':'VERIFIED_PASS');
     if(r.state==='VERIFIED_PASS')assert.ok(r.producers.every(p=>p.artifact_content_validated===true));
   }else{
     assert.equal(r.state,'VERIFIED_FAIL');assert.equal(typeof r.failure_class,'string');assert.ok(r.failure_class.length>0);

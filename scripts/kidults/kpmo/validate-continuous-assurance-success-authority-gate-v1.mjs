@@ -7,18 +7,69 @@ const fail = (code) => { throw new Error(code); };
 
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
+const assuranceProofHelper = fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs', 'utf8');
+for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verified_domain_count!==14', 'fail(\'SENTINEL_BINDING\')']) {
+  if (!assuranceProofHelper.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_PROOF_HELPER_TOKEN_MISSING:${token}`);
+}
 
 const requiredWorkflowTokens = [
   'name: KPMO Continuous Assurance Success Authority Gate V1',
-  "workflows: ['KIDULTS Platform Continuous Assurance V1']",
+  'classify-assurance-completion:',
+  'DISPOSITION_DIR: /tmp/kpmo-assurance-completion-disposition',
+  'needs: [classify-assurance-completion]',
+  "needs.classify-assurance-completion.outputs.eligible_full_audit == 'true'",
+  'classify-assurance-completion-disposition-v1.mjs',
+  'assurance-completion-disposition-v1.test.mjs',
+  "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1']",
+  "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
   "github.event.workflow_run.conclusion == 'success'",
   'ref: ${{ github.event.workflow_run.head_sha }}',
+  'upstream_observation:{',
+  'UPSTREAM_WORKFLOW_NAME',
   'test "$(git rev-parse HEAD)" = "$UPSTREAM_SHA"',
   '/branches/main',
-  'resolve-continuous-assurance-sentinel-health-v1.mjs',
+  'Restore latest exact-main natural Sentinel producer-health receipt',
+  'Restore exact Assurance full-runtime proof',
+  'actions/runs/${UPSTREAM_RUN_ID}/attempts/${UPSTREAM_RUN_ATTEMPT}/jobs?per_page=100',
+  'select(.run_id==$run and .name==\"audit\" and .status==\"completed\" and .conclusion==\"success\")',
+  'audit-receipt.json',
+  'whole-platform-operating-proof-v1.json',
+  '.assurance_runtime_readiness==true',
+  '.assurance_archive_readback==\"PASS\"',
+  '.assurance_archive_validation_receipt_digest|test(\"^sha256:[0-9a-f]{64}$\")',
+  'ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST',
+  '.producer_health_artifact_digest|test(\"^sha256:[0-9a-f]{64}$\")',
+  'ASSURANCE_AUDIT_RECEIPT_DIGEST',
+  'ASSURANCE_RUNTIME_PROOF_DIGEST',
+  'actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
+  'gh api --method GET',
+  'SENTINEL_PAGE_LIMIT=10',
+  'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
+  'SENTINEL_CREATED_FROM=',
+  'SENTINEL_CREATED_RANGE=',
+  '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=${SENTINEL_CREATED_RANGE}"',
+  'SENTINEL_PAGINATION_TOTAL_DRIFT',
+  'SENTINEL_PAGINATION_TRUNCATED',
+  'SENTINEL_PAGINATION_BOUND_EXCEEDED',
+  'map(.id)|unique|length',
+  'select-latest-natural-sentinel-run-v1.mjs',
+  'PRODUCER_HEALTH_CONCLUSION',
+  'node --test tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs',
+  'node --test tests/kidults/kpmo/authenticated-sentinel-continuation-v1.test.mjs tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs',
+  'node --test tests/kidults/kpmo/whole-platform-collector-v1.test.mjs tests/kidults/kpmo/whole-platform-operating-proof-v1.test.mjs',
+  '.state=="VERIFIED_PASS" and .latest.status=="completed" and .latest.conclusion=="success"',
+  'actions/runs/${SENTINEL_RUN_ID}/artifacts?per_page=100',
+  'read-sentinel-artifact-v1.py',
+  'kpmo-continuous-assurance-sentinel-health-v1-${UPSTREAM_SHA}-${SENTINEL_RUN_ID}-${SENTINEL_RUN_ATTEMPT}',
   'if: always()',
   'kpmo-continuous-assurance-success-authority-gate-v1.json',
   '.coverage_scope=="CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM"',
+  '.producer_health_run_attempt==1',
+  '.producer_health_continuation.state=="VERIFIED_PASS"',
+  '.producer_health_continuation.run_id==.producer_health_run_id',
+  '.producer_health_continuation.artifact_digest==.producer_health_artifact_digest',
+  'collect-sentinel-continuation-evidence-v1.mjs',
+  'selected-sentinel-continuation.json',
   '.whole_platform_authority==false',
   '.promotion_eligible==false',
   '.public=="HOLD"',
@@ -30,11 +81,61 @@ for (const token of requiredWorkflowTokens) {
   if (!workflow.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_TOKEN_MISSING:${token}`);
 }
 
-if (workflow.includes("github.event.workflow_run.event == 'schedule'")) {
-  fail('SUCCESS_AUTHORITY_GATE_EVENT_SPECIFIC_BYPASS');
+function requireBoundedSentinelQuery(source) {
+  const tokens = [
+    'SENTINEL_PAGE_LIMIT=10',
+    'for PAGE in $(seq 1 "$SENTINEL_PAGE_LIMIT"); do',
+    'gh api --method GET',
+    '/actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs',
+    'SENTINEL_CREATED_FROM=',
+    'SENTINEL_CREATED_RANGE=',
+    '-f branch=main -f head_sha="$UPSTREAM_SHA" -f per_page=100 -f page="$PAGE" -f "created=${SENTINEL_CREATED_RANGE}"',
+    'SENTINEL_PAGINATION_TOTAL_DRIFT',
+    'SENTINEL_PAGINATION_TRUNCATED',
+    'SENTINEL_PAGINATION_BOUND_EXCEEDED',
+    'map(.id)|unique|length'
+  ];
+  if (!tokens.every((token) => source.includes(token))) fail('SUCCESS_AUTHORITY_GATE_SENTINEL_QUERY_BOUNDARY');
+}
+requireBoundedSentinelQuery(workflow);
+for (const [before, after] of [
+  ['SENTINEL_CREATED_RANGE=', ''],
+  ['-f branch=main', '-f branch=untrusted'],
+  ['-f head_sha="$UPSTREAM_SHA"', ''],
+  ['gh api --method GET', 'gh api --method POST'],
+  ['-f per_page=100', '-f per_page=1000'],
+  ['-f page="$PAGE"', ''],
+  ['SENTINEL_PAGE_LIMIT=10', 'SENTINEL_PAGE_LIMIT=9'],
+  ['SENTINEL_PAGINATION_BOUND_EXCEEDED', ''],
+  ['map(.id)|unique|length', 'length'],
+]) {
+  const mutated = workflow.replace(before, after);
+  if (mutated === workflow) fail('SUCCESS_AUTHORITY_GATE_QUERY_MUTATION_SETUP');
+  let rejected = false;
+  try { requireBoundedSentinelQuery(mutated); } catch { rejected = true; }
+  if (!rejected) fail('SUCCESS_AUTHORITY_GATE_QUERY_MUTATION_ACCEPTED');
+}
+
+if (workflow.includes('.conclusion=="success"') && workflow.includes('.created_at<=$before')) {
+  fail('SUCCESS_AUTHORITY_GATE_STALE_SUCCESS_FILTER');
+}
+
+for (const token of [
+  "sentinel-failure-authority-gate:",
+  "github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'",
+  "github.event.workflow_run.conclusion != 'success'",
+  "failure_class:'SENTINEL_TERMINAL_NON_SUCCESS'",
+  "authority_invalidated:true",
+  "invalidates_prior_success:true",
+  "kpmo-continuous-assurance-negative-authority-gate-v1"
+]) {
+  if (!workflow.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_NEGATIVE_PATH_MISSING:${token}`);
 }
 if (/continue-on-error:\s*true[\s\S]{0,240}Enforce successful Assurance authority gate/.test(workflow)) {
   fail('SUCCESS_AUTHORITY_GATE_ENFORCEMENT_MUST_NOT_CONTINUE_ON_ERROR');
+}
+if (workflow.includes('node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs\n          --output "$GATE_DIR')) {
+  fail('SUCCESS_AUTHORITY_GATE_MUST_CONSUME_UPSTREAM_HEALTH_RECEIPT');
 }
 
 const gate = policy.successful_assurance_authority_gate;
@@ -52,15 +153,17 @@ const expected = {
   database_authority: false,
   production: 'HOLD',
   public: 'HOLD',
-  g5: 'HOLD'
+  g5: 'HOLD',
+  latest_natural_failure_fallback_forbidden: true
 };
 for (const [key, value] of Object.entries(expected)) {
   if (JSON.stringify(gate[key]) !== JSON.stringify(value)) fail(`SUCCESS_AUTHORITY_GATE_POLICY_DRIFT:${key}`);
 }
 
 const requiredBindings = [
-  'repository', 'upstream_assurance_run_id', 'upstream_assurance_run_attempt',
-  'upstream_assurance_head_sha', 'upstream_assurance_event', 'upstream_assurance_conclusion',
+  'repository', 'upstream_observation_workflow_name', 'upstream_observation_run_id',
+  'upstream_observation_run_attempt', 'upstream_observation_head_sha',
+  'upstream_observation_event', 'upstream_observation_conclusion',
   'current_protected_main_sha', 'producer_health_receipt_digest'
 ];
 if (!Array.isArray(gate.required_bindings) || !requiredBindings.every((item) => gate.required_bindings.includes(item))) {
@@ -68,8 +171,8 @@ if (!Array.isArray(gate.required_bindings) || !requiredBindings.every((item) => 
 }
 
 const eventSpecificMutation = workflow.replace(
-  "github.event.workflow_run.conclusion == 'success'",
-  "github.event.workflow_run.event == 'schedule' &&\n      github.event.workflow_run.conclusion == 'success'"
+  "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
+  "github.event.workflow_run.event == 'schedule' &&\n        github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&"
 );
 if (eventSpecificMutation === workflow || !eventSpecificMutation.includes("github.event.workflow_run.event == 'schedule'")) {
   fail('SUCCESS_AUTHORITY_GATE_MUTATION_SETUP');

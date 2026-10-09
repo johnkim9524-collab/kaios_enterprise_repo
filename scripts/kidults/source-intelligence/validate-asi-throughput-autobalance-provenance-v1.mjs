@@ -2,6 +2,8 @@
 import fs from 'node:fs';
 
 const target = process.argv[2] || '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml';
+const selfDrivingPath = '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml';
+const discoveryPath = 'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs';
 
 function validate(text) {
   const failures = [];
@@ -26,6 +28,13 @@ function validate(text) {
   requireText('.head_sha==$sha', 'exact producer SHA binding');
   requireText('EXPECTED_PRODUCER_SHA="$CURRENT_SHA"', 'current-main exact-generation binding');
   requireText('test "$GITHUB_REF" = "refs/heads/main"', 'non-PR protected-main gate');
+  requireText('CURRENT_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')"', 'protected-main source lookup');
+  requireText('if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then', 'stale scheduled source rejection');
+  requireText('STALE_SCHEDULE_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'precise stale scheduled source diagnosis');
+  requireText('FINAL_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq \'.sha\')"', 'final protected-main recheck');
+  requireText('STALE_FINALIZATION_SOURCE_SHA:${GITHUB_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'finalization stale-source rejection');
+  requireText('FINAL_PRODUCER_SHA_MISMATCH:${AUTOBALANCE_EXPECTED_PRODUCER_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'final producer-source mismatch rejection');
+  requireText('final_protected_main_sha: process.env.FINAL_PROTECTED_MAIN_SHA', 'final protected-main receipt binding');
   requireText('AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10', 'bounded producer wait attempt cap');
   requireText('AUTOBALANCE_PRODUCER_WAIT_SECONDS=3', 'bounded producer wait interval');
   requireText('for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS")', 'bounded producer poll loop');
@@ -58,6 +67,23 @@ function validate(text) {
 
 const text = fs.readFileSync(target, 'utf8');
 const failures = validate(text);
+const selfDriving = fs.readFileSync(selfDrivingPath, 'utf8');
+const discovery = fs.readFileSync(discoveryPath, 'utf8');
+const requireConsumerText = (source, needle, label) => {
+  if (!source.includes(needle)) failures.push(`missing ${label}`);
+};
+requireConsumerText(selfDriving, '--expected-source-sha "$GITHUB_SHA"', 'self-driving exact-source artifact selection');
+requireConsumerText(selfDriving, "if: github.event_name != 'pull_request'", 'self-driving natural execution guard');
+if (selfDriving.includes("if: github.event_name == 'workflow_dispatch'")) failures.push('self-driving schedule and push paths remain no-op');
+requireConsumerText(selfDriving, 'STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'self-driving live-main stale-source guard');
+if (selfDriving.indexOf('Reject stale scheduled or manual consumer source SHA')
+    > selfDriving.indexOf('node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs')) {
+  failures.push('self-driving stale-source guard must precede artifact restoration');
+}
+requireConsumerText(discovery, "process.env.GITHUB_REF==='refs/heads/main'?process.env.GITHUB_SHA:null", 'discovery exact-main source selection');
+requireConsumerText(discovery, "'--expected-source-sha',currentMainSha", 'discovery exact-source artifact restore');
+requireConsumerText(discovery, 'NON_MAIN_EXACT_SOURCE_BASELINE_ONLY', 'discovery non-main historical-artifact exclusion');
+requireConsumerText(discovery, 'STALE_CONSUMER_SOURCE_SHA:${currentMainSha}:${currentMain.sha||\'MISSING\'}', 'discovery live-main stale-source rejection');
 if (failures.length) {
   console.error('ASI throughput autobalance provenance: FAIL');
   for (const failure of failures) console.error(`- ${failure}`);
@@ -71,6 +97,7 @@ const mutations = [
   ['if length==1 then .[0] else empty end','.[0] // empty'],
   ['.path==".github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml"','.head_branch=="main"'],
   ['EXPECTED_PRODUCER_SHA="$CURRENT_SHA"','EXPECTED_PRODUCER_SHA=""'],
+  ['if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then','if false; then'],
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
   ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
@@ -95,10 +122,37 @@ if (validate(boundaryMutation).length === 0) {
   process.exit(1);
 }
 
+const consumerMutations = [
+  ['self-driving source binding', selfDriving.replace('--expected-source-sha "$GITHUB_SHA"', '--expected-source-sha "$PR_BASE_SHA"'), selfDriving],
+  ['self-driving stale-main guard', selfDriving.replace('STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}', 'STALE_CONSUMER_GUARD_REMOVED'), selfDriving],
+  ['discovery source binding', discovery.replace("'--expected-source-sha',currentMainSha", "'--expected-source-sha',''"), discovery],
+  ['discovery non-main exclusion', discovery.replace('NON_MAIN_EXACT_SOURCE_BASELINE_ONLY', 'ALLOW_HISTORICAL_NON_MAIN_ARTIFACTS'), discovery],
+  ['discovery live-main readback', discovery.replace('STALE_CONSUMER_SOURCE_SHA:${currentMainSha}:${currentMain.sha||\'MISSING\'}', 'STALE_MAIN_CHECK_REMOVED'), discovery],
+];
+for (const [label, mutated, original] of consumerMutations) {
+  if (mutated === original) {
+    console.error(`ASI throughput autobalance provenance self-test fixture missing: ${label}`);
+    process.exit(1);
+  }
+  const consumerFailures = [];
+  if (label.startsWith('self-driving')) {
+    if (!mutated.includes('--expected-source-sha "$GITHUB_SHA"')) consumerFailures.push('source');
+    if (!mutated.includes('STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}')) consumerFailures.push('guard');
+  } else {
+    if (!mutated.includes("'--expected-source-sha',currentMainSha")) consumerFailures.push('source');
+    if (!mutated.includes('NON_MAIN_EXACT_SOURCE_BASELINE_ONLY')) consumerFailures.push('non-main');
+    if (!mutated.includes('STALE_CONSUMER_SOURCE_SHA:${currentMainSha}:${currentMain.sha||\'MISSING\'}')) consumerFailures.push('live-main');
+  }
+  if (consumerFailures.length === 0) {
+    console.error(`ASI throughput autobalance provenance self-test failed to reject consumer mutation: ${label}`);
+    process.exit(1);
+  }
+}
+
 console.log(JSON.stringify({
   status: 'VERIFIED_PASS',
   control: 'ASI_THROUGHPUT_AUTOBALANCE_EXACT_PRODUCER_PROVENANCE',
-  mutation_cases_rejected: mutations.length + 1,
+  mutation_cases_rejected: mutations.length + 1 + consumerMutations.length,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
   producer_wait: {max_attempts:10,interval_seconds:3,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},

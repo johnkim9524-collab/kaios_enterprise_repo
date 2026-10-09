@@ -41,6 +41,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-legacy-bounded-discovery-retirement-v1.mjs'
       - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-history-v1.test.mjs'
       - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
       - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
@@ -75,6 +76,7 @@ on:
       - 'scripts/kidults/source-intelligence/validate-asi-common-crawl-self-driving-binding-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-legacy-bounded-discovery-retirement-v1.mjs'
       - 'scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'
+      - 'scripts/kidults/supply-chain/restore-exact-github-artifact-history-v1.test.mjs'
       - 'scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs'
       - 'scripts/kidults/kpmo/validate-safe-zip-archive-v1.py'
       - '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml'
@@ -86,13 +88,27 @@ concurrency:
   cancel-in-progress: true
 jobs:
   autonomous-shadow-cycle:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Reject stale scheduled or manual consumer source SHA
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          CURRENT_PROTECTED_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          test -n "$CURRENT_PROTECTED_MAIN_SHA"
+          if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then
+            echo "::error title=Stale scheduled consumer source::STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}" >&2
+            exit 1
+          fi
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
@@ -114,6 +130,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/prepare-asi-previous-source-pool-v1.mjs
           node --check scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs
           node scripts/kidults/supply-chain/validate-exact-github-artifact-restore-v1.mjs
+          node --test scripts/kidults/supply-chain/restore-exact-github-artifact-history-v1.test.mjs
           node --test tests/kidults/source-intelligence/asi-common-crawl-seed-frontier-rebase-v1.test.mjs
           python3 -m py_compile scripts/kidults/kpmo/validate-safe-zip-archive-v1.py
       - name: OBSERVE — rebuild structural acquisition matrix
@@ -171,6 +188,7 @@ jobs:
             --archive /tmp/autobalance.zip \
             --extract-dir /tmp/autobalance-raw \
             --receipt /tmp/autobalance-exact-restore-receipt-v1.json \
+            --expected-source-sha "$GITHUB_SHA" \
             --required-basename asi-throughput-coverage-autobalance-live-v1.json \
             --max-pages 40 \
             --lookback-days 35 \

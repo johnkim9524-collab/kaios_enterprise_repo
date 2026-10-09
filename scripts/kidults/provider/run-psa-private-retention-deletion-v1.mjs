@@ -24,3 +24,6 @@ process.stdout.write(`${JSON.stringify({
   key_persisted: false,
   production: 'HOLD'
 }, null, 2)}\n`);
+
+// Preserve the deletion receipt while surfacing a missed retention deadline.
+if (receipt.state !== 'VERIFIED_PASS' || receipt.retention_deadline_met !== true) process.exitCode = 1;

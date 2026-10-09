@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import {
   ExactArtifactRestoreError,
   collectCompletePages,
+  resolveNoProducerHistoryBaselineState,
+  resolveMissingArtifactBaselineState,
   selectAllowedProducerRuns,
   validateArtifact,
   validateProducerRun,
@@ -15,6 +17,7 @@ const criticalPaths = [
   '.github/workflows/kidults-asi-self-driving-control-loop-v1.yml',
   '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v1.yml',
   'scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs',
+  'scripts/kidults/supply-chain/restore-exact-github-artifact-history-v1.test.mjs',
 ];
 
 function expectRejected(operation, code) {
@@ -84,6 +87,22 @@ const specification = {
   allowedEvents: ['schedule', 'workflow_dispatch', 'push'],
 };
 const repository = 'kidults/example';
+
+assert.equal(resolveNoProducerHistoryBaselineState(0, 0, false), 'NO_PRODUCER_HISTORY_BASELINE_ONLY');
+expectRejected(
+  () => resolveNoProducerHistoryBaselineState(9, 1, false),
+  'PRODUCER_HISTORY_OUTSIDE_LOOKBACK',
+);
+assert.equal(
+  resolveNoProducerHistoryBaselineState(9, 1, true),
+  'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY',
+);
+expectRejected(() => resolveNoProducerHistoryBaselineState(0, 1, true), 'ALL_HISTORY_PROBE_INVALID');
+expectRejected(() => resolveMissingArtifactBaselineState(4, false), 'PRODUCER_HISTORY_WITHOUT_EXACT_ARTIFACT');
+assert.equal(
+  resolveMissingArtifactBaselineState(4, true),
+  'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY',
+);
 const run = {
   id: 41,
   run_attempt: 2,
@@ -131,6 +150,18 @@ const selectedAllowedRuns = selectAllowedProducerRuns(
 assert.deepEqual(selectedAllowedRuns.map((entry) => entry.id), [olderPushRun.id]);
 assert.equal(selectedAllowedRuns[0].event, 'push');
 assert.deepEqual(selectAllowedProducerRuns([newerPullRequestRun], specification, repository), []);
+const staleNewestRun = { ...olderPushRun, id: 44, head_sha: 'd'.repeat(40), created_at: new Date(Date.now() + 2_000).toISOString() };
+const exactGenerationRuns = selectAllowedProducerRuns(
+  [staleNewestRun, olderPushRun],
+  { ...specification, expectedSourceSha: olderPushRun.head_sha },
+  repository,
+);
+assert.deepEqual(exactGenerationRuns.map((entry) => entry.id), [olderPushRun.id]);
+assert.deepEqual(selectAllowedProducerRuns(
+  [staleNewestRun],
+  { ...specification, expectedSourceSha: olderPushRun.head_sha },
+  repository,
+), []);
 expectRejected(() => selectAllowedProducerRuns([
   { ...olderPushRun, head_sha: 'malformed' },
 ], specification, repository), 'RUN_SOURCE_SHA_INVALID');
@@ -166,6 +197,7 @@ function staticFailures(resolverSource, criticalSources) {
     'validateWorkflowMetadata',
     'validateProducerRun',
     'selectAllowedProducerRuns',
+    '.filter((run) => specification.expectedSourceSha == null',
     'NO_ALLOWED_PRODUCER_HISTORY',
     'validateArtifact',
     'ARTIFACT_CARDINALITY_INVALID',
@@ -176,6 +208,13 @@ function staticFailures(resolverSource, criticalSources) {
     'VERIFIED_PASS_PRE_EXTRACTION',
     'safe_zip_validated_before_extraction: true',
     'PRODUCER_HISTORY_OUTSIDE_LOOKBACK',
+    'PRODUCER_HISTORY_OUTSIDE_LOOKBACK_BASELINE_ONLY',
+    '--allow-producer-history-outside-lookback-baseline',
+    'PRODUCER_HISTORY_WITHOUT_ARTIFACT_BASELINE_ONLY',
+    '--allow-producer-history-without-artifact-baseline',
+    "single.get('expected-source-sha')",
+    'exact_source_generation_required: true',
+    'NO_EXACT_SOURCE_SHA_PRODUCER_HISTORY_BASELINE_ONLY',
   ];
   for (const marker of resolverMarkers) {
     if (!resolverSource.includes(marker)) failures.push(`resolver marker missing: ${marker}`);
@@ -203,6 +242,16 @@ const resolverSource = fs.readFileSync(resolverPath, 'utf8');
 const criticalSources = criticalPaths.map((criticalPath) => [criticalPath, fs.readFileSync(criticalPath, 'utf8')]);
 assert.deepEqual(staticFailures(resolverSource, criticalSources), []);
 
+const selfDrivingSource = fs.readFileSync('.github/workflows/kidults-asi-self-driving-control-loop-v1.yml', 'utf8');
+assert(selfDrivingSource.includes('--expected-source-sha "$GITHUB_SHA"'), 'SELF_DRIVING_AUTOBALANCE_EXACT_SOURCE_SHA_REQUIRED');
+assert(selfDrivingSource.includes('STALE_CONSUMER_SOURCE_SHA:${GITHUB_SHA}:${CURRENT_PROTECTED_MAIN_SHA}'), 'SELF_DRIVING_STALE_MAIN_GUARD_REQUIRED');
+assert(selfDrivingSource.indexOf('Reject stale scheduled or manual consumer source SHA') < selfDrivingSource.indexOf('node scripts/kidults/supply-chain/restore-exact-github-artifact-v1.mjs'), 'SELF_DRIVING_STALE_SOURCE_GUARD_ORDER_INVALID');
+const discoverySource = fs.readFileSync('scripts/kidults/source-intelligence/asi-global-low-risk-discovery-v1.mjs', 'utf8');
+assert(discoverySource.includes("process.env.GITHUB_REF==='refs/heads/main'?process.env.GITHUB_SHA:null"), 'DISCOVERY_MAIN_SOURCE_SHA_REQUIRED');
+assert(discoverySource.includes("'--expected-source-sha',currentMainSha"), 'DISCOVERY_AUTOBALANCE_EXACT_SOURCE_SHA_REQUIRED');
+assert(discoverySource.includes('NON_MAIN_EXACT_SOURCE_BASELINE_ONLY'), 'DISCOVERY_NON_MAIN_HISTORY_CONSUMPTION_FORBIDDEN');
+assert(discoverySource.includes('STALE_CONSUMER_SOURCE_SHA:${currentMainSha}:${currentMain.sha||\'MISSING\'}'), 'DISCOVERY_LIVE_MAIN_STALE_SOURCE_REJECTION_REQUIRED');
+
 const sourceMutations = [
   ['remove complete pagination', 'pagination_reconciled_complete: true', 'pagination_reconciled_complete: false'],
   ['remove artifact cardinality', 'ARTIFACT_CARDINALITY_INVALID', 'ARTIFACT_CARDINALITY_IGNORED'],
@@ -211,7 +260,11 @@ const sourceMutations = [
   ['remove required basename binding', '--required-basename', '--optional-basename'],
   ['move Safe-ZIP after extraction', "execFileSync('python3', safeZipArguments", "execFileSync('python3-after-unzip', safeZipArguments"],
   ['allow stale baseline reset', 'PRODUCER_HISTORY_OUTSIDE_LOOKBACK', 'PRODUCER_HISTORY_BASELINE_ALLOWED'],
+  ['remove explicit optional stale-feedback mode', '--allow-producer-history-outside-lookback-baseline', '--unsafe-stale-feedback-baseline'],
+  ['remove explicit optional missing-artifact mode', '--allow-producer-history-without-artifact-baseline', '--unsafe-missing-artifact-baseline'],
   ['allow forbidden-only history as empty baseline', 'NO_ALLOWED_PRODUCER_HISTORY', 'NO_PRODUCER_HISTORY'],
+  ['remove exact source SHA filter', '.filter((run) => specification.expectedSourceSha == null', '.filter(() => true'],
+  ['remove exact generation receipt binding', 'exact_source_generation_required: true', 'exact_source_generation_required: false'],
 ];
 for (const [label, from, to] of sourceMutations) {
   assert(resolverSource.includes(from), `missing mutation fixture: ${label}`);

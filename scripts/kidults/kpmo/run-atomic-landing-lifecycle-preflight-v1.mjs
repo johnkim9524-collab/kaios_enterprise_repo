@@ -7,7 +7,7 @@ import {
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
 import {
   assertLandingActorAndAuthorization,
@@ -100,7 +100,8 @@ if (pr.state !== 'open' || pr.merged === true || pr.draft === true) throw new Er
 if (pr.head?.sha !== expectedHeadSha) throw new Error('ATOMIC_LIFECYCLE_HEAD_DRIFT');
 if (pr.base?.ref !== 'main' || pr.base?.sha !== mainBranch?.commit?.sha) throw new Error('ATOMIC_LIFECYCLE_BASE_NOT_LIVE_MAIN');
 
-const required = Array.from(new Set(policy.native_required_status_contexts || []));
+const required = Array.from(new Set(policy.native_required_status_contexts || []))
+  .filter(context => context !== 'KIDULTS Governed Landing Authorization V1');
 if (!required.length) throw new Error('ATOMIC_LIFECYCLE_NATIVE_CONTEXT_SET_EMPTY');
 const statuses = Array.isArray(combinedStatus?.statuses) ? combinedStatus.statuses : [];
 const nativeStatuses = required.map(context => {
@@ -112,9 +113,10 @@ const nativeStatuses = required.map(context => {
   return matches[0];
 });
 
-const latestReadiness = selectLatestDirectOwnerReadyEvent({
+const latestReadiness = selectLatestLifecycleReadyEvent({
   timeline,
   repositoryOwner,
+  pullRequest: pr,
 });
 const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
   repository,

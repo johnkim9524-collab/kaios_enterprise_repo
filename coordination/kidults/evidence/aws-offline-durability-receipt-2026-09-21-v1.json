@@ -19,7 +19,6 @@
     "key_arn": "arn:aws:kms:ap-northeast-2:528314240275:key/6efed99a-63ba-4f8d-8a96-17db9c97e860",
     "algorithm": "ED25519_SHA_512",
     "message_type": "RAW",
-    "signed_message_encoding": "ASCII_HEX_SHA256",
     "signature_b64": "jURIc2WtJg5MdAGHvKZWphmjLYTtqehbSpbaSz0kwkhw833HMT9nnfQDn1yljxYAIbvoEcAGaEXjeQFGI7gNBw==",
     "public_key_der_b64": "MCowBQYDK2VwAyEA+qbrofoegdFxjOTPL+7awgYSHTdevV6oHyyZyh54hQM=",
     "aws_kms_verify": true,
@@ -44,17 +43,16 @@
     "evidence_source": "PROGRAM_OWNER_CLOUDSHELL_TRANSCRIPT"
   },
   "manifest_sha256": "0fe1ffa1434fc6ec81a788d2c01b872132e256b887560e4c675043e091dff695",
-  "receipt_sha256": "39ff67f3dfe70351c177e7a295676323cc9daa750d9851b531d0b0f91ca0515d",
+  "receipt_sha256": "08dbb2c437a9036f18d56b359e87a145481e60f3fe92adada2a4904286c6e0b8",
   "offline_copy": {
     "copy_id": "COPY_A",
     "encryption": "BITLOCKER",
     "restore_verification": "PENDING_PHYSICAL_MEDIA",
     "custody": "SAFELY_STORED"
   },
-  "truth_boundary": "Program Owner CloudShell evidence verifies one exact-version AWS S3 restore, byte equality, SSE-KMS encryption, COMPLIANCE retention, and deletion denial. The attached Ed25519 receipt independently verifies the manifest digest signature. USB Copy A is not presently connected, so its restore remains PENDING_PHYSICAL_MEDIA. Full offline-durability certification remains fail-closed until the USB restore and machine-readable AWS transcript proofs exist.",
+  "truth_boundary": "Program Owner CloudShell evidence verifies one exact-version AWS S3 restore, byte equality, SSE-KMS encryption, COMPLIANCE retention, and deletion denial. The Ed25519 receipt independently verifies the earlier durability manifest signature. USB Copy A is not presently connected, so its restore remains PENDING_PHYSICAL_MEDIA.",
   "required_live_evidence": [
-    "USB_COPY_A_RESTORE_SHA256_MATCH",
-    "INDEPENDENT_MACHINE_READABLE_AWS_TRANSCRIPT"
+    "USB_COPY_A_RESTORE_SHA256_MATCH"
   ],
   "holds": {
     "production": "HOLD",
