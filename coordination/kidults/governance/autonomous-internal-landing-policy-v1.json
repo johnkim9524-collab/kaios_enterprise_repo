@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.16.0",
+  "version": "1.17.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -566,5 +566,44 @@
         "head_digest": "sha256:26664977c2422ca885295b1ad751dc105cd6e171daaadce184348f5651c952eb"
       }
     ]
+  },
+  "immutable_source_read_profile": {
+    "id": "kidults-bounded-public-git-source-profile-v1",
+    "version": "1.0.0",
+    "mode": "BOUNDED_PUBLIC_GIT_PACK_V1",
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "policy_activation_requires_exact_head_owner_decision": true,
+    "candidate_policy_authority": false,
+    "authorization_created": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD",
+    "limits": {
+      "maximum_requests": 256,
+      "quota_reserve": 100,
+      "transport_requests": 2,
+      "sources": 209,
+      "objects": 10000,
+      "pack_bytes": 67108864,
+      "inflated_bytes": 134217728,
+      "raw_bytes": 134217728,
+      "object_bytes": 16777216,
+      "tree_entries": 100000,
+      "stream_chunks": 65536,
+      "packet_count": 100000,
+      "delta_depth": 64,
+      "preparation_milliseconds": 60000,
+      "job_timeout_minutes": 10
+    },
+    "source_sha256": {
+      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:1972ad25c92e7a02feae41d2d5aa4c9877f066d47dc536fd7c0721f635c8d85a",
+      "scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs": "sha256:a12b4180bd9d7653485792227c76d9029ee840bf7c15080793e5eecc4bb83dee",
+      "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
+      "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
+      "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:54594f65512380786bb093251085dacb1a5bc94a5265d76103e060b6b989d67e",
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:f74a29abaadda658a7e268e9d89bee86244c6eb60f5941901e2fd488c26304a4",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:4daaca0edbc3577714550115ad99778d297f2cbcf299017d35b36a033f36f154"
+    }
   }
 }

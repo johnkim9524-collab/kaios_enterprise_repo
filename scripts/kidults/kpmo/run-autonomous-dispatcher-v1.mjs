@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import {assertBoundedGitSourceReader} from './lib/bounded-git-source-reader-v1.mjs';
+import {assertBoundedGitSourceReader,createBoundedGitSourceReader} from './lib/bounded-git-source-reader-v1.mjs';
+import {fetchBoundedPublicGitPack} from './lib/bounded-git-public-transport-v1.mjs';
+import {isBoundedGitSourceProfileEnabled} from './lib/bounded-git-source-profile-v1.mjs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
@@ -44,6 +46,7 @@ const UNKNOWN_CLASSIFICATION_CODES=new Set([
 export const isUnknownClassification=error=>UNKNOWN_CLASSIFICATION_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
+const sourceReceiptsByResults=new WeakMap();
 
 export function withCapabilityRepairAnalysis(record,context,policy) {
   if(!context||! /^(CAPABILITY_|INDEPENDENT_)/.test(String(record.reason||'')))return record;
@@ -215,20 +218,18 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
   let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
   const counts={branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:0};
   const family=path=>/\/contents\//.test(path)?'contents':/\/pulls\/\d+\/files(?:\?|$)/.test(path)?'files':/\/check-runs(?:\?|$)/.test(path)?'checks':/\/status(?:\?|$)/.test(path)?'status':/\/git\/commits\//.test(path)?'commits':/\/branches\//.test(path)?'branches':/\/rulesets(?:\/|\?|$)/.test(path)?'rulesets':/\/pulls(?:\/|\?|$)/.test(path)?'pulls':'other';
+  const takeBudget=resource=>{
+    if(terminal)throw terminal;
+    if(requests>=maxRequests){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');terminal.read_diagnostics={request_count:requests,max_requests:maxRequests,resource_counts:{...counts},next_resource_family:resource};throw terminal;}
+    requests++;counts[resource]++;
+  };
   const request=path=>{
     const immutable=/^\/repos\/[^/]+\/[^/]+\/contents\/[^?]+\?ref=[a-f0-9]{40}$/.test(path);
     if(terminal)return Promise.reject(terminal);
     if(immutable&&cache.has(path))return cache.get(path);
     const pending=tail.then(async()=>{
       if(terminal)throw terminal;
-      if(requests>=maxRequests){
-        terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');
-        // Categories and counts only: never persist URLs, credentials, or bodies.
-        terminal.read_diagnostics={request_count:requests,max_requests:maxRequests,resource_counts:{...counts},next_resource_family:family(path)};
-        throw terminal;
-      }
-      requests++;
-      counts[family(path)]++;
+      takeBudget(family(path));
       const response=await fetchImpl(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
       const remaining=response.headers?.get('x-ratelimit-remaining');
       if(response.status===429||(remaining!==null&&remaining!==undefined&&/^\d+$/.test(remaining)&&Number(remaining)<=reserve)) {
@@ -243,7 +244,16 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
     if(immutable){cache.set(path,pending);pending.catch(()=>cache.delete(path));}
     return pending;
   };
-  return {request,requestCount:()=>requests};
+  const publicSourceRequest=(url,options)=>{
+    const base='https://github.com/johnkim9524-collab/kaios_enterprise_repo.git';
+    const valid=(url===base+'/info/refs?service=git-upload-pack'&&options?.method==='GET')||(url===base+'/git-upload-pack'&&options?.method==='POST'&&Buffer.isBuffer(options.body)&&options.body.length<=65536);
+    if(!valid||options.credentials!=='omit'||options.redirect!=='error'||Object.keys(options.headers||{}).some(key=>/^(authorization|cookie|proxy-authorization)$/i.test(key)))return Promise.reject(new DispatcherError('DISPATCH_PUBLIC_SOURCE_SCOPE_INVALID'));
+    const pending=tail.then(async()=>{takeBudget('other');const response=await fetchImpl(url,options);
+      if(response.status===429){terminal=new DispatcherError('DISPATCH_RATE_LIMITED');throw terminal;}
+      if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
+      return response;}).catch(error=>{if(isGlobalReadFailure(error))error.global=true;throw error;});tail=pending.catch(()=>{});return pending;
+  };
+  return {request,publicSourceRequest,requestCount:()=>requests,readDiagnostics:()=>({request_count:requests,max_requests:maxRequests,resource_counts:{...counts}})};
 }
 async function api(path,client){return client.request(path)}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
@@ -284,8 +294,9 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 async function immutableCommit(repository,ref,client){
   return client.sourceReader?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
 }
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
+  if(typeof sourceTransport!=='boolean'||(sourceTransport&&sourceReader!==undefined))fail('DISPATCH_CONFIGURATION_INVALID');
   if(sourceReader!==undefined){
     assertBoundedGitSourceReader(sourceReader);
     if(!sourceReader.receipt().sealed)fail('DISPATCH_SOURCE_SNAPSHOT_NOT_SEALED');
@@ -303,12 +314,43 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1');
   if(!baseRequiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
+  const filePlans=new Map();let sourceEvidence=null;
+  const prSourceBinding=pr=>({pull_request:pr.number,head_sha:pr.head?.sha,base_sha:pr.base?.sha,base_ref:pr.base?.ref,head_repository:pr.head?.repo?.full_name,base_repository:pr.base?.repo?.full_name,head_repository_id:pr.head?.repo?.id,base_repository_id:pr.base?.repo?.id,head_ref:pr.head?.ref,merged:pr.merged===true,state:pr.state,draft:pr.draft===true});
+  if(sourceTransport){
+    const sources=new Set([mainSha]),plan=[];
+    for(const pr of prs){
+      if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(pr.head?.sha)))continue;
+      const records=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
+      const fresh=await api(`/repos/${repository}/pulls/${pr.number}`,token);
+      if(canonicalJson(prSourceBinding(fresh))!==canonicalJson(prSourceBinding(pr)))throw Object.assign(new Error('SOURCE_BATCH_CANDIDATE_BINDING_CHANGED'),{code:'SOURCE_BATCH_CANDIDATE_BINDING_CHANGED',global:true});
+      if(filePlans.has(pr.number))fail('DISPATCH_SOURCE_PLAN_DUPLICATE');
+      const files=Object.freeze(records.map(record=>Object.freeze({...record})));filePlans.set(pr.number,files);
+      try{assertDelegatedPathScope(files,policy);}catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;continue;}
+      sources.add(pr.base.sha);sources.add(pr.head.sha);plan.push({pr,files});
+    }
+    if(plan.length){
+    const started=performance.now();
+    const producer=await fetchBoundedPublicGitPack({repository,sourceShas:[...sources],request:token.publicSourceRequest});
+    const remaining=Math.floor(60000-(performance.now()-started));
+    if(remaining<1)throw Object.assign(new Error('SOURCE_BATCH_TIME_EXHAUSTED'),{code:'SOURCE_BATCH_TIME_EXHAUSTED',global:true});
+    sourceReader=createBoundedGitSourceReader({sourceShas:[...sources],readObject:producer.readObject,limits:{milliseconds:remaining}});
+    for(const ref of sources)await sourceReader.commit(ref);
+    for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha]))await sourceReader.fileOrNull(ref,file.filename);
+    sourceReader.seal();token.sourceReader=sourceReader;
+    const freshMain=await api(`/repos/${repository}/branches/main`,token);
+    if(freshMain.commit?.sha!==mainSha)throw Object.assign(new Error('SOURCE_BATCH_MAIN_BINDING_CHANGED'),{code:'SOURCE_BATCH_MAIN_BINDING_CHANGED',global:true});
+    sourceEvidence={state:'SOURCE_READ_PREPARATION_VERIFIED_NOT_AUTHORIZATION',category:'CONTROL_DIAGNOSTIC_ONLY',main_sha:mainSha,source_shas:[...sources].sort(),
+      policy_sha256:sha256(canonicalJson(policy)),snapshot_binding_sha256:sha256(canonicalJson(prs.map(pr=>({binding:prSourceBinding(pr),files_sha256:filePlans.has(pr.number)?sha256(canonicalJson(filePlans.get(pr.number))):null})))),
+      producer:producer.receipt(),sealed_reader:sourceReader.receipt(),authorization_created:false,native_generation_success:false};
+    }
+  }
+  const fileRecordsFor=pr=>filePlans.has(pr.number)?filePlans.get(pr.number):pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
   const results=[];
   for(const pr of prs){let candidateContext=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
-      const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
+      const fileRecords=await fileRecordsFor(pr);
       // Path-only denials need no blob reads. This is the same mandatory
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
@@ -328,7 +370,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
         : x)
       : baseRequiredChecks;
-    const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
+    const fileRecords=await fileRecordsFor(pr);
     assertDelegatedPathScope(fileRecords,policy);
     const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
@@ -362,6 +404,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     else results.push(withCapabilityRepairAnalysis(candidateContext?.pr.base.sha===mainSha
       ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
       :{state:'SKIPPED',pull_request:pr.number,reason:error.code},candidateContext,policy));}}
+  if(sourceEvidence)sourceReceiptsByResults.set(results,{...sourceEvidence,shared_read_diagnostics:token.readDiagnostics()});
   return results;
 }
 
@@ -371,12 +414,17 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
   // publish partial candidates or leave a prior successful result consumable.
   fs.writeFileSync(`${outputDirectory}/results.json`,'[]\n');
   const failurePath=`${outputDirectory}/failure.json`;
+  const sourcePath=`${outputDirectory}/source-read.json`;if(fs.existsSync(sourcePath))fs.unlinkSync(sourcePath);
   if(fs.existsSync(failurePath))fs.unlinkSync(failurePath);
   try {
     const results=await scan();
+    const sourceReceipt=sourceReceiptsByResults.get(results);
+    if(sourceReceipt)fs.writeFileSync(sourcePath,JSON.stringify({...sourceReceipt,binding:{repository:typeof repository==='string'?repository:null,source_sha:SHA.test(String(sourceSha||''))?sourceSha:null,run_id:/^[1-9][0-9]{0,19}$/.test(String(runId||''))?String(runId):null}},null,2));
     fs.writeFileSync(`${outputDirectory}/results.json`,JSON.stringify(results,null,2));
     return results;
   } catch(error) {
+    fs.writeFileSync(`${outputDirectory}/results.json`,'[]\n');
+    if(fs.existsSync(sourcePath))fs.unlinkSync(sourcePath);
     const code=/^[A-Z][A-Z0-9_]{0,100}$/.test(String(error?.code||''))?error.code:'DISPATCH_UNCLASSIFIED_FAILURE';
     const binding={repository:typeof repository==='string'?repository:null,
       source_sha:SHA.test(String(sourceSha||''))?sourceSha:null,
@@ -403,10 +451,13 @@ function validReadDiagnostics(value){
 }
 
 if(import.meta.url===`file://${process.argv[1]}`){
-  const policy=JSON.parse(fs.readFileSync(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH||'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
-  const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json','utf8'));
   const results=await recordDispatcherScan({repository:process.env.GITHUB_REPOSITORY,sourceSha:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,
-    scan:()=>discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID})});
+    scan:()=>{
+      if(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH&&process.env.KIDULTS_AUTONOMOUS_POLICY_PATH!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json')fail('DISPATCH_SOURCE_PROFILE_POLICY_PATH_INVALID');
+      const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
+      const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json','utf8'));
+      const sourceTransport=isBoundedGitSourceProfileEnabled(policy,path=>fs.readFileSync(path));
+      return discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID,sourceTransport});}});
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
     policy_repair_required:results.filter(x=>x.state==='POLICY_REPAIR_REQUIRED').length,
