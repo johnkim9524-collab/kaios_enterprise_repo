@@ -525,6 +525,10 @@ const mockedLifecycleShell = [
   "    echo \"update:$pn:$out\" >> trace",
   "    case \"$FIXTURE_CASE:$pn\" in",
   "      update_422:*|response_isolation:42) echo '{\"message\":\"Validation Failed\"}' >\"$out\"; echo 422; return 22;;",
+  "      update_403_workflow:*) echo '{\"message\":\"refusing to allow a GitHub App to create or update workflow `.github/workflows/ci-validation.yml` without `workflows` permission\"}' >\"$out\"; echo 403; return 22;;",
+  "      update_403_unknown:*) echo '{\"message\":\"private response ghs_do_not_emit\"}' >\"$out\"; echo 403; return 22;;",
+  "      update_403_malformed:*) echo invalid >\"$out\"; echo 403; return 22;;",
+  "      update_403_integration:*) echo '{\"message\":\"Resource not accessible by integration\"}' >\"$out\"; echo 403; return 22;;",
   "      update_401:*) echo '{\"message\":\"Bad credentials\"}' >\"$out\"; echo 401; return 22;;",
   "      response_isolation:43) echo 000; return 6;;",
   "      *) echo '{\"message\":\"accepted\"}' >\"$out\"; echo 202; return 0;;",
@@ -585,6 +589,10 @@ const lifecycleShellCases = [
   ["happy", null],
   ["update_422", "STALE_BASE_UPDATE_422"],
   ["update_401", "STALE_BASE_UPDATE_HTTP_401"],
+  ["update_403_workflow", "STALE_BASE_UPDATE_HTTP_403"],
+  ["update_403_unknown", "STALE_BASE_UPDATE_HTTP_403"],
+  ["update_403_malformed", "STALE_BASE_UPDATE_HTTP_403"],
+  ["update_403_integration", "STALE_BASE_UPDATE_HTTP_403"],
   ["response_isolation", "STALE_BASE_UPDATE_HTTP_000"],
   ["readback_failure", "STALE_BASE_CONVERGENCE_READBACK_FAILED"],
   ["reversed_parents", "STALE_BASE_CONVERGENCE_PARENT_MISMATCH"],
@@ -631,6 +639,12 @@ try {
       assert.equal(receipt.ordered_parent_set_verified,true);
       assert.equal(receipt.new_head_sha,'d'.repeat(40));
       assert.equal(mutations.length,1);
+    }
+    if(name.startsWith('update_403_')){
+      assert.equal(receipt.github_message,name==='update_403_workflow'?'WORKFLOW_WRITE_PERMISSION_REQUIRED':name==='update_403_integration'?'Resource not accessible by integration':'UNAVAILABLE');
+      assert.equal(receipt.mutation_state,'UNKNOWN');
+      assert.equal(mutations.length,1,'403 must never retry');
+      assert.doesNotMatch(JSON.stringify(receipt),/ghs_do_not_emit|ci-validation/);
     }
     if(name==='response_isolation'){
       assert.equal(receipt.github_message,'UNAVAILABLE');

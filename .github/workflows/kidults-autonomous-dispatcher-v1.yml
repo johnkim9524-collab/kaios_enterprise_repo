@@ -243,7 +243,15 @@ jobs:
             fi
             api_message=UNAVAILABLE
             if [[ "$http_code" != 000 && ( "$curl_status" = 0 || "$curl_status" = 22 ) ]]; then
-              api_message=$(jq -r '.message | select(.=="Bad credentials" or .=="Requires authentication" or .=="Resource not accessible by integration" or .=="Validation Failed")' "$update_body" 2>/dev/null || true)
+              # Emit only canonical reason codes; never persist arbitrary API text,
+              # workflow paths, response payloads, headers, or credentials.
+              api_message=$(jq -r '
+                .message | select(type=="string" and length<=2048) |
+                if .=="Bad credentials" or .=="Requires authentication" or .=="Resource not accessible by integration" or .=="Validation Failed" then .
+                elif test("^refusing to allow a GitHub App to create or update workflow `.github/workflows/[^`\\r\\n]+` without `workflows` permission$") then "WORKFLOW_WRITE_PERMISSION_REQUIRED"
+                elif .=="Update is not a fast forward" then "UPDATE_NOT_FAST_FORWARD"
+                elif .=="Merge conflict" then "MERGE_CONFLICT"
+                else empty end' "$update_body" 2>/dev/null || true)
               api_message=${api_message:-UNAVAILABLE}
             fi
             rm -f "$update_body"
