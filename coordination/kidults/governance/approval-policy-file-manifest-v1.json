@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "8b5a78a40a58627c773dcd6e333cdeb0e64ad8af",
+  "revision": "c257ceb79640a7a66ef90eb541680e35cb2c5a72",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1845,8 +1845,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-repair-checkpoint-20261010.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fae089cfd2956b4ce0d972578e40c4c80653b862",
-      "sha256": "sha256:fb239a8edf6ff184ea251eed6c63a812ef551941b903342759519c8b08dc6e96",
+      "git_blob": "bfb3b5e30b6782f9382b00bcf29555a0e74d8411",
+      "sha256": "sha256:50d44327a8eda1f8f89fdc558b9f084ec4cc152da72bd241585490a31591749f",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6310,5 +6310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6b1481e0d47c069bf5f254019089c3df4692457362eb3ff55d87521d8e47c620"
+  "manifest_sha256": "sha256:9342d5e1bb0d25557d7681dd7f467025ac13b9218264d603a53e0bfe5e96f003"
 }
