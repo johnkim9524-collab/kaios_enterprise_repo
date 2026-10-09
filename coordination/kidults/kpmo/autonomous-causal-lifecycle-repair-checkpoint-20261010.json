@@ -4,7 +4,14 @@
   "completion_owner": "Atlas-KPMO",
   "state": "IMPLEMENTED_NOT_VERIFIED",
   "baseline_main_sha": "240cd17a5e4cf9543d54559c44a3d59a8b59bc03",
-  "completed_stages_do_not_repeat": [2625,2626,2627,1903,2628,2629],
+  "completed_stages_do_not_repeat": [
+    2625,
+    2626,
+    2627,
+    1903,
+    2628,
+    2629
+  ],
   "baseline_natural_dispatcher": {
     "run_id": 38004489870,
     "event": "schedule",
@@ -28,7 +35,12 @@
     "Share one durable 64-minute legacy-token drain across lifecycle, authorization dispatch and Finalizer handoff",
     "Observe drain readiness before Finalizer reservation; do not consume authorization dispatch during drain"
   ],
-  "red_team": {"reviewer": "redteam_holistic", "mode": "READ_ONLY", "formal_independence": "UNKNOWN", "activation_performed": false},
+  "red_team": {
+    "reviewer": "redteam_holistic",
+    "mode": "READ_ONLY",
+    "formal_independence": "UNKNOWN",
+    "activation_performed": false
+  },
   "remaining_evidence": [
     "Exact proposal-head independent machine CI",
     "New exact-head protected-source activation authority",
@@ -47,5 +59,19 @@
   "production": "HOLD",
   "public": "HOLD",
   "g5": "HOLD",
-  "provider_activation": "HOLD"
+  "provider_activation": "HOLD",
+  "ci_reconciliation": {
+    "previous_head": "055699953cff77137acf652face5282db3a0a7b6",
+    "failed_runs": [
+      38005779508,
+      38005779518,
+      38005779517,
+      38005779574,
+      38005779566
+    ],
+    "cause": "Reserve provenance marker and Sentinel command-order contracts; historical immutable transport test incorrectly consumed evolving live source",
+    "correction": "Preserve historical exact bytes in a fixture and reject current Finalizer from the old exception; align causal queue provenance marker and preserve content-suite first position",
+    "new_exact_head_ci": "PENDING",
+    "previous_proposal_create": "COMPLETED_DO_NOT_REPEAT"
+  }
 }
