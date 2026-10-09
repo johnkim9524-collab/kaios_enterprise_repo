@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml'
@@ -49,6 +50,7 @@ jobs:
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs
           node --check scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
           node scripts/kidults/source-intelligence/validate-asi-throughput-autobalance-provenance-v1.mjs
+          node scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs
 
       # PRs prove the producer-selection contract and negative mutations above.
       # Live producer consumption is schedule/manual only because a fresh PR base SHA
