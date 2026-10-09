@@ -5,7 +5,11 @@
   "existing_pull_request": 2621,
   "state": "IMPLEMENTED_NOT_LANDED_OR_RUNTIME_VERIFIED",
   "change": "Find missing references from already registered exact-main natural native runs, then retain existing ZIP digest and content authentication",
-  "local_tests": {"passed": 180, "failed": 0, "is_actual_business_completion": false},
+  "local_tests": {
+    "passed": 190,
+    "failed": 0,
+    "is_actual_business_completion": false
+  },
   "business_input_producers_registered": 0,
   "business_domains_complete": 0,
   "business_domains_required": 13,
@@ -17,5 +21,10 @@
   "production": "HOLD",
   "public": "HOLD",
   "g5": "HOLD",
-  "provider_activation": "HOLD"
+  "provider_activation": "HOLD",
+  "review_corrections": [
+    "Strict unique rights atom arrays",
+    "Entity record count from authenticated bundle",
+    "Canonical ordered immutable object pair identity and distinct references"
+  ]
 }

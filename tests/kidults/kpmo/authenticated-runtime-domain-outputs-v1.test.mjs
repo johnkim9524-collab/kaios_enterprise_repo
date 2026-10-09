@@ -47,6 +47,17 @@ function args(f){
 }
 function changeReceipt(f,fn){const r=JSON.parse(f.members['runtime-domain-receipt.json']);delete r.receipt_digest;fn(r);f.members['runtime-domain-receipt.json']=JSON.stringify(seal(r,'receipt_digest'));}
 
+for(const reported of [1,100])test(`authenticated entity output requires exact bundle coverage: ${reported}`,async()=>{
+ const f=fixture('ENTITY_RESOLUTION');const body=JSON.parse(f.members['domain-output.json']);delete body.output_digest;
+ Object.assign(body,{input_record_count:reported,canonical_entity_count:1,unresolved_count:0,
+ conflicting_identity_count:0,canonical_decisions_digest:h,independent_validation_digest:h});
+ f.members['domain-output.json']=JSON.stringify(seal(body,'output_digest'));
+ changeReceipt(f,r=>{r.primary_evidence[0].digest=rawHash(Buffer.from(f.members['domain-output.json']));});
+ const a={...args(f),inputRecordCount:100};
+ if(reported===100)assert.equal((await authenticateRuntimeDomainOutput(a)).state,'AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED');
+ else await assert.rejects(authenticateRuntimeDomainOutput(a),/ER_INPUT_COVERAGE/);
+});
+
 test('native output fixture exercises transport and content boundaries without emitting certificates',async()=>{
  const result=await authenticateRuntimeDomainOutput(args(fixture()));
  assert.equal(result.state,'AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED');
