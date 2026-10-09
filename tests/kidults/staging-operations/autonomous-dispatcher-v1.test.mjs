@@ -671,10 +671,11 @@ test('global API failure inside a candidate does not become SKIPPED or trigger l
       if(path.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
       if(path.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
       if(path.endsWith('/pulls'))return fakeResponse(200,[pr,{...pr,number:43}]);
+      if(path.endsWith('/files'))return fakeResponse(200,[{filename:'src/a.js',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
       if(path.includes('/git/commits/'))return fakeResponse(403);
       throw new Error('unexpected follow-on request');
     }}),error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
-  assert.equal(paths.length,5);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
+  assert.equal(paths.length,6);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
 });
 test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
   let calls=0,blobReads=0;
@@ -691,7 +692,23 @@ test('many stale reserved candidates are denied before expensive immutable reads
       if(p.includes('/contents/'))blobReads++;
       throw new Error('unexpected immutable read');
     }});
-  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,44);
+  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,24);
+  assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
+});
+test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
+  let calls=0;
+  const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:128,
+    fetchImpl:async url=>{
+      calls++;const u=new URL(url),p=u.pathname;
+      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+      if(p.endsWith('/pulls'))return fakeResponse(200,candidates.slice((Number(u.searchParams.get('page')||1)-1)*100,Number(u.searchParams.get('page')||1)*100));
+      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      throw new Error('reserved candidate must not read commit status checks or contents');
+    }});
+  assert.equal(results.length,104);assert.equal(calls,109);
   assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
 });
 test('global read failure cannot be swallowed by uncertainty reclassification',async()=>{

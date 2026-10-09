@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - 'scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs'
+      - 'scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs'
       - 'scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs'
       - '.github/workflows/kidults-asi-throughput-coverage-autobalance-v1.yml'
 
@@ -42,6 +43,7 @@ jobs:
           NODE
       - name: Build and validate autobalance plan
         run: |
+          node scripts/kidults/source-intelligence/test-asi-throughput-coverage-autobalance-v1.mjs
           node scripts/kidults/source-intelligence/build-asi-throughput-coverage-autobalance-v1.mjs discovery-out/global-low-risk-discovery.json /tmp/autobalance-fixture/g1.json /tmp/autobalance-fixture/g2.json /tmp/autobalance-fixture/g3.json /tmp/autobalance-fixture/ap.json /tmp/asi-throughput-coverage-autobalance-v1.json
           node scripts/kidults/source-intelligence/validate-asi-throughput-coverage-autobalance-v1.mjs /tmp/asi-throughput-coverage-autobalance-v1.json
       - name: Reject rights-gate weakening mutation

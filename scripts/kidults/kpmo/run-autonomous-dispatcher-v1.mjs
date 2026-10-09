@@ -287,10 +287,11 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
-      const [fileRecords,commit]=await Promise.all([pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)]);
+      const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
       // Path-only denials need no blob reads. This is the same mandatory
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
+      const commit=await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token);
       if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
@@ -306,8 +307,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
         : x)
       : baseRequiredChecks;
-    const [commit,fileRecords,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
     assertDelegatedPathScope(fileRecords,policy);
+    const [commit,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
