@@ -1,5 +1,7 @@
 # KIDULTS Registry Governance v1.0
 
+Constitutional authority: [KIDULTS Platform Constitution](../../CONSTITUTION.md). This guide implements constitutional single-source-of-truth and append-only-evidence requirements; it cannot establish competing authority.
+
 ## Purpose
 
 The Registry is the shared operating memory for all humans, AI agents, services, code, Portal and official Books.

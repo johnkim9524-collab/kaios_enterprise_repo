@@ -9,12 +9,15 @@ export LC_ALL=C
 [[ "$KAIOS_ENVIRONMENT" == "staging" ]] || { echo 'staging only' >&2; exit 64; }
 [[ "$KAIOS_PRODUCTION_PROMOTION_AUTHORIZED" == "false" ]] || { echo 'production promotion must remain false' >&2; exit 64; }
 
-for command_name in psql pg_isready sha256sum; do
+for command_name in psql sha256sum; do
   command -v "$command_name" >/dev/null 2>&1 || { echo "$command_name is required" >&2; exit 69; }
 done
 
-export PGDATABASE="$KAIOS_POSTGRES_DSN"
-pg_isready >/dev/null
+if [[ "${KAIOS_POSTGRES_TUNNEL_CONNECTION_BOUND:-false}" == true ]]; then
+  unset PGDATABASE
+else
+  export PGDATABASE="$KAIOS_POSTGRES_DSN"
+fi
 
 psql_scalar() {
   psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 --command="$1"
@@ -32,7 +35,13 @@ data_checksums="$(psql_scalar "SHOW data_checksums")"
 case "$wal_level" in replica|logical) ;; *) echo "wal_level must support PITR, got $wal_level" >&2; exit 1;; esac
 [[ "$data_checksums" == "on" ]] || { echo "data_checksums must be enabled for PITR evidence" >&2; exit 1; }
 
+runtime_schema_initialized=false
 schema_present="$(psql_scalar "SELECT to_regnamespace('kaios_runtime') IS NOT NULL")"
+if [[ "$schema_present" == f && "${KAIOS_STAGING_RUNTIME_SCHEMA_INITIALIZATION_AUTHORIZED:-false}" == true ]]; then
+  bash "$(dirname "${BASH_SOURCE[0]}")/initialize-staging-runtime-schema-v1.sh"
+  schema_present="$(psql_scalar "SELECT to_regnamespace('kaios_runtime') IS NOT NULL")"
+  runtime_schema_initialized=true
+fi
 [[ "$schema_present" == "t" ]] || { echo 'kaios_runtime schema is not present on persistent staging' >&2; exit 1; }
 
 rls_forced="$(psql_scalar "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='kaios_runtime' AND c.relrowsecurity AND c.relforcerowsecurity")"
@@ -73,11 +82,48 @@ if [[ "$pg_switch_wal_authorized" == 't' && ( "$archive_mode" == 'on' || "$archi
 fi
 
 run_id="$(date -u +%Y%m%dT%H%M%S)-$$"
+transaction_rollback_marker="transaction-rollback-${run_id}"
+failure_rollback_marker="failure-rollback-${run_id}"
 before_marker="pitr-before-${run_id}"
 after_marker="pitr-after-${run_id}"
+transaction_rollback_digest="$(printf '%s' "$transaction_rollback_marker" | sha256sum | awk '{print $1}')"
+failure_rollback_digest="$(printf '%s' "$failure_rollback_marker" | sha256sum | awk '{print $1}')"
 before_digest="$(printf '%s' "$before_marker" | sha256sum | awk '{print $1}')"
 after_digest="$(printf '%s' "$after_marker" | sha256sum | awk '{print $1}')"
 before_lsn="$(psql_scalar "SELECT pg_current_wal_lsn()")"
+
+psql_mutation --set="marker=$transaction_rollback_marker" --set="digest=$transaction_rollback_digest" <<'SQL'
+BEGIN;
+INSERT INTO kaios_runtime.pitr_probe_v2(marker, marker_digest, phase)
+VALUES (:'marker', :'digest', 'BEFORE_TARGET');
+ROLLBACK;
+SQL
+transaction_rollback_residual="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --set="marker=$transaction_rollback_marker" \
+  --file=- <<'SQL'
+SELECT count(*) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker';
+SQL
+)"
+[[ "$transaction_rollback_residual" == '0' ]] || { echo 'explicit transaction rollback left a residual row' >&2; exit 1; }
+
+set +e
+psql_mutation --set="marker=$failure_rollback_marker" --set="digest=$failure_rollback_digest" <<'SQL'
+BEGIN;
+INSERT INTO kaios_runtime.pitr_probe_v2(marker, marker_digest, phase)
+VALUES (:'marker', :'digest', 'BEFORE_TARGET');
+SELECT 1 / 0;
+COMMIT;
+SQL
+failure_write_rc=$?
+set -e
+(( failure_write_rc != 0 )) || { echo 'forced failure mutation unexpectedly committed' >&2; exit 1; }
+failure_rollback_residual="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
+  --set="marker=$failure_rollback_marker" \
+  --file=- <<'SQL'
+SELECT count(*) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker';
+SQL
+)"
+[[ "$failure_rollback_residual" == '0' ]] || { echo 'forced failure rollback left a residual row' >&2; exit 1; }
 
 psql_mutation --set="marker=$before_marker" --set="digest=$before_digest" <<'SQL'
 BEGIN;
@@ -135,7 +181,10 @@ fi
 for marker in "$before_marker" "$after_marker"; do
   marker_exists="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERROR_STOP=1 \
     --set="marker=$marker" \
-    --command="SELECT count(*) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker'")"
+    --file=- <<'SQL'
+SELECT count(*) FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'marker';
+SQL
+)"
   [[ "$marker_exists" == "1" ]] || { echo "PITR probe marker not durable: $marker" >&2; exit 1; }
 done
 
@@ -143,23 +192,30 @@ boundary_order="$(psql --no-psqlrc --quiet --tuples-only --no-align --set=ON_ERR
   --set="before_marker=$before_marker" \
   --set="after_marker=$after_marker" \
   --set="target_time=$target_time" \
-  --command="SELECT (SELECT created_at <= :'target_time'::timestamptz - interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'before_marker') || '|' || (SELECT created_at >= :'target_time'::timestamptz + interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'after_marker')")"
-[[ "$boundary_order" == 't|t' ]] || { echo "marker timestamps do not satisfy the two-second target guard: $boundary_order" >&2; exit 1; }
+  --file=- <<'SQL'
+SELECT (SELECT created_at <= :'target_time'::timestamptz - interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'before_marker') || '|' || (SELECT created_at >= :'target_time'::timestamptz + interval '2 seconds' FROM kaios_runtime.pitr_probe_v2 WHERE marker=:'after_marker');
+SQL
+)"
+[[ "$boundary_order" == 'true|true' ]] || { echo "marker timestamps do not satisfy the two-second target guard: $boundary_order" >&2; exit 1; }
 
-python3 - "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$pg_switch_wal_authorized" "$archive_observation_attempted" "$wal_archive_event_verified" "$archived_count_before" "$archived_count" "$failed_count_before" "$failed_count" "$stats_reset" "$switched_wal" "$last_archived_wal" "$before_marker" "$after_marker" "$before_digest" "$after_digest" "$target_time" <<'PY'
-import json, sys
+export KAIOS_RUNTIME_SCHEMA_INITIALIZED="$runtime_schema_initialized"
+python3 - "$server_version" "$wal_level" "$archive_mode" "$data_checksums" "$rls_forced" "$before_lsn" "$after_lsn" "$pg_switch_wal_authorized" "$archive_observation_attempted" "$wal_archive_event_verified" "$archived_count_before" "$archived_count" "$failed_count_before" "$failed_count" "$stats_reset" "$switched_wal" "$last_archived_wal" "$before_marker" "$after_marker" "$before_digest" "$after_digest" "$target_time" "$transaction_rollback_digest" "$failure_rollback_digest" "$transaction_rollback_residual" "$failure_rollback_residual" <<'PY'
+import json, os, sys
 (
     server_version, wal_level, archive_mode, data_checksums, rls_forced,
     before_lsn, after_lsn, pg_switch_wal_authorized,
     archive_observation_attempted, wal_archive_event_verified,
     archived_count_before, archived_count, failed_count_before, failed_count,
     stats_reset, switched_wal, last_archived_wal, before_marker, after_marker,
-    before_digest, after_digest, target_time
+    before_digest, after_digest, target_time, transaction_rollback_digest,
+    failure_rollback_digest, transaction_rollback_residual,
+    failure_rollback_residual
 ) = sys.argv[1:]
 archive_verified = wal_archive_event_verified == "true"
 optional_int = lambda value: int(value) if value else None
 print(json.dumps({
     "status": "PASS",
+    "runtime_schema_initialized": os.environ["KAIOS_RUNTIME_SCHEMA_INITIALIZED"] == "true",
     "environment": "STAGING",
     "production_touch": False,
     "server_version": server_version,
@@ -189,6 +245,13 @@ print(json.dumps({
     "target_time_precision": "WHOLE_SECOND_UTC",
     "marker_target_guard_seconds_minimum": 2,
     "marker_boundary_order_verified": True,
+    "transaction_rollback_verified": transaction_rollback_residual == "0",
+    "transaction_rollback_residual_rows": int(transaction_rollback_residual),
+    "transaction_rollback_marker_digest": transaction_rollback_digest,
+    "failure_rollback_verified": failure_rollback_residual == "0",
+    "failure_rollback_residual_rows": int(failure_rollback_residual),
+    "failure_rollback_marker_digest": failure_rollback_digest,
+    "independent_readback_verified": True,
     "fixture_state": "TARGET_BOUNDARY_FIXTURE_AND_WAL_ARCHIVE_EVENT_VERIFIED" if archive_verified else "TARGET_BOUNDARY_FIXTURE_VERIFIED__WAL_ARCHIVE_EVENT_NOT_VERIFIED",
     "pitr_capability": "NOT_VERIFIED",
     "base_backup_verified": False,

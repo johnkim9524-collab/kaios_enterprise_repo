@@ -1,0 +1,39 @@
+name: KIDULTS Cloudflare STAGING Lifecycle Guard v1
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-staging-lifecycle-guard-v1.yml'
+      - 'scripts/kidults/redteam/validate-cloudflare-staging-lifecycle-v1.mjs'
+      - 'coordination/kidults/redteam/cloudflare-worker-estate-policy-v1.json'
+      - 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json'
+      - 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kidults-cloudflare-staging-lifecycle-guard-v1.yml'
+      - 'scripts/kidults/redteam/validate-cloudflare-staging-lifecycle-v1.mjs'
+      - 'coordination/kidults/redteam/cloudflare-worker-estate-policy-v1.json'
+      - 'coordination/kidults/runtime/cloudflare-pages-staging-governance-v1.json'
+      - 'docs/kidults/runtime/cloudflare-pages-staging-governance-v1.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Enforce KEEP_FROZEN and fail-closed retirement gates
+        run: node scripts/kidults/redteam/validate-cloudflare-staging-lifecycle-v1.mjs

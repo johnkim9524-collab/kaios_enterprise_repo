@@ -140,13 +140,14 @@ function readyInputs() {
     candidate_id: `candidate-${index}`,
     canonical_host: `source-${index}.market.kidults.com`,
   }));
+  const uniqueActionCandidateCount = 95;
   const p0Registry = { id: 'kidults-asi-p0b-source-candidate-registry-v1', version: '1.0.0', canonical_candidate_count: 96, unique_host_count: 96, candidates: sourceCandidates };
   const bindings = Array.from({ length: 192 }, (_, index) => ({
     binding_id: `binding-${index}`,
     mission_id: `mission-${index}`,
     market_cell_id: `market-${index}`,
     evidence_class: index % 2 ? 'LIQUIDITY_TIME_TO_SALE_EXPOSURE' : 'CURRENT_SOLD_TRANSACTION',
-    slot_bindings: Array.from({ length: 3 }, (_, slot) => ({ candidate_id: `candidate-${(index * 3 + slot) % 96}` })),
+    slot_bindings: Array.from({ length: 3 }, (_, slot) => ({ candidate_id: `candidate-${(index * 3 + slot) % uniqueActionCandidateCount}` })),
     factual_origin_independence_proven: true,
     regional_coverage_proven: true,
   }));
@@ -159,7 +160,7 @@ function readyInputs() {
   const decisions = Array.from({ length: 576 }, (_, index) => ({
     gate1_decision_id: `gate-${index}`, decision: 'PASS', rights_state: 'ALLOW',
     collection_authorized: true,
-    grain_id: `grain-${index}`, candidate_id: `candidate-${index % 96}`, mission_id: `mission-${Math.floor(index / 3)}`,
+    grain_id: `grain-${index}`, candidate_id: `candidate-${index % uniqueActionCandidateCount}`, mission_id: `mission-${Math.floor(index / 3)}`,
     market_cell_id: `market-${Math.floor(index / 3)}`,
     market_semantics_verified: true, reason_codes: [],
   }));
@@ -180,7 +181,7 @@ function readyInputs() {
     const missionIndex = Math.floor(index / 3);
     return {
       admission_candidate_id: `admission-${index}`,
-      candidate_id: `candidate-${index % 96}`,
+      candidate_id: `candidate-${index % uniqueActionCandidateCount}`,
       grain_id: `grain-${index}`,
       mission_id: `mission-${missionIndex}`,
       market_cell_id: `market-${missionIndex}`,
@@ -212,7 +213,7 @@ function readyInputs() {
     admitted_count: admittedRecords.size, candidates, sample_plans: [samplePlanRegistration()],
   };
   const actionTypes = ['OWNER', 'RIGHTS', 'ACCESS', 'SEMANTICS', 'REGION', 'SCHEMA', 'ORIGIN'];
-  const actions = Array.from({ length: 672 }, (_, index) => {
+  const actions = Array.from({ length: uniqueActionCandidateCount * actionTypes.length }, (_, index) => {
     const candidateIndex = Math.floor(index / 7);
     const impactedAdmissions = candidates.filter((candidate) => candidate.candidate_id === `candidate-${candidateIndex}`);
     return {
@@ -225,7 +226,11 @@ function readyInputs() {
       evidence_admitted: impactedAdmissions.some((candidate) => candidate.evidence_admitted),
     };
   });
-  const p1Actions = { id: 'kidults-asi-p1-preflight-action-queue-v1', version: '1.0.0', action_count: 672, actions };
+  const p1Actions = {
+    id: 'kidults-asi-p1-preflight-action-queue-v1', version: '1.0.0',
+    unique_candidate_count: uniqueActionCandidateCount, action_types: actionTypes,
+    action_count: actions.length, actions,
+  };
   const p1Manifest = { id: 'kidults-asi-p1-source-preflight-manifest-v1', version: '1.0.0' };
   const marketEvents = [...admittedRecords.values()].map((record, index) => ({
     event_id: `event-${index}`, evidence_id: record.evidence_id, rights_state: 'ALLOW',
@@ -574,6 +579,8 @@ try {
   execute(builder, [...invalid.args, contract, path.join(temp, 'invalid-event-output')], false);
 
   const rejectedInputMutations = [
+    ['hardcoded-p1-action-count', (values) => { values.p1Actions.action_count = 672; }, 'P1_ACTIONS_INVALID'],
+    ['duplicate-p1-candidate-action-pair', (values) => { values.p1Actions.actions[0].action_type = values.p1Actions.actions[1].action_type; }, 'P1_ACTIONS_INVALID'],
     ['orphan-candidate', (values) => { values.p1Admission.candidates[0].candidate_id = 'candidate-orphan'; }],
     ['mission-swap', (values) => { values.p1Admission.candidates[0].mission_id = 'mission-1'; }],
     ['duplicate-candidate-id', (values) => { values.p0Registry.candidates[1].candidate_id = values.p0Registry.candidates[0].candidate_id; }],
@@ -705,7 +712,7 @@ try {
     canonical_policy_tier_weakening_rejected: true,
     canonical_canary_tier: 'CANARY',
     canonical_canary_sample_size: 5,
-    negative_mutation_cases: 34,
+    negative_mutation_cases: 36,
     track_b_assessment_started: false,
     public_release: 'HOLD',
     production: 'HOLD',

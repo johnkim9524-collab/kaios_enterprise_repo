@@ -2,12 +2,14 @@
 import fs from 'node:fs';
 import {
   SHA40,
+  RECOVERY_CONTEXT,
   assert,
   sha256,
   normalizeSha256,
   writeJsonSecure,
   validateManifest,
   makeGitHubClient,
+  statusesFor,
   assertHistoricalRedImmutable,
   assertRecoveryContextAbsent,
   baseReceipt,
@@ -19,11 +21,17 @@ import {
   validatePriorFailedRecoveryReceipt,
 } from './atomic-terminal-recovery-remediation-v1-policy.mjs';
 import {
+  validateFinalizationManifest,
+  assertPriorRecoveryFailureImmutable,
+} from './atomic-terminal-recovery-finalization-v1-policy.mjs';
+import {
   downloadJsonArtifact,
 } from './current-sold-atomic-terminal-recovery-remediation-v1-preflight.mjs';
 
 const LIVE_AUDIT_WORKFLOW_PATH =
   '.github/workflows/kidults-current-sold-atomic-terminal-recovery-remediation-live-audit-v1.yml';
+const FINALIZATION_MANIFEST_PATH =
+  'coordination/kidults/market/current-sold-atomic-terminal-recovery-finalization-33603816578-v1.json';
 
 async function main() {
   const manifestFile = process.argv[2]
@@ -99,7 +107,24 @@ async function main() {
   'ATOMIC_RECOVERY_REMEDIATION_LIVE_AUDIT_FAILED_RUN_CARDINALITY_INVALID');
 
   const historical = assertHistoricalRedImmutable(headStatus, manifest);
-  const recoveryBefore = assertRecoveryContextAbsent(headStatus);
+  const recoveryEntries = statusesFor(headStatus, RECOVERY_CONTEXT);
+  let recoveryBefore;
+  if (recoveryEntries.length === 0) {
+    recoveryBefore = assertRecoveryContextAbsent(headStatus);
+  } else {
+    const finalizationBytes = fs.readFileSync(FINALIZATION_MANIFEST_PATH);
+    const finalizationManifest = validateManifest(
+      JSON.parse(finalizationBytes.toString('utf8')));
+    validateFinalizationManifest(finalizationManifest);
+    assert(finalizationManifest.repository === manifest.repository
+      && finalizationManifest.predecessor_pull_request.number
+        === manifest.predecessor_pull_request.number
+      && finalizationManifest.predecessor_pull_request.exact_head_sha
+        === manifest.predecessor_pull_request.exact_head_sha,
+    'ATOMIC_RECOVERY_REMEDIATION_LIVE_AUDIT_FINALIZATION_TUPLE_INVALID');
+    recoveryBefore = assertPriorRecoveryFailureImmutable(
+      headStatus, finalizationManifest);
+  }
   const receipt = {
     ...baseReceipt({
       id: 'kidults-atomic-terminal-recovery-remediation-live-audit-receipt-v1',
@@ -138,6 +163,7 @@ async function main() {
     },
     historical_terminal_status: historical,
     recovery_status_before: recoveryBefore,
+    recovery_failure_lineage_supported: recoveryEntries.length === 1,
     remote_reads_verified: true,
     artifact_download_verified: true,
     artifact_extraction_verified: true,

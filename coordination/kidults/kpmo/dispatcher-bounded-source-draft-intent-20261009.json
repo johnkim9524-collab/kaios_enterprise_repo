@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "0d5b101469d4e54ff17f3b0ce66fdf9cd5fbcd5e",
+  "head_branch": "codex/dispatcher-bounded-source-batch-20261009",
+  "source_head_sha": "760fde620a69d79b317051bee9e16ee112cecb3a",
+  "source_head_tree_sha": "6b36c7d11eebbf13a7273966aad5a6259e66b272",
+  "payload_digest": "sha256:406afa1fbcf89f2ca7f83fb6c0e005d2e930ead0a04878000dcfcf0e70111b0d",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

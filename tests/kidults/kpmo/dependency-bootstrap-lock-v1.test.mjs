@@ -123,13 +123,13 @@ test('rejects unhashed Python installs and requirements', () => {
   });
   expectMutation('PIP_HASH_ENFORCEMENT_FLAG_MISSING', (input) => {
     input.workflows['.github/workflows/ci-validation.yml'] = input.workflows['.github/workflows/ci-validation.yml'].replace(
-      'python -m pip install \\\n',
+      /python -m pip install \\\r?\n/,
       'python -m pip install -r requirements-ci.lock.txt\n          python -m pip install \\\n'
     );
   });
   expectMutation('PIP_HASH_ENFORCEMENT_FLAG_MISSING', (input) => {
     input.workflows['.github/workflows/ci-validation.yml'] = input.workflows['.github/workflows/ci-validation.yml'].replace(
-      'python -m pip install \\\n',
+      /python -m pip install \\\r?\n/,
       'python -m pip install -r requirements-ci.lock.txt | echo \\\n'
     );
   });

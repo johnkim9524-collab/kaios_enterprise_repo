@@ -1,0 +1,66 @@
+{
+  "id": "kidults-three-chunk-report-20261009-v1",
+  "mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "source_pr": 2621,
+  "source_head": "ba12f5c7f0e83d5c5d1b4c8ecf564bba003f5fd2",
+  "source_main": "c32293a0bb2107f88326c9ae279f7b72bf307c98",
+  "reporting_batch_size": 3,
+  "scope": "SOURCE_AND_EXTERNAL_EVIDENCE_RECONCILIATION_NOT_OPERATING_COMPLETION",
+  "chunks": [
+    {
+      "number": 1,
+      "topic": "API_CAPACITY_AND_HISTORICAL_RECOVERY",
+      "state": "INSPECTED_RUNTIME_BLOCKED",
+      "verified": [
+        "Latest KPMO recovery job 113638553966 failed RECOVERY_GITHUB_HTTP_403",
+        "Recovery incident is fixed to PR 2555 in autonomous-postmerge-recovery-v1.mjs",
+        "The three role workflows start recovery on successful Assurance authority events with per-run concurrency fallback"
+      ],
+      "inference": "Repeated recovery and repeated immutable-source reads can amplify API demand; their measured share of quota exhaustion is not established",
+      "reset_time": "NOT_OBSERVED",
+      "inactive_cache_proposal": "Rejected by unchanged primary and independent guard dependency checks; not activated"
+    },
+    {
+      "number": 2,
+      "topic": "CURRENT_PR_NORMAL_PATH",
+      "state": "INSPECTED_RUNTIME_BLOCKED",
+      "verified": [
+        "PR 2621 remains open and unmerged at the exact recorded head",
+        "Current-head runs: 15 success, 5 failure, none pending",
+        "No unresolved review threads",
+        "Dispatcher run 37873297132 was skipped",
+        "Current combined-status response has an empty statuses list and pending state"
+      ],
+      "not_current_head_role_evidence": [
+        37874097991,
+        37874098022,
+        37874098054
+      ],
+      "old_head_receipts_reused": false
+    },
+    {
+      "number": 3,
+      "topic": "REAL_BUSINESS_PRODUCER_CONNECTIONS",
+      "state": "INSPECTED_DEPENDENCY_BLOCKED",
+      "input_producer_count": 0,
+      "registered_domains": [
+        "SECURITY_SUPPLY_CHAIN"
+      ],
+      "required_business_domain_count": 13,
+      "business_native_registered_count": 0,
+      "verified": "Current connection and whole-platform registries do not register any of the thirteen business domain producers",
+      "required_next_input": "Source-specific lawful current transaction and liquidity input plus real native execution and retained evidence",
+      "metadata_or_local_success_is_business_completion": false
+    }
+  ],
+  "manual_dispatch": false,
+  "new_pr": false,
+  "active_pr_head_changed": false,
+  "protected_policy_changed": false,
+  "credential_expansion": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD",
+  "digitalocean_email_84216_touched": false
+}

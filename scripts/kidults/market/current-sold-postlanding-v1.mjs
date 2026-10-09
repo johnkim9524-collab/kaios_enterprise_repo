@@ -26,6 +26,8 @@ const currentSoldPathMatchers = [
   /^\.github\/workflows\/kidults-atomic-governed-landing-v1\.yml$/,
   /^scripts\/kidults\/kpmo\/run-atomic-governed-landing-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/run-atomic-event-emitting-transport-preflight-v1\.mjs$/,
+  /^scripts\/kidults\/kpmo\/consume-atomic-postmerge-push-suite-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/reconcile-atomic-landing-terminal-v1\.mjs$/,
   /^scripts\/kidults\/kpmo\/validate-workflow-repository-mutation-boundary-v1\.mjs$/,
 ];
@@ -193,8 +195,8 @@ try {
     .sort();
   const testOutput = run(process.execPath, ['--test', '--test-reporter=tap', ...testFiles]);
   process.stdout.write(testOutput);
-  assert(/^# tests 56$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
-  assert(/^# pass 56$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
+  assert(/^# tests 68$/m.test(testOutput), 'POSTLANDING_TEST_COUNT_MISMATCH');
+  assert(/^# pass 68$/m.test(testOutput), 'POSTLANDING_TEST_PASS_COUNT_MISMATCH');
   assert(/^# fail 0$/m.test(testOutput), 'POSTLANDING_TEST_FAILURE_COUNT_MISMATCH');
 
   const legacyBatchPath = 'scripts/kidults/market/current-sold-batch-v1.mjs';

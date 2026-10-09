@@ -2,17 +2,10 @@ name: KIDULTS P0 Control Plane Closure v1
 
 on:
   workflow_dispatch:
+  # The exact-merge post-merge suite requires this run for every protected-main push.
+  # Keep pull_request filtering below, but never path-filter this push trigger.
   push:
     branches: [main]
-    paths:
-      - '.github/workflows/kidults-*.yml'
-      - 'services/kidults-control-plane/**'
-      - 'services/kidults-autonomous-intelligence/**'
-      - 'scripts/kidults/**'
-      - 'coordination/kidults/kpmo/**'
-      - 'coordination/kidults/redteam/**'
-      - 'coordination/kidults/source-intelligence/**'
-      - 'package.json'
   pull_request:
     branches: [main]
     paths:
@@ -23,6 +16,7 @@ on:
       - 'coordination/kidults/kpmo/**'
       - 'coordination/kidults/redteam/**'
       - 'coordination/kidults/source-intelligence/**'
+      - 'tests/kidults/kpmo/p0-failure-receipt-retention-v1.test.mjs'
       - 'package.json'
 
 permissions:
@@ -37,7 +31,35 @@ jobs:
     name: KIDULTS P0 Control Plane Closure v1
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    env:
+      KPMO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
+      - name: Initialize current-run fail-closed P0 receipt
+        shell: bash
+        env:
+          KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
+        run: |
+          set -euo pipefail
+          python3 -I - <<'PY_RECEIPT'
+          import json, os
+          from pathlib import Path
+          receipt = {
+              'id': 'kidults-p0-control-plane-closure-receipt-v1',
+              'version': '1.1.0', 'state': 'VERIFIED_FAIL',
+              'failure_class': 'P0_SUITE_NOT_RECONCILED',
+              'scope': 'BOOTSTRAP_DIAGNOSTIC_NOT_COMPLETED_PROOF',
+              'exact_source_sha': os.environ['KPMO_SOURCE_SHA'],
+              'repository': os.environ['GITHUB_REPOSITORY'],
+              'run_id': int(os.environ['GITHUB_RUN_ID']),
+              'run_attempt': int(os.environ['GITHUB_RUN_ATTEMPT']),
+              'authority_boundary': {
+                  'remote_mutation': False, 'provider_contact': False,
+                  'spend': False, 'production': 'HOLD',
+                  'public_release': 'HOLD', 'g5': 'HOLD'
+              }
+          }
+          Path(os.environ['KPMO_RECEIPT_PATH']).write_text(json.dumps(receipt, indent=2) + '\n')
+          PY_RECEIPT
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -47,15 +69,17 @@ jobs:
           node-version: '24.19.0'
       - name: Verify exact source and execute integrated closure suite
         env:
-          KPMO_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          KPMO_RECEIPT_PATH: /tmp/kidults-p0-control-plane-closure-receipt-v1.json
+          KPMO_RECEIPT_PATH: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
+          node --test tests/kidults/kpmo/p0-failure-receipt-retention-v1.test.mjs
           node scripts/kidults/kpmo/run-p0-control-plane-closure-suite-v1.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - name: Preserve P0 receipt on both success and failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-p0-control-plane-closure-v1
-          path: /tmp/kidults-p0-control-plane-closure-receipt-v1.json
+          path: ${{ runner.temp }}/kidults-p0-control-plane-closure-receipt-v1.json
           retention-days: 90
           if-no-files-found: error

@@ -1,0 +1,141 @@
+{
+  "id": "KIDULTS_RESUME_CONTRACT_V1",
+  "version": "1.3.0",
+  "mandatory": true,
+  "applies_at": [
+    "EVERY_WORK_EXECUTION_START",
+    "SESSION_REPLACEMENT",
+    "STREAM_ERROR_RECOVERY",
+    "REVIEW_STALL_RECOVERY"
+  ],
+  "ordered_steps": [
+    "READ_AUTHORITATIVE_EXTERNAL_STATE",
+    "IDENTIFY_EXISTING_ARTIFACTS_AND_SIDE_EFFECTS",
+    "VERIFY_STAGE_TERMINAL_RECEIPTS",
+    "SELECT_LAST_INCOMPLETE_STAGE",
+    "RECONCILE_AND_CLAIM_IDEMPOTENCY_KEY",
+    "EXECUTE_ONLY_AUTHORIZED_INCOMPLETE_STAGE"
+  ],
+  "terminal_receipt_policy": {
+    "existence_alone_proves_completion": false,
+    "required_checks": [
+      "AUTHENTIC_PROTECTED_PRODUCER",
+      "REPOSITORY_MISSION_STAGE_BINDING",
+      "EXACT_SOURCE_OR_EXPLICIT_VALIDATED_SUPERSESSION",
+      "ARTIFACT_DIGEST_AND_SCHEMA",
+      "SUCCESS_TERMINAL_STATE",
+      "AUTHORITY_AND_SIDE_EFFECT_BINDINGS"
+    ],
+    "valid_success_receipt_behavior": "CONSUME_EXISTING_OUTPUT_SKIP_COMPLETED_STAGE",
+    "failed_receipt_behavior": "PRESERVE_FAILURE_EVIDENCE_RESUME_INCOMPLETE_STAGE",
+    "missing_or_conflicting_evidence_behavior": "UNKNOWN_NO_DUPLICATE_SIDE_EFFECT",
+    "stage_completion_is_mission_completion": false
+  },
+  "idempotency_policy": {
+    "key_fields": [
+      "canonical_repository",
+      "root_mission_id",
+      "stage_id",
+      "operation_kind",
+      "exact_target_binding",
+      "canonical_payload_sha256"
+    ],
+    "session_id_or_retry_number_in_key": false,
+    "storage": "DURABLE_PROTECTED_OPERATION_LEDGER",
+    "claim": "ATOMIC_CONDITIONAL_CREATE_WITH_EXCLUSIVE_WRITER_FENCING",
+    "existing_success": "RETURN_EXISTING_RESULT",
+    "existing_in_flight": "OBSERVE_EXISTING_OPERATION_DO_NOT_REISSUE",
+    "unknown_outcome": "RECONCILE_REMOTE_STATE_BEFORE_RETRY",
+    "no_provider_idempotency": "RECONCILE_THEN_RECORD_INTENT_UNDER_EXCLUSIVE_FENCE_AMBIGUITY_FAILS_CLOSED",
+    "atomic_cross_system_exactly_once_claimed": false
+  },
+  "development_branch_resume": {
+    "scope": "EXPLICITLY_AUTHORIZED_REVERSIBLE_DEVELOPMENT_BRANCH_CODE_OR_POLICY_CORRECTION",
+    "protected_operation_ledger_required": false,
+    "fresh_exact_head_bootstrap_required": true,
+    "live_head_reconciliation_required": true,
+    "exact_parent_and_payload_digest_required": true,
+    "expected_head_non_forced_update_required": true,
+    "durable_change_record": "GIT_COMMIT_HISTORY",
+    "ambiguous_or_rejected_write": "RECONCILE_NO_BLIND_RETRY",
+    "main_write_merge_approval_dispatch_deploy_generation_reservation_promotion_allowed": false,
+    "grants_new_authority": false
+  },
+  "draft_proposal_resume": {
+    "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+    "allowed_operation": "CREATE_DRAFT_PR",
+    "protected_operation_ledger_required": false,
+    "fresh_exact_head_bootstrap_required": true,
+    "immutable_git_intent_required": true,
+    "intent_source_ancestor_required": true,
+    "descendant_changes": "DERIVED_METADATA_ONLY",
+    "live_base_head_and_all_pr_states_reconciliation_required": true,
+    "complete_pr_index_required": true,
+    "same_writer_control_context_required": true,
+    "github_duplicate_constraint_required": true,
+    "exact_canonical_payload_digest_required": true,
+    "matching_existing_open_draft": "REUSE_NO_WRITE",
+    "closed_merged_or_conflicting_proposal": "HOLD_NO_REISSUE",
+    "maximum_create_attempts": 1,
+    "ambiguous_or_rejected_write": "RECONCILE_NO_BLIND_RETRY",
+    "exact_draft_readback_required": true,
+    "ready_review_approval_merge_dispatch_deploy_generation_reservation_promotion_allowed": false,
+    "cross_system_exactly_once_claimed": false,
+    "grants_new_authority": false
+  },
+  "prohibited_duplicates": [
+    "PUSH",
+    "PR",
+    "APPROVAL",
+    "REVIEW_REQUEST",
+    "WORKFLOW_DISPATCH",
+    "DEPLOYMENT",
+    "GENERATION",
+    "RESERVATION_CONSUMPTION"
+  ],
+  "preserves": [
+    "ORIGINAL_MISSION_AND_RESERVATION_OWNER",
+    "EXISTING_BUDGETS_AND_APPROVAL_BINDINGS",
+    "PRODUCTION_PUBLIC_G5_HOLD",
+    "PROVIDER_ACTIVATION_HOLD",
+    "NO_PAT_OR_RULESET_BYPASS"
+  ],
+  "enforcement_scope": "MANDATORY_GOVERNANCE_CONTRACT_EXTERNAL_LAUNCHER_AND_OPERATION_ADAPTER_ENFORCEMENT_REQUIRES_SEPARATE_RUNTIME_EVIDENCE",
+  "effects": {
+    "autonomous_effect": "Resume authorized incomplete work without routine Owner prompting",
+    "global_effect": "Same reconciliation requirement across all Tracks and execution surfaces",
+    "irreplaceable_value_effect": "Preserve durable mission identity and reusable evidence lineage",
+    "transparency_effect": "Distinguish verified stage completion from missing or ambiguous evidence"
+  },
+  "owner_recovery_bootstrap": {
+    "scope": "EXACT_HEAD_OWNER_AUTHORIZED_RESUME_LEDGER_BOOTSTRAP_ONLY",
+    "purpose": "RESUME_LEDGER_BOOTSTRAP",
+    "normal_operation_allowed": false,
+    "external_operation_ledger_required": false,
+    "native_recovery_controller_required": true,
+    "controller_workflow": ".github/workflows/kidults-direct-owner-landing-handoff-v1.yml",
+    "controller_source": "EXACT_PROTECTED_MAIN",
+    "owner_exact_base_head_tree_approval_required": true,
+    "native_owner_ready_and_immutable_comment_required": true,
+    "one_matching_dispatch_first_attempt_only": true,
+    "maximum_handoff_window_seconds": 900,
+    "allowed_operations": [
+      "READY_FOR_REVIEW",
+      "OWNER_APPROVAL_COMMENT",
+      "WORKFLOW_DISPATCH",
+      "MERGE_PROTECTED_MAIN"
+    ],
+    "completed_stage_reuse_required": true,
+    "ambiguity": "HOLD_NO_REISSUE",
+    "postmerge_exact_sha_suite_required": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider_activation": "HOLD",
+    "credential_or_iam_expansion_allowed": false,
+    "ruleset_bypass_allowed": false,
+    "cross_system_exactly_once_claimed": false,
+    "grants_new_owner_authority": false,
+    "policy_activation_requires_exact_head_owner_decision": true
+  }
+}

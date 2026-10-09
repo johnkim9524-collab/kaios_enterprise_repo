@@ -1,7 +1,11 @@
 name: KIDULTS ASI Global Any-Site Hourly Pooling v2
 
 on:
+  repository_dispatch:
+    types: [kidults.natural.clock.pooling.v1]
   schedule:
+    # Native backup root; the independent AWS clock runs at :02/:32.
+    # Downstream stages advance only from successful exact-main completions.
     - cron: '47 * * * *'
   workflow_dispatch:
   pull_request:
@@ -60,6 +64,7 @@ on:
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/asi-admitted-metadata-revocation-registry-v1.json'
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
   push:
     branches: [main]
@@ -96,6 +101,7 @@ on:
       - 'coordination/kidults/source-intelligence/asi-proactive-source-pool-accumulator-v1.json'
       - 'coordination/kidults/source-intelligence/top16-empirical-activation-preflight-v1.json'
       - 'coordination/kidults/source-intelligence/rights-first-current-sold-source-preflight-v1.json'
+      - 'coordination/kidults/product/representative-anchor-input-manifest-v1.json'
       - '.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml'
 
 permissions:
@@ -103,14 +109,19 @@ permissions:
   actions: read
 
 env:
-  KIDULTS_EXACT_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  KIDULTS_EXACT_SOURCE_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
 
 concurrency:
-  group: kidults-asi-global-any-site-hourly-v2-${{ github.event.pull_request.head.sha || github.sha }}
+  group: kidults-asi-global-any-site-hourly-v2-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
   cancel-in-progress: false
 
 jobs:
   global-any-site-hourly-pool-v2:
+    # This workflow is the exact-SHA producer consumed by Sharded Reserve.
+    # A declared schedule that cannot enter the producer job leaves Reserve in
+    # a permanent WAITING state, so natural schedule and recovery dispatch are
+    # the only execution events admitted here.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || (github.event_name == 'repository_dispatch' && github.event.client_payload.slot == 'POOLING')
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -121,6 +132,34 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.19.0'
+      - name: Verify independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_NATURAL_CLOCK_APP_LOGIN: kidults-autonomous-landing-staging[bot]
+          KIDULTS_NATURAL_CLOCK_SLOT: POOLING
+        run: |
+          set -euo pipefail
+          if ! KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_READ_FAILED' >&2
+            exit 1
+          fi
+          if ! [[ "$KIDULTS_LIVE_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_RESPONSE_INVALID' >&2
+            exit 1
+          fi
+          export KIDULTS_LIVE_MAIN_SHA
+          test "$KIDULTS_EXACT_SOURCE_SHA" = "$KIDULTS_LIVE_MAIN_SHA"
+          node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
+          test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
+      - name: Preserve independent natural-clock receipt
+        if: github.event_name == 'repository_dispatch'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-natural-clock-pooling-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/kidults-natural-clock-receipt-v1.json
+          if-no-files-found: error
+          retention-days: 30
       - name: Verify exact source SHA
         run: test "$(git rev-parse HEAD)" = "$KIDULTS_EXACT_SOURCE_SHA"
       - name: Syntax-check discovery and governance runtime
@@ -328,8 +367,8 @@ jobs:
         shell: bash
         run: |
           node - <<'NODE' >/tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
-          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v2.json'));const e=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));
-          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_purpose:'DISCOVERY_METADATA_INDEX_ONLY',gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,source_eligibility_purpose:e.purpose_id,product_content_eligible_sources:e.summary.eligible,adapter_activation_authorized_sources:e.summary.adapter_activation_authorized,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:e.summary.product_content_admitted>0,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
+          const fs=require('fs');const d=JSON.parse(fs.readFileSync('discovery-out/global-low-risk-discovery-governed-v2.json'));const g1=JSON.parse(fs.readFileSync('/tmp/asi-gate1-safe-candidate-pool-v2.json'));const g2=JSON.parse(fs.readFileSync('/tmp/asi-gate2-independent-reverification-v2.json'));const g3=JSON.parse(fs.readFileSync('/tmp/asi-gate3-admission-runtime-v2.json'));const a=JSON.parse(fs.readFileSync('/tmp/asi-admitted-metadata-pool-v2.json'));const p=JSON.parse(fs.readFileSync('/tmp/asi-proactive-source-pool-v2.json'));const e=JSON.parse(fs.readFileSync('/tmp/asi-source-eligibility-receipts-v1.json'));const v=JSON.parse(fs.readFileSync('/tmp/asi-product-value-gated-discovery-v1.json'));if(g1.input_candidate_count!==v.candidate_count||v.pre_value_gate_candidate_count!==d.candidate_count||v.candidate_count+v.product_value_enrichment_queue_count!==d.candidate_count)throw new Error('PRODUCT_VALUE_GATE1_INPUT_PARTITION_BINDING');
+          process.stdout.write(JSON.stringify({id:'kidults-asi-global-any-site-hourly-cycle-receipt-v2',status:'SHADOW_ANY_SITE_COMMON_CRAWL_FULL_GATE_CHAIN_COMPLETE',discovered_candidates:d.candidate_count,live_external_candidates:d.live_external_candidate_count,healthy_live_lanes:d.healthy_live_lanes,common_crawl_applied:d.common_crawl_host_expansion_applied,common_crawl_index_id:d.common_crawl_index_id,common_crawl_seed_hosts:d.common_crawl_seed_host_count,common_crawl_observed_candidates:d.common_crawl_observed_candidate_count,common_crawl_new_candidates:d.common_crawl_new_candidate_count,gate1_purpose:'DISCOVERY_METADATA_INDEX_ONLY',gate1_partition_contract:'PRODUCT_VALUE_GATED_DISCOVERY_V1',gate1_input_candidate_count:g1.input_candidate_count,product_value_enrichment_queue_count:v.product_value_enrichment_queue_count,gate1_safe_candidates:g1.safe_candidate_count,gate1_review_required:g1.review_required_count,gate1_hard_blocked:g1.hard_block_count,gate2_verified_for_gate3:g2.verified_for_gate3_count,gate2_needs_clarification:g2.needs_clarification_count,gate3_bounded_metadata_admitted:g3.admitted_count,active_admitted_metadata:a.active_count,source_eligibility_purpose:e.purpose_id,product_content_eligible_sources:e.summary.eligible,adapter_activation_authorized_sources:e.summary.adapter_activation_authorized,stale_rights_fail_closed_exclusions:e.summary.stale_fail_closed_exclusions,stale_admission_revalidation:a.stale_revalidation_count,revoked_alias_blocked:a.revoked_block_count,rolling_discovery_pool_candidates:p.candidate_count,new_pool_candidates:p.new_candidate_count,content_acquisition_authorized:e.summary.product_content_admitted>0,collection_right_created:false,public_release:'HOLD',production:'HOLD'},null,2));
           NODE
           cat /tmp/asi-global-any-site-hourly-cycle-receipt-v2.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

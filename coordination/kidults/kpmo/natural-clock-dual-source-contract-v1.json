@@ -1,0 +1,52 @@
+{
+  "id": "kidults-natural-clock-dual-source-contract-v1",
+  "version": "1.2.0",
+  "state": "IMPLEMENTED_VERIFIED_ACTIVATION_HOLD",
+  "purpose": "Preserve natural exact-main producer liveness when GitHub schedule delivery is delayed or dropped.",
+  "time_sources": [
+    "GITHUB_ACTIONS_SCHEDULE",
+    "AWS_EVENTBRIDGE_SCHEDULER"
+  ],
+  "external_dispatch_events_by_slot": {
+    "POOLING": "kidults.natural.clock.pooling.v1",
+    "P0B": "kidults.natural.clock.p0b.v1",
+    "RESERVE": "kidults.natural.clock.reserve.v1",
+    "SENTINEL": "kidults.natural.clock.sentinel.v1",
+    "ASSURANCE": "kidults.natural.clock.assurance.v1"
+  },
+  "dispatch_isolation_invariant": "ONE_EVENT_TYPE_ROUTES_TO_EXACTLY_ONE_SLOT_WORKFLOW",
+  "accepted_slots": [
+    "POOLING",
+    "P0B",
+    "RESERVE",
+    "SENTINEL",
+    "ASSURANCE"
+  ],
+  "ordered_half_hour_slots_utc_minutes": {
+    "POOLING": [2, 32],
+    "P0B": [7, 37],
+    "RESERVE": [14, 44],
+    "SENTINEL": [23, 53],
+    "ASSURANCE": [27, 57]
+  },
+  "ordering_invariant": "POOLING_AND_P0B_BEFORE_RESERVE_BEFORE_SENTINEL_BEFORE_ASSURANCE",
+  "required_bindings": [
+    "dispatch_id",
+    "exact_main_sha",
+    "issued_at",
+    "nonce",
+    "slot",
+    "source"
+  ],
+  "acceptance_window_seconds": 300,
+  "dedupe_authority": "REMOTE_DYNAMODB_CONDITIONAL_WRITE_REQUIRED_BEFORE_EXECUTION",
+  "github_app_installation_token_required": true,
+  "workflow_dispatch_is_natural_evidence": false,
+  "repository_dispatch_without_verified_eventbridge_receipt_is_natural_evidence": false,
+  "github_schedule_remains_accepted": true,
+  "manual_replay_forbidden": true,
+  "promotion_authority": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

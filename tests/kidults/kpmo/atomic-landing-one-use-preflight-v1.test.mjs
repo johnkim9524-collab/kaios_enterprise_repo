@@ -6,6 +6,7 @@ import {
   buildAtomicLandingRunName,
   assertAtomicLandingDispatchAuthority,
   evaluateAtomicLandingOneUseRunSet,
+  reconcileAtomicLandingCurrentRunIndex,
   assertAtomicLandingConsumptionReceipt,
 } from '../../../scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs';
 
@@ -26,6 +27,7 @@ const run = (overrides = {}) => ({
   head_branch: 'main',
   head_sha: baseSha,
   display_title: expectedRunName,
+  created_at: '2026-09-23T12:00:00Z',
   status: 'in_progress',
   conclusion: null,
   actor: {login: repositoryOwner},
@@ -55,6 +57,35 @@ test('dispatch and triggering actors must both be the repository owner', () => {
     'ATOMIC_ONE_USE_TRIGGERING_ACTOR_NOT_OWNER');
 });
 
+test('current run is supplemented exactly once when workflow index omits it', () => {
+  const reconciled = reconcileAtomicLandingCurrentRunIndex([], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(reconciled.length, 1);
+  assert.equal(reconciled[0].id, runId);
+  const result = evaluateAtomicLandingOneUseRunSet(reconciled, {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(result.matching_run_count, 1);
+
+  const unchanged = reconcileAtomicLandingCurrentRunIndex([run()], run(), {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  });
+  assert.equal(unchanged.length, 1);
+});
+
 test('first exact matching dispatch is uniquely admitted', () => {
   const result = evaluateAtomicLandingOneUseRunSet([run()], {
     currentRunId: runId,
@@ -65,9 +96,10 @@ test('first exact matching dispatch is uniquely admitted', () => {
   });
   assert.equal(result.matching_run_count, 1);
   assert.equal(result.matching_run_id, runId);
+  assert.equal(result.bounded_attempt_ordinal, 1);
 });
 
-test('rerun attempt and every prior matching run conclusion fail closed', () => {
+test('rerun attempts are forbidden while bounded fresh dispatch retries are admitted', () => {
   code(() => evaluateAtomicLandingOneUseRunSet([run({run_attempt: 2})], {
     currentRunId: runId,
     currentRunAttempt: 2,
@@ -76,25 +108,35 @@ test('rerun attempt and every prior matching run conclusion fail closed', () => 
     protectedMainShaAtDispatch: baseSha,
   }), 'ATOMIC_LANDING_RERUN_ATTEMPT_FORBIDDEN');
 
-  for (const conclusion of ['failure', 'cancelled', 'timed_out', 'success', null]) {
+  for (const conclusion of ['failure', 'cancelled', 'timed_out']) {
     const prior = run({
       id: 99,
       status: conclusion === null ? 'in_progress' : 'completed',
       conclusion,
+      created_at: '2026-09-23T11:00:00Z',
     });
-    code(() => evaluateAtomicLandingOneUseRunSet([prior, run()], {
+    const result = evaluateAtomicLandingOneUseRunSet([prior, run()], {
       currentRunId: runId,
       currentRunAttempt: 1,
       workflowId,
       expectedRunName,
       protectedMainShaAtDispatch: baseSha,
-    }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
+    });
+    assert.equal(result.bounded_attempt_ordinal, 2);
   }
+  for (const prior of [
+    run({id: 98, status: 'completed', conclusion: 'success', created_at: '2026-09-23T11:00:00Z'}),
+    run({id: 99, status: 'in_progress', conclusion: null, created_at: '2026-09-23T11:00:00Z'}),
+  ]) code(() => evaluateAtomicLandingOneUseRunSet([prior, run()], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
 });
 
-test('second distinct run is rejected even when the first never reached merge', () => {
-  code(() => evaluateAtomicLandingOneUseRunSet([
-    run({id: 90, status: 'completed', conclusion: 'failure'}),
+test('failed pre-mutation attempts allow at most three dispatches in two hours', () => {
+  const result = evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:30:00Z'}),
     run(),
   ], {
     currentRunId: runId,
@@ -102,7 +144,65 @@ test('second distinct run is rejected even when the first never reached merge', 
     workflowId,
     expectedRunName,
     protectedMainShaAtDispatch: baseSha,
-  }), 'ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED');
+  });
+  assert.equal(result.bounded_attempt_ordinal, 3);
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 89, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:15:00Z'}),
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:30:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED');
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T09:59:59Z'}),
+    run(),
+  ], {
+    currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_WINDOW_EXCEEDED');
+});
+
+test('pre-approval failures do not consume a later valid Owner authorization', () => {
+  const result = evaluateAtomicLandingOneUseRunSet([
+    run({id: 80, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:00:00Z'}),
+    run({id: 81, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T10:30:00Z'}),
+    run({id: 82, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:00:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  });
+  assert.equal(result.bounded_attempt_ordinal, 1);
+  assert.equal(result.prior_non_success_attempt_count, 0);
+
+  code(() => evaluateAtomicLandingOneUseRunSet([run()], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: 'not-a-timestamp',
+  }), 'ATOMIC_LANDING_APPROVAL_TIME_INVALID');
+
+  code(() => evaluateAtomicLandingOneUseRunSet([
+    run({id: 90, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:31:00Z'}),
+    run({id: 91, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:32:00Z'}),
+    run({id: 92, status: 'completed', conclusion: 'failure', created_at: '2026-09-23T11:33:00Z'}),
+    run(),
+  ], {
+    currentRunId: runId,
+    currentRunAttempt: 1,
+    workflowId,
+    expectedRunName,
+    protectedMainShaAtDispatch: baseSha,
+    authorizationApprovedAt: '2026-09-23T11:30:00Z',
+  }), 'ATOMIC_LANDING_BOUNDED_RETRY_LIMIT_EXCEEDED');
 });
 
 test('same tuple is consumed across protected-main generations while cross-PR runs do not substitute', () => {
@@ -159,7 +259,7 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
   ].join('\n')).digest('hex');
   const receipt = {
     id: 'kidults-atomic-landing-one-use-consumption-v1',
-    version: '1.1.0',
+    version: '1.2.0',
     state: 'CONSUMED_BY_FIRST_MATCHING_DISPATCH',
     repository,
     pull_request: prNumber,
@@ -169,6 +269,8 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     landing_workflow_run_id: runId,
     landing_workflow_run_attempt: 1,
     matching_run_count: 1,
+    bounded_attempt_ordinal: 1,
+    prior_non_success_attempt_count: 0,
     dispatch_actor: repositoryOwner,
     triggering_actor: repositoryOwner,
     authorization_id_sha256: crypto.createHash('sha256').update(authorizationId).digest('hex'),
@@ -178,6 +280,8 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     pr_head_matches_input: true,
     pr_base_matches_dispatch_main: true,
     live_main_matches_dispatch_main: true,
+    program_owner_approval: {},
+    complete_owner_approval_contract_validated_before_consumption: true,
   };
   assert.equal(assertAtomicLandingConsumptionReceipt(receipt, {
     repository,
@@ -212,6 +316,17 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
     runAttempt: 1,
     expectedRunName,
   }), 'ATOMIC_CONSUMPTION_TUPLE_DIGEST_MISMATCH');
+  code(() => assertAtomicLandingConsumptionReceipt({...receipt, bounded_attempt_ordinal: 2}, {
+    repository,
+    repositoryOwner,
+    prNumber,
+    headSha,
+    baseSha,
+    authorizationId,
+    runId,
+    runAttempt: 1,
+    expectedRunName,
+  }), 'ATOMIC_CONSUMPTION_PRIOR_ATTEMPT_COUNT_INVALID');
   code(() => assertAtomicLandingConsumptionReceipt({...receipt, triggering_actor: 'automation-bot'}, {
     repository,
     repositoryOwner,
@@ -225,28 +340,37 @@ test('sanitized consumption receipt is exact tuple and owner-actor bound', () =>
   }), 'ATOMIC_CONSUMPTION_ACTOR_BINDING_MISMATCH');
 });
 
-test('workflow places one-use consumption before lifecycle and always reconciles terminal receipt', () => {
+test('workflow validates transport and lifecycle before one-use consumption and always reconciles terminal receipt', () => {
   const workflow = fs.readFileSync('.github/workflows/kidults-atomic-governed-landing-v1.yml', 'utf8');
   assert.match(workflow, /run-name: "KIDULTS Atomic Landing PR #\$\{\{ inputs\.pull_request_number \}\} @ \$\{\{ inputs\.expected_head_sha \}\} \/ \$\{\{ inputs\.landing_authorization_id \}\}"/);
   const consumeIndex = workflow.indexOf('Consume one-use exact-head landing authorization');
   const lifecycleIndex = workflow.indexOf('Require latest terminal exact-head lifecycle authority');
-  const mergeIndex = workflow.indexOf('Re-read live authority and execute exact-head server merge');
-  assert.ok(consumeIndex >= 0 && consumeIndex < lifecycleIndex && lifecycleIndex < mergeIndex);
+  const transportIndex = workflow.indexOf('Verify event-emitting merge transport before authority consumption');
+  const mergeIndex = workflow.indexOf('Re-read live authority and await exact-head event-emitting merge');
+  assert.ok(transportIndex >= 0 && transportIndex < lifecycleIndex
+    && lifecycleIndex < consumeIndex && consumeIndex < mergeIndex);
   assert.match(workflow, /run: node scripts\/kidults\/kpmo\/run-atomic-landing-one-use-preflight-v1\.mjs/);
   assert.match(workflow, /ATOMIC_LANDING_CONSUMPTION_PATH: \$\{\{ runner\.temp \}\}\/kidults-atomic-landing-consumption\/receipt\.json/);
   assert.match(workflow, /Reconcile durable atomic landing terminal receipt\n        if: always\(\)/);
 });
 
-test('runner rechecks one-use consumption and explicit Ready authority immediately before merge', () => {
+test('runner rechecks one-use consumption and lifecycle-only Ready boundary immediately before merge', () => {
   const runner = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8');
   const gates = fs.readFileSync('scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs', 'utf8');
   const oneUse = fs.readFileSync('scripts/kidults/kpmo/run-atomic-landing-one-use-preflight-v1.mjs', 'utf8');
-  assert.match(runner, /selectLatestProgramOwnerReadyEvent/);
+  assert.match(runner, /selectLatestLifecycleReadyEvent/);
   assert.match(runner, /assertLiveOneUseConsumption/);
   assert.match(runner, /IMMEDIATE_PREMERGE_PROGRAM_OWNER_APPROVAL_DRIFT/);
-  assert.match(runner, /await assertLiveOneUseConsumption\(immediatePreMerge\.base\.sha\)/);
+  assert.match(runner, /authorizationApprovedAt/);
+  assert.match(runner, /programOwnerApproval\.comment_created_at/);
+  assert.match(runner, /ATOMIC_LANDING_CONSUMPTION_APPROVAL_TIME_DRIFT/);
+  assert.match(runner, /ATOMIC_LANDING_CONSUMPTION_DECISION_DRIFT/);
   assert.match(gates, /PROGRAM_OWNER_EXACT_HEAD_APPROVAL_APP_MEDIATED/);
   assert.match(oneUse, /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  const approvalSelection = oneUse.indexOf('const programOwnerApproval = selectExactHeadProgramOwnerApproval');
+  const retryEvaluation = oneUse.indexOf('const oneUse = evaluateAtomicLandingOneUseRunSet');
+  assert.ok(approvalSelection >= 0 && retryEvaluation > approvalSelection);
+  assert.match(oneUse, /authorizationApprovedAt: programOwnerApproval\.comment_created_at/);
   assert.doesNotMatch(oneUse, /&& run\?\.head_sha === protectedMainShaAtDispatch\n    && run\?\.display_title === expectedRunName/);
 });
 
@@ -257,4 +381,72 @@ test('terminal receipt persists sanitized one-use consumption evidence', () => {
   assert.match(reconciler, /landing_workflow_run_attempt: Number\(landingRunAttempt\)/);
   assert.match(reconciler, /ATOMIC_TERMINAL_CONSUMPTION_RAW_AUTHORIZATION_LEAK/);
   assert.doesNotMatch(reconciler, /operation_authorization_id:/);
+});
+
+
+const reconciliationOptions = () => ({
+  currentRunId: runId, currentRunAttempt: 1, workflowId, expectedRunName,
+  protectedMainShaAtDispatch: baseSha,
+});
+
+for (const [field, value] of [
+  ['id', runId + 1], ['run_attempt', 2], ['workflow_id', workflowId + 1],
+  ['event', 'push'], ['head_branch', 'other'], ['display_title', 'wrong'],
+  ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run supplementation rejects direct ${field} mismatch`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([], {...run(), [field]: value},
+      reconciliationOptions()));
+  });
+}
+
+for (const [field, value] of [
+  ['run_attempt', 2], ['workflow_id', workflowId + 1], ['event', 'push'],
+  ['head_branch', 'other'], ['display_title', 'wrong'], ['head_sha', 'f'.repeat(40)],
+]) {
+  test(`current-run reconciliation rejects indexed ${field} conflict`, () => {
+    assert.throws(() => reconcileAtomicLandingCurrentRunIndex([{...run(), [field]: value}],
+      run(), reconciliationOptions()), /ATOMIC_ONE_USE_CURRENT_RUN_INDEX_TUPLE_MISMATCH/);
+  });
+}
+
+test('current-run reconciliation preserves duplicate rejection and input immutability', () => {
+  assert.throws(() => reconcileAtomicLandingCurrentRunIndex([run(), run()], run(),
+    reconciliationOptions()), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
+  const input = [];
+  reconcileAtomicLandingCurrentRunIndex(input, run(), reconciliationOptions());
+  assert.deepEqual(input, []);
+});
+
+for (const state of [
+  {status: 'completed', conclusion: 'success'},
+  {status: 'in_progress', conclusion: null},
+]) {
+  test(`supplementation preserves prior ${state.status}/${state.conclusion} consumption denial`, () => {
+    const prior = {...run(), id: runId - 1, ...state};
+    const reconciled = reconcileAtomicLandingCurrentRunIndex([prior], run(), reconciliationOptions());
+    assert.equal(reconciled.length, 2);
+    assert.throws(() => evaluateAtomicLandingOneUseRunSet(reconciled, reconciliationOptions()),
+      /ATOMIC_LANDING_AUTHORIZATION_ALREADY_CONSUMED/);
+  });
+}
+
+
+test('Atomic final pre-merge call site reuses authoritative current-run reconciliation', async () => {
+  const source = fs.readFileSync('scripts/kidults/kpmo/run-atomic-governed-landing-v1.mjs', 'utf8').replace(/\r\n/g, '\n');
+  const start = source.indexOf('  const oneUseOptions = {');
+  const end = source.indexOf('\n  const receipt = assertAtomicLandingConsumptionReceipt', start);
+  assert.ok(start >= 0 && end > start, 'final pre-merge production call site missing');
+  const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
+  const execute = new AsyncFunction('workflowRuns', 'currentRun', 'landingRunId',
+    'landingRunAttempt', 'expectedRunName', 'baseSha', 'authorizationApprovedAt',
+    'evaluateAtomicLandingOneUseRunSet', 'reconcileAtomicLandingCurrentRunIndex',
+    `${source.slice(start, end)}\nreturn oneUse;`);
+  const result = await execute(async () => [], run(), runId, 1, expectedRunName, baseSha,
+    null, evaluateAtomicLandingOneUseRunSet, reconcileAtomicLandingCurrentRunIndex);
+  assert.equal(result.matching_run_count, 1);
+  assert.equal(result.matching_run_id, runId);
+  await assert.rejects(execute(async () => [run(), run()], run(), runId, 1,
+    expectedRunName, baseSha, null, evaluateAtomicLandingOneUseRunSet,
+    reconcileAtomicLandingCurrentRunIndex), /ATOMIC_LANDING_CURRENT_RUN_CARDINALITY_INVALID/);
 });

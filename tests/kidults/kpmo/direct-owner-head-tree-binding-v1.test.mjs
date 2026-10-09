@@ -1,0 +1,47 @@
+import fs from 'node:fs';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+const text = file => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const workflow = text('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml');
+const runner = text('scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs');
+const preflight = text('scripts/kidults/kpmo/run-atomic-landing-handoff-preflight-v1.mjs');
+
+test('missing tree input and malformed SHA fail before status authorization', () => {
+  const treeGuard = runner.indexOf("!SHA.test(expectedHeadTreeSha)");
+  const firstPublish = runner.indexOf("await publish('pending'");
+  assert.ok(treeGuard >= 0 && treeGuard < firstPublish);
+  assert.match(workflow, /expected_head_tree_sha:\n        description:[^\n]+\n        required: true/);
+  assert.match(preflight, /ATOMIC_HANDOFF_PREFLIGHT_ENVIRONMENT_INVALID/);
+});
+
+test('tampered comment tree and commit-object mismatch fail closed', () => {
+  assert.match(runner, /fields\.expected_head_tree_sha !== expectedHeadTreeSha/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_APPROVAL_SHA_MISMATCH/);
+  assert.match(preflight, /commitObject\.treeSha !== expectedHeadTreeSha/);
+  assert.match(preflight, /ATOMIC_HANDOFF_HEAD_TREE_MISMATCH/);
+});
+
+test('candidate object reads survive REST integration 403 without weakening exact SHA/tree binding', () => {
+  assert.match(preflight, /\/git\/commits\/\$\{expectedHeadSha\}/);
+  assert.match(preflight, /https:\/\/api\.github\.com\/graphql/);
+  assert.match(preflight, /ATOMIC_HANDOFF_HEAD_OBJECT_READ_FAILED/);
+  assert.match(preflight, /ATOMIC_HANDOFF_GRAPHQL_READ_FAILED/);
+  assert.match(preflight, /ATOMIC_HANDOFF_CANDIDATE_GRAPHQL_PATH_INVALID/);
+  assert.match(preflight, /commitObject\.sha !== expectedHeadSha \|\| commitObject\.treeSha !== expectedHeadTreeSha/);
+  assert.match(preflight, /CAPABILITY_BLOCKED/);
+  assert.match(preflight, /head_object_read_transport/);
+  assert.match(preflight, /candidate_read_transport/);
+});
+
+test('tree readbacks surround the window and merge graph is exact', () => {
+  const open = runner.indexOf("state: 'AUTHORIZED_HANDOFF_WINDOW_OPEN'");
+  const sleep = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
+  const before = runner.indexOf('DIRECT_OWNER_HANDOFF_FINAL_HEAD_TREE_DRIFT');
+  const after = runner.indexOf('DIRECT_OWNER_HANDOFF_HEAD_TREE_DRIFT_AFTER_WINDOW');
+  assert.ok(before >= 0 && before < open && open < sleep && sleep < after);
+  assert.match(runner, /parentShas\[0\] !== expectedBaseSha \|\| parentShas\[1\] !== expectedHeadSha/);
+  assert.match(runner, /mergeCommit\?\.commit\?\.tree\?\.sha !== expectedHeadTreeSha/);
+  assert.match(runner, /ordered_parent_shas: parentShas/);
+  assert.match(runner, /resulting_tree_sha: mergeCommit\.commit\.tree\.sha/);
+});

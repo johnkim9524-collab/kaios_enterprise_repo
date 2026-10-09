@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "c90c986f7a5ca414f64e7108d36fbb29936ef18b",
+  "head_branch": "codex/autonomy-seven-defect-correction-20261008",
+  "source_head_sha": "13ceaaba5529003ac9c50c47fd9ca8afc6d60ca4",
+  "source_head_tree_sha": "c49a06877887415a025fa5e2f304106b98acd6b6",
+  "payload_digest": "sha256:ccda0b731a881181814f74aec03dd9c79d2a2fdbce03eb594ea5fe396918509f",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

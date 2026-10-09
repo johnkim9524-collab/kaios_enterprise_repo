@@ -49,10 +49,11 @@ function validateWorkflow(text) {
   for (const token of [
     'set -euo pipefail',
     'canonical-truth-validation-output-v1.tmp.json',
-    'node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"',
+    'node scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs | tee "$TMP_OUTPUT"',
     'mv "$TMP_OUTPUT" "$RUNNER_TEMP/canonical-truth-validation-output-v1.json"',
     'rm -f "$TMP_OUTPUT"',
-    'exit 1'
+    'exit 1',
+    'if test -s "$TMP_OUTPUT"; then'
   ]) {
     requireTrue(validate.includes(token), `CANONICAL_VALIDATION_OUTPUT_CAPTURE_MISSING:${token}`);
   }
@@ -73,6 +74,11 @@ function validateWorkflow(text) {
     'CANONICAL_RECEIPT_RUN_ATTEMPT_BINDING_MISSING');
   for (const token of [
     'validation_output_sha256: validationOutputSha256',
+    'root_failure_class: rootFailureClass',
+    'mismatch_fields: mismatchFields',
+    "material_registry_verified: outcome === 'success'",
+    'let registryCount = null;',
+    'let registryIssueNumbers = null;',
     'validated_protected_main_sha: validatedProtectedMainSha',
     'material_defect_registry_sha256: registryDigest',
     'material_defect_count: registryCount',
@@ -111,8 +117,11 @@ if (process.argv.includes('--self-test')) {
     source.replace('if [ -z "${VALIDATION_OUTCOME:-}" ]; then', 'if [ -n "${VALIDATION_OUTCOME:-}" ]; then'),
     source.replace('"promotion_eligible": false', '"promotion_eligible": true'),
     source.replace('overwrite: true', 'overwrite: false'),
+    source.replace('let registryCount = null;', 'let registryCount = 0;'),
+    source.replace('root_failure_class: rootFailureClass', 'root_failure_class: null'),
+    source.replace('if test -s "$TMP_OUTPUT"; then', 'if false; then'),
     source.replace('run_attempt: Number(process.env.GITHUB_RUN_ATTEMPT)', 'run_attempt: 1'),
-    source.replace('node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs | tee "$TMP_OUTPUT"', 'node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'),
+    source.replace('node scripts/kidults/kpmo/run-live-canonical-truth-terminal-v1.mjs | tee "$TMP_OUTPUT"', 'node scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'),
     source.replace('material_defect_registry_sha256: registryDigest', 'material_defect_registry_sha256: null'),
     source.replace('material_defect_issue_numbers: registryIssueNumbers', 'material_defect_issue_numbers: []'),
     source.replace('${{ runner.temp }}/canonical-truth-validation-output-v1.json', '${{ runner.temp }}/missing-validation-output.json')

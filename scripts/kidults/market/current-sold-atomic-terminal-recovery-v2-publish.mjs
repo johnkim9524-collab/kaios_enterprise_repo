@@ -26,18 +26,17 @@ export function assertEvidenceReceipt(receipt, authority, {
   receiptSha,
 } = {}) {
   const {manifest} = authority;
+  const predecessor = receipt?.predecessor_atomic_run;
   assert(receipt?.id === 'kidults-atomic-terminal-recovery-evidence-receipt-v2'
     && receipt?.version === '2.0.0' && receipt?.state === 'VERIFIED_PASS',
   'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_STATE_INVALID');
   assert(receipt?.repository === manifest.repository
     && Number(receipt?.predecessor_pull_request) === manifest.predecessor_pull_request.number
-    && receipt?.predecessor_atomic_run
-    && typeof receipt.predecessor_atomic_run === 'object'
-    && !Array.isArray(receipt.predecessor_atomic_run)
-    && Number(receipt.predecessor_atomic_run.id) === manifest.atomic_run.id
-    && Number(receipt.predecessor_atomic_run.attempt) === manifest.atomic_run.attempt
-    && receipt.predecessor_atomic_run.conclusion === manifest.atomic_run.expected_conclusion
-    && receipt.predecessor_atomic_run.actor === authority.repositoryOwner
+    && predecessor != null && typeof predecessor === 'object' && !Array.isArray(predecessor)
+    && Number(predecessor?.id) === manifest.atomic_run.id
+    && Number(predecessor?.attempt) === manifest.atomic_run.attempt
+    && predecessor?.conclusion === manifest.atomic_run.expected_conclusion
+    && predecessor?.actor === authority.repositoryOwner
     && receipt?.predecessor_merge_sha === manifest.predecessor_pull_request.merge_commit_sha,
   'ATOMIC_RECOVERY_EVIDENCE_RECEIPT_PREDECESSOR_MISMATCH');
   assert(receipt?.exact_current_main_sha === authority.currentMainInput

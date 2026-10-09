@@ -1,0 +1,32 @@
+{
+  "id": "kidults-staging-normal-ops-autonomy-policy-v1",
+  "version": "1.0.0",
+  "principle": "STAGING_INTERNAL_REVERSIBLE_WITHIN_EXISTING_AUTHORITY_AUTO_EXECUTES",
+  "auto_normal_ops": [
+    "kidults-autonomous-event-broker-deploy-v1.yml",
+    "kidults-autonomous-landing-staging-deploy-v1.yml",
+    "kidults-natural-clock-deploy-v1.yml",
+    "digitalocean-staging-portal-deploy.yml"
+  ],
+  "owner_boundary_exact": [
+    "kidults-cloudflare-pages-staging-deploy-v1.yml"
+  ],
+  "manual_diagnostic_recovery_name_pattern": "bootstrap|readonly|emergency|pitr|restore|admission|release|qa|diagnostic|validation|preflight|approval|privacy|provider|runtime-control|wcag|portal-r001|v666|object-lock-canary|real-workload",
+  "owner_boundary_conditions": [
+    "PRODUCTION_OR_PUBLIC_OR_G5",
+    "AUTHORITY_OR_TRUST_EXPANSION",
+    "SECRET_OR_CREDENTIAL_CHANGE",
+    "NEW_PAID_INFRASTRUCTURE",
+    "PROVIDER_ACTIVATION",
+    "RULESET_OR_SECURITY_BOUNDARY_WEAKENING"
+  ],
+  "normal_ops_guards": {
+    "exact_main": true,
+    "fail_closed": true,
+    "negative_canary": true,
+    "terminal_receipt": true,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  }
+}

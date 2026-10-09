@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+import fs from 'node:fs';
+
+const SHA_RE = /^[0-9a-f]{40}$/;
+const PRODUCER_EVENTS = new Set(['workflow_run', 'workflow_dispatch', 'schedule', 'push', 'pull_request']);
+const TERMINAL = new Set(['success', 'failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale']);
+const positive = value => Number.isSafeInteger(value) && value > 0;
+
+export function classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath,expectedProducerEvent='workflow_run'}) {
+  const run=event?.workflow_run;
+  const base={
+    id:'kidults-workflow-run-generation-classification-v1',version:'1.1.0',
+    state:'VERIFIED_FAIL',classification:'INVALID_TRIGGER',reason:'UNCLASSIFIED',
+    repository,current_main_sha:currentMainSha,execution_sha:executionSha,expected_producer_workflow_path:expectedWorkflowPath,
+    expected_producer_event:expectedProducerEvent,producer_workflow_path:run?.path??null,producer_event:run?.event??null,
+    producer_run_id:Number.isInteger(run?.id)?run.id:null,producer_run_attempt:Number.isInteger(run?.run_attempt)?run.run_attempt:null,
+    producer_head_repository:run?.head_repository?.full_name??null,producer_head_branch:run?.head_branch??null,
+    producer_head_sha:run?.head_sha??null,producer_conclusion:run?.conclusion??null,
+    current_main_authority:false,promotion_eligible:false,promotion_authority:false,
+    empirical_authority:false,provider_activation_authority:false,public_release:'HOLD',production:'HOLD',g5:'HOLD'
+  };
+  if(!run||!positive(run.id))return {...base,reason:'WORKFLOW_RUN_EVENT_MISSING'};
+  if(!positive(run.run_attempt))return {...base,reason:'PRODUCER_RUN_ATTEMPT_INVALID'};
+  if(!SHA_RE.test(currentMainSha??''))return {...base,reason:'CURRENT_MAIN_SHA_INVALID'};
+  if(!SHA_RE.test(executionSha??''))return {...base,reason:'EXECUTION_SHA_INVALID'};
+  if(executionSha!==currentMainSha)return {...base,reason:'CURRENT_MAIN_ADVANCED_DURING_CLASSIFICATION'};
+  if(!repository||run.head_repository?.full_name!==repository)return {...base,reason:'PRODUCER_REPOSITORY_MISMATCH'};
+  if(run.head_branch!=='main')return {...base,reason:'PRODUCER_BRANCH_MISMATCH'};
+  if(!expectedWorkflowPath||run.path!==expectedWorkflowPath)return {...base,reason:'PRODUCER_WORKFLOW_PATH_MISMATCH'};
+  if(expectedProducerEvent!=='workflow_run')return {...base,reason:'EXPECTED_PRODUCER_EVENT_INVALID'};
+  if(!PRODUCER_EVENTS.has(run.event))return {...base,reason:'PRODUCER_EVENT_INVALID'};
+  if(!SHA_RE.test(run.head_sha??''))return {...base,reason:'PRODUCER_HEAD_SHA_INVALID'};
+  if(run.status!=='completed'||!TERMINAL.has(run.conclusion))return {...base,reason:'PRODUCER_LIFECYCLE_INVALID'};
+  if(run.event!==expectedProducerEvent)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'PRODUCER_EVENT_MISMATCH'};
+  if(run.conclusion!=='success')return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'UPSTREAM_NON_SUCCESS',producer_conclusion:run.conclusion??'UNKNOWN'};
+  if(run.head_sha!==currentMainSha)return {...base,state:'VERIFIED_SKIP',classification:'EXPECTED_NONAUTHORITATIVE_SKIP',reason:'STALE_PRIOR_MAIN_TRIGGER'};
+  return {...base,state:'VERIFIED_PASS',classification:'CURRENT_MAIN_EXACT',reason:'CURRENT_MAIN_PRODUCER_BOUND',current_main_authority:true};
+}
+
+function main(){
+  const [eventPath,currentMainSha,executionSha,repository,expectedWorkflowPath,outputPath,expectedProducerEvent='workflow_run']=process.argv.slice(2);
+  if(!eventPath||!currentMainSha||!executionSha||!repository||!expectedWorkflowPath||!outputPath)throw new Error('WORKFLOW_RUN_CLASSIFIER_ARGUMENTS_REQUIRED');
+  const event=JSON.parse(fs.readFileSync(eventPath,'utf8'));
+  const result=classifyWorkflowRunGeneration({event,currentMainSha,executionSha,repository,expectedWorkflowPath,expectedProducerEvent});
+  fs.writeFileSync(outputPath,`${JSON.stringify(result,null,2)}\n`);
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
+if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href)main();

@@ -7,22 +7,30 @@ import {
   isAtomicLandingNativeStatusReady,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 import {
-  selectLatestDirectOwnerReadyEvent,
+  selectLatestLifecycleReadyEvent,
 } from './lib/direct-owner-ready-event-v1.mjs';
+import {
+  assertLandingActorAndAuthorization,
+  selectExactHeadProgramOwnerApproval,
+} from './lib/governed-landing-native-gates-v1.mjs';
 
 const token = process.env.GH_TOKEN;
 const repository = process.env.GH_REPOSITORY;
 const prNumber = process.env.PR_NUMBER;
 const expectedHeadSha = process.env.EXPECTED_HEAD_SHA;
+const authorizationId = process.env.LANDING_AUTHORIZATION_ID;
+const landingActor = process.env.LANDING_ACTOR || process.env.GITHUB_ACTOR;
+const landingRunId = process.env.GITHUB_RUN_ID;
 const outPath = process.env.LIFECYCLE_AUTHORITY_PATH || '/tmp/kpmo-atomic-landing/lifecycle-authority.json';
-if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')) {
+if (!token || !repository || !/^\d+$/.test(prNumber || '') || !/^[0-9a-f]{40}$/.test(expectedHeadSha || '')
+  || !authorizationId || !landingActor || !/^\d+$/.test(landingRunId || '')) {
   throw new Error('ATOMIC_LIFECYCLE_PREFLIGHT_ENVIRONMENT_BINDING_INVALID');
 }
 const repositoryParts = repository.split('/');
 if (repositoryParts.length !== 2 || repositoryParts.some(value => !value)) {
   throw new Error('ATOMIC_LIFECYCLE_REPOSITORY_INVALID');
 }
-const [repositoryOwner] = repositoryParts;
+const [repositoryPathOwner] = repositoryParts;
 
 const headers = {
   Authorization: `Bearer ${token}`,
@@ -73,17 +81,27 @@ const readArtifactReceipt = async artifact => {
 };
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json', 'utf8'));
-const [pr, mainBranch, combinedStatus, timeline] = await Promise.all([
+const [repositoryState, pr, mainBranch, combinedStatus, timeline, approvalComments, headCommit, currentRun] = await Promise.all([
+  request(''),
   request(`/pulls/${prNumber}`),
   request('/branches/main'),
   request(`/commits/${expectedHeadSha}/status`),
   pages(`/issues/${prNumber}/timeline`),
+  pages(`/issues/${prNumber}/comments`),
+  request(`/commits/${expectedHeadSha}`),
+  request(`/actions/runs/${landingRunId}`),
 ]);
+const repositoryOwner = repositoryState?.owner?.login;
+if (!repositoryOwner || repositoryOwner !== repositoryPathOwner) {
+  throw new Error('ATOMIC_LIFECYCLE_REPOSITORY_OWNER_MISMATCH');
+}
+assertLandingActorAndAuthorization(landingActor, repositoryOwner, authorizationId, prNumber, expectedHeadSha);
 if (pr.state !== 'open' || pr.merged === true || pr.draft === true) throw new Error('ATOMIC_LIFECYCLE_PR_NOT_READY_OPEN_UNMERGED');
 if (pr.head?.sha !== expectedHeadSha) throw new Error('ATOMIC_LIFECYCLE_HEAD_DRIFT');
 if (pr.base?.ref !== 'main' || pr.base?.sha !== mainBranch?.commit?.sha) throw new Error('ATOMIC_LIFECYCLE_BASE_NOT_LIVE_MAIN');
 
-const required = Array.from(new Set(policy.native_required_status_contexts || []));
+const required = Array.from(new Set(policy.native_required_status_contexts || []))
+  .filter(context => context !== 'KIDULTS Governed Landing Authorization V1');
 if (!required.length) throw new Error('ATOMIC_LIFECYCLE_NATIVE_CONTEXT_SET_EMPTY');
 const statuses = Array.isArray(combinedStatus?.statuses) ? combinedStatus.statuses : [];
 const nativeStatuses = required.map(context => {
@@ -95,9 +113,23 @@ const nativeStatuses = required.map(context => {
   return matches[0];
 });
 
-const latestReadiness = selectLatestDirectOwnerReadyEvent({
+const latestReadiness = selectLatestLifecycleReadyEvent({
   timeline,
   repositoryOwner,
+  pullRequest: pr,
+});
+const programOwnerApproval = selectExactHeadProgramOwnerApproval(approvalComments, {
+  repository,
+  repositoryOwner,
+  prNumber,
+  headSha: expectedHeadSha,
+  baseSha: pr.base.sha,
+  authorizationId,
+  prCreatedAt: pr.created_at,
+  headCommittedAt: headCommit?.commit?.committer?.date || headCommit?.commit?.author?.date,
+  latestReadyAt: latestReadiness.created_at,
+  landingAttemptStartedAt: currentRun.run_started_at || currentRun.created_at,
+  evaluationTime: new Date().toISOString(),
 });
 
 const authority = await resolveAtomicLandingLifecycleAuthority({
@@ -131,6 +163,8 @@ const receipt = {
   latest_ready_event_actor: latestReadiness.actor,
   latest_ready_event_direct_repository_owner: latestReadiness.direct_repository_owner,
   latest_ready_event_performed_via_github_app: latestReadiness.performed_via_github_app,
+  program_owner_approval: programOwnerApproval,
+  complete_owner_approval_contract_validated_before_consumption: true,
   final_live_reread: true,
   manual_merge_authority: false,
   atomic_landing_only: true,

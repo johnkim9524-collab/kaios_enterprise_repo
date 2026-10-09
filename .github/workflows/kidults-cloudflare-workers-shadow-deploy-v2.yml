@@ -1,7 +1,10 @@
 name: KIDULTS Cloudflare Workers Shadow Deploy v2
 
 # Consumed one-shot lane: no event may start this historical workflow.
-on: []
+on:
+  push:
+    branches-ignore: ['**']
+    tags-ignore: ['**']
 
 permissions:
   contents: read
@@ -12,6 +15,7 @@ concurrency:
 
 jobs:
   deploy-shadow-v2:
+    if: ${{ false }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

@@ -31,17 +31,48 @@ const GOVERNED_CLASSES = [
   'DOCUMENTATION_AGENTS', 'DISCOVERY_AGENTS', 'EVIDENCE_AGENTS', 'GRAPH_AGENTS',
   'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS'
 ];
+const AGENT_CLASS_ROLE_MAP = Object.freeze({
+  KPMO: 'integration-conductor',
+  TRACK_A: 'track-a-120-score',
+  TRACK_B: 'track-b-rankability',
+  TRACK_C: 'track-c-portal-v502',
+  TRACK_D: 'snapshot-publisher',
+  TRACK_E: 'qa-release-manager',
+  RED_TEAM: 'red-team-lead',
+  REVIEW_AGENTS: 'editorial-rights-reviewer',
+  TEST_AGENTS: 'qa-release-manager',
+  RELEASE_AGENTS: 'qa-release-manager',
+  DOCUMENTATION_AGENTS: 'documentation-sync',
+  EVIDENCE_AGENTS: 'registry-custodian',
+  GRAPH_AGENTS: 'registry-custodian',
+  RUNTIME_AGENTS: 'program-participant',
+  ASI: 'program-participant',
+  CODING_AGENTS: 'program-participant',
+  DISCOVERY_AGENTS: 'program-participant',
+  PROVIDER_AGENTS: 'program-participant',
+  SCHEDULED_AGENT_AUTOMATIONS: 'program-participant',
+  EXTERNAL_MODEL_AGENTS: 'program-participant'
+});
 const REQUIRED_DOCUMENTS = [
   [CONTRACT_PATH, 'GITHUB_SOURCE_BOOTSTRAP_TRUST_ANCHOR'],
+  ['coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json', 'CONSTITUTIONAL_READINESS_AND_ROLE_ACCEPTANCE_GATE'],
+  ['CONSTITUTION.md', 'HUMAN_READABLE_SUPREME_CONSTITUTION'],
+  ['docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md', 'AGENT_CONSTITUTIONAL_CHARTER'],
+  ['coordination/kidults/architecture/autonomous-global-collectibles-intelligence-os-v3.1.md', 'AUTONOMOUS_OS_VISION_AND_ARCHITECTURE'],
+  ['coordination/kidults/kpmo/autonomous-intelligence-behavior-control-v1.json', 'AUTONOMOUS_INTELLIGENCE_BEHAVIOR'],
+  ['coordination/kidults/governance/autonomous-global-irreplaceable-value-gate-v1.json', 'AUTONOMOUS_GLOBAL_IRREPLACEABLE_VALUE_GATE'],
   ['package.json', 'BOOTSTRAP_PACKAGE_COMMAND'],
   ['AGENTS.md', 'ROOT_REPOSITORY_INSTRUCTIONS'],
   ['.github/AI_AGENT_OPERATING_RULES.md', 'HUMAN_READABLE_AI_POLICY'],
   ['coordination/kidults/kpmo/operating-principles-and-resilience-controls-v1.json', 'PLATFORM_CONSTITUTION'],
   ['coordination/kidults/governance/ai-agent-operating-rules-v1.json', 'AI_MACHINE_CONTRACT'],
+  ['coordination/kidults/governance/authority-chain-change-unit-policy-v1.json', 'WHOLE_AUTHORITY_CHAIN_CHANGE_UNIT_POLICY'],
+  ['coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json', 'AUTONOMOUS_CLOSURE_OWNERSHIP_POLICY'],
   ['coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json', 'FIX_FIRST_BOOTSTRAP_SEQUENCE'],
   ['coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json', 'REPORT_AFTER_REMEDIATION_GATE'],
   ['coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json', 'CANONICAL_STATUS_RECEIPT_SCHEMA'],
   ['coordination/kidults/registry/ai-agent-governance-registry-v1.json', 'GOVERNANCE_SYSTEM_OF_RECORD'],
+  ['coordination/kidults/registry/roles-and-responsibilities.json', 'AGENT_ROLE_JD_AND_ACCOUNTABILITY_REGISTRY'],
   ['coordination/kidults/bootstrap/README.md', 'TRACK_AND_ROLE_STARTUP_ROUTER'],
   ['.github/copilot-instructions.md', 'GITHUB_AGENT_ADAPTER']
 ].map(([documentPath, purpose], index) => ({ order: index + 1, path: documentPath, purpose }));
@@ -68,7 +99,7 @@ const REQUIRED_RECEIPT_FIELDS = [
   'parent_agent_id', 'nonce_sha256', 'issued_at', 'expires_at', 'ttl_seconds',
   'canonical_repository', 'origin', 'authority_ref', 'local_authority_sha', 'working_ref',
   'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
-  'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
+  'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
 ];
 const WORKTREE_BASELINE_ALGORITHM = 'SHA256_GIT_STATUS_INDEX_DIFF_AND_UNTRACKED_CONTENT_V1';
 const WORKTREE_STATE_FIELDS = Object.freeze([
@@ -177,6 +208,29 @@ const RECEIPT_AUTHORITY_BOUNDARY = Object.freeze({
 });
 
 const fail = (code, detail = '') => { throw new Error(detail ? `${code}:${detail}` : code); };
+const boundedGitFailureDetail = error => String(error?.stderr ?? error?.message ?? 'GIT_FAILURE_DETAIL_UNAVAILABLE')
+  .split(/\r?\n/, 1)[0].replace(/[^\x20-\x7e]/g, '?').slice(0, 160) || 'GIT_FAILURE_DETAIL_UNAVAILABLE';
+const emitBoundedFailureReceipt = error => {
+  const message = String(error?.message || 'BOOTSTRAP_VERIFICATION_FAILED');
+  const separator = message.indexOf(':');
+  const failureCode = (separator >= 0 ? message.slice(0, separator) : message).slice(0, 120);
+  const detail = boundedGitFailureDetail(separator >= 0 ? {message: message.slice(separator + 1)} : error);
+  process.stderr.write(`Error: ${failureCode}${separator >= 0 ? `:${detail}` : ''}\n`);
+  process.stderr.write(`${JSON.stringify({
+    id: 'kidults-ai-agent-bootstrap-verifier-bounded-failure-receipt-v1',
+    version: '1.0.0',
+    state: 'VERIFIED_FAIL',
+    failure_code: failureCode,
+    bounded_failure_detail: detail,
+    bounded_failure_detail_max_bytes: 160,
+    repository_receipt_written: false,
+    raw_nonce_persisted_or_logged: false,
+  })}\n`);
+};
+process.once('uncaughtException', error => {
+  try { emitBoundedFailureReceipt(error); } catch {}
+  process.exitCode = 1;
+});
 const sha256Hex = (value) => crypto.createHash('sha256').update(value).digest('hex');
 const sha256 = (value) => `sha256:${sha256Hex(value)}`;
 const stableStringify = (value) => {
@@ -241,6 +295,7 @@ const resolveTrustedGit = () => {
 };
 
 const TRUSTED_GIT = resolveTrustedGit();
+const GIT_NULL_DEVICE = process.platform === 'win32' ? 'NUL' : os.devNull;
 const trustedGitPath = () => {
   if (process.platform !== 'win32') return '/usr/bin:/bin';
   const gitDir = path.dirname(TRUSTED_GIT);
@@ -251,13 +306,13 @@ const trustedGitPath = () => {
 const gitEnvironment = () => {
   const env = Object.assign(Object.create(null), {
     PATH: trustedGitPath(),
-    HOME: os.devNull,
-    XDG_CONFIG_HOME: os.devNull,
+    HOME: GIT_NULL_DEVICE,
+    XDG_CONFIG_HOME: GIT_NULL_DEVICE,
     LANG: 'C',
     LC_ALL: 'C',
     GIT_CONFIG_NOSYSTEM: '1',
-    GIT_CONFIG_GLOBAL: os.devNull,
-    GIT_CONFIG_SYSTEM: os.devNull,
+    GIT_CONFIG_GLOBAL: GIT_NULL_DEVICE,
+    GIT_CONFIG_SYSTEM: GIT_NULL_DEVICE,
     GIT_NO_REPLACE_OBJECTS: '1',
     GIT_NO_LAZY_FETCH: '1',
     GIT_ATTR_NOSYSTEM: '1',
@@ -272,7 +327,7 @@ const gitEnvironment = () => {
     env.WINDIR = env.SystemRoot;
     env.PATHEXT = '.COM;.EXE;.BAT;.CMD';
     env.PATH = `${trustedGitPath()}${path.delimiter}${path.join(env.SystemRoot, 'System32')}`;
-    env.USERPROFILE = os.devNull;
+    env.USERPROFILE = GIT_NULL_DEVICE;
     for (const key of ['TEMP', 'TMP']) {
       const value = process.env[key];
       if (value && path.isAbsolute(value) && !value.includes('\0')) env[key] = path.resolve(value);
@@ -335,7 +390,7 @@ const git = (root, args, { buffer = false, network = 'none', allowFile = false, 
       '--no-pager',
       '--no-replace-objects',
       '-c', 'core.fsmonitor=false',
-      '-c', `core.hooksPath=${os.devNull}`,
+      '-c', `core.hooksPath=${GIT_NULL_DEVICE}`,
       '-c', 'core.askPass=',
       '-c', 'credential.helper=',
       '-c', 'credential.interactive=never',
@@ -494,8 +549,8 @@ const trustedGitEvidence = () => ({
 const repositoryRoot = () => {
   try {
     return gitText(null, ['rev-parse', '--show-toplevel']);
-  } catch {
-    fail('NOT_INSIDE_GIT_REPOSITORY');
+  } catch (error) {
+    fail('NOT_INSIDE_GIT_REPOSITORY', boundedGitFailureDetail(error));
   }
 };
 
@@ -639,7 +694,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.3.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -658,16 +713,22 @@ const verifyCommittedContract = (contract) => {
     [contract.task_dispatch_gate?.external_expected_sha_required === true, 'CONTRACT_EXPECTED_SHA_REQUIRED'],
     [contract.task_dispatch_gate?.expected_sha_must_equal_working_sha === true, 'CONTRACT_EXPECTED_SHA_EQUALITY'],
     [contract.task_dispatch_gate?.expected_sha_match_state_must_be_true === true, 'CONTRACT_EXPECTED_SHA_MATCH_STATE'],
+    [contract.task_dispatch_gate?.constitutional_readiness_binding_required === true, 'CONTRACT_READINESS_REQUIRED'],
+    [contract.task_dispatch_gate?.constitutional_readiness_must_be_independently_verified === true, 'CONTRACT_READINESS_VERIFICATION_REQUIRED'],
     [stableStringify(contract.bootstrap_authority) === stableStringify(BOOTSTRAP_AUTHORITY), 'CONTRACT_BOOTSTRAP_AUTHORITY'],
     [stableStringify(contract.receipt_authority_boundary) === stableStringify(RECEIPT_AUTHORITY_BOUNDARY), 'CONTRACT_RECEIPT_AUTHORITY_BOUNDARY'],
     [stableStringify(contract.fail_closed_conditions) === stableStringify(FAIL_CLOSED_CONDITIONS), 'CONTRACT_FAIL_CLOSED_CONDITIONS'],
     [stableStringify(contract.worktree_baseline_policy) === stableStringify(WORKTREE_BASELINE_POLICY), 'CONTRACT_WORKTREE_BASELINE_POLICY'],
+    [contract.trust_model?.agent_class_must_resolve_to_one_registered_role === true, 'CONTRACT_ROLE_RESOLUTION'],
+    [contract.trust_model?.readiness_receipt_must_bind_manifest_role_registry_role_mission_domains_jd_fields_task_session_nonce_and_sha === true, 'CONTRACT_READINESS_BINDING'],
+    [contract.trust_model?.parent_attestation_may_replace_child_attestation === false, 'CONTRACT_NO_PARENT_ATTESTATION_SUBSTITUTION'],
     [contract.trust_model?.github_event_context_binding_is_not_cryptographic_or_current_state_proof === true, 'CONTRACT_GITHUB_CONTEXT_LIMIT'],
     [contract.trust_model?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'CONTRACT_CURRENT_GITHUB_STATE_PROOF'],
     [contract.trust_model?.full_root_of_trust_requires_an_external_pinned_or_protected_base_launcher === true, 'CONTRACT_EXTERNAL_ROOT'],
     [contract.trust_model?.clean_github_actions_checkout_alone_is_a_full_root_of_trust === false, 'CONTRACT_CLEAN_CHECKOUT_ROOT_ESCALATION'],
     [contract.trust_model?.target_revision_must_be_treated_as_data_by_the_root_launcher === true, 'CONTRACT_TARGET_AS_DATA'],
     [contract.trust_model?.exact_committed_governance_trust_closure_is_bound === true, 'CONTRACT_TRUST_CLOSURE'],
+    [contract.trust_model?.agent_role_jd_and_accountability_registry_is_pre_dispatch_trust_document === true, 'CONTRACT_AGENT_ROLE_JD_TRUST'],
     [contract.trust_model?.full_worktree_immutability_is_claimed === false, 'CONTRACT_FULL_WORKTREE_ESCALATION'],
     [contract.trust_model?.git_child_process_environment_is_minimal_and_excludes_orchestrator_nonce === true, 'CONTRACT_GIT_ENVIRONMENT_ISOLATION'],
     [contract.trust_model?.repository_git_config_with_execution_or_transport_overrides_is_rejected === true, 'CONTRACT_GIT_CONFIG_ISOLATION'],
@@ -758,6 +819,10 @@ const currentGithubEventContextBinding = (workingSha) => {
   } else if (eventName === 'push') {
     trustedSha = payload?.after ?? null;
     source = 'push.after';
+  } else if (eventName === 'workflow_run') {
+    // Match the producer's exact triggering-run checkout, not the default branch.
+    trustedSha = payload?.workflow_run?.head_sha ?? null;
+    source = 'workflow_run.head_sha';
   } else {
     trustedSha = process.env.GITHUB_SHA ?? null;
   }
@@ -858,7 +923,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.3.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.7.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -912,6 +977,28 @@ if (!Number.isInteger(receipt.ttl_seconds) || receipt.ttl_seconds < 60 || receip
 if (expires - issued !== receipt.ttl_seconds * 1000) fail('RECEIPT_TTL_WINDOW_MISMATCH');
 
 verifyDocumentSet(root, receipt);
+const readiness = receipt.constitutional_readiness;
+const expectedDomains = ['VISION_AND_GOALS', 'OPERATING_PRINCIPLES', 'AI_GOVERNANCE', 'JD_AND_ROLE', 'WORKING_ATTITUDE'];
+const expectedJdFields = ['mission', 'core_responsibilities', 'required_deliverables', 'decision_authority', 'must_not', 'success_measures', 'reporting_cadence'];
+const manifestDocument = receipt.committed_documents.find((document) => document.path === 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json');
+const roleDocument = receipt.committed_documents.find((document) => document.path === 'coordination/kidults/registry/roles-and-responsibilities.json');
+if (!manifestDocument || !roleDocument) fail('CONSTITUTIONAL_DOCUMENT_BINDING_MISSING');
+const roleBlob = committedBlobAt(root, receipt.working_sha, roleDocument.path);
+let roleRegistry;
+try { roleRegistry = JSON.parse(roleBlob.body.toString('utf8')); } catch { fail('COMMITTED_ROLE_REGISTRY_INVALID_JSON'); }
+const expectedRoleId = AGENT_CLASS_ROLE_MAP[receipt.agent_class];
+const expectedRole = roleRegistry.roles?.find((role) => role.role_id === expectedRoleId);
+if (!expectedRole) fail('BOUND_ROLE_NOT_FOUND', expectedRoleId ?? receipt.agent_class);
+if (readiness?.manifest_path !== manifestDocument.path || readiness?.manifest_sha256 !== manifestDocument.sha256
+  || readiness?.role_registry_path !== roleDocument.path || readiness?.role_registry_sha256 !== roleDocument.sha256
+  || readiness?.bound_role_id !== expectedRole.role_id || readiness?.bound_role_mission !== expectedRole.mission
+  || stableStringify(readiness?.accepted_domains) !== stableStringify(expectedDomains)
+  || stableStringify(readiness?.role_jd_fields_accepted) !== stableStringify(expectedJdFields)
+  || readiness?.acceptance_mechanism !== 'SUCCESSFUL_EXPLICIT_BOOTSTRAP_INVOCATION'
+  || readiness?.acceptance_bound_to_agent_task_session_nonce_and_sha !== true
+  || readiness?.parent_acceptance_substitution_allowed !== false) {
+  fail('CONSTITUTIONAL_READINESS_BINDING_INVALID');
+}
 const contractBlob = committedBlobAt(root, receipt.working_sha, CONTRACT_PATH);
 let committedContract;
 try {
@@ -953,7 +1040,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.3.0',
+  version: '1.7.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,
@@ -963,6 +1050,8 @@ console.log(JSON.stringify({
   session_id: receipt.session_id,
   working_sha: receipt.working_sha,
   source_scope: receipt.source_attestation.scope,
+  constitutional_readiness_verified: true,
+  bound_role_id: receipt.constitutional_readiness.bound_role_id,
   consumed: options.consume,
   consumption_marker: consumptionMarker,
   task_dispatch_allowed_for_bound_task_session: options.consume,

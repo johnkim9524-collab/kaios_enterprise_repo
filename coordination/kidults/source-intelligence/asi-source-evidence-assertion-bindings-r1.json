@@ -81,7 +81,7 @@
       "supported_excluded_material": [],
       "supported_access": {
         "rate_limit_state": "EXPLICIT",
-        "rate_limit_policy": "IDENTIFIED_CLIENT_MAX_1000_REQUESTS_PER_5_MINUTES_HONOR_429_WITH_BACKOFF"
+        "rate_limit_policy": "FIREWALL_MAX_3000_REQUESTS_PER_5_MINUTES_PER_IP_HONOR_429_AND_5XX_WITH_BACKOFF"
       }
     },
     {

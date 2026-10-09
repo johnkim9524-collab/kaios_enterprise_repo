@@ -48,12 +48,13 @@ const expectedEnv = (eventName = 'schedule') => ({
   KIDULTS_EXPECTED_PRODUCER_ARTIFACT_NAME: canonicalContract.producer_identity.artifact_name
 });
 
-function fixture({ eventName = 'schedule', evaluatedAt, expiresAt = '2099-01-01T00:00:00Z' } = {}) {
+function fixture({ eventName = 'schedule', evaluatedAt, expiresAt = '2099-01-01T00:00:00Z', rightsDecision = 'PASS' } = {}) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'kidults-eligibility-receipt-test-'));
   const paths = Object.fromEntries(['value', 'rights', 'snapshots', 'schemas', 'contract', 'receipt'].map(name => [name, path.join(directory, `${name}.json`)]));
   const write = (file, value) => fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
   write(paths.value, { records: [{ source_id: 'fixture-source', value_admission_status: 'VALUE_ELIGIBLE_CONTINUE_RIGHTS_REVIEW', hard_minimum_complete: true, value_score: 90 }] });
-  write(paths.rights, { records: [{ source_id: 'fixture-source', decision: 'PASS', rights: { collect: 'ALLOW', store: 'ALLOW', derive: 'ALLOW', commercial_use: 'ALLOW' }, evidence_binding: { recheck_due_at: expiresAt } }] });
+  const rightsValue = rightsDecision === 'PASS' ? 'ALLOW' : 'DENY_PUBLIC_WEB';
+  write(paths.rights, { records: [{ source_id: 'fixture-source', decision: rightsDecision, rights: { collect: rightsValue, store: rightsValue, derive: rightsValue, commercial_use: rightsValue }, evidence_binding: { recheck_due_at: expiresAt } }] });
   write(paths.snapshots, { records: [{ source_id: 'fixture-source', capture_state: 'SOURCE_CONTENT_SNAPSHOT_BOUND', decision_promotion_eligible: true, source_content_sha256: `sha256:${'2'.repeat(64)}`, governed_object_ref: 'governed://fixture-source' }] });
   write(paths.schemas, { records: [{ source_id: 'fixture-source', state: 'SOURCE_SPECIFIC_SCHEMA_BOUND', terminal_sold_compatible: true, schema_sha256: `sha256:${'3'.repeat(64)}`, sample_digest: `sha256:${'4'.repeat(64)}`, expires_at: expiresAt }] });
   const contract = structuredClone(canonicalContract);
@@ -100,8 +101,8 @@ test('current schedule receipt without P3 is exact-producer-bound and canary-eva
 });
 
 test('producer workflow binds exact head, run attempt and canonical artifact identity', () => {
-  assert.match(workflow, /KIDULTS_EXACT_SOURCE_SHA: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
-  assert.match(workflow, /group: kidults-asi-global-any-site-hourly-v2-\$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /KIDULTS_EXACT_SOURCE_SHA: \$\{\{ github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.exact_main_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /group: kidults-asi-global-any-site-hourly-v2-\$\{\{ github\.event_name == 'repository_dispatch' && github\.event\.client_payload\.exact_main_sha \|\| github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
   assert.match(workflow, /ref: \$\{\{ env\.KIDULTS_EXACT_SOURCE_SHA \}\}/);
   assert.match(workflow, /test "\$\(git rev-parse HEAD\)" = "\$KIDULTS_EXACT_SOURCE_SHA"/);
   assert.match(workflow, /KIDULTS_WORKFLOW_RUN_ATTEMPT: \$\{\{ github\.run_attempt \}\}/);
@@ -118,6 +119,24 @@ test('expired receipt cannot be replayed as canary-evaluation eligibility or act
   const result = validate(item);
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /CANARY_EVALUATION_RECEIPT_EXPIRED_AT_VALIDATION/);
+});
+
+test('stale NO_GO evidence remains an explicit fail-closed exclusion without stopping receipt production', t => {
+  const item = fixture({
+    evaluatedAt: '2020-01-03T00:00:00Z',
+    expiresAt: '2020-01-02T00:00:00Z',
+    rightsDecision: 'NO_GO'
+  });
+  t.after(() => fs.rmSync(item.directory, { recursive: true, force: true }));
+  const result = validate(item);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const receipt = JSON.parse(fs.readFileSync(item.paths.receipt, 'utf8'));
+  assert.equal(receipt.records[0].state, 'HOLD');
+  assert.equal(receipt.records[0].rights_evidence_freshness, 'STALE_FAIL_CLOSED_EXCLUSION');
+  assert.ok(receipt.records[0].failures.includes('RIGHTS_EVIDENCE_STALE_FAIL_CLOSED_EXCLUSION'));
+  assert.equal(receipt.summary.stale_fail_closed_exclusions, 1);
+  assert.equal(receipt.records[0].canary_evaluation_eligible, false);
+  assert.equal(receipt.records[0].adapter_activation_authorized, false);
 });
 
 test('expired upstream evidence cannot be hidden by extending and rehashing receipt expiry', t => {
@@ -168,6 +187,21 @@ test('pull request and manual recovery receipts remain canary-evaluation-only wi
     assert.equal(receipt.records[0].adapter_activation_authorized, false);
     assert.equal(receipt.records[0].product_content_admission_authorized, false);
   }
+});
+
+test('verified natural-clock repository dispatch is admitted without gaining activation authority', t => {
+  const item = fixture({ eventName: 'repository_dispatch' });
+  t.after(() => fs.rmSync(item.directory, { recursive: true, force: true }));
+  const result = validate(item);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const receipt = JSON.parse(fs.readFileSync(item.paths.receipt, 'utf8'));
+  assert.equal(receipt.records[0].canary_evaluation_eligible, true);
+  assert.equal(receipt.records[0].adapter_activation_authorized, false);
+  assert.equal(receipt.records[0].product_content_admission_authorized, false);
+  assert.equal(canonicalContract.producer_identity.adapter_activation_events.includes('repository_dispatch'), false);
+  const verifyIndex = workflow.indexOf('Verify independent natural-clock receipt');
+  const buildIndex = workflow.indexOf('Cross-bind source evidence for canary evaluation without activation authority');
+  assert.ok(verifyIndex >= 0 && buildIndex > verifyIndex, 'natural-clock receipt must be verified before eligibility generation');
 });
 
 test('canonical input path substitution is rejected before receipt use', t => {

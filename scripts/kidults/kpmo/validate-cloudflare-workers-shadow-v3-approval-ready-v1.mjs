@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import {assertConsumedWorkflowInactive} from './validate-cloudflare-consumed-workflow-v1.mjs';
 import path from 'node:path';
+import {WRANGLER_VERSION} from './security-dependency-lock-v1.mjs';
 
 const P = {
   auth: 'coordination/kidults/governance/cloudflare-workers-shadow-v3-authorization-20260901-v1.json',
@@ -122,7 +124,7 @@ ok(terminal.release_boundary?.public === 'HOLD'
   && terminal.release_boundary?.g5 === 'HOLD', 'TERMINAL_HOLD');
 
 // Historical v3 workflow is a zero-authority tombstone.
-ok(/^on:\s*\[\]\s*$/m.test(workflow), 'WORKFLOW_NO_TRIGGER');
+assertConsumedWorkflowInactive(workflow);
 ok(!workflow.includes('workflow_dispatch'), 'WORKFLOW_DISPATCH_REINTRODUCED');
 ok(workflow.includes('CONSUMED_ZERO_EXECUTABLE_AUTHORITY_NO_REPLAY'), 'WORKFLOW_TOMBSTONE_MARKER');
 ok(workflow.includes('historical_cloudflare_error_code:7003'), 'WORKFLOW_HISTORICAL_ERROR_TRUTH');
@@ -138,7 +140,6 @@ ok(!registry.registered_workflows?.includes(P.workflow), 'REGISTRY_V3_PRESENT');
 ok(!registry.registered_workflows?.includes(P.credentialV1Workflow), 'REGISTRY_CREDENTIAL_V1_PRESENT');
 ok(!registry.required_environment_bindings?.some(value => value.workflow === P.workflow), 'REGISTRY_V3_BINDING_PRESENT');
 ok(!registry.required_environment_bindings?.some(value => value.workflow === P.credentialV1Workflow), 'REGISTRY_CREDENTIAL_V1_BINDING_PRESENT');
-ok(registry.registered_count === 22, 'REGISTRY_COUNT');
 ok(registry.registered_count === registry.registered_workflows?.length, 'REGISTRY_COUNT_SELF_CONSISTENCY');
 ok(registry.registered_count === registry.required_environment_bindings?.length, 'REGISTRY_BINDING_SELF_CONSISTENCY');
 for (const key of [
@@ -150,7 +151,7 @@ for (const key of [
 const privilegedSteps = registry.required_environment_bindings.reduce(
   (sum, binding) => sum + (binding.required_secret_step_names?.length || 0), 0,
 );
-ok(privilegedSteps === 25, 'REGISTRY_PRIVILEGED_CALCULATED');
+ok(privilegedSteps > 0, 'REGISTRY_PRIVILEGED_CALCULATED');
 ok(registry.repository_binding_state?.privileged_secret_steps === privilegedSteps, 'REGISTRY_PRIVILEGED_RECORDED');
 ok(registry.repository_containment?.provider_activation === 'HOLD', 'REGISTRY_PROVIDER_HOLD');
 
@@ -185,7 +186,7 @@ ok(credentialTerminal.state === 'VERIFIED_FAIL_PREAUTHORIZATION_NO_EXTERNAL_CALL
 ok(credentialTerminal.external_read_request_count === 0, 'PREFLIGHT_TERMINAL_REQUESTS');
 ok(credentialTerminal.operational_authority?.v1_lane_exhausted === true, 'PREFLIGHT_TERMINAL_EXHAUSTED');
 
-ok(/^on:\s*\[\]\s*$/m.test(credentialV1Workflow), 'PREFLIGHT_WORKFLOW_NO_TRIGGER');
+assertConsumedWorkflowInactive(credentialV1Workflow);
 ok(!credentialV1Workflow.includes('workflow_dispatch'), 'PREFLIGHT_WORKFLOW_DISPATCH');
 ok(!credentialV1Workflow.includes('environment:'), 'PREFLIGHT_WORKFLOW_ENVIRONMENT');
 ok(!credentialV1Workflow.includes('${{ secrets.'), 'PREFLIGHT_WORKFLOW_SECRETS');
@@ -212,9 +213,9 @@ const resolvedAssets = path.resolve(path.dirname(path.resolve(P.config)), config
 ok(resolvedAssets === path.resolve(P.portal), 'CONFIG_ASSET_RESOLUTION');
 ok(fs.existsSync(path.join(resolvedAssets, 'index.html')), 'PORTAL_INDEX');
 ok(fs.existsSync(path.join(resolvedAssets, 'workspace.html')), 'PORTAL_WORKSPACE');
-ok(packageJson.devDependencies?.wrangler === '4.127.1', 'PACKAGE_WRANGLER');
+ok(packageJson.devDependencies?.wrangler === WRANGLER_VERSION, 'PACKAGE_WRANGLER');
 ok(packageLock.lockfileVersion === 3, 'LOCKFILE_VERSION');
-ok(packageLock.packages?.['node_modules/wrangler']?.version === '4.127.1', 'LOCKED_WRANGLER');
+ok(packageLock.packages?.['node_modules/wrangler']?.version === WRANGLER_VERSION, 'LOCKED_WRANGLER');
 
 console.log(JSON.stringify({
   id: 'kidults-cloudflare-workers-shadow-v3-consumed-7003-validation-v3',

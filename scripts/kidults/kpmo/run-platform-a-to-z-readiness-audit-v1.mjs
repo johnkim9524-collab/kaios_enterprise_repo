@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 import { spawnSync } from 'node:child_process';
+import { classifyUpstreamAuditHealth } from './continuous-assurance-upstream-health-v1.mjs';
+import { inventoryWholePlatform } from './lib/whole-platform-operating-proof-v1.mjs';
 
 const root = process.cwd();
 const policyPath = 'coordination/kidults/kpmo/platform-continuous-assurance-v1.json';
@@ -211,11 +213,15 @@ function runEphemeralPair(pair) {
 }
 
 const evidencePaths = [...new Set([
+  'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json',
+  'coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json',
+  'scripts/kidults/kpmo/lib/whole-platform-operating-proof-v1.mjs',
   policyPath,
   canonicalIdentityContractPath,
   'scripts/kidults/kpmo/classify-continuous-assurance-canonical-identity-v1.mjs',
   'scripts/kidults/kpmo/resolve-continuous-assurance-ephemeral-guard-v1.mjs',
   'scripts/kidults/kpmo/validate-continuous-assurance-canonical-identity-v1.mjs',
+  'scripts/kidults/kpmo/continuous-assurance-upstream-health-v1.mjs',
   'scripts/kidults/kpmo/validate-continuous-assurance-ephemeral-guard-v1.mjs',
   'scripts/kidults/kpmo/run-platform-a-to-z-readiness-audit-v1.mjs',
   'scripts/kidults/kpmo/plan-safe-remediation-v1.mjs',
@@ -236,6 +242,7 @@ let exitCode = 1;
 try {
   const config = parseArgs(process.argv.slice(2));
   const policy = readJson(policyPath);
+  const canonicalIdentityContract = readJson(canonicalIdentityContractPath);
   const preproduction = readJson('coordination/kidults/kpmo/global-standard-preproduction-gate-v1.json');
   const portal = readJson('coordination/kidults/portal/portal-launch-assurance-v1.json');
   const digitalocean = readJson('coordination/kidults/runtime/digitalocean-staging-portal-receipt-contract-v1.json');
@@ -248,16 +255,24 @@ try {
   ];
   const ephemeralImprovements = [];
   if (process.env.KPMO_UPSTREAM_RUN_ID) {
+    const upstreamAuditHealth = classifyUpstreamAuditHealth({
+      workflowPath: process.env.KPMO_UPSTREAM_WORKFLOW_PATH,
+      workflowEvent: process.env.KPMO_UPSTREAM_EVENT,
+      conclusion: process.env.KPMO_UPSTREAM_CONCLUSION,
+    }, canonicalIdentityContract);
     const upstreamIdentity = [
       process.env.KPMO_UPSTREAM_WORKFLOW_NAME || 'UNKNOWN',
       process.env.KPMO_UPSTREAM_RUN_ID,
       process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
       process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
-      process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN'
+      process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+      upstreamAuditHealth.disposition,
     ].join(':');
     checks.push(staticCheck(
       'UPSTREAM_WORKFLOW_CONCLUSION',
-      process.env.KPMO_UPSTREAM_CONCLUSION === 'success' &&
+      upstreamAuditHealth.acceptable === true &&
+        process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true' &&
+        process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION === upstreamAuditHealth.disposition &&
         process.env.KPMO_UPSTREAM_REPOSITORY === process.env.GITHUB_REPOSITORY &&
         process.env.KPMO_UPSTREAM_HEAD_BRANCH === 'main',
       upstreamIdentity
@@ -310,6 +325,10 @@ try {
     workflow_run_attempt: process.env.GITHUB_RUN_ATTEMPT || '1'
   }));
   const stableReceipt = {
+    whole_platform_operating_proof: inventoryWholePlatform(
+      JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json','utf8')),
+      JSON.parse(fs.readFileSync('coordination/kidults/kpmo/value-chain-completion-scorecard-v1.json','utf8')),
+      identity.actual),
     schema_version: '1.0.0',
     receipt_type: 'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',
     source: {
@@ -337,6 +356,8 @@ try {
         workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
         workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
         conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+        audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
+        audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
         repository: process.env.KPMO_UPSTREAM_REPOSITORY || 'UNKNOWN',
         head_branch: process.env.KPMO_UPSTREAM_HEAD_BRANCH || 'UNKNOWN',
         created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
@@ -438,6 +459,8 @@ try {
         workflow_path: process.env.KPMO_UPSTREAM_WORKFLOW_PATH || 'UNKNOWN',
         workflow_event: process.env.KPMO_UPSTREAM_EVENT || 'UNKNOWN',
         conclusion: process.env.KPMO_UPSTREAM_CONCLUSION || 'UNKNOWN',
+        audit_conclusion_acceptable: process.env.KPMO_UPSTREAM_AUDIT_CONCLUSION_ACCEPTABLE === 'true',
+        audit_disposition: process.env.KPMO_UPSTREAM_AUDIT_DISPOSITION || 'UNKNOWN',
         created_at: process.env.KPMO_UPSTREAM_CREATED_AT || null,
         exact_binding_digest: process.env.KPMO_UPSTREAM_BINDING_DIGEST || null,
         source_receipt_digest: process.env.KPMO_UPSTREAM_SOURCE_RECEIPT_DIGEST || null
