@@ -347,7 +347,8 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
   // Replace any previous result before reading authority. Failed scans never
   // publish partial candidates or leave a prior successful result consumable.
   fs.writeFileSync(`${outputDirectory}/results.json`,'[]\n');
-  fs.rmSync(`${outputDirectory}/failure.json`,{force:true});
+  const failurePath=`${outputDirectory}/failure.json`;
+  if(fs.existsSync(failurePath))fs.unlinkSync(failurePath);
   try {
     const results=await scan();
     fs.writeFileSync(`${outputDirectory}/results.json`,JSON.stringify(results,null,2));
