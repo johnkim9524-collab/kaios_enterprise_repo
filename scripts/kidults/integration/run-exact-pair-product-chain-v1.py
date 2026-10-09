@@ -79,6 +79,16 @@ def main(argv: list[str]) -> int:
         return 0
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    # A manifest that claims native provenance must consume the authenticated
+    # connector result before any pair, assessor or remote attestation is read.
+    # Legacy local replay remains explicitly outside native domain proof.
+    if manifest.get("native_business_input_reference") is not None:
+        connection = json.loads((output_dir / "runtime-domain-input-connections.json").read_text(encoding="utf-8"))
+        require(connection.get("source_sha") == subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(), "NATIVE_INPUT_SOURCE_MISMATCH")
+        require(connection.get("native_input_transport_state") == "INPUT_TRANSPORT_AND_CONTENT_VERIFIED"
+                and connection.get("native_input_reference") is not None,
+                "AUTHENTICATED_NATIVE_INPUT_REQUIRED")
     require(manifest.get("synthetic") is False and manifest.get("promotable") is True, "NON_PROMOTABLE_INPUT_REJECTED")
     candidate_path = resolve_repository_path(manifest.get("candidate_path", ""))
     evidence_path = resolve_repository_path(manifest.get("evidence_path", ""))
