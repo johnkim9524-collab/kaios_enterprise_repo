@@ -1,3 +1,5 @@
+import {consumedRecoveryObservation} from '../../../scripts/kidults/kpmo/lib/consumed-recovery-observation-v1.mjs';
+import {buildPostmergeRecoveryTerminal,recoveryObjectKey} from '../../../scripts/kidults/kpmo/lib/autonomous-postmerge-recovery-v1.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
@@ -98,3 +100,25 @@ test('finalizer consumes pinned evidence once; expired resume reads stored immut
   assert.equal(resumed.terminal.recovery_run_id,'9001');assert.equal(f.reservation.run_id,I.original_run_id);
   assert.deepEqual({consumes,authorityReads,seals},{consumes:1,authorityReads:1,seals:1});
 });
+
+function sealedContext(){
+ const f=fixture(),terminal=buildPostmergeRecoveryTerminal({request:f.request,recoveryRunId:'9001',evidence:f.snapshot.evidence});
+ return {...f.reservation,state:'CONSUMED',recovery_run_id:'9001',recovery_terminal:terminal,
+ recovery_immutable:{key:recoveryObjectKey(f.request),version_id:'protected-version',receipt_digest:terminal.receipt_digest,
+ object_lock_mode:'COMPLIANCE',checksum_sha256:'sha256:'+'b'.repeat(64),retain_until:'2036-10-05T00:00:00Z',
+ encryption_key_arn:'arn:aws:kms:ap-northeast-2:528314240275:key/12345678-1234-1234-1234-123456789012'}};
+}
+test('sealed historical recovery suppresses work without asserting current authority',()=>{
+ const r=consumedRecoveryObservation(sealedContext());assert.equal(r.current_main_operating_proven,false);
+ assert.equal(r.write_performed,false);assert.equal(r.promotion_eligible,false);assert.equal(r.historical_pull_request,2555);
+});
+test('unconsumed and unsealed contexts retain the full normal validation path',()=>{
+ assert.equal(consumedRecoveryObservation(fixture().reservation),null);
+ const c=sealedContext();delete c.recovery_immutable;assert.equal(consumedRecoveryObservation(c),null);
+});
+for(const [name,mutate] of [
+ ['incident',c=>c.head_sha=SHA],['terminal',c=>c.recovery_terminal.receipt_digest='sha256:'+'c'.repeat(64)],
+ ['key',c=>c.recovery_immutable.key='other'],['retention',c=>c.recovery_immutable.retain_until='2027-01-01T00:00:00Z'],
+ ['lock',c=>c.recovery_immutable.object_lock_mode='GOVERNANCE'],['checksum',c=>c.recovery_immutable.checksum_sha256='bad'],
+ ['run',c=>c.recovery_run_id='9002'],['version',c=>c.recovery_immutable.version_id='']
+])test(`sealed recovery no-op rejects ${name}`,()=>{const c=sealedContext();mutate(c);assert.throws(()=>consumedRecoveryObservation(c));});

@@ -243,3 +243,13 @@ Program Owner가 2026-10-09 10:43:52 KST에 “Track Z 검토하고 대응해”
 상태: `SENT_VERIFIED_WITH_CONNECTOR_ADDED_PRIOR_THREAD_QUOTE`. 완전한 exact-content 패키지 일치 또는 native 외부 통신 승인 체인 성공으로 판정하지 않는다. 기존 validator의 live approval readback/send-path 소비 미구현 상태도 그대로이며 가짜 승인 영수증을 만들지 않았다. 향후 정확한 전체 본문 송신은 도구의 과거 스레드 자동 인용 효과를 패키지에 사전 포함하거나, 인용 없는 송신 경로를 검증한 후 수행해야 한다.
 
 외부 요청은 실제로 발송됐지만 계약안·가격·권한·필드 지원·현재 업무용 입력은 아직 공급자 회신 전이다. 실제 생산자 등록 0개 및 인증된 13개 업무 연결 0/13 판정은 바뀌지 않았다. 단일 CLASSIC.COM이나 그 하위 venue 여러 개를 독립 생산자 2개로 계산하지 않는다. 검토 담당은 실제 공급자 취득, 토큰 생성, native producer 인증서 발급 또는 dispatch를 수행하지 않았다. PR #2621 head `edeac43c7031af5b8b3c64a40627dd740bfa64cb`와 main `c32293a0bb2107f88326c9ae279f7b72bf307c98`는 이번 대응으로 변경하지 않았다. DigitalOcean 이메일 84216에는 접근하거나 변경하지 않았다.
+
+## 2026-10-09: three bounded policy reforms, inactive development proposal
+
+The Program Owner requested correction of unreasonable autonomous-operation policies. The resulting proposal addresses three concrete barriers and grants no operating or release proof.
+
+1. The two capability classifiers admit only the byte-exact reviewed finalizer immutable-transport replacement, with pinned before/after SHA-256 values. Any additional mutation, alternate file or changed baseline returns to ordinary fail-closed checks. Immutable source caching and bounded numeric HTTP diagnostics preserve live PR/main/ruleset/status reads, quorum, nonce and write boundaries. This is a reviewed exact transition, not a generic guard-change exemption.
+2. The historical PR #2555 recovery launcher first reads the authenticated signed ledger. Only a fully consumed, terminal-digest-bound and immutable-acknowledged original incident can emit a historical no-op and suppress repeated GitHub reads. Unconsumed or unsealed records retain normal live validation. No-op records explicitly grant no current-main proof, approval or promotion. Malformed incident, terminal, object key/version/checksum/retention/encryption metadata fails closed.
+3. Exact-pair arrival uses only `actions: read` and `contents: read`; the existing Actions token is passed only to the normal protected-main push step. PR runs receive an empty token. No write permission, new credential, dispatch or provider activation is added.
+
+These changes remain on the existing inactive policy-development branch. Existing PR #2621 and its `ba12f5c7f0e83d5c5d1b4c8ecf564bba003f5fd2` head are preserved. The trusted-main classifiers and checks must evaluate any protected policy landing; the proposed classifiers cannot approve their own activation. No synthetic Owner evidence or manual dispatch is created. Production/Public/G5/provider activation remain HOLD, and the actual thirteen business producers remain unregistered.
