@@ -4,6 +4,24 @@ import crypto from 'node:crypto';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 const hash=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
+const independentlyMatchesProtectedRepair=(file,policy)=>{
+  const path='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(file.filename!==path||!policy.protected_code_repair)return false;
+  const rule=policy.protected_code_repair;
+  const keys=new Set(['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions']);
+  if(Object.keys(rule).length!==keys.size||Object.keys(rule).some(k=>!keys.has(k))
+    ||rule.enabled!==true||rule.executor!=='EXACT_PROTECTED_MAIN'||rule.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
+    ||rule.primary_and_independent_required!==true||rule.track_kpmo_quorum_required!==true||rule.candidate_policy_authority!==false
+    ||!Array.isArray(rule.transitions)||rule.transitions.length!==1)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
+  const entry=rule.transitions[0],names=Object.keys(entry).sort();
+  if(names.length!==4||names.some((name,i)=>name!==['base_digest','head_digest','id','path'][i])
+    ||entry.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||entry.path!==path
+    ||typeof entry.base_digest!=='string'||typeof entry.head_digest!=='string'
+    ||![entry.base_digest,entry.head_digest].every(d=>/^sha256:[a-f0-9]{64}$/.test(d))||entry.base_digest===entry.head_digest)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
+  if(file.status!=='modified')return false;
+  return crypto.createHash('sha256').update(file.base_content,'utf8').digest('hex')===entry.base_digest.substring(7)
+    &&crypto.createHash('sha256').update(file.head_content,'utf8').digest('hex')===entry.head_digest.substring(7);
+};
 const deny=(code,detail='')=>{const error=new Error(detail?`${code}:${detail}`:code);error.code=code;throw error};
 const governed=(name,policy)=>(policy.delegated_internal_path_prefixes||[]).some(prefix=>name.startsWith(prefix))||(policy.delegated_internal_exact_path_exceptions||[]).includes(name);
 const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pull_request_target|permissions|environment|if|secrets|vars|id-token|contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events|curl|wget|gh api|aws |gcloud |terraform|kubectl|https?:\/\/|force:|fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|authorization|credential|production|public|g5)\b/i;
@@ -96,7 +114,7 @@ const verifyDerivedApprovalMetadata=(before,after,filename,files)=>{
   if(JSON.stringify(normalizedDerivedApprovalMetadata(before,filename))!==JSON.stringify(normalizedDerivedApprovalMetadata(after,filename))) deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };
 
-const autonomousPolicyAuthorityFields=['owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
+const autonomousPolicyAuthorityFields=['protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
 const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',filename)}
@@ -211,6 +229,7 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    if(independentlyMatchesProtectedRepair(file,policy)){receipts.push({filename:file.filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){receipts.push({filename:file.filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;}
     if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)){
       verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename,files);

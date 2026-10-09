@@ -47,3 +47,10 @@ Eligible internal landing uses three role-specific workflows as the normal path:
 The GitHub repository OIDC subject must be customized to include `repo`, `context`, and `workflow_ref`; AWS trust policies accept only `aud` and this customized `sub`. The legacy Atomic Governed Landing and Direct Owner Handoff remain available only until the role-scoped workload registry, customized OIDC subject, AWS roles/KMS keys, durable ledger, immutable receipt sink, and one successful live STAGING canary are verified. They must never be interpreted as permission to change Production, Public or G5 HOLDs.
 
 An agent identity that violates scope, replays authority, omits evidence or abandons an executable duty is quarantined. Every unused authorization for that identity is revoked. A replacement must complete a fresh constitutional bootstrap and reproduce the work under a new authorization generation; the removed identity cannot approve its replacement.
+
+
+## Limited protected-code repair
+
+A protected-main registered, exact immutable before/after byte transition for non-authorizing Dispatcher failure diagnostics may proceed through the ordinary Track/KPMO quorum, isolated machine verifier and distinct finalizer. Both protected-main classifiers independently recompute the registered SHA-256 pair. The current scope is DISPATCH_READ_DIAGNOSTICS_V1 only; arbitrary protective-code changes are not delegated by this rule.
+
+The candidate never supplies authoritative policy or verifier code. Changes to the transition registry, either classifier, identity, quorum, trust roots, credentials, rulesets or permissions retain their existing activation gate. A mixed change is rejected unless every file passes the existing full-scope classification. The initial policy implementation itself requires protected activation under the current contract; its candidate tests grant no authority. Exact Git tuple, green native checks, separate role workloads and KMS keys, protected single-use reservation, rollback and exact-main postmerge verification remain mandatory. Production/Public/G5/provider activation remain HOLD.

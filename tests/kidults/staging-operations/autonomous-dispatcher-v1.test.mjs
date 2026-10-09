@@ -7,6 +7,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 // Keep repair diagnostics in the existing protected-main and PR CI entrypoint.
 import './capability-repair-analysis-v1.test.mjs';
+import './protected-diagnostic-repair-v1.test.mjs';
 import {recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
