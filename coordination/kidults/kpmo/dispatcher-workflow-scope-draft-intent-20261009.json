@@ -1,0 +1,23 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "345b13dc170de7d93b5d0e9aba58988035fd0a51",
+  "head_branch": "codex/dispatcher-workflow-scope-20261009",
+  "source_head_sha": "56d24ce97bcc95577f9924b0e76aad77eec16b09",
+  "source_head_tree_sha": "de8351e9037b0dc1615a9c8624e12c86bb9ef227",
+  "canonical_proposal_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/dispatcher-workflow-scope-20261009",
+    "title": "fix(kpmo): align stale branch workflow permission and isolate rejection",
+    "body": "Dispatcher의 stale 갱신은 PR 및 protected main의 워크플로 파일을 쓸 수 있지만 기존 브로커는 workflows 권한을 요청·검증하지 않아 실행 계약과 토큰 범위가 불일치합니다. 역사적 #1903 HTTP 403의 원문은 유실되어 그 실행의 정확한 원인은 아직 미확정입니다.\n\nstale convergence 전용 토큰만 contents:write/pull_requests:write/metadata:read/workflows:write를 요청·검증합니다. 읽기, 일반 dispatch, redundant hygiene 범위는 유지합니다. Dispatcher도 정확한 권한 배열을 확인하고 누락·과다 권한을 거부합니다. 알려진 workflow permission 403은 재시도 없이 해당 PR을 격리하고 다음 후보를 처리하며 전체 실행은 실패로 보존합니다. 불명 403·인증·전송 실패는 즉시 중단합니다. 동일 저장소·정확한 head/base/main·독립 semantic verifier·새 CI/generation·force-push 금지와 protected landing은 유지합니다.\n\n검증: Dispatcher 169/169; 실제 shell 12/12; token failure propagation 56/56; broker 27/27; template-source 동등성; diff check. Source 56d24ce97bcc95577f9924b0e76aad77eec16b09 / tree de8351e9037b0dc1615a9c8624e12c86bb9ef227. Source 이후 immutable intent 및 derived inventories만 허용합니다.\n\nSTATE: IMPLEMENTED_NOT_VERIFIED(native runtime). 실제 GitHub App installation Workflows read/write 추가와 exact-source STAGING broker 반영은 별도 action-time Owner 확인 전 비활성입니다. 이 Draft는 credential/IAM 확대·deploy·Ready·approval·merge·수동 dispatch를 승인하지 않습니다. GitHub default Actions permission 변경만으로 App token 문제가 해결되지 않습니다. 병합 시 기존 deploy workflow가 자동 실행되므로 병합 승인에는 이 경계의 명시적 확인이 필요합니다.\n\n#2625 및 #2626 완료 lifecycle는 재실행하지 않습니다. 새로운 자연 generation의 갱신 영수증·부모 순서·base·fresh CI·quorum/finalizer가 운영 해결 판정의 필수 증거입니다. Rollback: 이전 exact broker source 복원, 승인된 추가 App scope만 제거, 이력·실패 영수증 보존.\n\nagent_id: Atlas-KPMO; scope: stale update permission contract and failure isolation; inferences: #1903 historical 403 cause plausible but unproven; uncertainties: fresh natural schedule not yet generated; blocker: explicit workflow-scope activation and native runtime proof pending; next_action: exact-head CI then Owner scope activation. Production/Public/G5/provider activation HOLD.\nautonomous_effect: 실패 후보의 전체 scan 중단 방지 및 실제 갱신 권한 계약 정합.\nglobal_effect: 후보당 기존 4개 예산·단일 저장소 범위 유지; 글로벌 처리량 개선 미실증.\nirreplaceable_value_effect: source, tuple, 실패 및 승인 계보 보존.\ntransparency_effect: 권한 확장·구현 증거·운영 미실증을 분리.\n",
+    "draft": true
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:4dcb87d627b8bbf496476b1b3b7b21568c027384bd3f3073b62ce6dc98611b27"
+}
