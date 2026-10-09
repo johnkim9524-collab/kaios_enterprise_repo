@@ -424,7 +424,10 @@
       "removed_or_renamed_files_auto_close_forbidden": true,
       "maximum_prs_per_run": 4,
       "reopen_is_reversible": true,
-      "owner_comment_required": false
+      "owner_comment_required": false,
+      "empty_diff_requires_exact_complete_tree_equality": true,
+      "current_base_empty_diff_allowed": true,
+      "current_base_broker_tree_revalidation_required": true
     },
     "live_main_tree_parent_revalidation_required": true,
     "explicit_completion_event": "kidults.internal_landing.completed.v1",

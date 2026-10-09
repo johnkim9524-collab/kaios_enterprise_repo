@@ -16,7 +16,8 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || !Number.isSafeInteger(Number(pull_request)) || Number(pull_request) < 1
       || !sha(base_sha) || !sha(head_sha) || base_sha === head_sha
       || !supportedProfiles.has(permission_profile)
-      || (permission_profile!=='AUTONOMOUS_EVENT_DISPATCH' && (!sha(current_main_sha)||current_main_sha===base_sha))
+      || (permission_profile!=='AUTONOMOUS_EVENT_DISPATCH' && !sha(current_main_sha))
+      || (permission_profile==='AUTONOMOUS_STALE_BASE_CONVERGENCE' && current_main_sha===base_sha)
       || typeof authorization_generation !== 'string'
       || !/^[A-Za-z0-9_.:-]{12,160}$/.test(authorization_generation)) fail('INPUT');
     const issued = Math.floor(now()/1000);
@@ -59,6 +60,15 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       || pr.merged===true || pr.head?.sha!==head_sha || pr.base?.sha!==base_sha
       || pr.base?.ref!=='main' || pr.head?.repo?.full_name!==repository
       || pr.base?.repo?.full_name!==repository || main.commit?.sha!==expectedMain) fail('LIVE_TUPLE');
+    if (permission_profile==='AUTONOMOUS_REDUNDANT_PR_HYGIENE' && base_sha===current_main_sha) {
+      const [headCommit,mainCommit]=await Promise.all([
+        api(`/repos/${repository}/git/commits/${head_sha}`,readonly.token,{},'HYGIENE_HEAD_READ_HTTP'),
+        api(`/repos/${repository}/git/commits/${current_main_sha}`,readonly.token,{},'HYGIENE_MAIN_READ_HTTP'),
+      ]);
+      if(headCommit?.sha!==head_sha || mainCommit?.sha!==current_main_sha
+        || !sha(headCommit?.tree?.sha) || headCommit.tree.sha!==mainCommit?.tree?.sha)
+        fail('HYGIENE_TREE');
+    }
     // GitHub App update-branch requires contents:write on the head repository.
     // Hygiene closes PR metadata only and must retain its narrower scope.
     const needsContentsWrite=permission_profile==='AUTONOMOUS_EVENT_DISPATCH'

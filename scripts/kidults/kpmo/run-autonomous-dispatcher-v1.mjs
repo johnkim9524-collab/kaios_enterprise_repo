@@ -270,6 +270,24 @@ async function contentBlobShaOrNull(repository,path,ref,token){
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
+export function classifyEmptyTreeRedundant({pr,mainSha,headCommit,mainCommit,files,policy}) {
+  if (!pr || pr.state!=='open' || pr.merged===true || pr.base?.ref!=='main'
+    || pr.head?.repo?.full_name!==pr.base?.repo?.full_name
+    || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(mainSha))
+    || !SHA.test(String(pr.head?.sha)) || !Array.isArray(files) || files.length
+    || headCommit?.sha!==pr.head.sha || mainCommit?.sha!==mainSha
+    || !SHA.test(String(headCommit?.tree?.sha))
+    || headCommit.tree.sha!==mainCommit?.tree?.sha)
+    fail('DISPATCH_EMPTY_DIFF_TREE_MISMATCH');
+  const hygiene=policy?.merge?.autonomous_redundant_pr_hygiene;
+  if(hygiene?.enabled!==true || hygiene.executor!=='DISPATCHER_BROKERED_GITHUB_APP_ONLY'
+    || hygiene.empty_diff_requires_exact_complete_tree_equality!==true)
+    fail('DISPATCH_EMPTY_DIFF_HYGIENE_DISABLED');
+  return {state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:pr.number,
+    old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,
+    changed_paths:[],head_tree_sha:headCommit.tree.sha,current_main_tree_sha:mainCommit.tree.sha,
+    proof:'EXACT_COMPLETE_TREE_EQUALS_CURRENT_MAIN'}};
+}
 async function staleFilesRedundantAgainstMain({repository,mainSha,headSha,files,token}){
   if(!files.length||files.some(file=>['removed','renamed'].includes(file.status))) return false;
   const comparisons=[];for(const file of files){
@@ -348,9 +366,16 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   const results=[];
   for(const pr of prs){let candidateContext=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
+    const completeFileRecords=await fileRecordsFor(pr);
+    if (!completeFileRecords.length) {
+      const [headCommit,mainCommit]=await Promise.all([
+        immutableCommit(repository,pr.head.sha,token),immutableCommit(repository,mainSha,token)]);
+      results.push(classifyEmptyTreeRedundant({pr,mainSha,headCommit,mainCommit,files:completeFileRecords,policy}));
+      continue;
+    }
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
-      const fileRecords=await fileRecordsFor(pr);
+      const fileRecords=completeFileRecords;
       // Path-only denials need no blob reads. This is the same mandatory
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
@@ -370,7 +395,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         ? {context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}
         : x)
       : baseRequiredChecks;
-    const fileRecords=await fileRecordsFor(pr);
+    const fileRecords=completeFileRecords;
     assertDelegatedPathScope(fileRecords,policy);
     const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
