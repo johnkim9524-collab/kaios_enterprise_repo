@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
+import {assertBoundedGitSourceReader} from './lib/bounded-git-source-reader-v1.mjs';
 import crypto from 'node:crypto';
 import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
@@ -206,7 +207,8 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 
 // One invocation owns its budget and immutable cache. Mutable authority reads
 // are never cached. A global read failure aborts discovery before any fanout.
-export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED)$/.test(String(error?.code||''));
+export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED)$/.test(String(error?.code||''))
+  ||(error?.global===true&&/^SOURCE_BATCH_[A-Z_]+$/.test(String(error?.code||'')));
 export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100}) {
   if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
     ||!Number.isSafeInteger(reserve)||reserve<0)fail('DISPATCH_CONFIGURATION_INVALID');
@@ -248,11 +250,13 @@ async function pages(path,token){const out=[];for(let page=1;page<=30;page++){co
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
 async function immutableContent(repository,path,ref,token){
+  if(token.sourceReader)return (await token.sourceReader.file(ref,path)).content;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
   return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
 }
 async function contentBlobShaOrNull(repository,path,ref,token){
+  if(token.sourceReader)return (await token.sourceReader.fileOrNull(ref,path))?.sha??null;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
@@ -275,9 +279,18 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
   return attached;
 }
 
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256}){
+// Optional verified-object adapter for full-scope diagnosis. The native CLI
+// supplies no adapter; native transport/profile activation remains separate.
+async function immutableCommit(repository,ref,client){
+  return client.sourceReader?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
+}
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
-  token=createDispatcherReadClient({token,fetchImpl,maxRequests});
+  if(sourceReader!==undefined){
+    assertBoundedGitSourceReader(sourceReader);
+    if(!sourceReader.receipt().sealed)fail('DISPATCH_SOURCE_SNAPSHOT_NOT_SEALED');
+  }
+  token={...createDispatcherReadClient({token,fetchImpl,maxRequests}),sourceReader};
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
@@ -299,7 +312,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       // Path-only denials need no blob reads. This is the same mandatory
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
-      const commit=await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token);
+      const commit=await immutableCommit(repository,pr.head.sha,token);
       if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
@@ -317,7 +330,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       : baseRequiredChecks;
     const fileRecords=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
     assertDelegatedPathScope(fileRecords,policy);
-    const [commit,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${pr.head.sha}`,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
@@ -327,7 +340,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
         readCandidate:async()=>{
           const [freshPr,freshMain,freshRuleset]=await Promise.all([api(`/repos/${repository}/pulls/${pr.number}`,token),api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets/${solo.id}`,token)]);
-          const [commit,records,status,checks]=await Promise.all([api(`/repos/${repository}/git/commits/${freshPr.head.sha}`,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${freshPr.head.sha}/status`,token),checkPages(repository,freshPr.head.sha,token)]);
+          const [commit,records,status,checks]=await Promise.all([immutableCommit(repository,freshPr.head.sha,token),pages(`/repos/${repository}/pulls/${pr.number}/files`,token),api(`/repos/${repository}/commits/${freshPr.head.sha}/status`,token),checkPages(repository,freshPr.head.sha,token)]);
           const files=await attachImmutableContents({repository,baseSha:freshPr.base.sha,headSha:freshPr.head.sha,files:records,token});
           const requiredChecks=freshPr.draft===true?baseRequiredChecks.map(x=>x.context==='KIDULTS Scope-Aware Authoritative Status V1'?{context:'KIDULTS Draft Development Validation V1',integration_id:x.integration_id}:x):baseRequiredChecks;
           return {pr:freshPr,mainSha:freshMain.commit.sha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,classificationMode:candidateContext.classificationMode,protectedRulesetDigest:sha256(canonicalJson(freshRuleset))};

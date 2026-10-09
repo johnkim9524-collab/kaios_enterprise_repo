@@ -747,3 +747,19 @@ test('global read failure cannot be swallowed by uncertainty reclassification',a
     error=>error.code==='DISPATCH_RATE_LIMITED');
   assert.equal(reads,1);
 });
+
+
+test('unverified source adapter is rejected before any external reads',async()=>{
+  let reads=0;await assert.rejects(discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',sourceReader:{commit:async()=>({})},fetchImpl:async()=>{reads++;throw Error('must not read');}}),/SOURCE_BATCH_READER_UNVERIFIED/);assert.equal(reads,0);
+});
+
+
+for(const code of ['SOURCE_BATCH_SOURCE_NOT_REGISTERED','SOURCE_BATCH_OBJECT_MISSING','SOURCE_BATCH_SEALED_OBJECT_MISSING'])test(`uncertainty reclassification propagates global ${code} without retry or partial results`,async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-reclassification-'));let reads=0;const failure=Object.assign(new Error(code),{code,global:true});
+  try {
+    fs.writeFileSync(path.join(directory,'results.json'),'[{"state":"ELIGIBLE"}]');
+    await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,readCandidate:async()=>{reads++;throw failure;}})}),error=>error===failure);
+    assert.equal(reads,1);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).fanout_authorized,false);
+  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});

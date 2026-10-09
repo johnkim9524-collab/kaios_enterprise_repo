@@ -3,6 +3,12 @@ import {createHash} from 'node:crypto';
 // Preparation component only. No network, checkout, policy activation, or
 // authorization. A separately governed producer must supply exact raw objects.
 const SHA = /^[0-9a-f]{40}$/;
+const registeredReaders=new WeakMap();
+export function assertBoundedGitSourceReader(reader) {
+  if(!reader||!registeredReaders.has(reader))throw Object.assign(new Error('SOURCE_BATCH_READER_UNVERIFIED'),{code:'SOURCE_BATCH_READER_UNVERIFIED',global:true});
+  registeredReaders.get(reader)();
+  return reader;
+}
 const MAX = Object.freeze({sources:209,objects:10000,bytes:128*1024*1024,
   objectBytes:16*1024*1024,milliseconds:60000,treeEntries:100000});
 const utf8 = bytes => new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
@@ -10,7 +16,7 @@ export function gitObjectId(type,bytes) {
   return createHash('sha1').update(`${type} ${bytes.length}\0`).update(bytes).digest('hex');
 }
 export function createBoundedGitSourceReader({sourceShas,readObject,limits={},clock=()=>performance.now()}) {
-  let terminal=null;
+  let terminal=null,sealed=false,inFlight=0;
   const fail=code=>{terminal??=Object.assign(new Error(code),{code,global:true});throw terminal;};
   if(!Array.isArray(sourceShas)||!sourceShas.length||sourceShas.some(s=>!SHA.test(s))
     ||new Set(sourceShas).size!==sourceShas.length||typeof readObject!=='function'||typeof clock!=='function')fail('SOURCE_BATCH_CONFIGURATION_INVALID');
@@ -23,13 +29,17 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
   if(!Number.isFinite(started))fail('SOURCE_BATCH_CONFIGURATION_INVALID');
   const check=()=>{
     if(terminal)throw terminal;
+    if(sealed)return;
     const now=clock();if(!Number.isFinite(now)||now<last||now-started>bound.milliseconds)fail('SOURCE_BATCH_TIME_EXHAUSTED');last=now;
   };
   const object=async(sha,type)=>{
     check();if(!SHA.test(sha))fail('SOURCE_BATCH_OBJECT_BINDING_INVALID');
     if(cache.has(sha)) {const value=await cache.get(sha);check();if(value.type!==type)fail('SOURCE_BATCH_OBJECT_TYPE_INVALID');return value.bytes;}
+    if(sealed)fail('SOURCE_BATCH_SEALED_OBJECT_MISSING');
     if(++reads>bound.objects)fail('SOURCE_BATCH_OBJECT_BUDGET_EXHAUSTED');
+    inFlight++;
     const promise=(async()=>{
+      try {
       let value;try{value=await readObject(sha,type);}catch{fail('SOURCE_BATCH_OBJECT_MISSING');}
       check();
       if(!value||value.type!==type||!Buffer.isBuffer(value.bytes))fail('SOURCE_BATCH_OBJECT_TYPE_INVALID');
@@ -39,6 +49,7 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
       bytes+=body.length;
       if(gitObjectId(type,body)!==sha)fail('SOURCE_BATCH_OBJECT_DIGEST_MISMATCH');
       return {type,bytes:body};
+      }finally{inFlight--;}
     })();cache.set(sha,promise);const value=await promise;check();return value.bytes;
   };
   const commit=async ref=>{
@@ -62,13 +73,15 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
     }
     trees.set(sha,rows);return rows;
   };
-  const file=async(ref,path)=>{
+  const fileOrNull=async(ref,path)=>{
     check();if(typeof path!=='string'||!path||path.startsWith('/')||/[\\\x00-\x1f\x7f]/.test(path)
       ||path.split('/').some(x=>!x||x==='.'||x==='..'))fail('SOURCE_BATCH_PATH_INVALID');
     let sha=(await commit(ref)).tree.sha;const parts=path.split('/');
     for(let index=0;index<parts.length;index++) {
       const row=(await tree(sha)).get(parts[index]);
-      if(!row)fail('SOURCE_BATCH_FILE_MISSING');
+      // Only complete hash-verified trees prove absence. Missing objects still
+      // abort globally; absence is equivalent to the immutable contents 404.
+      if(!row)return null;
       if(['120000','160000'].includes(row.mode))fail('SOURCE_BATCH_SPECIAL_FILE_FORBIDDEN');
       if(index<parts.length-1) {if(row.mode!=='40000')fail('SOURCE_BATCH_PATH_INVALID');sha=row.sha;continue;}
       if(!['100644','100755'].includes(row.mode))fail('SOURCE_BATCH_PATH_INVALID');
@@ -76,8 +89,11 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
       check();return {sha:row.sha,content:text,bytes:body.length};
     }
   };
-  return Object.freeze({commit,file,receipt:()=>({scope:'LOCAL_VERIFIED_OBJECTS_NOT_NATIVE_TRANSPORT',
-    source_count:allowed.size,object_reads:reads,object_bytes:bytes,tree_entries:entries,
+  const file=async(ref,path)=>{const value=await fileOrNull(ref,path);if(value===null)fail('SOURCE_BATCH_FILE_MISSING');return value;};
+  const seal=()=>{check();if(inFlight)fail('SOURCE_BATCH_SEAL_PENDING_READS');sealed=true;};
+  const reader=Object.freeze({commit,file,fileOrNull,seal,receipt:()=>({scope:'LOCAL_VERIFIED_OBJECTS_NOT_NATIVE_TRANSPORT',
+    sealed,source_count:allowed.size,object_reads:reads,object_bytes:bytes,tree_entries:entries,
     elapsed_milliseconds:last-started,limits:{...bound},state:terminal?'GLOBAL_ABORT':'SOURCE_READER_OPEN',
     authorization_created:false,transport_verified:false,production:'HOLD',public:'HOLD',g5:'HOLD'})});
+  registeredReaders.set(reader,check);return reader;
 }
