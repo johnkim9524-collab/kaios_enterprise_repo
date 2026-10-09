@@ -217,7 +217,7 @@ jobs:
             test "$(curl --fail --silent --show-error -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/branches/main" | jq -r '.commit.sha')" = "$main"
             lifecycle_mutation_state=UNKNOWN
             curl --fail --silent --show-error -X PATCH -H "Authorization: Bearer $token" -H "Accept: application/vnd.github+json" -H "Content-Type: application/json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/pulls/$pr" -d '{"state":"closed"}' >/dev/null
-            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:"ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN",reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
+            jq -n --argjson pr "$pr" --arg main "$main" --arg head "$head" --arg proof "$(jq -r ' .proof // "ALL_CHANGED_FILE_BLOBS_EQUAL_CURRENT_MAIN" ' <<<"$binding")" --arg head_tree "$(jq -r '.head_tree_sha // empty' <<<"$binding")" '{state:"STALE_REDUNDANT_CLOSED",pull_request:$pr,current_main_sha:$main,head_sha:$head,proof:$proof,complete_tree_sha:$head_tree,reopen_is_reversible:true,production:"HOLD",public:"HOLD",g5:"HOLD"}' >"out/autonomous-dispatcher-v1/lifecycle/pr-$pr-redundant.json"
             current_lifecycle_receipt=''
             unset token
           done < <(jq -c '[.[] | select(.state=="STALE_REDUNDANT") | .binding] | .[:4][]' out/autonomous-dispatcher-v1/results.json)

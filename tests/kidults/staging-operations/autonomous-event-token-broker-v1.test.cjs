@@ -27,6 +27,7 @@ test('template embeds reviewed source and limits secret and invoke scopes',async
 const stamp=Date.parse('2026-09-24T00:00:00Z');
 function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission='write', readPermission='read',
   permissionProfile='AUTONOMOUS_EVENT_DISPATCH', workflowPermission='write', extraPermissions={},
+  headTree='d'.repeat(40), mainTree='d'.repeat(40),
   repositories=[{id:123,full_name:repo}]}={}) {
   const calls=[];
   const request=async (url,options) => {
@@ -52,6 +53,8 @@ function setup({prHead=head, prBase=base, mainBase=base, draft=false, permission
     } else if(url.endsWith('/pulls/42')) value={number:42,state:'open',draft,merged:false,
       head:{sha:prHead,repo:{full_name:repo}},base:{ref:'main',sha:prBase,repo:{full_name:repo}}};
     else if(url.endsWith('/branches/main')) value={commit:{sha:mainBase}};
+    else if(url.endsWith('/git/commits/'+prHead)) value={sha:prHead,tree:{sha:headTree}};
+    else if(url.endsWith('/git/commits/'+mainBase)) value={sha:mainBase,tree:{sha:mainTree}};
     else throw Error('unexpected request');
     return {ok:true,json:async()=>value};
   };
@@ -88,7 +91,7 @@ test('mints exact redundant-PR hygiene token with pull-request-only write scope'
 test('stale profiles fail closed when current main is absent or equals old base',async()=>{
   const {handler,calls}=setup();
   await assert.rejects(handler({...event,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'}),/DENIED/);
-  await assert.rejects(handler({...event,current_main_sha:base,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'}),/DENIED/);
+  await assert.rejects(handler({...event,current_main_sha:base,permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'}),/DENIED/);
   assert.equal(calls.length,0);
 });
 test('allows exact open Draft for internal event dispatch without lifecycle authority',async()=>{
@@ -169,4 +172,19 @@ test('unexpected workflows permission in the read token is rejected before write
   const {handler,calls}=setup({extraPermissions:{workflows:'write'}});
   await assert.rejects(handler(event),/DENIED:READ_SCOPE/);
   assert.equal(calls.filter(x=>x.permissions?.contents==='write').length,0);
+});
+
+test('current-base redundant hygiene requires complete immutable tree equality and retains narrow scope',async()=>{
+  const permissionProfile='AUTONOMOUS_REDUNDANT_PR_HYGIENE';
+  const {handler,calls}=setup({permissionProfile});
+  const result=await handler({...event,current_main_sha:base,permission_profile:permissionProfile});
+  assert.deepEqual(result.permissions,['pull_requests:write','metadata:read']);
+  assert.equal(calls.filter(x=>x.url.includes('/git/commits/')).length,2);
+  assert.deepEqual(calls.at(-1).permissions,{pull_requests:'write'});
+});
+for (const mainTree of ['e'.repeat(40),null,'not-a-sha']) test('current-base hygiene rejects tree '+mainTree+' before write mint',async()=>{
+  const permissionProfile='AUTONOMOUS_REDUNDANT_PR_HYGIENE';
+  const {handler,calls}=setup({permissionProfile,mainTree});
+  await assert.rejects(handler({...event,current_main_sha:base,permission_profile:permissionProfile}),/HYGIENE_TREE/);
+  assert.equal(calls.filter(x=>x.url.endsWith('/access_tokens')).length,1);
 });

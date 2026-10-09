@@ -12,7 +12,7 @@ import './bounded-git-source-reader-v1.test.mjs';
 import './bounded-git-pack-decoder-v1.test.mjs';
 import './bounded-git-public-transport-v1.test.mjs';
 import './bounded-git-source-profile-v1.test.mjs';
-import {recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
@@ -877,4 +877,21 @@ for(const scenario of ['alternate-profile-absent','missing-policy','invalid-poli
   if(scenario==='alternate-profile-absent')assert.match(result.stderr,/DISPATCH_SOURCE_PROFILE_POLICY_PATH_INVALID/);
   else assert.match(result.stderr,scenario.startsWith('missing')?/ENOENT/:/SyntaxError/);
  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('empty current-base PR requires complete source trees, not a zero-file API claim',()=>{
+  const pr={number:1884,state:'open',merged:false,base:{ref:'main',sha:sha('a'),repo:{full_name:'owner/repo'}},head:{sha:sha('b'),repo:{full_name:'owner/repo'}}};
+  const input={pr,mainSha:sha('a'),files:[],policy,headCommit:{sha:sha('b'),tree:{sha:sha('c')}},mainCommit:{sha:sha('a'),tree:{sha:sha('c')}}};
+  assert.equal(classifyEmptyTreeRedundant(input).binding.proof,'EXACT_COMPLETE_TREE_EQUALS_CURRENT_MAIN');
+  for (const delta of [
+    {headCommit:{sha:sha('b'),tree:{sha:sha('d')}}},
+    {mainCommit:{sha:sha('a'),tree:{sha:null}}},
+    {headCommit:{sha:sha('e'),tree:{sha:sha('c')}}},
+    {mainCommit:{sha:sha('e'),tree:{sha:sha('c')}}},
+    {files:[{filename:'pending.mjs'}]},
+    {pr:{...pr,state:'closed'}},
+    {pr:{...pr,merged:true}},
+    {pr:{...pr,head:{...pr.head,repo:{full_name:'attacker/fork'}}}},
+  ]) assert.throws(()=>classifyEmptyTreeRedundant({...input,...delta}),/DISPATCH_EMPTY_DIFF_TREE_MISMATCH/);
+  assert.throws(()=>classifyEmptyTreeRedundant({...input,policy:{}}),/DISPATCH_EMPTY_DIFF_HYGIENE_DISABLED/);
 });
