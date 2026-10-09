@@ -10,6 +10,9 @@ const recent=(value,now,age,code)=>{
   const t=Date.parse(value);need(Number.isFinite(t)&&t<=now&&now-t<=age,code);return t;
 };
 const same=(a,b,code)=>need(typeof a==='string'&&a===b,code);
+export const immutableObjectPairDigest=objects=>digest({id:'kidults-runtime-immutable-object-pair-v1',
+  objects:['CANDIDATE','EVIDENCE'].map(kind=>{const row=objects.find(r=>r.kind===kind);
+    return {kind,version_id:row.version_id,object_digest:row.object_digest,protected_object_ref_digest:row.protected_object_ref_digest};})});
 const validators={
   VALUE_TRACEABILITY:(o,c)=>{
     count(o.edge_count,'LINEAGE_COUNT');hash(o.source_digest,'LINEAGE_SOURCE');hash(o.decision_digest,'LINEAGE_DECISION');
@@ -22,15 +25,19 @@ const validators={
       text(row.source_id,'RIGHTS_SOURCE');need(!sources.has(row.source_id),'RIGHTS_DUPLICATE');sources.add(row.source_id);
       need(row.purpose==='CURRENT_SOLD_TRANSACTION'&&row.decision==='ADMITTED','RIGHTS_PURPOSE');
       hash(row.rights_document_digest,'RIGHTS_DOCUMENT');hash(row.independent_admission_digest,'RIGHTS_INDEPENDENT_ADMISSION');
-      need(['COLLECT','STORE','DERIVE','INTERNAL_REVIEW','DELETE'].every(atom=>row.rights_atoms?.includes(atom)),'RIGHTS_ATOMS');
+      const atoms=['COLLECT','STORE','DERIVE','INTERNAL_REVIEW','DELETE'];
+      need(Array.isArray(row.rights_atoms)&&row.rights_atoms.length===atoms.length
+        &&new Set(row.rights_atoms).size===atoms.length&&row.rights_atoms.every(atom=>typeof atom==='string'&&atoms.includes(atom)), 'RIGHTS_ATOMS');
       const start=Date.parse(row.effective_at),end=Date.parse(row.expires_at);
       need(Number.isFinite(start)&&Number.isFinite(end)&&start<=c.now&&c.now<end,'RIGHTS_TIME');
       need(Number.isSafeInteger(row.retention_seconds)&&row.retention_seconds>0&&row.retention_seconds<=2592000,'RIGHTS_RETENTION');
     }
     need(JSON.stringify([...sources].sort())===JSON.stringify(c.source_ids),'RIGHTS_INPUT_SOURCES');
   },
-  ENTITY_RESOLUTION:o=>{
+  ENTITY_RESOLUTION:(o,c)=>{
     count(o.input_record_count,'ER_RECORDS');count(o.canonical_entity_count,'ER_ENTITIES');
+    count(c.input_record_count,'ER_AUTHENTICATED_RECORDS');
+    need(o.input_record_count===c.input_record_count,'ER_INPUT_COVERAGE');
     need(o.canonical_entity_count<=o.input_record_count,'ER_CARDINALITY');
     need(o.unresolved_count===0&&o.conflicting_identity_count===0,'ER_UNRESOLVED');
     hash(o.canonical_decisions_digest,'ER_DECISIONS');hash(o.independent_validation_digest,'ER_INDEPENDENT');
@@ -57,6 +64,8 @@ const validators={
       same(row.readback_digest,row.object_digest,'PAIR_READBACK');hash(row.protected_object_ref_digest,'PAIR_OBJECT_REF');
       need(row.object_lock_mode==='COMPLIANCE'&&Date.parse(row.retain_until)>c.now,'PAIR_OBJECT_LOCK');
     }
+    need(new Set(o.objects.map(row=>row.protected_object_ref_digest)).size===2,'PAIR_DISTINCT_OBJECTS');
+    same(o.exact_pair_digest,immutableObjectPairDigest(o.objects),'PAIR_OBJECT_BINDING');
     hash(o.reservation_digest,'PAIR_RESERVATION');
   },
   TRACK_B_VALIDATION:(o,c)=>{
@@ -117,7 +126,7 @@ const validators={
 // This is a semantic consumer, not a producer authenticator. Callers must first
 // authenticate native run/artifact identity and archive bytes independently.
 // No shape, digest, local test or caller-supplied "live" flag grants that trust.
-export function consumeRuntimeDomainOutput({domainId,output,sourceSha,inputDigest,sourceIds,
+export function consumeRuntimeDomainOutput({domainId,output,sourceSha,inputDigest,sourceIds,inputRecordCount,
   dependencyOutputs={},dependencyReceiptDigests={},now=new Date()}){
   need(SHA.test(sourceSha||'')&&now instanceof Date&&Number.isFinite(now.getTime()),'CONTEXT');
   hash(inputDigest,'INPUT_DIGEST');
@@ -130,7 +139,7 @@ export function consumeRuntimeDomainOutput({domainId,output,sourceSha,inputDiges
   need(['production','public','g5','provider_activation'].every(k=>frozen[k]==='HOLD'),'RELEASE');
   const {output_digest,...body}=frozen;same(output_digest,digest(body),'OUTPUT_DIGEST');
   same(frozen.input_digest,inputDigest,'OUTPUT_INPUT_JOIN');
-  validator(frozen,{now:now.getTime(),input_digest:inputDigest,source_ids:[...sourceIds].sort(),
+  validator(frozen,{now:now.getTime(),input_digest:inputDigest,input_record_count:inputRecordCount,source_ids:[...sourceIds].sort(),
     outputs:structuredClone(dependencyOutputs),receipt_digests:{...dependencyReceiptDigests}});
   return {domain_id:domainId,state:'OUTPUT_CONTENT_VERIFIED_NOT_NATIVE_DOMAIN_CERTIFICATE',
     source_sha:sourceSha,output_digest,native_producer_authenticated:false,

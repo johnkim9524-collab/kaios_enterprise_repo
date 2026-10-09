@@ -12,7 +12,7 @@ const positive=value=>Number.isSafeInteger(value)&&value>0;
 // Reads an already-completed registered producer. Does not acquire data, write
 // storage, execute downloaded code, dispatch a workload, or mint a certificate.
 export async function authenticateRuntimeDomainOutput({reference,domainId,contract,sourceSha,
-  token,inputDigest,sourceIds,dependencyOutputs={},dependencyReceiptDigests={},requiredDependencyIds=[],
+  token,inputDigest,sourceIds,inputRecordCount,dependencyOutputs={},dependencyReceiptDigests={},requiredDependencyIds=[],
   read=authenticatedGithubRead,download=downloadArtifact,now=new Date()}){
   if(contract?.id!=='kidults-whole-platform-operating-proof-v1'||contract.repository!==REPOSITORY
     ||!Array.isArray(contract.runtime_domain_sources)||contract.runtime_domain_sources.length>14
@@ -68,7 +68,7 @@ export async function authenticateRuntimeDomainOutput({reference,domainId,contra
       ||JSON.stringify(Object.keys(joins).sort())!==JSON.stringify([...requiredDependencyIds].sort())
       ||requiredDependencyIds.some(id=>!/^sha256:[a-f0-9]{64}$/.test(joins[id]||'')
         ||joins[id]!==dependencyReceiptDigests[id]))fail('DEPENDENCY_RECEIPT_JOIN');
-    semantic=consumeRuntimeDomainOutput({domainId,output,sourceSha,inputDigest,sourceIds,
+    semantic=consumeRuntimeDomainOutput({domainId,output,sourceSha,inputDigest,sourceIds,inputRecordCount,
       dependencyOutputs,dependencyReceiptDigests,now});
   }
   const fresh=await get(`actions/runs/${run.id}`),freshArtifact=await get(`actions/artifacts/${artifact.id}`);
@@ -105,6 +105,7 @@ export async function reconcileRuntimeDomainOutputs({references={},definition,co
       }else if(missing.length){result={domain_id:row.id,state:'HOLD',blocker:'AUTHENTICATED_NATIVE_DEPENDENCY_MISSING',unmet_dependencies:missing};}
       else result=await authenticateRuntimeDomainOutput({reference:references[row.id],domainId:row.id,contract,sourceSha,token,
         inputDigest:connection?.input_processing?.content_digest,sourceIds:connection?.source_ids,
+        inputRecordCount:connection?.input_processing?.bundle?.event_versions?.length,
         dependencyOutputs:outputs,dependencyReceiptDigests:receiptDigests,requiredDependencyIds:row.requires,read,download,now});
       if(result.state==='AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED'){
         if(result.output)outputs[row.id]=result.output;
