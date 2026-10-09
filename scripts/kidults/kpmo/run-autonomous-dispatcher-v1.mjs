@@ -93,6 +93,7 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
     let fresh;
     try {fresh=await readCandidate();}
     catch(readError) {
+      if(isGlobalReadFailure(readError))throw readError;
       attempts.push({attempt,result:'READ_FAILED',code:'DISPATCH_RECLASSIFICATION_READ_FAILED'});
       continue;
     }
@@ -203,7 +204,38 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     operation:policy.delegated_operation,changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
-async function api(path,token){const r=await fetch(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});if(!r.ok)fail('DISPATCH_GITHUB_API',`${r.status}:${path}`);return r.json()}
+// One invocation owns its budget and immutable cache. Mutable authority reads
+// are never cached. A global read failure aborts discovery before any fanout.
+export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED)$/.test(String(error?.code||''));
+export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100}) {
+  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
+    ||!Number.isSafeInteger(reserve)||reserve<0)fail('DISPATCH_CONFIGURATION_INVALID');
+  let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
+  const request=path=>{
+    const immutable=/^\/repos\/[^/]+\/[^/]+\/contents\/[^?]+\?ref=[a-f0-9]{40}$/.test(path);
+    if(terminal)return Promise.reject(terminal);
+    if(immutable&&cache.has(path))return cache.get(path);
+    const pending=tail.then(async()=>{
+      if(terminal)throw terminal;
+      if(requests>=maxRequests){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');throw terminal;}
+      requests++;
+      const response=await fetchImpl(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
+      const remaining=response.headers?.get('x-ratelimit-remaining');
+      if(response.status===429||(remaining!==null&&remaining!==undefined&&/^\d+$/.test(remaining)&&Number(remaining)<=reserve)) {
+        terminal=new DispatcherError('DISPATCH_RATE_LIMITED');throw terminal;
+      }
+      if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
+      if(response.status===404&&immutable)return null;
+      if(!response.ok)fail('DISPATCH_GITHUB_API',`${response.status}:${path}`);
+      return response.json();
+    });
+    tail=pending.catch(()=>{});
+    if(immutable){cache.set(path,pending);pending.catch(()=>cache.delete(path));}
+    return pending;
+  };
+  return {request,requestCount:()=>requests};
+}
+async function api(path,client){return client.request(path)}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
@@ -213,31 +245,31 @@ async function immutableContent(repository,path,ref,token){
   return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
 }
 async function contentBlobShaOrNull(repository,path,ref,token){
-  const response=await fetch(`https://api.github.com/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
-  if(response.status===404) return null;
-  if(!response.ok) fail('DISPATCH_GITHUB_API',`${response.status}:content-blob`);
-  const payload=await response.json();
+  const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
 async function staleFilesRedundantAgainstMain({repository,mainSha,headSha,files,token}){
   if(!files.length||files.some(file=>['removed','renamed'].includes(file.status))) return false;
-  const comparisons=await Promise.all(files.map(async file=>{
+  const comparisons=[];for(const file of files){
     const [head,main]=await Promise.all([contentBlobShaOrNull(repository,file.filename,headSha,token),contentBlobShaOrNull(repository,file.filename,mainSha,token)]);
-    return head!==null&&head===main;
-  }));
+    comparisons.push(head!==null&&head===main);
+    if(!comparisons.at(-1))return false;
+  }
   return comparisons.every(Boolean);
 }
 async function attachImmutableContents({repository,baseSha,headSha,files,token}){
-  return Promise.all(files.map(async file=>{
+  const attached=[];for(const file of files){
     if(file.status==='removed'||file.status==='renamed') fail('DISPATCH_OWNER_RESERVED_ACTION',`${file.filename}:${file.status.toUpperCase()}`);
     const head_content=await immutableContent(repository,file.filename,headSha,token);
     const base_content=file.status==='added'?'':await immutableContent(repository,file.filename,baseSha,token);
-    return {...file,base_content,head_content};
-  }));
+    attached.push({...file,base_content,head_content});
+  }
+  return attached;
 }
 
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
+  token=createDispatcherReadClient({token,fetchImpl,maxRequests});
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
@@ -276,7 +308,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
     results.push({state:'ELIGIBLE',envelope:candidate});
-  }catch(error){if(!isCandidateRejection(error))throw error;
+  }catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
     if(candidateContext&&isUnknownClassification(error)) {
       const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
         readCandidate:async()=>{

@@ -3901,8 +3901,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "763a9bd3d2e2b107277ba4875fa85b81330fc005",
-      "sha256": "sha256:e7db0da140cf4ff141770c7d23648943bc855047765e7252378cda934fff6a19",
+      "git_blob": "9ca753fa707ad69a8b461dc9c6fd2eacf877f403",
+      "sha256": "sha256:e5399b22bc9c15f09e0b94897dd4199b4a94cad50b3bb3d7b5a43460eb2465bf",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -5998,8 +5998,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "59ecc6f7943ee46a81800e4e2c212e856fc714f6",
-      "sha256": "sha256:c0aaeff66fc844945ca28c36a581e3a725e9538f27d5d192397d1a4756e8cf7d"
+      "git_blob": "88271b421d520bec0bb42d9b2fb4d02781a5742d",
+      "sha256": "sha256:7aa1785969e1c6913744933183f2aad1231c974214df41db297ebe05bf815445"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -6086,5 +6086,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5bdfaa49082e0b27e877a055c8dc30a3f495fcc6699c42c919a545645af9e50a"
+  "manifest_sha256": "sha256:98f8170dbebadde8f847ceb6dbb02dcabd22066f1aa8d85fbc46389c49bf6e6f"
 }
