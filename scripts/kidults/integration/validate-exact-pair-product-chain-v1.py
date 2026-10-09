@@ -390,7 +390,7 @@ check(control_119_hold["assessment"]["overall_rankability"] is False, "119 CONTR
 expect_rejection(
     "119-control-only-not-projectable",
     lambda: replay_builder.build_replay_receipt(control_119_snapshot, control_119_evidence, control_119_hold),
-    "ASSESSMENT_NOT_RANKABLE",
+    "ASSESSMENT_NON_PROMOTABLE",
 )
 
 # An exact five-record CANARY proves only schema/boundary smoke. It may reach
