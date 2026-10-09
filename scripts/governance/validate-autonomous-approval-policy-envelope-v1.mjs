@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {createHash} from "node:crypto";
-import {EXPLICIT_EXECUTION_CONTROLS,validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
+import {EXPLICIT_EXECUTION_CONTROLS,classifyApprovalInventoryPath,validateAuthorizationRoutingCoverage} from "./lib/approval-policy-routing-v1.mjs";
 const root = process.cwd();
 const read = relative => JSON.parse(fs.readFileSync(path.join(root, relative), "utf8"));
 const fail = code => { throw new Error(code); };
@@ -27,6 +27,7 @@ const scannedLivePaths = execFileSync("git",["grep","-Il","-E",manifest.scan.pat
 const livePaths = [...new Set([...scannedLivePaths, ...EXPLICIT_EXECUTION_CONTROLS])].sort();
 if (JSON.stringify(livePaths) !== JSON.stringify(manifest.files.map(value=>value.path))) fail("INVENTORY_MANIFEST_PATH_SET_DRIFT");
 for (const entry of manifest.files) {
+  if(entry.classification!==classifyApprovalInventoryPath(entry.path))fail(`INVENTORY_MANIFEST_CLASSIFICATION_DRIFT:${entry.path}`);
   const bytes=execFileSync("git",["show",`HEAD:${entry.path}`],{cwd:root,maxBuffer:64*1024*1024});
   const blob=execFileSync("git",["rev-parse",`HEAD:${entry.path}`],{cwd:root,encoding:"utf8"}).trim();
   if (entry.git_blob!==blob || entry.sha256!==sha256(bytes)) fail(`INVENTORY_MANIFEST_FILE_DRIFT:${entry.path}`);

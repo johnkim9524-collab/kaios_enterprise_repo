@@ -3051,8 +3051,8 @@
     {
       "path": "scripts/governance/generate-approval-policy-inventory-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c89c2eea5453fccbe6650bb60a9313e69d49910f",
-      "sha256": "sha256:20881da0d0ad40572be678df300285fa872a788735de91107a5e42ac33a3d49e",
+      "git_blob": "5a7bcc8e31da88ab72772779f672eb223a79946e",
+      "sha256": "sha256:c645096a4413605238d45c1ee4fba76275a37184e855e5b4e06ff5b925520922",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3064,8 +3064,8 @@
     {
       "path": "scripts/governance/lib/approval-policy-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9414de4d04899648c7cc106ef0600fac025ca03f",
-      "sha256": "sha256:d6ea112624fba70407cf2398621054a8489003b24fafe8c35119568e9b2adbf5",
+      "git_blob": "456942fd3eb142a871e83181dfb04bb3fdf13ef0",
+      "sha256": "sha256:90445f58460aa6a65ae76963e838b390d42500ac5e275b06b23c8ad405bf808f",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3143,8 +3143,8 @@
     {
       "path": "scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c1ec33792d8cd18a789567e1e390294899c22bc3",
-      "sha256": "sha256:c963ac45e0b5946c82292a7bc30913721d0fe43394f28ec07e3f243d88cb6338",
+      "git_blob": "8dfd84cd5fed4cd63630063cec8d53819a25382a",
+      "sha256": "sha256:0c2c459273d98eaa5da4602fa40172e243da40139c76a026649d3ee0b2df7ecc",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3627,9 +3627,16 @@
     },
     {
       "path": "scripts/kidults/kpmo/lib/consumed-recovery-observation-v1.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "0cbc5440ddd7c7e0a03170cab71fc4eefbdd9d53",
-      "sha256": "sha256:94df336888e95b1cc8a25d5a0c63942e0ae20d622f06aa16d909b52bc60a5309"
+      "sha256": "sha256:94df336888e95b1cc8a25d5a0c63942e0ae20d622f06aa16d909b52bc60a5309",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
     },
     {
       "path": "scripts/kidults/kpmo/lib/direct-owner-merge-window-v1.mjs",
@@ -3699,8 +3706,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1353f2757b9cb9930b3328c7a92011302923672b",
-      "sha256": "sha256:4e5874d757d4042ce1c1fa621b5220e488c5694d5a2ca5c5ebf9823f0d7f13d8",
+      "git_blob": "79e96f0668947cc6f6abe1caf497a6a124103cfa",
+      "sha256": "sha256:9f37c2df33b679d9f24a52cc34ec829cd231fcda56878c792072806903a104b9",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3803,8 +3810,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6793f0a0ad24b7e88a95ff2ab4679b844db9c80c",
-      "sha256": "sha256:98ab8703a431b9959c5e5165e5b3e752ed0463788d18e6c11c974099dd8866b9",
+      "git_blob": "9bae97cc7cbbd123675bea27e492a5b7170450df",
+      "sha256": "sha256:10f14b1deaa835dc7a39efd2ddbde1d7a679edfd41423adf2bba8059efb4de97",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5609,8 +5616,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "18800690c42c29a7fee3af9019e3897890bd18ea",
-      "sha256": "sha256:d52cf3930b1ca2f5d796b356506075e061e57e7eb018ac35177bb097d90e2225",
+      "git_blob": "ead7ccff39d4352f8a89ff0bd1eb8e9458a1154e",
+      "sha256": "sha256:cc054af23fa61c9ea404fd39522b55b7b7dcc07770695b123d3198a46b607ae5",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -6060,5 +6067,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:8f3a2837b3a162a0b4b0f1f5cb3ac49ecc3d7ff318f3a3f08a7f01e96055f9bc"
+  "manifest_sha256": "sha256:d2cad87bb688056767cf98d3f706b6cfbf1b99ff8a58d77b1cf5409a83bc01f6"
 }
