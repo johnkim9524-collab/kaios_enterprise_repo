@@ -210,11 +210,11 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 
 // One invocation owns its budget and immutable cache. Mutable authority reads
 // are never cached. A global read failure aborts discovery before any fanout.
-export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED)$/.test(String(error?.code||''))
+export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED|READ_TRANSPORT_FAILED|READ_RESPONSE_INVALID|READ_TIMEOUT)$/.test(String(error?.code||''))
   ||(error?.global===true&&/^SOURCE_BATCH_[A-Z_]+$/.test(String(error?.code||'')));
-export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100}) {
+export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100,requestTimeoutMs=30000}) {
   if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
-    ||!Number.isSafeInteger(reserve)||reserve<0)fail('DISPATCH_CONFIGURATION_INVALID');
+    ||!Number.isSafeInteger(reserve)||reserve<0||!Number.isSafeInteger(requestTimeoutMs)||requestTimeoutMs<1||requestTimeoutMs>30000)fail('DISPATCH_CONFIGURATION_INVALID');
   let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
   const counts={branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:0};
   const family=path=>/\/contents\//.test(path)?'contents':/\/pulls\/\d+\/files(?:\?|$)/.test(path)?'files':/\/check-runs(?:\?|$)/.test(path)?'checks':/\/status(?:\?|$)/.test(path)?'status':/\/git\/commits\//.test(path)?'commits':/\/branches\//.test(path)?'branches':/\/rulesets(?:\/|\?|$)/.test(path)?'rulesets':/\/pulls(?:\/|\?|$)/.test(path)?'pulls':'other';
@@ -229,8 +229,14 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
     if(immutable&&cache.has(path))return cache.get(path);
     const pending=tail.then(async()=>{
       if(terminal)throw terminal;
+      // Only allowlisted interrupted GETs may be repeated once. Every physical
+      // request consumes the same invocation budget; mutable reads remain uncached.
+      for(let attempt=1;attempt<=2;attempt++){
       takeBudget(family(path));
-      const response=await fetchImpl(`https://api.github.com${path}`,{headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
+      const signal=AbortSignal.timeout(requestTimeoutMs);
+      let response;
+      try {
+      response=await fetchImpl(`https://api.github.com${path}`,{method:'GET',redirect:'error',signal,headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-autonomous-dispatcher-v1'}});
       const remaining=response.headers?.get('x-ratelimit-remaining');
       if(response.status===429||(remaining!==null&&remaining!==undefined&&/^\d+$/.test(remaining)&&Number(remaining)<=reserve)) {
         terminal=new DispatcherError('DISPATCH_RATE_LIMITED');throw terminal;
@@ -238,7 +244,19 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
       if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
       if(response.status===404&&immutable)return null;
       if(!response.ok)fail('DISPATCH_GITHUB_API',`${response.status}:${path}`);
-      return response.json();
+      return await response.json();
+      }catch(error){
+        if(terminal)throw terminal;
+        if(error?.code==='DISPATCH_GITHUB_API')throw error;
+        const causeCode=String(error?.cause?.code||error?.code||'');
+        const interrupted=['UND_ERR_SOCKET','ECONNRESET','EPIPE'].includes(causeCode);
+        if(interrupted&&attempt===1&&!signal.aborted)continue;
+        terminal=new DispatcherError(signal.aborted?'DISPATCH_READ_TIMEOUT':error instanceof SyntaxError?'DISPATCH_READ_RESPONSE_INVALID':'DISPATCH_READ_TRANSPORT_FAILED');
+        terminal.transport_diagnostics={resource_family:family(path),attempt_count:attempt,request_count:requests,
+          cause_code:signal.aborted?'TIMEOUT':interrupted?causeCode:error instanceof SyntaxError?'INVALID_JSON':'UNCLASSIFIED'};
+        throw terminal;
+      }
+      }
     });
     tail=pending.catch(()=>{});
     if(immutable){cache.set(path,pending);pending.catch(()=>cache.delete(path));}
@@ -458,11 +476,19 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
       id:'kidults-autonomous-dispatcher-scan-failure-v1',state:'VERIFIED_FAIL',
       failure_class:code,stage:'DISCOVER_EXACT_ELIGIBLE_PR_BINDINGS',binding,
       ...(validReadDiagnostics(error?.read_diagnostics)?{read_diagnostics:error.read_diagnostics}:{}),
+      ...(validTransportDiagnostics(error?.transport_diagnostics)?{transport_diagnostics:error.transport_diagnostics}:{}),
       partial_candidates_consumable:false,fanout_authorized:false,
       production:'HOLD',public:'HOLD',g5:'HOLD'
     },null,2));
     throw error;
   }
+}
+
+function validTransportDiagnostics(value){
+  return value&&Object.keys(value).sort().join(',')==='attempt_count,cause_code,request_count,resource_family'
+    &&['branches','rulesets','pulls','files','commits','status','checks','contents','other'].includes(value.resource_family)
+    &&[1,2].includes(value.attempt_count)&&Number.isSafeInteger(value.request_count)&&value.request_count>=value.attempt_count&&value.request_count<=256
+    &&['UND_ERR_SOCKET','ECONNRESET','EPIPE','TIMEOUT','INVALID_JSON','UNCLASSIFIED'].includes(value.cause_code);
 }
 
 function validReadDiagnostics(value){
