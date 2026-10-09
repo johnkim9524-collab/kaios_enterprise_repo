@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "6bfd10c8d4d9d824114ae62c1a9546594dd5302e",
+  "revision": "662f4f8d37ad4fbb009337c46c54f37430b868ef",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -27,8 +27,8 @@
     {
       "path": ".github/workflows/ci-validation.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1b7ccbe5818054db9368bb39df1281686a5aa755",
-      "sha256": "sha256:76a0663e67cb346b948d8f6006c448acba140a1705ead32e7e46ca30af0a0a14",
+      "git_blob": "8bf7aee9adcf7472aed9fabc80ef4fb653efa1ef",
+      "sha256": "sha256:1be63b1acd697565573c93b6671f214895764583ec4e7647db909bf22ecc3032",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6207,5 +6207,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b84c7cc3afb56333946a00b996de0721c662c10adc39d7c454fee28e6c4e5f19"
+  "manifest_sha256": "sha256:195af753674a5ac6c633242a06be8911b341434d155214f14b2dacaa5cf969db"
 }
