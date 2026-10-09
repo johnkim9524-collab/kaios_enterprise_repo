@@ -1,0 +1,24 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "94c4cb7df2a9c93a2f70bcde705d1e20208d252b",
+  "head_branch": "codex/dispatcher-rest-transport-20261010",
+  "source_head_sha": "0774cff69a6302d040e3326f98d943c50459efe6",
+  "source_head_tree_sha": "02d6dbddc2c697a339d7f685151edb5ecf609815",
+  "canonical_proposal_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/dispatcher-rest-transport-20261010",
+    "title": "fix(dispatcher): bound REST transport recovery and preserve terminal diagnostics",
+    "body": "새 main 94c4cb7df2a9c93a2f70bcde705d1e20208d252b의 자연 Dispatcher 37966220456 (schedule, attempt 1)은 보호 프로파일 검증을 통과한 뒤 REST 탐색에서 UND_ERR_SOCKET / other side closed로 실패했습니다. 위치는 createDispatcherReadClient의 fetch 호출입니다. 실제 요청 경로는 로그에 없어 특정 PR이나 endpoint는 미확정입니다. 실패 artifact 11633636951의 SHA-256 6cb3733e8f170de0ee834009ce8770a9091e4567363fdeb1da29782df40c2e50을 검증했고, results=[] 및 fanout_authorized=false를 확인했습니다.\n\nGET 읽기에만 UND_ERR_SOCKET·ECONNRESET·EPIPE를 한 번 복구합니다. 모든 물리 요청은 기존 256 요청 예산에 차감합니다. 각 시도는 최대 30초이며 제한 시간은 더 짧게만 설정할 수 있습니다. 401·403·429와 quota reserve는 즉시 중단하고, 인증·인증서·불명 오류와 잘못된 JSON은 재시도하지 않습니다. 두 번째 전송 실패·시간 초과·응답 오류는 명시적 전역 실패로 분류해 대기 중 및 후속 조회도 차단합니다. 결과·부분 캐시를 소비하지 않으며 실패 영수증에는 검증된 요청 종류·시도 수·요청 수·제한된 원인 코드만 남깁니다. 공개 Git pack·쓰기·승인·dispatch·merge·deploy는 재시도하지 않습니다.\n\nDispatcher 소스 변경과 함께 보호 프로파일의 source_sha256을 sha256:2a393552d3338297234951269ce145e5522127eeb00e9633b43c56b0aed59da1로 결속했습니다. #2628에서 추가한 실제 일곱 소스 해시 CI 검증을 유지합니다. 새로운 budget, credential, permission, network destination, provider 권한은 없습니다.\n\n검증: Dispatcher 185/185, 브로커 31/31. 기존 56개 토큰 실패 전파와 실제 shell 12개도 통과했습니다. 새 회귀는 세 전송 코드의 단일 복구, 재시도 예산 초과 금지, queued read fencing, 회복 직후 401/403/429, 인증서·불명 오류 비재시도, 부분 JSON 폐기, 잘못된 JSON 차단, 제한 시간, 영수증 민감값 제거 및 미검증 필드 제외를 포함합니다.\n\n소스 commit 0774cff69a6302d040e3326f98d943c50459efe6 / tree 02d6dbddc2c697a339d7f685151edb5ecf609815. intent 이후 변경은 derived approval inventory만 허용합니다. Rollback: 소스와 대응 프로파일 핀을 한 쌍으로 복원하고 실패 증거를 유지합니다.\n\n완료된 #2625/#2626/#2627/#1903/#2628의 승인·병합·handoff·배포는 재실행하지 않습니다. #2628 병합 94c4cb7d, handoff 37960218091 및 필수 exact-merge push 6/6은 성공이며 전체 18개 push도 성공했습니다. 브로커 코드는 변경되지 않아 기존 STAGING 배포 37942521262를 소비합니다. #1884/#2286의 Owner 폐쇄는 새로운 자동 hygiene 실증으로 계산하지 않습니다.\n\nSTATE: IMPLEMENTED_NOT_VERIFIED(native corrected schedule). 보호 소스 및 프로파일 활성화는 새로운 exact-head Owner 결정이 필요하며 이전 승인을 재결속하지 않습니다. 이 Draft는 Ready·승인·병합·수동 dispatch·deploy·승격을 부여하지 않습니다. 자연 수정 경로와 전체 Producer Health는 아직 미실증입니다. 별도 steering 37960393769는 구 SHA 선행 실행과 새 main 불일치로 실패한 상태를 보존합니다. Production/Public/G5/provider activation HOLD.\n\nagent_id: Atlas-KPMO; root_mission_id: AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION; scope: bounded REST read resilience; next_action: exact-head CI, exact-head Owner 보호 반영, 새로운 자연 run의 증거 소비.\nautonomous_effect: 일시적 읽기 소켓 단절에 제한된 자율 복구.\nglobal_effect: 기존 단일 저장소·API 예산과 인증 경계 유지.\nirreplaceable_value_effect: source, 실패 및 완료 계보 보존.\ntransparency_effect: socket 실패를 미분류 오류 대신 검증 가능한 제한된 진단으로 보존.",
+    "draft": true
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:3711c06e60d6e776ad124c2279dd67a7bce883d6f5bc9782466a125f51188cde",
+  "source_change_payload_digest": "sha256:df8df51ace9b852f1b872d2f470e1572d36cf11c83b3cbcd050e7e73617ab125"
+}

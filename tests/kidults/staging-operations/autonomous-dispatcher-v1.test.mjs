@@ -12,7 +12,7 @@ import './bounded-git-source-reader-v1.test.mjs';
 import './bounded-git-pack-decoder-v1.test.mjs';
 import './bounded-git-public-transport-v1.test.mjs';
 import './bounded-git-source-profile-v1.test.mjs';
-import {classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
@@ -706,6 +706,76 @@ test('dispatcher request budget is invocation scoped and cannot be exceeded',asy
   const client=createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1});await client.request('/one');
   await assert.rejects(client.request('/two'),error=>error.code==='DISPATCH_READ_BUDGET_EXHAUSTED');
   await createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1}).request('/two');assert.equal(calls,2);
+});
+const socketFailure=code=>Object.assign(new TypeError('fetch failed'),{cause:{code,message:'must not be recorded'}});
+for(const code of ['UND_ERR_SOCKET','ECONNRESET','EPIPE'])test(`interrupted GET ${code} is repeated once inside the original budget`,async()=>{
+  const seen=[];const client=createDispatcherReadClient({token:'offline',fetchImpl:async(url,options)=>{
+    seen.push({url,options});if(seen.length===1)throw socketFailure(code);return fakeResponse(200,{verified:true});
+  }});
+  assert.deepEqual(await client.request(immutablePath),{verified:true});
+  assert.deepEqual(await client.request(immutablePath),{verified:true});
+  assert.equal(seen.length,2);assert.equal(client.requestCount(),2);assert.equal(seen[0].url,seen[1].url);
+  for(const {options} of seen){assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.ok(options.signal instanceof AbortSignal);}
+});
+test('exhausted interrupted read fences queued and later requests',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;throw socketFailure('UND_ERR_SOCKET');}});
+  const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
+  assert.equal(calls,2);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TRANSPORT_FAILED'));
+  assert.deepEqual(results[0].reason.transport_diagnostics,{resource_family:'other',attempt_count:2,request_count:2,cause_code:'UND_ERR_SOCKET'});
+  assert.equal(isGlobalReadFailure(results[0].reason),true);
+  await assert.rejects(client.request('/later'),x=>x===results[0].reason);assert.equal(calls,2);
+});
+test('read recovery cannot exceed the original request budget',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',maxRequests:1,fetchImpl:async()=>{calls++;throw socketFailure('ECONNRESET');}});
+  await assert.rejects(client.request('/one'),x=>x.code==='DISPATCH_READ_BUDGET_EXHAUSTED');assert.equal(calls,1);
+});
+for(const status of [401,403,429])test(`HTTP ${status} after interrupted read stops without a third attempt`,async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{if(++calls===1)throw socketFailure('UND_ERR_SOCKET');return fakeResponse(status);}});
+  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
+  assert.equal(calls,2);assert.ok(results.every(x=>x.status==='rejected'));
+  assert.equal(results[0].reason.code,status===429?'DISPATCH_RATE_LIMITED':'DISPATCH_READ_ACCESS_DENIED');
+});
+for(const code of ['CERT_HAS_EXPIRED','UNREGISTERED'])test(`unregistered transport failure ${code} is not repeated`,async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;throw socketFailure(code);}});
+  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
+  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TRANSPORT_FAILED'));
+  assert.equal(results[0].reason.transport_diagnostics.cause_code,'UNCLASSIFIED');
+});
+test('interrupted JSON body is discarded before one complete GET recovery',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{
+    if(++calls===1)return {...fakeResponse(),json:async()=>{throw socketFailure('UND_ERR_SOCKET');}};
+    return fakeResponse(200,{complete:true});
+  }});
+  assert.deepEqual(await client.request(immutablePath),{complete:true});assert.equal(calls,2);
+});
+test('invalid JSON stops queued reads without retry or partial cache',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return {...fakeResponse(),json:async()=>{throw new SyntaxError('sensitive raw response');}};}});
+  const results=await Promise.allSettled([client.request(immutablePath),client.request('/later')]);
+  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_RESPONSE_INVALID'));
+});
+test('bounded request timeout aborts and fences queued reads',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',requestTimeoutMs:5,fetchImpl:async(_url,{signal})=>{
+    calls++;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>resolve(fakeResponse()),100);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});});
+  }});
+  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
+  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TIMEOUT'));
+  assert.equal(results[0].reason.transport_diagnostics.cause_code,'TIMEOUT');
+  assert.throws(()=>createDispatcherReadClient({token:'offline',requestTimeoutMs:30001}),/CONFIGURATION_INVALID/);
+});
+test('failed transport receipt retains bounded diagnostics and clears partial evidence',async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-transport-failure-'));
+  try{
+    const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{throw socketFailure('UND_ERR_SOCKET');}});
+    await assert.rejects(recordDispatcherScan({outputDirectory:directory,repository:'owner/repo',sourceSha:sha('a'),runId:'1',scan:()=>client.request('/one')}),x=>x.code==='DISPATCH_READ_TRANSPORT_FAILED');
+    const receipt=JSON.parse(fs.readFileSync(path.join(directory,'failure.json')));
+    assert.equal(receipt.failure_class,'DISPATCH_READ_TRANSPORT_FAILED');
+    assert.equal(receipt.transport_diagnostics.cause_code,'UND_ERR_SOCKET');assert.equal(receipt.transport_diagnostics.attempt_count,2);
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);
+    assert.equal(receipt.fanout_authorized,false);assert.equal(JSON.stringify(receipt).includes('must not be recorded'),false);
+    const error=Object.assign(new Error('not public'),{code:'DISPATCH_READ_TRANSPORT_FAILED',transport_diagnostics:{...receipt.transport_diagnostics,url:'sensitive'}});
+    await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:async()=>{throw error;}}));
+    assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).transport_diagnostics,undefined);
+  }finally{fs.rmSync(directory,{recursive:true,force:true});}
 });
 test('failed immutable response is not cached and immutable 404 is reused',async()=>{
   let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>fakeResponse(++calls===1?500:404)});
