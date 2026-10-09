@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import fs from 'node:fs';
+import {executeRuntimeDomainWorkloads} from '../../../scripts/kidults/runtime/runtime-domain-workloads-v1.mjs';
 import {connectAuthenticatedBusinessInput} from '../../../scripts/kidults/integration/authenticated-business-input-v1.mjs';
 import {NOW,batchEnvelope,rawObservation,receiptRegistryFor,sealObservation} from '../market/current-sold-test-helpers-v1.mjs';
 
@@ -49,6 +51,10 @@ test('fixture native transport is consumed as data and never converted into a li
   assert.equal(result.state,'INPUT_TRANSPORT_AND_CONTENT_VERIFIED');
   assert.equal(result.binding_transport_authenticated,true);
   assert.equal(result.input_processing.bundle.evidence.length,1);
+  const definition=JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json',import.meta.url)));
+  const processed=executeRuntimeDomainWorkloads({connection:result,definition,sourceSha:result.source_sha});
+  assert.equal(processed.locally_executed_domain_count,6);
+  assert.equal(processed.native_verified_domain_count,0);
   for(const key of ['legal_admission_independently_verified','immutable_pair_created','remote_workload_verified','native_domain_receipt_emitted'])assert.equal(result[key],false);
 });
 test('missing and unregistered references HOLD without network or downstream execution',async()=>{

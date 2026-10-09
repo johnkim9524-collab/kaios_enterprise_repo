@@ -4,6 +4,8 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {connectAuthenticatedBusinessInput} from './authenticated-business-input-v1.mjs';
 import {canonicalJson,sha256} from '../kpmo/lib/canonical-json-v1.mjs';
+import {executeRuntimeDomainWorkloads} from '../runtime/runtime-domain-workloads-v1.mjs';
+import {reconcileRuntimeDomainOutputs} from './authenticated-runtime-domain-outputs-v1.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 const [manifestArgument,outputArgument]=process.argv.slice(2);
@@ -26,6 +28,10 @@ const definition=read(path.join(root,'coordination/kidults/kpmo/runtime-domain-e
 const sourceSha=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim();
 const connection=await connectAuthenticatedBusinessInput({reference:manifest?.native_business_input_reference,
   contract,sourceSha,token:process.env.GH_TOKEN||process.env.GITHUB_TOKEN});
+const workloads=executeRuntimeDomainWorkloads({connection,definition,sourceSha});
+const outputContract=read(path.join(root,'coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'));
+const nativeOutputs=await reconcileRuntimeDomainOutputs({references:manifest?.native_domain_output_references,
+  connection,definition,contract:outputContract,sourceSha,token:process.env.GH_TOKEN||process.env.GITHUB_TOKEN});
 // A separate registered native producer is still necessary for each domain.
 // Never publish raw business data, rights documents or credentials in this receipt.
 const required={
@@ -47,6 +53,8 @@ const domains=definition.domains.filter(d=>d.id!=='SECURITY_SUPPLY_CHAIN');
 if(domains.length!==13||new Set(domains.map(d=>d.id)).size!==13
   ||Object.keys(required).length!==13||domains.some(d=>!required[d.id]))throw new Error('RUNTIME_INPUT_CONNECTION_DOMAIN_SET');
 const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSha,state:'VERIFIED_INCOMPLETE',
+  workload_execution:workloads,
+  native_output_connections:nativeOutputs,
   evidence_scope:'INPUT_CONNECTION_OBSERVATION_NOT_RUNTIME_DOMAIN_CERTIFICATION',
   native_input_transport_state:connection.state,native_input_blocker:connection.blocker??null,
   native_input_reference:connection.state==='INPUT_TRANSPORT_AND_CONTENT_VERIFIED'?{
