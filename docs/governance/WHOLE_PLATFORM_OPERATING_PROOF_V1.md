@@ -156,3 +156,17 @@ The following checkpoint records the implementation stage as observed at its ori
   "transparency_effect": "Keeps local processing, semantic validation and actual native evidence separate."
 }
 ```
+
+### 2026-10-09 finalization incident correction and inactive proposal
+
+PR #2621 remains open at `edeac43c7031af5b8b3c64a40627dd740bfa64cb`, based on main `c32293a0bb2107f88326c9ae279f7b72bf307c98` at the reconciliation preceding this proposal. Its three native role receipts belong to generation `pr-2621-edeac43c7031af5b8b3c-c1a805d084b72cfb`; they are not authority for a changed source head. Elected finalizer run `37868436680`, job `113620747798`, failed with `AUTONOMOUS_GITHUB_API_403` before merging. Its quarantined artifact `11589446645` records `merge_performed=false` and no merge SHA.
+
+Reserve run `37868792082` / job `113621777133` and Discovery run `37869143499` / job `113622902853` explicitly report GitHub installation API rate-limit exhaustion in the same period. The finalizer discards response headers and body, so attributing its particular 403 to that exhaustion is an inference, not a captured server diagnosis. `contents: write` is already declared in the finalization job; missing content permission has not been established.
+
+Correction: recovery run `37868620750` belongs to the fixed historical PR #2555 incident in `POSTMERGE_RECOVERY_INCIDENT`. It is not PR #2621 recovery evidence. Neither its failure nor success can establish #2621 completion.
+
+The separate inactive source proposal reduces repeated immutable-file retrieval: exact forty-character Git SHAs are required, verified file bytes are cached only within the process by repository/path/SHA, and changed-file reads are serialized. Live PR, main, ruleset and check observations remain uncached. Rejected or invalid objects are not cached. HTTP errors retain only bounded numeric rate-limit headers and a rate-limit boolean; response bodies and credentials are not logged. No write is automatically retried, no credential scope or trigger is changed, and no authority is renewed. This mitigates request amplification; it does not guarantee the shared installation budget is sufficient or implement a new recovery authority.
+
+The proposed protected finalizer change was rejected by both unchanged local capability classifiers: `CAPABILITY_GUARD_DEPENDENCY_CHANGED` and `INDEPENDENT_GUARD_DEPENDENCY_CHANGED`. It must not replace the eligible #2621 source or activate through a manual dispatch/bypass. The proposal is preserved on a separate development branch for exact-source review. This branch is not a landing receipt or production authorization.
+
+Actual thirteen-domain native connections remain **0/13**, the business producer registry remains empty, and authenticated input is missing. Six local processors and thirteen consumers do not replace seven absent native workload producers, source-specific legal admission, or actual business outputs. No second natural generation on a final merged main has been established. Production/Public/G5/provider activation remain HOLD; DigitalOcean email 84216 is unchanged.
