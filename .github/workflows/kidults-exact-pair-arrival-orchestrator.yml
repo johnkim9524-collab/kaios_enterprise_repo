@@ -9,13 +9,6 @@ on:
       - 'scripts/kidults/integration/build-exact-pair-staging-replay-v1.py'
       - 'scripts/kidults/integration/build-canonical-object-projection-v1.mjs'
       - 'scripts/kidults/integration/run-exact-pair-product-chain-v1.py'
-      - 'scripts/kidults/integration/authenticated-business-input-v1.mjs'
-      - 'scripts/kidults/integration/run-runtime-domain-input-connections-v1.mjs'
-      - 'scripts/kidults/runtime/execute-bound-business-input-v1.mjs'
-      - 'scripts/kidults/runtime/execute-business-input-stage-v1.mjs'
-      - 'coordination/kidults/integration/authenticated-business-input-connection-v1.json'
-      - 'coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json'
-      - 'tests/kidults/kpmo/native-input-chain-boundary-v1.test.mjs'
       - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
       - 'scripts/kidults/integration/build-live-chain-audit-v1.py'
       - 'scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py'
@@ -37,13 +30,6 @@ on:
       - 'scripts/kidults/integration/build-exact-pair-staging-replay-v1.py'
       - 'scripts/kidults/integration/build-canonical-object-projection-v1.mjs'
       - 'scripts/kidults/integration/run-exact-pair-product-chain-v1.py'
-      - 'scripts/kidults/integration/authenticated-business-input-v1.mjs'
-      - 'scripts/kidults/integration/run-runtime-domain-input-connections-v1.mjs'
-      - 'scripts/kidults/runtime/execute-bound-business-input-v1.mjs'
-      - 'scripts/kidults/runtime/execute-business-input-stage-v1.mjs'
-      - 'coordination/kidults/integration/authenticated-business-input-connection-v1.json'
-      - 'coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json'
-      - 'tests/kidults/kpmo/native-input-chain-boundary-v1.test.mjs'
       - 'scripts/kidults/integration/evaluate-exact-pair-arrival-v1.py'
       - 'scripts/kidults/integration/build-live-chain-audit-v1.py'
       - 'scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py'
@@ -67,9 +53,6 @@ concurrency:
 
 jobs:
   evaluate:
-    permissions:
-      contents: read
-      actions: read
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -101,11 +84,8 @@ jobs:
         run: |
           python scripts/kidults/integration/validate-live-assessment-audit-hardening-v1.py
           python scripts/kidults/integration/validate-exact-pair-product-chain-v1.py
-          node --test tests/kidults/kpmo/native-input-chain-boundary-v1.test.mjs
 
       - name: Advance genuine pair through official Track B and canonical Projection
-        env:
-          GH_TOKEN: ${{ github.event_name == 'push' && github.token || '' }}
         run: >-
           python scripts/kidults/integration/run-exact-pair-product-chain-v1.py
           coordination/kidults/integration/live-arrival/live-admission-manifest.json
@@ -153,7 +133,6 @@ jobs:
           PY
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
-        if: always()
         with:
           name: kidults-exact-pair-arrival-state-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/exact-pair-arrival

@@ -1,3 +1,4 @@
+import './native-input-chain-boundary-v1.test.mjs';
 import {test} from 'node:test';
 // Keep the native transport adversaries in the existing required CI suite.
 import './authenticated-business-input-v1.test.mjs';
