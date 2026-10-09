@@ -130,7 +130,7 @@ jobs:
             > /tmp/kpmo-ci-agent-bootstrap-static-validation-v1.json
           node scripts/governance/bootstrap-ai-agent-from-github-v1.mjs --self-test-event-sha-binding
           node --test tests/governance/bootstrap-workflow-run-consumption-v1.test.mjs
-          node --test tests/governance/development-branch-resume-v1.test.mjs tests/governance/development-draft-proposal-resume-v1.test.mjs tests/kidults/kpmo/durable-canonical-ledger-canary-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs
+          node --test tests/governance/development-branch-resume-v1.test.mjs tests/governance/development-draft-proposal-resume-v1.test.mjs tests/kidults/kpmo/durable-canonical-ledger-canary-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs tests/kidults/kpmo/sentinel-causal-order-v1.test.mjs
           node --test tests/kidults/kpmo/natural-clock-dispatch-v1.test.mjs tests/kidults/kpmo/natural-clock-intake-v1.test.mjs
           node --test tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/whole-platform-collector-v1.test.mjs
           node --test tests/kidults/kpmo/runtime-domain-evidence-demand-v1.test.mjs
@@ -227,7 +227,7 @@ jobs:
           node --test tests/kidults/staging-operations/github-lifecycle-resume-v1.test.mjs
           node --test tests/kidults/staging-operations/github-lifecycle-readback-v1.test.mjs tests/kidults/staging-operations/github-lifecycle-executor-v1.test.mjs
           node --test tests/governance/owner-recovery-bootstrap-resume-v1.test.mjs
-          node --test tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs tests/kidults/staging-operations/dynamodb-operation-ledger-v1.test.mjs tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
+          node --test tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs tests/kidults/staging-operations/protected-lifecycle-shell-v1.test.mjs tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs tests/kidults/staging-operations/dynamodb-operation-ledger-v1.test.mjs tests/kidults/staging-operations/resume-dispatch-fanout-v1.test.mjs tests/kidults/staging-operations/resume-operation-v1.test.mjs tests/kidults/staging-operations/postgres-transition-ledger-v1.test.mjs tests/kidults/staging-operations/autonomous-dispatch-fanout-v1.test.mjs tests/governance/markdown-capability-format-v1.test.mjs tests/governance/autonomous-policy-alignment-v1.test.mjs
 
       - name: Validate Kidults staging intelligence
         run: npm --prefix apps/kidults-enterprise-staging test

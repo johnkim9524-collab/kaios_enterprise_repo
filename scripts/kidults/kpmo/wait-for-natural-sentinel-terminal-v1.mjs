@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {sentinelOrderBarrierBudget, withinSentinelObservationWindow} from './lib/sentinel-order-barrier-budget-v1.mjs';
+import {verifyAuthenticatedSentinelContinuation} from './lib/authenticated-sentinel-continuation-v1.mjs';
 
 const REPOSITORY = process.env.GITHUB_REPOSITORY || '';
 const SOURCE_SHA = process.env.KPMO_SOURCE_SHA || process.env.GITHUB_SHA || '';
@@ -130,6 +131,9 @@ async function observe(run) {
     item?.name === expected && item?.expired === false && item?.workflow_run?.id === run.id &&
     item?.workflow_run?.head_sha === SOURCE_SHA && DIGEST.test(item?.digest || '')
   );
+  // An early administrative cancellation has no authenticated generation.
+  // It cannot establish failure or success for the requested Coverage run.
+  if (rows.length === 0 && FORWARDED_COVERAGE_RUN_ID > 0) return null;
   if (rows.length !== 1) throw new Error(`ASSURANCE_SENTINEL_BARRIER_ARTIFACT_CARDINALITY_${rows.length}`);
   const artifact = rows[0];
   const bytes = await artifactBytes(artifact.id);
@@ -139,6 +143,14 @@ async function observe(run) {
   if (reader.status !== 0) throw new Error('ASSURANCE_SENTINEL_BARRIER_ARCHIVE_INVALID');
   let archive;
   try { archive = JSON.parse(reader.stdout); } catch { throw new Error('ASSURANCE_SENTINEL_BARRIER_ARCHIVE_INDEX_INVALID'); }
+  if (FORWARDED_COVERAGE_RUN_ID > 0) {
+    const authenticated = verifyAuthenticatedSentinelContinuation({run,artifact,archivePacket:archive,
+      sourceSha:SOURCE_SHA,repository:REPOSITORY});
+    const binding = authenticated?.continuation_binding;
+    if (!binding || binding.upstream_run_id !== FORWARDED_COVERAGE_RUN_ID ||
+        binding.upstream_run_attempt !== FORWARDED_COVERAGE_RUN_ATTEMPT) return null;
+    if (run.conclusion !== 'success') throw new Error(`ASSURANCE_SENTINEL_BARRIER_SENTINEL_${String(run.conclusion || 'UNKNOWN').toUpperCase()}`);
+  }
   const member = (archive.members || []).find(item => path.posix.basename(item.name || '') === RECEIPT_NAME);
   if (!member || typeof member.text !== 'string') throw new Error('ASSURANCE_SENTINEL_BARRIER_RECEIPT_MISSING');
   let receipt;
@@ -205,13 +217,19 @@ async function main() {
         const cutoffMs = Date.now();
         const listing = {workflow_runs: await workflowRuns(cutoffMs, startMs)};
         const candidates = candidatesFrom(listing.workflow_runs, cutoffMs).filter(run => run.created_at >= coverage.created_at);
-        const latest = candidates.at(-1);
-        if (!latest) lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
-        else if (latest.status !== 'completed') lastError = 'ASSURANCE_SENTINEL_BARRIER_SENTINEL_NONTERMINAL';
-        else if (latest.conclusion !== 'success') throw new Error(`ASSURANCE_SENTINEL_BARRIER_SENTINEL_${String(latest.conclusion || 'UNKNOWN').toUpperCase()}`);
-        else { const result = await observe(latest); writeReceipt(result); console.log(JSON.stringify({state: result.state, sentinel_run_id: result.sentinel_run_id, sentinel_receipt_digest: result.sentinel_receipt_digest})); return; }
+        // Time order alone does not identify a Coverage continuation. Inspect
+        // every terminal archive before choosing; an authenticated matching
+        // failure must not be hidden by a newer unrelated or successful run.
+        let result = null;
+        for (const candidate of candidates) {
+          if (candidate.status !== 'completed') continue;
+          const observed = await observe(candidate);
+          if (observed) result = observed;
+        }
+        if (result) { writeReceipt(result); console.log(JSON.stringify({state: result.state, sentinel_run_id: result.sentinel_run_id, sentinel_receipt_digest: result.sentinel_receipt_digest})); return; }
+        lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_AUTHENTICATED_COVERAGE_SENTINEL';
       } catch (error) {
-        if (String(error.message).startsWith('ASSURANCE_SENTINEL_BARRIER_SENTINEL_') || String(error.message).includes('RECEIPT_NOT_PASS') || String(error.message).includes('CONTINUATION_BINDING') || String(error.message).includes('ARTIFACT_') || String(error.message).includes('ARCHIVE_')) throw error;
+        if (String(error.message).startsWith('ASSURANCE_SENTINEL_BARRIER_SENTINEL_') || String(error.message).startsWith('SENTINEL_CONTINUATION_') || String(error.message).includes('RECEIPT_NOT_PASS') || String(error.message).includes('CONTINUATION_BINDING') || String(error.message).includes('ARTIFACT_') || String(error.message).includes('ARCHIVE_')) throw error;
         lastError = String(error.message || error);
       }
       await sleep(pollSeconds * 1000);

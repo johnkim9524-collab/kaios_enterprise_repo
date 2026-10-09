@@ -1,0 +1,51 @@
+{
+  "id": "kidults-autonomous-causal-lifecycle-repair-checkpoint-v1",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "completion_owner": "Atlas-KPMO",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "baseline_main_sha": "240cd17a5e4cf9543d54559c44a3d59a8b59bc03",
+  "completed_stages_do_not_repeat": [2625,2626,2627,1903,2628,2629],
+  "baseline_natural_dispatcher": {
+    "run_id": 38004489870,
+    "event": "schedule",
+    "attempt": 1,
+    "conclusion": "success",
+    "artifact_id": 11650368544,
+    "artifact_sha256": "4f6c9ba35e1bb73e4716c1c1be2b360bbaafc301986fed76761a88e1fa010755",
+    "scope": "CONTROL_DIAGNOSTIC_ONLY",
+    "candidate_count": 100,
+    "physical_requests": 219,
+    "request_budget": 256,
+    "lifecycle_mutation_proven": false,
+    "whole_platform_health_proven": false
+  },
+  "remediation": [
+    "Separate exact-source causal continuation queues; select authenticated parent coverage rather than unrelated latest-run time",
+    "Make REST service failures invalidate the complete scan and prevent partial-result fanout",
+    "Move stale update and redundant close into protected broker with shared PR/head writer fencing, signed readback and permanent UNKNOWN hold",
+    "Authenticate public broker callers using signed GitHub OIDC and exact live native workflow identity",
+    "Fence Finalizer write-token handoff in the same PR/head family and acquire only after original reservation-owner checks",
+    "Share one durable 64-minute legacy-token drain across lifecycle, authorization dispatch and Finalizer handoff",
+    "Observe drain readiness before Finalizer reservation; do not consume authorization dispatch during drain"
+  ],
+  "red_team": {"reviewer": "redteam_holistic", "mode": "READ_ONLY", "formal_independence": "UNKNOWN", "activation_performed": false},
+  "remaining_evidence": [
+    "Exact proposal-head independent machine CI",
+    "New exact-head protected-source activation authority",
+    "Owner-reserved STAGING Lambda Timeout 30 to 180 deployment path",
+    "Protected deployment evidence that legacy broker revisions cannot mint during or after drain",
+    "Natural exact-main lifecycle positive readback and signed durable reuse",
+    "Whole-authority-chain Producer Health Sentinel"
+  ],
+  "legacy_consumed_dispatch": "Reconcile existing completed dispatches; never reissue or rebind their authority to overcome cutover HOLD",
+  "rollback": "Restore source and matching protected policy pins together; retain durable operation records and UNKNOWN fences; never reactivate a legacy minting revision during cutover",
+  "normal_operations_proven": false,
+  "autonomous_effect": "Bounded natural recovery with causal queues and durable original-writer fencing; runtime proof pending",
+  "global_effect": "UNKNOWN: no global source-universe coverage evidence created by this repository-internal correction",
+  "irreplaceable_value_effect": "Preserve KIDULTS-owned causal lineage, signed receipts and durable incident continuity",
+  "transparency_effect": "Distinguish baseline scan success, local regression, protected activation and whole-platform health",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

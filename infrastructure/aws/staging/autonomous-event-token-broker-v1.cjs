@@ -5,7 +5,7 @@ const fail = code => { throw new Error(`EVENT_TOKEN_BROKER_DENIED:${code || 'UNC
 const sha = value => typeof value === 'string' && /^[0-9a-f]{40}$/.test(value);
 const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');
 
-function createHandler({getPrivateKey, request, config, now = () => Date.now()}) {
+function createHandler({getPrivateKey, request, config, now = () => Date.now(), includeReadToken=false, readOnly=false}) {
   return async event => {
     if (Object.hasOwn(event || {}, 'allow_draft_recovery')) fail('INPUT');
     const {repository, repository_id, pull_request, base_sha, head_sha, current_main_sha, authorization_generation,
@@ -39,7 +39,7 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
       body:JSON.stringify({repository_ids:[Number(config.repositoryId)],permissions}),
     },`MINT_${phase}_HTTP`);
     const validScope = (minted, permissions) => typeof minted.token==='string' && minted.token.length>=20
-      && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000
+      && Number.isFinite(Date.parse(minted.expires_at)) && Date.parse(minted.expires_at)>=now()+15*60*1000 && Date.parse(minted.expires_at)<=now()+3660000
       && ((permissions.contents===undefined && minted.permissions?.contents===undefined) || minted.permissions?.contents===permissions.contents)
       && minted.permissions?.pull_requests===permissions.pull_requests
       && minted.permissions?.workflows===permissions.workflows
@@ -51,6 +51,7 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
     const readPermissions={contents:'read',pull_requests:'read'};
     const readonly=await mint(readPermissions,'READ');
     if (!validScope(readonly,readPermissions)) fail('READ_SCOPE');
+    if(readOnly)return {ok:true,token:readonly.token};
     const [pr,main]=await Promise.all([
       api(`/repos/${repository}/pulls/${pull_request}`,readonly.token,{},'PR_READ_HTTP'),
       api(`/repos/${repository}/branches/main`,readonly.token,{},'MAIN_READ_HTTP'),
@@ -89,21 +90,48 @@ function createHandler({getPrivateKey, request, config, now = () => Date.now()})
     return {ok:true,token_type:'GITHUB_APP_INSTALLATION',repository,repository_id:String(repository_id),
       app_id:String(config.appId),installation_id:String(config.installationId),permission_profile,
       permissions:grantedPermissions,
-      expires_at:minted.expires_at,token:minted.token};
+      expires_at:minted.expires_at,token:minted.token,...(includeReadToken?{read_token:readonly.token}:{})};
   };
 }
 
 exports.createHandler=createHandler;
+exports.assertPublicMintBoundary=event=>{
+  if(event?.action==='MINT_INSTALLATION_TOKEN'&&((event.permission_profile&&event.permission_profile!=='AUTONOMOUS_EVENT_DISPATCH')||typeof event.caller_oidc_token!=='string'))fail('LIFECYCLE_LEDGER_REQUIRED');
+};
 exports.handler=async (event,context) => {
+  exports.assertPublicMintBoundary(event);
+  const request=(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)});
   const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');
   const client=new SecretsManagerClient({region:process.env.AWS_REGION});
   const getPrivateKey=async () => {
     const value=await client.send(new GetSecretValueCommand({SecretId:process.env.GITHUB_APP_PRIVATE_KEY_SECRET_ARN}));
     return value.SecretString;
   };
-  if(event?.action==='RESUME_AUTHORIZATION_DISPATCH') {
-    const load=typeof __resumeLoad==='function' ? __resumeLoad : async () => import('../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
-    const {brokerResumeDispatch}=await load('scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs');
+  const identityConfig={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
+    appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID};
+  if(['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION'].includes(event?.action)){
+    const name='scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs';
+    const identity=typeof __resumeLoad==='function'?await __resumeLoad(name):await import(`../../../${name}`);
+    // Only a signature- and claim-validated identity reaches this read-only
+    // callback. Native run reads use the existing narrow App read scope.
+    const candidate=event.envelope||event.binding||event;
+    const nativeRequest=async(url,options)=>{
+      const reader=createHandler({getPrivateKey,request,config:identityConfig,readOnly:true});
+      const read=await reader({action:'MINT_INSTALLATION_TOKEN',repository:identityConfig.repository,repository_id:identityConfig.repositoryId,
+        pull_request:candidate.pull_request,base_sha:candidate.base_sha||candidate.old_base_sha,head_sha:candidate.head_sha||candidate.expected_head_sha,
+        authorization_generation:'broker-native-identity-read'});
+      return request(url,{...options,headers:{...options.headers,Authorization:`Bearer ${read.token}`,'X-GitHub-Api-Version':'2022-11-28'}});
+    };
+    await identity.verifyBrokerCallerIdentity({token:event.caller_oidc_token,repository:process.env.GITHUB_REPOSITORY,
+      repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:event.base_sha||event.envelope?.base_sha||event.binding?.current_main_sha,
+      callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,request,nativeRequest});
+    const {caller_oidc_token,...operationEvent}=event;event=operationEvent;
+  }
+  if(['RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION','MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER'].includes(event?.action)) {
+    const modulePath=event.action==='RESUME_AUTHORIZATION_DISPATCH'?'scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs':'scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
+    const load=typeof __resumeLoad==='function' ? __resumeLoad : async name => import(`../../../${name}`);
+    const loaded=await load(modulePath);
+    const resume=event.action==='RESUME_AUTHORIZATION_DISPATCH'?loaded.brokerResumeDispatchWithCutover:event.action==='MINT_INSTALLATION_TOKEN'?loaded.brokerMintFinalizer:event.action==='OBSERVE_LIFECYCLE_CUTOVER'?loaded.observeLifecycleCutover:loaded.brokerResumeLifecycle;
     const {DynamoDBClient}=require('@aws-sdk/client-dynamodb');
     const {DynamoDBDocumentClient,GetCommand,PutCommand,UpdateCommand}=require('@aws-sdk/lib-dynamodb');
     const db=DynamoDBDocumentClient.from(new DynamoDBClient({region:process.env.AWS_REGION,maxAttempts:1}));
@@ -111,10 +139,9 @@ exports.handler=async (event,context) => {
     const config={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
       appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID,
       operationTable:process.env.RESUME_OPERATION_TABLE,activationRunFloor:process.env.RESUME_ACTIVATION_RUN_FLOOR};
-    const request=(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)});
-    return brokerResumeDispatch({event,config,getPrivateKey,request,owner:context?.awsRequestId,
+    return resume({event,config,getPrivateKey,request,owner:context?.awsRequestId,
       ledgerRequest:(operation,params)=>db.send(new commands[operation](params)),
-      mint:createHandler({getPrivateKey,request,config})});
+      mint:createHandler({getPrivateKey,request,config,includeReadToken:event.action==='RESUME_LIFECYCLE_OPERATION'})});
   }
   return createHandler({getPrivateKey,config:{repository:process.env.GITHUB_REPOSITORY,
     repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.GITHUB_APP_ID,

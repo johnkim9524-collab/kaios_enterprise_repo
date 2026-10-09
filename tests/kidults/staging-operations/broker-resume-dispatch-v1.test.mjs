@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
-import {brokerResumeDispatch} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
+import {brokerResumeDispatch,brokerResumeDispatchWithCutover} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
 import {buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
 import {verifyNativeResumeReuse} from '../../../scripts/kidults/kpmo/lib/native-resume-reuse-proof-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
@@ -40,6 +40,8 @@ test('native protected-source bundle loads the same runtime and has no unregiste
   vm.createContext(context);vm.runInContext(buildBrokerCode(),context);
   const module=await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs')",context);
   assert.equal(typeof module.brokerResumeDispatch,'function');
+  assert.equal(typeof (await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs')",context)).brokerResumeLifecycle,'function');
+  assert.equal(typeof (await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs')",context)).verifyBrokerCallerIdentity,'function');
   const s=setup();const result=await module.brokerResumeDispatch({...s.dependencies,event,owner:'bundle-owner'});
   assert.equal(result.state,'EXECUTED_VERIFIED');assert.equal(s.counts().sends,1);
 });
@@ -114,4 +116,15 @@ test('bootstrap authority isolates table and namespaces; normal template has no 
   assert.deepEqual(policy.Resource,{'Fn::GetAtt':['ResumeOperationTable','Arn']});
   assert.deepEqual(policy.Condition['ForAllValues:StringLike']['dynamodb:LeadingKeys'],['RESUME_OPERATION_V1#*','RESUME_TUPLE_V1#*']);
   assert.equal(JSON.stringify(desired).includes('AWSLambdaBasicExecutionRole'),false);
+});
+
+test('protected dispatch drains legacy tokens before consuming the candidate; later clocks send once',async()=>{
+  const s=setup();const held=await brokerResumeDispatchWithCutover({...s.dependencies,event,owner:'early'});
+  assert.equal(held.reason,'LEGACY_TOKEN_DRAIN_WINDOW');assert.equal(s.rows.size,1);
+  assert.deepEqual(s.counts(),{sends:0,mints:0});
+  s.dependencies.now=()=>time+3840000;
+  const fresh={...event,envelope:{...envelope,issued_at:new Date(time+3840000).toISOString(),expires_at:new Date(time+7440000).toISOString()}};
+  assert.equal((await brokerResumeDispatchWithCutover({...s.dependencies,event:fresh,owner:'ready'})).state,'EXECUTED_VERIFIED');
+  assert.equal((await brokerResumeDispatchWithCutover({...s.dependencies,event:fresh,owner:'next-clock'})).state,'REUSED_SUCCESS');
+  assert.deepEqual(s.counts(),{sends:1,mints:1});
 });

@@ -131,7 +131,9 @@ permissions:
   actions: read
 
 concurrency:
-  group: kpmo-continuous-assurance-sentinel-health-${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || inputs.exact_main_sha || github.event.pull_request.head.sha || github.sha }}
+  # Queue identity is not authority. The native metadata and authenticated
+  # continuation archive gates below still establish the causal binding.
+  group: kpmo-sentinel-${{ github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || inputs.exact_main_sha || github.event.pull_request.head.sha || github.sha }}-${{ github.event_name }}-${{ github.actor }}-${{ inputs.continuation_key || github.event.workflow_run.id || github.event.client_payload.dispatch_id || github.run_id }}
   cancel-in-progress: false
 
 jobs:
@@ -157,7 +159,7 @@ jobs:
           node --check scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs
           node --check scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs
           node scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs --self-test
-          node --test tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
+          node --test tests/kidults/kpmo/sentinel-causal-order-v1.test.mjs tests/kidults/kpmo/sentinel-producer-content-v1.test.mjs tests/kidults/kpmo/sentinel-snapshot-retry-v1.test.mjs tests/kidults/kpmo/whole-platform-*.test.mjs tests/kidults/kpmo/exact-sha-producer-auto-convergence-v1.test.mjs tests/kidults/kpmo/post-landing-terminal-lifecycle-v1.test.mjs tests/kidults/kpmo/postmerge-content-authority-boundary-v1.test.mjs tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs tests/kidults/kpmo/sentinel-trigger-v1.test.mjs tests/kidults/kpmo/sentinel-observation-v1.test.mjs tests/kidults/kpmo/governed-readiness-consumption-v1.test.mjs tests/kidults/kpmo/wait-exact-sha-producer-cohort-v1.test.mjs tests/kidults/source-intelligence/authority-chain-trigger-compatibility-v1.test.mjs
 
   exact-main-health:
     if: >-
@@ -264,6 +266,7 @@ jobs:
           echo KPMO_CONTINUATION_CLASS=EXACT_COVERAGE_CHAIN >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_UPSTREAM_RUN_ID=$UPSTREAM_RUN_ID" >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_UPSTREAM_RUN_ATTEMPT=$UPSTREAM_ATTEMPT" >> "$GITHUB_ENV"
+          echo "KPMO_CONTINUATION_UPSTREAM_CREATED_AT=$(jq -er '.created_at' /tmp/sentinel-chain-upstream-run.json)" >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_ARTIFACT_DIGEST=$ARTIFACT_DIGEST" >> "$GITHUB_ENV"
           echo "KPMO_CONTINUATION_KEY=$CONTINUATION_KEY" >> "$GITHUB_ENV"
@@ -312,7 +315,11 @@ jobs:
           # The implementation lives in the checked-in waiter (SPECS, workflowRuns).
           export KPMO_PRODUCER_COHORT_DEADLINE_MS="$(node -e 'process.stdout.write(String(Date.now()+2100*1000))')"
           printf 'KPMO_PRODUCER_COHORT_DEADLINE_MS=%s\n' "$KPMO_PRODUCER_COHORT_DEADLINE_MS" >> "$GITHUB_ENV"
-          node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
+          if [[ "${KPMO_CONTINUATION_CLASS:-}" = EXACT_COVERAGE_CHAIN ]]; then
+            node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA" "$KPMO_CONTINUATION_UPSTREAM_RUN_ID" "$KPMO_CONTINUATION_UPSTREAM_RUN_ATTEMPT" .github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml "$KPMO_CONTINUATION_UPSTREAM_CREATED_AT"
+          else
+            node scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs "$KPMO_SOURCE_SHA"
+          fi
       - name: Resolve latest applicable exact-SHA producer health
         if: always()
         id: resolve

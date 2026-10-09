@@ -28,6 +28,12 @@ test('lambda code-only change passes when explicitly allowed',()=>{
   const d=structuredClone(base); d.Resources.Fn.Properties.Code={ZipFile:'new'};
   assert.equal(run(base,d,['--allow-lambda-code-change']).status,0);
 });
+test('broker timeout increase cannot be activated as an automatic code-only update',()=>{
+  const current=structuredClone(base),desired=structuredClone(base);
+  current.Resources.Fn.Properties.Timeout=30;desired.Resources.Fn.Properties.Timeout=180;
+  const r=run(current,desired,['--allow-lambda-code-change']);
+  assert.notEqual(r.status,0);assert.match(r.stderr,/STAGING_LAMBDA_NONCODE_CHANGE_OWNER_BOUNDARY/);
+});
 test('IAM reduction passes',()=>{
   const d=structuredClone(base);
   d.Resources.Role.Properties.Policies[0].PolicyDocument.Statement[0].Action=['s3:GetObject'];

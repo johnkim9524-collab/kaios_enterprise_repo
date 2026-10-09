@@ -274,7 +274,7 @@ const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-d
 const governedWorkflow=fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml','utf8');
 const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
 assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
-assert.match(dispatcherWorkflow,/\/dev\/stderr 2>&1 >\/dev\/null/);
+assert.doesNotMatch(dispatcherWorkflow,/mint_lifecycle_token|curl[^\n]*-X (PATCH|PUT)/);
 assert.match(deployWorkflow,/\n  push:/);
 assert.match(deployWorkflow,/validate-staging-no-authority-expansion-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/^  pull_request_target:/m);
@@ -291,20 +291,13 @@ assert.doesNotMatch(governedWorkflow,/await status\('success','Draft development
 assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
 assert.match(dispatcherWorkflow,/KIDULTS Scope-Aware Authoritative Status V1/);
 assert.doesNotMatch(dispatcherWorkflow,/^\s+contents:\s*write\s*$/m);
-assert.match(dispatcherWorkflow,/AUTONOMOUS_STALE_BASE_CONVERGENCE/);
-assert.match(dispatcherWorkflow,/AUTONOMOUS_REDUNDANT_PR_HYGIENE/);
-assert.match(dispatcherWorkflow,/permission_profile:\$profile/);
-assert.match(dispatcherWorkflow,/pulls\/\$pr\/update-branch/);
-assert.match(dispatcherWorkflow,/expected_head_sha:\$h/);
-assert.match(dispatcherWorkflow,/LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_/);
-assert.match(dispatcherWorkflow,/http_code.*422[\s\S]*QUARANTINE_NO_MUTATION_RETRY/);
-assert.match(dispatcherWorkflow,/STALE_BASE_UPDATE_HTTP_/);
-assert.match(dispatcherWorkflow,/github_message:/);
-assert.match(dispatcherWorkflow,/http_code.*!= 202[\s\S]*for _ in \$\(seq 1 24\)/);
-assert.match(dispatcherWorkflow,/new_head.*!=.*head[\s\S]*new_base.*=.*main/);
-assert.match(dispatcherWorkflow,/expected_parents[\s\S]*STALE_BASE_CONVERGED/);
-assert.match(dispatcherWorkflow,/fresh_ci_required:true,fresh_authorization_generation_required:true/);
-assert.doesNotMatch(dispatcherWorkflow,/update-branch[\s\S]{0,1200}(?:--force(?:\s|$)|force:true|force-with-lease)/);
+assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*STALE_BASE_CONVERGENCE/);
+assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*REDUNDANT_PR_HYGIENE/);
+const lifecycleSource=fs.readFileSync('scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs','utf8');
+assert.match(lifecycleSource,/resumeOperation/);
+assert.match(lifecycleSource,/expected_head_sha:b.expected_head_sha/);
+assert.match(lifecycleSource,/fresh_ci_required:true,fresh_authorization_generation_required:true/);
+assert.doesNotMatch(lifecycleSource,/force:true|force-with-lease/);
 assert.equal(policy.merge.manual_update_branch_forbidden,true);
 assert.equal(policy.merge.autonomous_stale_base_convergence.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
 assert.equal(policy.merge.autonomous_stale_base_convergence.post_update_full_ci_and_fresh_authorization_generation_required,true);
@@ -334,7 +327,7 @@ assert.match(dispatcherWorkflow,/REUSED_SUCCESS/);
 assert.match(dispatcherWorkflow,/jq '\.receipt\.receipt' \"\$response_path\"/);
 assert.match(dispatcherWorkflow,/if: \$\{\{ always\(\) \}\}[\s\S]*Upload bounded scan and terminal fanout evidence|Upload bounded scan and terminal fanout evidence[\s\S]*if: \$\{\{ always\(\) \}\}/);
 const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
-assert.match(finalizerSource,/const finalizerRunId=required\('GITHUB_RUN_ID'\);[\s\S]*state:'FINALIZER_ROLE_FOLLOWER'[\s\S]*const eventToken=await acquireEventToken\(\);[\s\S]*let reservation;[\s\S]*writerAttempts[\s\S]*action:'CREATE_RESERVATION'/);
+assert.match(finalizerSource,/const finalizerRunId=required\('GITHUB_RUN_ID'\);[\s\S]*state:'FINALIZER_ROLE_FOLLOWER'[\s\S]*let reservation;[\s\S]*writerAttempts[\s\S]*action:'CREATE_RESERVATION'[\s\S]*state:'FINALIZER_FOLLOWER'[\s\S]*const eventToken=await acquireEventToken\(\)/);
 assert.match(finalizerSource,/state:'FINALIZER_FOLLOWER'[\s\S]*merge_performed:false[\s\S]*process\.exit\(0\)/);
 for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 
@@ -399,278 +392,9 @@ assert.equal(isCandidateRejection(independentError),true);
 assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_OPEN')),true);
 assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);
 
-// Execute the committed workflow function against offline shell mocks. No real
-// AWS/GitHub calls or credentials are used, including on failure paths.
-const lifecycleFunction=dispatcherWorkflow.match(/^          mint_lifecycle_token\(\) \{\n[\s\S]*?^          \}/m)?.[0];
-assert.ok(lifecycleFunction,'lifecycle token function must remain testable');
-const lifecycleBinding={pull_request:2462,old_base_sha:sha('a'),expected_head_sha:sha('b'),current_main_sha:sha('c')};
-const lifecycleProfile='AUTONOMOUS_STALE_BASE_CONVERGENCE';
-const validBroker={ok:true,token_type:'GITHUB_APP_INSTALLATION',repository:pr.head.repo.full_name,repository_id:'1281328888',permission_profile:lifecycleProfile,permissions:['contents:write','pull_requests:write','metadata:read','workflows:write'],token:'ghs_OFFLINE_FIXTURE_TOKEN_NOT_A_CREDENTIAL'};
-const lifecycleCases=[
-  {name:'valid'},
-  {name:'oidc_transport',code:'LIFECYCLE_OIDC_TOKEN_REQUEST_TRANSPORT'},
-  {name:'oidc_http',http:'401',code:'LIFECYCLE_OIDC_TOKEN_REQUEST_HTTP_401'},
-  {name:'oidc_bad_json',oidc:'not-json',code:'LIFECYCLE_OIDC_TOKEN_INVALID'},
-  {name:'oidc_null',oidc:'{"value":null}',code:'LIFECYCLE_OIDC_TOKEN_INVALID'},
-  {name:'sts_failed',code:'LIFECYCLE_STS_FAILED'},
-  {name:'sts_partial',creds:'OFFLINE_KEY\tOFFLINE_SECRET',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
-  {name:'sts_extra',creds:'OFFLINE_KEY\tOFFLINE_SECRET\tOFFLINE_SESSION\tEXTRA',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
-  {name:'sts_none',creds:'None\tNone\tNone',code:'LIFECYCLE_STS_RESPONSE_INVALID'},
-  {name:'invoke_failed',code:'LIFECYCLE_BROKER_INVOKE_FAILED'},
-  {name:'broker_denied',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED'}},
-  {name:'broker_read_scope',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED:READ_SCOPE'},code:'LIFECYCLE_BROKER_READ_SCOPE'},
-  {name:'broker_write_scope',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED:WRITE_SCOPE'},code:'LIFECYCLE_BROKER_WRITE_SCOPE'},
-  {name:'broker_live_tuple',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED:LIVE_TUPLE'},code:'LIFECYCLE_BROKER_LIVE_TUPLE'},
-  {name:'broker_spoofed_reason',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED:ZZIAABCDEFGHIJKLMNOP'}},
-  {name:'broker_unbounded_reason',body:{errorMessage:'EVENT_TOKEN_BROKER_DENIED:'+'A'.repeat(80)}},
-  {name:'broker_bad_json',raw:'not-json'},
-  {name:'broker_null',body:{...validBroker,token:null}},
-  {name:'broker_short',body:{...validBroker,token:'null'}},
-  {name:'broker_wrong_profile',body:{...validBroker,permission_profile:'OTHER'}},
-  {name:'broker_wrong_repo',body:{...validBroker,repository:'other/repository'}},
-  {name:'broker_wrong_id',body:{...validBroker,repository_id:'1'}},
-  {name:'broker_wrong_type',body:{...validBroker,token_type:'OTHER'}},
-  {name:'broker_not_ok',body:{...validBroker,ok:false}},
-  {name:'broker_header_injection',body:{...validBroker,token:validBroker.token+'\nX-Other: value'}},
-];
-lifecycleCases.push({name:'valid_hygiene',profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',body:{...validBroker,permission_profile:'AUTONOMOUS_REDUNDANT_PR_HYGIENE',permissions:['pull_requests:write','metadata:read']}});
-lifecycleCases.push({name:'broker_workflows_missing',body:{...validBroker,permissions:['contents:write','pull_requests:write','metadata:read']}});
-lifecycleCases.push({name:'broker_extra_permission',body:{...validBroker,permissions:[...validBroker.permissions,'administration:write']}});
-const lifecycleMocks=String.raw`set -euo pipefail
-curl() {
-  [[ "$MOCK_CASE" != oidc_transport ]] || return 7
-  printf '%s\n%s' "$MOCK_OIDC_BODY" "$MOCK_HTTP_STATUS"
-}
-aws() {
-  if [[ "$1" == sts ]]; then
-    [[ "$MOCK_CASE" != sts_failed ]] || return 255
-    printf '%s\n' "$MOCK_CREDS"
-  else
-    [[ "$MOCK_CASE" != invoke_failed ]] || return 255
-    printf '%s' "$MOCK_BROKER_RESPONSE" >&2
-    printf '{"StatusCode":200}\n'
-  fi
-}
-`;
-let lifecycleCaseCount=0;
-for(const caller of ['assignment','conditional']) for(const fixture of lifecycleCases){
-  const root=fs.mkdtempSync(path.join(os.tmpdir(),'kidults-lifecycle-mock-'));
-  fs.mkdirSync(path.join(root,'out/autonomous-dispatcher-v1/lifecycle'),{recursive:true});
-  try {
-    const call='token=$(mint_lifecycle_token "$MOCK_BINDING" "$MOCK_PROFILE" offline-generation-2462)';
-    const tail=caller==='conditional'?`if ${call}; then printf 'MUTATION_ALLOWED'; else exit 42; fi`:`${call}\nprintf 'MUTATION_ALLOWED'`;
-    const run=spawnSync(process.env.KIDULTS_TEST_BASH||'bash',['--noprofile','--norc','-s'],{
-      cwd:root,encoding:'utf8',timeout:15000,
-      input:`${lifecycleMocks}\n${lifecycleFunction}\n${tail}\n`,
-      env:{PATH:process.env.PATH,SystemRoot:process.env.SystemRoot,WINDIR:process.env.WINDIR,TEMP:os.tmpdir(),TMP:os.tmpdir(),
-        ACTIONS_ID_TOKEN_REQUEST_TOKEN:'OFFLINE',ACTIONS_ID_TOKEN_REQUEST_URL:'https://offline.invalid',AWS_ROLE_ARN:'OFFLINE',GITHUB_RUN_ID:'1',GITHUB_REPOSITORY:pr.head.repo.full_name,GITHUB_REPOSITORY_ID:'1281328888',BROKER_FUNCTION:'OFFLINE',
-        MOCK_CASE:fixture.name,MOCK_BINDING:JSON.stringify(lifecycleBinding),MOCK_PROFILE:fixture.profile||lifecycleProfile,MOCK_OIDC_BODY:fixture.oidc||'{"value":"OFFLINE_OIDC"}',MOCK_HTTP_STATUS:fixture.http||'200',MOCK_CREDS:fixture.creds||'OFFLINE_KEY\tOFFLINE_SECRET\tOFFLINE_SESSION',MOCK_BROKER_RESPONSE:fixture.raw||JSON.stringify(fixture.body||validBroker)},
-    });
-    assert.equal(run.error,undefined,`${caller}/${fixture.name}: local shell execution`);
-    assert.equal(run.signal,null,`${caller}/${fixture.name}: local shell timeout`);
-    const receiptPath=path.join(root,'out/autonomous-dispatcher-v1/lifecycle/pr-2462-token-failure.json');
-    if(fixture.name.startsWith('valid')) {
-      assert.equal(run.status,0,`${caller}/${fixture.name}: valid response rejected`);
-      assert.equal(run.stdout,'MUTATION_ALLOWED');
-      assert.equal(fs.existsSync(receiptPath),false);
-    } else {
-      assert.notEqual(run.status,0,`${caller}/${fixture.name}: failed mint escaped as success`);
-      assert.doesNotMatch(run.stdout,/MUTATION_ALLOWED/);
-      const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
-      assert.equal(receipt.state,'LIFECYCLE_TOKEN_REJECTED');
-      assert.equal(receipt.failure_code,fixture.code||'LIFECYCLE_BROKER_RESPONSE_DENIED_OR_INVALID');
-      assert.equal(receipt.repository_mutation_attempted,false);
-      assert.equal(receipt.token_accepted,false);
-      assert.equal(receipt.expected_head_sha,lifecycleBinding.expected_head_sha);
-      assert.equal(receipt.current_main_sha,lifecycleBinding.current_main_sha);
-      assert.equal(receipt.permission_profile,lifecycleProfile);
-      for(const boundary of ['production','public','g5']) assert.equal(receipt[boundary],'HOLD');
-    }
-    assert.ok(!run.stdout.includes(validBroker.token),'token must not escape into test output');
-    lifecycleCaseCount++;
-  } finally { fs.rmSync(root,{recursive:true,force:true}); }
-}
-console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'lifecycle-failure-propagation-offline',cases:lifecycleCaseCount,real_network:false,real_credentials:false}));
-
-const mockedLifecycleShell = [
-  "set -euo pipefail",
-  "export TMPDIR=\"$PWD/tmp\"",
-  "mkdir -p \"$TMPDIR\"",
-  "export GITHUB_REPOSITORY=johnkim9524-collab/kaios_enterprise_repo GITHUB_REPOSITORY_ID=1281328888 GITHUB_RUN_ID=900001",
-  "export AWS_ROLE_ARN=fixture-role BROKER_FUNCTION=fixture-broker KIDULTS_AUTONOMOUS_DISPATCH_EVENT=kidults.authorization.generation.v1",
-  "export ACTIONS_ID_TOKEN_REQUEST_TOKEN=fixture-request-token ACTIONS_ID_TOKEN_REQUEST_URL=https://oidc.invalid/token?fixture=1",
-  "sleep() { :; }",
-  "curl() {",
-  "  local out='' url='' verb=GET arg pn",
-  "  while (( $# )); do",
-  "    case \"$1\" in",
-  "      -o) out=\"$2\"; shift 2;;",
-  "      -X) verb=\"$2\"; shift 2;;",
-  "      -H|-w|--data-binary) shift 2;;",
-  "      *) arg=\"$1\"; if [[ \"$arg\" == https:* ]]; then url=\"$arg\"; fi; shift;;",
-  "    esac",
-  "  done",
-  "  if [[ \"$url\" == https://oidc.invalid/* ]]; then",
-  "    echo oidc >> trace",
-  "    case \"$FIXTURE_CASE\" in",
-  "      oidc_http) echo 401; return 22;;",
-  "      oidc_network) echo 000; return 6;;",
-  "      oidc_json) echo invalid >\"$out\";;",
-  "      oidc_null) echo '{\"value\":null}' >\"$out\";;",
-  "      *) echo '{\"value\":\"fixture_oidc_token_0123456789\"}' >\"$out\";;",
-  "    esac",
-  "    echo 200; return 0",
-  "  fi",
-  "  if [[ \"$verb\" = PUT ]]; then",
-  "    [[ \"$url\" =~ /pulls/([0-9]+)/update-branch$ ]] || return 91",
-  "    pn=\"${BASH_REMATCH[1]}\"",
-  "    echo \"update:$pn:$out\" >> trace",
-  "    case \"$FIXTURE_CASE:$pn\" in",
-  "      update_422:*|response_isolation:42) echo '{\"message\":\"Validation Failed\"}' >\"$out\"; echo 422; return 22;;",
-  "      update_403_workflow:*|workflow_rejection_isolation:42) echo '{\"message\":\"refusing to allow a GitHub App to create or update workflow `.github/workflows/ci-validation.yml` without `workflows` permission\"}' >\"$out\"; echo 403; return 22;;",
-  "      update_403_unknown:*) echo '{\"message\":\"private response ghs_do_not_emit\"}' >\"$out\"; echo 403; return 22;;",
-  "      update_403_malformed:*) echo invalid >\"$out\"; echo 403; return 22;;",
-  "      update_403_integration:*) echo '{\"message\":\"Resource not accessible by integration\"}' >\"$out\"; echo 403; return 22;;",
-  "      update_401:*) echo '{\"message\":\"Bad credentials\"}' >\"$out\"; echo 401; return 22;;",
-  "      response_isolation:43) echo 000; return 6;;",
-  "      *) echo '{\"message\":\"accepted\"}' >\"$out\"; echo 202; return 0;;",
-  "    esac",
-  "  fi",
-  "  if [[ \"$url\" == */pulls/* ]]; then",
-  "    [[ \"$FIXTURE_CASE\" != readback_failure ]] || return 22",
-  "    if [[ \"$FIXTURE_CASE\" = convergence_timeout ]]; then",
-  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{head:{sha:$h},base:{sha:$b}}'",
-  "    else",
-  "      jq -n --arg h \"$NEW_HEAD\" --arg b \"$CURRENT_MAIN\" '{head:{sha:$h},base:{sha:$b}}'",
-  "    fi",
-  "    return 0",
-  "  fi",
-  "  if [[ \"$url\" == */commits/* ]]; then",
-  "    if [[ \"$FIXTURE_CASE\" = reversed_parents ]]; then",
-  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{parents:[{sha:$b},{sha:$h}]}'",
-  "    else",
-  "      jq -n --arg h \"$OLD_HEAD\" --arg b \"$CURRENT_MAIN\" '{parents:[{sha:$h},{sha:$b}]}'",
-  "    fi",
-  "    return 0",
-  "  fi",
-  "  echo unexpected_curl >&2; return 90",
-  "}",
-  "aws() {",
-  "  if [[ \"$1\" = sts ]]; then",
-  "    echo sts >> trace",
-  "    [[ \"$FIXTURE_CASE\" != sts_failure ]] || return 7",
-  "    if [[ \"$FIXTURE_CASE\" = sts_incomplete ]]; then echo incomplete; else echo 'fixture_key fixture_secret fixture_session'; fi",
-  "    return 0",
-  "  fi",
-  "  [[ \"$1\" = lambda ]] || return 92",
-  "  echo invoke >> trace",
-  "  [[ \"$FIXTURE_CASE\" != invoke_failure ]] || return 8",
-  "  local out=\"${@: -1}\" payload=''",
-  "  while (( $# )); do",
-  "    if [[ \"$1\" = --payload ]]; then payload=\"$2\"; break; fi",
-  "    shift",
-  "  done",
-  "  local profile",
-  "  profile=$(jq -r '.permission_profile' <<<\"$payload\")",
-  "  jq -n --arg repo \"$GITHUB_REPOSITORY\" --arg rid \"$GITHUB_REPOSITORY_ID\" --arg profile \"$profile\" '{ok:true,token_type:\"GITHUB_APP_INSTALLATION\",repository:$repo,repository_id:$rid,permission_profile:$profile,token:\"ghs_synthetic_fixture_0123456789\"}' >\"$out\"",
-  "  case \"$FIXTURE_CASE\" in",
-  "    function_error) echo '{\"errorMessage\":\"EVENT_TOKEN_BROKER_DENIED\"}' >\"$out\"; echo '{\"StatusCode\":200,\"FunctionError\":\"Unhandled\"}'; return 0;;",
-  "    metadata_invalid) echo invalid; return 0;;",
-  "    body_invalid) echo invalid >\"$out\";;",
-  "    token_null) jq '.token=null' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "    token_short) jq '.token=\"null\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "    token_malformed) jq '.token=\"ghs_bad token_with_space_0000000\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "    wrong_profile) jq '.permission_profile=\"UNKNOWN\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "    wrong_repository) jq '.repository=\"other/repo\"' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "    ok_false) jq '.ok=false' \"$out\" >\"$out.next\"; mv \"$out.next\" \"$out\";;",
-  "  esac",
-  "  echo '{\"StatusCode\":200}'",
-  "}"
-].join(String.fromCharCode(10));
-const lifecycleShellCases = [
-  ["happy", null],
-  ["update_422", "STALE_BASE_UPDATE_422"],
-  ["update_401", "STALE_BASE_UPDATE_HTTP_401"],
-  ["update_403_workflow", "STALE_BASE_UPDATE_HTTP_403"],
-  ["workflow_rejection_isolation", "STALE_BASE_UPDATE_HTTP_403"],
-  ["update_403_unknown", "STALE_BASE_UPDATE_HTTP_403"],
-  ["update_403_malformed", "STALE_BASE_UPDATE_HTTP_403"],
-  ["update_403_integration", "STALE_BASE_UPDATE_HTTP_403"],
-  ["response_isolation", "STALE_BASE_UPDATE_HTTP_000"],
-  ["readback_failure", "STALE_BASE_CONVERGENCE_READBACK_FAILED"],
-  ["reversed_parents", "STALE_BASE_CONVERGENCE_PARENT_MISMATCH"],
-  ["convergence_timeout", "STALE_BASE_CONVERGENCE_TIMEOUT"]
-];
-// Execute the actual lifecycle loops with real jq and offline network mocks.
-// Mint is mocked here and tested separately by the 42-case propagation suite above.
-const shellStart=dispatcherWorkflow.indexOf("          current_receipt=''");
-const shellEnd=dispatcherWorkflow.indexOf('      - name: Upload bounded scan and terminal fanout evidence',shellStart);
-assert.ok(shellStart>0&&shellEnd>shellStart);
-let workflowShell=dispatcherWorkflow.slice(shellStart,shellEnd).split(String.fromCharCode(10)).map(line=>line.slice(10)).join(String.fromCharCode(10));
-const tokenFunction=workflowShell.match(/^mint_lifecycle_token\(\) \{[\s\S]*?^\}/m)?.[0]; assert.ok(tokenFunction);
-workflowShell=workflowShell.replace(tokenFunction, "mint_lifecycle_token() { printf %s ghs_synthetic_fixture_0123456789; }");
-const bash=process.platform==='win32'?path.join(process.env.ProgramFiles||'C:/Program Files','Git','bin','bash.exe'):'bash';
-const fixtureRoot=fs.mkdtempSync(path.join(os.tmpdir(),'kidults-lifecycle-shell-'));
-let shellCasesPassed=0;
-try {
-  for(const [name,failureCode] of lifecycleShellCases){
-    const cwd=path.join(fixtureRoot,name);fs.mkdirSync(cwd);
-    fs.mkdirSync(path.join(cwd,'out/autonomous-dispatcher-v1'),{recursive:true});
-    const binding=n=>({state:'STALE_RECOVERABLE',binding:{pull_request:n,old_base_sha:'a'.repeat(40),expected_head_sha:'b'.repeat(40),current_main_sha:'c'.repeat(40)}});
-    fs.writeFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/results.json'),JSON.stringify(['response_isolation','workflow_rejection_isolation'].includes(name)?[binding(42),binding(43)]:[binding(42)]));
-    const env={PATH:process.env.PATH,SYSTEMROOT:process.env.SYSTEMROOT||'',TEMP:process.env.TEMP||os.tmpdir(),TMP:process.env.TMP||os.tmpdir(),FIXTURE_CASE:name,OLD_HEAD:'b'.repeat(40),CURRENT_MAIN:'c'.repeat(40),NEW_HEAD:'d'.repeat(40)};
-    const jqMode=process.platform==='win32'?'jq() { command jq -b "$@"; }'+String.fromCharCode(10):'';
-    fs.writeFileSync(path.join(cwd,'fixture.sh'),jqMode+mockedLifecycleShell+String.fromCharCode(10)+workflowShell);
-    const result=spawnSync(bash,['--noprofile','--norc','fixture.sh'],{cwd,env,encoding:'utf8',timeout:30000});
-    assert.ifError(result.error);
-    const receiptPath=path.join(cwd,'out/autonomous-dispatcher-v1/lifecycle',`pr-${name==='response_isolation'?43:42}-convergence.json`);
-    assert.ok(fs.existsSync(receiptPath),`${name}: missing terminal receipt; ${result.stderr}`);
-    const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
-    const trace=fs.readFileSync(path.join(cwd,'trace'),'utf8').trim().split(String.fromCharCode(10)).map(x=>x.trim());
-    const mutations=trace.filter(x=>x.startsWith('update:'));
-    if(failureCode){
-      assert.equal(receipt.state,'QUARANTINE_NO_MUTATION_RETRY',name);
-      assert.equal(receipt.failure_code,failureCode,name);
-      if(name==='update_422') assert.equal(result.status,0,result.stderr); else assert.notEqual(result.status,0,`${name}: failure escaped as success`);
-      if(name.startsWith('oidc_')||name.startsWith('sts_')||['invoke_failure','function_error','metadata_invalid','body_invalid','token_null','token_short','token_malformed','wrong_profile','wrong_repository','ok_false'].includes(name)){
-        assert.equal(mutations.length,0,`${name}: invalid token reached mutation`);
-        assert.equal(receipt.mutation_state,'NOT_ATTEMPTED',name);
-      }
-    }else{
-      assert.equal(result.status,0,result.stderr);
-      assert.equal(receipt.state,'STALE_BASE_CONVERGED');
-      assert.equal(receipt.ordered_parent_set_verified,true);
-      assert.equal(receipt.new_head_sha,'d'.repeat(40));
-      assert.equal(mutations.length,1);
-    }
-    if(name.startsWith('update_403_')){
-      assert.equal(receipt.github_message,name==='update_403_workflow'?'WORKFLOW_WRITE_PERMISSION_REQUIRED':name==='update_403_integration'?'Resource not accessible by integration':'UNAVAILABLE');
-      assert.equal(receipt.mutation_state,'UNKNOWN');
-      assert.equal(mutations.length,1,'403 must never retry');
-      assert.doesNotMatch(JSON.stringify(receipt),/ghs_do_not_emit|ci-validation/);
-    }
-    if(name==='response_isolation'){
-      assert.equal(receipt.github_message,'UNAVAILABLE');
-      assert.equal(receipt.mutation_state,'UNKNOWN');
-      assert.equal(mutations.length,2);
-      assert.notEqual(mutations[0].split(':').slice(2).join(':'),mutations[1].split(':').slice(2).join(':'));
-    }
-    if(name==='workflow_rejection_isolation'){
-      assert.equal(receipt.github_message,'WORKFLOW_WRITE_PERMISSION_REQUIRED');
-      assert.equal(receipt.mutation_state,'UNKNOWN');
-      assert.equal(mutations.length,2);
-      assert.equal(mutations.filter(x=>x.startsWith('update:42:')).length,1);
-      assert.equal(mutations.filter(x=>x.startsWith('update:43:')).length,1);
-      const next=JSON.parse(fs.readFileSync(path.join(cwd,'out/autonomous-dispatcher-v1/lifecycle/pr-43-convergence.json'),'utf8'));
-      assert.equal(next.state,'STALE_BASE_CONVERGED');
-      assert.notEqual(result.status,0,'preserved candidate failure must fail the aggregate run');
-    }
-    assert.ok(!JSON.stringify(receipt).includes('synthetic_fixture'));
-    assert.deepEqual(fs.readdirSync(path.join(cwd,'tmp')),[],`${name}: token response tempfile leaked`);
-    shellCasesPassed++;
-  }
-} finally {fs.rmSync(fixtureRoot,{recursive:true,force:true});}
-console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'actual-lifecycle-loop-offline',cases:shellCasesPassed,live_network_calls:0,real_credentials_used:false}));
+import './broker-resume-lifecycle-v1.test.mjs';
+import './broker-caller-identity-v1.test.mjs';
+import './protected-lifecycle-shell-v1.test.mjs';
 
 const fakeResponse=(status=200,body={value:1},remaining=null)=>({status,ok:status>=200&&status<300,
   headers:{get:name=>name==='x-ratelimit-remaining'?remaining:null},json:async()=>body});
@@ -695,6 +419,9 @@ for(const [label,response,code] of [
   ['HTTP 429',fakeResponse(429),'DISPATCH_RATE_LIMITED'],
   ['HTTP 403',fakeResponse(403),'DISPATCH_READ_ACCESS_DENIED'],
   ['HTTP 401',fakeResponse(401),'DISPATCH_READ_ACCESS_DENIED'],
+  ['HTTP 500',fakeResponse(500),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
+  ['HTTP 503',fakeResponse(503),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
+  ['HTTP 599',fakeResponse(599),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
 ])test(`dispatcher stops all queued reads after ${label}`,async()=>{
   let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return response;}});
   const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
@@ -777,10 +504,9 @@ test('failed transport receipt retains bounded diagnostics and clears partial ev
     assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).transport_diagnostics,undefined);
   }finally{fs.rmSync(directory,{recursive:true,force:true});}
 });
-test('failed immutable response is not cached and immutable 404 is reused',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>fakeResponse(++calls===1?500:404)});
-  await assert.rejects(client.request(immutablePath),error=>error.code==='DISPATCH_GITHUB_API');
-  assert.equal(await client.request(immutablePath),null);assert.equal(await client.request(immutablePath),null);assert.equal(calls,2);
+test('immutable 404 is reused without becoming a service failure',async()=>{
+  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return fakeResponse(404);}});
+  assert.equal(await client.request(immutablePath),null);assert.equal(await client.request(immutablePath),null);assert.equal(calls,1);
 });
 test('discovery aborts globally instead of returning partial candidate results',async()=>{
   let calls=0;
@@ -803,6 +529,34 @@ test('global API failure inside a candidate does not become SKIPPED or trigger l
       throw new Error('unexpected follow-on request');
     }}),error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
   assert.equal(paths.length,6);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
+});
+test('a later status 503 invalidates an earlier eligible candidate and publishes no fanout',async()=>{
+  const candidates=[pr,{...pr,number:43,head:{...pr.head,sha:sha('e')}},{...pr,number:44,head:{...pr.head,sha:sha('f')}}];
+  let failStatus=false;const paths=[];
+  const scan=()=>discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',fetchImpl:async url=>{
+    const u=new URL(url),p=u.pathname;paths.push(p);
+    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+    if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
+    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'src/a.js',status:'modified',patch:'@@ -1 +1 @@\n-const x=1;\n+const x=2;'}]);
+    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
+    if(p.endsWith('/status'))return failStatus&&p.includes(sha('e'))?fakeResponse(503):fakeResponse(200,{statuses:[]});
+    if(p.endsWith('/check-runs'))return fakeResponse(200,{check_runs:[{...input.checks[0],head_sha:p.split('/').at(-2)}]});
+    if(p.includes('/contents/'))return fakeResponse(200,{type:'file',encoding:'base64',content:Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;').toString('base64')});
+    throw Error('unexpected fixture request');
+  }});
+  const control=await scan();assert.ok(control.every(x=>x.state==='ELIGIBLE'),JSON.stringify(control));
+  failStatus=true;paths.length=0;
+  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-partial-503-'));
+  try{
+    await assert.rejects(recordDispatcherScan({scan,outputDirectory}),e=>e.code==='DISPATCH_READ_SERVICE_UNAVAILABLE');
+    assert.ok(paths.some(p=>p.includes('/contents/')),'first candidate must reach immutable classification');
+    assert.ok(!paths.some(p=>p.includes('/pulls/44')));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
+    const receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
+    assert.equal(receipt.failure_class,'DISPATCH_READ_SERVICE_UNAVAILABLE');assert.equal(receipt.fanout_authorized,false);
+  }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
 });
 test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
   let calls=0,blobReads=0;
@@ -964,4 +718,9 @@ test('empty current-base PR requires complete source trees, not a zero-file API 
     {pr:{...pr,head:{...pr.head,repo:{full_name:'attacker/fork'}}}},
   ]) assert.throws(()=>classifyEmptyTreeRedundant({...input,...delta}),/DISPATCH_EMPTY_DIFF_TREE_MISMATCH/);
   assert.throws(()=>classifyEmptyTreeRedundant({...input,policy:{}}),/DISPATCH_EMPTY_DIFF_HYGIENE_DISABLED/);
+});
+
+test('Finalizer observes protected cutover before creating a durable reservation',()=>{
+  const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+  assert.ok(source.indexOf('await acquireEventToken({observeCutover:true})')<source.indexOf("action:'CREATE_RESERVATION'"));
 });

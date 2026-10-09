@@ -5,11 +5,14 @@ export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
   "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
   "scripts/kidults/kpmo/lib/resume-dispatch-fanout-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs",
+  "scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs",
+  "scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs",
   "scripts/kidults/staging-operations/lib/resume-operation-v1.mjs",
   "scripts/kidults/staging-operations/lib/dynamodb-operation-ledger-v1.mjs",
   "scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs",
 ]);
 export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
+  "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
   "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
   "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-resume-v1.mjs",
