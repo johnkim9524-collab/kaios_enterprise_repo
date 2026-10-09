@@ -213,3 +213,33 @@ KPMO 별도 2차 적대 검토: 같은 기존 스레드와 확인된 발신/수�
 패키지 digest: `sha256:6b52e732562e57a76daba447e6dc35c0a82e4d416fb11bade1c42119513b9376`.
 
 Program Owner의 정확한 패키지 발송 승인: 미확보. 이 단계는 내부 PR/CI 일상 승인이 아니라 외부 공급자 통신이다. 근거: `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md` §9.1의 “Program Owner exact-content send approval”. 승인 이후에도 수신자·본문·스레드·첨부·링크가 달라지면 이 digest를 재사용할 수 없다. 발송만 승인돼도 계약·지출·credential·acquisition·Public/Production/G5 권한은 생성되지 않는다. DigitalOcean 이메일 84216은 읽거나 수정하지 않았다.
+
+
+### 2026-10-09 Track Z 독립 검토 및 실제 외부 대응 결과
+
+Program Owner가 2026-10-09 10:43:52 KST에 “Track Z 검토하고 대응해”라고 지시했다. 직전 정확한 미발송 패키지에 대한 발송 질문에 이어진 지시로, KPMO는 변경 없는 패키지의 독립 검토 후 기존 스레드에 1건 회신하는 범위로 해석했다. 계약·지출·계정·credential·provider activation·acquisition·Public/Production/G5 승인으로 해석하지 않았다.
+
+검토 담당 `/root/track_z_review`는 source `cfb475cc16d6876425050f7cecfddb41d183ee6f`, class `PROVIDER_AGENTS`, canonical role `program-participant`, session `track-z-review-20261009T014352-r2`에서 fresh bootstrap과 독립 검증·일회 소비를 완료했다. 동일한 정확한 패키지의 digest를 재계산했고, 30일·120건 비공개 평가, 서면 협상, 권리·provenance·유동성 필드 질문 및 비활성 경계를 검토한 뒤 실질적 수정 없이 `APPROVED_FOR_PROGRAM_OWNER_REVIEW`를 권고했다. 이것은 대화에서 위임된 공급자 검토이며 native Track Z workflow, 생산자 등록 또는 machine landing 승인 영수증이 아니다.
+
+발송 직전 Gmail 프로필·기존 스레드·마지막 회신과 발송·동일 후속문 중복 검색을 재조회했다. 발신 `partnerships@kidults.com`, 수신 `datasupport@classic.com`, CC/BCC/첨부 추가 없음. 마지막 공급자 회신은 `1a0c4203654d2bab`, 마지막 기존 발송은 `1a0c44ea6500968e`였다. 신규 후속문 검색 결과는 0건이었다. 도구 호출은 1회였으며 성공 후 Gmail 원문을 재조회했다.
+
+실제 발송 증거:
+
+- Gmail message: `1a11e56c04b24a34`, thread: `1a0b5669d94b054b`, label `SENT`.
+- Date header: `Thu, 8 Oct 2026 18:46:04 -0700` = 2026-10-09 10:46:04 KST.
+- RFC Message-ID: `<CAPAjgK7VLn9neAgQJB-vc6J9xWA3Dv3cFr66o0PwrpdYk2d-AQ@mail.gmail.com>`.
+- In-Reply-To: `<CAPAjgK5rj9+=DQGZLWxuaD5bZSQkWcvNpVNqR0wCe+tsf-PWmw@mail.gmail.com>`.
+- 제목: `Re: KIDULTS Data Evaluation — Required Quality Evidence Before Commercial Consideration`.
+
+중요한 송신 후 차이: Gmail 회신 도구가 `reply_message_id`에 지정한 과거 메일의 전체 인용문을 자동으로 추가했다. 새 요청문은 준비한 본문과 바이트상 동일하고, 추가된 인용문은 기존 message `1a0c44ea6500968e`의 원문과 줄바꿈 정규화 후 정확히 일치한다. 그러나 **전체 송신 본문은 준비한 패키지와 동일하지 않다**. 준비 digest를 전체 송신 패키지 검증 성공으로 재사용하지 않는다. 추가된 인용문에는 같은 스레드의 기존 협상 내용이 포함되어 있으므로, 이 차이를 숨기거나 새로운 권한으로 소비하지 않는다. 이를 수정하려는 재발송은 하지 않았다.
+
+준비 패키지 digest: `sha256:6b52e732562e57a76daba447e6dc35c0a82e4d416fb11bade1c42119513b9376`.
+
+전체 재조회 본문을 반영한 실제 패키지 digest: `sha256:cf801f0086b487f99e198a509bc4f7aef0320fc9fa5457155472549d3f6bddc9`.
+
+재조회 UTF-8 본문 digest: `sha256:fd16152d825a49d08aaaf753510299426c82fb8d5667188364080db77705fcad`.
+
+
+상태: `SENT_VERIFIED_WITH_CONNECTOR_ADDED_PRIOR_THREAD_QUOTE`. 완전한 exact-content 패키지 일치 또는 native 외부 통신 승인 체인 성공으로 판정하지 않는다. 기존 validator의 live approval readback/send-path 소비 미구현 상태도 그대로이며 가짜 승인 영수증을 만들지 않았다. 향후 정확한 전체 본문 송신은 도구의 과거 스레드 자동 인용 효과를 패키지에 사전 포함하거나, 인용 없는 송신 경로를 검증한 후 수행해야 한다.
+
+외부 요청은 실제로 발송됐지만 계약안·가격·권한·필드 지원·현재 업무용 입력은 아직 공급자 회신 전이다. 실제 생산자 등록 0개 및 인증된 13개 업무 연결 0/13 판정은 바뀌지 않았다. 단일 CLASSIC.COM이나 그 하위 venue 여러 개를 독립 생산자 2개로 계산하지 않는다. 검토 담당은 실제 공급자 취득, 토큰 생성, native producer 인증서 발급 또는 dispatch를 수행하지 않았다. PR #2621 head `edeac43c7031af5b8b3c64a40627dd740bfa64cb`와 main `c32293a0bb2107f88326c9ae279f7b72bf307c98`는 이번 대응으로 변경하지 않았다. DigitalOcean 이메일 84216에는 접근하거나 변경하지 않았다.
