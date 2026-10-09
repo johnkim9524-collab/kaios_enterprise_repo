@@ -276,7 +276,15 @@ jobs:
           KIDULTS_NATURAL_CLOCK_SLOT: SENTINEL
         run: |
           set -euo pipefail
-          export KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"
+          if ! KIDULTS_LIVE_MAIN_SHA="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq .commit.sha)"; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_READ_FAILED' >&2
+            exit 1
+          fi
+          if ! [[ "$KIDULTS_LIVE_MAIN_SHA" =~ ^[a-f0-9]{40}$ ]]; then
+            printf '%s\n' 'NATURAL_CLOCK_LIVE_MAIN_RESPONSE_INVALID' >&2
+            exit 1
+          fi
+          export KIDULTS_LIVE_MAIN_SHA
           node scripts/kidults/kpmo/run-natural-clock-intake-v1.mjs
           test "$(git rev-parse HEAD)" = "$KIDULTS_LIVE_MAIN_SHA"
       - name: Preserve independent natural-clock receipt
