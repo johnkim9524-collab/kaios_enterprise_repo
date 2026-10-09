@@ -262,7 +262,7 @@ const assertDerivedApprovalMetadataDelta=(before,after,filename,files)=>{
   if(JSON.stringify(left)!==JSON.stringify(right)) fail('CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };
 
-const autonomousPolicyAuthorityFields=['protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
+const autonomousPolicyAuthorityFields=['immutable_source_read_profile','protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
 const assertAutonomousPolicyAuthorityFields=(before,after,filename)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {fail('CAPABILITY_JSON_PARSE_FAILED',filename)}

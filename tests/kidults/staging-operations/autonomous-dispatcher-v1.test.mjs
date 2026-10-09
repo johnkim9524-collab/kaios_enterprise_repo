@@ -8,6 +8,10 @@ import fs from 'node:fs';
 // Keep repair diagnostics in the existing protected-main and PR CI entrypoint.
 import './capability-repair-analysis-v1.test.mjs';
 import './protected-diagnostic-repair-v1.test.mjs';
+import './bounded-git-source-reader-v1.test.mjs';
+import './bounded-git-pack-decoder-v1.test.mjs';
+import './bounded-git-public-transport-v1.test.mjs';
+import './bounded-git-source-profile-v1.test.mjs';
 import {recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -745,4 +749,105 @@ test('global read failure cannot be swallowed by uncertainty reclassification',a
     readCandidate:async()=>{reads++;throw new DispatcherError('DISPATCH_RATE_LIMITED');}}),
     error=>error.code==='DISPATCH_RATE_LIMITED');
   assert.equal(reads,1);
+});
+
+
+test('unverified source adapter is rejected before any external reads',async()=>{
+  let reads=0;await assert.rejects(discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',sourceReader:{commit:async()=>({})},fetchImpl:async()=>{reads++;throw Error('must not read');}}),/SOURCE_BATCH_READER_UNVERIFIED/);assert.equal(reads,0);
+});
+
+
+for(const code of ['SOURCE_BATCH_SOURCE_NOT_REGISTERED','SOURCE_BATCH_OBJECT_MISSING','SOURCE_BATCH_SEALED_OBJECT_MISSING'])test(`uncertainty reclassification propagates global ${code} without retry or partial results`,async()=>{
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-reclassification-'));let reads=0;const failure=Object.assign(new Error(code),{code,global:true});
+  try {
+    fs.writeFileSync(path.join(directory,'results.json'),'[{"state":"ELIGIBLE"}]');
+    await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,readCandidate:async()=>{reads++;throw failure;}})}),error=>error===failure);
+    assert.equal(reads,1);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);
+    assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).fanout_authorized,false);
+  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+
+import {packFixture,packFixtureEntry} from './bounded-git-pack-decoder-v1.test.mjs';
+import {gitObjectId} from '../../../scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs';
+import {gitPacketLine as packet} from '../../../scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs';
+function sourceTransportScanFixture({drift=false,repositoryDrift=false,mainDrift=false,corrupt=false}={}){
+ const repo=pr.base.repo.full_name,blob=Buffer.from('same bytes\n'),tree=Buffer.concat([Buffer.from('100644 file.mjs\0'),Buffer.from(gitObjectId('blob',blob),'hex')]);
+ const commit=name=>Buffer.from(`tree ${gitObjectId('tree',tree)}\nauthor ${name} <${name}@example.invalid> 0 +0000\ncommitter ${name} <${name}@example.invalid> 0 +0000\n\n${name}\n`);
+ const main=commit('main'),head=commit('head'),base=commit('base'),mainSha=gitObjectId('commit',main),headSha=gitObjectId('commit',head),baseSha=gitObjectId('commit',base);
+ const candidates=[42,43].map(number=>({...pr,number,base:{...pr.base,sha:baseSha},head:{...pr.head,sha:headSha}}));
+ const packed=packFixture([packFixtureEntry(1,main),packFixtureEntry(1,head),packFixtureEntry(1,base),packFixtureEntry(2,tree),packFixtureEntry(3,blob)]);if(corrupt)packed[15]^=1;
+ const wire=Buffer.concat([packet('packfile\n'),packet(Buffer.concat([Buffer.from([1]),packed])),Buffer.from('0000')]);const trace=[];
+ const fetchImpl=async(url,options)=>{trace.push({url,options});const p=new URL(url).pathname;
+  if(url.includes('github.com/'+repo+'.git/'))return new Response(options.method==='GET'?Buffer.concat([packet('version 2\n'),packet('fetch=shallow\n'),Buffer.from('0000')]):wire,{headers:{'content-type':options.method==='GET'?'application/x-git-upload-pack-advertisement':'application/x-git-upload-pack-result'}});
+  if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:mainDrift&&trace.filter(x=>new URL(x.url).pathname.endsWith('/branches/main')).length>1?sha('f'):mainSha}});
+  if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+  if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+  if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
+  if(p.endsWith('/files'))return fakeResponse(200,[{filename:'file.mjs',status:'modified',patch:'@@ -1 +1 @@\n-old\n+same bytes'}]);
+  if(/\/pulls\/\d+$/.test(p)){const found=candidates.find(x=>x.number===Number(p.split('/').at(-1)));return fakeResponse(200,drift?{...found,head:{...found.head,sha:sha('f')}}:repositoryDrift?{...found,base:{...found.base,repo:{...found.base.repo,id:9}}}:found);}
+  throw Error('unexpected follow-on request');
+ };return{trace,args:{repository:repo,token:'offline',policy,generationSeed:'1',sourceTransport:true,fetchImpl},mainSha,headSha,baseSha};
+}
+test('source preparation shares the same budget and preserves full bindings in a non-authorizing receipt',async()=>{
+ const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-proof-'));
+ try{const results=await recordDispatcherScan({outputDirectory:directory,repository:f.args.repository,sourceSha:sha('d'),runId:'1',scan:()=>discover({...f.args,maxRequests:11})});
+ assert.equal(results.length,2);assert.ok(results.every(x=>x.state==='STALE_REDUNDANT'));assert.equal(f.trace.length,11);
+ const receipt=JSON.parse(fs.readFileSync(path.join(directory,'source-read.json')));assert.equal(receipt.authorization_created,false);assert.equal(receipt.producer.requests,2);assert.equal(receipt.shared_read_diagnostics.request_count,11);assert.equal(receipt.shared_read_diagnostics.resource_counts.other,2);assert.deepEqual(receipt.source_shas,[f.mainSha,f.headSha,f.baseSha].sort());
+ assert.ok(!f.trace.some(x=>x.url.includes('/contents/')||x.url.includes('/git/commits/')));
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('shared request exhaustion cannot reset the API budget for POST or leave partial results',async()=>{
+ const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-budget-'));
+ try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover({...f.args,maxRequests:9})}),error=>error.code==='DISPATCH_READ_BUDGET_EXHAUSTED'&&error.read_diagnostics.request_count===9);
+ assert.equal(f.trace.length,9);assert.ok(!f.trace.some(x=>x.options.method==='POST'));assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('file metadata head drift aborts before source transport or new source registration',async()=>{
+ const f=sourceTransportScanFixture({drift:true});await assert.rejects(discover(f.args),/CANDIDATE_BINDING_CHANGED/);assert.ok(!f.trace.some(x=>x.url.includes('.git/')));
+});
+test('a corrupt pack invalidates the whole scan and never creates a source receipt',async()=>{
+ const f=sourceTransportScanFixture({corrupt:true}),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-pack-failure-'));
+ try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/PACK_DIGEST_MISMATCH/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('protected main drift after source preparation aborts without publishing a snapshot receipt',async()=>{
+ const f=sourceTransportScanFixture({mainDrift:true}),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-main-drift-'));
+ try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/MAIN_BINDING_CHANGED/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('source receipt write failure leaves no eligible or reusable source evidence',async()=>{
+ const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-evidence-write-')),original=fs.writeFileSync;
+ try{fs.writeFileSync=(path,...args)=>{if(String(path).endsWith('/source-read.json'))throw Error('source receipt write failure');return original(path,...args);};
+ await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/source receipt write failure/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
+ }finally{fs.writeFileSync=original;fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('caller cannot inject a source receipt onto a result array',async()=>{
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-evidence-spoof-'));
+ try{await recordDispatcherScan({outputDirectory:directory,scan:async()=>Object.assign([],{source_read_receipt:{state:'fake'}})});assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test('same SHA with changed repository identity is rejected before source fetch',async()=>{
+ const f=sourceTransportScanFixture({repositoryDrift:true});await assert.rejects(discover(f.args),/CANDIDATE_BINDING_CHANGED/);assert.ok(!f.trace.some(x=>x.url.includes('.git/')));
+});
+
+for(const scenario of ['alternate-profile-absent','missing-policy','invalid-policy','missing-approval','invalid-approval'])test(`actual CLI ${scenario} invalidates stale evidence before external reads`,()=>{
+ const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-cli-policy-'));
+ const canonical='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',approval='coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',out=path.join(directory,'out/autonomous-dispatcher-v1');
+ try{
+  fs.mkdirSync(path.join(directory,path.dirname(canonical)),{recursive:true});fs.mkdirSync(out,{recursive:true});
+  fs.writeFileSync(path.join(out,'results.json'),'[{"state":"ELIGIBLE"}]');fs.writeFileSync(path.join(out,'source-read.json'),'{"state":"stale"}');
+  if(scenario!=='missing-policy')fs.writeFileSync(path.join(directory,canonical),scenario==='invalid-policy'?'{':JSON.stringify({}));
+  if(scenario!=='missing-approval')fs.writeFileSync(path.join(directory,approval),scenario==='invalid-approval'?'{':'{}');
+  fs.writeFileSync(path.join(directory,'alternate.json'),'{}');
+  const env={PATH:process.env.PATH,GITHUB_REPOSITORY:pr.base.repo.full_name,GITHUB_SHA:sha('a'),GITHUB_RUN_ID:'1'};
+  if(scenario==='alternate-profile-absent')env.KIDULTS_AUTONOMOUS_POLICY_PATH='alternate.json';
+  const result=spawnSync(process.execPath,[path.resolve('scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs')],{cwd:directory,env,encoding:'utf8',timeout:10000});
+  assert.equal(result.error,undefined);assert.notEqual(result.status,0);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out,'results.json'))),[]);assert.equal(fs.existsSync(path.join(out,'source-read.json')),false);
+  const failure=JSON.parse(fs.readFileSync(path.join(out,'failure.json')));assert.equal(failure.fanout_authorized,false);
+  if(scenario==='alternate-profile-absent')assert.match(result.stderr,/DISPATCH_SOURCE_PROFILE_POLICY_PATH_INVALID/);
+  else assert.match(result.stderr,scenario.startsWith('missing')?/ENOENT/:/SyntaxError/);
+ }finally{fs.rmSync(directory,{recursive:true,force:true});}
 });
