@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {brokerResumeDispatch,brokerResumeDispatchWithCutover} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
-import {buildBrokerSource,buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
+import {assertCloudFormationInlineTemplateBodyLimit,buildBrokerSource,buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
 import {verifyNativeResumeReuse} from '../../../scripts/kidults/kpmo/lib/native-resume-reuse-proof-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -51,6 +51,12 @@ test('both deployable templates stay below the CloudFormation inline body limit'
     assert.ok(Buffer.byteLength(JSON.stringify(template,null,2)+'\n')<=51200);
     assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
   }
+});
+test('oversized deployable template fails closed before CloudFormation submission',()=>{
+  assert.throws(
+    ()=>assertCloudFormationInlineTemplateBodyLimit({padding:'x'.repeat(51200)}),
+    /BROKER_CLOUDFORMATION_TEMPLATE_BODY_LIMIT/,
+  );
 });
 test('compressed CommonJS bundle exposes the real handler and preserves denial boundary',()=>{
   const context={require:createRequire(import.meta.url),exports:{},Buffer};
