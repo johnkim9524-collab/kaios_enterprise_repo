@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "be4cfa0294b33fa7396784c726d51a1c3e08edff",
+  "revision": "583b733b999b7e34b763e1ae141bfdf5b0c74a83",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 768
+    "file_count": 769
   },
   "files": [
     {
@@ -1843,10 +1843,23 @@
       }
     },
     {
+      "path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-proposal-payload-r5-20261010.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "ead2c872708d6b09b3c7867fa65b068794b0c87b",
+      "sha256": "sha256:91f935af6f6bfed87beab065e1a5eaa2e325c2c524d152c090959018f9e76908",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-repair-checkpoint-20261010.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bfb3b5e30b6782f9382b00bcf29555a0e74d8411",
-      "sha256": "sha256:50d44327a8eda1f8f89fdc558b9f084ec4cc152da72bd241585490a31591749f",
+      "git_blob": "f7a94e41cb3a1a0d26e045df42d7282682eb5882",
+      "sha256": "sha256:7cac7f28a12d440b9fdc40d4716c406c4ecbbd945a06dcb32b4144d1c1fd51dd",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6310,5 +6323,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9342d5e1bb0d25557d7681dd7f467025ac13b9218264d603a53e0bfe5e96f003"
+  "manifest_sha256": "sha256:bbcd838c1edb9ba7c600baef1002d1631442b6bd84ce7cd185ff105ef14be5d3"
 }
