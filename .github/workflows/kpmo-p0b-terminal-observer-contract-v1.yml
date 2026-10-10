@@ -1,0 +1,27 @@
+name: KPMO P0B Terminal Observer Contract V1
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/kpmo-p0b-terminal-observer-v1.yml'
+      - '.github/workflows/kpmo-p0b-terminal-observer-contract-v1.yml'
+      - 'scripts/kidults/kpmo/build-p0b-terminal-observer-receipt-v1.mjs'
+      - 'tests/kidults/kpmo/p0b-terminal-observer-v1.test.mjs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Run cancellation terminal-observer regression suite
+        run: |
+          set -euo pipefail
+          node --test tests/kidults/kpmo/p0b-terminal-observer-v1.test.mjs
