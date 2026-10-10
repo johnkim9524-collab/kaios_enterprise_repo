@@ -216,6 +216,21 @@ test('external clock uses native intake attestation and exact archived Sentinel 
   assert.equal(f.audit.execution.upstream,null);
   assert.equal(result.promotion_eligible,false);
 });
+test('external clock preserves historical Sentinel rows and selects the exact native tuple',()=>{
+  const f=externalClockFixture();
+  const current=f.proof.protected_evidence.find(row=>row.run_id===10);
+  assert.ok(current);
+  f.proof.protected_evidence.push({...current,run_id:9,artifact_id:109});
+  f.proof.protected_evidence.unshift({...current,run_id:8,artifact_id:108});
+  f.proof=seal(Object.fromEntries(Object.entries(f.proof).filter(([k])=>k!=='receipt_digest')));
+  assert.equal(verifyAssuranceReadiness(f).sentinel_run_id,10);
+  for(const change of [row=>{row.run_id=10;},row=>{row.artifact_id=current.artifact_id;},
+    row=>{row.artifact_digest='sha256:invalid';},row=>{row.source_sha='b'.repeat(40);}]){
+    const invalid=structuredClone(f);change(invalid.proof.protected_evidence[0]);
+    invalid.proof=seal(Object.fromEntries(Object.entries(invalid.proof).filter(([k])=>k!=='receipt_digest')));
+    assert.throws(()=>verifyAssuranceReadiness(invalid));
+  }
+});
 test('external clock rejects forged native intake, borrowed identity, incomplete jobs and proof drift',()=>{
   const mutations=[
     f=>{f.assuranceJobs.jobs[0].name='classify';},
@@ -247,6 +262,8 @@ test('external clock rejects forged native intake, borrowed identity, incomplete
 
 test('actual selector CLI binds clock proof and refuses newer pending, RED, or mismatched green',()=>{
   const f=externalClockFixture(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'assurance-clock-selector-'));
+  f.proof.protected_evidence.push({...f.proof.protected_evidence.find(row=>row.run_id===10),run_id:9,artifact_id:109});
+  f.proof=seal(Object.fromEntries(Object.entries(f.proof).filter(([k])=>k!=='receipt_digest')));
   const observedAt='2026-10-10T14:40:00.000Z';
   const parent={...f.sentinelRun,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',created_at:'2026-10-10T14:35:00.000Z'};
   const put=(name,value)=>{const file=path.join(dir,name+'.json');fs.writeFileSync(file,JSON.stringify(value));return file;};

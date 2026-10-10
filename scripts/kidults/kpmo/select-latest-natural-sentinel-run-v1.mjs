@@ -79,6 +79,11 @@ if(import.meta.url==='file://'+process.argv[1]){
       const read=async file=>JSON.parse(await (await import('node:fs/promises')).readFile(file,'utf8'));
       const context={audit,sourceSha,assuranceRun:runPath?await read(runPath):undefined,
         jobs:jobsPath?await read(jobsPath):undefined,proof:proofPath?await read(proofPath):undefined};
+      if(audit.execution?.trigger==='repository_dispatch'){
+        const selection=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt,continuationEvidence});
+        if(selection.state!=='VERIFIED_PASS')throw new Error('SENTINEL_SELECTION_CLOCK_NOT_SUCCESS');
+        context.sentinelRun=selection.latest;
+      }
       const route=assuranceSentinelObservationRoute(context);
       observationRoute=route;
       const matches=input.workflow_runs.filter(run=>Number(run.id)===route.sentinelRunId);

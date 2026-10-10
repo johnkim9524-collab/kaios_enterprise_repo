@@ -423,9 +423,21 @@ jobs:
             > "$GATE_DIR/sentinel-runs.json"
           jq -e '.workflow_runs as $runs | ($runs|length)==.total_count and ($runs|length)==($runs|map(.id)|unique|length)' \
             "$GATE_DIR/sentinel-runs.json" >/dev/null
+          OBSERVATION_ARGS=()
+          if test "$(jq -r '.execution.trigger' "$GATE_DIR/audit-receipt.json")" = repository_dispatch; then
+            node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
+              "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json"
+            node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
+              "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" \
+              > "$GATE_DIR/clock-native-selection.json"
+            jq -e '.state=="VERIFIED_PASS"' "$GATE_DIR/clock-native-selection.json" >/dev/null
+            jq '.latest' "$GATE_DIR/clock-native-selection.json" > "$GATE_DIR/clock-selected-native-run.json"
+            OBSERVATION_ARGS+=("$GATE_DIR/clock-selected-native-run.json")
+          fi
           node scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs \
             "$GATE_DIR/audit-receipt.json" "$UPSTREAM_SHA" "$GATE_DIR/upstream-assurance-run.json" \
             "$GATE_DIR/assurance-jobs.json" "$GATE_DIR/whole-platform-operating-proof-v1.json" \
+            "${OBSERVATION_ARGS[@]}" \
             > "$GATE_DIR/sentinel-observation-route.json"
           CAUSAL_SENTINEL_ID=$(jq -r '.sentinelRunId' "$GATE_DIR/sentinel-observation-route.json")
           [[ "$CAUSAL_SENTINEL_ID" =~ ^[1-9][0-9]*$ ]]
@@ -439,9 +451,9 @@ jobs:
           CONTINUATION_ARGS=()
           if test "$(jq -r '.mode' "$GATE_DIR/sentinel-observation-route.json")" = CAUSAL_SENTINEL; then
             CONTINUATION_ARGS+=("$CAUSAL_SENTINEL_ID")
+            node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
+              "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "${CONTINUATION_ARGS[@]}"
           fi
-          node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "${CONTINUATION_ARGS[@]}"
           node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
             "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$GATE_DIR/audit-receipt.json" \
             "$GATE_DIR/upstream-assurance-run.json" "$GATE_DIR/assurance-jobs.json" "$GATE_DIR/whole-platform-operating-proof-v1.json" \
