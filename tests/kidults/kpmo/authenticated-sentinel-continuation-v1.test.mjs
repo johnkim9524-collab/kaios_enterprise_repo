@@ -94,11 +94,11 @@ import crypto from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-function collectorRun({manual=false,missing=false,authenticatedStep=false,drift=false,pending=false}={}){
+function collectorRun({manual=false,missing=false,authenticatedStep=false,drift=false,pending=false,causalRunId,unrelated=false,duplicate=false}={}){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-continuation-test-'));
  try{
   const e=evidence({binding:!manual,...(pending?{status:'in_progress',conclusion:null}:{})});const root=`/repos/${repo}/actions`;
-  fs.writeFileSync(path.join(dir,'index.json'),JSON.stringify({workflow_runs:[e.run]}));
+  fs.writeFileSync(path.join(dir,'index.json'),JSON.stringify({workflow_runs:[e.run,...(unrelated?[{...e.run,id:99}]:[]),...(duplicate?[e.run]:[])]}));
   const rows={[`${root}/runs/10`]:{...e.run,run_attempt:drift?2:1},[`${root}/runs/10/artifacts?per_page=100`]:{total_count:missing?0:1,artifacts:missing?[]:[e.artifact]},[`${root}/runs/10/attempts/1/jobs?per_page=100`]:{total_count:1,jobs:[{steps:[{name:'Verify exact Coverage chain continuation',conclusion:authenticatedStep?'success':'skipped'}]}]}};
   const zip=spawnSync('python3',['-c','import io,zipfile,sys\nb=io.BytesIO()\nwith zipfile.ZipFile(b,"w") as z:z.writestr("kpmo-continuous-assurance-sentinel-health-v1.json",sys.stdin.read())\nsys.stdout.buffer.write(b.getvalue())'],{input:e.archivePacket.members[0].text});
   e.artifact.digest='sha256:'+crypto.createHash('sha256').update(zip.stdout).digest('hex');
@@ -108,7 +108,7 @@ function collectorRun({manual=false,missing=false,authenticatedStep=false,drift=
 const fs=require('fs');const rows=JSON.parse(fs.readFileSync(process.env.TEST_GH_ROWS,'utf8'));const r=rows[process.argv.at(-1)];if(!r)process.exit(2);process.stdout.write(r.binary?Buffer.from(r.binary,'base64'):JSON.stringify(r));
 `,{mode:0o700});
   const out=path.join(dir,'out.json');
-  const result=spawnSync(process.execPath,['scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs',path.join(dir,'index.json'),source,repo,out],{env:{...process.env,PATH:dir+path.delimiter+process.env.PATH,TEST_GH_ROWS:path.join(dir,'rows.json')},encoding:'utf8'});
+  const result=spawnSync(process.execPath,['scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs',path.join(dir,'index.json'),source,repo,out,...(causalRunId===undefined?[]:[causalRunId])],{env:{...process.env,PATH:dir+path.delimiter+process.env.PATH,TEST_GH_ROWS:path.join(dir,'rows.json')},encoding:'utf8'});
   return {...result,evidence:fs.existsSync(out)?JSON.parse(fs.readFileSync(out,'utf8')):null};
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 }
@@ -117,6 +117,18 @@ test('actual collector authenticates downloaded ZIP before exposing selector evi
 test('actual collector excludes genuine manual archive and missing manual artifact',()=>{for(const options of [{manual:true},{missing:true}]){const r=collectorRun(options);assert.equal(r.status,0,r.stderr);assert.deepEqual(r.evidence,[]);}});
 test('actual collector fails closed on authenticated pending archive instead of old PASS fallback',()=>{const r=collectorRun({missing:true,authenticatedStep:true});assert.notEqual(r.status,0);assert.match(r.stderr,/AUTHENTICATED_ARCHIVE_NOT_READY/);assert.equal(r.evidence,null);});
 test('actual collector rejects native attempt drift',()=>{const r=collectorRun({drift:true});assert.notEqual(r.status,0);assert.match(r.stderr,/INDEX_NATIVE_DRIFT/);});
+test('causal collector isolates unrelated untrusted dispatches while legacy population scan stays strict',()=>{
+ const causal=collectorRun({unrelated:true,causalRunId:'10'});assert.equal(causal.status,0,causal.stderr);assert.equal(causal.evidence.length,1);
+ const population=collectorRun({unrelated:true});assert.notEqual(population.status,0);
+});
+test('causal collector still rejects drift and pending archive in its exact parent',()=>{
+ for(const options of [{drift:true},{missing:true,pending:true}]){const r=collectorRun({...options,causalRunId:'10',unrelated:true});assert.notEqual(r.status,0);assert.equal(r.evidence,null);}
+});
+test('causal collector rejects invalid, missing and duplicate parent identities',()=>{
+ for(const options of [{causalRunId:'0'},{causalRunId:'9007199254740993'},{causalRunId:'11'},{causalRunId:'10',duplicate:true}]){
+  const r=collectorRun(options);assert.notEqual(r.status,0);assert.match(r.stderr,/CAUSAL_(ID_INVALID|CARDINALITY)/);assert.equal(r.evidence,null);
+ }
+});
 test('actual collector holds an unclassified pending dispatch without falling back to old PASS',()=>{
  const r=collectorRun({missing:true,pending:true});assert.notEqual(r.status,0);assert.match(r.stderr,/PENDING_CLASSIFICATION/);assert.equal(r.evidence,null);
 });
