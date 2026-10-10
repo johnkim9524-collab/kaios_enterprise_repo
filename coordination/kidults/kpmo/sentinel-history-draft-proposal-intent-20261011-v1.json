@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO-PR2645-POSTMERGE-CLOSURE-ITEMS-1-5",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "085c245e48e8ddce790d89b52ced72a96bb4b904",
+  "head_branch": "codex/sentinel-proof-history-20261011",
+  "source_head_sha": "8611ae0dfb1dc21da47f14e7ff2e974ea6a54802",
+  "source_head_tree_sha": "b67e1e72a004a834a1103d977c16626a24363b03",
+  "payload_digest": "sha256:33ceccb52f371b7bccca7340edc2012985a11125ee40bebebdd09ecc9ea016a0",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
