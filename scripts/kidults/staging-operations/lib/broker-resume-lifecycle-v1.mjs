@@ -58,8 +58,11 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   const family=sha256(canonicalJson({repository:config.repository,pull_request:b.pull_request,
     expected_head_sha:b.expected_head_sha}));
   const familyKey={pk:`RESUME_TUPLE_V1#${family}`,sk:'OPERATION'};
+  let privateKey,publicKey;
+  const prepareKey=async()=>{if(!privateKey){privateKey=await getPrivateKey();publicKey=crypto.createPublicKey(privateKey);}};
   let familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
   if(!familyRow){
+    await prepareKey();
     try{await ledgerRequest('Put',{TableName:config.operationTable,Item:{...familyKey,operation_key:key,owner,state:'IN_FLIGHT'},
       ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
     catch(error){
@@ -70,9 +73,41 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   }
   if(familyRow){
     if(!/^sha256:[a-f0-9]{64}$/.test(familyRow.operation_key||''))fail('FAMILY_FENCE_INVALID');
-    if(familyRow.operation_key!==key)return {ok:false,state:'HOLD_RECONCILE',key:familyRow.operation_key,reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION'};
+    if(familyRow.operation_key!==key){
+      const original=await ledger.read(familyRow.operation_key);
+      const target=original?.binding?.exact_target?.split(':');
+      const originalBinding=original?.binding;
+      let bindingVerified=false;
+      try {bindingVerified=operationKey(originalBinding)===familyRow.operation_key &&
+        originalBinding.repository===config.repository && originalBinding.root_mission_id===binding.root_mission_id &&
+        originalBinding.stage_id===binding.stage_id && originalBinding.operation_kind===event.operation &&
+        target?.length===4 && target[0]===String(b.pull_request) && target[1]===b.old_base_sha &&
+        target[2]===b.expected_head_sha && sha(target[3]) && originalBinding.payload_sha256===binding.payload_sha256;
+      } catch {}
+      const diagnostic={original_operation_key:familyRow.operation_key,
+        original_operation_state:['IN_FLIGHT','SUCCESS','UNKNOWN','NO_MUTATION'].includes(original?.state)?original.state:'UNAVAILABLE',
+        original_operation_phase:['PRE_MUTATION','WRITE_STARTED'].includes(original?.phase)?original.phase:'UNAVAILABLE',
+        original_binding_verified:bindingVerified,
+        ...(bindingVerified?{original_exact_target:originalBinding.exact_target}:{})};
+      if(!bindingVerified || original.owner!==familyRow.owner || original.state!=='NO_MUTATION' ||
+        original.phase!=='PRE_MUTATION' || original.receipt?.mutation_attempted!==false ||
+        original.receipt?.phase!=='PRE_MUTATION' || familyRow.state!=='IN_FLIGHT')
+        return {ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION',...diagnostic};
+      // NO_MUTATION is a protected owner/phase CAS terminal, never an inferred
+      // absence or a timeout. Keep its immutable operation row; fence the old
+      // writer and conditionally move only this PR/head family to the new key.
+      await prepareKey();
+      try {await ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
+        UpdateExpression:'SET operation_key = :next, #owner = :owner',
+        ConditionExpression:'operation_key = :original AND #owner = :originalOwner AND #state = :flight',
+        ExpressionAttributeNames:{'#owner':'owner','#state':'state'},
+        ExpressionAttributeValues:{':next':key,':owner':owner,':original':familyRow.operation_key,
+          ':originalOwner':familyRow.owner,':flight':'IN_FLIGHT'}});}
+      catch(error){if(error?.name!=='ConditionalCheckFailedException')throw error;
+        return {ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_RECONCILIATION_CONCURRENT_WRITER',...diagnostic};}
+    }
   }
-  const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey);
+  await prepareKey();
   const fingerprint=sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'));
   const verify=async receipt=>{
     if(receipt?.id!=='kidults-broker-lifecycle-receipt-v1'||receipt.key!==key||receipt.state!=='VERIFIED_PASS'
@@ -106,7 +141,7 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
       ||pr.base?.ref!=='main'||pr.head?.repo?.full_name!==config.repository||pr.base?.repo?.full_name!==config.repository||main.commit?.sha!==b.current_main_sha)fail('LIVE_TUPLE');
     return pr;
   };
-  const result=await resumeOperation({binding,ledger,owner,readExternal,verifyReceipt:verify,
+  const result=await resumeOperation({binding,ledger,owner,readExternal,verifyReceipt:verify,trackMutationPhase:true,
     authorize:async()=>{
       const minted=await mint({action:'MINT_INSTALLATION_TOKEN',repository:config.repository,repository_id:String(config.repositoryId),
         pull_request:b.pull_request,base_sha:b.old_base_sha,head_sha:b.expected_head_sha,current_main_sha:b.current_main_sha,

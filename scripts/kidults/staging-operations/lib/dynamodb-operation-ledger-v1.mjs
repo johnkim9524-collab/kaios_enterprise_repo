@@ -23,21 +23,35 @@ export class DynamoDBOperationLedger {
     const result = await this.request('Get', {TableName:this.table,Key:this.key(key),ConsistentRead:true});
     return result.Item;
   }
-  async claim(key,binding,owner) {
+  async claim(key,binding,owner,{trackMutationPhase=false}={}) {
     this.validate(key,binding);
     if (typeof owner !== 'string' || !owner) fail('OPERATION_OWNER_REQUIRED');
     try {
-      await this.request('Put', {TableName:this.table,Item:{...this.key(key),binding,owner,state:'IN_FLIGHT'},
+      await this.request('Put', {TableName:this.table,Item:{...this.key(key),binding,owner,state:'IN_FLIGHT',...(trackMutationPhase?{phase:'PRE_MUTATION'}:{})},
         ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});
       return {claimed:true,state:'IN_FLIGHT'};
     } catch(error) { if (!conditional(error)) throw error; }
     const row = await this.read(key);
-    if (!row || canonical(row.binding) !== canonical(binding) || !['IN_FLIGHT','SUCCESS','UNKNOWN'].includes(row.state)) fail('OPERATION_LEDGER_BINDING_MISMATCH');
+    if (!row || canonical(row.binding) !== canonical(binding) || !['IN_FLIGHT','SUCCESS','UNKNOWN','NO_MUTATION'].includes(row.state)) fail('OPERATION_LEDGER_BINDING_MISMATCH');
     return {claimed:false,state:row.state,receipt:row.receipt};
   }
   async assertOwner(key,owner) {
     const row = await this.read(key);
     if (!row || row.owner !== owner || row.state !== 'IN_FLIGHT') fail('OPERATION_WRITER_FENCED');
+  }
+  async markMutationStarted(key,owner) {
+    await this.request('Update',{TableName:this.table,Key:this.key(key),
+      UpdateExpression:'SET phase = :started',
+      ConditionExpression:'#owner = :owner AND #state = :flight AND phase = :pre',
+      ExpressionAttributeNames:{'#owner':'owner','#state':'state'},
+      ExpressionAttributeValues:{':owner':owner,':flight':'IN_FLIGHT',':pre':'PRE_MUTATION',':started':'WRITE_STARTED'}});
+  }
+  async finishPreMutationFailure(key,owner,receipt) {
+    await this.request('Update',{TableName:this.table,Key:this.key(key),
+      UpdateExpression:'SET #state = :next, receipt = :receipt',
+      ConditionExpression:'#owner = :owner AND #state = :flight AND phase = :pre',
+      ExpressionAttributeNames:{'#owner':'owner','#state':'state'},
+      ExpressionAttributeValues:{':owner':owner,':flight':'IN_FLIGHT',':pre':'PRE_MUTATION',':next':'NO_MUTATION',':receipt':receipt}});
   }
   async finish(key,owner,state,receipt) {
     if (!['SUCCESS','UNKNOWN'].includes(state)) fail('OPERATION_TERMINAL_STATE');

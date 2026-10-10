@@ -21,8 +21,13 @@ function setup({operation=event.operation,lost=false,drift=false,reversed=false,
       if(op==='Get')return {Item:structuredClone(rows.get(k))};
       if(op==='Put'){if(rows.has(k))throw conditional();rows.set(k,structuredClone(p.Item));return {};}
       const row=rows.get(k),v=p.ExpressionAttributeValues;
-      if(!row||row.owner!==v[':owner']||row.state!=='IN_FLIGHT')throw conditional();
-      row.state=v[':next'];row.receipt=structuredClone(v[':receipt']);return {};
+      if(v[':original']){
+        if(!row||row.operation_key!==v[':original']||row.owner!==v[':originalOwner']||row.state!=='IN_FLIGHT')throw conditional();
+        row.operation_key=v[':next'];row.owner=v[':owner'];return {};
+      }
+      if(!row||row.owner!==v[':owner']||row.state!=='IN_FLIGHT'||(v[':pre']&&row.phase!==v[':pre']))throw conditional();
+      if(v[':started'])row.phase=v[':started'];
+      else {row.state=v[':next'];row.receipt=structuredClone(v[':receipt']);}return {};
     },request:async(url,options)=>{
       const route=url.split(`/repos/${repository}`)[1],method=options.method;
       assert.equal(options.redirect,'error');
@@ -116,4 +121,70 @@ test('Finalizer and lifecycle share the drain without claiming a writer before r
   assert.equal((await observeLifecycleCutover(s.dependencies)).state,'CUTOVER_READY');
   assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:'ready'})).ok,true);
   assert.deepEqual(s.counts(),{writes:0,mints:1});
+});
+
+test('proven pre-mutation denial settles only a new exact-main operation and preserves original terminal',async()=>{
+  const s=setup();s.dependencies.mint=async()=>({ok:false});
+  await assert.rejects(s.call(),/TOKEN_DENIED/);
+  const original=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+  assert.equal(original.state,'NO_MUTATION');assert.equal(original.phase,'PRE_MUTATION');
+  assert.equal(original.receipt.mutation_attempted,false);assert.equal(s.counts().writes,0);
+  assert.equal((await s.call('old-owner')).state,'HOLD_RECONCILE');
+  const changed=structuredClone(s.event);changed.binding.current_main_sha=sha('e');
+  // The new live-tuple check also fails: its denial is settled, with no PUT.
+  const settled=await s.call('new-owner',changed).catch(e=>e);
+  assert.match(settled.message,/TOKEN_DENIED/);
+  assert.equal(s.counts().writes,0);assert.equal(original.state,'NO_MUTATION');
+  assert.equal([...s.rows.values()].filter(r=>r.state==='NO_MUTATION').length,2);
+  assert.equal((await s.call('old-owner')).state,'HOLD_RECONCILE');
+});
+test('legacy UNKNOWN exposes bounded original binding without releasing the family or minting',async()=>{
+  const s=setup({lost:true});await assert.rejects(s.call());
+  const original=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));delete original.phase;
+  const changed=structuredClone(s.event);changed.binding.current_main_sha=sha('e');
+  const held=await s.call('replacement',changed);
+  assert.equal(held.original_operation_state,'UNKNOWN');assert.equal(held.original_operation_phase,'UNAVAILABLE');
+  assert.equal(held.original_binding_verified,true);assert.match(held.original_operation_key,/^sha256:/);
+  assert.doesNotMatch(JSON.stringify(held),/PRIVATE_|signature|error_code/);assert.deepEqual(s.counts(),{writes:1,mints:1});
+});
+test('signing key failure creates no family fence',async()=>{
+  const s=setup();s.dependencies.getPrivateKey=async()=>{throw Error('SIGNING_KEY_UNAVAILABLE');};
+  await assert.rejects(s.call(),/SIGNING_KEY_UNAVAILABLE/);
+  assert.equal([...s.rows.values()].filter(r=>r.operation_key).length,0);assert.deepEqual(s.counts(),{writes:0,mints:0});
+});
+
+test('concurrent exact-main settlement allows one fresh mutation and permanently fences original NO_MUTATION',async()=>{
+  const s=setup();const mint=s.dependencies.mint;s.dependencies.mint=async()=>({ok:false});
+  await assert.rejects(s.call(),/TOKEN_DENIED/);s.dependencies.mint=mint;
+  const request=s.dependencies.request;s.dependencies.request=async(url,options)=>{
+    const response=await request(url,options);const value=await response.json();
+    if(url.endsWith('/branches/main'))value.commit.sha=sha('e');
+    if(url.endsWith('/pulls/42')&&value.head.sha===sha('d'))value.base.sha=sha('e');
+    if(url.endsWith(`/git/commits/${sha('d')}`))value.parents[1].sha=sha('e');
+    return {...response,json:async()=>value};
+  };
+  const changed=structuredClone(s.event);changed.binding.current_main_sha=sha('e');
+  const results=await Promise.all(Array.from({length:12},(_,i)=>s.call(`settler-${i}`,changed)));
+  assert.equal(results.filter(r=>r.state==='EXECUTED_VERIFIED').length,1);
+  assert.deepEqual(s.counts(),{writes:1,mints:1});
+  const old=[...s.rows.values()].find(r=>r.state==='NO_MUTATION');assert.ok(old);
+  assert.equal((await s.call('old-owner')).state,'HOLD_RECONCILE');
+  assert.equal(old.state,'NO_MUTATION');assert.deepEqual(s.counts(),{writes:1,mints:1});
+});
+for(const corrupt of [r=>delete r.phase,r=>r.phase='WRITE_STARTED',r=>r.receipt.mutation_attempted=true,r=>r.owner='forged',r=>r.binding.stage_id='other'])
+test('unverified pre-mutation settlement never releases the family',async()=>{
+  const s=setup();s.dependencies.mint=async()=>({ok:false});await assert.rejects(s.call());
+  const original=[...s.rows.values()].find(r=>r.state==='NO_MUTATION');corrupt(original);
+  const changed=structuredClone(s.event);changed.binding.current_main_sha=sha('e');
+  assert.equal((await s.call('replacement',changed)).state,'HOLD_RECONCILE');assert.equal(s.counts().writes,0);
+});
+test('lost durable WRITE_STARTED acknowledgement remains fenced without GitHub mutation',async()=>{
+  const s=setup(),request=s.dependencies.ledgerRequest;
+  s.dependencies.ledgerRequest=async(op,p)=>{const result=await request(op,p);
+    if(p.ExpressionAttributeValues?.[':started'])throw Error('LOST_PHASE_ACK');return result;};
+  await assert.rejects(s.call(),/OPERATION_OUTCOME_AND_LEDGER_UNCERTAIN/);
+  const original=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+  assert.equal(original.state,'IN_FLIGHT');assert.equal(original.phase,'WRITE_STARTED');assert.equal(s.counts().writes,0);
+  const changed=structuredClone(s.event);changed.binding.current_main_sha=sha('e');
+  assert.equal((await s.call('replacement',changed)).state,'HOLD_RECONCILE');assert.equal(s.counts().writes,0);
 });
