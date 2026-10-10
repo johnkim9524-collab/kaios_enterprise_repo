@@ -23,7 +23,7 @@ concurrency:
 jobs:
   live-autobalance:
     runs-on: ubuntu-24.04
-    timeout-minutes: 12
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with: {persist-credentials: false}
@@ -76,8 +76,10 @@ jobs:
             BINDING_MODE="EXACT_CURRENT_MAIN"
           fi
 
-          AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10
-          AUTOBALANCE_PRODUCER_WAIT_SECONDS=3
+          # The exact-generation producer has a 35-minute job timeout.  Cover
+          # that complete bounded window instead of failing while it is healthy.
+          AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=210
+          AUTOBALANCE_PRODUCER_WAIT_SECONDS=10
           HOURLY_RUN_ID=""
           HOURLY_SOURCE_SHA=""
           HOURLY_RUN_STATE="NONE"
@@ -292,3 +294,4 @@ jobs:
             /tmp/asi-throughput-autobalance-provenance-v1.json
           retention-days: 30
           if-no-files-found: error
+

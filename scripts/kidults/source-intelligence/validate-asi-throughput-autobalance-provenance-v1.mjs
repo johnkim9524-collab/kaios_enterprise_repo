@@ -35,8 +35,22 @@ function validate(text) {
   requireText('STALE_FINALIZATION_SOURCE_SHA:${GITHUB_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'finalization stale-source rejection');
   requireText('FINAL_PRODUCER_SHA_MISMATCH:${AUTOBALANCE_EXPECTED_PRODUCER_SHA}:${FINAL_PROTECTED_MAIN_SHA}', 'final producer-source mismatch rejection');
   requireText('final_protected_main_sha: process.env.FINAL_PROTECTED_MAIN_SHA', 'final protected-main receipt binding');
-  requireText('AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10', 'bounded producer wait attempt cap');
-  requireText('AUTOBALANCE_PRODUCER_WAIT_SECONDS=3', 'bounded producer wait interval');
+  const timeoutMatch = text.match(/timeout-minutes:\s*(\d+)/);
+  const attemptsMatch = text.match(/AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=(\d+)/);
+  const intervalMatch = text.match(/AUTOBALANCE_PRODUCER_WAIT_SECONDS=(\d+)/);
+  if (!timeoutMatch) failures.push('missing bounded job timeout');
+  if (!attemptsMatch) failures.push('missing bounded producer wait attempt cap');
+  if (!intervalMatch) failures.push('missing bounded producer wait interval');
+  if (timeoutMatch && attemptsMatch && intervalMatch) {
+    const timeoutSeconds = Number(timeoutMatch[1]) * 60;
+    const waitBudgetSeconds = Number(attemptsMatch[1]) * Number(intervalMatch[1]);
+    if (waitBudgetSeconds < 35 * 60) {
+      failures.push('producer wait budget does not cover the producer 35-minute timeout');
+    }
+    if (timeoutSeconds < waitBudgetSeconds + 2 * 60) {
+      failures.push('job timeout does not preserve a two-minute post-wait finalization budget');
+    }
+  }
   requireText('for ATTEMPT in $(seq 1 "$AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS")', 'bounded producer poll loop');
   requireText('sort_by(.created_at) | reverse | .[0] // empty', 'deterministic latest exact-generation producer selection');
   requireText('if [ "$HOURLY_RUN_STATUS" = "completed" ] && [ "$HOURLY_RUN_CONCLUSION" = "success" ]; then', 'producer success terminal gate');
@@ -99,7 +113,9 @@ const mutations = [
   ['EXPECTED_PRODUCER_SHA="$CURRENT_SHA"','EXPECTED_PRODUCER_SHA=""'],
   ['if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then','if false; then'],
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
-  ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=10','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=1'],
+  ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=210','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=209'],
+  ['AUTOBALANCE_PRODUCER_WAIT_SECONDS=10','AUTOBALANCE_PRODUCER_WAIT_SECONDS=9'],
+  ['timeout-minutes: 40','timeout-minutes: 35'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
   ['UPSTREAM_EXACT_GENERATION_NOT_TERMINAL','UPSTREAM_NOT_FOUND']
 ];
@@ -155,7 +171,8 @@ console.log(JSON.stringify({
   mutation_cases_rejected: mutations.length + 1 + consumerMutations.length,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
-  producer_wait: {max_attempts:10,interval_seconds:3,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
+  producer_wait: {max_attempts:210,interval_seconds:10,budget_seconds:2100,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
   production: 'HOLD',
   public_release: 'HOLD'
 }, null, 2));
+
