@@ -42,7 +42,7 @@
     "activation_performed": false
   },
   "remaining_evidence": [
-    "Exact proposal-head independent machine CI",
+    "Exact reconciled metadata-head validation and immutable existing-Draft readback",
     "New exact-head protected-source activation authority",
     "Owner-reserved STAGING Lambda Timeout 30 to 180 deployment path",
     "Protected deployment evidence that legacy broker revisions cannot mint during or after drain",
@@ -73,5 +73,256 @@
     "correction": "Preserve historical exact bytes in a fixture and reject current Finalizer from the old exception; align causal queue provenance marker and preserve content-suite first position",
     "new_exact_head_ci": "PENDING",
     "previous_proposal_create": "COMPLETED_DO_NOT_REPEAT"
+  },
+  "as_of": "2026-10-10T00:18:38.380912+00:00",
+  "source_validation": {
+    "source_head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+    "scope": "EXACT_SOURCE_VALIDATION_NOT_RUNTIME_ACTIVATION",
+    "conclusion": "29_OF_29_SUCCESS",
+    "runs": [
+      {
+        "run_id": 38006971720,
+        "workflow_path": ".github/workflows/kidults-phase2-data-connection-validate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971623,
+        "workflow_path": ".github/workflows/kidults-d1-legacy-resource-policy-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971686,
+        "workflow_path": ".github/workflows/kidults-owned-fabric-e2e-preflight-r1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971624,
+        "workflow_path": ".github/workflows/kidults-coordination-validate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971637,
+        "workflow_path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971653,
+        "workflow_path": ".github/workflows/kidults-asi-shadow-evidence-freshness-diagnostic-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971673,
+        "workflow_path": ".github/workflows/kidults-cloudflare-worker-estate-policy-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971716,
+        "workflow_path": ".github/workflows/kidults-integration-source-snapshot-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971762,
+        "workflow_path": ".github/workflows/kidults-canonical-anchor-supply-chain-guard-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971828,
+        "workflow_path": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971629,
+        "workflow_path": ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971649,
+        "workflow_path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971793,
+        "workflow_path": ".github/workflows/kidults-global-standard-preproduction-gate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971651,
+        "workflow_path": ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971729,
+        "workflow_path": ".github/workflows/kpmo-secret-bearing-dispatch-inventory-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971682,
+        "workflow_path": ".github/workflows/kidults-asi-workflow-fanout-budget-guard-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971693,
+        "workflow_path": ".github/workflows/kidults-kir-runtime-contract-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971832,
+        "workflow_path": ".github/workflows/solo-owner-preflight.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971833,
+        "workflow_path": ".github/workflows/kidults-p0-control-plane-closure-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971703,
+        "workflow_path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971717,
+        "workflow_path": ".github/workflows/kidults-security-assurance-empirical-r1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971734,
+        "workflow_path": ".github/workflows/kidults-asi-global-open-market-discovery-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971621,
+        "workflow_path": ".github/workflows/kpmo-github-trusted-ref-environment-readback-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971672,
+        "workflow_path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971728,
+        "workflow_path": ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971708,
+        "workflow_path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971763,
+        "workflow_path": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971737,
+        "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38006971725,
+        "workflow_path": ".github/workflows/ci-validation.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+        "conclusion": "success"
+      }
+    ],
+    "whole_platform_health_proven": false
+  },
+  "proposal_reconciliation": {
+    "state": "PREPARED_NOT_REFERENCED",
+    "source_head_sha": "67c065508611c2012c3f4d963b2beab03e7c1f99",
+    "proposal": 2630,
+    "payload_path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-proposal-payload-r5-20261010.json",
+    "previous_intents_retained": true,
+    "create_proposal_replayed": false,
+    "external_launcher_writer_fencing": "UNKNOWN",
+    "writer_context": "USER_REQUESTED_THIS_SESSION_INTEGRATION; CURRENT_PAYLOAD_AND_REF_RECONCILIATION_REQUIRED_BEFORE_WRITE"
   }
 }
