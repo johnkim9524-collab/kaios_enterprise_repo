@@ -607,8 +607,8 @@
       "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
       "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
       "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:54594f65512380786bb093251085dacb1a5bc94a5265d76103e060b6b989d67e",
-      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:ff037094ac974c2f328696e3542cf9ba89efda3cdfc0813ab5a56ec3fcab6621",
-      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:6bf430a82ece871b67ea46edc4f5aa188eb1debb739f42c1feb8fad1cb00c828"
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:5f47e92803963a9ba4bdb096bd99adca910e1db7b1b660141b9819a9329f0cad",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:2d00bb12a08ec59c589175e6396e0100ab92c895d1285a65a59420060e0467ab"
     }
   }
 }

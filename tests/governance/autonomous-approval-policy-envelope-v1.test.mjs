@@ -54,6 +54,8 @@ test("approval inventory is a complete digest-bound Git-object manifest", () => 
   const manifest=JSON.parse(fs.readFileSync("coordination/kidults/governance/approval-policy-file-manifest-v1.json","utf8"));
   assert.equal(inventory.audit.approval_related_files_reviewed,manifest.files.length);
   assert.equal(inventory.audit.manifest_sha256,manifest.manifest_sha256);
+  assert.match(manifest.revision,/^[0-9a-f]{40}$/);
+  assert.equal(inventory.audit.baseline_sha,manifest.revision);
   assert.ok(manifest.files.every(value=>value.path&&value.classification&&value.git_blob&&value.sha256));
   assert.equal(new Set(manifest.files.map(value=>value.path)).size,manifest.files.length);
   const execution=manifest.files.filter(value=>value.classification==="EXECUTION_AUTHORIZATION_CONTROL");

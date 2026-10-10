@@ -336,6 +336,25 @@ test('revision refresh recomputes content bindings in both separate verifiers',(
  assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
  assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 });
+test('revision refresh remains source-bound when the approval inventory also grows',()=>{
+ const files=revisionRefreshFiles(),manifestFile=files[1],inventoryFile=files[2];
+ const base=JSON.parse(manifestFile.base_content),head=JSON.parse(manifestFile.head_content);
+ base.scan.pattern='approval';head.scan.pattern='approval';
+ const filename='docs/approval-repair-note.md',head_content='approval repair evidence\n';
+ const bytes=Buffer.from(head_content,'utf8');
+ head.files.push({path:filename,classification:'DOMAIN_ADJUDICATION_OR_DOCUMENTATION',git_blob:crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex'),sha256:'sha256:'+crypto.createHash('sha256').update(head_content).digest('hex')});
+ head.files.sort((left,right)=>left.path.localeCompare(right.path));head.scan.file_count=head.files.length;
+ head.manifest_sha256='sha256:'+crypto.createHash('sha256').update(JSON.stringify(head.files)).digest('hex');
+ const baseInventory=JSON.parse(inventoryFile.base_content),headInventory=JSON.parse(inventoryFile.head_content);
+ Object.assign(baseInventory.audit,{approval_related_files_reviewed:1,routing_coverage:{execution_authorization_controls:0,exemptions:0,route_counts:{}}});
+ Object.assign(headInventory.audit,{approval_related_files_reviewed:2,manifest_sha256:head.manifest_sha256,routing_coverage:{execution_authorization_controls:0,exemptions:0,route_counts:{}}});
+ headInventory.manifest_sha256=head.manifest_sha256;
+ manifestFile.base_content=JSON.stringify(base);manifestFile.head_content=JSON.stringify(head);
+ inventoryFile.base_content=JSON.stringify(baseInventory);inventoryFile.head_content=JSON.stringify(headInventory);
+ files.unshift({filename,base_content:'',head_content});
+ assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+ assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
 for(const [name,mutate] of [
  ['invalid revision',f=>{const x=JSON.parse(f[1].head_content);x.revision='main';f[1].head_content=JSON.stringify(x);}],
  ['unbound baseline',f=>{const x=JSON.parse(f[2].head_content);x.audit.baseline_sha='c'.repeat(40);f[2].head_content=JSON.stringify(x);}],
