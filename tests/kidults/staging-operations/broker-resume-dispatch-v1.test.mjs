@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {brokerResumeDispatch,brokerResumeDispatchWithCutover} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
-import {buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
+import {buildBrokerSource,buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
 import {verifyNativeResumeReuse} from '../../../scripts/kidults/kpmo/lib/native-resume-reuse-proof-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -37,13 +37,38 @@ function setup({transport='ok'}={}) {
 }
 test('native protected-source bundle loads the same runtime and has no unregistered imports',async()=>{
   const context={require:createRequire(import.meta.url),exports:{},Buffer,AbortSignal,console};
-  vm.createContext(context);vm.runInContext(buildBrokerCode(),context);
+  vm.createContext(context);vm.runInContext(buildBrokerSource(),context);
   const module=await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs')",context);
   assert.equal(typeof module.brokerResumeDispatch,'function');
   assert.equal(typeof (await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs')",context)).brokerResumeLifecycle,'function');
   assert.equal(typeof (await vm.runInContext("__resumeLoad('scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs')",context)).verifyBrokerCallerIdentity,'function');
   const s=setup();const result=await module.brokerResumeDispatch({...s.dependencies,event,owner:'bundle-owner'});
   assert.equal(result.state,'EXECUTED_VERIFIED');assert.equal(s.counts().sends,1);
+});
+test('both deployable templates stay below the CloudFormation inline body limit',()=>{
+  const {original,desired}=buildTemplates();
+  for(const template of [original,desired]) {
+    assert.ok(Buffer.byteLength(JSON.stringify(template,null,2)+'\n')<=51200);
+    assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
+  }
+});
+test('compressed CommonJS bundle exposes the real handler and preserves denial boundary',()=>{
+  const context={require:createRequire(import.meta.url),exports:{},Buffer};
+  vm.createContext(context);vm.runInContext(buildBrokerCode(),context);
+  assert.equal(typeof context.exports.handler,'function');
+  assert.equal(typeof context.exports.createHandler,'function');
+  assert.throws(()=>context.exports.assertPublicMintBoundary({action:'MINT_INSTALLATION_TOKEN',permission_profile:'AUTONOMOUS_STALE_BASE_CONVERGENCE'}),/LIFECYCLE_LEDGER_REQUIRED/);
+  const source=buildBrokerSource();
+  const data=buildBrokerCode().match(/Buffer\.from\('([^']+)'/)[1];
+  const zlib=createRequire(import.meta.url)('node:zlib');
+  assert.equal(zlib.gunzipSync(Buffer.from(data,'base64')).toString('utf8'),source);
+});
+test('corrupt decompressed code is rejected before any broker export executes',()=>{
+  const nativeRequire=createRequire(import.meta.url);
+  const context={exports:{},Buffer,require:name=>name==='node:zlib'?{gunzipSync:()=>Buffer.from('exports.compromised=true;')}:nativeRequire(name)};
+  vm.createContext(context);
+  assert.throws(()=>vm.runInContext(buildBrokerCode(),context),/BROKER_BUNDLE_DIGEST_MISMATCH/);
+  assert.deepEqual(context.exports,{});
 });
 test('twelve concurrent sessions send once; replacement reuses authenticated acknowledgement',async()=>{
   const s=setup();const results=await Promise.all(Array.from({length:12},(_,i)=>s.call(event,`owner-${i}`)));
