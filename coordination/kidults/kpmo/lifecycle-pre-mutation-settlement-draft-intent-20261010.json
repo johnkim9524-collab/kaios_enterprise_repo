@@ -7,8 +7,8 @@
   "base_branch": "main",
   "base_sha": "b6e5b4da4f1d969da8057b1aa0e8f402c6216f9b",
   "head_branch": "codex/lifecycle-pre-mutation-settlement-20261010",
-  "source_head_sha": "007294e5df4d2bed9f6e810e5c2dddf40ae438e2",
-  "source_head_tree_sha": "a7c237e51f13193b346f0a0df464bc8b60cdeb58",
+  "source_head_sha": "2d9a0f86f9d334b569c9e62df2bffe9542dd5871",
+  "source_head_tree_sha": "79f53ffaf9db50cc52d396c01b7740cf09d4579c",
   "payload_digest": "sha256:0de5e1a7494f985d9c7da92a232fcf0a017d994b040d752d9e937d2bf08e630e",
   "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
   "authority_granted": false
