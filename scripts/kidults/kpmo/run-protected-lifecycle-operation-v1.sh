@@ -12,7 +12,12 @@ write_failure() {
       def bounded_label: if type=="string" then (if test("^[A-Z][A-Z0-9_:-]{0,159}$") then . else null end) else null end;
       if type=="object" then
         {state:(.state|bounded_label),reason:(.reason|bounded_label),failure_code:(.failure_code|bounded_label),
-         mutation_attempted:(if (.mutation_attempted|type)=="boolean" then .mutation_attempted else null end)}
+         mutation_attempted:(if (.mutation_attempted|type)=="boolean" then .mutation_attempted else null end),
+         original_operation_key:(if (.original_operation_key|type)=="string" and (.original_operation_key|test("^sha256:[0-9a-f]{64}$")) then .original_operation_key else null end),
+         original_operation_state:(.original_operation_state|bounded_label),
+         original_operation_phase:(.original_operation_phase|bounded_label),
+         original_binding_verified:(if (.original_binding_verified|type)=="boolean" then .original_binding_verified else null end),
+         original_exact_target:(if (.original_exact_target|type)=="string" and (.original_exact_target|test("^[1-9][0-9]{0,19}:[0-9a-f]{40}:[0-9a-f]{40}:[0-9a-f]{40}$")) then .original_exact_target else null end)}
         | with_entries(select(.value!=null))
       else {} end' "$output" 2>/dev/null) || observation='{}'
   fi

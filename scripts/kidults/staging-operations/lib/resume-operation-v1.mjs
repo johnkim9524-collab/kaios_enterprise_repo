@@ -18,7 +18,7 @@ export function operationKey(binding){
 
 // Callbacks are protected adapters, never caller-supplied success assertions.
 // A transport error leaves UNKNOWN. No lease timeout authorizes a retry.
-export async function resumeOperation({binding,ledger,readExternal,verifyReceipt,authorize,execute,owner}){
+export async function resumeOperation({binding,ledger,readExternal,verifyReceipt,authorize,execute,owner,trackMutationPhase=false}){
   const key=operationKey(binding);
   if(typeof owner!=='string'||!owner) fail('OPERATION_OWNER_REQUIRED');
   const observed=await readExternal(binding);
@@ -28,7 +28,7 @@ export async function resumeOperation({binding,ledger,readExternal,verifyReceipt
     return {state:'REUSED_SUCCESS',key,receipt:observed.receipt};
   }
   if(observed?.state!=='ABSENT') return {state:'HOLD_RECONCILE',key};
-  const record=await ledger.claim(key,binding,owner);
+  const record=await ledger.claim(key,binding,owner,{trackMutationPhase});
   if(!record?.claimed){
     if(record?.state==='SUCCESS'){
       if(await verifyReceipt(record.receipt,binding)!==true) fail('OPERATION_LEDGER_RECEIPT_INVALID');
@@ -36,6 +36,7 @@ export async function resumeOperation({binding,ledger,readExternal,verifyReceipt
     }
     return {state:'OBSERVE_EXISTING',key};
   }
+  let executionStarted=false;
   try{
     if(await authorize(binding)!==true) fail('OPERATION_AUTHORITY_DENIED');
     const fresh=await readExternal(binding);
@@ -47,12 +48,19 @@ export async function resumeOperation({binding,ledger,readExternal,verifyReceipt
     if(fresh?.state!=='ABSENT') fail('OPERATION_REMOTE_AMBIGUOUS');
     // Ownership must be durably checked immediately before the side effect.
     await ledger.assertOwner(key,owner);
+    if(trackMutationPhase) await ledger.markMutationStarted(key,owner);
+    executionStarted=true;
     const receipt=await execute({binding,key});
     if(await verifyReceipt(receipt,binding)!==true) fail('OPERATION_RESULT_RECEIPT_INVALID');
     await ledger.finish(key,owner,'SUCCESS',receipt);
     return {state:'EXECUTED_VERIFIED',key,receipt};
   }catch(error){
-    try { await ledger.finish(key,owner,'UNKNOWN',{error_code:String(error.message)}); }
+    try {
+      if(trackMutationPhase&&!executionStarted) await ledger.finishPreMutationFailure(key,owner,{
+        error_code:/^[A-Z0-9_:]{1,160}$/.test(String(error.message))?String(error.message):'PRE_MUTATION_FAILURE',
+        mutation_attempted:false,phase:'PRE_MUTATION'});
+      else await ledger.finish(key,owner,'UNKNOWN',{error_code:String(error.message)});
+    }
     catch(ledgerError){
       throw new AggregateError([error,ledgerError],'OPERATION_OUTCOME_AND_LEDGER_UNCERTAIN',{cause:error});
     }
