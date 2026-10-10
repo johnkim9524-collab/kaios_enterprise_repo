@@ -1,3 +1,4 @@
+import {observeLifecycleCutover} from './broker-resume-lifecycle-v1.mjs';
 import crypto from 'node:crypto';
 import {canonicalJson,sha256} from '../../kpmo/lib/canonical-json-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt} from '../../kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -109,4 +110,12 @@ export async function brokerResumeDispatch({event,config,request,ledgerRequest,g
     }});
   token=undefined;
   return {ok:['EXECUTED_VERIFIED','REUSED_SUCCESS'].includes(result.state),...result};
+}
+
+// Only this protected entrypoint admits new authorization dispatches. The
+// drain is checked before any candidate tuple, token or GitHub event exists.
+export async function brokerResumeDispatchWithCutover(dependencies){
+  const cutover=await observeLifecycleCutover(dependencies);
+  if(!cutover.ok)return cutover;
+  return brokerResumeDispatch(dependencies);
 }

@@ -5,7 +5,8 @@ import {matchesReviewedImmutableTransportRepair as match,IMMUTABLE_TRANSPORT_REP
 import {evaluateSemanticCapabilityDelta as primary} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta as secondary} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 const base_content=Buffer.from(fs.readFileSync('tests/fixtures/kidults/immutable-transport-base-v1.b64','utf8').trim(),'base64').toString('utf8');
-const head_content=fs.readFileSync(spec.path,'utf8');
+// The historic exception binds reviewed immutable bytes, never the evolving live Finalizer.
+const head_content=Buffer.from(fs.readFileSync('tests/fixtures/kidults/immutable-transport-reviewed-head-v1.b64','utf8').trim(),'base64').toString('utf8');
 const file={filename:spec.path,base_content,head_content};
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 test('only the exact reviewed immutable transport replacement is admitted',()=>{
@@ -25,4 +26,8 @@ test('an appended guard removal cannot inherit the reviewed replacement',()=>{
 test('other changed files still undergo full capability checks',()=>{
  const bad={filename:'scripts/kidults/kpmo/other.mjs',base_content:"if(!token)throw Error('HOLD');",head_content:"console.log('ok');"};
  assert.throws(()=>primary({files:[file,bad],policy}));assert.throws(()=>secondary({files:[file,bad],policy}));
+});
+
+test('the modified live Finalizer cannot inherit the historical transport exception',()=>{
+ assert.equal(match({...file,head_content:fs.readFileSync(spec.path,'utf8')}),false);
 });

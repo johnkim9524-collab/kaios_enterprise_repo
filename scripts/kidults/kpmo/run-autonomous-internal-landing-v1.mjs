@@ -168,7 +168,7 @@ const invokeLedgerWriter = payload => {
     try { fs.unlinkSync(outputPath); } catch {}
   }
 };
-const acquireEventToken = async () => {
+const acquireEventToken = async ({observeCutover=false}={}) => {
   const broker = required('KIDULTS_AUTONOMOUS_EVENT_TOKEN_BROKER_FUNCTION');
   const brokerRole = required('KIDULTS_AUTONOMOUS_EVENT_BROKER_ROLE_ARN');
   const privateDir = fs.mkdtempSync(path.join(required('RUNNER_TEMP'),'kidults-event-broker-'));
@@ -185,15 +185,15 @@ const acquireEventToken = async () => {
     const identity=(await identityResponse.json()).value;
     if(typeof identity!=='string'||identity.length<100) throw new AutonomousLandingError('AUTONOMOUS_EVENT_BROKER_IDENTITY_INVALID');
     fs.writeFileSync(identityPath,identity,{flag:'wx',mode:0o600});
-    const isolatedEnv={...process.env,AWS_ROLE_ARN:brokerRole,AWS_WEB_IDENTITY_TOKEN_FILE:identityPath,
+    const isolatedEnv={...process.env,AWS_MAX_ATTEMPTS:'1',AWS_ROLE_ARN:brokerRole,AWS_WEB_IDENTITY_TOKEN_FILE:identityPath,
       AWS_ROLE_SESSION_NAME:`kidults-event-broker-${required('GITHUB_RUN_ID')}`};
     for(const name of ['AWS_ACCESS_KEY_ID','AWS_SECRET_ACCESS_KEY','AWS_SESSION_TOKEN','AWS_PROFILE']) delete isolatedEnv[name];
     const metadata = awsJson([
       'lambda','invoke','--region','ap-northeast-2','--function-name',broker,
       '--cli-binary-format','raw-in-base64-out',
-      '--payload',JSON.stringify({action:'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
+      '--payload',JSON.stringify({action:observeCutover?'OBSERVE_LIFECYCLE_CUTOVER':'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
-        authorization_generation:envelope.authorization_generation}),
+        authorization_generation:envelope.authorization_generation,caller_oidc_token:identity}),
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
@@ -204,13 +204,25 @@ const acquireEventToken = async () => {
     const responseBytes=fs.readFileSync(outputPath,'utf8');
     fs.unlinkSync(outputPath);
     const response=JSON.parse(responseBytes);
+    if(observeCutover){
+      if(response.ok!==true||response.state!=='CUTOVER_READY'||response.mutation_attempted!==false)
+        throw new AutonomousLandingError('AUTONOMOUS_LIFECYCLE_CUTOVER_NOT_READY');
+      return true;
+    }
     const expiresAt=Date.parse(response.expires_at);
     if (response.ok!==true || response.token_type!=='GITHUB_APP_INSTALLATION'
       || response.repository!==repository || String(response.repository_id)!==repositoryId
       || !Array.isArray(response.permissions)
       || !['contents:write','pull_requests:write','metadata:read'].every(x=>response.permissions.includes(x))
       || typeof response.token!=='string' || response.token.length<20 || response.token===token
-      || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000)
+      || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000
+      || response.protected_handoff?.id!=='kidults-broker-finalizer-token-handoff-v1'
+      || response.protected_handoff.state!=='TOKEN_ISSUED_NOT_LANDING_SUCCESS'
+      || response.protected_handoff.binding?.repository!==repository
+      || response.protected_handoff.binding?.operation_kind!=='FINALIZER_TOKEN_HANDOFF'
+      || response.protected_handoff.binding?.exact_target!==`${envelope.pull_request}:${envelope.base_sha}:${envelope.head_sha}`
+      || typeof response.protected_handoff.signature!=='string'
+      || ['production','public','g5'].some(field=>response.protected_handoff[field]!=='HOLD'))
       throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_INVALID');
     return response.token;
   } catch(error) {
@@ -534,8 +546,8 @@ try {
         process.exit(0);
       }
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-      const eventToken=await acquireEventToken();
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+      await acquireEventToken({observeCutover:true});
       let reservation;
       const writerAttempts=Number(policy.bounded_recovery?.normal_ops_finalizer?.writer_retry_attempts||3);
       for(let attempt=1;attempt<=writerAttempts;attempt+=1){
@@ -560,6 +572,7 @@ try {
         process.exit(0);
       }
       if(!['RESERVED','ALREADY_RESERVED'].includes(reservation?.state)) throw new AutonomousLandingError('AUTONOMOUS_RESERVATION_STATE_INVALID');
+      const eventToken=await acquireEventToken();
       await publishLandingStatus('pending','AI-020 quorum verified; durable authority reserved');
       const lifecycle=await rebindDraftReady(candidate.pr,eventToken);
       await waitForReadyCandidate();

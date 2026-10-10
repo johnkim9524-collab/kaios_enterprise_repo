@@ -9,7 +9,7 @@ const exactUpstreamBinding = 'test "$UPSTREAM_HEAD_SHA" = "$EXPECTED_SHA"';
 function failuresFor(text) {
   const failures = [];
   const required = [
-    "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",
+    "group: kidults-asi-sharded-source-reserve-${{ github.event.workflow_run.head_sha || github.sha }}-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || github.run_id }}",
     expectedShaBinding,
     "UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id || '' }}",
     "UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha || '' }}",
@@ -117,7 +117,7 @@ const mutations = [
     'pull request base-generation compatibility binding'
   ],
   [
-    "github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref",
+    "group: kidults-asi-sharded-source-reserve-${{ github.event.workflow_run.head_sha || github.sha }}-${{ github.event_name }}-${{ github.event.workflow_run.id || github.event_name == 'repository_dispatch' && github.event.client_payload.dispatch_id || github.run_id }}",
     'github.ref',
     'workflow_run concurrency isolation'
   ],
@@ -178,7 +178,7 @@ console.log(JSON.stringify({
   exact_artifact_cardinality: true,
   producer_workflow_path_bound: true,
   natural_discovery_producer_activation: true,
-  concurrency_isolated_by_upstream_run: true,
+  concurrency_isolated_by_exact_sha_event_and_execution: true,
   previous_reserve_bound_to_successful_run: true,
   public_release: 'HOLD',
   production: 'HOLD'

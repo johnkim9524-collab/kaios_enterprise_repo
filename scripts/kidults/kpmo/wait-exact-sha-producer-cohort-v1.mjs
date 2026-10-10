@@ -32,6 +32,14 @@ export function triggerMatchesRun(run, spec, trigger = {}) {
     Boolean(run) && Number(run.id) === expectedId && Number(run.run_attempt) === expectedAttempt;
 }
 
+export function selectCausalExactRun(runs, spec, sha, trigger = {}) {
+  if (!trigger.path || trigger.path !== spec.path) return selectLatestExactRun(runs, spec, sha);
+  const matches = runs.filter(run => run.path === spec.path && run.head_branch === 'main' &&
+    run.head_sha === sha && spec.events.includes(run.event) && triggerMatchesRun(run,spec,trigger));
+  if (matches.length !== 1) throw new Error('TRIGGER_RUN_INDEX_CARDINALITY');
+  return matches[0];
+}
+
 function producerState(run) {
   if (!run) return {state: 'PENDING', run_id: null};
   if (run.status !== 'completed') return {
@@ -66,7 +74,7 @@ export async function readCohort(repo, sha, token, trigger = {}) {
     try {
       const runs = await workflowRuns(repo, spec, sha, token,
         spec.cohort === 'DYNAMIC' ? dynamicWindow : {});
-      const run = selectLatestExactRun(runs, spec, sha);
+      const run = selectCausalExactRun(runs, spec, sha, trigger);
       // A workflow_run delivery is a causal edge, not a hint.  Bind the
       // triggering producer to the selected exact run so a later run with the
       // same SHA cannot silently replace the event's parent generation.

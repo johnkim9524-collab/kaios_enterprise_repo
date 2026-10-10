@@ -8,6 +8,8 @@ const files=[
   'scripts/kidults/staging-operations/lib/resume-operation-v1.mjs',
   'scripts/kidults/staging-operations/lib/dynamodb-operation-ledger-v1.mjs',
   'scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs',
+  'scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs',
+  'scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs',
 ];
 export function buildBrokerCode() {
   const factories=files.map(file=>{
@@ -30,6 +32,7 @@ export function buildTemplates() {
   const p='infrastructure/aws/staging/autonomous-event-token-broker-v1.json';
   const original=JSON.parse(fs.readFileSync(p,'utf8'));
   original.Resources.BrokerFunction.Properties.Code.ZipFile=buildBrokerCode();
+  original.Resources.BrokerFunction.Properties.Timeout=180;
   const desired=structuredClone(original);
   desired.Description='STAGING protected broker with isolated durable RESUME dispatch ledger; exact Owner-authorized bootstrap required.';
   desired.Parameters.ResumeActivationRunFloor={Type:'String',Default:'0',AllowedPattern:'^(0|[1-9][0-9]{0,19})$'};

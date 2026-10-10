@@ -1,0 +1,350 @@
+{
+  "id": "kidults-autonomous-causal-lifecycle-repair-checkpoint-v1",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "completion_owner": "Atlas-KPMO",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "baseline_main_sha": "240cd17a5e4cf9543d54559c44a3d59a8b59bc03",
+  "completed_stages_do_not_repeat": [
+    2625,
+    2626,
+    2627,
+    1903,
+    2628,
+    2629
+  ],
+  "baseline_natural_dispatcher": {
+    "run_id": 38004489870,
+    "event": "schedule",
+    "attempt": 1,
+    "conclusion": "success",
+    "artifact_id": 11650368544,
+    "artifact_sha256": "4f6c9ba35e1bb73e4716c1c1be2b360bbaafc301986fed76761a88e1fa010755",
+    "scope": "CONTROL_DIAGNOSTIC_ONLY",
+    "candidate_count": 100,
+    "physical_requests": 219,
+    "request_budget": 256,
+    "lifecycle_mutation_proven": false,
+    "whole_platform_health_proven": false
+  },
+  "remediation": [
+    "Separate exact-source causal continuation queues; select authenticated parent coverage rather than unrelated latest-run time",
+    "Make REST service failures invalidate the complete scan and prevent partial-result fanout",
+    "Move stale update and redundant close into protected broker with shared PR/head writer fencing, signed readback and permanent UNKNOWN hold",
+    "Authenticate public broker callers using signed GitHub OIDC and exact live native workflow identity",
+    "Fence Finalizer write-token handoff in the same PR/head family and acquire only after original reservation-owner checks",
+    "Share one durable 64-minute legacy-token drain across lifecycle, authorization dispatch and Finalizer handoff",
+    "Observe drain readiness before Finalizer reservation; do not consume authorization dispatch during drain"
+  ],
+  "red_team": {
+    "reviewer": "redteam_holistic",
+    "mode": "READ_ONLY",
+    "formal_independence": "UNKNOWN",
+    "activation_performed": false
+  },
+  "remaining_evidence": [
+    "New Owner-path exact-head source validation and immutable existing-Draft readback",
+    "New exact-head protected-source activation authority",
+    "Exact Owner-authorized STAGING deployment using opt-in Timeout path; no deployment authority created by preparation",
+    "Protected deployment evidence that legacy broker revisions cannot mint during or after drain",
+    "Natural exact-main lifecycle positive readback and signed durable reuse",
+    "Whole-authority-chain Producer Health Sentinel"
+  ],
+  "legacy_consumed_dispatch": "Reconcile existing completed dispatches; never reissue or rebind their authority to overcome cutover HOLD",
+  "rollback": "Restore source and matching protected policy pins together; retain durable operation records and UNKNOWN fences; never reactivate a legacy minting revision during cutover",
+  "normal_operations_proven": false,
+  "autonomous_effect": "Bounded natural recovery with causal queues and durable original-writer fencing; runtime proof pending",
+  "global_effect": "UNKNOWN: no global source-universe coverage evidence created by this repository-internal correction",
+  "irreplaceable_value_effect": "Preserve KIDULTS-owned causal lineage, signed receipts and durable incident continuity",
+  "transparency_effect": "Distinguish baseline scan success, local regression, protected activation and whole-platform health",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD",
+  "ci_reconciliation": {
+    "previous_head": "055699953cff77137acf652face5282db3a0a7b6",
+    "failed_runs": [
+      38005779508,
+      38005779518,
+      38005779517,
+      38005779574,
+      38005779566
+    ],
+    "cause": "Reserve provenance marker and Sentinel command-order contracts; historical immutable transport test incorrectly consumed evolving live source",
+    "correction": "Preserve historical exact bytes in a fixture and reject current Finalizer from the old exception; align causal queue provenance marker and preserve content-suite first position",
+    "new_exact_head_ci": "5633500_EXACT_SOURCE_SUCCESS_NOT_RUNTIME_ACTIVATION",
+    "previous_proposal_create": "COMPLETED_DO_NOT_REPEAT"
+  },
+  "as_of": "2026-10-10T00:31:17.091692+00:00",
+  "source_validation": {
+    "source_head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+    "scope": "EXACT_SOURCE_VALIDATION_NOT_RUNTIME_ACTIVATION",
+    "conclusion": "29_OF_29_SUCCESS",
+    "runs": [
+      {
+        "run_id": 38008599949,
+        "workflow_path": ".github/workflows/kidults-security-assurance-empirical-r1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600037,
+        "workflow_path": ".github/workflows/kidults-full-value-chain-redteam-orchestrator-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600028,
+        "workflow_path": ".github/workflows/kidults-asi-shadow-evidence-freshness-diagnostic-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599929,
+        "workflow_path": ".github/workflows/kpmo-github-trusted-ref-environment-readback-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599901,
+        "workflow_path": ".github/workflows/kpmo-live-canonical-issue-truth-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599860,
+        "workflow_path": ".github/workflows/ai-agent-governance-enforcement-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600075,
+        "workflow_path": ".github/workflows/kidults-global-standard-preproduction-gate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600247,
+        "workflow_path": ".github/workflows/kidults-d1-legacy-resource-policy-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599872,
+        "workflow_path": ".github/workflows/kidults-p0-control-plane-closure-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599836,
+        "workflow_path": ".github/workflows/kidults-canonical-anchor-supply-chain-guard-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599950,
+        "workflow_path": ".github/workflows/kidults-owned-fabric-e2e-preflight-r1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599960,
+        "workflow_path": ".github/workflows/kidults-integration-source-snapshot-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599884,
+        "workflow_path": ".github/workflows/kidults-cloudflare-worker-estate-policy-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599827,
+        "workflow_path": ".github/workflows/kidults-global-rights-source-pool-expansion-r2.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600000,
+        "workflow_path": ".github/workflows/kidults-phase2-data-connection-validate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599823,
+        "workflow_path": ".github/workflows/kidults-asi-workflow-fanout-budget-guard-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599963,
+        "workflow_path": ".github/workflows/kidults-asi-global-open-market-discovery-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599891,
+        "workflow_path": ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599904,
+        "workflow_path": ".github/workflows/kidults-asi-shadow-operating-evidence-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599862,
+        "workflow_path": ".github/workflows/kidults-asi-sharded-source-reserve-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600025,
+        "workflow_path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600021,
+        "workflow_path": ".github/workflows/kidults-asi-state-department-camera-evidence-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600084,
+        "workflow_path": ".github/workflows/kpmo-secret-bearing-dispatch-inventory-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008600171,
+        "workflow_path": ".github/workflows/solo-owner-preflight.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599880,
+        "workflow_path": ".github/workflows/delegated-autonomous-internal-authority-enforcement-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599867,
+        "workflow_path": ".github/workflows/kidults-coordination-validate.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599934,
+        "workflow_path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599981,
+        "workflow_path": ".github/workflows/kidults-kir-runtime-contract-v1.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      },
+      {
+        "run_id": 38008599967,
+        "workflow_path": ".github/workflows/ci-validation.yml",
+        "event": "pull_request",
+        "run_attempt": 1,
+        "head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+        "conclusion": "success"
+      }
+    ],
+    "whole_platform_health_proven": false
+  },
+  "proposal_reconciliation": {
+    "state": "EXISTING_DRAFT_REBOUND_R5_VERIFIED_NEW_SOURCE_PREPARATION",
+    "source_head_sha": "5633500e42a2da6d0f239254bafdb72d41de4fbf",
+    "proposal": 2630,
+    "payload_path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-proposal-payload-r5-20261010.json",
+    "previous_intents_retained": true,
+    "create_proposal_replayed": false,
+    "external_launcher_writer_fencing": "UNKNOWN",
+    "writer_context": "USER_REQUESTED_THIS_SESSION_INTEGRATION; CURRENT_PAYLOAD_AND_REF_RECONCILIATION_REQUIRED_BEFORE_WRITE"
+  },
+  "owner_timeout_preparation": {
+    "state": "IMPLEMENTED_NOT_VERIFIED",
+    "scope": "OWNER_NATIVE_WORKFLOW_DISPATCH_ONLY_BROKERFUNCTION_TIMEOUT_EXACT_30_TO_180_PLUS_EXISTING_LAMBDA_CODE",
+    "automatic_push_timeout_change": "DENIED",
+    "default_opt_in": false,
+    "protected_owner_authority_required": true,
+    "authority_granted": false,
+    "deployment_executed": false,
+    "local_regression": "37_OF_37_SUCCESS",
+    "red_team_findings_repaired": [
+      "Reject CR/LF and exact tuple mismatch before GITHUB_ENV write",
+      "Read authoritative main before change-set creation and execution; reject drift/read failure",
+      "Reject unrelated template envelope/resource attributes/IAM changes under Owner timeout opt-in"
+    ],
+    "readback": "Live Lambda Timeout must equal desired Timeout before deployment receipt",
+    "limits": [
+      "Local environment/context checks do not authenticate Owner authority",
+      "Native protected environment and OIDC/IAM remain authority boundary",
+      "Two live-main reads are drift checks, not an atomic cross-system fence",
+      "Legacy broker revision deactivation and natural runtime proof remain unverified"
+    ]
+  }
+}

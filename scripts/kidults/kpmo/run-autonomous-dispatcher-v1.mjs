@@ -210,7 +210,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 
 // One invocation owns its budget and immutable cache. Mutable authority reads
 // are never cached. A global read failure aborts discovery before any fanout.
-export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED|READ_TRANSPORT_FAILED|READ_RESPONSE_INVALID|READ_TIMEOUT)$/.test(String(error?.code||''))
+export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED|READ_SERVICE_UNAVAILABLE|READ_TRANSPORT_FAILED|READ_RESPONSE_INVALID|READ_TIMEOUT)$/.test(String(error?.code||''))
   ||(error?.global===true&&/^SOURCE_BATCH_[A-Z_]+$/.test(String(error?.code||'')));
 export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100,requestTimeoutMs=30000}) {
   if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
@@ -242,6 +242,9 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
         terminal=new DispatcherError('DISPATCH_RATE_LIMITED');throw terminal;
       }
       if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
+      // Service uncertainty invalidates the entire scan, including candidates
+      // already classified. Do not retry HTTP failures or expose response text.
+      if(response.status>=500&&response.status<=599){terminal=new DispatcherError('DISPATCH_READ_SERVICE_UNAVAILABLE');throw terminal;}
       if(response.status===404&&immutable)return null;
       if(!response.ok)fail('DISPATCH_GITHUB_API',`${response.status}:${path}`);
       return await response.json();
