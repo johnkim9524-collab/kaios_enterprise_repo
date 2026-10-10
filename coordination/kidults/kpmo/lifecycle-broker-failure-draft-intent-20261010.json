@@ -1,0 +1,24 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "92170e31ae7b0663eafcf4acf86f9716e561e7eb",
+  "head_branch": "codex/lifecycle-broker-failure-evidence-20261010",
+  "source_head_sha": "ccca1be5b3611f53d7f24e0a2c68b667e969597d",
+  "source_head_tree_sha": "d2e0da29b370a114f909332b961785bf1a29958f",
+  "canonical_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/lifecycle-broker-failure-evidence-20261010",
+    "title": "fix: preserve bounded lifecycle broker failure evidence",
+    "body": "Natural Dispatcher run 38038327887 failed on PR1677 stale convergence, but the shell replaced the protected broker response with LIFECYCLE_BROKER_NOT_VERIFIED and lost its original reason. Preserve only bounded state/reason/failure-code labels and a boolean mutation observation in the fail-closed receipt before replacement; omit arbitrary text, tokens and credentials.\n\nValidation: 58 actual-shell, broker lifecycle and protected dispatch tests passed, including drain HOLD, original-fence HOLD, malformed response and secret redaction. This change preserves existing authority, single-call and no-retry boundaries. It does not resolve or claim the historical broker denial or authorize provider activation or promotion.",
+    "draft": true,
+    "maintainer_can_modify": false
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:32e3142690276e0f781f474512903fbe4e8855e4094e2b3eb2fbaf6a358cc9a4"
+}

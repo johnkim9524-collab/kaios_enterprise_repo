@@ -4,7 +4,19 @@ set -euo pipefail
 binding=$1 operation=$2 output=$3
 mkdir -p "$(dirname "$output")"
 write_failure() {
-  jq -n --arg code "$1" --argjson binding "$binding" '{state:"HOLD_RECONCILE",failure_code:$code,binding:$binding,retry_without_reconciliation:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' > "$output"
+  # Preserve bounded diagnostic labels before replacing the broker response.
+  # Never retain arbitrary response text, tokens, signatures or credentials.
+  local observation='{}'
+  if [[ -f "$output" ]]; then
+    observation=$(jq -c '
+      def bounded_label: if type=="string" then (if test("^[A-Z][A-Z0-9_:-]{0,159}$") then . else null end) else null end;
+      if type=="object" then
+        {state:(.state|bounded_label),reason:(.reason|bounded_label),failure_code:(.failure_code|bounded_label),
+         mutation_attempted:(if (.mutation_attempted|type)=="boolean" then .mutation_attempted else null end)}
+        | with_entries(select(.value!=null))
+      else {} end' "$output" 2>/dev/null) || observation='{}'
+  fi
+  jq -n --arg code "$1" --argjson binding "$binding" --argjson observation "$observation" '{state:"HOLD_RECONCILE",failure_code:$code,binding:$binding,broker_observation:$observation,retry_without_reconciliation:false,production:"HOLD",public:"HOLD",g5:"HOLD"}' > "$output"
   echo "::error::$1" >&2
   exit 1
 }
