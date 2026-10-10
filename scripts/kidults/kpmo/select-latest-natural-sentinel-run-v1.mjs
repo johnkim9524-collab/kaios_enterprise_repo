@@ -1,3 +1,4 @@
+import {assuranceSentinelObservationRoute} from './lib/assurance-sentinel-observation-route-v1.mjs';
 import {verifyAuthenticatedSentinelContinuation} from './lib/authenticated-sentinel-continuation-v1.mjs';
 const SHA=/^[0-9a-f]{40}$/;
 // Select only authoritative natural Sentinel outcomes for the Assurance cohort.
@@ -69,17 +70,24 @@ export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observ
 
 if(import.meta.url==='file://'+process.argv[1]){
   try{
-    const [inputPath,sourceSha,observedAt,repository,evidencePath,auditPath]=process.argv.slice(2);
+    const [inputPath,sourceSha,observedAt,repository,evidencePath,auditPath,runPath,jobsPath,proofPath]=process.argv.slice(2);
     const input=JSON.parse(await (await import('node:fs/promises')).readFile(inputPath,'utf8'));
     const continuationEvidence=evidencePath?JSON.parse(await (await import('node:fs/promises')).readFile(evidencePath,'utf8')):[];
-    let causalParent=null;
+    let causalParent=null,observationRoute=null;
     if(auditPath){
       const audit=JSON.parse(await (await import('node:fs/promises')).readFile(auditPath,'utf8'));
-      if(audit.source?.sha!==sourceSha||audit.execution?.trigger!=='workflow_run')throw new Error('SENTINEL_SELECTION_ASSURANCE_CAUSAL_INPUT');
-      causalParent=audit.execution.upstream;
-      if(!causalParent)throw new Error('SENTINEL_SELECTION_ASSURANCE_CAUSAL_INPUT');
+      const read=async file=>JSON.parse(await (await import('node:fs/promises')).readFile(file,'utf8'));
+      const context={audit,sourceSha,assuranceRun:runPath?await read(runPath):undefined,
+        jobs:jobsPath?await read(jobsPath):undefined,proof:proofPath?await read(proofPath):undefined};
+      const route=assuranceSentinelObservationRoute(context);
+      observationRoute=route;
+      const matches=input.workflow_runs.filter(run=>Number(run.id)===route.sentinelRunId);
+      if(matches.length!==1)throw new Error('SENTINEL_SELECTION_ASSURANCE_BINDING_CARDINALITY');
+      causalParent=assuranceSentinelObservationRoute({...context,sentinelRun:matches[0]}).causalParent;
+      if(route.mode==='CAUSAL_SENTINEL'&&!causalParent)throw new Error('SENTINEL_SELECTION_ASSURANCE_CAUSAL_INPUT');
     }
     const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt,continuationEvidence,causalParent});
+    if(observationRoute?.mode==='EXTERNAL_CLOCK_PROOF_BOUND'&&Number(result.latest?.id)!==observationRoute.sentinelRunId)throw new Error('SENTINEL_SELECTION_CLOCK_PROOF_STALE');
     process.stdout.write(JSON.stringify(result)+'\n');
   }catch(error){
     process.stderr.write('SENTINEL_LATEST_RUN_SELECTION_FAILED\n');
