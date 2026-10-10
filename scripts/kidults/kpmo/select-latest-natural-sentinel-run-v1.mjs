@@ -9,13 +9,24 @@ const NON_AUTHORITATIVE_CONCLUSIONS=new Set(['skipped','stale','neutral','action
 const TERMINAL_CONCLUSIONS=new Set(['success','failure','cancelled','timed_out','startup_failure']);
 const positive=value=>Number.isSafeInteger(value)&&value>0;
 
-export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observedAt,continuationEvidence=[]}){
+export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observedAt,continuationEvidence=[],causalParent=null}){
   if(!Array.isArray(runs)||!SHA.test(String(sourceSha||''))||typeof repository!=='string'||
     !Number.isFinite(Date.parse(observedAt||'')))throw new TypeError('SENTINEL_SELECTION_INPUT_INVALID');
   const cutoff=Date.parse(observedAt);
+  if(causalParent!==null&&(!positive(Number(causalParent.run_id))||Number(causalParent.run_attempt)!==1||
+    causalParent.repository!==repository||causalParent.head_branch!=='main'||causalParent.workflow_path!==WORKFLOW_PATH||
+    causalParent.workflow_name!=='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'||
+    ![...NATURAL_EVENTS,'workflow_dispatch'].includes(causalParent.workflow_event)||causalParent.conclusion!=='success'))
+    throw new Error('SENTINEL_SELECTION_CAUSAL_PARENT_INVALID');
+  if(causalParent!==null&&runs.filter(run=>Number(run?.id)===Number(causalParent.run_id)&&
+    Number(run?.run_attempt)===Number(causalParent.run_attempt)).length!==1)
+    throw new Error('SENTINEL_SELECTION_CAUSAL_PARENT_CARDINALITY');
   const candidates=[];
   const seen=new Map();
   for(const run of runs){
+    if(causalParent!==null&&Number(run?.id)!==Number(causalParent.run_id))continue;
+    if(causalParent!==null&&(run.event!==causalParent.workflow_event||run.head_sha!==sourceSha||run.head_branch!=='main'||
+      run.status!=='completed'||run.conclusion!==causalParent.conclusion))throw new Error('SENTINEL_SELECTION_CAUSAL_PARENT_DRIFT');
     if(run?.head_sha!==sourceSha||run?.head_branch!=='main')continue;
     if(!NATURAL_EVENTS.has(run?.event)){
       if(run?.event!=='workflow_dispatch')continue;
@@ -58,10 +69,17 @@ export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observ
 
 if(import.meta.url==='file://'+process.argv[1]){
   try{
-    const [inputPath,sourceSha,observedAt,repository,evidencePath]=process.argv.slice(2);
+    const [inputPath,sourceSha,observedAt,repository,evidencePath,auditPath]=process.argv.slice(2);
     const input=JSON.parse(await (await import('node:fs/promises')).readFile(inputPath,'utf8'));
     const continuationEvidence=evidencePath?JSON.parse(await (await import('node:fs/promises')).readFile(evidencePath,'utf8')):[];
-    const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt,continuationEvidence});
+    let causalParent=null;
+    if(auditPath){
+      const audit=JSON.parse(await (await import('node:fs/promises')).readFile(auditPath,'utf8'));
+      if(audit.source?.sha!==sourceSha||audit.execution?.trigger!=='workflow_run')throw new Error('SENTINEL_SELECTION_ASSURANCE_CAUSAL_INPUT');
+      causalParent=audit.execution.upstream;
+      if(!causalParent)throw new Error('SENTINEL_SELECTION_ASSURANCE_CAUSAL_INPUT');
+    }
+    const result=selectLatestNaturalSentinelRun(input.workflow_runs,{sourceSha,repository,observedAt,continuationEvidence,causalParent});
     process.stdout.write(JSON.stringify(result)+'\n');
   }catch(error){
     process.stderr.write('SENTINEL_LATEST_RUN_SELECTION_FAILED\n');

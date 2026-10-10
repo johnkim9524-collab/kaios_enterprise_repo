@@ -290,6 +290,77 @@ jobs:
           test "$CURRENT_MAIN" = "$UPSTREAM_SHA"
           echo "CURRENT_MAIN_SHA=$CURRENT_MAIN" >> "$GITHUB_ENV"
 
+      - name: Restore authenticated exact Assurance archive before parent selection
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSURANCE_ATTEMPT: ${{ env.UPSTREAM_RUN_ATTEMPT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" \
+            > "$GATE_DIR/upstream-assurance-run.json"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/attempts/${UPSTREAM_RUN_ATTEMPT}/jobs?per_page=100" \
+            > "$GATE_DIR/assurance-jobs.json"
+          AUDIT_JOB_COUNT=$(jq --argjson run "$UPSTREAM_RUN_ID" '[.jobs[] | select(.run_id==$run and .name=="audit" and .status=="completed" and .conclusion=="success")] | length' "$GATE_DIR/assurance-jobs.json")
+          test "$AUDIT_JOB_COUNT" -eq 1
+          jq --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_RUN_ATTEMPT" \
+            '[.jobs[] | select(.run_id==$run and .name=="audit" and .status=="completed" and .conclusion=="success")][0] + {run_attempt:$attempt}' \
+            "$GATE_DIR/assurance-jobs.json" > "$GATE_DIR/assurance-audit-job.json"
+          ASSURANCE_ARTIFACT_NAME="kidults-continuous-assurance-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" \
+            > "$GATE_DIR/assurance-artifacts.json"
+          ASSURANCE_ARTIFACT_COUNT=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            "$GATE_DIR/assurance-artifacts.json")
+          test "$ASSURANCE_ARTIFACT_COUNT" -eq 1
+          ASSURANCE_ARTIFACT_ID=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            -r '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
+            "$GATE_DIR/assurance-artifacts.json")
+          ASSURANCE_ARTIFACT_DIGEST=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            -r '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
+            "$GATE_DIR/assurance-artifacts.json")
+          [[ "$ASSURANCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ASSURANCE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ASSURANCE_ARTIFACT_ID}/zip" \
+            > "$GATE_DIR/assurance-packet.zip"
+          python3 scripts/kidults/kpmo/read-sentinel-artifact-v1.py "$ASSURANCE_ARTIFACT_DIGEST" \
+            < "$GATE_DIR/assurance-packet.zip" > "$GATE_DIR/assurance-packet.json"
+          jq -e '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")] | length==1' \
+            "$GATE_DIR/assurance-packet.json" >/dev/null
+          jq -e '[.members[] | select((.name|split("/")|last)=="whole-platform-operating-proof-v1.json")] | length==1' \
+            "$GATE_DIR/assurance-packet.json" >/dev/null
+          jq -r '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")][0].text' \
+            "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/audit-receipt.json"
+          jq -r '[.members[] | select((.name|split("/")|last)=="whole-platform-operating-proof-v1.json")][0].text' \
+            "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/whole-platform-operating-proof-v1.json"
+          jq -n --argjson id "$ASSURANCE_ARTIFACT_ID" --arg digest "$ASSURANCE_ARTIFACT_DIGEST" \
+            '{id:$id,digest:$digest}' > "$GATE_DIR/assurance-artifact-binding.json"
+          node --input-type=module <<'NODE'
+          import crypto from 'node:crypto';
+          import fs from 'node:fs';
+          const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
+          const sha256=value=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
+          const dir=process.env.GATE_DIR;
+          const packet=JSON.parse(fs.readFileSync(`${dir}/assurance-packet.json`,'utf8'));
+          const run=JSON.parse(fs.readFileSync(`${dir}/upstream-assurance-run.json`,'utf8'));
+          const artifact=JSON.parse(fs.readFileSync(`${dir}/assurance-artifact-binding.json`,'utf8'));
+          const audit=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='audit-receipt.json');
+          const proof=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='whole-platform-operating-proof-v1.json');
+          if(packet.archive_digest!==artifact.digest||audit.length!==1||proof.length!==1||packet.members.length<1||packet.members.length>512) throw new Error('ASSURANCE_ARCHIVE_CARDINALITY');
+          const base={receipt_type:'KPMO_ASSURANCE_ARCHIVE_VALIDATION',state:'VERIFIED_PASS',readback_verified:true,
+            source_sha:process.env.UPSTREAM_SHA,assurance_run_id:Number(run.id),assurance_run_attempt:Number(run.run_attempt),
+            artifact_id:Number(artifact.id),artifact_digest:artifact.digest,archive_digest:packet.archive_digest,
+            archive_size_bytes:fs.statSync(`${dir}/assurance-packet.zip`).size,member_count:packet.members.length,
+            audit_receipt_count:audit.length,runtime_proof_count:proof.length,
+            audit_receipt_archive_member_digest:audit[0].sha256,runtime_proof_archive_member_digest:proof[0].sha256};
+          if(base.archive_size_bytes<1||base.archive_size_bytes>8*1024*1024) throw new Error('ASSURANCE_ARCHIVE_SIZE_LIMIT');
+          fs.writeFileSync(`${dir}/assurance-archive-validation-receipt.json`,JSON.stringify({...base,receipt_digest:sha256(base)},null,2)+'\n');
+          NODE
+
       - name: Restore latest exact-main natural Sentinel producer-health receipt
         env:
           GH_TOKEN: ${{ github.token }}
@@ -351,10 +422,19 @@ jobs:
             > "$GATE_DIR/sentinel-runs.json"
           jq -e '.workflow_runs as $runs | ($runs|length)==.total_count and ($runs|length)==($runs|map(.id)|unique|length)' \
             "$GATE_DIR/sentinel-runs.json" >/dev/null
+          CAUSAL_SENTINEL_ID=$(jq -r '.execution.upstream.run_id // empty' "$GATE_DIR/audit-receipt.json")
+          [[ "$CAUSAL_SENTINEL_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${CAUSAL_SENTINEL_ID}" \
+            > "$GATE_DIR/causal-sentinel-native-run.json"
+          jq --slurpfile parent "$GATE_DIR/causal-sentinel-native-run.json" \
+            '.workflow_runs |= (map(select(.id != $parent[0].id)) + $parent) | .total_count=(.workflow_runs|length)' \
+            "$GATE_DIR/sentinel-runs.json" > "$GATE_DIR/causal-sentinel-runs.json"
+          mv "$GATE_DIR/causal-sentinel-runs.json" "$GATE_DIR/sentinel-runs.json"
           node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
             "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json"
           node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" \
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$GATE_DIR/audit-receipt.json" \
             > "$GATE_DIR/sentinel-selection.json"
           jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
           SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
@@ -410,70 +490,11 @@ jobs:
       - name: Restore exact Assurance full-runtime proof
         env:
           GH_TOKEN: ${{ github.token }}
-          ASSURANCE_ATTEMPT: ${{ env.UPSTREAM_RUN_ATTEMPT }}
         shell: bash
         run: |
           set -euo pipefail
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/attempts/${UPSTREAM_RUN_ATTEMPT}/jobs?per_page=100" \
-            > "$GATE_DIR/assurance-jobs.json"
-          AUDIT_JOB_COUNT=$(jq --argjson run "$UPSTREAM_RUN_ID" '[.jobs[] | select(.run_id==$run and .name=="audit" and .status=="completed" and .conclusion=="success")] | length' "$GATE_DIR/assurance-jobs.json")
-          test "$AUDIT_JOB_COUNT" -eq 1
-          jq --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_RUN_ATTEMPT" \
-            '[.jobs[] | select(.run_id==$run and .name=="audit" and .status=="completed" and .conclusion=="success")][0] + {run_attempt:$attempt}' \
-            "$GATE_DIR/assurance-jobs.json" > "$GATE_DIR/assurance-audit-job.json"
-          ASSURANCE_ARTIFACT_NAME="kidults-continuous-assurance-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" \
-            > "$GATE_DIR/assurance-artifacts.json"
-          ASSURANCE_ARTIFACT_COUNT=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
-            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
-            "$GATE_DIR/assurance-artifacts.json")
-          test "$ASSURANCE_ARTIFACT_COUNT" -eq 1
-          ASSURANCE_ARTIFACT_ID=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
-            -r '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].id' \
-            "$GATE_DIR/assurance-artifacts.json")
-          ASSURANCE_ARTIFACT_DIGEST=$(jq --arg name "$ASSURANCE_ARTIFACT_NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
-            -r '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0].digest // empty' \
-            "$GATE_DIR/assurance-artifacts.json")
-          [[ "$ASSURANCE_ARTIFACT_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$ASSURANCE_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
-          gh api -H 'Accept: application/vnd.github+json' \
-            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${ASSURANCE_ARTIFACT_ID}/zip" \
-            > "$GATE_DIR/assurance-packet.zip"
-          python3 scripts/kidults/kpmo/read-sentinel-artifact-v1.py "$ASSURANCE_ARTIFACT_DIGEST" \
-            < "$GATE_DIR/assurance-packet.zip" > "$GATE_DIR/assurance-packet.json"
-          jq -e '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")] | length==1' \
-            "$GATE_DIR/assurance-packet.json" >/dev/null
-          jq -e '[.members[] | select((.name|split("/")|last)=="whole-platform-operating-proof-v1.json")] | length==1' \
-            "$GATE_DIR/assurance-packet.json" >/dev/null
-          jq -r '[.members[] | select((.name|split("/")|last)=="audit-receipt.json")][0].text' \
-            "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/audit-receipt.json"
-          jq -r '[.members[] | select((.name|split("/")|last)=="whole-platform-operating-proof-v1.json")][0].text' \
-            "$GATE_DIR/assurance-packet.json" > "$GATE_DIR/whole-platform-operating-proof-v1.json"
-          jq -n --argjson id "$ASSURANCE_ARTIFACT_ID" --arg digest "$ASSURANCE_ARTIFACT_DIGEST" \
-            '{id:$id,digest:$digest}' > "$GATE_DIR/assurance-artifact-binding.json"
-          node --input-type=module <<'NODE'
-          import crypto from 'node:crypto';
-          import fs from 'node:fs';
-          const stable=value=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(k=>`${JSON.stringify(k)}:${stable(value[k])}`).join(',')}}`:JSON.stringify(value);
-          const sha256=value=>`sha256:${crypto.createHash('sha256').update(stable(value)).digest('hex')}`;
-          const dir=process.env.GATE_DIR;
-          const packet=JSON.parse(fs.readFileSync(`${dir}/assurance-packet.json`,'utf8'));
-          const run=JSON.parse(fs.readFileSync(`${dir}/upstream-assurance-run.json`,'utf8'));
-          const artifact=JSON.parse(fs.readFileSync(`${dir}/assurance-artifact-binding.json`,'utf8'));
-          const audit=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='audit-receipt.json');
-          const proof=packet.members.filter(x=>x.encoding==='utf-8'&&x.name.split('/').at(-1)==='whole-platform-operating-proof-v1.json');
-          if(packet.archive_digest!==artifact.digest||audit.length!==1||proof.length!==1||packet.members.length<1||packet.members.length>512) throw new Error('ASSURANCE_ARCHIVE_CARDINALITY');
-          const base={receipt_type:'KPMO_ASSURANCE_ARCHIVE_VALIDATION',state:'VERIFIED_PASS',readback_verified:true,
-            source_sha:process.env.UPSTREAM_SHA,assurance_run_id:Number(run.id),assurance_run_attempt:Number(run.run_attempt),
-            artifact_id:Number(artifact.id),artifact_digest:artifact.digest,archive_digest:packet.archive_digest,
-            archive_size_bytes:fs.statSync(`${dir}/assurance-packet.zip`).size,member_count:packet.members.length,
-            audit_receipt_count:audit.length,runtime_proof_count:proof.length,
-            audit_receipt_archive_member_digest:audit[0].sha256,runtime_proof_archive_member_digest:proof[0].sha256};
-          if(base.archive_size_bytes<1||base.archive_size_bytes>8*1024*1024) throw new Error('ASSURANCE_ARCHIVE_SIZE_LIMIT');
-          fs.writeFileSync(`${dir}/assurance-archive-validation-receipt.json`,JSON.stringify({...base,receipt_digest:sha256(base)},null,2)+'\n');
-          NODE
+          ASSURANCE_ARTIFACT_ID=$(jq -r '.id' "$GATE_DIR/assurance-artifact-binding.json")
+          ASSURANCE_ARTIFACT_DIGEST=$(jq -r '.digest' "$GATE_DIR/assurance-artifact-binding.json")
           jq -n \
             --argjson run "$PRODUCER_HEALTH_RUN_ID" \
             --argjson attempt "$PRODUCER_HEALTH_RUN_ATTEMPT" \
