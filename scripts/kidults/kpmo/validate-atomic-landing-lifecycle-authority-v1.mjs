@@ -2,6 +2,7 @@
 import fs from 'node:fs';
 import {
   GOVERNED_LANDING_CONTEXT,
+  LANDING_READINESS_CONTEXT,
   GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
   GOVERNED_LANDING_PENDING_DESCRIPTION,
   OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON,
@@ -134,6 +135,32 @@ assert(authority.lifecycle_artifact_digest === `sha256:${'a'.repeat(64)}`, 'POSI
 assert(authority.exact_base_sha === base, 'POSITIVE_BASE_BINDING');
 assert(authority.lifecycle_receipt_reason === READY_GOVERNED_REASON, 'POSITIVE_PENDING_SEMANTICS');
 assert(authority.native_status_binding_mode === 'EXACT_STATUS_IDENTITY', 'POSITIVE_EXACT_STATUS_BINDING');
+
+const isolatedReadiness = {
+  context: LANDING_READINESS_CONTEXT, state: 'success',
+  description: GOVERNED_LANDING_NORMAL_READY_DESCRIPTION,
+  creator: 'github-actions[bot]', status_id: 15,
+  created_at: '2026-09-01T13:28:37Z', updated_at: '2026-09-01T13:28:37Z',
+};
+const isolatedReceipt = receipt(200, {
+  native_status_evidence: [...receiptEvidence([nativeStatuses[0]]), isolatedReadiness],
+});
+const isolatedInput = {
+  runs: [green], artifactsByRunId: {'200': [artifact(200)]},
+  receiptsByRunId: {'200': isolatedReceipt}, statuses: [nativeStatuses[0]],
+};
+assert(invoke(isolatedInput).state === 'READY_GOVERNED_LIFECYCLE_AUTHORITY_BOUND', 'ISOLATED_READINESS_RECEIPT_REJECTED');
+for (const [code, change] of [
+  ['LIFECYCLE_RECEIPT_READINESS_STATUS_INVALID', {state: 'failure'}],
+  ['LIFECYCLE_RECEIPT_READINESS_STATUS_INVALID', {creator: 'untrusted'}],
+  ['LIFECYCLE_RECEIPT_READINESS_PRECEDES_READY_EVENT', {updated_at: '2026-09-01T13:19:00Z'}],
+  ['LIFECYCLE_SUCCESS_PRECEDES_NATIVE_READY_SIGNAL', {updated_at: '2026-09-01T13:30:00Z'}],
+  ['LIFECYCLE_RECEIPT_READINESS_STATUS_ID_INVALID', {status_id: null}],
+]) {
+  expectReject(code, () => invoke({...isolatedInput, receiptsByRunId: {'200': {
+    ...isolatedReceipt, native_status_evidence: [...receiptEvidence([nativeStatuses[0]]), {...isolatedReadiness, ...change}],
+  }}}));
+}
 
 const normalReadyStatuses = nativeStatuses.map(status => status.context === GOVERNED_LANDING_CONTEXT
   ? {

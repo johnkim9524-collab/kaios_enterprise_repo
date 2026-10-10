@@ -1,6 +1,6 @@
 {
   "id": "kidults-governed-landing-authorization-policy-v1",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "status": "PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE",
   "owner": "KPMO",
   "routing": {
@@ -185,5 +185,11 @@
     "solo_owner_governance_is_production_approval": false
   },
   "governance_mode": "SOLO_OWNER_GOVERNED",
-  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27"
+  "decision_id": "JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27",
+  "readiness_status_context": "KIDULTS Landing Readiness V1",
+  "status_ownership": {
+    "readiness": "CONTROL_ONLY_OBSERVER",
+    "required_landing": "OPERATION_CONTROLLER_ONLY",
+    "readiness_may_write_required_landing": false
+  }
 }

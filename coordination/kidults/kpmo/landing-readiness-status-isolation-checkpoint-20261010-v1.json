@@ -1,0 +1,72 @@
+{
+  "id": "kidults-landing-readiness-status-isolation-checkpoint-v1",
+  "version": "1.0.0",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "agent_id": "Atlas",
+  "scope": "PR_2642_POSTMERGE_STATUS_RACE_REMEDIATION",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "as_of": "2026-10-10T14:04:42.471655+00:00",
+  "source_main_sha": "afc7895e454539a6599db148bedfb240a01916cf",
+  "facts": {
+    "merged_pr": 2642,
+    "handoff_run": 38053798322,
+    "staging_run": 38053891476,
+    "staging_receipt": "DEPLOYED_AND_NEGATIVE_CANARY_PASS",
+    "failed_finalizer_run": 38048642143,
+    "failure_code": "AUTONOMOUS_GITHUB_API_405",
+    "required_status_overwrite_observed_at": "2026-10-10T11:31:35Z",
+    "unknown_pr": 1677,
+    "latest_natural_dispatcher_run": 38055732282,
+    "unknown_reconciliation_state": "HOLD_RECONCILE",
+    "unknown_reason": "FAMILY_PHASE_INVOCATION_DRAIN_WINDOW",
+    "unknown_mutation_attempted": false,
+    "initial_correction_ci_run": 38057785754,
+    "initial_correction_ci_conclusion": "failure",
+    "initial_correction_ci_failure": "STALE_RECEIPT_STATE_REGRESSION"
+  },
+  "inferences": [
+    "Readiness observer overwriting finalizer success is a reproducible required-status race and a likely contributor to HTTP 405; GitHub response body does not establish the sole cause."
+  ],
+  "implementation": "Separate observer readiness context from controller-owned landing authority; validate consumers and readiness provenance/time; preserve rulesets and authority boundaries.",
+  "local_verification": [
+    "governed-landing policy and native required gates: 89 tests passed",
+    "autonomous landing, generation, gate evidence and postmerge lifecycle: 35 tests passed",
+    "atomic lifecycle receipt regression including isolated readiness positive and negative cases passed",
+    "lifecycle, convergence, coverage, generation integration and handoff compatibility validators passed",
+    "producer/consumer/policy/scope follow-up: 115 tests passed",
+    "actual Dispatcher CI regression suite: 283 tests passed",
+    "delegated authority/generation/postmerge broad suite after locked dependency installation: 57 tests passed"
+  ],
+  "closure_remaining": [
+    "exact-head independent GitHub verification",
+    "protected landing authority and exact-main reproduction",
+    "producer health sentinel and final completion receipt"
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "autonomous_effect": "Removes observer/controller status interference without granting new landing authority.",
+  "global_effect": "Shared workflow fix applies to eligible internal PRs; no empirical geographic/source coverage claim.",
+  "irreplaceable_value_effect": "Preserves versioned provenance and operation lifecycle evidence.",
+  "transparency_effect": "Separates readiness, landing authorization, deployment and UNKNOWN reconciliation evidence.",
+  "redteam_review": {
+    "reviewer": "RedTeam-Holistic",
+    "state": "LOCAL_FOLLOWUP_BLOCKING_FINDINGS_FIXED_REMOTE_VERIFICATION_PENDING",
+    "report": "docs/kidults/kpmo/reviews/landing-readiness-holistic-redteam-20261010.md",
+    "independent_local_tests_passed": 98,
+    "landing_authority": false,
+    "independent_followup_local_tests_passed": 115
+  },
+  "followup_corrections": [
+    "Isolated readiness consumer compatibility with context and explicit no-authority checks",
+    "Reject contradictory legacy receipt authority claims",
+    "Actual publisher-to-consumer regression",
+    "Align stale assertions with source policy"
+  ],
+  "draft_proposal_intent_state": "HISTORICAL_NOT_REUSABLE_AFTER_SUBSTANTIVE_CONSUMER_CORRECTION",
+  "blocked_action": "AUTONOMOUS_LANDING",
+  "blockers": [
+    "CAPABILITY_GUARD_WEAKENED",
+    "INDEPENDENT_SECURITY_CAPABILITY_CHANGED"
+  ]
+}

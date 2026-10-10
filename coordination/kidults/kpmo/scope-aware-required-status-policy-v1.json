@@ -43,5 +43,9 @@
     "production": "HOLD",
     "public_release": "HOLD",
     "g5": "HOLD"
-  }
+  },
+  "native_readiness_status_contexts": [
+    "KIDULTS Scope-Aware Authoritative Status V1",
+    "KIDULTS Landing Readiness V1"
+  ]
 }

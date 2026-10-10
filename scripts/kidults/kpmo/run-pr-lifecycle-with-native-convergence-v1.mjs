@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {
   isAtomicLandingNativeStatusReady,
+  LANDING_READINESS_CONTEXT,
 } from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 const DEFAULT_MAX_ATTEMPTS = 60;
@@ -31,7 +32,8 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
     const status = matches[0];
     if (minimumStatusTime != null) {
       const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
-      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime) return false;
+      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
+        || (context === LANDING_READINESS_CONTEXT && statusTime === minimumStatusTime)) return false;
     }
     const githubActionsIdentity = status.creator?.login === 'github-actions[bot]'
       || /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/.test(String(status.avatar_url || ''));
@@ -199,7 +201,7 @@ async function main() {
     DEFAULT_DELAY_MS, 0, DEFAULT_DELAY_MS,
     'LIFECYCLE_CONVERGENCE_DELAY_INVALID');
   const policy = JSON.parse(fs.readFileSync(POLICY, 'utf8'));
-  const requiredContexts = Array.from(new Set(policy?.native_required_status_contexts || []));
+  const requiredContexts = Array.from(new Set(policy?.native_readiness_status_contexts || policy?.native_required_status_contexts || []));
   assert(requiredContexts.length > 0, 'LIFECYCLE_CONVERGENCE_REQUIRED_CONTEXTS_EMPTY');
   const headers = {
     Authorization: `Bearer ${token}`,

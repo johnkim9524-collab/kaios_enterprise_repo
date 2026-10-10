@@ -18,3 +18,23 @@ test('draft receipt with promotion or authority claims is rejected',()=>{
   const draft={...receipt,state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',promotion_eligible:true,landing_authorization_created:false,atomic_landing_required:false};
   assert.throws(()=>validateReadinessConsumption(draft,input),/DRAFT_AUTHORITY_BOUNDARY/);
 });
+
+for(const state of ['READY_OPERATION_AUTHORITY_PENDING','READY_NON_GOVERNED_SCOPE_VERIFIED']) {
+  const isolated={...receipt,state,status_context:'KIDULTS Landing Readiness V1',ordinary_readiness_published_success:true,
+    promotion_eligible:false,landing_authorization_created:false,atomic_landing_required:state==='READY_OPERATION_AUTHORITY_PENDING'};
+  test(`consumes isolated ${state} readiness without landing authority`,()=>{
+    const result=validateReadinessConsumption(isolated,input);
+    assert.equal(result.landing_authorization_created,false);assert.equal(result.promotion_eligible,false);
+    assert.equal(result.draft_transition_eligible,undefined);
+  });
+  for(const [name,change] of [['required context',{status_context:'KIDULTS Governed Landing Authorization V1'}],
+    ['authorization',{landing_authorization_created:true}],['promotion',{promotion_eligible:true}],
+    ['atomic claim',{atomic_landing_required:!isolated.atomic_landing_required}],['missing reread',{final_live_reread:false}]]) {
+    test(`isolated ${state} rejects ${name}`,()=>assert.throws(()=>validateReadinessConsumption({...isolated,...change},input),/ISOLATED_AUTHORITY_BOUNDARY/));
+  }
+}
+
+for(const field of ['promotion_eligible','landing_authorization_created']) {
+  test(`legacy readiness rejects contradictory ${field} escalation`,()=>
+    assert.throws(()=>validateReadinessConsumption({...receipt,[field]:true},input),/AUTHORITY_BOUNDARY/));
+}

@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "afc7895e454539a6599db148bedfb240a01916cf",
+  "head_branch": "codex/landing-readiness-status-isolation-20261010",
+  "source_head_sha": "c7f083f6fb4d8a5553b007b165da0ee47911a793",
+  "source_head_tree_sha": "ae0c004eb93abf56f093d0a779a6abc203bb1390",
+  "payload_digest": "sha256:7075e9617b4109ee5ac92cb133be73dc798f2a2f9eff5fe760668134500d251f",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

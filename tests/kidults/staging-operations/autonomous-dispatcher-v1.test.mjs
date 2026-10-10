@@ -309,7 +309,7 @@ assert.doesNotMatch(dispatcherWorkflow,/transition_draft/);
 assert.doesNotMatch(dispatcherWorkflow,/assertDraftReadyTransitionCandidate|assertDraftReadyPostMutation/);
 assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready GitHub App token|DRAFT_READY_TOKEN_STEP_OUTCOME/);
 assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
-assert.match(governedWorkflow,/state:'READY_PENDING_ATOMIC_LANDING'[\s\S]*exact_base_sha:base/);
+assert.match(governedWorkflow,/state:'READY_OPERATION_AUTHORITY_PENDING'[\s\S]*exact_base_sha:base/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);

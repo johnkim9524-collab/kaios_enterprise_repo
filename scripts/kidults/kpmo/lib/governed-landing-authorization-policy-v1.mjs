@@ -1,4 +1,4 @@
-const EXPECTED_POLICY_VERSION = '1.9.0';
+const EXPECTED_POLICY_VERSION = '1.10.0';
 
 const EXACT_GENERATION_POLICY = Object.freeze({
   mode: 'EXACT_CURRENT_PROTECTED_MAIN_EQUALITY',
@@ -83,6 +83,9 @@ export function assertGovernedLandingAuthorizationPolicyV160(policy) {
   requireExact(policy && typeof policy === 'object' && !Array.isArray(policy), 'POLICY_INVALID');
   requireExact(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID_INVALID');
   requireExact(policy.version === EXPECTED_POLICY_VERSION, 'POLICY_VERSION_UNSUPPORTED');
+  requireExact(policy.readiness_status_context === 'KIDULTS Landing Readiness V1'
+    && policy.status_ownership?.readiness_may_write_required_landing === false
+    && policy.status_ownership?.required_landing === 'OPERATION_CONTROLLER_ONLY', 'POLICY_READINESS_STATUS_OWNERSHIP');
   requireExact(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS_INVALID');
   requireExact(policy.owner === 'KPMO', 'POLICY_OWNER_INVALID');
 
