@@ -5,10 +5,10 @@
   "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "operation": "CREATE_DRAFT_PR",
   "base_branch": "main",
-  "base_sha": "58ec6983a2624e8e86e6c3a5ffc01403c27e29a1",
+  "base_sha": "92170e31ae7b0663eafcf4acf86f9716e561e7eb",
   "head_branch": "codex/lifecycle-broker-failure-evidence-20261010",
-  "source_head_sha": "794392d8b2770ad8001dfebbbe1406dbcb7525b9",
-  "source_head_tree_sha": "eabc92733e5dfce11950a9cf5b07d67c34704837",
+  "source_head_sha": "ccca1be5b3611f53d7f24e0a2c68b667e969597d",
+  "source_head_tree_sha": "d2e0da29b370a114f909332b961785bf1a29958f",
   "canonical_payload": {
     "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
     "base": "main",
