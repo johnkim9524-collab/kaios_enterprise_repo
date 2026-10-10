@@ -109,7 +109,43 @@ const independentlyVerifyAuditGrowth=(before,after,filename,files)=>{
   }
   return true;
 };
+// A source revision is audit metadata only when both inventories remain bound
+// and every changed content digest is recomputed from the exact changed bytes.
+const independentlyVerifyInventoryRevisionRefresh=(files,filename)=>{
+  const mp='coordination/kidults/governance/approval-policy-file-manifest-v1.json';
+  const ip='coordination/kidults/governance/approval-policy-inventory-v1.json';
+  const mf=files.filter(f=>f.filename===mp),inf=files.filter(f=>f.filename===ip);
+  if(mf.length!==1||inf.length!==1)return false;
+  let a,b,i,j;try{a=JSON.parse(mf[0].base_content);b=JSON.parse(mf[0].head_content);i=JSON.parse(inf[0].base_content);j=JSON.parse(inf[0].head_content);}catch{return false;}
+  if(a.revision===b.revision&&i.audit?.baseline_sha===j.audit?.baseline_sha)return false;
+  const bad=()=>deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
+  if(!/^[0-9a-f]{40}$/.test(a.revision||'')||!/^[0-9a-f]{40}$/.test(b.revision||'')
+    ||i.audit?.baseline_sha!==a.revision||j.audit?.baseline_sha!==b.revision)bad();
+  if(!Array.isArray(a.files)||!Array.isArray(b.files)||a.files.length!==b.files.length)return false;
+  if(b.scan?.file_count!==b.files.length||a.scan?.file_count!==a.files.length
+    ||b.manifest_sha256!==hash(JSON.stringify(b.files))
+    ||j.manifest_sha256!==b.manifest_sha256||j.audit?.manifest_sha256!==b.manifest_sha256)bad();
+  const seen=new Set();
+  for(let n=0;n<b.files.length;n++){
+    const old=a.files[n],next=b.files[n];
+    if(seen.has(next.path)||old.path!==next.path)bad();seen.add(next.path);
+    if(old.git_blob===next.git_blob&&old.sha256===next.sha256)continue;
+    const source=files.filter(f=>f.filename===next.path);
+    if(source.length!==1||typeof source[0].head_content!=='string')bad();
+    const bytes=Buffer.from(source[0].head_content,'utf8');
+    const blob=crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+bytes.length+'\0'),bytes])).digest('hex');
+    if(next.git_blob!==blob||next.sha256!==hash(source[0].head_content))bad();
+  }
+  const left=normalizedDerivedApprovalMetadata(JSON.stringify(a),mp),right=normalizedDerivedApprovalMetadata(JSON.stringify(b),mp);
+  right.revision=left.revision;
+  const il=normalizedDerivedApprovalMetadata(JSON.stringify(i),ip),ir=normalizedDerivedApprovalMetadata(JSON.stringify(j),ip);
+  ir.audit.baseline_sha=il.audit.baseline_sha;
+  if(JSON.stringify(left)!==JSON.stringify(right)||JSON.stringify(il)!==JSON.stringify(ir))bad();
+  return true;
+};
+
 const verifyDerivedApprovalMetadata=(before,after,filename,files)=>{
+  if(independentlyVerifyInventoryRevisionRefresh(files,filename))return;
   if(independentlyVerifyAuditGrowth(before,after,filename,files))return;
   if(JSON.stringify(normalizedDerivedApprovalMetadata(before,filename))!==JSON.stringify(normalizedDerivedApprovalMetadata(after,filename))) deny('INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',filename);
 };

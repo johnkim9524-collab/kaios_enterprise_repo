@@ -320,3 +320,32 @@ test('inventory digest rebinding is non-semantic while mismatched copies and rou
  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
 });
+
+import crypto from 'node:crypto';
+function revisionRefreshFiles(){
+ const mp='coordination/kidults/governance/approval-policy-file-manifest-v1.json',ip='coordination/kidults/governance/approval-policy-inventory-v1.json';
+ const filename='scripts/kidults/provider/example-internal.mjs',base_content='export const value=1;\n',head_content='export const value=2;\n';
+ const entry=source=>({path:filename,classification:'REFERENCE_OR_IMPLEMENTATION',git_blob:crypto.createHash('sha1').update('blob '+Buffer.byteLength(source)+'\0'+source).digest('hex'),sha256:'sha256:'+crypto.createHash('sha256').update(source).digest('hex')});
+ const manifest=(revision,source)=>{const files=[entry(source)];return {revision,scan:{file_count:1},files,manifest_sha256:'sha256:'+crypto.createHash('sha256').update(JSON.stringify(files)).digest('hex')};};
+ const a=manifest('a'.repeat(40),base_content),b=manifest('b'.repeat(40),head_content);
+ const inventory=m=>({audit:{baseline_sha:m.revision,manifest_sha256:m.manifest_sha256,routing_coverage:{route_counts:{INTERNAL_REVERSIBLE:1}}},manifest_sha256:m.manifest_sha256});
+ return [{filename,base_content,head_content},{filename:mp,base_content:JSON.stringify(a),head_content:JSON.stringify(b)},{filename:ip,base_content:JSON.stringify(inventory(a)),head_content:JSON.stringify(inventory(b))}];
+}
+test('revision refresh recomputes content bindings in both separate verifiers',()=>{
+ const files=revisionRefreshFiles();
+ assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+ assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+for(const [name,mutate] of [
+ ['invalid revision',f=>{const x=JSON.parse(f[1].head_content);x.revision='main';f[1].head_content=JSON.stringify(x);}],
+ ['unbound baseline',f=>{const x=JSON.parse(f[2].head_content);x.audit.baseline_sha='c'.repeat(40);f[2].head_content=JSON.stringify(x);}],
+ ['content mismatch',f=>f[0].head_content+='// altered\n'],
+ ['missing changed bytes',f=>f.splice(0,1)],
+ ['changed classification',f=>{const x=JSON.parse(f[1].head_content);x.files[0].classification='EXECUTION_AUTHORIZATION_CONTROL';f[1].head_content=JSON.stringify(x);}],
+ ['changed routing',f=>{const x=JSON.parse(f[2].head_content);x.audit.routing_coverage.route_counts={OWNER_RESERVED:1};f[2].head_content=JSON.stringify(x);}],
+ ['missing paired inventory',f=>f.pop()],
+])test('revision refresh rejects '+name,()=>{
+ const files=revisionRefreshFiles();mutate(files);
+ assert.throws(()=>evaluateSemanticCapabilityDelta({files,policy:landing}));
+ assert.throws(()=>independentlyVerifyCapabilityDelta({files,policy:landing}));
+});
