@@ -39,7 +39,7 @@ def strict_json(text):
                       parse_float=finite_number,
                       parse_int=lambda token: finite_number(token, integer=True))
 
-def read_packet(raw, expected, allow_coverage_nested=False, depth=0, budget=None, authority_health_digest=None):
+def read_packet(raw, expected, allow_coverage_nested=False, depth=0, budget=None, authority_health_digest=None, authority_assurance_digest=None):
     if not re.fullmatch(r'sha256:[0-9a-f]{64}', expected):
         fail('ARCHIVE_EXPECTED_DIGEST_INVALID')
     if depth > MAX_NESTED_ARCHIVE_DEPTH:
@@ -54,6 +54,7 @@ def read_packet(raw, expected, allow_coverage_nested=False, depth=0, budget=None
     member_digests = {}
     nested_members = {}
     authority_child = None
+    assurance_child = None
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         entries = archive.infolist()
         if not 0 < len(entries) <= 512:
@@ -93,6 +94,14 @@ def read_packet(raw, expected, allow_coverage_nested=False, depth=0, budget=None
             member_digest = 'sha256:' + hashlib.sha256(data).hexdigest()
             member_digests[item.filename] = member_digest
             if item.filename.endswith('.zip'):
+                if authority_assurance_digest is not None and depth == 0 and item.filename == 'assurance-packet.zip':
+                    if member_digest != authority_assurance_digest:
+                        fail('AUTHORITY_GATE_ASSURANCE_ARCHIVE_BINDING')
+                    assurance_child = read_packet(data, member_digest, False, depth + 1, budget)
+                    members.append({'name': item.filename, 'encoding': 'zip',
+                                    'sha256': member_digest, 'byte_length': len(data),
+                                    'nested_member_count': len(assurance_child['members'])})
+                    continue
                 if authority_health_digest is not None and depth == 0 and item.filename == 'upstream-health.zip':
                     if member_digest != authority_health_digest:
                         fail('AUTHORITY_GATE_HEALTH_ARCHIVE_BINDING')
@@ -150,24 +159,39 @@ def read_packet(raw, expected, allow_coverage_nested=False, depth=0, budget=None
         # Preserve each raw digest while requiring exact strict JSON content.
         if len(child_health) != 1 or len(outer_health) != 1 or strict_json(child_health[0]['text']) != strict_json(outer_health[0]['text']):
             fail('AUTHORITY_GATE_HEALTH_RECEIPT_SIDECAR_MISMATCH')
+    if authority_assurance_digest is not None:
+        if assurance_child is None:
+            fail('AUTHORITY_GATE_ASSURANCE_ARCHIVE_MISSING')
+        sidecar = [m for m in members if m['name'] == 'assurance-packet.json']
+        if len(sidecar) != 1 or strict_json(sidecar[0]['text']) != assurance_child:
+            fail('AUTHORITY_GATE_ASSURANCE_PACKET_SIDECAR_MISMATCH')
+        for receipt_name in ('audit-receipt.json', 'whole-platform-operating-proof-v1.json'):
+            child_receipts = [m for m in assurance_child['members'] if PurePosixPath(m['name']).name == receipt_name]
+            outer_receipts = [m for m in members if m['name'] == receipt_name]
+            if receipt_name == 'audit-receipt.json' or child_receipts or outer_receipts:
+                if len(child_receipts) != 1 or len(outer_receipts) != 1 or strict_json(child_receipts[0]['text']) != strict_json(outer_receipts[0]['text']):
+                    fail('AUTHORITY_GATE_ASSURANCE_RECEIPT_SIDECAR_MISMATCH')
     return {'archive_digest': expected, 'members': members,
             'member_sha256s': member_digests, 'extraction_performed': False}
 
 if __name__ == '__main__':
     try:
-        if len(sys.argv) not in (2, 3, 4):
+        if len(sys.argv) not in (2, 3, 4, 5):
             fail('ARGUMENTS_INVALID')
         mode = sys.argv[2] if len(sys.argv) >= 3 else 'NO_NESTED'
         if mode not in ('NO_NESTED', 'COVERAGE_CANDIDATE', 'AUTHORITY_GATE'):
             fail('ARGUMENTS_INVALID')
-        health_digest = sys.argv[3] if len(sys.argv) == 4 else None
+        health_digest = sys.argv[3] if len(sys.argv) >= 4 else None
+        assurance_digest = sys.argv[4] if len(sys.argv) == 5 else None
         if mode == 'AUTHORITY_GATE':
             if health_digest is None or not re.fullmatch(r'sha256:[0-9a-f]{64}', health_digest):
+                fail('ARGUMENTS_INVALID')
+            if assurance_digest is not None and not re.fullmatch(r'sha256:[0-9a-f]{64}', assurance_digest):
                 fail('ARGUMENTS_INVALID')
         elif health_digest is not None:
             fail('ARGUMENTS_INVALID')
         value = read_packet(sys.stdin.buffer.read(MAX_ARCHIVE + 1), sys.argv[1],
-                            mode == 'COVERAGE_CANDIDATE', authority_health_digest=health_digest)
+                            mode == 'COVERAGE_CANDIDATE', authority_health_digest=health_digest, authority_assurance_digest=assurance_digest)
         print(json.dumps(value, ensure_ascii=False, separators=(',', ':')))
     except (ValueError, OSError, UnicodeError, RuntimeError, RecursionError, zipfile.BadZipFile):
         # Never echo untrusted archive text, filenames, or signed URLs.

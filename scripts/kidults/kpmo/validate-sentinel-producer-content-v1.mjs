@@ -73,12 +73,13 @@ const json=(packet,basename,optional=false)=>{
   req(entries.length===1,`CONTENT_MEMBER_CARDINALITY:${basename}`);
   return {...entries[0],value:JSON.parse(entries[0].text),sha256:digest(entries[0].text)};
 };
-export function readArchive(bytes,expectedDigest,{coverageCandidate=false,authorityGateHealthDigest=null}={}){
+export function readArchive(bytes,expectedDigest,{coverageCandidate=false,authorityGateHealthDigest=null,authorityGateAssuranceDigest=null}={}){
   req(Buffer.isBuffer(bytes)&&bytes.length>0&&bytes.length<=MAX_ARCHIVE_BYTES,'ARCHIVE_BYTES_REQUIRED');
   req(DIGEST.test(expectedDigest)&&digest(bytes)===expectedDigest,'ARCHIVE_DIGEST_MISMATCH');
   req(!authorityGateHealthDigest||!coverageCandidate&&DIGEST.test(authorityGateHealthDigest),'ARCHIVE_READER_MODE_CONFLICT');
+  req(!authorityGateAssuranceDigest||authorityGateHealthDigest&&DIGEST.test(authorityGateAssuranceDigest),'ARCHIVE_READER_MODE_CONFLICT');
   const child=spawnSync(pythonExecutable(),['-I','-X','utf8',path.join(ROOT,'scripts/kidults/kpmo/read-sentinel-artifact-v1.py'),expectedDigest,
-    authorityGateHealthDigest?'AUTHORITY_GATE':coverageCandidate?'COVERAGE_CANDIDATE':'NO_NESTED',...(authorityGateHealthDigest?[authorityGateHealthDigest]:[])],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
+    authorityGateHealthDigest?'AUTHORITY_GATE':coverageCandidate?'COVERAGE_CANDIDATE':'NO_NESTED',...(authorityGateHealthDigest?[authorityGateHealthDigest]:[]),...(authorityGateAssuranceDigest?[authorityGateAssuranceDigest]:[])],{input:bytes,encoding:'utf8',env:safeEnv(),timeout:20000,maxBuffer:64*1024*1024});
   req(child.status===0,'ARCHIVE_CONTENT_REJECTED');
   const packet=JSON.parse(child.stdout);
   req(packet.archive_digest===expectedDigest&&packet.extraction_performed===false&&Array.isArray(packet.members),'ARCHIVE_READER_CONTRACT');

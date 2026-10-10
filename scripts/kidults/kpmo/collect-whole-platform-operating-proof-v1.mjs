@@ -53,7 +53,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     }
     return selectProducerGeneration(values,s,sha,observedAt).candidates.reverse();
   };
-  const packet=async(run,name)=>{
+  const packet=async(run,name,readerOptions={})=>{
     requireEvidence(run.status==='completed'&&run.run_attempt===1,'RUN_TERMINAL_ATTEMPT');
     const index=await get(`actions/runs/${run.id}/artifacts?per_page=100`);
     requireEvidence(Array.isArray(index.artifacts)&&index.total_count===index.artifacts.length,'ARTIFACT_INDEX');
@@ -62,14 +62,14 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     requireEvidence(values.length===1,'ARTIFACT_CARDINALITY');const artifact=values[0];
     requireEvidence(artifact.expired===false&&artifact.workflow_run?.id===run.id&&artifact.workflow_run.head_sha===run.head_sha&&Date.parse(artifact.expires_at)>Date.parse(observedAt),'ARTIFACT_BINDING');
     const bytes=await download(REPOSITORY,artifact,token);
-    const parsed=readArchive(bytes,artifact.digest);
+    const parsed=readArchive(bytes,artifact.digest,readerOptions);
     const fresh=await get(`actions/runs/${run.id}`);
     requireEvidence(fresh.status===run.status&&fresh.conclusion===run.conclusion&&fresh.run_attempt===run.run_attempt&&fresh.head_sha===run.head_sha&&fresh.path===run.path,'RUN_CHANGED');
     out.protected_evidence.push({workflow_path:run.path,run_id:run.id,run_attempt:run.run_attempt,
       source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest});return parsed;
   };
   let gateCandidates;
-  const gatePackets=new Map();
+  const gatePackets=new Map(),healthArchiveDigests=new Map();
   const chainTerminal=async health=>{
     gateCandidates??=await runs(gateSpec);
     for(const run of gateCandidates.slice(0,contract.maximum_observation_history)){
@@ -79,15 +79,26 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
         requireEvidence(Array.isArray(index.artifacts)&&index.total_count===index.artifacts.length,'GATE_ARTIFACT_INDEX');
         const artifacts=index.artifacts.filter(a=>a.name.startsWith(`kpmo-continuous-assurance-success-authority-gate-${sourceSha}-`));
         requireEvidence(artifacts.length<=1,'GATE_ARTIFACT_CARDINALITY');
-        const p=artifacts.length?await packet(run,artifacts[0].name):null;
-        gatePackets.set(run.id,p?member(p,'kpmo-continuous-assurance-success-authority-gate-v1.json'):null);
+        if(!artifacts.length){gatePackets.set(run.id,null);continue;}
+        // Resolve the causal parent from the authenticated Assurance archive
+        // before admitting the Gate's one narrowly allowed nested health ZIP.
+        const prefix=`kpmo-continuous-assurance-success-authority-gate-${sourceSha}-`;
+        const binding=artifacts[0].name.slice(prefix.length).match(/^([1-9][0-9]*)-1$/);
+        requireEvidence(binding&&Number.isSafeInteger(Number(binding[1])),'GATE_ASSURANCE_NAME_BINDING');
+        const assurance=await get(`actions/runs/${binding[1]}`);
+        const auditPacket=await packet(assurance,`kidults-continuous-assurance-${sourceSha}-${assurance.id}-${assurance.run_attempt}`);
+        requireEvidence(auditPacket,'CHAIN_ASSURANCE_ARTIFACT');
+        const audit=member(auditPacket,'audit-receipt.json');
+        if(String(audit.execution?.upstream?.run_id)!==String(health.observer_run_id))continue;
+        const healthDigest=healthArchiveDigests.get(health.observer_run_id);
+        requireEvidence(/^sha256:[0-9a-f]{64}$/.test(healthDigest||''),'CHAIN_HEALTH_ARCHIVE_DIGEST');
+        const p=await packet(run,artifacts[0].name,{authorityGateHealthDigest:healthDigest,authorityGateAssuranceDigest:auditPacket.archive_digest});
+        gatePackets.set(run.id,{receipt:member(p,'kpmo-continuous-assurance-success-authority-gate-v1.json'),assurance,audit});
       }
-      const receipt=gatePackets.get(run.id);
-      if(!receipt||receipt.producer_health_run_id!==health.observer_run_id)continue;
-      const assurance=await get(`actions/runs/${receipt.upstream_assurance?.run_id}`);
-      const p=await packet(assurance,`kidults-continuous-assurance-${sourceSha}-${assurance.id}-${assurance.run_attempt}`);
-      requireEvidence(p,'CHAIN_ASSURANCE_ARTIFACT');
-      verifyNaturalChainTerminal(receipt,run,assurance,member(p,'audit-receipt.json'),health,sourceSha);
+      const selected=gatePackets.get(run.id);
+      if(!selected||selected.receipt.producer_health_run_id!==health.observer_run_id)continue;
+      const {receipt,assurance,audit}=selected;
+      verifyNaturalChainTerminal(receipt,run,assurance,audit,health,sourceSha);
       return {sentinel_run_id:health.observer_run_id,assurance_run_id:assurance.id,gate_run_id:run.id,
         sentinel_receipt_digest:health.receipt_digest,gate_receipt_digest:receipt.receipt_digest};
     }
@@ -112,6 +123,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       const p=await packet(run,`kpmo-continuous-assurance-sentinel-health-v1-${sourceSha}-${run.id}-${run.run_attempt}`);
       if(!p)return;
       const h=verifyHealthReceipt(member(p,'kpmo-continuous-assurance-sentinel-health-v1.json'),run,sourceSha);
+      healthArchiveDigests.set(run.id,p.archive_digest);
       archivesRead++;
       if(healths.length&&!distinctNaturalGenerations([healths[0],h]))continue;
       for(const producer of h.producers){
