@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "a925a6898cd70608bbc12cbf303474f8257fb446",
+  "revision": "80fdf7841845cfdf72cb1c742173e018e25630ef",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4901,8 +4901,8 @@
     {
       "path": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f159d2dd9163ba1b9272a124d9ddf9931f5991a3",
-      "sha256": "sha256:95fc6d8967c87c741259f794830310ddfc65df0304012e701cf12371c71fbb71"
+      "git_blob": "81416ca02e00bf80a6911c8973b249e28fd1cf41",
+      "sha256": "sha256:d722d95acdf8cf3111d99b2490c6c054133d296dc63671550ee7a0c2cb2185ff"
     },
     {
       "path": "scripts/kidults/source-intelligence/validate-current-sold-sample-governance-v1.mjs",
@@ -6349,5 +6349,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:423b91d784df5b59e3289d494bce56ea3cb836db1562cb3e931077d9238b4849"
+  "manifest_sha256": "sha256:80a1b5f20edf21c633ccd814a86c5df3230c657730cfe8e7e81229f5f1cb0571"
 }

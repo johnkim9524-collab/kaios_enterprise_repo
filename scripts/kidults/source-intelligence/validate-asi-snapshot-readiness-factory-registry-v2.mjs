@@ -10,6 +10,8 @@ const files = {
   readiness_library: 'scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs',
   liveness_test: 'scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs',
   upstream_binding_validator: 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs',
+  upstream_waiter: 'scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs',
+  upstream_waiter_test: 'scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs',
   canonical_handoff_validator: 'scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs',
   registry_validator: 'scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs',
   workflow: '.github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml',
@@ -154,10 +156,12 @@ function workflowFindings(source) {
     "'KIDULTS ASI Owned Source Intelligence Graph v2'",
     'Prove P3 liveness and upstream-binding mutation resistance',
     'validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test',
+    "'scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs'",
+    "'scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs'",
     'test-asi-snapshot-readiness-factory-v2.mjs',
     'Restore exact P2 run and its receipt-bound P0B and P1 artifacts',
-    'actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=100',
-    "run.head_sha===process.env.GITHUB_SHA",
+    'P2_RUN_ID="$(node scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs)"',
+    'node --test scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs',
     'actions/runs/${P2_RUN_ID}/artifacts?per_page=100',
     '[[ "$P2_RUN_ID" =~ ^[1-9][0-9]*$ ]]',
     '[[ "$P2_ID" =~ ^[1-9][0-9]*$ ]]',
@@ -205,6 +209,8 @@ function workflowFindings(source) {
   return findings;
 }
 
+const waiter = read('scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs');
+for (const marker of ['head_sha=${sha}', 'r.head_sha!==sha', 'RUN_INDEX_INCOMPLETE', 'WAIT_DEADLINE_EXHAUSTED', 'CURRENT_MAIN_CHANGED', 'NATIVE_READ_FAILED', 'budgetMs>600000']) assert(waiter.includes(marker), `P2_WAITER_CONTRACT:${marker}`);
 const cleanFindings = workflowFindings(workflow);
 assert(cleanFindings.length === 0, `WORKFLOW_CONTRACT:${cleanFindings.join(',')}`);
 const workflowMutations = [
