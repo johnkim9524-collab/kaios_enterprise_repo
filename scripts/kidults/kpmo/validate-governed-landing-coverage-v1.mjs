@@ -33,6 +33,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
     && workflow.includes('context=policy.readiness_status_context')
     && !workflow.includes('context=policy.required_status_context')
     && aggregatePolicy.native_readiness_status_contexts?.includes(policy.readiness_status_context), 'READINESS_STATUS_OWNERSHIP');
+  require(workflow.indexOf("if(final.state==='closed')") < workflow.indexOf("throw new GateFailure('READINESS_STATUS_OWNERSHIP_INVALID')"),
+    'TERMINAL_OBSERVATION_MUST_PRECEDE_CURRENT_GENERATION_READINESS_GUARD');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');

@@ -98,6 +98,36 @@ test('readiness policy cannot route observer writes back to required landing aut
   }
 });
 
+test('merged terminal observation survives an immutable pre-isolation base policy',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml','utf8');
+  const blocks=[...workflow.matchAll(/node --input-type=module <<'NODE'\n([\s\S]*?)\n          NODE/g)];
+  assert.equal(blocks.length,2);
+  const block=blocks[1][1].replace(/^          /gm,'');
+  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'readiness-terminal-base-'));
+  try {
+    fs.mkdirSync(path.join(directory,'scripts/kidults/kpmo/lib'),{recursive:true});
+    fs.mkdirSync(path.join(directory,'coordination/kidults/kpmo'),{recursive:true});
+    fs.copyFileSync('scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs',
+      path.join(directory,'scripts/kidults/kpmo/lib/governed-landing-native-gates-v1.mjs'));
+    fs.writeFileSync(path.join(directory,'coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json'),
+      JSON.stringify({required_status_context:landingContext,no_merge_policy:{}}));
+    fs.writeFileSync(path.join(directory,'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json'),'{}');
+    const mock=`globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({number:2643,state:'closed',merged:true,draft:false,
+      merge_commit_sha:'d'.repeat(40),head:{sha:'a'.repeat(40),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}},base:{ref:'main',sha:'b'.repeat(40)}})});`;
+    const receiptPath=path.join(directory,'receipt.json');
+    const child=spawnSync(process.execPath,['--input-type=module','-e',mock+'\n'+block],{cwd:directory,encoding:'utf8',env:{...process.env,
+      GH_TOKEN:'fixture',GH_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',PR_NUMBER:'2643',
+      EXPECTED_HEAD_SHA:'a'.repeat(40),EXPECTED_BASE_SHA:'b'.repeat(40),AUTHORIZATION_OUTCOME:'success',GITHUB_RUN_ID:'456',GITHUB_RUN_ATTEMPT:'1',
+      READINESS_RECEIPT_PATH:receiptPath,PRODUCTION_STATE:'HOLD',PUBLIC_STATE:'HOLD',G5_STATE:'HOLD'}});
+    assert.equal(child.status,0,child.stderr);
+    const receipt=JSON.parse(fs.readFileSync(receiptPath,'utf8'));
+    assert.equal(receipt.state,'MERGED_POST_LANDING_VERIFICATION_REQUIRED');
+    assert.equal(receipt.merge_commit_sha,'d'.repeat(40));
+    assert.equal(receipt.landing_authorization_created,false);
+    assert.equal(receipt.production,'HOLD');
+  } finally {fs.rmSync(directory,{recursive:true,force:true});}
+});
+
 function clonePolicy() {
   return structuredClone(sourcePolicy);
 }
