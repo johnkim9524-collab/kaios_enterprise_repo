@@ -31,6 +31,23 @@ function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},source
 function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'}={}){
  return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt};
 }
+test('Assurance selects its exact causal Sentinel despite a newer successful or pending generation',()=>{
+ const parent=sentinelRun(38032507316);
+ const causalParent={run_id:String(parent.id),run_attempt:'1',repository:REPOSITORY,head_branch:'main',workflow_path:parent.path,
+  workflow_name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',workflow_event:parent.event,conclusion:'success'};
+ const options={sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z',causalParent};
+ for(const newer of [sentinelRun(38033069829,{createdAt:'2026-09-05T11:00:00Z'}),
+  sentinelRun(38033069829,{status:'in_progress',conclusion:null,createdAt:'2026-09-05T11:00:00Z'})]){
+  const result=selectLatestNaturalSentinelRun([parent,newer],options);
+  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,parent.id);
+ }
+ assert.throws(()=>selectLatestNaturalSentinelRun([],options),/CAUSAL_PARENT_CARDINALITY/);
+ assert.throws(()=>selectLatestNaturalSentinelRun([parent,parent],options),/CAUSAL_PARENT_CARDINALITY/);
+ for(const change of [{run_attempt:2},{repository:'other/repo'},{workflow_event:'push'},{workflow_path:'other.yml'},
+  {head_branch:'dev'},{conclusion:'failure'}])assert.throws(()=>selectLatestNaturalSentinelRun([parent],{...options,causalParent:{...causalParent,...change}}),/CAUSAL_PARENT/);
+ for(const change of [{head_sha:'b'.repeat(40)},{event:'schedule'},{status:'in_progress',conclusion:null}])
+  assert.throws(()=>selectLatestNaturalSentinelRun([{...parent,...change}],options),/CAUSAL_PARENT_DRIFT/);
+});
 test('terminal sentinel selector refuses to fall back from a newer natural failure to an older PASS',()=>{
  const result=selectLatestNaturalSentinelRun([
   sentinelRun(36478860735,{createdAt:'2026-09-05T09:00:00Z'}),

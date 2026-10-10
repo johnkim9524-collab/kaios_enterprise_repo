@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "d720351c0536cf625c5f03af624ea1eb2acc2a2c",
+  "head_branch": "codex/assurance-causal-sentinel-binding-20261010",
+  "source_head_sha": "824252b59060506d030da769cf1cd88e7b4c7a31",
+  "source_head_tree_sha": "e1943d793c1209df57912890486d47f00d691597",
+  "payload_digest": "sha256:4791ba89d82e45c1ecc5f3f78e4b76246fb1bc898b59282f1eedcfc97b11f723",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
