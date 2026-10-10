@@ -11,6 +11,11 @@ on:
       - .github/workflows/kidults-autonomous-event-broker-deploy-v1.yml
   workflow_dispatch:
     inputs:
+      readback_only:
+        description: Read exact deployed template and bounded Lambda RESUME configuration without deployment
+        required: false
+        default: false
+        type: boolean
       main_sha:
         description: Exact protected-main SHA authorized for this deployment
         required: true
@@ -113,6 +118,7 @@ jobs:
           GITHUB_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
           GITHUB_PRIVATE_KEY_SECRET_ARN: ${{ vars.KIDULTS_GITHUB_PRIVATE_KEY_SECRET_ARN }}
           GITHUB_OIDC_PROVIDER_ARN: ${{ vars.KIDULTS_GITHUB_OIDC_PROVIDER_ARN }}
+          READBACK_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.readback_only == true }}
           OWNER_TIMEOUT_OPT_IN: ${{ github.event_name == 'workflow_dispatch' && inputs.owner_timeout_30_to_180 == true }}
           SOURCE_READ_TOKEN: ${{ github.token }}
         run: |
@@ -126,6 +132,11 @@ jobs:
             test "$live_main" = "$DEPLOY_MAIN_SHA"
           }
           trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          if [ "$READBACK_ONLY" = true ]; then
+            mkdir -p out/autonomous-event-broker-deploy-v1
+            node scripts/governance/readback-staging-broker-runtime-v1.mjs --initialize --output out/autonomous-event-broker-deploy-v1/runtime-readback.json
+            trap 'status=$?; node scripts/governance/readback-staging-broker-runtime-v1.mjs --record-failure --output out/autonomous-event-broker-deploy-v1/runtime-readback.json; exit "$status"' ERR
+          fi
           test -n "$AWS_ROLE_ARN"
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
           OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
@@ -143,6 +154,20 @@ jobs:
           # Normal STAGING operation may update Lambda code or reduce IAM authority.
           # Any trust expansion, new resource, permission expansion, or unrelated infrastructure delta fails closed.
           aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > /tmp/current-broker-template.json
+          if [ "$READBACK_ONLY" = true ]; then
+            assert_current_main
+            test "$OWNER_TIMEOUT_OPT_IN" = false
+            mkdir -p out/autonomous-event-broker-deploy-v1
+            aws lambda get-function --function-name kidults-autonomous-event-token-broker-staging \
+              --query '{function:Configuration.FunctionName,timeout:Configuration.Timeout,runtime:Configuration.Runtime,handler:Configuration.Handler,table:Configuration.Environment.Variables.RESUME_OPERATION_TABLE,activation_run_floor:Configuration.Environment.Variables.RESUME_ACTIVATION_RUN_FLOOR}' \
+              --output json > /tmp/broker-bounded-configuration.json
+            aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+              --query "Stacks[0].Parameters[?ParameterKey=='ResumeActivationRunFloor'].ParameterValue" --output json > /tmp/broker-cutover-parameter.json
+            node scripts/governance/readback-staging-broker-runtime-v1.mjs \
+              --template /tmp/current-broker-template.json --configuration /tmp/broker-bounded-configuration.json \
+              --cutover /tmp/broker-cutover-parameter.json --output out/autonomous-event-broker-deploy-v1/runtime-readback.json
+            exit 0
+          fi
           desired_template=infrastructure/aws/staging/autonomous-event-token-broker-v1.json
           resume_parameters=()
           # After the separately authorized bootstrap, retain its table and cutover.
@@ -199,9 +224,10 @@ jobs:
           test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED:INPUT
           jq -n --arg stack "$STACK_NAME" --arg change_set "$CHANGE_SET_NAME" --arg authorization_id "$AUTHORIZATION_ID" --arg function "$function_name" --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",operation:"DEPLOY_STAGING_BROKER",stack:$stack,change_set:$change_set,authorization_id:$authorization_id,function:$function,workflow_sha:$sha,run_id:$run_id,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
 
-      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+      - if: ${{ always() && (inputs.readback_only == true || success()) }}
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: kidults-autonomous-event-broker-deploy-${{ github.run_id }}
-          path: out/autonomous-event-broker-deploy-v1/receipt.json
+          path: out/autonomous-event-broker-deploy-v1/*.json
           if-no-files-found: error
           retention-days: 90
