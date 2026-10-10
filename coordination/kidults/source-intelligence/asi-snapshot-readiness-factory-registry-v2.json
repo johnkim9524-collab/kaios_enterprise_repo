@@ -18,6 +18,8 @@
     "readiness_library": "scripts/kidults/source-intelligence/lib/asi-snapshot-readiness-factory-v2.mjs",
     "liveness_test": "scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs",
     "upstream_binding_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs",
+    "upstream_waiter": "scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs",
+    "upstream_waiter_test": "scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs",
     "canonical_handoff_validator": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
     "registry_validator": "scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs",
     "workflow": ".github/workflows/kidults-asi-snapshot-readiness-factory-v2.yml",
