@@ -1,7 +1,7 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
+import {digest,readArchive} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {collectWholePlatform} from '../../../scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs';
 const contract=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'));
@@ -65,12 +65,30 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
   }
 });
 
-function completeChainFixture({missingGate=false,manual=false}={}){
+function completeChainFixture({missingGate=false,manual=false,nestedMismatch=false,sidecarMismatch=false,gateParentMismatch=false,assuranceMismatch=false,assuranceSidecarMismatch=false,auditSidecarMismatch=false,unknownZip=false,missingAssuranceZip=false}={}){
   const native=new Map(),artifacts=new Map(),archives=new Map(),healths=[],gates=[];
   const seal=b=>({...b,receipt_digest:sha256(canonicalJson(b))});
   const run=(id,path,event,time)=>({id,run_attempt:1,path,event,created_at:time,head_sha:source,head_branch:'main',repository:{full_name:repository},status:'completed',conclusion:'success'});
   const attach=(r,name,basename,body)=>{
-    const bytes=execFileSync('python3',['-c','import io,json,sys,zipfile; b=io.BytesIO(); z=zipfile.ZipFile(b,"w"); z.writestr(sys.argv[1],sys.stdin.read()); z.close(); sys.stdout.buffer.write(b.getvalue())',basename],{input:JSON.stringify(body)});
+    let members={[basename]:JSON.stringify(body)};
+    if(basename==='kpmo-continuous-assurance-success-authority-gate-v1.json'){
+      const parent=body.producer_health_run_id;
+      const parentArtifact=artifacts.get(parent)[0],healthBytes=archives.get(parentArtifact.id);
+      const healthPacket=readArchive(healthBytes,parentArtifact.digest);
+      members['upstream-health.zip']={base64:healthBytes.toString('base64')};
+      if(nestedMismatch)members['upstream-health.zip']={base64:archives.get(artifacts.get(parent===10?20:10)?.[0]?.id||parentArtifact.id).toString('base64')};
+      members['upstream-health-packet.json']=JSON.stringify(sidecarMismatch?{...healthPacket,archive_digest:'sha256:'+'0'.repeat(64)}:healthPacket);
+      members['kpmo-continuous-assurance-sentinel-health-v1.json']=healthPacket.members[0].text+'\n';
+      const assuranceArtifact=artifacts.get(r.id-1)[0],assuranceBytes=archives.get(assuranceArtifact.id);
+      const assurancePacket=readArchive(assuranceBytes,assuranceArtifact.digest);
+      members['assurance-packet.zip']={base64:(assuranceMismatch?healthBytes:assuranceBytes).toString('base64')};
+      members['assurance-packet.json']=JSON.stringify(assuranceSidecarMismatch?{...assurancePacket,archive_digest:'sha256:'+'0'.repeat(64)}:assurancePacket);
+      members['audit-receipt.json']=assurancePacket.members[0].text+'\n';
+      if(auditSidecarMismatch)members['audit-receipt.json']='{}';
+      if(unknownZip)members['unbound.zip']={base64:healthBytes.toString('base64')};
+      if(missingAssuranceZip)delete members['assurance-packet.zip'];
+    }
+    const bytes=execFileSync('python3',['-c','import io,json,sys,zipfile,base64; b=io.BytesIO(); z=zipfile.ZipFile(b,"w"); [(z.writestr(k,base64.b64decode(v["base64"]) if isinstance(v,dict) else v)) for k,v in json.load(sys.stdin).items()]; z.close(); sys.stdout.buffer.write(b.getvalue())'],{input:JSON.stringify(members)});
     const a={id:r.id+10000,name,digest:digest(bytes),expired:false,expires_at:'2026-11-01T00:00:00Z',workflow_run:{id:r.id,head_sha:source}};
     artifacts.set(r.id,[a]);archives.set(a.id,bytes);native.set(r.id,r);return a;
   };
@@ -87,7 +105,7 @@ function completeChainFixture({missingGate=false,manual=false}={}){
     const audit=seal({source:{sha:source,match:true},states:{internal_control_state:'VERIFIED_PASS'},execution:{workflow_run_id:String(assurance.id),workflow_run_attempt:'1',upstream:{run_id:String(observer.id),run_attempt:'1',workflow_path:observer.path,repository,conclusion:'success'}}});
     attach(assurance,`kidults-continuous-assurance-${source}-${assurance.id}-1`,'audit-receipt.json',audit);
     const gateRun=run(assurance.id+1,'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','workflow_run',observer.created_at);
-    const gate=seal({receipt_id:'kpmo-continuous-assurance-success-authority-gate-v1',state:'VERIFIED_PASS',repository,current_protected_main_sha:source,upstream_assurance:{run_id:assurance.id,run_attempt:1,head_sha:source,event:assurance.event,conclusion:'success'},producer_health_run_id:observer.id,producer_health_run_attempt:1,producer_health_receipt_digest:health.receipt_digest,producer_health_state:'VERIFIED_PASS',producer_health_conclusion:'success',coverage_scope:health.coverage_scope,whole_platform_authority:false,promotion_eligible:false,empirical_authority:false,provider_authority:false,database_authority:false,empirical_delta:0,production:'HOLD',public:'HOLD',g5:'HOLD'});
+    const gate=seal({receipt_id:'kpmo-continuous-assurance-success-authority-gate-v1',state:'VERIFIED_PASS',repository,current_protected_main_sha:source,upstream_assurance:{run_id:gateParentMismatch?assurance.id+2:assurance.id,run_attempt:1,head_sha:source,event:assurance.event,conclusion:'success'},producer_health_run_id:observer.id,producer_health_run_attempt:1,producer_health_receipt_digest:health.receipt_digest,producer_health_state:'VERIFIED_PASS',producer_health_conclusion:'success',coverage_scope:health.coverage_scope,whole_platform_authority:false,promotion_eligible:false,empirical_authority:false,provider_authority:false,database_authority:false,empirical_delta:0,production:'HOLD',public:'HOLD',g5:'HOLD'});
     attach(gateRun,`kpmo-continuous-assurance-success-authority-gate-${source}-${assurance.id}-1`,'kpmo-continuous-assurance-success-authority-gate-v1.json',gate);
     if(!missingGate||generation===1)gates.push(gateRun);
   }
@@ -115,5 +133,12 @@ test('missing Gate or manual Assurance cannot complete natural terminal proof',a
     const r=await completeChainFixture(options);
     assert.notEqual(r.operating_checks.find(c=>c.id==='NATURAL_CHAIN_TERMINALS').state,'VERIFIED_PASS');
     assert.equal(r.operating_checks.find(c=>c.id==='CORE_FOUR_CONTENT').state,'VERIFIED_PASS');
+  }
+});
+test('native Gate nested health is exact-digest bound and sidecars and causal parent cannot drift',async()=>{
+  for(const options of [{nestedMismatch:true},{sidecarMismatch:true},{gateParentMismatch:true},{assuranceMismatch:true},{assuranceSidecarMismatch:true},{auditSidecarMismatch:true},{unknownZip:true},{missingAssuranceZip:true}]){
+    const r=await completeChainFixture(options);
+    assert.equal(r.operating_checks.find(c=>c.id==='NATURAL_CHAIN_TERMINALS').state,'VERIFIED_FAIL');
+    assert.equal(r.autonomous_operating_proven,false);
   }
 });
