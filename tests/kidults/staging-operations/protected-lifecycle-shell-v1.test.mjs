@@ -32,6 +32,9 @@ for(const [name,options] of [
   ['sts_extra',{creds:'key secret session extra'}],['sts_none',{creds:'None secret session'}],['invoke_failed',{}],
   ['function_error',{metadata:'{"StatusCode":200,"FunctionError":"Unhandled"}'}],['metadata_invalid',{metadata:'invalid'}],
   ['body_invalid',{raw:'invalid'}],['hold',{response:{...valid,ok:false,state:'HOLD_RECONCILE'}}],
+  ['drain_hold',{response:{ok:false,state:'HOLD_RECONCILE',reason:'LEGACY_TOKEN_DRAIN_WINDOW',mutation_attempted:false},observation:{state:'HOLD_RECONCILE',reason:'LEGACY_TOKEN_DRAIN_WINDOW',mutation_attempted:false}}],
+  ['original_fence',{response:{ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION'},observation:{state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION'}}],
+  ['bounded_diagnostics',{response:{ok:false,state:'HOLD_RECONCILE',failure_code:'RESUME_LIFECYCLE_DENIED:LIVE_TUPLE',reason:'x'.repeat(200),mutation_attempted:'false',token:'must-not-escape',caller_oidc_token:'must-not-escape',error:'secret arbitrary error'},observation:{state:'HOLD_RECONCILE',failure_code:'RESUME_LIFECYCLE_DENIED:LIVE_TUPLE'}}],
   ['wrong_target',{response:{...valid,receipt:{...valid.receipt,binding:{...valid.receipt.binding,exact_target:'wrong'}}}}],
   ['exposed_token',{response:{...valid,token:'must-not-escape'}}],
 ])test(`protected lifecycle actual shell ${name}`,()=>{
@@ -46,7 +49,10 @@ for(const [name,options] of [
     assert.ifError(result.error);
     const receipt=JSON.parse(fs.readFileSync(path.join(root,'receipt.json')));
     if(['success','reuse'].includes(name)){assert.equal(result.status,0,result.stderr);assert.equal(receipt.ok,true);}
-    else{assert.notEqual(result.status,0,name);assert.equal(receipt.state,'HOLD_RECONCILE');assert.equal(receipt.retry_without_reconciliation,false);}
+    else{assert.notEqual(result.status,0,name);assert.equal(receipt.state,'HOLD_RECONCILE');assert.equal(receipt.retry_without_reconciliation,false);
+      if(options.observation)assert.deepEqual(receipt.broker_observation,options.observation);
+      assert.ok(!JSON.stringify(receipt).includes('must-not-escape'));assert.ok(!JSON.stringify(receipt).includes('secret arbitrary error'));
+    }
     const invokes=fs.existsSync(path.join(root,'trace'))?fs.readFileSync(path.join(root,'trace'),'utf8').trim().split('\n').length:0;
     assert.ok(invokes<=1);assert.equal(result.stdout,'');
   }finally{fs.rmSync(root,{recursive:true,force:true});}
