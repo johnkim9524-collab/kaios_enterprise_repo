@@ -5,13 +5,18 @@ import fs from "node:fs";
 import {EXPLICIT_EXECUTION_CONTROLS,routeAuthorizationControl,classifyApprovalInventoryPath} from "./lib/approval-policy-routing-v1.mjs";
 
 const root = process.cwd();
-const revision = process.argv[2] || "HEAD";
+const revisionRef = process.argv[2] || "HEAD";
 const output = process.argv[3] || "coordination/kidults/governance/approval-policy-file-manifest-v1.json";
 const manifestPath = "coordination/kidults/governance/approval-policy-file-manifest-v1.json";
 const inventoryPath = "coordination/kidults/governance/approval-policy-inventory-v1.json";
 const exclusions = [manifestPath,inventoryPath];
 const pattern = String.raw`(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)`;
 const git = args => execFileSync("git", args, {cwd:root, encoding:"utf8", maxBuffer:64*1024*1024});
+// Persist an immutable commit id, never a symbolic ref such as HEAD.  The
+// manifest is consumed outside the generating worktree, where a symbolic ref
+// could resolve to different bytes or fail the exact-revision verifier.
+const revision = git(["rev-parse", "--verify", `${revisionRef}^{commit}`]).trim();
+if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error("APPROVAL_INVENTORY_REVISION_INVALID");
 const sha256 = value => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const scannedPaths = git(["grep", "-Il", "-E", pattern, revision]).trim().split("\n").filter(Boolean)
   .map(value => value.replace(new RegExp(`^${revision}:`), "")).filter(value=>!exclusions.includes(value));
