@@ -65,12 +65,12 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
   }
 });
 
-function completeChainFixture({missingGate=false,manual=false,nestedMismatch=false,sidecarMismatch=false,gateParentMismatch=false,assuranceMismatch=false,assuranceSidecarMismatch=false,auditSidecarMismatch=false,unknownZip=false,missingAssuranceZip=false}={}){
+function completeChainFixture({missingGate=false,manual=false,clock=false,gateSkipped=false,intakeSkipped=false,clockDigestMismatch=false,clockStale=false,nestedMismatch=false,sidecarMismatch=false,gateParentMismatch=false,assuranceMismatch=false,assuranceSidecarMismatch=false,auditSidecarMismatch=false,unknownZip=false,missingAssuranceZip=false}={}){
   const native=new Map(),artifacts=new Map(),archives=new Map(),healths=[],gates=[];
   const seal=b=>({...b,receipt_digest:sha256(canonicalJson(b))});
   const run=(id,path,event,time)=>({id,run_attempt:1,path,event,created_at:time,head_sha:source,head_branch:'main',repository:{full_name:repository},status:'completed',conclusion:'success'});
-  const attach=(r,name,basename,body)=>{
-    let members={[basename]:JSON.stringify(body)};
+  const attach=(r,name,basename,body,extra={})=>{
+    let members={[basename]:JSON.stringify(body),...extra};
     if(basename==='kpmo-continuous-assurance-success-authority-gate-v1.json'){
       const parent=body.producer_health_run_id;
       const parentArtifact=artifacts.get(parent)[0],healthBytes=archives.get(parentArtifact.id);
@@ -83,7 +83,9 @@ function completeChainFixture({missingGate=false,manual=false,nestedMismatch=fal
       const assurancePacket=readArchive(assuranceBytes,assuranceArtifact.digest);
       members['assurance-packet.zip']={base64:(assuranceMismatch?healthBytes:assuranceBytes).toString('base64')};
       members['assurance-packet.json']=JSON.stringify(assuranceSidecarMismatch?{...assurancePacket,archive_digest:'sha256:'+'0'.repeat(64)}:assurancePacket);
-      members['audit-receipt.json']=assurancePacket.members[0].text+'\n';
+      members['audit-receipt.json']=assurancePacket.members.find(m=>m.name==='audit-receipt.json').text+'\n';
+      const clockProof=assurancePacket.members.find(m=>m.name==='whole-platform-operating-proof-v1.json');
+      if(clockProof)members['whole-platform-operating-proof-v1.json']=clockProof.text+'\n';
       if(auditSidecarMismatch)members['audit-receipt.json']='{}';
       if(unknownZip)members['unbound.zip']={base64:healthBytes.toString('base64')};
       if(missingAssuranceZip)delete members['assurance-packet.zip'];
@@ -101,9 +103,16 @@ function completeChainFixture({missingGate=false,manual=false,nestedMismatch=fal
     });
     const health=seal({receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',source_sha:source,repository,observer_run_id:observer.id,observer_run_attempt:1,state:'VERIFIED_PASS',semantic_content_verified:true,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',producers,production:'HOLD',public:'HOLD',g5:'HOLD',promotion_eligible:false});
     attach(observer,`kpmo-continuous-assurance-sentinel-health-v1-${source}-${observer.id}-1`,'kpmo-continuous-assurance-sentinel-health-v1.json',health);healths.push(observer);
-    const assurance=run(400+generation*100,'.github/workflows/kidults-platform-continuous-assurance-v1.yml',manual?'workflow_dispatch':'workflow_run',observer.created_at);
-    const audit=seal({source:{sha:source,match:true},states:{internal_control_state:'VERIFIED_PASS'},execution:{workflow_run_id:String(assurance.id),workflow_run_attempt:'1',upstream:{run_id:String(observer.id),run_attempt:'1',workflow_path:observer.path,repository,conclusion:'success'}}});
-    attach(assurance,`kidults-continuous-assurance-${source}-${assurance.id}-1`,'audit-receipt.json',audit);
+    const assurance=run(400+generation*100,'.github/workflows/kidults-platform-continuous-assurance-v1.yml',manual?'workflow_dispatch':clock?'repository_dispatch':'workflow_run',observer.created_at);
+    let audit=seal({source:{sha:source,match:true},states:{internal_control_state:'VERIFIED_PASS'},execution:{trigger:'workflow_run',workflow_run_id:String(assurance.id),workflow_run_attempt:'1',upstream:{run_id:String(observer.id),run_attempt:'1',workflow_path:observer.path,repository,conclusion:'success'}}});
+    const extra={};
+    if(clock){
+      audit=seal({source:{sha:source,match:true,kind:'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK',actual_sha:source,expected_sha:source},states:{internal_control_state:'VERIFIED_PASS'},execution:{trigger:'repository_dispatch',workflow_run_id:String(assurance.id),workflow_run_attempt:'1',upstream:null,canonical_identity:{alias:false,canonical_run_id:assurance.id,canonical_run_attempt:1,source_sha:source,upstream_class:'ASSURANCE_EXTERNAL_NATURAL_CLOCK',generation_discriminator:`assurance-external-clock:kidults-natural-clock-v1:ASSURANCE:${source}:${'x'.repeat(32)}:slot:2026-10-04T12:00:00.000Z`}}});
+      const protected_evidence=healths.map(r=>({workflow_path:r.path,run_id:r.id,run_attempt:1,source_sha:source,artifact_id:artifacts.get(r.id)[0].id,artifact_digest:clockDigestMismatch?'sha256:'+'0'.repeat(64):artifacts.get(r.id)[0].digest}));
+      if(clockStale&&generation)protected_evidence.pop();
+      extra['whole-platform-operating-proof-v1.json']=JSON.stringify(seal({source_sha:source,repository,protected_evidence}));
+    }
+    attach(assurance,`kidults-continuous-assurance-${source}-${assurance.id}-1`,'audit-receipt.json',audit,extra);
     const gateRun=run(assurance.id+1,'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','workflow_run',observer.created_at);
     const gate=seal({receipt_id:'kpmo-continuous-assurance-success-authority-gate-v1',state:'VERIFIED_PASS',repository,current_protected_main_sha:source,upstream_assurance:{run_id:gateParentMismatch?assurance.id+2:assurance.id,run_attempt:1,head_sha:source,event:assurance.event,conclusion:'success'},producer_health_run_id:observer.id,producer_health_run_attempt:1,producer_health_receipt_digest:health.receipt_digest,producer_health_state:'VERIFIED_PASS',producer_health_conclusion:'success',coverage_scope:health.coverage_scope,whole_platform_authority:false,promotion_eligible:false,empirical_authority:false,provider_authority:false,database_authority:false,empirical_delta:0,production:'HOLD',public:'HOLD',g5:'HOLD'});
     attach(gateRun,`kpmo-continuous-assurance-success-authority-gate-${source}-${assurance.id}-1`,'kpmo-continuous-assurance-success-authority-gate-v1.json',gate);
@@ -114,6 +123,8 @@ function completeChainFixture({missingGate=false,manual=false,nestedMismatch=fal
     if(route.endsWith('/branches/main'))return {commit:{sha:source}};
     if(route.endsWith(`/git/commits/${source}`))return {sha:source,tree:{sha:'d'.repeat(40)},parents:[{sha:base},{sha:'e'.repeat(40)}]};
     if(route.endsWith('/pulls'))return [];
+    const jobsMatch=route.match(/\/actions\/runs\/(\d+)\/attempts\/1\/jobs$/);
+    if(jobsMatch){const id=Number(jobsMatch[1]),isGate=id%100===1;return {total_count:1,jobs:[{id:id+5000,run_id:id,run_attempt:1,name:isGate?'success-authority-gate':'classify-canonical-identity',status:'completed',conclusion:isGate&&gateSkipped?'skipped':'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:intakeSkipped?'skipped':'success'}]}]};}
     const runMatch=route.match(/\/actions\/runs\/(\d+)(\/artifacts)?$/);
     if(runMatch){const id=Number(runMatch[1]);return runMatch[2]?{total_count:(artifacts.get(id)||[]).length,artifacts:artifacts.get(id)||[]}:native.get(id);}
     const artifactMatch=route.match(/\/actions\/artifacts\/(\d+)$/);
@@ -139,6 +150,19 @@ test('native Gate nested health is exact-digest bound and sidecars and causal pa
   for(const options of [{nestedMismatch:true},{sidecarMismatch:true},{gateParentMismatch:true},{assuranceMismatch:true},{assuranceSidecarMismatch:true},{auditSidecarMismatch:true},{unknownZip:true},{missingAssuranceZip:true}]){
     const r=await completeChainFixture(options);
     assert.equal(r.operating_checks.find(c=>c.id==='NATURAL_CHAIN_TERMINALS').state,'VERIFIED_FAIL');
+    assert.equal(r.autonomous_operating_proven,false);
+  }
+});
+
+test('authenticated external clock retains both historical native Sentinel bindings without claiming whole-platform health',async()=>{
+  const r=await completeChainFixture({clock:true});
+  assert.equal(r.operating_checks.find(c=>c.id==='NATURAL_CHAIN_TERMINALS').state,'VERIFIED_PASS',JSON.stringify(r.operating_checks));
+  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.production,'HOLD');
+});
+test('workflow success cannot replace actual authority execution or authenticated clock intake and latest artifact tuple',async()=>{
+  for(const options of [{gateSkipped:true},{clock:true,gateSkipped:true},{clock:true,intakeSkipped:true},{clock:true,clockDigestMismatch:true},{clock:true,clockStale:true}]){
+    const r=await completeChainFixture(options);
+    assert.notEqual(r.operating_checks.find(c=>c.id==='NATURAL_CHAIN_TERMINALS').state,'VERIFIED_PASS',JSON.stringify(options));
     assert.equal(r.autonomous_operating_proven,false);
   }
 });

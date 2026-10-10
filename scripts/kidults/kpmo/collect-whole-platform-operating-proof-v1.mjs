@@ -6,6 +6,8 @@ import {authenticatedGithubRead,downloadArtifact,selectProducerGeneration,SPECS}
 import {readArchive,REPOSITORY} from './validate-sentinel-producer-content-v1.mjs';
 import {inventoryWholePlatform} from './lib/whole-platform-operating-proof-v1.mjs';
 import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt,verifyNaturalChainTerminal} from './lib/whole-platform-runtime-evidence-v1.mjs';
+import {assuranceSentinelObservationRoute} from './lib/assurance-sentinel-observation-route-v1.mjs';
+import {selectLatestNaturalSentinelRun} from './select-latest-natural-sentinel-run-v1.mjs';
 import {verifyNativeResumeReuse} from './lib/native-resume-reuse-proof-v1.mjs';
 import {canonicalJson,sha256} from './lib/canonical-json-v1.mjs';
 import {buildRuntimeEvidenceDemand} from './lib/runtime-domain-evidence-demand-v1.mjs';
@@ -68,7 +70,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     out.protected_evidence.push({workflow_path:run.path,run_id:run.id,run_attempt:run.run_attempt,
       source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest});return parsed;
   };
-  let gateCandidates;
+  let gateCandidates,nativeSentinelRuns=[];
   const gatePackets=new Map(),healthArchiveDigests=new Map();
   const chainTerminal=async health=>{
     gateCandidates??=await runs(gateSpec);
@@ -89,16 +91,33 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
         const auditPacket=await packet(assurance,`kidults-continuous-assurance-${sourceSha}-${assurance.id}-${assurance.run_attempt}`);
         requireEvidence(auditPacket,'CHAIN_ASSURANCE_ARTIFACT');
         const audit=member(auditPacket,'audit-receipt.json');
-        if(String(audit.execution?.upstream?.run_id)!==String(health.observer_run_id))continue;
+        const context={gateJobs:await get(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`)};
+        let sentinelRunId=Number(audit.execution?.upstream?.run_id);
+        if(assurance.event==='repository_dispatch'){
+          // Select at the Assurance observation boundary, retaining newer pending/red
+          // observations inside that boundary rather than falling back to old green.
+          context.sentinelRuns=nativeSentinelRuns.filter(r=>Date.parse(r.created_at)<=Date.parse(assurance.created_at));
+          const latest=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:assurance.created_at});
+          requireEvidence(latest.state==='VERIFIED_PASS','CHAIN_CLOCK_LATEST_SENTINEL');
+          context.assuranceJobs=await get(`actions/runs/${assurance.id}/attempts/1/jobs?per_page=100`);
+          context.proof=member(auditPacket,'whole-platform-operating-proof-v1.json');
+          const route=assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun:assurance,jobs:context.assuranceJobs,proof:context.proof,sentinelRun:latest.latest});
+          requireEvidence(route.mode==='EXTERNAL_CLOCK_PROOF_BOUND','CHAIN_CLOCK_ROUTE');
+          sentinelRunId=route.sentinelRunId;
+        }
+        if(sentinelRunId!==health.observer_run_id)continue;
+        const bindings=out.protected_evidence.filter(row=>row.workflow_path===sentinel.path&&row.run_id===health.observer_run_id);
+        requireEvidence(bindings.length===1,'CHAIN_SENTINEL_ARTIFACT_CARDINALITY');
+        context.sentinelArtifact={id:bindings[0].artifact_id,digest:bindings[0].artifact_digest};
         const healthDigest=healthArchiveDigests.get(health.observer_run_id);
         requireEvidence(/^sha256:[0-9a-f]{64}$/.test(healthDigest||''),'CHAIN_HEALTH_ARCHIVE_DIGEST');
         const p=await packet(run,artifacts[0].name,{authorityGateHealthDigest:healthDigest,authorityGateAssuranceDigest:auditPacket.archive_digest});
-        gatePackets.set(run.id,{receipt:member(p,'kpmo-continuous-assurance-success-authority-gate-v1.json'),assurance,audit});
+        gatePackets.set(run.id,{receipt:member(p,'kpmo-continuous-assurance-success-authority-gate-v1.json'),assurance,audit,context});
       }
       const selected=gatePackets.get(run.id);
       if(!selected||selected.receipt.producer_health_run_id!==health.observer_run_id)continue;
-      const {receipt,assurance,audit}=selected;
-      verifyNaturalChainTerminal(receipt,run,assurance,audit,health,sourceSha);
+      const {receipt,assurance,audit,context}=selected;
+      verifyNaturalChainTerminal(receipt,run,assurance,audit,health,sourceSha,context);
       return {sentinel_run_id:health.observer_run_id,assurance_run_id:assurance.id,gate_run_id:run.id,
         sentinel_receipt_digest:health.receipt_digest,gate_receipt_digest:receipt.receipt_digest};
     }
@@ -109,6 +128,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   await attempt(['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS'],async()=>{
     requireEvidence(Number.isSafeInteger(contract.maximum_observation_history)&&contract.maximum_observation_history>=2&&contract.maximum_observation_history<=24,'OBSERVATION_HISTORY_BOUND');
     const candidates=await runs(sentinel),selected=[],healths=[];
+    nativeSentinelRuns=candidates;
     let archivesRead=0;
     if(!candidates.length)return;
     for(const run of candidates){
