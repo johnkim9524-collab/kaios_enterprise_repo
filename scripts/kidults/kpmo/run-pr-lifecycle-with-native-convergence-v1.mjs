@@ -199,7 +199,7 @@ async function main() {
     DEFAULT_DELAY_MS, 0, DEFAULT_DELAY_MS,
     'LIFECYCLE_CONVERGENCE_DELAY_INVALID');
   const policy = JSON.parse(fs.readFileSync(POLICY, 'utf8'));
-  const requiredContexts = Array.from(new Set(policy?.native_required_status_contexts || []));
+  const requiredContexts = Array.from(new Set(policy?.native_readiness_status_contexts || policy?.native_required_status_contexts || []));
   assert(requiredContexts.length > 0, 'LIFECYCLE_CONVERGENCE_REQUIRED_CONTEXTS_EMPTY');
   const headers = {
     Authorization: `Bearer ${token}`,

@@ -27,7 +27,12 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   const prefixes = new Set(policy.governed_path_prefixes || []);
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
-  require(policy.version === '1.9.0', 'POLICY_VERSION');
+  require(policy.version === '1.10.0', 'POLICY_VERSION');
+  require(policy.readiness_status_context === 'KIDULTS Landing Readiness V1'
+    && policy.status_ownership?.readiness_may_write_required_landing === false
+    && workflow.includes('context=policy.readiness_status_context')
+    && !workflow.includes('context=policy.required_status_context')
+    && aggregatePolicy.native_readiness_status_contexts?.includes(policy.readiness_status_context), 'READINESS_STATUS_OWNERSHIP');
   require(policy.status === 'PROGRAM_OWNER_APPROVED_SOLO_GOVERNANCE', 'POLICY_STATUS');
   require(policy.governance_mode === 'SOLO_OWNER_GOVERNED', 'GOVERNANCE_MODE');
   require(policy.decision_id === 'JOHN-SOLO-OWNER-APPROVAL-0-2026-08-27', 'DECISION_ID');

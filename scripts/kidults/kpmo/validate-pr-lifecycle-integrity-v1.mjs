@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {pathToFileURL} from 'node:url';
 
 import {
   selectLatestLifecycleReadyEvent,
@@ -10,6 +11,7 @@ import {
 } from './lib/approval-generation-equality-v1.mjs';
 import {
   GOVERNED_LANDING_CONTEXT,
+  LANDING_READINESS_CONTEXT,
   GOVERNED_LANDING_PENDING_DESCRIPTION,
   READY_GOVERNED_REASON,
   SCOPE_AWARE_CONTEXT,
@@ -71,11 +73,11 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
     return {...common, state: 'READY_NON_PROMOTABLE', reason: 'BASE_NOT_CURRENT_PROTECTED_MAIN'};
   }
 
-  const required = Array.from(new Set(policy?.native_required_status_contexts || []));
+  const required = Array.from(new Set(policy?.native_readiness_status_contexts || policy?.native_required_status_contexts || []));
   assert(required.length > 0, 'NATIVE_REQUIRED_CONTEXT_SET_EMPTY');
   const latest = latestByContext(statuses);
   const evidence = required.map(context => latest.get(context) || {context, state: 'missing', description: null});
-  const landing = evidence.find(item => item.context === GOVERNED_LANDING_CONTEXT);
+  const landing = evidence.find(item => item.context === (policy?.native_readiness_status_contexts ? LANDING_READINESS_CONTEXT : GOVERNED_LANDING_CONTEXT));
   const scope = evidence.find(item => item.context === SCOPE_AWARE_CONTEXT);
   // The normal Ready status is a control result, never an atomic landing grant.
   // Keep the atomic-only READY_GOVERNED contract below unchanged.
@@ -92,7 +94,7 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
       atomic_landing_only: false,
     };
   }
-  if (landing?.state === 'pending'
+  if (landing?.state === (landing.context === LANDING_READINESS_CONTEXT ? 'success' : 'pending')
     && landing.description === 'Ready lifecycle verified; operation-specific landing authority required'
     && landing.creator === 'github-actions[bot]'
     && scope?.state === 'success') {
@@ -440,4 +442,4 @@ async function main() {
   if (receipt.state === 'READY_NON_PROMOTABLE') process.exit(1);
 }
 
-await main();
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

@@ -3,6 +3,7 @@ const DIGEST = /^sha256:[0-9a-f]{64}$/;
 const WORKFLOW_FILE = 'kpmo-pr-lifecycle-integrity-v1.yml';
 
 export const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
+export const LANDING_READINESS_CONTEXT = 'KIDULTS Landing Readiness V1';
 export const GOVERNED_LANDING_CONTEXT = 'KIDULTS Governed Landing Authorization V1';
 export const GOVERNED_LANDING_PENDING_DESCRIPTION = 'Ready; operation-specific atomic landing is required';
 export const GOVERNED_LANDING_NORMAL_READY_DESCRIPTION = 'Ready lifecycle verified; operation-specific landing authority required';
@@ -13,6 +14,12 @@ export const OWNER_RESERVED_OPERATION_AUTHORITY_PENDING_REASON = 'NATIVE_SCOPE_S
 export function isAtomicLandingNativeStatusReady(status) {
   const context = String(status?.context || '');
   const state = String(status?.state || 'missing');
+  if (context === LANDING_READINESS_CONTEXT) {
+    return state === 'success' && (status?.creator === 'github-actions[bot]' || status?.creator?.login === 'github-actions[bot]'
+        || (!status?.creator && /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/.test(String(status.avatar_url || ''))))
+      && ['Ready lifecycle verified; operation-specific landing authority required',
+        'Ready lifecycle verified; non-governed scope uses protected-main status path'].includes(status.description);
+  }
   if (context === GOVERNED_LANDING_CONTEXT) {
     if (state !== 'pending') return false;
     const description = String(status?.description || '');
@@ -90,7 +97,7 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
   if (!Array.isArray(receipt.native_status_evidence)) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_EVIDENCE_MISSING');
   if (receipt.native_status_evidence.length < boundNative.length) fail('LIFECYCLE_RECEIPT_NATIVE_STATUS_CARDINALITY');
   const boundNativeContexts = new Set(boundNative.map(status => status.context));
-  const allowedReceiptOnlyContexts = new Set([GOVERNED_LANDING_CONTEXT]);
+  const allowedReceiptOnlyContexts = new Set([GOVERNED_LANDING_CONTEXT, LANDING_READINESS_CONTEXT]);
   for (const item of receipt.native_status_evidence) {
     const context = String(item?.context || '');
     if (!boundNativeContexts.has(context) && !allowedReceiptOnlyContexts.has(context)) {
@@ -113,7 +120,22 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
     }
   }
 
+  const receiptOnlyReadiness = receipt.native_status_evidence.filter(item => item?.context === LANDING_READINESS_CONTEXT && !boundNativeContexts.has(LANDING_READINESS_CONTEXT));
+  if (receiptOnlyReadiness.length > 1 || receiptOnlyReadiness.some(item => !isAtomicLandingNativeStatusReady(item))) {
+    fail('LIFECYCLE_RECEIPT_READINESS_STATUS_INVALID');
+  }
+
   let receiptNativeFloor = 0;
+  for (const item of receiptOnlyReadiness) {
+    const updatedTime = ms(item.updated_at || item.created_at, 'LIFECYCLE_RECEIPT_READINESS_TIME_INVALID');
+    if (updatedTime < ms(lastReadyAt, 'LIFECYCLE_READY_EVENT_TIME_INVALID')) {
+      fail('LIFECYCLE_RECEIPT_READINESS_PRECEDES_READY_EVENT');
+    }
+    if (!Number.isInteger(Number(item.status_id)) || Number(item.status_id) <= 0) {
+      fail('LIFECYCLE_RECEIPT_READINESS_STATUS_ID_INVALID');
+    }
+    receiptNativeFloor = Math.max(receiptNativeFloor, updatedTime);
+  }
   let exactStatusIdentity = true;
   for (const expected of boundNative) {
     const matches = receipt.native_status_evidence.filter(item => item?.context === expected.context);

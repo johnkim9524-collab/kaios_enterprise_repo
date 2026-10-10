@@ -16,6 +16,7 @@ import {
   collectPaginatedApiValues,
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
+import {LANDING_READINESS_CONTEXT,isAtomicLandingNativeStatusReady} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
@@ -422,6 +423,14 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   ]);
   const authoritativeStatuses=(status.statuses||[]).map(value=>({...value,sha:value.sha||envelope.head_sha}));
   const authoritativeChecks=checks;
+  // Readiness cannot authorize landing, but an unsuccessful observer blocks it.
+  // This is deliberately outside the dispatched required-set identity binding.
+  if (!allowDraft && !requireEnvelopeBinding) {
+    const readiness=authoritativeStatuses.filter(value=>value.context===LANDING_READINESS_CONTEXT);
+    if(readiness.length!==1 || !isAtomicLandingNativeStatusReady(readiness[0])) {
+      throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',LANDING_READINESS_CONTEXT);
+    }
+  }
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
  const envelopeRequired=envelopeRequiredSource.map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||value.app_id||0)})
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
@@ -470,7 +479,7 @@ const waitForGovernedLandingMergeReadiness = async () => {
   const deadline=Date.now()+timeoutSeconds*1000;
   let last={state:'NOT_CHECKED'};
   while (Date.now()<deadline) {
-    const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:true,requireEnvelopeBinding:false});
+    const candidate=await validateLiveCandidate({allowDraft:false,includeLandingStatus:true,requireEnvelopeBinding:false});
     const mergeableState=String(candidate.pr.mergeable_state||'unknown').toLowerCase();
     last={state:'WAITING',mergeable:Object.hasOwn(candidate.pr,'mergeable')?candidate.pr.mergeable:null,mergeable_state:mergeableState,draft:candidate.pr.draft===true,pr_state:candidate.pr.state};
     if(candidate.pr.state==='open'&&candidate.pr.draft!==true&&candidate.pr.mergeable===true&&mergeReadinessReadyStates.has(mergeableState)) {
