@@ -1,6 +1,7 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS,generationIdForProducers} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
+import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
 import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
@@ -133,7 +134,8 @@ export function verifyNaturalChainTerminal(gate,gateRun,assurance,audit,health,s
   const execution=audit.execution,upstream=execution?.upstream;
   requireEvidence(String(execution?.workflow_run_id)===String(assurance.id)&&String(execution?.workflow_run_attempt)==='1','CHAIN_AUDIT_EXECUTION');
   if(assurance.event==='repository_dispatch'){
-    const selected=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:assurance.created_at});
+    const cutoff=assuranceClockObservationBoundary({proof:context.proof,assuranceRun:assurance,sourceSha});
+    const selected=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:cutoff});
     requireEvidence(selected.state==='VERIFIED_PASS'&&selected.latest.id===health.observer_run_id
       &&selected.latest.run_attempt===health.observer_run_attempt,'CHAIN_CLOCK_LATEST_SENTINEL');
     const route=assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun:assurance,

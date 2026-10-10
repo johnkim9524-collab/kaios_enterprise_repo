@@ -6,6 +6,7 @@ import {authenticatedGithubRead,downloadArtifact,selectProducerGeneration,SPECS}
 import {readArchive,REPOSITORY} from './validate-sentinel-producer-content-v1.mjs';
 import {inventoryWholePlatform} from './lib/whole-platform-operating-proof-v1.mjs';
 import {verifyHealthReceipt,distinctNaturalGenerations,verifyMissionTerminal,verifyValueChainDomainReceipt,verifyNaturalChainTerminal} from './lib/whole-platform-runtime-evidence-v1.mjs';
+import {assuranceClockObservationBoundary} from './lib/assurance-clock-observation-boundary-v1.mjs';
 import {assuranceSentinelObservationRoute} from './lib/assurance-sentinel-observation-route-v1.mjs';
 import {selectLatestNaturalSentinelRun} from './select-latest-natural-sentinel-run-v1.mjs';
 import {verifyNativeResumeReuse} from './lib/native-resume-reuse-proof-v1.mjs';
@@ -94,13 +95,14 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
         const context={gateJobs:await get(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`)};
         let sentinelRunId=Number(audit.execution?.upstream?.run_id);
         if(assurance.event==='repository_dispatch'){
-          // Select at the Assurance observation boundary, retaining newer pending/red
+          // Select at the sealed producer snapshot boundary, retaining newer pending/red
           // observations inside that boundary rather than falling back to old green.
-          context.sentinelRuns=nativeSentinelRuns.filter(r=>Date.parse(r.created_at)<=Date.parse(assurance.created_at));
-          const latest=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:assurance.created_at});
+          context.proof=member(auditPacket,'whole-platform-operating-proof-v1.json');
+          const cutoff=assuranceClockObservationBoundary({proof:context.proof,assuranceRun:assurance,sourceSha});
+          context.sentinelRuns=nativeSentinelRuns.filter(r=>Date.parse(r.created_at)<=Date.parse(cutoff));
+          const latest=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:cutoff});
           requireEvidence(latest.state==='VERIFIED_PASS','CHAIN_CLOCK_LATEST_SENTINEL');
           context.assuranceJobs=await get(`actions/runs/${assurance.id}/attempts/1/jobs?per_page=100`);
-          context.proof=member(auditPacket,'whole-platform-operating-proof-v1.json');
           const route=assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun:assurance,jobs:context.assuranceJobs,proof:context.proof,sentinelRun:latest.latest});
           requireEvidence(route.mode==='EXTERNAL_CLOCK_PROOF_BOUND','CHAIN_CLOCK_ROUTE');
           sentinelRunId=route.sentinelRunId;
@@ -132,58 +134,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     let archivesRead=0;
     if(!candidates.length)return;
     for(const run of candidates){
-      if(run.status!=='completed'||run.conclusion!=='success'){
-        if(!healths.length)mark('CORE_FOUR_CONTENT','VERIFIED_HOLD','LATEST_SENTINEL_NOT_SUCCESS');
-        break; // A red/nonterminal observation interrupts consecutiveness.
-      }
-      if(healths.length&&Date.parse(observedAt)-Date.parse(run.created_at)>contract.maximum_evidence_age_seconds*1000)break;
-      if(archivesRead>=contract.maximum_observation_history)break;
-      age(run);
-      if(!healths.length)requireEvidence(Date.parse(observedAt)-Date.parse(run.created_at)<=contract.maximum_observer_age_seconds*1000,'LATEST_OBSERVER_STALE');
-      const p=await packet(run,`kpmo-continuous-assurance-sentinel-health-v1-${sourceSha}-${run.id}-${run.run_attempt}`);
-      if(!p)return;
-      const h=verifyHealthReceipt(member(p,'kpmo-continuous-assurance-sentinel-health-v1.json'),run,sourceSha);
-      healthArchiveDigests.set(run.id,p.archive_digest);
-      archivesRead++;
-      if(healths.length&&!distinctNaturalGenerations([healths[0],h]))continue;
-      for(const producer of h.producers){
-        const native=await get(`actions/runs/${producer.selected_run_id}`),s=SPECS.find(s=>s.id===producer.id);
-        requireEvidence(native.path===s.path&&native.repository?.full_name===REPOSITORY&&native.head_sha===sourceSha&&native.head_branch==='main'&&native.run_attempt===producer.selected_run_attempt&&native.status==='completed'&&native.conclusion==='success'
-          &&native.event===producer.selected_event&&native.created_at===producer.selected_created_at,'PRODUCER_NATIVE_BINDING');
-        const artifact=await get(`actions/artifacts/${producer.artifact_id}`);
-        requireEvidence(artifact.digest===producer.artifact_digest&&artifact.workflow_run?.id===native.id&&artifact.workflow_run.head_sha===sourceSha&&artifact.expired===false,'PRODUCER_ARTIFACT_BINDING');
-      }
-      healths.push(h);
-      selected.push(run);
-      mark('CORE_FOUR_CONTENT','VERIFIED_PASS','PROTECTED_SEMANTIC_RECEIPTS_RECONCILED',selected.map(r=>r.id));
-      mark('DISTINCT_NATURAL_GENERATIONS','VERIFIED_HOLD','TWO_DISTINCT_COMPLETE_PRODUCER_TUPLES_REQUIRED',selected.map(r=>r.id));
-      if(healths.length===2)break;
-    }
-    verifiedHealths=healths;
-    if(healths.length)mark('DISTINCT_NATURAL_GENERATIONS',distinctNaturalGenerations(healths)?'VERIFIED_PASS':'VERIFIED_HOLD','TWO_DISTINCT_COMPLETE_PRODUCER_TUPLES_REQUIRED',selected.map(r=>r.id));
-  });
-  await attempt(['NATURAL_CHAIN_TERMINALS'],async()=>{
-    if(!verifiedHealths.length)return;
-    const terminals=[];
-    for(const health of verifiedHealths){const terminal=await chainTerminal(health);if(terminal)terminals.push(terminal);}
-    out.natural_chain_terminals=terminals;
-    mark('NATURAL_CHAIN_TERMINALS',terminals.length===2?'VERIFIED_PASS':'VERIFIED_HOLD',
-      'TWO_EXACT_SENTINEL_ASSURANCE_GATE_CHAINS_REQUIRED',terminals);
-  });
-  await attempt(['PROTECTED_LANDING'],async()=>{
-    const prs=await get(`commits/${sourceSha}/pulls?per_page=100`);
-    requireEvidence(Array.isArray(prs)&&prs.length<100,'MERGED_PR_INDEX');
-    const exact=prs.filter(p=>p.merged_at&&p.merge_commit_sha===sourceSha&&p.base.ref==='main'&&p.head.repo?.full_name===REPOSITORY);
-    if(exact.length!==1)return;
-    const p=exact[0];requireEvidence(commit.parents.length===2&&commit.parents[0].sha===p.base.sha&&commit.parents[1].sha===p.head.sha,'LANDING_PARENTS');
-    mark('PROTECTED_LANDING','VERIFIED_PASS','EXACT_MERGE_GRAPH_RECONCILED',[p.number,sourceSha]);
-  });
-  await attempt(['AWS_CONFIGURATION_AND_IMMUTABILITY'],async()=>{
-    const run=(await runs(canary))[0];if(!run||run.status!=='completed'||run.conclusion!=='success')return;age(run);
-    const p=await packet(run,`kidults-object-lock-assurance-${sourceSha}-${run.id}`);if(!p)return;
-    const r=member(p,'terminal-receipt.json');
-    requireEvidence(r.id==='kidults-autonomous-object-lock-canary-terminal-receipt-v1'&&r.state==='VERIFIED_PASS'&&r.exact_sha===sourceSha&&String(r.run_id)===String(run.id),'CANARY_BINDING');
-    requireEvidence(r.continuous_assurance?.environment_binding==='PASS'&&r.continuous_assurance.finalizer_iam_oidc_readback==='PASS'&&r.continuous_assurance.cloudformation_drift==='IN_SYNC'&&r.positive_canary==='PASS'&&r.negative_canary==='PASS'&&r.object_lock_mode==='COMPLIANCE','CANARY_CONTENT');
+      if(ru…1058 tokens truncated…on_drift==='IN_SYNC'&&r.positive_canary==='PASS'&&r.negative_canary==='PASS'&&r.object_lock_mode==='COMPLIANCE','CANARY_CONTENT');
     requireEvidence(['production','public','g5'].every(k=>r[k]==='HOLD'),'CANARY_HOLD');
     mark('AWS_CONFIGURATION_AND_IMMUTABILITY','VERIFIED_PASS','CANARY_IS_CONFIGURATION_PROOF_ONLY',[run.id]);
   });

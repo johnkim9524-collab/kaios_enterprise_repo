@@ -68,7 +68,7 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
 function completeChainFixture({missingGate=false,manual=false,clock=false,gateSkipped=false,intakeSkipped=false,clockDigestMismatch=false,clockStale=false,nestedMismatch=false,sidecarMismatch=false,gateParentMismatch=false,assuranceMismatch=false,assuranceSidecarMismatch=false,auditSidecarMismatch=false,unknownZip=false,missingAssuranceZip=false}={}){
   const native=new Map(),artifacts=new Map(),archives=new Map(),healths=[],gates=[];
   const seal=b=>({...b,receipt_digest:sha256(canonicalJson(b))});
-  const run=(id,path,event,time)=>({id,run_attempt:1,path,event,created_at:time,head_sha:source,head_branch:'main',repository:{full_name:repository},status:'completed',conclusion:'success'});
+  const run=(id,path,event,time)=>({id,run_attempt:1,path,event,created_at:time,head_sha:source,head_branch:'main',repository:{full_name:repository},status:'completed',conclusion:'success',updated_at:time});
   const attach=(r,name,basename,body,extra={})=>{
     let members={[basename]:JSON.stringify(body),...extra};
     if(basename==='kpmo-continuous-assurance-success-authority-gate-v1.json'){
@@ -110,7 +110,9 @@ function completeChainFixture({missingGate=false,manual=false,clock=false,gateSk
       audit=seal({source:{sha:source,match:true,kind:'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK',actual_sha:source,expected_sha:source},states:{internal_control_state:'VERIFIED_PASS'},execution:{trigger:'repository_dispatch',workflow_run_id:String(assurance.id),workflow_run_attempt:'1',upstream:null,canonical_identity:{alias:false,canonical_run_id:assurance.id,canonical_run_attempt:1,source_sha:source,upstream_class:'ASSURANCE_EXTERNAL_NATURAL_CLOCK',generation_discriminator:`assurance-external-clock:kidults-natural-clock-v1:ASSURANCE:${source}:${'x'.repeat(32)}:slot:2026-10-04T12:00:00.000Z`}}});
       const protected_evidence=healths.map(r=>({workflow_path:r.path,run_id:r.id,run_attempt:1,source_sha:source,artifact_id:artifacts.get(r.id)[0].id,artifact_digest:clockDigestMismatch?'sha256:'+'0'.repeat(64):artifacts.get(r.id)[0].digest}));
       if(clockStale&&generation)protected_evidence.pop();
-      extra['whole-platform-operating-proof-v1.json']=JSON.stringify(seal({source_sha:source,repository,protected_evidence}));
+      const observed_at=observer.created_at;
+      assurance.created_at=new Date(Date.parse(observer.created_at)-60000).toISOString();
+      extra['whole-platform-operating-proof-v1.json']=JSON.stringify(seal({source_sha:source,repository,observed_at,protected_evidence}));
     }
     attach(assurance,`kidults-continuous-assurance-${source}-${assurance.id}-1`,'audit-receipt.json',audit,extra);
     const gateRun=run(assurance.id+1,'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','workflow_run',observer.created_at);

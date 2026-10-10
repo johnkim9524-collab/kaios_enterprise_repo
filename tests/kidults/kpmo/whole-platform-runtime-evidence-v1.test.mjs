@@ -70,14 +70,14 @@ test('domain receipt rejects fixtures, metadata-only declarations and release el
 });
 
 function clockChain(){
-  const native={repository:{full_name:body.repository},head_sha:source,head_branch:'main',run_attempt:1,status:'completed',conclusion:'success',created_at:'2026-10-04T12:00:00Z'};
+  const native={repository:{full_name:body.repository},head_sha:source,head_branch:'main',run_attempt:1,status:'completed',conclusion:'success',created_at:'2026-10-04T12:00:00Z',updated_at:'2026-10-04T12:10:00Z'};
   const gateRun={...native,id:902,event:'workflow_run',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'};
   const assurance={...native,id:901,event:'repository_dispatch',path:'.github/workflows/kidults-platform-continuous-assurance-v1.yml'};
   const sentinel={...native,id:900,event:'repository_dispatch',path:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'};
   const health=seal(body);
   const audit=seal({source:{sha:source,actual_sha:source,expected_sha:source,match:true,kind:'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK'},states:{internal_control_state:'VERIFIED_PASS'},execution:{trigger:'repository_dispatch',workflow_run_id:'901',workflow_run_attempt:'1',upstream:null,canonical_identity:{alias:false,canonical_run_id:901,canonical_run_attempt:1,source_sha:source,upstream_class:'ASSURANCE_EXTERNAL_NATURAL_CLOCK',generation_discriminator:`assurance-external-clock:kidults-natural-clock-v1:ASSURANCE:${source}:${'x'.repeat(32)}:slot:2026-10-04T12:00:00.000Z`}}});
   const gate=seal({receipt_id:'kpmo-continuous-assurance-success-authority-gate-v1',state:'VERIFIED_PASS',repository:body.repository,current_protected_main_sha:source,upstream_assurance:{run_id:901,run_attempt:1,head_sha:source,event:'repository_dispatch',conclusion:'success'},producer_health_run_id:900,producer_health_run_attempt:1,producer_health_receipt_digest:health.receipt_digest,producer_health_state:'VERIFIED_PASS',producer_health_conclusion:'success',coverage_scope:body.coverage_scope,whole_platform_authority:false,promotion_eligible:false,empirical_authority:false,provider_authority:false,database_authority:false,empirical_delta:0,production:'HOLD',public:'HOLD',g5:'HOLD'});
-  const context={gateJobs:{total_count:1,jobs:[{id:1000,run_id:902,run_attempt:1,name:'success-authority-gate',status:'completed',conclusion:'success'}]},assuranceJobs:{total_count:1,jobs:[{id:1001,run_id:901,run_attempt:1,name:'classify-canonical-identity',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]},sentinelRuns:[sentinel],sentinelArtifact:{id:1002,digest:'sha256:'+'c'.repeat(64)},proof:seal({source_sha:source,repository:body.repository,protected_evidence:[{workflow_path:sentinel.path,source_sha:source,run_id:900,run_attempt:1,artifact_id:1002,artifact_digest:'sha256:'+'c'.repeat(64)}]})};
+  const context={gateJobs:{total_count:1,jobs:[{id:1000,run_id:902,run_attempt:1,name:'success-authority-gate',status:'completed',conclusion:'success'}]},assuranceJobs:{total_count:1,jobs:[{id:1001,run_id:901,run_attempt:1,name:'classify-canonical-identity',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]},sentinelRuns:[sentinel],sentinelArtifact:{id:1002,digest:'sha256:'+'c'.repeat(64)},proof:seal({source_sha:source,repository:body.repository,observed_at:'2026-10-04T12:05:00Z',protected_evidence:[{workflow_path:sentinel.path,source_sha:source,run_id:900,run_attempt:1,artifact_id:1002,artifact_digest:'sha256:'+'c'.repeat(64)}]})};
   return {gate,gateRun,assurance,audit,health,context};
 }
 const verifyClock=f=>verifyChain(f.gate,f.gateRun,f.assurance,f.audit,f.health,source,f.context);
@@ -100,5 +100,19 @@ test('clock terminal requires unique native intake, executed authority, latest n
     f=>{f.context.sentinelArtifact.id=1004;},
     f=>{const {receipt_digest,...proof}=f.context.proof;proof.protected_evidence.push({...proof.protected_evidence[0]});f.context.proof=seal(proof);},
   ];
-  for(const change of changes){const f=clockChain();change(f);assert.throws(()=>verifyClock(f),/CHAIN_|OBSERVATION_ROUTE|SENTINEL/);}
+  for(const change of changes){const f=clockChain();change(f);assert.throws(()=>verifyClock(f),/CHAIN_|OBSERVATION_ROUTE|OBSERVATION_BOUNDARY|SENTINEL/);}
+});
+
+test('clock snapshot admits Sentinel created after Assurance start and rejects invalid or altered sealed snapshot times',()=>{
+  const valid=clockChain();valid.context.sentinelRuns[0].created_at='2026-10-04T12:04:00Z';
+  assert.equal(verifyClock(valid).state,'VERIFIED_PASS');
+  for(const observed_at of ['2026-10-04T11:59:59Z','2026-10-04T12:10:01Z','invalid','2026-10-04 12:04:00','2026-10-04T12:04:00+00:00',12]){
+    const f=clockChain();const {receipt_digest,...proof}=f.context.proof;f.context.proof=seal({...proof,observed_at});
+    assert.throws(()=>verifyClock(f),/OBSERVATION_BOUNDARY/);
+  }
+  const altered=clockChain();altered.context.proof.observed_at='2026-10-04T12:04:00Z';assert.throws(()=>verifyClock(altered),/OBSERVATION_BOUNDARY/);
+  for(const conclusion of [null,'failure']){
+    const f=clockChain();f.context.sentinelRuns.push({...f.context.sentinelRuns[0],id:910,created_at:'2026-10-04T12:04:00Z',status:conclusion?'completed':'in_progress',conclusion});
+    assert.throws(()=>verifyClock(f),/CHAIN_CLOCK_LATEST_SENTINEL/);
+  }
 });
