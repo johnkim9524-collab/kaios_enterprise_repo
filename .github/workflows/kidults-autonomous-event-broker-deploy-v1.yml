@@ -28,6 +28,11 @@ on:
         description: Exact single-use DEPLOY_STAGING_BROKER authorization ID
         required: true
         type: string
+      owner_timeout_30_to_180:
+        description: Owner opt-in for BrokerFunction Timeout exactly 30 to 180 seconds
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: kidults-autonomous-event-broker-staging-deploy
@@ -47,6 +52,11 @@ jobs:
     steps:
       - name: Derive exact bounded deployment inputs
         shell: bash
+        env:
+          INPUT_MAIN_SHA: ${{ inputs.main_sha }}
+          INPUT_STACK_NAME: ${{ inputs.stack_name }}
+          INPUT_CHANGE_SET_NAME: ${{ inputs.change_set_name }}
+          INPUT_AUTHORIZATION_ID: ${{ inputs.authorization_id }}
         run: |
           set -euo pipefail
           if [ "$GITHUB_EVENT_NAME" = push ]; then
@@ -55,10 +65,22 @@ jobs:
             change_set_name="kidults-broker-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
             authorization_id="AUTO-STAGING-BROKER-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
           else
-            main_sha='${{ inputs.main_sha }}'
-            stack_name='${{ inputs.stack_name }}'
-            change_set_name='${{ inputs.change_set_name }}'
-            authorization_id='${{ inputs.authorization_id }}'
+            main_sha="$INPUT_MAIN_SHA"
+            stack_name="$INPUT_STACK_NAME"
+            change_set_name="$INPUT_CHANGE_SET_NAME"
+            authorization_id="$INPUT_AUTHORIZATION_ID"
+          fi
+          for bounded_input in "$main_sha" "$stack_name" "$change_set_name" "$authorization_id"; do
+            [[ "$bounded_input" != *$'\n'* && "$bounded_input" != *$'\r'* ]]
+          done
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$main_sha" = "$GITHUB_SHA"
+          test "$stack_name" = kidults-autonomous-event-token-broker-staging
+          [[ "$change_set_name" =~ ^kidults-broker-[0-9a-f]{12}-[0-9]+$ ]]
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            test "$authorization_id" = "DEPLOY-STAGING-BROKER-${GITHUB_SHA:0:12}-${change_set_name}"
+          else
+            test "$authorization_id" = "AUTO-STAGING-BROKER-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
           fi
           printf 'DEPLOY_MAIN_SHA=%s\nSTACK_NAME=%s\nCHANGE_SET_NAME=%s\nAUTHORIZATION_ID=%s\n' "$main_sha" "$stack_name" "$change_set_name" "$authorization_id" >> "$GITHUB_ENV"
 
@@ -91,8 +113,18 @@ jobs:
           GITHUB_INSTALLATION_ID: ${{ vars.KIDULTS_GITHUB_INSTALLATION_ID }}
           GITHUB_PRIVATE_KEY_SECRET_ARN: ${{ vars.KIDULTS_GITHUB_PRIVATE_KEY_SECRET_ARN }}
           GITHUB_OIDC_PROVIDER_ARN: ${{ vars.KIDULTS_GITHUB_OIDC_PROVIDER_ARN }}
+          OWNER_TIMEOUT_OPT_IN: ${{ github.event_name == 'workflow_dispatch' && inputs.owner_timeout_30_to_180 == true }}
+          SOURCE_READ_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          assert_current_main() {
+            local live_main
+            live_main=$(curl --fail --silent --show-error --connect-timeout 10 --max-time 30 \
+              -H "Authorization: Bearer $SOURCE_READ_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/git/ref/heads/main | jq -er '.object.sha')
+            test "$live_main" = "$DEPLOY_MAIN_SHA"
+          }
           trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
           test -n "$AWS_ROLE_ARN"
           OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
@@ -119,11 +151,18 @@ jobs:
             desired_template=infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json
             resume_parameters=(ParameterKey=ResumeActivationRunFloor,UsePreviousValue=true)
           fi
+          owner_timeout_args=()
+          if [ "$OWNER_TIMEOUT_OPT_IN" = true ]; then
+            test "$GITHUB_EVENT_NAME" = workflow_dispatch
+            test "$GITHUB_ACTOR" = "$GITHUB_REPOSITORY_OWNER"
+            owner_timeout_args=(--allow-owner-reviewed-broker-timeout-30-to-180)
+          fi
           node scripts/governance/validate-staging-no-authority-expansion-v1.mjs \
             --current /tmp/current-broker-template.json \
             --desired "$desired_template" \
-            --allow-lambda-code-change
+            --allow-lambda-code-change "${owner_timeout_args[@]}"
 
+          assert_current_main
           aws cloudformation create-change-set \
             --stack-name "$STACK_NAME" \
             --change-set-name "$CHANGE_SET_NAME" \
@@ -136,6 +175,7 @@ jobs:
           wait_status=$?
           set -e
           if [ "$wait_status" -eq 0 ]; then
+            assert_current_main
             aws cloudformation execute-change-set --stack-name "$STACK_NAME" --change-set-name "$CHANGE_SET_NAME"
             aws cloudformation wait stack-update-complete --stack-name "$STACK_NAME"
           else
@@ -152,6 +192,9 @@ jobs:
 
           mkdir -p out/autonomous-event-broker-deploy-v1
           function_name=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
+          expected_timeout=$(jq -r '.Resources.BrokerFunction.Properties.Timeout' "$desired_template")
+          observed_timeout=$(aws lambda get-function-configuration --function-name "$function_name" --query Timeout --output text)
+          test "$observed_timeout" = "$expected_timeout"
           aws lambda invoke --function-name "$function_name" --cli-binary-format raw-in-base64-out --payload '{"action":"DENY_CANARY"}' /tmp/deny.json >/tmp/invoke.json || true
           test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED:INPUT
           jq -n --arg stack "$STACK_NAME" --arg change_set "$CHANGE_SET_NAME" --arg authorization_id "$AUTHORIZATION_ID" --arg function "$function_name" --arg sha "$GITHUB_SHA" --arg run_id "$GITHUB_RUN_ID" '{state:"DEPLOYED_AND_NEGATIVE_CANARY_PASS",operation:"DEPLOY_STAGING_BROKER",stack:$stack,change_set:$change_set,authorization_id:$authorization_id,function:$function,workflow_sha:$sha,run_id:$run_id,positive_canary:"DISPATCHER_LIVE_TOKEN_PATH"}' > out/autonomous-event-broker-deploy-v1/receipt.json
