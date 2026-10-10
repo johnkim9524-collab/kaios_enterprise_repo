@@ -42,11 +42,16 @@ export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,
   if(proof?.source_sha!==sourceSha||proof.repository!==repository
     ||proof.receipt_digest!==sha256(canonicalJson(proofBody))||!Array.isArray(proof.protected_evidence))fail();
   const bindings=proof.protected_evidence.filter(row=>row.workflow_path===sentinelPath);
-  if(bindings.length!==1||bindings[0].source_sha!==sourceSha||Number(bindings[0].run_attempt)!==1
-    ||!Number.isSafeInteger(Number(bindings[0].run_id))||Number(bindings[0].run_id)<1
-    ||!Number.isSafeInteger(Number(bindings[0].artifact_id))||Number(bindings[0].artifact_id)<1
-    ||!/^sha256:[a-f0-9]{64}$/.test(bindings[0].artifact_digest||''))fail();
-  const binding=bindings[0];
+  if(!bindings.length||new Set(bindings.map(row=>String(row.run_id))).size!==bindings.length
+    ||new Set(bindings.map(row=>String(row.artifact_id))).size!==bindings.length
+    ||bindings.some(row=>row.source_sha!==sourceSha||Number(row.run_attempt)!==1
+      ||!Number.isSafeInteger(Number(row.run_id))||Number(row.run_id)<1
+      ||!Number.isSafeInteger(Number(row.artifact_id))||Number(row.artifact_id)<1
+      ||!/^sha256:[a-f0-9]{64}$/.test(row.artifact_digest||'')))fail();
+  // Historical generations are retained; only native selection can disambiguate them.
+  const selected=sentinelRun?bindings.filter(row=>Number(row.run_id)===Number(sentinelRun.id)):bindings;
+  if(selected.length!==1)fail();
+  const binding=selected[0];
   if(sentinelRun){
     if(Number(sentinelRun.id)!==Number(binding.run_id)||sentinelRun.run_attempt!==1
       ||sentinelRun.path!==sentinelPath||sentinelRun.head_sha!==sourceSha||sentinelRun.head_branch!=='main'
@@ -59,8 +64,10 @@ export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
-  const [auditPath,sourceSha,runPath,jobsPath,proofPath]=process.argv.slice(2);
+  const [auditPath,sourceSha,runPath,jobsPath,proofPath,sentinelRunPath]=process.argv.slice(2);
   const read=file=>JSON.parse(fs.readFileSync(file,'utf8'));
-  process.stdout.write(JSON.stringify(assuranceSentinelObservationRoute({audit:read(auditPath),sourceSha,
-    assuranceRun:read(runPath),jobs:read(jobsPath),proof:read(proofPath)}))+'\n');
+  const audit=read(auditPath);
+  const sentinelRun=sentinelRunPath?read(sentinelRunPath):undefined;
+  process.stdout.write(JSON.stringify(assuranceSentinelObservationRoute({audit,sourceSha,
+    assuranceRun:read(runPath),jobs:read(jobsPath),proof:read(proofPath),sentinelRun}))+'\n');
 }
