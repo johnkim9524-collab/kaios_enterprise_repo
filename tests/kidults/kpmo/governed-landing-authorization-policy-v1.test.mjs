@@ -1,3 +1,4 @@
+import {validateReadinessConsumption} from '../../../scripts/kidults/kpmo/validate-governed-readiness-consumption-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from '../../../scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -72,7 +73,7 @@ for(const [name,draft,outcome,governed] of [['late ready',false,'success',true],
           return {ok:true,status:200,json:async()=>value};};`;
       const child=spawnSync(process.execPath,['--input-type=module','-e',mock+'\n'+block],{encoding:'utf8',env:{...process.env,
         GH_TOKEN:'fixture',GH_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',PR_NUMBER:'2642',
-        EXPECTED_HEAD_SHA:'a'.repeat(40),EXPECTED_BASE_SHA:'b'.repeat(40),AUTHORIZATION_OUTCOME:outcome,
+        EXPECTED_HEAD_SHA:'a'.repeat(40),EXPECTED_BASE_SHA:'b'.repeat(40),AUTHORIZATION_OUTCOME:outcome,GITHUB_RUN_ID:'123',GITHUB_RUN_ATTEMPT:'1',
         READINESS_RECEIPT_PATH:path.join(directory,'receipt.json'),PRODUCTION_STATE:'HOLD',PUBLIC_STATE:'HOLD',G5_STATE:'HOLD'}});
       assert.equal(child.status,outcome==='failure'?1:0,child.stderr);
       const probe=JSON.parse(child.stdout.split('\n').find(x=>x.startsWith('STATUS_PROBE=')).slice('STATUS_PROBE='.length));
@@ -81,6 +82,11 @@ for(const [name,draft,outcome,governed] of [['late ready',false,'success',true],
       assert.equal(probe.writes[0].context,readinessContext);
       const receipt=JSON.parse(fs.readFileSync(path.join(directory,'receipt.json'),'utf8'));
       assert.equal(receipt.production,'HOLD');assert.equal(receipt.g5,'HOLD');
+      if(!draft&&outcome!=='failure') {
+        const consumed=validateReadinessConsumption(receipt,{repository:'johnkim9524-collab/kaios_enterprise_repo',runId:123,runAttempt:1,
+          prNumber:2642,headSha:'a'.repeat(40),baseSha:'b'.repeat(40)});
+        assert.equal(consumed.landing_authorization_created,false);
+      }
     } finally {fs.rmSync(directory,{recursive:true,force:true});}
   });
 }

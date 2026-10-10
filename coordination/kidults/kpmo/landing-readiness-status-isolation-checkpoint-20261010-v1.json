@@ -5,7 +5,7 @@
   "agent_id": "Atlas",
   "scope": "PR_2642_POSTMERGE_STATUS_RACE_REMEDIATION",
   "state": "IMPLEMENTED_NOT_VERIFIED",
-  "as_of": "2026-10-10T13:49:39.611848+00:00",
+  "as_of": "2026-10-10T14:04:42.471655+00:00",
   "source_main_sha": "afc7895e454539a6599db148bedfb240a01916cf",
   "facts": {
     "merged_pr": 2642,
@@ -19,7 +19,10 @@
     "latest_natural_dispatcher_run": 38055732282,
     "unknown_reconciliation_state": "HOLD_RECONCILE",
     "unknown_reason": "FAMILY_PHASE_INVOCATION_DRAIN_WINDOW",
-    "unknown_mutation_attempted": false
+    "unknown_mutation_attempted": false,
+    "initial_correction_ci_run": 38057785754,
+    "initial_correction_ci_conclusion": "failure",
+    "initial_correction_ci_failure": "STALE_RECEIPT_STATE_REGRESSION"
   },
   "inferences": [
     "Readiness observer overwriting finalizer success is a reproducible required-status race and a likely contributor to HTTP 405; GitHub response body does not establish the sole cause."
@@ -29,7 +32,10 @@
     "governed-landing policy and native required gates: 89 tests passed",
     "autonomous landing, generation, gate evidence and postmerge lifecycle: 35 tests passed",
     "atomic lifecycle receipt regression including isolated readiness positive and negative cases passed",
-    "lifecycle, convergence, coverage, generation integration and handoff compatibility validators passed"
+    "lifecycle, convergence, coverage, generation integration and handoff compatibility validators passed",
+    "producer/consumer/policy/scope follow-up: 115 tests passed",
+    "actual Dispatcher CI regression suite: 283 tests passed",
+    "delegated authority/generation/postmerge broad suite after locked dependency installation: 57 tests passed"
   ],
   "closure_remaining": [
     "exact-head independent GitHub verification",
@@ -45,9 +51,22 @@
   "transparency_effect": "Separates readiness, landing authorization, deployment and UNKNOWN reconciliation evidence.",
   "redteam_review": {
     "reviewer": "RedTeam-Holistic",
-    "state": "LOCAL_BLOCKING_FINDINGS_FIXED_REMOTE_VERIFICATION_PENDING",
+    "state": "LOCAL_FOLLOWUP_BLOCKING_FINDINGS_FIXED_REMOTE_VERIFICATION_PENDING",
     "report": "docs/kidults/kpmo/reviews/landing-readiness-holistic-redteam-20261010.md",
     "independent_local_tests_passed": 98,
-    "landing_authority": false
-  }
+    "landing_authority": false,
+    "independent_followup_local_tests_passed": 115
+  },
+  "followup_corrections": [
+    "Isolated readiness consumer compatibility with context and explicit no-authority checks",
+    "Reject contradictory legacy receipt authority claims",
+    "Actual publisher-to-consumer regression",
+    "Align stale assertions with source policy"
+  ],
+  "draft_proposal_intent_state": "HISTORICAL_NOT_REUSABLE_AFTER_SUBSTANTIVE_CONSUMER_CORRECTION",
+  "blocked_action": "AUTONOMOUS_LANDING",
+  "blockers": [
+    "CAPABILITY_GUARD_WEAKENED",
+    "INDEPENDENT_SECURITY_CAPABILITY_CHANGED"
+  ]
 }
