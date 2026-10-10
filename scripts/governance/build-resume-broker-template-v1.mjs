@@ -38,6 +38,11 @@ export function buildBrokerCode() {
   const digest=createHash('sha256').update(source).digest('hex');
   return `'use strict';\nconst source=require('node:zlib').gunzipSync(Buffer.from('${compressed}','base64'),{maxOutputLength:${source.length}});\nif(require('node:crypto').createHash('sha256').update(source).digest('hex')!=='${digest}')throw Error('BROKER_BUNDLE_DIGEST_MISMATCH');\nnew Function('require','exports',source.toString('utf8'))(require,exports);\n`;
 }
+export function assertCloudFormationInlineTemplateBodyLimit(template) {
+  const bytes=Buffer.byteLength(JSON.stringify(template,null,2)+'\n');
+  if(bytes>51200) throw new Error('BROKER_CLOUDFORMATION_TEMPLATE_BODY_LIMIT');
+  return bytes;
+}
 export function buildTemplates() {
   const p='infrastructure/aws/staging/autonomous-event-token-broker-v1.json';
   const original=JSON.parse(fs.readFileSync(p,'utf8'));
@@ -57,10 +62,7 @@ export function buildTemplates() {
   Object.assign(desired.Resources.BrokerFunction.Properties.Environment.Variables,{
     RESUME_OPERATION_TABLE:{Ref:'ResumeOperationTable'},RESUME_ACTIVATION_RUN_FLOOR:{Ref:'ResumeActivationRunFloor'}});
   desired.Outputs.ResumeOperationTableName={Value:{Ref:'ResumeOperationTable'}};
-  for(const template of [original,desired]) {
-    if(Buffer.byteLength(JSON.stringify(template,null,2)+'\n')>51200)
-      throw new Error('BROKER_CLOUDFORMATION_TEMPLATE_BODY_LIMIT');
-  }
+  for(const template of [original,desired]) assertCloudFormationInlineTemplateBodyLimit(template);
   return {original,desired};
 }
 if(process.argv[1]?.endsWith('/build-resume-broker-template-v1.mjs')) {
