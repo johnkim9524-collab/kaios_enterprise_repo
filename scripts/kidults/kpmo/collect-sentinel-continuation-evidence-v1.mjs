@@ -1,12 +1,18 @@
 import fs from 'node:fs';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {verifyAuthenticatedSentinelContinuation} from './lib/authenticated-sentinel-continuation-v1.mjs';
-const [indexPath,sourceSha,repository,outputPath]=process.argv.slice(2);
+const [indexPath,sourceSha,repository,outputPath,causalRunId]=process.argv.slice(2);
 const deadline=Date.now()+210000;
 const remaining=cap=>{const left=deadline-Date.now();if(left<=0)throw new Error('SENTINEL_CONTINUATION_TIME_BOUND');return Math.min(cap,left);};
 const api=route=>JSON.parse(execFileSync('gh',['api','-H','Accept: application/vnd.github+json',route],{encoding:'utf8',timeout:remaining(20000),maxBuffer:8*1024*1024}));
 const index=JSON.parse(fs.readFileSync(indexPath,'utf8'));
-const runs=index.workflow_runs.filter(r=>r.event==='workflow_dispatch'&&r.head_sha===sourceSha&&r.head_branch==='main');
+if(causalRunId!==undefined&&(!/^[1-9][0-9]*$/.test(causalRunId)||!Number.isSafeInteger(Number(causalRunId))))
+  throw new Error('SENTINEL_CONTINUATION_CAUSAL_ID_INVALID');
+const causalRuns=causalRunId===undefined?index.workflow_runs:index.workflow_runs.filter(r=>r.id===Number(causalRunId));
+if(causalRunId!==undefined&&causalRuns.length!==1)throw new Error('SENTINEL_CONTINUATION_CAUSAL_CARDINALITY');
+// A causal Gate must not authenticate unrelated dispatch archives before its
+// exact parent. The selector independently verifies that parent's native tuple.
+const runs=causalRuns.filter(r=>r.event==='workflow_dispatch'&&r.head_sha===sourceSha&&r.head_branch==='main');
 if(runs.length>50)throw new Error('SENTINEL_CONTINUATION_PROCESSING_BOUND');
 const evidence=[];
 for(const run of runs){

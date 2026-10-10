@@ -432,7 +432,7 @@ jobs:
             "$GATE_DIR/sentinel-runs.json" > "$GATE_DIR/causal-sentinel-runs.json"
           mv "$GATE_DIR/causal-sentinel-runs.json" "$GATE_DIR/sentinel-runs.json"
           node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json"
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$CAUSAL_SENTINEL_ID"
           node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
             "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$GATE_DIR/audit-receipt.json" \
             > "$GATE_DIR/sentinel-selection.json"

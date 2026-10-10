@@ -1,0 +1,24 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "58ec6983a2624e8e86e6c3a5ffc01403c27e29a1",
+  "head_branch": "codex/gate-causal-continuation-20261010",
+  "source_head_sha": "adac8585c54f2ae3d3598a8b5b9b766355212d3c",
+  "source_head_tree_sha": "61e0bbf420f4a1e9b655cebcf869fcf1f4d70b57",
+  "payload_digest": "sha256:83434bf430b6e1f0fcd3a428bc9f18a1103d5d0729a19e0dc50248c040833343",
+  "canonical_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/gate-causal-continuation-20261010",
+    "title": "fix: isolate exact causal Sentinel continuation authentication",
+    "body": "Natural Gate run 38039748641 had repository-dispatch Sentinel 38039456708 as its authenticated causal parent, but failed with SENTINEL_CONTINUATION_RECEIPT_BINDING while scanning unrelated manual continuation archives. Restrict continuation collection to the exact native causal parent already bound by the Assurance audit, before authenticating archives. Preserve strict parent identity, attempt and receipt validation, and retain the full-population behavior for callers without a causal parent.\n\nValidation: 82 continuation and Sentinel-selection tests passed, including actual CLI cases for unrelated malformed dispatch archives, causal native-attempt drift, pending receipts, invalid IDs and missing or duplicate parents. Replaying the authenticated failed Gate index selects the sole repository-dispatch parent and requires no continuation archive. This preparation does not prove a successful deployed Gate or whole-autonomy closure; authority, provider activation and promotion boundaries remain unchanged.",
+    "draft": true,
+    "maintainer_can_modify": false
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
