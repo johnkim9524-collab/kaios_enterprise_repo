@@ -59,6 +59,19 @@ function exactReceiptArtifact(run, artifactsByRunId, prNumber, headSha) {
   return { artifacts, matches: artifacts.filter(artifact => artifact?.name === expected), expected };
 }
 
+// GitHub timestamps have second precision: equality cannot prove this Ready cycle.
+// A Ready cycle is a lifecycle boundary even when the Git head is unchanged.
+export function isLandingReadinessCurrent(status, readyAt, evaluatedAt) {
+  const readyTime = Date.parse(String(readyAt || ''));
+  const statusTime = Date.parse(String(status?.updated_at || status?.created_at || ''));
+  const evaluatedTime = Date.parse(String(evaluatedAt || ''));
+  return status?.context === LANDING_READINESS_CONTEXT
+    && isAtomicLandingNativeStatusReady(status)
+    && Number.isSafeInteger(Number(status.id ?? status.status_id)) && Number(status.id ?? status.status_id) > 0
+    && Number.isFinite(readyTime) && Number.isFinite(statusTime) && Number.isFinite(evaluatedTime)
+    && statusTime > readyTime && statusTime <= evaluatedTime;
+}
+
 function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundNative, lastReadyAt, lastReadyEventId, lastReadyEventActor) {
   if (!receipt || typeof receipt !== 'object' || Array.isArray(receipt)) fail('LIFECYCLE_RECEIPT_CONTENT_INVALID');
   if (receipt.id !== 'kpmo-pr-lifecycle-integrity-receipt-v1') fail('LIFECYCLE_RECEIPT_ID_INVALID');
@@ -128,7 +141,7 @@ function validateReceiptContent(receipt, run, prNumber, headSha, baseSha, boundN
   let receiptNativeFloor = 0;
   for (const item of receiptOnlyReadiness) {
     const updatedTime = ms(item.updated_at || item.created_at, 'LIFECYCLE_RECEIPT_READINESS_TIME_INVALID');
-    if (updatedTime < ms(lastReadyAt, 'LIFECYCLE_READY_EVENT_TIME_INVALID')) {
+    if (updatedTime <= ms(lastReadyAt, 'LIFECYCLE_READY_EVENT_TIME_INVALID')) {
       fail('LIFECYCLE_RECEIPT_READINESS_PRECEDES_READY_EVENT');
     }
     if (!Number.isInteger(Number(item.status_id)) || Number(item.status_id) <= 0) {
@@ -210,7 +223,8 @@ export function selectAtomicLandingLifecycleAuthority({
       fail(`LIFECYCLE_NATIVE_STATUS_NOT_LANDING_READY:${context}:${String(status?.state || 'missing')}`);
     }
     const updatedAt = status.updated_at || status.created_at;
-    ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`);
+    const updatedTime = ms(updatedAt, `LIFECYCLE_NATIVE_STATUS_TIME_INVALID:${context}`);
+    if (context === LANDING_READINESS_CONTEXT && updatedTime <= readyEventTime) fail('LIFECYCLE_NATIVE_READINESS_PRECEDES_READY_EVENT');
     return {
       context,
       state: String(status.state),

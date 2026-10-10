@@ -16,7 +16,8 @@ import {
   collectPaginatedApiValues,
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
-import {LANDING_READINESS_CONTEXT,isAtomicLandingNativeStatusReady} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
+import {LANDING_READINESS_CONTEXT,isLandingReadinessCurrent} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequiredGateSemanticEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
@@ -406,6 +407,7 @@ const liveRequiredChecks = async ({includeLandingStatus=true,draftDevelopment=fa
   return all;
 };
 
+let boundReadyEvent=null;
 const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true,requireEnvelopeBinding=true}={}) => {
   const pr=await api(`/pulls/${envelope.pull_request}`);
   if (pr.state!=='open'||pr.merged===true||(!allowDraft&&pr.draft===true)||pr.base?.sha!==envelope.base_sha||pr.head?.sha!==envelope.head_sha) throw new AutonomousLandingError('AUTONOMOUS_PR_DRIFT');
@@ -427,9 +429,15 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   // This is deliberately outside the dispatched required-set identity binding.
   if (!allowDraft && !requireEnvelopeBinding) {
     const readiness=authoritativeStatuses.filter(value=>value.context===LANDING_READINESS_CONTEXT);
-    if(readiness.length!==1 || !isAtomicLandingNativeStatusReady(readiness[0])) {
+    const timeline=await collectPaginatedApiValues({request:api,endpoint:`/issues/${envelope.pull_request}/timeline`});
+    const latestReady=selectLatestLifecycleReadyEvent({timeline,repositoryOwner:repository.split('/')[0],pullRequest:pr});
+    if(readiness.length!==1 || !isLandingReadinessCurrent(readiness[0],latestReady.created_at,new Date().toISOString())) {
       throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN',LANDING_READINESS_CONTEXT);
     }
+    if(boundReadyEvent!==null && canonicalJson(boundReadyEvent)!==canonicalJson(latestReady)) {
+      throw new AutonomousLandingError('AUTONOMOUS_READY_GENERATION_DRIFT');
+    }
+    boundReadyEvent=latestReady;
   }
   if (!authoritativeStatuses.length&&!authoritativeChecks.length) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_STATUS_MISSING');
  const envelopeRequired=envelopeRequiredSource.map(value=>typeof value==='string'?{context:value,integration_id:0}:{context:String(value.context),integration_id:Number(value.integration_id||value.app_id||0)})

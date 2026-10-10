@@ -94,7 +94,7 @@ export function classifyLifecycle({pr, liveMainSha, statuses, policy, expectedHe
       atomic_landing_only: false,
     };
   }
-  if (landing?.state === (landing.context === LANDING_READINESS_CONTEXT ? 'success' : 'pending')
+  if (landing && landing.state === (landing.context === LANDING_READINESS_CONTEXT ? 'success' : 'pending')
     && landing.description === 'Ready lifecycle verified; operation-specific landing authority required'
     && landing.creator === 'github-actions[bot]'
     && scope?.state === 'success') {

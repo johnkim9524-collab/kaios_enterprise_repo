@@ -1,3 +1,4 @@
+import {selectLatestLifecycleReadyEvent} from '../../../scripts/kidults/kpmo/lib/direct-owner-ready-event-v1.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
@@ -6,7 +7,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {classifyLifecycle} from '../../../scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs';
 import {nativeGovernanceConverged} from '../../../scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs';
-import {isAtomicLandingNativeStatusReady} from '../../../scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs';
+import {isAtomicLandingNativeStatusReady,isLandingReadinessCurrent} from '../../../scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 import {
   GovernedLandingAuthorizationPolicyFailure,
@@ -224,4 +225,80 @@ test('transport, secret boundary, and atomicity claims cannot be weakened or gen
     assert.throws(() => assertGovernedLandingAuthorizationPolicyV160(policy),
       GovernedLandingAuthorizationPolicyFailure);
   }
+});
+
+test('finalizer readiness must belong to latest Ready cycle and have timed positive identity',()=>{
+  const current={...readiness,id:42};
+  const readyAt='2026-10-10T11:31:00Z', now='2026-10-10T11:32:00Z';
+  assert.equal(isLandingReadinessCurrent(current,readyAt,now),true);
+  for(const change of [{created_at:readyAt}, {created_at:'2026-10-10T11:30:59Z'}, {created_at:undefined},
+    {created_at:'2026-10-10T11:32:01Z'}, {id:undefined}, {state:'pending'}, {creator:{login:'untrusted'}}]) {
+    assert.equal(isLandingReadinessCurrent({...current,...change},readyAt,now),false);
+  }
+  assert.equal(isLandingReadinessCurrent(current,'2026-10-10T11:31:36Z',now),false);
+  const finalizer=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+  assert.match(finalizer,/endpoint:`\/issues\/\$\{envelope.pull_request\}\/timeline`/);
+  assert.match(finalizer,/isLandingReadinessCurrent\(readiness\[0\],latestReady.created_at/);
+});
+test('partial readiness policy returns controlled nonpromotable state',()=>{
+  assert.equal(classifyLifecycle({pr,liveMainSha:pr.base.sha,statuses:[],policy:{native_readiness_status_contexts:[scopeContext]},
+    expectedHeadSha:pr.head.sha,expectedBaseSha:pr.base.sha}).state,'READY_NON_PROMOTABLE');
+});
+
+test('same-head latest Draft closed or reopened invalidates landing readiness generation',()=>{
+  const ready={id:10,event:'ready_for_review',created_at:'2026-10-10T11:31:00Z',actor:{login:'github-actions[bot]'}};
+  for(const event of ['convert_to_draft','closed','reopened']) {
+    assert.throws(()=>selectLatestLifecycleReadyEvent({timeline:[ready,{...ready,id:11,event,created_at:'2026-10-10T11:32:00Z'}],
+      repositoryOwner:'johnkim9524-collab',pullRequest:pr}),/LIFECYCLE_(LATEST_READY_EVENT_REQUIRED|READY_GENERATION_INVALIDATED)/);
+  }
+  const second={...ready,id:12,created_at:'2026-10-10T11:33:00Z'};
+  const boundary=selectLatestLifecycleReadyEvent({timeline:[ready,{...ready,id:11,event:'convert_to_draft',created_at:'2026-10-10T11:32:00Z'},second],repositoryOwner:'johnkim9524-collab',pullRequest:pr});
+  assert.equal(boundary.id,12);
+  assert.equal(isLandingReadinessCurrent({...readiness,id:42},boundary.created_at,'2026-10-10T11:34:00Z'),false);
+});
+test('trusted-base rollout never converts legacy landing success into isolated readiness',()=>{
+  assert.equal(classify([{context:landingContext,state:'success',creator:{login:'github-actions[bot]'}},scope]).state,'READY_NON_PROMOTABLE');
+  assert.equal(classifyLifecycle({pr,liveMainSha:'c'.repeat(40),statuses:[readiness,scope],policy:readinessPolicy,
+    expectedHeadSha:pr.head.sha,expectedBaseSha:pr.base.sha}).reason,'BASE_NOT_CURRENT_PROTECTED_MAIN');
+  assert.equal(classify([readiness,scope]).state,'READY_VERIFIED_NON_PROMOTABLE');
+});
+
+test('same-second Ready boundary cannot reuse an indistinguishable prior status',()=>{
+  assert.equal(nativeGovernanceConverged([scope,readiness],readinessPolicy.native_readiness_status_contexts,
+    Date.parse(readiness.created_at)),false);
+});
+
+test('actual finalizer live reread rejects stale and changed same-head Ready cycles',async()=>{
+  const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+  const block=source.slice(source.indexOf('let boundReadyEvent=null;'),source.indexOf('const waitForReadyCandidate ='));
+  const event={id:10,event:'ready_for_review',created_at:'2026-10-10T11:31:00Z',actor:{login:'github-actions[bot]'}};
+  const fixture={statuses:[{...readiness,id:42}],timeline:[event],pr};
+  class GateError extends Error {constructor(code,detail){super(`${code}:${detail||''}`);this.code=code;}}
+  const api=async endpoint=>endpoint.startsWith('/pulls/')?fixture.pr:
+    endpoint.startsWith('/git/commits/')?{tree:{sha:'d'.repeat(40)}}:{statuses:fixture.statuses};
+  const collect=async({endpoint})=>endpoint.includes('/timeline')?fixture.timeline:[];
+  const create=new Function('api','collectPaginatedApiValues','envelope','repository','policy',
+    'attachImmutableContents','validateLiveChangedPaths','collectCheckRuns','liveRequiredChecks',
+    'bindRequiredGateEvidence','validateRequiredGateSemanticEvidence','sameRequiredGateEvidenceAuthority',
+    'AutonomousLandingError','selectLatestLifecycleReadyEvent','LANDING_READINESS_CONTEXT','isLandingReadinessCurrent','canonicalJson',
+    block+';return validateLiveCandidate;');
+  const candidate=create(api,collect,{pull_request:2642,base_sha:pr.base.sha,head_sha:pr.head.sha,head_tree_sha:'d'.repeat(40),test_evidence:{}},
+    'johnkim9524-collab/kaios_enterprise_repo',{},async x=>x,()=>{},async()=>[],async()=>[],()=>[],()=>{},()=>true,
+    GateError,selectLatestLifecycleReadyEvent,readinessContext,isLandingReadinessCurrent,JSON.stringify);
+  const options={allowDraft:false,includeLandingStatus:true,requireEnvelopeBinding:false};
+  for(const change of [{created_at:event.created_at},{created_at:'2026-10-10T11:30:00Z'},
+    {created_at:undefined},{creator:{login:'forged'}},{state:'failure'}]) {
+    fixture.statuses=[{...readiness,id:42,...change}];
+    await assert.rejects(candidate(options),/AUTONOMOUS_REQUIRED_STATUS_NOT_GREEN/);
+  }
+  fixture.statuses=[{...readiness,id:42}];
+  await candidate(options);
+  fixture.timeline=[event,{...event,id:11,created_at:'2026-10-10T11:31:20Z'}];
+  await assert.rejects(candidate(options),/AUTONOMOUS_READY_GENERATION_DRIFT/);
+  for(const eventName of ['convert_to_draft','closed','reopened']) {
+    fixture.timeline=[event,{...event,id:12,event:eventName,created_at:'2026-10-10T11:31:20Z'}];
+    await assert.rejects(candidate(options),/LIFECYCLE_(LATEST_READY_EVENT_REQUIRED|READY_GENERATION_INVALIDATED)/);
+  }
+  fixture.pr={...pr,draft:true};
+  await assert.rejects(candidate(options),/AUTONOMOUS_PR_DRIFT/);
 });

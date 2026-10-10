@@ -26,7 +26,7 @@
   ],
   "implementation": "Separate observer readiness context from controller-owned landing authority; validate consumers and readiness provenance/time; preserve rulesets and authority boundaries.",
   "local_verification": [
-    "governed-landing policy and native required gates: 83 tests passed",
+    "governed-landing policy and native required gates: 89 tests passed",
     "autonomous landing, generation, gate evidence and postmerge lifecycle: 35 tests passed",
     "atomic lifecycle receipt regression including isolated readiness positive and negative cases passed",
     "lifecycle, convergence, coverage, generation integration and handoff compatibility validators passed"
@@ -42,5 +42,12 @@
   "autonomous_effect": "Removes observer/controller status interference without granting new landing authority.",
   "global_effect": "Shared workflow fix applies to eligible internal PRs; no empirical geographic/source coverage claim.",
   "irreplaceable_value_effect": "Preserves versioned provenance and operation lifecycle evidence.",
-  "transparency_effect": "Separates readiness, landing authorization, deployment and UNKNOWN reconciliation evidence."
+  "transparency_effect": "Separates readiness, landing authorization, deployment and UNKNOWN reconciliation evidence.",
+  "redteam_review": {
+    "reviewer": "RedTeam-Holistic",
+    "state": "LOCAL_BLOCKING_FINDINGS_FIXED_REMOTE_VERIFICATION_PENDING",
+    "report": "docs/kidults/kpmo/reviews/landing-readiness-holistic-redteam-20261010.md",
+    "independent_local_tests_passed": 98,
+    "landing_authority": false
+  }
 }
