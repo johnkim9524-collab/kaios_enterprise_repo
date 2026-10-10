@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1ccf3629768791a061fc7f58a0fc56504a4a1d85",
+  "revision": "39148bcfecd00f6de6920e8693467f136e8d4c69",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 774
+    "file_count": 775
   },
   "files": [
     {
@@ -2069,6 +2069,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "c4b33b4e22885333af7117b309a771efce127f7d",
       "sha256": "sha256:fb3b76952b741a61ce566534060fd6baaa9887b6bcebaf203b0f2a13951090a7",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/natural-clock-assurance-draft-proposal-payload-20261011-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "916b9658af09a4466cfb5f227001d59b81e77cac",
+      "sha256": "sha256:a6425da4baf58740f2c86de7df1f18f811e772ac72dedc845eb4e58e520a5d6c",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6381,5 +6394,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:66050728898ae3f2c415fb21cbda6c91ea30ba9d0b28b53080dae4145905bcfb"
+  "manifest_sha256": "sha256:d0e26fb20ff5ba8b5bfb368914eb31b942895586cafe7204b3259c4fac57edb5"
 }

@@ -1,3 +1,6 @@
+import os from 'node:os';
+import path from 'node:path';
+import {spawnSync} from 'node:child_process';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -188,4 +191,77 @@ test('missing or forged baseline, deferred PASS, activation drift and unknown sc
 test('default whole-runtime verification still requires all fourteen receipts',()=>{
   const f=autonomousFixture();delete f.runtimeScope;
   assert.throws(()=>verifyAssuranceReadiness(f),/RUNTIME_CONTRACT_DOMAIN_SET/);
+});
+
+function externalClockFixture(){
+  const f=autonomousFixture();
+  f.assuranceRun.event='repository_dispatch';
+  Object.assign(f.audit.source,{kind:'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK'});
+  Object.assign(f.audit.execution,{trigger:'repository_dispatch',upstream:null,canonical_identity:{
+    source_sha:source,upstream_class:'ASSURANCE_EXTERNAL_NATURAL_CLOCK',alias:false,
+    canonical_run_id:'400',canonical_run_attempt:'1',
+    generation_discriminator:`assurance-external-clock:kidults-natural-clock-v1:ASSURANCE:${source}:${'n'.repeat(32)}:slot:2026-10-10T14:30:00.000Z`}});
+  f.assuranceJobs={total_count:1,jobs:[{id:402,name:'classify-canonical-identity',run_id:400,run_attempt:1,
+    status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]};
+  f.sentinelRun={id:10,run_attempt:1,path:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+    head_sha:source,head_branch:'main',repository:{full_name:f.assuranceRun.repository.full_name},
+    status:'completed',conclusion:'success',event:'repository_dispatch'};
+  f.audit=seal(Object.fromEntries(Object.entries(f.audit).filter(([k])=>k!=='receipt_digest')));
+  return f;
+}
+test('external clock uses native intake attestation and exact archived Sentinel proof without invented upstream',()=>{
+  const f=externalClockFixture(),result=verifyAssuranceReadiness(f);
+  assert.equal(result.state,'VERIFIED_PASS');
+  assert.equal(result.observation_relationship,'EXTERNAL_CLOCK_PROOF_BOUND');
+  assert.equal(f.audit.execution.upstream,null);
+  assert.equal(result.promotion_eligible,false);
+});
+test('external clock rejects forged native intake, borrowed identity, incomplete jobs and proof drift',()=>{
+  const mutations=[
+    f=>{f.assuranceJobs.jobs[0].name='classify';},
+    f=>{f.assuranceJobs.jobs[0].run_attempt=2;},
+    f=>{f.assuranceJobs.jobs[0].run_id=399;},
+    f=>{f.assuranceJobs.jobs[0].steps[0].conclusion='skipped';},
+    f=>{f.assuranceJobs.jobs[0].steps[0].conclusion='failure';},
+    f=>{f.assuranceJobs.jobs[0].steps=[];},
+    f=>{f.assuranceJobs.jobs[0].steps.push({...f.assuranceJobs.jobs[0].steps[0]});},
+    f=>{f.assuranceJobs.total_count=2;},
+    f=>{f.audit.execution.canonical_identity.alias=true;},
+    f=>{f.audit.execution.canonical_identity.canonical_run_id='399';},
+    f=>{f.audit.execution.canonical_identity.generation_discriminator=f.audit.execution.canonical_identity.generation_discriminator.replace('ASSURANCE:','SENTINEL:');},
+    f=>{f.audit.execution.upstream={run_id:10};},
+    f=>{f.sentinelRun.head_sha='b'.repeat(40);},
+    f=>{f.sentinelRun.run_attempt=2;},
+    f=>{f.sentinelRun.conclusion='failure';},
+    f=>{f.proof.protected_evidence.push({...f.proof.protected_evidence[0]});},
+    f=>{f.sentinel.artifact_digest='sha256:'+'c'.repeat(64);},
+    f=>{f.sentinelRun.event='workflow_dispatch';},
+  ];
+  for(const mutate of mutations){
+    const f=externalClockFixture();mutate(f);
+    f.audit=seal(Object.fromEntries(Object.entries(f.audit).filter(([k])=>k!=='receipt_digest')));
+    f.proof=seal(Object.fromEntries(Object.entries(f.proof).filter(([k])=>k!=='receipt_digest')));
+    assert.throws(()=>verifyAssuranceReadiness(f));
+  }
+});
+
+test('actual selector CLI binds clock proof and refuses newer pending, RED, or mismatched green',()=>{
+  const f=externalClockFixture(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'assurance-clock-selector-'));
+  const observedAt='2026-10-10T14:40:00.000Z';
+  const parent={...f.sentinelRun,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',created_at:'2026-10-10T14:35:00.000Z'};
+  const put=(name,value)=>{const file=path.join(dir,name+'.json');fs.writeFileSync(file,JSON.stringify(value));return file;};
+  try{
+    const args=[put('runs',{workflow_runs:[parent]}),source,observedAt,f.assuranceRun.repository.full_name,
+      put('continuations',[]),put('audit',f.audit),put('run',f.assuranceRun),put('jobs',f.assuranceJobs),put('proof',f.proof)];
+    const invoke=()=>spawnSync(process.execPath,['scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs',...args],{encoding:'utf8'});
+    assert.equal(invoke().status,0);
+    for(const delta of [{status:'in_progress',conclusion:null},{conclusion:'failure'},{conclusion:'success'}]){
+      put('runs',{workflow_runs:[parent,{...parent,id:11,created_at:'2026-10-10T14:39:00.000Z',...delta}]});
+      assert.equal(invoke().status,1);
+    }
+    put('runs',{workflow_runs:[parent,{...parent,id:11,created_at:'2026-10-10T14:40:01.000Z'}]});
+    assert.equal(invoke().status,1);
+    f.audit.receipt_digest='sha256:'+'0'.repeat(64);put('audit',f.audit);
+    assert.equal(invoke().status,1);
+  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

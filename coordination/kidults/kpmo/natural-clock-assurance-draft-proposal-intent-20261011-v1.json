@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "d2468a2d1839838b80f8d6f8cadfa4d8f3b8542c",
+  "head_branch": "codex/natural-clock-assurance-causal-binding-20261011",
+  "source_head_sha": "b6e03fb48dc8d3be26995af8718506bf36bef249",
+  "source_head_tree_sha": "55ba326410a7bf92da3ec2343f5bd23b8d480aad",
+  "payload_digest": "sha256:2d839bee513248ca1da93798631f6039e0cac935e33e213d2d0f17086411adce",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

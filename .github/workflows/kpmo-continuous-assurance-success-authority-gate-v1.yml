@@ -15,6 +15,7 @@ on:
       - 'tests/kidults/kpmo/authenticated-sentinel-continuation-v1.test.mjs'
       - 'scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs'
       - 'scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs'
+      - 'scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs'
       - 'scripts/kidults/kpmo/lib/assurance-completion-disposition-v1.mjs'
       - 'scripts/kidults/kpmo/classify-assurance-completion-disposition-v1.mjs'
       - 'tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs'
@@ -422,7 +423,11 @@ jobs:
             > "$GATE_DIR/sentinel-runs.json"
           jq -e '.workflow_runs as $runs | ($runs|length)==.total_count and ($runs|length)==($runs|map(.id)|unique|length)' \
             "$GATE_DIR/sentinel-runs.json" >/dev/null
-          CAUSAL_SENTINEL_ID=$(jq -r '.execution.upstream.run_id // empty' "$GATE_DIR/audit-receipt.json")
+          node scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs \
+            "$GATE_DIR/audit-receipt.json" "$UPSTREAM_SHA" "$GATE_DIR/upstream-assurance-run.json" \
+            "$GATE_DIR/assurance-jobs.json" "$GATE_DIR/whole-platform-operating-proof-v1.json" \
+            > "$GATE_DIR/sentinel-observation-route.json"
+          CAUSAL_SENTINEL_ID=$(jq -r '.sentinelRunId' "$GATE_DIR/sentinel-observation-route.json")
           [[ "$CAUSAL_SENTINEL_ID" =~ ^[1-9][0-9]*$ ]]
           gh api -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/runs/${CAUSAL_SENTINEL_ID}" \
@@ -431,10 +436,15 @@ jobs:
             '.workflow_runs |= (map(select(.id != $parent[0].id)) + $parent) | .total_count=(.workflow_runs|length)' \
             "$GATE_DIR/sentinel-runs.json" > "$GATE_DIR/causal-sentinel-runs.json"
           mv "$GATE_DIR/causal-sentinel-runs.json" "$GATE_DIR/sentinel-runs.json"
+          CONTINUATION_ARGS=()
+          if test "$(jq -r '.mode' "$GATE_DIR/sentinel-observation-route.json")" = CAUSAL_SENTINEL; then
+            CONTINUATION_ARGS+=("$CAUSAL_SENTINEL_ID")
+          fi
           node scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs \
-            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$CAUSAL_SENTINEL_ID"
+            "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "${CONTINUATION_ARGS[@]}"
           node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs \
             "$GATE_DIR/sentinel-runs.json" "$UPSTREAM_SHA" "$UPSTREAM_CREATED_AT" "$GITHUB_REPOSITORY" "$GATE_DIR/sentinel-continuation-evidence.json" "$GATE_DIR/audit-receipt.json" \
+            "$GATE_DIR/upstream-assurance-run.json" "$GATE_DIR/assurance-jobs.json" "$GATE_DIR/whole-platform-operating-proof-v1.json" \
             > "$GATE_DIR/sentinel-selection.json"
           jq '.latest // {}' "$GATE_DIR/sentinel-selection.json" > "$GATE_DIR/selected-sentinel-run.json"
           SENTINEL_RUN_ID=$(jq -r '.id // empty' "$GATE_DIR/selected-sentinel-run.json")
@@ -513,6 +523,7 @@ jobs:
             "$GATE_DIR/assurance-archive-validation-receipt.json" \
             "$GATE_DIR/assurance-artifact-binding.json" \
             "$GATE_DIR/selected-sentinel-continuation.json" \
+            "$GATE_DIR/assurance-jobs.json" "$GATE_DIR/selected-sentinel-run.json" \
             > "$GATE_DIR/assurance-runtime-readiness.json"
           jq -e '.state=="VERIFIED_PASS" and .scope=="AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM" and .required_domain_count>=1 and .verified_domain_count==.required_domain_count and .whole_platform_authority==false and .promotion_eligible==false' \
             "$GATE_DIR/assurance-runtime-readiness.json" >/dev/null
