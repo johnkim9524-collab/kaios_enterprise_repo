@@ -232,12 +232,12 @@ test('Sentinel trigger is scoped to Coverage while Assurance still sees the prod
 import {spawnSync} from 'node:child_process';
 function resolverCli(scenario){
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-trigger-cli-'));
- const payload=scenario==='natural'?naturalEvent():event();
+ const payload=scenario==='natural'?naturalEvent():scenario==='scheduled'?scheduledAssuranceEvent():event();
  if(scenario==='fork')payload.workflow_run.head_repository.full_name='other/repo';
  const eventPath=path.join(dir,'event.json'),output=path.join(dir,'receipt.json'),trace=path.join(dir,'trace.json');
  fs.writeFileSync(eventPath,scenario==='malformed-json'?'{bad':JSON.stringify(payload));
  const hook=`import fs from 'node:fs';import cp from 'node:child_process';import {syncBuiltinESMExports} from 'node:module';
-const p=${JSON.stringify(scenario==='natural'?naturalEvent():event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
+const p=${JSON.stringify(scenario==='natural'?naturalEvent():scenario==='scheduled'?scheduledAssuranceEvent():event())},scenario=${JSON.stringify(scenario)},calls=[];let reads=0;
 const exec=cp.execFileSync;cp.execFileSync=(f,a,o)=>f==='git'&&a.join(' ')==='rev-parse HEAD'?process.env.GITHUB_SHA+'\\n':exec(f,a,o);syncBuiltinESMExports();
 process.on('exit',()=>fs.writeFileSync(process.env.TRACE,JSON.stringify(calls)));
 globalThis.fetch=async(url,options)=>{
@@ -256,7 +256,7 @@ globalThis.fetch=async(url,options)=>{
 };`;
  try{
   const preload=path.join(dir,'hook.mjs');fs.writeFileSync(preload,hook);
-  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,GITHUB_EVENT_NAME:scenario==='natural'?'repository_dispatch':env.GITHUB_EVENT_NAME,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
+  const result=spawnSync(process.execPath,['--import',pathToFileURL(preload).href,'scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs','--output',output],{encoding:'utf8',timeout:12000,env:{PATH:process.env.PATH,...env,...(scenario==='scheduled'?scheduledGateEnv:{}),GITHUB_EVENT_NAME:scenario==='natural'?'repository_dispatch':env.GITHUB_EVENT_NAME,GITHUB_RUN_ID:'900',GITHUB_RUN_ATTEMPT:'1',GITHUB_EVENT_PATH:eventPath,GH_TOKEN:'CLOSED_TRANSPORT_TEST_ONLY',TRACE:trace}});
   assert.equal(result.error,undefined,result.stderr);
   const r=JSON.parse(fs.readFileSync(output,'utf8')),calls=JSON.parse(fs.readFileSync(trace,'utf8'));
   assert.equal(r.promotion_eligible,false);assert.equal(r.semantic_content_verified,false);
@@ -319,4 +319,41 @@ test('inventory digest rebinding is non-semantic while mismatched copies and rou
  const drifted=JSON.stringify({audit:{manifest_sha256:'sha256:new',routing_coverage:{route_counts:{OWNER_RESERVED:1}}},manifest_sha256:'sha256:new'});
  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED/);
  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{filename,base_content,head_content:drifted}],policy:landing}),/INDEPENDENT_(?:SECURITY_CAPABILITY|DERIVED_METADATA_SCOPE_CHANGED)/);
+});
+
+const scheduledGateEnv={...env,GITHUB_WORKFLOW:'KPMO Continuous Assurance Scheduled Authority Gate V1'};
+const scheduledAssuranceEvent=()=>event({name:'KIDULTS Platform Continuous Assurance V1',
+ path:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',events:['schedule']});
+test('scheduled authority observer accepts its exact native scheduled Assurance completion',()=>{
+ const payload=scheduledAssuranceEvent();
+ const result=validateSentinelTrigger(scheduledGateEnv,payload,structuredClone(payload.workflow_run));
+ assert.equal(result.run_id,100);assert.equal(result.event,'schedule');
+ assert.equal(result.trigger_scope,'SCHEDULED_ASSURANCE_CORE_HEALTH_OBSERVER_ONLY');
+ assert.throws(()=>validateSentinelTrigger(env,payload),/SENTINEL_UPSTREAM_WORKFLOW_EVENT/);
+});
+for(const [name,mutate] of [
+ ['wrong path',p=>p.workflow_run.path='.github/workflows/ci-validation.yml'],
+ ['wrong workflow name',p=>{p.workflow_run.name='CI Validation';p.workflow_run.display_title='CI Validation';}],
+ ['manual event',p=>p.workflow_run.event='workflow_dispatch'],
+ ['push event',p=>p.workflow_run.event='push'],
+ ['failed conclusion',p=>p.workflow_run.conclusion='failure'],
+ ['stale source',p=>p.workflow_run.head_sha='b'.repeat(40)],
+ ['foreign repository',p=>p.workflow_run.repository.full_name='other/repo'],
+ ['fork source',p=>p.workflow_run.head_repository.full_name='other/repo'],
+ ['feature branch',p=>p.workflow_run.head_branch='feature'],
+ ['nonterminal',p=>{p.workflow_run.status='in_progress';p.workflow_run.conclusion=null;}],
+ ['wrong completion action',p=>p.action='requested'],
+])test(`scheduled authority observer rejects ${name}`,()=>{
+ const payload=scheduledAssuranceEvent();mutate(payload);
+ assert.throws(()=>validateSentinelTrigger(scheduledGateEnv,payload));
+});
+test('scheduled authority observer rechecks native attempt and forbids inline/manual bypass',()=>{
+ const payload=scheduledAssuranceEvent(),remote=structuredClone(payload.workflow_run);remote.run_attempt=2;
+ assert.throws(()=>validateSentinelTrigger(scheduledGateEnv,payload,remote),/SENTINEL_UPSTREAM_REMOTE_CHANGED/);
+ assert.throws(()=>validateSentinelTrigger({...scheduledGateEnv,GITHUB_EVENT_NAME:'workflow_dispatch',KPMO_INLINE_ASSURANCE_HEALTH_GATE:'true'},payload));
+});
+
+test('actual scheduled Assurance observer reads native trigger twice and keeps absent producers HOLD',()=>{
+ const x=resolverCli('scheduled');assert.equal(x.receipt.state,'VERIFIED_HOLD',x.result.stderr);
+ assert.equal(x.calls.filter(v=>v.path.endsWith('/actions/runs/100')).length,2);
 });
