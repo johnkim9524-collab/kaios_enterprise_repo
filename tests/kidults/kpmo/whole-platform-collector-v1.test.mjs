@@ -108,7 +108,7 @@ function completeChainFixture({missingGate=false,manual=false}={}){
 test('overlapping genuine generations retain older evidence and require both downstream terminals',async()=>{
   const r=await completeChainFixture();
   for(const id of ['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS'])assert.equal(r.operating_checks.find(c=>c.id===id).state,'VERIFIED_PASS',JSON.stringify(r.operating_checks));
-  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.assurance_runtime_readiness_proven,false);assert.equal(r.assurance_runtime_readiness.verified_domain_count,0);
+  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.assurance_runtime_readiness_proven,false);assert.equal(r.autonomous_runtime_readiness_proven,false);assert.equal(r.autonomous_operating_proven,false);assert.equal(r.autonomous_runtime_readiness.deferred_domain_ids.length,13);assert.equal(r.assurance_runtime_readiness.verified_domain_count,0);
 });
 test('missing Gate or manual Assurance cannot complete natural terminal proof',async()=>{
   for(const options of [{missingGate:true},{manual:true}]){

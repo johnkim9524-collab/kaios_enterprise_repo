@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "8d574e60d275ddca4d1a6202de8bc61352ebcf7d",
+  "revision": "5044d747fc1ae63f47a25a86226cbd9f386b3901",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2093,8 +2093,8 @@
     {
       "path": "coordination/kidults/kpmo/platform-continuous-assurance-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f0b191f5a82cb4a49d61900bbdc6c693fb3772d7",
-      "sha256": "sha256:40882b8ed785cb730ccb6c7ad73f92e5126b1a17ac246712c3102d2437af1afd",
+      "git_blob": "93b9c3007f75685a1acb290ced8b10f0fe071270",
+      "sha256": "sha256:c7ae9b6794cc6382bbc0e783b8ff05c15e2db23bb2ca7eef266e2f3feccbf950",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2317,8 +2317,8 @@
     {
       "path": "coordination/kidults/provider/provider-contact-readiness-gate-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "f37e191f20395c4987cb6f161279cdbd7e1b81ce",
-      "sha256": "sha256:a9b87a565999bcc19bc4bc6a1a772bff4c1d0004ae2540b3ee89fc164ca5ba21"
+      "git_blob": "2f0e145b9ac234e32f2d4a3f6c153f2ce480fbfd",
+      "sha256": "sha256:10484788dc2bf1aa6e977e3d2331e31ea51783054b7e2133d9a3e29e2be9e185"
     },
     {
       "path": "coordination/kidults/provider/provider-live-execution-raci-v1.json",
@@ -2389,8 +2389,8 @@
     {
       "path": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "00cafd0f2c310f84d56a21b7f03d8c19c8b3c70d",
-      "sha256": "sha256:3c38e597a1f2d23a8f78f97e09569d770794504984dd5d8bf2c02acbfa4a23e2"
+      "git_blob": "5b027ec582263e5e79a9d39bc23609cea8b5ed7f",
+      "sha256": "sha256:6ca84f383d898e4862e48dd621550e61c1e427991498e2e32f3512c1a4cdd2b8"
     },
     {
       "path": "coordination/kidults/registry/release-registry.json",
@@ -3589,8 +3589,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c8b340f645fa6e5af69f3340412ebf2600c2801a",
-      "sha256": "sha256:08e2a22f2f0279db70b83eb2a882d37de2406d5adb4b965ee13f935301464ba5",
+      "git_blob": "3a7e81e4f4af8322b537f7077aba25f037fb2c2e",
+      "sha256": "sha256:054ffe99d6cb2b5b2abb7a387465c9674efbd5f575c2d43f59d5d7962dc58aca",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4776,8 +4776,8 @@
     {
       "path": "scripts/kidults/provider/validate-provider-operating-state-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ee55d94df4b747fdc38e956fd1c792a2f46c179c",
-      "sha256": "sha256:b581b42fe76b4390883ea1962d66236a6bc98a566f95b697f8246b089f89fc6b"
+      "git_blob": "413d1f5dd7e6d3546774cd4beda8a676a8ab49a9",
+      "sha256": "sha256:4fec7ce18a36b1488287570027d02cea37bdb9a71c388feec1246e6d3b60c8f6"
     },
     {
       "path": "scripts/kidults/provider/validate-provider-outbound-email-approval-receipt-v1.mjs",
@@ -6362,5 +6362,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:fd83b12baf18553fc437834397040cb6973f0270702a9d922bbfd3b3766bb500"
+  "manifest_sha256": "sha256:f6be6c1bd8644dcabdc6dba464d997576fd4afc589c802c4861e33148abec61c"
 }

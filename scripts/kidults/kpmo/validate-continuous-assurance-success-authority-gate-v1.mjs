@@ -8,7 +8,7 @@ const fail = (code) => { throw new Error(code); };
 const workflow = fs.readFileSync(workflowPath, 'utf8');
 const policy = JSON.parse(fs.readFileSync(policyPath, 'utf8'));
 const assuranceProofHelper = fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs', 'utf8');
-for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verified_domain_count!==14', 'fail(\'SENTINEL_BINDING\')']) {
+for (const token of ['proof?.assurance_runtime_readiness_proven!==true', 'verified_domain_count!==14', 'fail(\'SENTINEL_BINDING\')', 'verifyAutonomousRuntimeReadiness', "runtimeScope:'AUTONOMOUS_CONTROL_PLANE'"]) {
   if (!assuranceProofHelper.includes(token)) fail(`SUCCESS_AUTHORITY_GATE_PROOF_HELPER_TOKEN_MISSING:${token}`);
 }
 
@@ -35,6 +35,8 @@ const requiredWorkflowTokens = [
   'audit-receipt.json',
   'whole-platform-operating-proof-v1.json',
   '.assurance_runtime_readiness==true',
+  '.scope=="AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM"',
+  '.verified_domain_count==.required_domain_count',
   '.assurance_archive_readback==\"PASS\"',
   '.assurance_archive_validation_receipt_digest|test(\"^sha256:[0-9a-f]{64}$\")',
   'ASSURANCE_ARCHIVE_VALIDATION_RECEIPT_DIGEST',

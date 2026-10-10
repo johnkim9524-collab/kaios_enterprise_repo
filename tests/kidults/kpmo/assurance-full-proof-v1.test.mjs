@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {verifyAssuranceReadiness,verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
+import {verifyAssuranceReadiness,verifyAssuranceRuntimeReadiness,verifyAutonomousRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
 
 const source='a'.repeat(40),sentinelDigest='sha256:'+'b'.repeat(64);
 const seal=value=>({...value,receipt_digest:sha256(canonicalJson(value))});
@@ -140,4 +140,52 @@ test('full audit distinguishes internal recovery from the unchanged whole-platfo
   assert.ok(validation>0&&validation<upload&&upload<preserve);
   assert.match(workflow,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
   assert.match(workflow.slice(validation,upload),/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
+});
+
+function autonomousFixture(){
+  const f=fixture(), c=f.runtimeDomainContract;
+  c.runtime_domain_sources=c.runtime_domain_sources.filter(x=>x.domain_id==='SECURITY_SUPPLY_CHAIN');
+  for(const d of f.proof.value_chain)if(d.id!=='SECURITY_SUPPLY_CHAIN'){
+    d.runtime_state='UNVERIFIED';delete d.runtime_receipt_digest;delete d.run_id;
+  }
+  f.proof.runtime_domain_registry={state:'HOLD',required_domain_count:14,registered_domain_count:1};
+  f.proof.assurance_runtime_readiness_proven=false;
+  f.proof.assurance_runtime_readiness={state:'VERIFIED_HOLD',required_domain_count:14,verified_domain_count:1};
+  f.proof.autonomous_runtime_readiness_proven=true;
+  f.proof.autonomous_runtime_readiness={state:'VERIFIED_PASS',scope:'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',
+    required_domain_count:1,verified_domain_count:1,domain_ids:['SECURITY_SUPPLY_CHAIN'],
+    deferred_domain_ids:c.value_chain_dimensions.filter(x=>x!=='SECURITY_SUPPLY_CHAIN')};
+  f.proof=seal(Object.fromEntries(Object.entries(f.proof).filter(([k])=>k!=='receipt_digest')));
+  f.runtimeScope='AUTONOMOUS_CONTROL_PLANE';return f;
+}
+test('unconnected 13 business domains do not block authenticated autonomous Assurance',()=>{
+  const f=autonomousFixture(),r=verifyAssuranceReadiness(f);
+  assert.equal(r.state,'VERIFIED_PASS');assert.equal(r.verified_domain_count,1);
+  assert.equal(r.deferred_domain_ids.length,13);assert.equal(r.whole_platform_authority,false);
+  assert.equal(r.promotion_eligible,false);assert.equal(f.proof.whole_platform_runtime_proven,false);
+  assert.equal(f.proof.value_chain.filter(x=>x.runtime_state==='UNVERIFIED').length,13);
+  assert.throws(()=>verifyAssuranceRuntimeReadiness(f.proof,source,f.runtimeDomainContract),/RUNTIME_CONTRACT_DOMAIN_SET/);
+});
+test('missing or forged baseline, deferred PASS, activation drift and unknown scopes fail closed',()=>{
+  for(const mutate of [
+    f=>{f.runtimeDomainContract.runtime_domain_sources=[];},
+    f=>{f.runtimeDomainContract.autonomous_operating_readiness.required_operating_checks=[];},
+    f=>{f.runtimeDomainContract.autonomous_operating_readiness.unregistered_domains_are_pass=true;},
+    f=>{f.runtimeDomainContract.runtime_domain_sources.push({domain_id:'SOURCE_RIGHTS',workflow:'rights.yml'});},
+    f=>{f.runtimeDomainContract.runtime_domain_sources.push({...f.runtimeDomainContract.runtime_domain_sources[0]});},
+    f=>{f.proof.value_chain.find(x=>x.id==='SECURITY_SUPPLY_CHAIN').runtime_state='VERIFIED_FAIL';},
+    f=>{f.proof.value_chain.find(x=>x.id==='SOURCE_RIGHTS').runtime_state='VERIFIED_PASS';},
+    f=>{f.proof.value_chain.pop();},
+    f=>{f.proof.autonomous_runtime_readiness.deferred_domain_ids.pop();},
+    f=>{f.proof.autonomous_runtime_readiness_proven=false;},
+    f=>{f.proof.protected_evidence.find(x=>x.workflow_path.endsWith('test-domain-11.yml')).source_sha='b'.repeat(40);},
+    f=>{f.runtimeScope='UNKNOWN';},
+  ]){
+    const f=autonomousFixture();mutate(f);f.proof=seal(Object.fromEntries(Object.entries(f.proof).filter(([k])=>k!=='receipt_digest')));
+    assert.throws(()=>verifyAssuranceReadiness(f),/ASSURANCE_FULL_PROOF_(AUTONOMOUS_|RUNTIME_SCOPE)/);
+  }
+});
+test('default whole-runtime verification still requires all fourteen receipts',()=>{
+  const f=autonomousFixture();delete f.runtimeScope;
+  assert.throws(()=>verifyAssuranceReadiness(f),/RUNTIME_CONTRACT_DOMAIN_SET/);
 });

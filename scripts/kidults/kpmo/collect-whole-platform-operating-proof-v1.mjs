@@ -211,6 +211,26 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   const assuranceRuntimeReady=out.runtime_domain_registry?.state==='VERIFIED_PASS'&&out.runtime_domain_registry.registered_domain_count===14&&out.value_chain.length===14&&verifiedDomains.length===14&&new Set(verifiedDomains.map(d=>d.id)).size===14;
   out.assurance_runtime_readiness={state:assuranceRuntimeReady?'VERIFIED_PASS':'VERIFIED_HOLD',verified_domain_count:verifiedDomains.length,required_domain_count:14,registered_domain_count:out.runtime_domain_registry?.registered_domain_count??0,domain_ids:verifiedDomains.map(d=>d.id).sort()};
   out.assurance_runtime_readiness_proven=assuranceRuntimeReady;
+  const autonomyPolicy=contract.autonomous_operating_readiness;
+  const connected=(contract.runtime_domain_sources||[]).map(x=>x.domain_id);
+  const autonomyReady=autonomyPolicy?.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
+    &&autonomyPolicy.connected_registered_domains_required===true
+    &&Array.isArray(autonomyPolicy.mandatory_runtime_domains)
+    &&autonomyPolicy.mandatory_runtime_domains.includes('SECURITY_SUPPLY_CHAIN')
+    &&autonomyPolicy.mandatory_runtime_domains.every(id=>connected.includes(id))
+    &&connected.length>0&&new Set(connected).size===connected.length
+    &&connected.every(id=>verifiedDomains.some(d=>d.id===id));
+  out.autonomous_runtime_readiness={state:autonomyReady?'VERIFIED_PASS':'VERIFIED_HOLD',
+    scope:'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',required_domain_count:connected.length,
+    verified_domain_count:verifiedDomains.filter(d=>connected.includes(d.id)).length,
+    domain_ids:verifiedDomains.filter(d=>connected.includes(d.id)).map(d=>d.id).sort(),
+    deferred_domain_ids:contract.value_chain_dimensions.filter(id=>!connected.includes(id)).sort()};
+  out.autonomous_runtime_readiness_proven=autonomyReady;
+  out.autonomous_operating_proven=autonomyReady&&Array.isArray(autonomyPolicy.required_operating_checks)
+    &&JSON.stringify([...autonomyPolicy.required_operating_checks].sort())===JSON.stringify([
+      'CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS','PROTECTED_LANDING',
+      'AWS_CONFIGURATION_AND_IMMUTABILITY','NATIVE_DISPATCH','NATIVE_RESUME_REUSE','FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'].sort())
+    &&autonomyPolicy.required_operating_checks.every(id=>out.operating_checks.some(c=>c.id===id&&c.state==='VERIFIED_PASS'));
   out.runtime_evidence_demand=buildRuntimeEvidenceDemand({definition:demandDefinition,contract,proof:out});
   out.whole_platform_runtime_proven=out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';

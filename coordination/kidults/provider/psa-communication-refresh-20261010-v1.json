@@ -1,0 +1,88 @@
+{
+  "id": "KIDULTS_PSA_COMMUNICATION_REFRESH_20261010_V1",
+  "version": "1.0.0",
+  "as_of": "2026-10-10T04:11:58Z",
+  "scope": "PSA_ONLY_OTHER_PROVIDER_SNAPSHOTS_NOT_REFRESHED",
+  "evidence_method": "AUTHENTICATED_GMAIL_SEARCH_AND_FULL_MESSAGE_READ",
+  "events": [
+    {
+      "message_id": "1a0c45c3cfc4522a",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T14:26:14.000Z",
+      "direction": "OUTBOUND",
+      "evidence_ref": "gmail:message:1a0c45c3cfc4522a",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "partnerships@kidults.com",
+      "authentication": "AUTHENTICATED_GMAIL_SENT_MESSAGE",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0c4ed36638f031",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T17:04:04.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0c4ed36638f031",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "Alan Ni <ani@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0c4ff590997e62",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T17:23:55.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0c4ff590997e62",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "Collectors API <collectors-apis@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "BOUNDED_USE_RESPONSE"
+    },
+    {
+      "message_id": "1a0cc0e573998bb6",
+      "thread_id": "1a0cc0e573998bb6",
+      "occurred_at": "2026-09-23T02:17:55.000Z",
+      "direction": "OUTBOUND",
+      "evidence_ref": "gmail:message:1a0cc0e573998bb6",
+      "thread_ref": "gmail:thread:1a0cc0e573998bb6",
+      "from": "John Kim <john.kim9524@gmail.com>",
+      "authentication": "AUTHENTICATED_GMAIL_SENT_MESSAGE",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0ce643d74de351",
+      "thread_id": "1a0cc0e573998bb6",
+      "occurred_at": "2026-09-23T13:10:40.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0ce643d74de351",
+      "thread_ref": "gmail:thread:1a0cc0e573998bb6",
+      "from": "PSA API Team <collectors-apis@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "OFFICIAL_SINGLE_CERT_TEST_SOURCE_RESPONSE"
+    }
+  ],
+  "findings": {
+    "bounded_use_accepted": true,
+    "signed_enterprise_agreement_not_required_for_correspondence_volume": true,
+    "no_sandbox": true,
+    "official_single_test_reference_provided": true,
+    "raw_test_reference_retained": false,
+    "rights_expanded": false,
+    "new_outbound_created": false,
+    "source_acquisition_count": 0,
+    "psa_api_calls": 0,
+    "lawful_manifest_admitted": 0
+  },
+  "limits": {
+    "private_reference_authentication_only": true,
+    "no_current_sold_claim": true,
+    "maximum_raw_retention_days": 30,
+    "no_crawling_or_enumeration": true,
+    "no_public_or_redistribution": true,
+    "native_provider_execution_verified": false
+  },
+  "authority_granted": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

@@ -23,13 +23,14 @@
   "implementation": {
     "store_module": "services/kidults-control-plane/src/psa-private-evaluation-store.mjs#createPsaPrivateFileStore",
     "deletion_runner": "scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs",
-    "automatic_trigger": "NONE_PROVIDER_EXECUTION_REMOVED",
+    "automatic_trigger": "NONE_PROTECTED_PERSISTENT_RUNNER_ACTIVATION_HOLD",
     "activation_requirements": [
       "PSA_PRIVATE_STORE_ROOT_EXPLICIT_NON_REPOSITORY_PATH",
       "PSA_PRIVATE_STORE_KEY_B64_RUNTIME_SECRET_32_BYTES",
       "PERSISTENT_GOVERNED_RUNNER_WITH_STORE_MOUNT"
     ],
     "github_hosted_runner_execution": "VALIDATION_ONLY_NO_PERSISTENT_STORE",
-    "production_activation": "HOLD"
+    "production_activation": "HOLD",
+    "operation_lifecycle_contract": "coordination/kidults/provider/psa-private-operation-control-v1.json"
   }
 }

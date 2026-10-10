@@ -493,7 +493,7 @@ jobs:
             "$GATE_DIR/assurance-artifact-binding.json" \
             "$GATE_DIR/selected-sentinel-continuation.json" \
             > "$GATE_DIR/assurance-runtime-readiness.json"
-          jq -e '.state=="VERIFIED_PASS" and .verified_domain_count==14' \
+          jq -e '.state=="VERIFIED_PASS" and .scope=="AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM" and .required_domain_count>=1 and .verified_domain_count==.required_domain_count and .whole_platform_authority==false and .promotion_eligible==false' \
             "$GATE_DIR/assurance-runtime-readiness.json" >/dev/null
           {
             echo "ASSURANCE_RUNTIME_READINESS=VERIFIED_PASS"

@@ -3,7 +3,7 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import { access, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPsaPrivateFileStore, resolvePsaPrivateStoreRoot, deleteExpiredPsaEvaluations, buildPrivatePsaRecord, buildPrivatePsaRecordFromDigest } from '../src/psa-cert-verification-adapter.mjs';
@@ -33,7 +33,7 @@ test('resealed future expiry still requires the original keyed authentication ta
     record.record_digest=digest(stable(body));
     await writeFile(path,JSON.stringify(record),{mode:0o600});
     await assert.rejects(()=>deleteExpiredPsaEvaluations({privateStore:store,now:'2026-10-08T00:00:00Z'}),
-      /authenticate|authenticat|Unsupported state/i);
+      /PSA_PRIVATE_RECORD_TYPE_INVALID_OR_INTEGRITY_INVALID/);
     await access(path);
   } finally { await rm(root,{recursive:true,force:true}); }
 });
@@ -72,7 +72,7 @@ for (const mutation of ['invalid', 'missing', 'future']) {
       else record.delete_at = mutation === 'invalid' ? 'not-a-date' : '2026-10-30T00:00:00Z';
       await writeFile(path, JSON.stringify(record), {mode:0o600});
       await assert.rejects(() => deleteExpiredPsaEvaluations({privateStore:store,now:'2026-10-08T00:00:00Z'}),
-        /PSA_RECORD_DIGEST_INVALID|PSA_RETENTION_WINDOW_INVALID|PSA_RECORD_AAD_INVALID/);
+        /PSA_PRIVATE_RECORD_TYPE_INVALID_OR_INTEGRITY_INVALID/);
       await access(path);
       const audit = await readFile(join(root, 'audit.jsonl'), 'utf8');
       assert(!audit.includes('"operation":"DELETE"'));
@@ -200,4 +200,121 @@ test('late retention run deletes overdue raw data and records the deadline breac
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test('PUT audit failure removes encrypted record before rejecting',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'kidults-psa-put-audit-'));
+  try {
+    await mkdir(join(root,'audit.jsonl'));
+    const store=createPsaPrivateFileStore({rootDir:root,key:Buffer.alloc(32,7)});
+    await assert.rejects(()=>store.put({providerId:'psa-public-api',certReferenceDigest:certDigest,
+      payload:{PSACert:{CertNumber:syntheticCert}},acquiredAt:'2026-10-10T00:00:00Z',
+      deleteBy:'2026-10-11T00:00:00Z',rawDigest:hash('d')}),/PSA_PRIVATE_PUT_FAILED_RAW_DELETED/);
+    assert.deepEqual(await readdir(root),['audit.jsonl']);
+  } finally {await rm(root,{recursive:true,force:true});}
+});
+
+for (const deletedAt of ['bad-time','2026-10-09T00:00:00Z']) {
+  test(`invalid delete clock preserves authenticated record: ${deletedAt}`,async()=>{
+    const root=await mkdtemp(join(tmpdir(),'kidults-psa-delete-clock-'));
+    try {
+      const store=createPsaPrivateFileStore({rootDir:root,key:Buffer.alloc(32,7)});
+      const handle=await store.put({providerId:'psa-public-api',certReferenceDigest:certDigest,
+        payload:{PSACert:{CertNumber:syntheticCert}},acquiredAt:'2026-10-10T00:00:00Z',
+        deleteBy:'2026-10-11T00:00:00Z',rawDigest:hash('d')});
+      await assert.rejects(()=>store.delete({handle,reason:'EVALUATION_TERMINAL',deletedAt}),
+        /PSA_DELETED_AT_INVALID|PSA_DELETION_BEFORE_OBSERVATION/);
+      await access(join(root,handle.slice('psa-private-file:'.length)));
+      assert(!(await readFile(join(root,'audit.jsonl'),'utf8')).includes('"operation":"DELETE"'));
+    } finally {await rm(root,{recursive:true,force:true});}
+  });
+}
+
+test('restart retains the evaluation fence and cleans an interrupted private PUT without admission retry',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'kidults-psa-interrupted-'));
+  const key=Buffer.alloc(32,7),operationId=hash('e'),bindingDigest=hash('f');
+  const moduleUrl=new URL('../src/psa-cert-verification-adapter.mjs',import.meta.url).href;
+  try {
+    const child=spawnSync(process.execPath,['--input-type=module','-e',`
+      import {createPsaPrivateFileStore} from ${JSON.stringify(moduleUrl)};
+      const store=createPsaPrivateFileStore({rootDir:process.env.TEST_PRIVATE_ROOT,key:Buffer.alloc(32,7),now:()=>new Date('2026-10-10T00:00:00Z')});
+      await store.beginEvaluation({operationId:${JSON.stringify(operationId)},bindingDigest:${JSON.stringify(bindingDigest)}});
+      await store.put({providerId:'psa-public-api',certReferenceDigest:${JSON.stringify(certDigest)},
+        payload:{PSACert:{CertNumber:${JSON.stringify(syntheticCert)}}},acquiredAt:'2026-10-10T00:00:00Z',
+        deleteBy:'2026-10-11T00:00:00Z',rawDigest:${JSON.stringify(hash('d'))},evaluationOperationId:${JSON.stringify(operationId)}});
+      process.kill(process.pid,'SIGKILL');
+    `],{encoding:'utf8',timeout:10000,env:{...process.env,TEST_PRIVATE_ROOT:root}});
+    assert.equal(child.signal,'SIGKILL');assert.equal(child.stdout,'');
+    const reopened=createPsaPrivateFileStore({rootDir:root,key});
+    assert.equal((await reopened.beginEvaluation({operationId,bindingDigest})).state,'RECONCILIATION_REQUIRED');
+    const recovered=await reopened.recoverPendingEvaluations({deletedAt:'2026-10-10T00:05:01Z'});
+    assert.equal(recovered.deleted_count,1);assert.equal(recovered.admission_retry_authority,false);
+    assert.equal((await reopened.recoverPendingEvaluations({deletedAt:'2026-10-10T00:05:02Z'})).deleted_count,0);
+    assert.equal((await reopened.beginEvaluation({operationId,bindingDigest})).state,'RECONCILIATION_REQUIRED');
+    assert(!JSON.stringify(recovered).includes(syntheticCert));
+    await assert.rejects(()=>reopened.beginEvaluation({operationId,bindingDigest:hash('a')}),/OPERATION_BINDING_MISMATCH/);
+  } finally {key.fill(0);await rm(root,{recursive:true,force:true});}
+});
+
+test('authenticated terminal receipt survives reopen and rejects resealed tampering',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'kidults-psa-terminal-'));
+  const key=Buffer.alloc(32,7),operationId=hash('e'),bindingDigest=hash('f');
+  try {
+    const store=createPsaPrivateFileStore({rootDir:root,key});
+    assert.equal((await store.beginEvaluation({operationId,bindingDigest})).state,'CLAIMED');
+    const receipt={operation_id:operationId,state:'VERIFIED_PASS',raw_payload_retained:false};
+    await store.completeEvaluation({operationId,bindingDigest,receipt});
+    const reopened=createPsaPrivateFileStore({rootDir:root,key});
+    assert.deepEqual(await reopened.beginEvaluation({operationId,bindingDigest}),{state:'COMPLETED',receipt});
+    const path=join(root,`evaluation-${operationId.slice(7)}.terminal.json`);
+    const terminal=JSON.parse(await readFile(path,'utf8'));
+    terminal.receipt.unverified_claim='modified';
+    await writeFile(path,JSON.stringify(terminal),{mode:0o600});
+    await assert.rejects(()=>reopened.beginEvaluation({operationId,bindingDigest}),/TERMINAL_BINDING_INVALID/);
+  } finally {key.fill(0);await rm(root,{recursive:true,force:true});}
+});
+
+test('corrupt record preserves a failure while other expired raw data is deleted',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'kidults-psa-corrupt-isolation-'));
+  try {
+    const store=createPsaPrivateFileStore({rootDir:root,key:Buffer.alloc(32,7)});
+    const input={providerId:'psa-public-api',certReferenceDigest:certDigest,
+      payload:{PSACert:{CertNumber:syntheticCert}},acquiredAt:'2026-10-01T00:00:00Z',
+      deleteBy:'2026-10-02T00:00:00Z',rawDigest:hash('d')};
+    const bad=await store.put(input),good=await store.put(input);
+    await writeFile(join(root,bad.slice('psa-private-file:'.length)),'corrupt',{mode:0o600});
+    await assert.rejects(()=>deleteExpiredPsaEvaluations({privateStore:store,now:'2026-10-10T00:00:00Z'}),error=>{
+      assert.equal(error.receipt.state,'VERIFIED_FAIL_INVALID_PRIVATE_RECORD');
+      assert.equal(error.receipt.invalid_record_count,1);assert.equal(error.receipt.deleted_count,1);
+      assert(!JSON.stringify(error.receipt).includes(syntheticCert));return true;
+    });
+    await access(join(root,bad.slice('psa-private-file:'.length)));
+    await assert.rejects(()=>access(join(root,good.slice('psa-private-file:'.length))),error=>error.code==='ENOENT');
+  } finally {await rm(root,{recursive:true,force:true});}
+});
+
+test('janitor skips a live lease and isolates a truncated pending claim',async()=>{
+  const root=await mkdtemp(join(tmpdir(),'kidults-psa-lease-'));
+  const key=Buffer.alloc(32,7),operationId=hash('e'),bindingDigest=hash('f');
+  try {
+    let clock=new Date('2026-10-10T00:00:00Z');
+    const store=createPsaPrivateFileStore({rootDir:root,key,now:()=>clock});
+    await store.beginEvaluation({operationId,bindingDigest});
+    const handle=await store.put({providerId:'psa-public-api',certReferenceDigest:certDigest,
+      payload:{PSACert:{CertNumber:syntheticCert}},acquiredAt:clock.toISOString(),
+      deleteBy:'2026-10-11T00:00:00Z',rawDigest:hash('d'),evaluationOperationId:operationId});
+    await writeFile(join(root,`evaluation-${hash('a').slice(7)}.json`),'truncated',{mode:0o600});
+    let result=await store.recoverPendingEvaluations({deletedAt:clock});
+    assert.equal(result.state,'VERIFIED_FAIL_PENDING_RAW_RECOVERY');
+    assert.equal(result.active_operation_count,1);assert.equal(result.failed_operation_count,1);
+    assert.equal(result.deleted_count,0);await access(join(root,handle.slice('psa-private-file:'.length)));
+    clock=new Date('2026-10-10T00:05:01Z');
+    result=await store.recoverPendingEvaluations({deletedAt:clock});
+    assert.equal(result.deleted_count,1);assert.equal(result.failed_operation_count,1);
+    await assert.rejects(()=>store.completeEvaluation({operationId,bindingDigest,
+      receipt:{operation_id:operationId,state:'VERIFIED_PASS',raw_payload_retained:false}}),/LEASE_EXPIRED/);
+    await assert.rejects(()=>store.put({providerId:'psa-public-api',certReferenceDigest:certDigest,
+      payload:{PSACert:{CertNumber:syntheticCert}},acquiredAt:clock.toISOString(),
+      deleteBy:'2026-10-11T00:00:00Z',rawDigest:hash('d'),evaluationOperationId:operationId}),/LEASE_EXPIRED/);
+  } finally {key.fill(0);await rm(root,{recursive:true,force:true});}
 });

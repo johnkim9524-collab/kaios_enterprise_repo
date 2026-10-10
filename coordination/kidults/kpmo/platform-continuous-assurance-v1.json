@@ -118,7 +118,9 @@
       "upstream_observation_event in [workflow_run,repository_dispatch,schedule]",
       "terminal_state=VERIFIED_FAIL_OR_HOLD"
     ],
-    "latest_natural_failure_fallback_forbidden": true
+    "latest_natural_failure_fallback_forbidden": true,
+    "runtime_readiness_scope": "AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM",
+    "runtime_readiness_contract": "coordination/kidults/kpmo/whole-platform-operating-proof-v1.json#autonomous_operating_readiness"
   },
   "state_model": {
     "axes": [
