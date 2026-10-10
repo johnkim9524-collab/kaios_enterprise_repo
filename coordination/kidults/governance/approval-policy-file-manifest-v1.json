@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "afef0fef672d4be2de00d49f23c19d6af448bda8",
+  "revision": "4255fee03c210e6c231409f12384298fe8fa516c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4162,8 +4162,8 @@
     {
       "path": "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4934e8a4708d3b61c3c849af4e0652fdc526f624",
-      "sha256": "sha256:1db853f019a65feaa5f23cd05c1558d070ac263b2f2e57c27a74b2b5936799ab",
+      "git_blob": "cbc3aa32e3fd93defebddbdaa522f7e8bc2b9341",
+      "sha256": "sha256:b3fbc06a310ac2462369332f614e8b7589cd22f94069028849c6dc3e8f54d297",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4988,8 +4988,8 @@
     {
       "path": "scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c97fe409e592ca9dc54a3f19ada7927c4ad6c660",
-      "sha256": "sha256:ca381239a2ed07542224b0c778551d35486fb6d1be504c699f560b5ee19aab5d",
+      "git_blob": "26d9ec6cf2a0d3ee66b2be9fc4b2c9169520b7fd",
+      "sha256": "sha256:e84bbcfa6f2ff45fae79ee505c8f06e91d479f5727a7f6103ca9eafb503e8768",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -5001,8 +5001,8 @@
     {
       "path": "scripts/kidults/staging-operations/lib/dynamodb-operation-ledger-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5a6b0f633480061582a8458f49fcdd42e70f7211",
-      "sha256": "sha256:c4fbc8c96f47f66a4577187c52e04cfebb231c4931cc70cf7eee461c2f202ba9",
+      "git_blob": "ed4de909bb097ee31a21b55d9393f3d01f31aae3",
+      "sha256": "sha256:14ecadd4292df40f547ee76a6a0c753e78bd7b8d189230374ae6a8fd27b7ebea",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -5072,8 +5072,8 @@
     {
       "path": "scripts/kidults/staging-operations/lib/resume-operation-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5bc81ae77c20cfeb1561c96f37ed959bb6a82c43",
-      "sha256": "sha256:bf40253a1e1ca4a43deee8f3af80363924cb45cf225349c1f6dde2592f1b543f",
+      "git_blob": "0b1d24fd8a56a0956c489b4419cee80f90dada4a",
+      "sha256": "sha256:5c2a6338776d0d2efba5c111652a9f07ad2e1ea8022b82a0184846e2535399cc",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6304,8 +6304,8 @@
     {
       "path": "tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "bbd504ee59d21570292e68504612cf8684ac17f2",
-      "sha256": "sha256:af995f37f011bcf89c8e871d2c372aefd1fff1a4c7e36da920dba8b96aff5c39"
+      "git_blob": "a34f9f6ef6666cdca64a809f10579cd3697c5f41",
+      "sha256": "sha256:00b0b306b4e4aacf74f6c2eee2d15f53c53d59e8dee3a0aad417f6ade7df29bf"
     },
     {
       "path": "tests/kidults/staging-operations/capability-repair-analysis-v1.test.mjs",
@@ -6362,5 +6362,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4e8d4fd803d1f2af83d7d5344c8a51e17c874dd806f40d19c692ff611d3ae46d"
+  "manifest_sha256": "sha256:93e1660ef55138da9b2b49ed989c17b874f5be2bfc4ddc5eaa613f85f093dd5c"
 }
