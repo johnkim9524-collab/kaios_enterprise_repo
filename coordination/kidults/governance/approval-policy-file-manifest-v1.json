@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "80fdf7841845cfdf72cb1c742173e018e25630ef",
+  "revision": "HEAD",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6171,8 +6171,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a2c6ed29b3d3e8bc80b1d8510d5cae2dee86d8fe",
-      "sha256": "sha256:fc3639a9dafb3ed3b09dc2d43e46f82a686a890218560a13be3140f0748bb00a"
+      "git_blob": "3ca2ae756d85a02696a5c79665e618672156dc5f",
+      "sha256": "sha256:278fe75f832d8b4a013bd042d99c23b79cac9633300635b20568fd04d714c624"
     },
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
@@ -6349,5 +6349,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:80a1b5f20edf21c633ccd814a86c5df3230c657730cfe8e7e81229f5f1cb0571"
+  "manifest_sha256": "sha256:38ace1c0219eb8c15f535932c061da4fce53efa3b90632dfa8588626ea9a2bd2"
 }
