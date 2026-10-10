@@ -75,6 +75,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node --test scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
 
   validate-p3-control-on-main-or-schedule:
@@ -95,6 +96,7 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-factory-registry-v2.mjs
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node --test scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
 
@@ -142,6 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           node scripts/kidults/source-intelligence/validate-asi-snapshot-readiness-upstream-binding-v2.mjs --self-test
+          node --test scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.test.mjs
           node scripts/kidults/source-intelligence/test-asi-snapshot-readiness-factory-v2.mjs
       - name: Restore exact P2 run and its receipt-bound P0B and P1 artifacts
         env:
@@ -153,13 +156,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/p0b-expanded /tmp/p1-expanded /tmp/p2-expanded /tmp/p0b /tmp/p1 /tmp/p2
           if test "$GITHUB_EVENT_NAME" = "schedule" || test "$GITHUB_EVENT_NAME" = "workflow_dispatch"; then
-            gh api -H 'Accept: application/vnd.github+json' \
-              "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml/runs?branch=main&status=success&per_page=100" \
-              > /tmp/p2-candidate-runs.json
-            P2_RUN_ID="$(node - <<'NODE'
-          const fs=require('fs');const body=JSON.parse(fs.readFileSync('/tmp/p2-candidate-runs.json'));const matches=(body.workflow_runs||[]).filter(run=>run.path==='.github/workflows/kidults-asi-owned-source-intelligence-graph-v2.yml'&&run.head_branch==='main'&&run.head_sha===process.env.GITHUB_SHA&&run.conclusion==='success');if(matches.length<1)process.exit(2);process.stdout.write(String(matches[0].id));
-          NODE
-            )"
+            P2_RUN_ID="$(node scripts/kidults/source-intelligence/wait-exact-p2-upstream-v1.mjs)"
             EVENT_P2_RUN_ID="$P2_RUN_ID"
             EVENT_P2_HEAD_SHA="$GITHUB_SHA"
           else
@@ -432,6 +429,7 @@ jobs:
               "workflow_run_id": os.environ["GITHUB_RUN_ID"],
               "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
               "safe_pre_extraction_receipts": receipts,
+              "p2_upstream_wait": json.load(open("/tmp/kidults-exact-p2-upstream-wait-v1.json", encoding="utf-8")) if os.path.isfile("/tmp/kidults-exact-p2-upstream-wait-v1.json") else None,
               "unsafe_extraction_authorized": False,
               "public_release": "HOLD",
               "production": "HOLD",
