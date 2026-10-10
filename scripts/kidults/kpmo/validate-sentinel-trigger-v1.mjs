@@ -114,6 +114,20 @@ function validateRemoteIdentity(remoteRun,run,sourceSha,inline=false){
 }
 export function validateSentinelTrigger(env,payload=null,remoteRun=null){
   if(env.GITHUB_REPOSITORY!==REPO||env.GITHUB_REF!=='refs/heads/main'||!sha.test(env.GITHUB_SHA||''))fail('SENTINEL_TRIGGER_MAIN_CONTEXT');
+  // This observer is triggered by a completed scheduled Assurance, not by a
+  // core producer completion. Keep that ingress distinct from Sentinel's
+  // producer allowlist and from the inline Assurance health gate.
+  if(env.GITHUB_WORKFLOW==='KPMO Continuous Assurance Scheduled Authority Gate V1'){
+    if(env.GITHUB_EVENT_NAME!=='workflow_run'||!object(payload)
+      ||payload.action!=='completed'||payload.repository?.full_name!==REPO)fail('SENTINEL_SCHEDULED_ASSURANCE_EVENT_CONTEXT');
+    const run=payload.workflow_run;
+    validateBaseRun(run,env.GITHUB_SHA);
+    if(!nativeWorkflowRunNameMatches(run,ASSURANCE_WORKFLOW,'.github/workflows/kidults-platform-continuous-assurance-v1.yml')
+      ||run.event!=='schedule'||run.conclusion!=='success')fail('SENTINEL_SCHEDULED_ASSURANCE_UPSTREAM');
+    if(remoteRun!==null)validateRemoteIdentity(remoteRun,run,env.GITHUB_SHA,true);
+    return {run_id:run.id,run_attempt:run.run_attempt,path:run.path,event:run.event,conclusion:run.conclusion,
+      trigger_scope:'SCHEDULED_ASSURANCE_CORE_HEALTH_OBSERVER_ONLY'};
+  }
   const inline=env.KPMO_INLINE_ASSURANCE_HEALTH_GATE==='true';
   if(inline){
     if(env.GITHUB_WORKFLOW!==ASSURANCE_WORKFLOW)fail('SENTINEL_INLINE_ASSURANCE_WORKFLOW_INVALID');
