@@ -1,0 +1,87 @@
+{
+  "id": "KIDULTS_PROVIDER_NEGOTIATION_OUTBOUND_BROAD_ARROW_SUPPLEMENT_20260831_V1",
+  "version": "1.0.0",
+  "recorded_at": "2026-08-30T15:50:39Z",
+  "recorded_at_kst": "2026-08-31T00:50:39+09:00",
+  "base_receipt": "coordination/kidults/provider/provider-negotiation-outbound-execution-receipt-20260831-v1.json",
+  "authority": {
+    "type": "PROGRAM_OWNER_EXPLICIT_SELECTED_OUTREACH_INSTRUCTION",
+    "scope": "RETUNE_RECIPIENTS_AND_SEND_NEGOTIATION_EMAILS",
+    "one_time_authority_consumed_for_this_message": true,
+    "future_external_communication_authorized": false,
+    "automatic_followup_authorized": false
+  },
+  "contact_resolution": {
+    "provider": "BROAD_ARROW",
+    "previous_state": "HOLD_NO_VERIFIED_WRITTEN_ROUTE",
+    "resolved_state": "VERIFIED_GENERAL_INQUIRY_ROUTE_FOUND_AND_USED",
+    "verified_recipient": "info@broadarrowauctions.com",
+    "verification_basis": [
+      "CURRENT_2026_BROAD_ARROW_AUCTION_GENERAL_INQUIRY_LISTING",
+      "CURRENT_BROAD_ARROW_PRESS_CONTACT_MATERIAL"
+    ],
+    "guessed_address": false
+  },
+  "message": {
+    "provider": "BROAD_ARROW",
+    "capability": "COLLECTOR_CAR_AUCTION_SOLD_EVENTS",
+    "to": [
+      "info@broadarrowauctions.com"
+    ],
+    "subject": "Data-licensing inquiry — staged private evaluation of Broad Arrow auction results",
+    "gmail_message_id": "1a0535d6fbc9039d",
+    "gmail_thread_id": "1a0535d6fbc9039d",
+    "stage": "DISCOVERY_RIGHTS_AND_STAGED_LICENSE_INQUIRY",
+    "volume_semantics": "CANARY_5_THEN_30_TO_120_OPTIONAL_459",
+    "state": "SENT"
+  },
+  "content_guards_verified": [
+    "PRIVATE_NON_PRODUCTION_PURPOSE_STATED",
+    "NO_PUBLIC_WEB_SCRAPING_OR_REUSE_REQUESTED",
+    "CANARY_5_AND_BOUNDED_30_TO_120_SEPARATED_FROM_RELIABILITY",
+    "OPTIONAL_459_NOT_PURCHASE_COMMITMENT",
+    "RIGHTS_RETENTION_DELETION_SCHEMA_CORRECTION_AND_EXIT_ASKS_INCLUDED",
+    "NO_RAW_PUBLIC_REDISTRIBUTION_WITHOUT_EXPRESS_RIGHTS",
+    "NO_SINGLE_PROVIDER_MARKET_REPRESENTATIVENESS_CLAIM",
+    "NO_SPEND_CONTRACT_CREDENTIAL_PRODUCTION_PUBLIC_OR_G5_AUTHORIZATION"
+  ],
+  "cumulative_execution_summary": {
+    "base_messages": 7,
+    "supplement_messages": 1,
+    "total_sent": 8,
+    "failed": 0,
+    "duplicate_resends": 0,
+    "guessed_recipient_addresses": 0,
+    "provider_status_promotions": 0,
+    "spend_authorized": false,
+    "contract_authorized": false,
+    "credential_authorized": false,
+    "acquisition_authorized": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "EXPLICIT_APPROVAL_REQUIRED"
+  },
+  "truth_precedence": {
+    "supersedes_base_receipt_selection_hold_for": [
+      "BROAD_ARROW"
+    ],
+    "does_not_modify_other_base_receipt_messages": true,
+    "future_outbound_after_this_supplement": "HOLD_UNTIL_NEW_EXPLICIT_PROGRAM_OWNER_AUTHORITY",
+    "provider_rights_and_activation": "UNCHANGED_PENDING_PROVIDER_RESPONSE_AND_SEPARATE_GATES"
+  },
+  "authorization_provenance": {
+    "state": "NOT_MACHINE_PROVEN",
+    "evidence_class": "POST_SEND_EXECUTION_RECEIPT_ONLY",
+    "execution_fact_machine_proven_by_this_repository_artifact": false,
+    "independently_issued_pre_send_authorization_receipt": null,
+    "issuer_identity_verified": false,
+    "nonce_verified": false,
+    "expiry_verified": false,
+    "provider_recipient_content_scope_verified": false,
+    "one_shot_atomic_consumption_verified": false,
+    "candidate_branch_self_attestation_is_authorization_proof": false,
+    "post_send_receipt_can_retroactively_create_authority": false,
+    "base_one_time_assertion_reusable_for_supplement": false,
+    "promotable": false
+  }
+}
