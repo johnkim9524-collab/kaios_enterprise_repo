@@ -20,7 +20,8 @@ const PATHS = {
   psaReadiness: 'coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json',
   gemrate: 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json',
   classic: 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json',
-  communicationEvidence: PROVIDER_COMMUNICATION_EVIDENCE_PATH
+  communicationEvidence: PROVIDER_COMMUNICATION_EVIDENCE_PATH,
+  psaRefresh: 'coordination/kidults/provider/psa-communication-refresh-20261010-v1.json'
 };
 
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -30,7 +31,7 @@ export function validateProviderOperatingState(documents) {
   const errors = [];
   const check = (condition, code) => { if (!condition) errors.push(code); };
   const { index, operating, contract, outreach, pack, dispatch, actionQueue, contactGate,
-    psaManifest, psaControls, psaConnection, psaReadiness, gemrate, classic, communicationEvidence } = documents;
+    psaManifest, psaControls, psaConnection, psaReadiness, gemrate, classic, communicationEvidence, psaRefresh } = documents;
   const providers = operating.providers || [];
   const byId = new Map(providers.map(provider => [provider.provider_id, provider]));
   const communicationErrors = validateProviderCommunicationEvidence(communicationEvidence);
@@ -47,6 +48,33 @@ export function validateProviderOperatingState(documents) {
     events.filter(event => event.direction === 'OUTBOUND').sort((left, right) =>
       Date.parse(left.occurred_at) - Date.parse(right.occurred_at)).at(-1)
   ]));
+  const refreshEvents=psaRefresh?.events || [];
+  const expectedRefresh=[
+    ['1a0c45c3cfc4522a','1a0196deda4c61f3','2026-09-21T14:26:14.000Z','OUTBOUND'],
+    ['1a0c4ed36638f031','1a0196deda4c61f3','2026-09-21T17:04:04.000Z','INBOUND'],
+    ['1a0c4ff590997e62','1a0196deda4c61f3','2026-09-21T17:23:55.000Z','INBOUND'],
+    ['1a0cc0e573998bb6','1a0cc0e573998bb6','2026-09-23T02:17:55.000Z','OUTBOUND'],
+    ['1a0ce643d74de351','1a0cc0e573998bb6','2026-09-23T13:10:40.000Z','INBOUND'],
+  ];
+  check(psaRefresh?.id==='KIDULTS_PSA_COMMUNICATION_REFRESH_20261010_V1'
+    && psaRefresh.evidence_method==='AUTHENTICATED_GMAIL_SEARCH_AND_FULL_MESSAGE_READ'
+    && psaRefresh.scope==='PSA_ONLY_OTHER_PROVIDER_SNAPSHOTS_NOT_REFRESHED'
+    && Number.isFinite(Date.parse(psaRefresh.as_of)), 'PSA_REFRESH_IDENTITY');
+  check(refreshEvents.length===expectedRefresh.length && expectedRefresh.every(([id,thread,time,direction])=>
+    refreshEvents.filter(event=>event.message_id===id && event.thread_id===thread
+      && event.occurred_at===time && event.direction===direction
+      && event.evidence_ref===`gmail:message:${id}` && event.thread_ref===`gmail:thread:${thread}`
+      && Date.parse(time)<=Date.parse(psaRefresh.as_of)
+      && event.authentication===(direction==='INBOUND'?'GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS':'AUTHENTICATED_GMAIL_SENT_MESSAGE')).length===1),
+  'PSA_REFRESH_SOURCE_BINDING');
+  check(psaRefresh?.authority_granted===false && psaRefresh.public==='HOLD' && psaRefresh.production==='HOLD'
+    && psaRefresh.g5==='HOLD' && psaRefresh.findings?.rights_expanded===false
+    && psaRefresh.findings?.new_outbound_created===false && psaRefresh.findings?.raw_test_reference_retained===false
+    && psaRefresh.findings?.lawful_manifest_admitted===0 && psaRefresh.findings?.psa_api_calls===0,
+  'PSA_REFRESH_AUTHORITY_BOUNDARY');
+  const latestRefresh=direction=>refreshEvents.filter(event=>event.direction===direction)
+    .sort((left,right)=>Date.parse(left.occurred_at)-Date.parse(right.occurred_at)).at(-1);
+  latestOutboundByProvider.set('PSA_PREMIUM',latestRefresh('OUTBOUND'));
   const markdownAnchorExists = (localPath, fragment) => {
     const text = fs.readFileSync(localPath, 'utf8');
     return text.split(/\r?\n/).some(line => {
@@ -134,8 +162,9 @@ export function validateProviderOperatingState(documents) {
       provider.cost_exposure && provider.blocker && provider.evidence_date, `REPORTING_DIMENSIONS:${providerId}`);
     const evidenceDateMs = Date.parse(provider.evidence_date);
     check(Number.isFinite(evidenceDateMs), `EVIDENCE_DATE_INVALID:${providerId}`);
-    check(evidenceDateMs <= operatingAsOfMs, `EVIDENCE_DATE_FUTURE:${providerId}`);
-    check(operatingAsOfMs - evidenceDateMs <= maxAgeDaysByState[state] * 24 * 60 * 60 * 1000,
+    const providerObservationMs=providerId==='PSA_PREMIUM'?Date.parse(psaRefresh?.as_of):operatingAsOfMs;
+    check(evidenceDateMs <= providerObservationMs, `EVIDENCE_DATE_FUTURE:${providerId}`);
+    check(providerObservationMs - evidenceDateMs <= maxAgeDaysByState[state] * 24 * 60 * 60 * 1000,
       `EVIDENCE_DATE_STALE:${providerId}`);
     check(Array.isArray(provider.evidence_refs) && provider.evidence_refs.length > 0 &&
       provider.evidence_refs.every(ref => validEvidenceRef(ref, provider)), `EVIDENCE_REF_UNRESOLVED:${providerId}`);
@@ -230,10 +259,17 @@ export function validateProviderOperatingState(documents) {
     psaReadiness.uncertainties?.some(value => value.includes('No persistent governed runner')),
   'PSA_RUNTIME_READINESS_TRUTH');
   const psaOutbound = latestOutboundByProvider.get('PSA_PREMIUM');
+  const psaInbound=latestRefresh('INBOUND');
+  const psaRights=refreshEvents.find(event=>event.kind==='BOUNDED_USE_RESPONSE');
   check(psa?.communication?.last_outbound_evidence_ref === psaOutbound?.evidence_ref &&
     psa?.communication?.last_outbound_at === psaOutbound?.occurred_at &&
-    psa?.communication?.latest_provider_response_evidence_ref === 'gmail:message:1a03f28074fb26a6' &&
-    psa?.communication?.latest_substantive_rights_response_evidence_ref === 'gmail:message:1a0396dc3b4b7528',
+    psa?.communication?.latest_provider_response_evidence_ref === psaInbound?.evidence_ref &&
+    psa?.communication?.latest_provider_response_at === psaInbound?.occurred_at &&
+    psa?.communication?.latest_substantive_rights_response_evidence_ref === psaRights?.evidence_ref &&
+    psa?.communication?.latest_substantive_rights_response_at === psaRights?.occurred_at &&
+    psa?.communication?.observed_through === psaRefresh?.as_of &&
+    psa?.communication_observation_ref === PATHS.psaRefresh &&
+    psa?.communication?.response_after_last_outbound_observed===true,
   'PSA_COMMUNICATION_RECONCILIATION');
 
   const gemrateRecord = byId.get('GEMRATE');
@@ -272,7 +308,10 @@ for (const [name, mutate, expectedCode] of [
   ['future-provider-evidence-date', value => { value.operating.providers.find(record => record.provider_id === 'CARDMARKET').evidence_date = '2099-01-01'; }, 'EVIDENCE_DATE_FUTURE:CARDMARKET'],
   ['fabricated-evidence-ref', value => { value.operating.providers.find(record => record.provider_id === 'CARDMARKET').evidence_refs = ['missing://fabricated-evidence']; }, 'EVIDENCE_REF_UNRESOLVED:CARDMARKET'],
   ['fabricated-existing-file-fragment', value => { value.operating.providers.find(record => record.provider_id === 'CARDMARKET').evidence_refs = [`${PROVIDER_COMMUNICATION_EVIDENCE_PATH}#fabricated`]; }, 'EVIDENCE_REF_UNRESOLVED:CARDMARKET'],
-  ['drop-communication-event', value => { value.communicationEvidence.events.pop(); }, 'COMMUNICATION_EVIDENCE:EVENT_CARDINALITY']
+  ['drop-communication-event', value => { value.communicationEvidence.events.pop(); }, 'COMMUNICATION_EVIDENCE:EVENT_CARDINALITY'],
+  ['restore-stale-psa-response',value=>{value.operating.providers.find(x=>x.provider_id==='PSA_PREMIUM').communication.latest_provider_response_evidence_ref='gmail:message:1a03f28074fb26a6';},'PSA_COMMUNICATION_RECONCILIATION'],
+  ['tamper-psa-refresh-thread',value=>{value.psaRefresh.events[0].thread_id='deadbeef';},'PSA_REFRESH_SOURCE_BINDING'],
+  ['promote-psa-refresh-authority',value=>{value.psaRefresh.authority_granted=true;},'PSA_REFRESH_AUTHORITY_BOUNDARY']
 ]) {
   const candidate = structuredClone(documents);
   mutate(candidate);

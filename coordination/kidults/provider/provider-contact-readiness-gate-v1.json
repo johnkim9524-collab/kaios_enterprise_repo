@@ -15,7 +15,7 @@
     ],
     "RECONCILED_NO_DUPLICATE_OUTREACH":[
       {"provider":"eBay Marketplace Insights","canonical_provider_id":"EBAY_MARKETPLACE_INSIGHTS","state":"CLOSED","communication_state":"PREVIOUSLY_CONTACTED_CLOSED","resend_authorized":false},
-      {"provider":"PSA Premium","canonical_provider_id":"PSA_PREMIUM","state":"BOUNDED","communication_state":"OUTBOUND_SENT_AWAITING_PROVENANCE_SOURCE_CLARIFICATION","resend_authorized":false},
+      {"provider":"PSA Premium","canonical_provider_id":"PSA_PREMIUM","state":"BOUNDED","communication_state":"BOUNDED_USE_RESPONSE_RECEIVED_PRIVATE_EXECUTION_CONTROLS_HOLD","resend_authorized":false},
       {"provider":"GemRate","canonical_provider_id":"GEMRATE","state":"CONDITIONAL","communication_state":"PROVIDER_RESPONSE_RECEIVED_NO_NEW_OUTBOUND_REQUIRED","resend_authorized":false},
       {"provider":"CLASSIC.COM","canonical_provider_id":"CLASSIC_COM","state":"HOLD","communication_state":"FOLLOWUP_SENT_AWAITING_PROVIDER_RESPONSE","resend_authorized":false},
       {"provider":"CGC / CCG","canonical_provider_id":"CGC_CCG","state":"HOLD","communication_state":"PARTIAL_RESPONSE_RECEIVED_NEEDS_CLARIFICATION","resend_authorized":false},

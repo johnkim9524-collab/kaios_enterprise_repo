@@ -1,0 +1,43 @@
+{
+  "id": "KIDULTS_PSA_PRIVATE_OPERATION_CONTROL_V1",
+  "version": "1.0.0",
+  "state": "IMPLEMENTED_LOCAL_VERIFIED_REMOTE_ACTIVATION_HOLD",
+  "reviewed_source_main_sha": "9d4abe5b0980e4d7981e1cd33016cfbb97ec7d95",
+  "implementation": {
+    "evaluation": "services/kidults-control-plane/src/psa-cert-verification-adapter.mjs#stagePsaPrivateEvaluation",
+    "recovery": "scripts/kidults/provider/run-psa-private-retention-deletion-v1.mjs",
+    "operation_identity": "CALLER_DURABLE_SHA256_OPERATION_ID_AND_KEYED_EXACT_INPUT_BINDING",
+    "claim": "EXCLUSIVE_IMMUTABLE_PRIVATE_FILE",
+    "lease_seconds": 300,
+    "maximum_admission_timeout_ms": 30000,
+    "ambiguous_admission": "HOLD_RECONCILE_NO_AUTOMATIC_RETRY",
+    "completed_replay": "RETURN_AUTHENTICATED_EXISTING_RECEIPT_NO_SIDE_EFFECT",
+    "raw_terminal_policy": "DELETE_ON_SUCCESS_OR_ADMISSION_FAILURE_BEFORE_RETURN",
+    "pending_recovery": "AFTER_AUTHENTICATED_LEASE_EXPIRY_WITH_RECOVERY_FENCE",
+    "corrupt_record_policy": "ISOLATE_FAILURE_CONTINUE_HEALTHY_DELETION_KEEP_AGGREGATE_FAIL"
+  },
+  "evidence_scope": {
+    "offline_synthetic_regression": true,
+    "live_provider_calls": 0,
+    "native_ledger_commit_verified": false,
+    "remote_janitor_registered": false,
+    "whole_runtime_complete": false,
+    "psa_acquisition_count": 0,
+    "psa_product_admission_count": 0
+  },
+  "activation_requirements": [
+    "PROTECTED_PERSISTENT_PRIVATE_STORE_AND_STABLE_RUNTIME_KEY",
+    "SINGLE_AUTHORITY_KIR_CONTROLLER_INTEGRATION",
+    "EXACT_NATIVE_NORMALIZED_LEDGER_READBACK",
+    "PROVENANCE_BOUND_120_PRIVATE_MANIFEST",
+    "PROTECTED_CREDENTIAL_RESOLUTION_AND_DURABLE_DAILY_QUOTA_LEDGER"
+  ],
+  "autonomous_effect": "Completed evaluation replay does not repeat PUT, normalized admission, or deletion; ambiguous work remains fenced for reconciliation.",
+  "global_effect": "The control remains provider-specific private authentication/reference evidence and does not invent SOLD or cross-vertical rights.",
+  "irreplaceable_value_effect": "KIDULTS retains keyed operation lineage and sanitized deletion evidence while provider raw records are removed.",
+  "transparency_effect": "Local verification, callback assertion, native ledger readback and remote activation are explicitly separate states.",
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

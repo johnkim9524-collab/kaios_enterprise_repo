@@ -15,7 +15,19 @@ if (key.length !== 32 || key.toString('base64').replace(/=+$/, '') !== keyInput.
 
 const now = new Date();
 const store = createPsaPrivateFileStore({ rootDir: root, key, now: () => now });
-const receipt = await deleteExpiredPsaEvaluations({ privateStore: store, now });
+let receipt;
+let recovery;
+try {
+  recovery = await store.recoverPendingEvaluations({ deletedAt: now });
+  receipt = { ...await deleteExpiredPsaEvaluations({ privateStore: store, now }), pending_raw_recovery: recovery };
+  if(recovery.state!=='VERIFIED_PENDING_RAW_CLEANUP_ONLY')receipt.state='VERIFIED_FAIL_PENDING_RAW_RECOVERY';
+} catch (error) {
+  if (!error?.receipt) throw new Error('PSA_RETENTION_RECOVERY_UNVERIFIED');
+  receipt = {...error.receipt,pending_raw_recovery:recovery};
+  process.exitCode = 1;
+} finally {
+  key.fill(0);
+}
 process.stdout.write(`${JSON.stringify({
   ...receipt,
   runner_id: 'KIDULTS_PSA_PRIVATE_RETENTION_DELETION_V1',

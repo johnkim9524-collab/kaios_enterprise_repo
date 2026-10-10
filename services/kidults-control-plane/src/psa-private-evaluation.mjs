@@ -18,7 +18,7 @@ function atPath(value, path) {
 }
 
 function assertStore(store) {
-  if (!store || typeof store.put !== 'function' || typeof store.listExpired !== 'function' || typeof store.delete !== 'function') {
+  if (!store || ['put', 'listExpired', 'delete', 'beginEvaluation', 'completeEvaluation'].some(method => typeof store[method] !== 'function')) {
     throw new Error('PSA_PRIVATE_STORE_INTERFACE_REQUIRED');
   }
   const capabilities = new Set(store.capabilities || []);
@@ -64,13 +64,20 @@ export async function stagePsaPrivateEvaluation({
   privateStore,
   admitNormalized,
   acquiredAt = new Date(),
+  now = () => new Date(),
+  operationId,
+  admissionTimeoutMs = 10_000,
 }) {
   assertStore(privateStore);
   assertEvaluationRights(rightsReceipt);
   if (typeof admitNormalized !== 'function') throw new Error('PSA_NORMALIZED_ADMISSION_CALLBACK_REQUIRED');
+  if (!/^sha256:[0-9a-f]{64}$/.test(operationId || '')) throw new Error('PSA_EVALUATION_OPERATION_ID_REQUIRED');
+  if (!Number.isInteger(admissionTimeoutMs) || admissionTimeoutMs < 10 || admissionTimeoutMs > 30_000) throw new Error('PSA_ADMISSION_TIMEOUT_INVALID');
   if (!/^sha256:[0-9a-f]{64}$/.test(certReferenceDigest || '')) throw new Error('PSA_CERT_REFERENCE_DIGEST_INVALID');
   const acquired = new Date(acquiredAt);
   if (Number.isNaN(acquired.valueOf())) throw new Error('PSA_ACQUIRED_AT_INVALID');
+  const started = new Date(now());
+  if (!Number.isFinite(started.valueOf()) || acquired > started) throw new Error('PSA_ACQUIRED_AT_FUTURE');
   if (!rawPayload || typeof rawPayload !== 'object' || Array.isArray(rawPayload)) throw new Error('PSA_RAW_PAYLOAD_INVALID');
   const normalized = normalize(rawPayload, fieldMap);
   assertPsaPayloadCertificateBinding(rawPayload, certReferenceDigest);
@@ -79,29 +86,78 @@ export async function stagePsaPrivateEvaluation({
   const rawDigest = sha256(rawSerialized);
   const normalizedDigest = sha256(normalizedSerialized);
   const deleteBy = new Date(acquired.valueOf() + rightsReceipt.retention_days * 86_400_000).toISOString();
+  if (started.valueOf() >= Date.parse(deleteBy)) throw new Error('PSA_EVALUATION_INPUT_RETENTION_EXPIRED');
+  const bindingDigest = sha256(canonical({ certReferenceDigest, rawDigest, normalizedDigest,
+    acquiredAt: acquired.toISOString(), rightsReceipt, fieldMap }));
+  const claim = await privateStore.beginEvaluation({ operationId, bindingDigest });
+  if (claim?.state === 'COMPLETED') return claim.receipt;
+  if (claim?.state !== 'CLAIMED') throw new Error('PSA_EVALUATION_RECONCILIATION_REQUIRED');
   const privateHandle = await privateStore.put({
     providerId: 'psa-public-api', certReferenceDigest, payload: rawPayload,
-    acquiredAt: acquired.toISOString(), deleteBy, rawDigest,
+    acquiredAt: acquired.toISOString(), deleteBy, rawDigest, evaluationOperationId: operationId,
   });
   required(privateHandle, 'PSA_PRIVATE_HANDLE');
-  const admission = await admitNormalized({
-    providerId: 'psa-public-api', certReferenceDigest, normalized,
-    rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
-    fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
-  });
-  if (admission?.state !== 'COMMITTED' || typeof admission.commandId !== 'string' || !admission.commandId.trim()) {
-    throw new Error('PSA_NORMALIZED_ADMISSION_NOT_COMMITTED');
+  let admission;
+  let admissionFailure;
+  let timer;
+  const controller = new AbortController();
+  try {
+    const pending = Promise.resolve().then(() => admitNormalized({
+      providerId: 'psa-public-api', certReferenceDigest, normalized,
+      rawDigest, normalizedDigest, acquiredAt: acquired.toISOString(), deleteBy,
+      fieldMapId: fieldMap.field_map_id, rightsEvidenceRef: rightsReceipt.evidence_ref,
+      operationId, signal: controller.signal,
+    }));
+    admission = await Promise.race([pending, new Promise((_, reject) => {
+      timer = setTimeout(() => { controller.abort(); reject(new Error('PSA_ADMISSION_TIMEOUT')); }, admissionTimeoutMs);
+    })]);
+    if (admission?.state !== 'COMMITTED' || typeof admission.commandId !== 'string' || !admission.commandId.trim()) {
+      admissionFailure = 'PSA_NORMALIZED_ADMISSION_NOT_COMMITTED';
+    }
+  } catch {
+    // An ambiguous commit is never retried here. Callback errors may contain
+    // private values; expose only a fixed error code after raw cleanup.
+    admissionFailure = 'PSA_NORMALIZED_ADMISSION_OUTCOME_UNKNOWN';
+  } finally {
+    clearTimeout(timer);
   }
-  return {
+  let deletion;
+  try {
+    deletion = await privateStore.delete({
+      handle: privateHandle, reason: 'EVALUATION_TERMINAL', deletedAt: new Date(now()).toISOString(),
+    });
+    if (deletion?.deletion_verified !== true || deletion.raw_payload_retained !== false
+      || !((deletion.state === 'VERIFIED_PASS' && deletion.retention_deadline_met === true)
+        || (deletion.state === 'VERIFIED_RETENTION_BREACH_DELETED' && deletion.retention_deadline_met === false))) {
+      throw new Error('PSA_TERMINAL_DELETION_NOT_VERIFIED');
+    }
+  } catch {
+    const error = new Error('PSA_EVALUATION_TERMINAL_CLEANUP_UNVERIFIED');
+    error.recovery = {
+      private_handle_digest: sha256(String(privateHandle)), cert_reference_digest: certReferenceDigest,
+      admission_outcome: admissionFailure || 'COMMITTED', automatic_admission_retry: false,
+      raw_cleanup_verified: false,
+    };
+    throw error;
+  }
+  if (admissionFailure) throw new Error(admissionFailure);
+  if (deletion.retention_deadline_met !== true) throw new Error('PSA_EVALUATION_RETENTION_BREACH_DELETED');
+  const receipt = {
     receipt_id: 'KIDULTS_PSA_PRIVATE_EVALUATION_STAGE_RECEIPT_V1',
     state: 'VERIFIED_PASS', provider_id: 'psa-public-api',
     cert_reference_digest: certReferenceDigest, raw_digest: rawDigest,
     normalized_digest: normalizedDigest, field_map_id: fieldMap.field_map_id,
     private_handle_digest: sha256(String(privateHandle)), delete_by: deleteBy,
     admission_receipt_digest: sha256(canonical(admission)),
+    deletion_receipt_digest: sha256(canonical(deletion)), raw_payload_retained: false,
     raw_payload_in_receipt: false, public_display: 'BLOCK', redistribution: 'BLOCK',
     promotion_authority: 'NONE_UNTIL_EMPIRICAL_HANDOFF_AND_TRACK_B',
+    operation_id: operationId,
+    admission_evidence_scope: 'TRUSTED_CALLBACK_RESULT_NOT_NATIVE_LEDGER_READBACK',
+    native_ledger_commit_verified: false,
   };
+  await privateStore.completeEvaluation({ operationId, bindingDigest, receipt });
+  return receipt;
 }
 
 export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date() }) {
@@ -128,7 +184,7 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
     deletionReceipts.push(sha256(canonical(deletion)));
     deleted.push(sha256(String(item.handle)));
   }
-  return {
+  const receipt = {
     receipt_id: 'KIDULTS_PSA_RETENTION_DELETION_RECEIPT_V1',
     state: breaches ? 'VERIFIED_RETENTION_BREACH_DELETED' : 'VERIFIED_PASS', provider_id: 'psa-public-api',
     evaluated_at: instant.toISOString(), deleted_count: deleted.length,
@@ -136,6 +192,15 @@ export async function deleteExpiredPsaEvaluations({ privateStore, now = new Date
     retention_deadline_met: breaches === 0, retention_breach_count: breaches,
     deletion_receipt_digests: deletionReceipts.sort(),
   };
+  if (expired.invalid_record_digests?.length) {
+    receipt.state = 'VERIFIED_FAIL_INVALID_PRIVATE_RECORD';
+    receipt.invalid_record_digests = expired.invalid_record_digests;
+    receipt.invalid_record_count = expired.invalid_record_digests.length;
+    const error = new Error('PSA_PRIVATE_RECORD_TYPE_INVALID_OR_INTEGRITY_INVALID');
+    error.receipt = receipt;
+    throw error;
+  }
+  return receipt;
 }
 
 export const psaPrivateEvaluationInternals = { normalize, assertStore, assertEvaluationRights };
