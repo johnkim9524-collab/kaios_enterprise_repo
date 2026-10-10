@@ -18,6 +18,7 @@ const suites = [
   'scripts/kidults/provider/validate-provider-written-email-only-negotiation-policy-v1.mjs',
   'scripts/kidults/provider/validate-provider-outbound-email-approval-receipt-v1.mjs',
   'scripts/kidults/internalization/validate-external-provider-track-z-routing-gate-v1.mjs',
+  'scripts/kidults/track-z/run-track-z-control-cycle-v1.mjs',
   'scripts/kidults/internalization/validate-provider-removal-baseline-v1.mjs',
   'scripts/kidults/internalization/validate-residual-external-dependency-ledger-v1.mjs',
   'scripts/kidults/internalization/validate-internalization-closure-gate-v1.mjs',
