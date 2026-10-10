@@ -1,0 +1,24 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "ee81a3dc3b375b230ae3aa4bab66a5fa9dce2132",
+  "head_branch": "codex/collector-gate-archive-binding-20261010",
+  "source_head_sha": "22e480a8e6883d4487e60d3516304508724cbe52",
+  "source_head_tree_sha": "489b29bf9cb87e4c774968657b6d0095799187ca",
+  "payload_digest": "sha256:178eb24aae52ad607f759930c4ed34dd977614e4ccb3359b17d9c5051bf55898",
+  "canonical_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/collector-gate-archive-binding-20261010",
+    "title": "fix: authenticate nested Gate archives in whole operating proof",
+    "body": "Natural Assurance run 38036233741 rejected the successful Gate archive as ARCHIVE_CONTENT_REJECTED because the collector used the no-nested reader. Resolve the causal Assurance parent first, then authenticate both retained Sentinel and Assurance ZIPs against their native artifact digests and require matching parsed sidecars and receipts.\n\nValidation: 149 regression and negative tests passed; authenticated replay of native Sentinel 38035988047 → Assurance 38036125110 → Gate 38036179108 now records one verified terminal with the two-chain requirement still HOLD. Unconnected domains remain unmet without blocking connected autonomous runtime readiness. No permissions, credentials, provider activation, release or promotion authority changed.",
+    "draft": true,
+    "maintainer_can_modify": false
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
