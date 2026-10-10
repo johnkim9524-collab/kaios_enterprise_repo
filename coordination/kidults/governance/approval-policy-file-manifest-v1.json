@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "705fd21b3ad91430c8b22bd265ed73eb01e8b065",
+  "revision": "5bb8cbd464eb114a47acdcff97c0e09bf52437b6",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6285,8 +6285,8 @@
     {
       "path": "tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b328a5f97afb7504fd8b4995396993a6263854ea",
-      "sha256": "sha256:f3317ffa5563afe40562c3a78d2b70e20e71f3cca7dafaa8247a71527f66ddac"
+      "git_blob": "700817b4f53d736e442de0df3799e91e68cc3d24",
+      "sha256": "sha256:1dc874c132cd0eac0f3ae8e82adbd4245464a3995e75481d79fab22d058a7a57"
     },
     {
       "path": "tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs",
