@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1ccf3629768791a061fc7f58a0fc56504a4a1d85",
+  "revision": "efa0a34c45760be0862451933bf1fa133a173618",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -496,8 +496,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b0dad8c4ea65dbf9413d46e080944fffb47717c3",
-      "sha256": "sha256:f08530f78175fbb8076557b66cf692680632a1ee9ad58f9505489d2ad216d8ed",
+      "git_blob": "069f39338ab6e14ee46a83540c2f086efcbd6b4f",
+      "sha256": "sha256:cd10d1eee34a8c2bccdb8278ba09699bc225a9cfb88a1549b865cc185838474b",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -4467,8 +4467,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ac4866f9bcf2ce3438acf4a120008d30360265f3",
-      "sha256": "sha256:f17d52063962c13e57a45c13e0f6a824a5784c696eecc9505e8c79f0042337d0",
+      "git_blob": "b4635be1fe51d29f536fa1c626b13ae6f84f2bf6",
+      "sha256": "sha256:3385780e48ff759f7e589b1d555d67802e97a2f31f4724b3b417df81dea137da",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6155,8 +6155,8 @@
     {
       "path": "tests/kidults/kpmo/governed-landing-authorization-policy-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ac946b77130f62632d485ab4837112fd6a5f2638",
-      "sha256": "sha256:262bcae1c87458e9f5e0930160f95e3c41910fa54272e499cd4787ea68c3bd7f"
+      "git_blob": "96f0ec3238cfedb8b278214d84b01324384a4b68",
+      "sha256": "sha256:aba13ce49f1637f01b49082e5947a130d67b1c225c1baa887fd730abf5af6681"
     },
     {
       "path": "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs",
@@ -6381,5 +6381,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:66050728898ae3f2c415fb21cbda6c91ea30ba9d0b28b53080dae4145905bcfb"
+  "manifest_sha256": "sha256:2fe44fcbf5934c81c682243b7caded702984ff6f854a759a78a41010775e08c8"
 }
