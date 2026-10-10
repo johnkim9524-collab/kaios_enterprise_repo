@@ -24,6 +24,27 @@ export async function observeLifecycleCutover({config,ledgerRequest,now=()=>Date
   return {ok:true,state:'CUTOVER_READY',mutation_attempted:false};
 }
 
+// The deployed broker's bounded timeout is 180 seconds. Before creating any
+// new phase-fenced family, drain older invocations for that bound plus 60s.
+// This is version quiescence, never evidence that a legacy operation succeeded
+// or performed no mutation. Its original unresolved records remain fenced.
+async function observeFamilyPhaseCutover({config,ledgerRequest,now}) {
+  const Key={pk:'RESUME_TUPLE_V1#FAMILY_PHASE_CUTOVER_V1',sk:'OPERATION'};
+  let row=(await ledgerRequest('Get',{TableName:config.operationTable,Key,ConsistentRead:true})).Item;
+  if(!row) {
+    const installed_at=now();
+    try {await ledgerRequest('Put',{TableName:config.operationTable,Item:{...Key,installed_at,not_before:installed_at+240000},
+      ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
+    catch(error) {if(error?.name!=='ConditionalCheckFailedException')throw error;}
+    row=(await ledgerRequest('Get',{TableName:config.operationTable,Key,ConsistentRead:true})).Item;
+  }
+  if(!Number.isSafeInteger(row?.installed_at)||row.installed_at<1||!Number.isSafeInteger(row.not_before)||
+    row.not_before-row.installed_at!==240000||now()<row.installed_at)fail('FAMILY_PHASE_CUTOVER_RECORD');
+  if(now()<row.not_before)return {ok:false,state:'HOLD_RECONCILE',reason:'FAMILY_PHASE_INVOCATION_DRAIN_WINDOW',
+    not_before:new Date(row.not_before).toISOString(),mutation_attempted:false};
+  return {ok:true};
+}
+
 // The protected Lambda owns mint, readback and the one mutation. Neither a
 // write token nor a caller-supplied success assertion crosses this boundary.
 // UNKNOWN is never reclaimed: GitHub provides no cross-system atomic CAS for
@@ -45,6 +66,8 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   // preserve HOLD without claiming or attempting a lifecycle mutation.
   const cutover=await observeLifecycleCutover({config,ledgerRequest,now});
   if(!cutover.ok)return cutover;
+  const phaseCutover=await observeFamilyPhaseCutover({config,ledgerRequest,now});
+  if(!phaseCutover.ok)return phaseCutover;
   const stable={pull_request:b.pull_request,old_base_sha:b.old_base_sha,expected_head_sha:b.expected_head_sha,
     current_main_sha:b.current_main_sha,changed_paths:[...b.changed_paths].sort()};
   const binding={repository:config.repository,root_mission_id:'KIDULTS-AUTONOMOUS-LIFECYCLE',stage_id:`lifecycle:${b.pull_request}`,
@@ -63,7 +86,8 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   let familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
   if(!familyRow){
     await prepareKey();
-    try{await ledgerRequest('Put',{TableName:config.operationTable,Item:{...familyKey,operation_key:key,owner,state:'IN_FLIGHT'},
+    try{await ledgerRequest('Put',{TableName:config.operationTable,Item:{...familyKey,operation_key:key,owner,state:'IN_FLIGHT',
+      schema:'LIFECYCLE_PHASE_FENCE_V1',binding,phase:'PRE_MUTATION'},
       ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
     catch(error){
       if(error?.name!=='ConditionalCheckFailedException')throw error;
@@ -74,7 +98,52 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   if(familyRow){
     if(!/^sha256:[a-f0-9]{64}$/.test(familyRow.operation_key||''))fail('FAMILY_FENCE_INVALID');
     if(familyRow.operation_key!==key){
-      const original=await ledger.read(familyRow.operation_key);
+      const originalFamilyOwner=familyRow.owner;
+      let original=await ledger.read(familyRow.operation_key);
+      // A complete new-schema family can fence a paused writer before its
+      // operation claim exists. Absence alone is never mutation evidence.
+      const familyBinding=familyRow.binding;
+      let familyBindingVerified=false;
+      try {familyBindingVerified=familyRow.schema==='LIFECYCLE_PHASE_FENCE_V1' &&
+        operationKey(familyBinding)===familyRow.operation_key && typeof familyRow.owner==='string' && !!familyRow.owner &&
+        familyBinding.repository===binding.repository && familyBinding.root_mission_id===binding.root_mission_id &&
+        familyBinding.stage_id===binding.stage_id && familyBinding.operation_kind===binding.operation_kind &&
+        familyBinding.payload_sha256===binding.payload_sha256 &&
+        familyBinding.exact_target.split(':').slice(0,3).join(':')===binding.exact_target.split(':').slice(0,3).join(':') &&
+        familyBinding.exact_target.split(':').length===4 && sha(familyBinding.exact_target.split(':')[3]);
+      } catch {}
+      const validOriginal=original && original.owner===familyRow.owner &&
+        canonicalJson(original.binding)===canonicalJson(familyBinding) && original.phase==='PRE_MUTATION' &&
+        (original.state==='IN_FLIGHT' || (original.state==='NO_MUTATION' &&
+          original.receipt?.mutation_attempted===false && original.receipt?.phase==='PRE_MUTATION'));
+      if(familyBindingVerified && familyRow.phase==='PRE_MUTATION' &&
+        ['IN_FLIGHT','NO_MUTATION'].includes(familyRow.state) && (!original || validOriginal)) {
+        if(familyRow.state==='IN_FLIGHT') {
+          try {await ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
+            UpdateExpression:'SET #state = :none',
+            ConditionExpression:'operation_key = :original AND #owner = :originalOwner AND #state = :flight AND phase = :pre AND #schema = :schema',
+            ExpressionAttributeNames:{'#owner':'owner','#state':'state','#schema':'schema'},
+            ExpressionAttributeValues:{':original':familyRow.operation_key,':originalOwner':familyRow.owner,
+              ':flight':'IN_FLIGHT',':pre':'PRE_MUTATION',':none':'NO_MUTATION',':schema':'LIFECYCLE_PHASE_FENCE_V1'}});}
+          catch(error) {if(error?.name!=='ConditionalCheckFailedException')throw error;}
+          familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
+        }
+        if(familyRow?.operation_key===operationKey(familyBinding) && familyRow.owner===originalFamilyOwner &&
+          familyRow.schema==='LIFECYCLE_PHASE_FENCE_V1' && familyRow.phase==='PRE_MUTATION' && familyRow.state==='NO_MUTATION' &&
+          canonicalJson(familyRow.binding)===canonicalJson(familyBinding)) {
+          const receipt={error_code:'ORIGINAL_WRITER_PRE_MUTATION_FENCED',mutation_attempted:false,phase:'PRE_MUTATION'};
+          if(!original) {
+            try {await ledgerRequest('Put',{TableName:config.operationTable,Item:{...ledger.key(familyRow.operation_key),
+              binding:familyBinding,owner:familyRow.owner,state:'NO_MUTATION',phase:'PRE_MUTATION',receipt},
+              ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
+            catch(error) {if(error?.name!=='ConditionalCheckFailedException')throw error;}
+          } else if(original.state==='IN_FLIGHT') {
+            try {await ledger.finishPreMutationFailure(familyRow.operation_key,familyRow.owner,receipt);}
+            catch(error) {if(error?.name!=='ConditionalCheckFailedException')throw error;}
+          }
+          original=await ledger.read(familyRow.operation_key);
+        }
+      }
       const target=original?.binding?.exact_target?.split(':');
       const originalBinding=original?.binding;
       let bindingVerified=false;
@@ -91,23 +160,40 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
         ...(bindingVerified?{original_exact_target:originalBinding.exact_target}:{})};
       if(!bindingVerified || original.owner!==familyRow.owner || original.state!=='NO_MUTATION' ||
         original.phase!=='PRE_MUTATION' || original.receipt?.mutation_attempted!==false ||
-        original.receipt?.phase!=='PRE_MUTATION' || familyRow.state!=='IN_FLIGHT')
+        original.receipt?.phase!=='PRE_MUTATION' || !['IN_FLIGHT','NO_MUTATION'].includes(familyRow.state) ||
+        (familyRow.schema && (!familyBindingVerified || familyRow.phase!=='PRE_MUTATION' || familyRow.state!=='NO_MUTATION')))
         return {ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION',...diagnostic};
       // NO_MUTATION is a protected owner/phase CAS terminal, never an inferred
       // absence or a timeout. Keep its immutable operation row; fence the old
       // writer and conditionally move only this PR/head family to the new key.
       await prepareKey();
       try {await ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
-        UpdateExpression:'SET operation_key = :next, #owner = :owner',
-        ConditionExpression:'operation_key = :original AND #owner = :originalOwner AND #state = :flight',
-        ExpressionAttributeNames:{'#owner':'owner','#state':'state'},
+        UpdateExpression:'SET operation_key = :next, #owner = :owner, #state = :flight, #schema = :schema, binding = :binding, phase = :pre',
+        ConditionExpression:'operation_key = :original AND #owner = :originalOwner AND #state = :priorState',
+        ExpressionAttributeNames:{'#owner':'owner','#state':'state','#schema':'schema'},
         ExpressionAttributeValues:{':next':key,':owner':owner,':original':familyRow.operation_key,
-          ':originalOwner':familyRow.owner,':flight':'IN_FLIGHT'}});}
+          ':originalOwner':familyRow.owner,':priorState':familyRow.state,':flight':'IN_FLIGHT',
+          ':schema':'LIFECYCLE_PHASE_FENCE_V1',':binding':binding,':pre':'PRE_MUTATION'}});}
       catch(error){if(error?.name!=='ConditionalCheckFailedException')throw error;
         return {ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_RECONCILIATION_CONCURRENT_WRITER',...diagnostic};}
     }
   }
   await prepareKey();
+  const familyPhase=async(next)=>ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
+    UpdateExpression:next==='WRITE_STARTED'?'SET phase = :next':'SET #state = :next',
+    ConditionExpression:'operation_key = :key AND #owner = :owner AND #state = :flight AND phase = :pre AND #schema = :schema',
+    ExpressionAttributeNames:{'#owner':'owner','#state':'state','#schema':'schema'},
+    ExpressionAttributeValues:{':key':key,':owner':owner,':flight':'IN_FLIGHT',':pre':'PRE_MUTATION',
+      ':schema':'LIFECYCLE_PHASE_FENCE_V1',':next':next}});
+  const operationPhase=ledger.markMutationStarted.bind(ledger),operationFailure=ledger.finishPreMutationFailure.bind(ledger);
+  ledger.markMutationStarted=async(operationKey,writer)=>{
+    await familyPhase('WRITE_STARTED');
+    await operationPhase(operationKey,writer);
+  };
+  ledger.finishPreMutationFailure=async(operationKey,writer,receipt)=>{
+    await familyPhase('NO_MUTATION');
+    await operationFailure(operationKey,writer,receipt);
+  };
   const fingerprint=sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'));
   const verify=async receipt=>{
     if(receipt?.id!=='kidults-broker-lifecycle-receipt-v1'||receipt.key!==key||receipt.state!=='VERIFIED_PASS'
@@ -120,7 +206,15 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   // generation/session cannot manufacture a different key for this tuple.
   const readExternal=async()=>{
     const row=await ledger.read(key);
-    if(!row)return {state:'ABSENT'};
+    if(!row) {
+      // A same-key follower must never claim the orphan under a new owner.
+      // The original family remains authoritative even before operation Put.
+      const family=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
+      if(family?.operation_key!==key||family.owner!==owner||family.state!=='IN_FLIGHT'||
+        family.schema!=='LIFECYCLE_PHASE_FENCE_V1'||family.phase!=='PRE_MUTATION'||
+        canonicalJson(family.binding)!==canonicalJson(binding))return {state:'UNKNOWN'};
+      return {state:'ABSENT'};
+    }
     if(canonicalJson(row.binding)!==canonicalJson(binding))fail('LEDGER_BINDING');
     if(row.state==='SUCCESS')return {state:'SUCCESS',receipt:row.receipt};
     if(row.state==='IN_FLIGHT'&&row.owner===owner)return {state:'ABSENT'};
