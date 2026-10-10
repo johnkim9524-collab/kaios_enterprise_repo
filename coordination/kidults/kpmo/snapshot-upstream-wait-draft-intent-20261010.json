@@ -7,9 +7,9 @@
   "base_branch": "main",
   "base_sha": "ea83cd59703d4846a40dd5237eeeafcab44f312a",
   "head_branch": "codex/snapshot-upstream-wait-20261010",
-  "source_head_sha": "ddc13fac177ac585eafbfeb2cfeedde86607ccf5",
-  "source_head_tree_sha": "6f55bf5723325e666d685f1a8ebd2b76772393b0",
-  "payload_digest": "sha256:a7beb0e925e5762d47aa9fd2894d00146d006b4a7d3cc0e5d3c89c5a784580a0",
+  "source_head_sha": "42482cd61ab6903ec9f836551f95677e79eedaf5",
+  "source_head_tree_sha": "12840f473412ce03adcd4203585c24abf3cb1ee7",
+  "payload_digest": "sha256:e158a48c239db39d5e94255c7545735c2341fdb381128a33e0d70edd91aab635",
   "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
   "authority_granted": false
 }
