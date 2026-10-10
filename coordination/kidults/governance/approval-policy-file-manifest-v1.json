@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "583b733b999b7e34b763e1ae141bfdf5b0c74a83",
+  "revision": "f53959ba3c596cedc8d519e8738891706d442422",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 769
+    "file_count": 771
   },
   "files": [
     {
@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-event-broker-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "52d27301d111f8cb424d8a8703111d846eb6dd92",
-      "sha256": "sha256:0e417909321ffcd5c20a06486bfd34a39498722f62697fc75151e7e9718c8c45",
+      "git_blob": "d692addc605f63cfe3e526b1a532af15cb1dbd76",
+      "sha256": "sha256:2a45bc6a09382aa25c394705bb98aedd95450068e377f49f71f381df530c63d0",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -1858,8 +1858,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomous-causal-lifecycle-repair-checkpoint-20261010.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f7a94e41cb3a1a0d26e045df42d7282682eb5882",
-      "sha256": "sha256:7cac7f28a12d440b9fdc40d4716c406c4ecbbd945a06dcb32b4144d1c1fd51dd",
+      "git_blob": "3328b699401e0f5004355491788a2a9f5d190f73",
+      "sha256": "sha256:338c3e5f073f8866bc0f38c0237544a23261e8f5bfe92ffb4151653fb35dc9c7",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3307,6 +3307,19 @@
         "coverage": {
           "mode": "EXEMPTION",
           "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/governance/validate-staging-no-authority-expansion-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "4b2a5247b5d6ee6bdb5aa182d4e6fdfa319c6082",
+      "sha256": "sha256:a7b080a08c37ea622996e49edd96736a2727f91bd7197e9cd501c0409b3b4345",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -5926,6 +5939,19 @@
       }
     },
     {
+      "path": "tests/governance/staging-no-authority-expansion-v1.test.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "e0580edcda88274bb304306a38d10a241b78c446",
+      "sha256": "sha256:d9b018375195203c21cde5df906c6cc891004b6655b438af6e50d1a6746a6ad9",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
@@ -6323,5 +6349,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:bbcd838c1edb9ba7c600baef1002d1631442b6bd84ce7cd185ff105ef14be5d3"
+  "manifest_sha256": "sha256:7912eeca75409c830f790f4fc9709b82095c407c54fe625ca97848e93df96bde"
 }
