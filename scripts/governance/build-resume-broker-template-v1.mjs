@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {gzipSync} from 'node:zlib';
+import {createHash} from 'node:crypto';
 
 // Fixed protected source inventory. No PR payload participates in bundling.
 const files=[
@@ -11,7 +13,7 @@ const files=[
   'scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs',
   'scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs',
 ];
-export function buildBrokerCode() {
+export function buildBrokerSource() {
   const factories=files.map(file=>{
     let source=fs.readFileSync(file,'utf8');
     source=source.replace(/^import (.+?) from '([^']+)';$/gm,(_,spec,target)=>{
@@ -27,6 +29,19 @@ export function buildBrokerCode() {
   });
   return `'use strict';\nconst __resumeFactories={${factories.join(',\n')}};\nconst __resumeCache=new Map();\nfunction __resumeLoad(name){if(!__resumeFactories[name])throw Error('UNREGISTERED_RESUME_MODULE');if(!__resumeCache.has(name))__resumeCache.set(name,__resumeFactories[name]());return __resumeCache.get(name);}\n`+
     fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs','utf8');
+}
+// CloudFormation TemplateBody is limited to 51,200 bytes. Compress only the
+// fixed reviewed code inventory; no remote code, new storage or IAM is needed.
+export function buildBrokerCode() {
+  const source=Buffer.from(buildBrokerSource(),'utf8');
+  const compressed=gzipSync(source,{level:9}).toString('base64');
+  const digest=createHash('sha256').update(source).digest('hex');
+  return `'use strict';\nconst source=require('node:zlib').gunzipSync(Buffer.from('${compressed}','base64'),{maxOutputLength:${source.length}});\nif(require('node:crypto').createHash('sha256').update(source).digest('hex')!=='${digest}')throw Error('BROKER_BUNDLE_DIGEST_MISMATCH');\nnew Function('require','exports',source.toString('utf8'))(require,exports);\n`;
+}
+export function assertCloudFormationInlineTemplateBodyLimit(template) {
+  const bytes=Buffer.byteLength(JSON.stringify(template,null,2)+'\n');
+  if(bytes>51200) throw new Error('BROKER_CLOUDFORMATION_TEMPLATE_BODY_LIMIT');
+  return bytes;
 }
 export function buildTemplates() {
   const p='infrastructure/aws/staging/autonomous-event-token-broker-v1.json';
@@ -47,6 +62,7 @@ export function buildTemplates() {
   Object.assign(desired.Resources.BrokerFunction.Properties.Environment.Variables,{
     RESUME_OPERATION_TABLE:{Ref:'ResumeOperationTable'},RESUME_ACTIVATION_RUN_FLOOR:{Ref:'ResumeActivationRunFloor'}});
   desired.Outputs.ResumeOperationTableName={Value:{Ref:'ResumeOperationTable'}};
+  for(const template of [original,desired]) assertCloudFormationInlineTemplateBodyLimit(template);
   return {original,desired};
 }
 if(process.argv[1]?.endsWith('/build-resume-broker-template-v1.mjs')) {
