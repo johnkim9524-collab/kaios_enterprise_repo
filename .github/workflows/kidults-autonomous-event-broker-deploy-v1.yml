@@ -193,7 +193,7 @@ jobs:
           mkdir -p out/autonomous-event-broker-deploy-v1
           function_name=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --query "Stacks[0].Outputs[?OutputKey=='BrokerFunctionName'].OutputValue" --output text)
           expected_timeout=$(jq -r '.Resources.BrokerFunction.Properties.Timeout' "$desired_template")
-          observed_timeout=$(aws lambda get-function-configuration --function-name "$function_name" --query Timeout --output text)
+          observed_timeout=$(aws lambda get-function --function-name "$function_name" --query Configuration.Timeout --output text)
           test "$observed_timeout" = "$expected_timeout"
           aws lambda invoke --function-name "$function_name" --cli-binary-format raw-in-base64-out --payload '{"action":"DENY_CANARY"}' /tmp/deny.json >/tmp/invoke.json || true
           test "$(jq -r '.errorMessage' /tmp/deny.json)" = EVENT_TOKEN_BROKER_DENIED:INPUT
