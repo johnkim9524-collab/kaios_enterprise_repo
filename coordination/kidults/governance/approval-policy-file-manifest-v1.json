@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "4a4f39cb607ba90a199dbb6f92a935985b284ae2",
+  "revision": "a925a6898cd70608bbc12cbf303474f8257fb446",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-event-broker-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a18b97138e0776abb768ed5dd138a432d520af07",
-      "sha256": "sha256:c7f6cecc67c379769b3f767d8951b1ed3256dfd72543a7f0918988749ef1fd18",
+      "git_blob": "2bdc952c88e7732c1f1fccd44a9337016a42e691",
+      "sha256": "sha256:4f371674083545cffac1346f38dae7e8b9269f4ccf2996b0de13669dab5da615",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6349,5 +6349,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d8ac10f1b6809b49444e4f5329f3bdf1f8f29b40a69c2321b77e8f95f118eaec"
+  "manifest_sha256": "sha256:423b91d784df5b59e3289d494bce56ea3cb836db1562cb3e931077d9238b4849"
 }
