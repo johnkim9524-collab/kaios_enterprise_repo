@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "f752b1839726d5a68b7d49093c3ceacb3a6ffade",
+  "head_branch": "codex/lifecycle-orphan-phase-fence-20261010",
+  "source_head_sha": "1d6b9b7f5439f1ce8a90a40a8d8bd2122c7bf318",
+  "source_head_tree_sha": "b80994f87a3773c3291169931a685c4f20262dd8",
+  "payload_digest": "sha256:d41f4d7999836efdd5728e8409e3667dbf3e2e886a51c0c08b8890aa8245ff2d",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
