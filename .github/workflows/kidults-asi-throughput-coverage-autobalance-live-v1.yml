@@ -78,7 +78,8 @@ jobs:
 
           # The exact-generation producer has a 35-minute job timeout.  Cover
           # that complete bounded window instead of failing while it is healthy.
-          AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=210
+          # The first query is immediate: 211 queries allow 210 sleeps.
+          AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=211
           AUTOBALANCE_PRODUCER_WAIT_SECONDS=10
           HOURLY_RUN_ID=""
           HOURLY_SOURCE_SHA=""

@@ -43,7 +43,9 @@ function validate(text) {
   if (!intervalMatch) failures.push('missing bounded producer wait interval');
   if (timeoutMatch && attemptsMatch && intervalMatch) {
     const timeoutSeconds = Number(timeoutMatch[1]) * 60;
-    const waitBudgetSeconds = Number(attemptsMatch[1]) * Number(intervalMatch[1]);
+    // The first query has no preceding sleep and the terminal query does not
+    // sleep afterwards. Count actual poll intervals, not the number of queries.
+    const waitBudgetSeconds = (Number(attemptsMatch[1]) - 1) * Number(intervalMatch[1]);
     if (waitBudgetSeconds < 35 * 60) {
       failures.push('producer wait budget does not cover the producer 35-minute timeout');
     }
@@ -113,7 +115,7 @@ const mutations = [
   ['EXPECTED_PRODUCER_SHA="$CURRENT_SHA"','EXPECTED_PRODUCER_SHA=""'],
   ['if [ "$CURRENT_PROTECTED_MAIN_SHA" != "$GITHUB_SHA" ]; then','if false; then'],
   ['mixed_generation_allowed: false','mixed_generation_allowed: true'],
-  ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=210','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=209'],
+  ['AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=211','AUTOBALANCE_PRODUCER_WAIT_MAX_ATTEMPTS=210'],
   ['AUTOBALANCE_PRODUCER_WAIT_SECONDS=10','AUTOBALANCE_PRODUCER_WAIT_SECONDS=9'],
   ['timeout-minutes: 40','timeout-minutes: 35'],
   ['sort_by(.created_at) | reverse | .[0] // empty','.[0] // empty'],
@@ -171,7 +173,7 @@ console.log(JSON.stringify({
   mutation_cases_rejected: mutations.length + 1 + consumerMutations.length,
   pr_validation_mode: 'STRUCTURAL_AND_NEGATIVE_ONLY',
   live_consumption_mode: 'SCHEDULE_OR_MANUAL_EXACT_MAIN_ONLY',
-  producer_wait: {max_attempts:210,interval_seconds:10,budget_seconds:2100,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
+  producer_wait: {max_attempts:211,interval_seconds:10,budget_seconds:2100,terminal_non_success:'FAIL_CLOSED',timeout:'FAIL_CLOSED'},
   production: 'HOLD',
   public_release: 'HOLD'
 }, null, 2));
