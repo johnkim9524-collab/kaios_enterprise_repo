@@ -75,6 +75,24 @@ def validate_evidence(e, r):
     return digest(e)
 
 
+def validate_original_terminal(t, r=None):
+    fields = set('id version state binding quorum_digest workloads lifecycle durable_reservation merge postmerge production public g5 usb_copy_a created_at receipt_digest'.split())
+    require(isinstance(t, dict) and set(t) == fields and t['id'] == 'kidults-autonomous-internal-landing-terminal-receipt-v1' and t['version'] == '1.0.0' and t['state'] == 'RECEIPT_SEALED', 'ORIGINAL_TERMINAL_FIELDS')
+    require(t['receipt_digest'] == digest({k: v for k, v in t.items() if k != 'receipt_digest'}) and len(canonical(t).encode()) <= 49152, 'ORIGINAL_TERMINAL_DIGEST')
+    b, remote = t['binding'], t['durable_reservation'].get('remote_binding', {})
+    require(isinstance(b, dict) and b.get('repository') == 'johnkim9524-collab/kaios_enterprise_repo' and str(b.get('repository_id')) == '1281328888' and type(b.get('pull_request')) is int and b['pull_request'] > 0 and b['pull_request'] != 1677, 'ORIGINAL_TERMINAL_QUARANTINE')
+    require(all(isinstance(b.get(k), str) and SHA.fullmatch(b[k]) for k in ('base_sha', 'head_sha', 'head_tree_sha')), 'ORIGINAL_TERMINAL_SHA')
+    require(all(t[k] == 'HOLD' for k in ('production', 'public', 'g5')) and t['postmerge'].get('state') == 'VERIFIED_PASS', 'ORIGINAL_TERMINAL_HOLD')
+    require(t['durable_reservation'].get('state') == 'CONSUMED' and t['durable_reservation'].get('conditional_write') is True and remote.get('contract_version') == '3.0.0' and remote.get('action') == 'CONSUME_RESERVATION' and remote.get('state') == 'CONSUMED' and remote.get('conditional_write') is True, 'ORIGINAL_TERMINAL_CONSUMPTION')
+    require(remote.get('authorization_generation') == b.get('authorization_generation') and remote.get('nonce_digest') == b.get('nonce_digest') and remote.get('head_sha') == b['head_sha'] and isinstance(remote.get('run_id'), str) and RUN.fullmatch(remote['run_id']), 'ORIGINAL_TERMINAL_REMOTE_TUPLE')
+    require(isinstance(t['merge'], dict) and t['merge'].get('merge_sha') == remote.get('merge_sha') and t['merge'].get('main_sha') == remote['merge_sha'] and SHA.fullmatch(remote['merge_sha']) and t['merge'].get('head_sha') == b['head_sha'] and t['merge'].get('tree_sha') == b['head_tree_sha'], 'ORIGINAL_TERMINAL_MERGE')
+    require(t['durable_reservation'].get('ledger_key') == {'pk': 'RESERVE#' + b['authorization_generation'], 'sk': 'NONCE#' + b['nonce_digest']}, 'ORIGINAL_TERMINAL_KEY')
+    epoch(t['created_at'])
+    if r:
+        require(all(b.get(k) == r[k] for k in ('repository', 'pull_request', 'base_sha', 'head_sha', 'head_tree_sha')) and str(b['repository_id']) == r['repository_id'] and b['authorization_generation'] == r['original_generation'] and b['nonce_digest'] == r['nonce_digest'] and remote['run_id'] == r['original_run_id'] and remote['merge_sha'] == r['merge_sha'], 'ORIGINAL_TERMINAL_REQUEST')
+    return t['receipt_digest']
+
+
 class InterruptedReservationRecoveryLedger:
     def __init__(self, *, ddb, kms, table, role_config, finalizer_config, receipt_bucket, receipt_key_arn, now=time.time):
         require(set(role_config) == set(ROLES) and isinstance(receipt_bucket, str) and receipt_bucket and isinstance(receipt_key_arn, str) and re.fullmatch(r'arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key/[A-Za-z0-9-]+', receipt_key_arn), 'CONFIG')
@@ -90,6 +108,41 @@ class InterruptedReservationRecoveryLedger:
 
     def get(self, key):
         return self.ddb.get_item(TableName=self.table, Key=key, ConsistentRead=True).get('Item', {})
+
+    def consume_original_terminal(self, event):
+        # Forward-only original finalizer contract. Existing core remains byte
+        # preserved; terminal and original consumption commit in ONE CAS.
+        fields = set('action authorization_generation nonce_digest run_id head_sha merge_sha terminal finalizer_workload_id finalizer_environment signing_key_arn signature_b64'.split())
+        require(isinstance(event, dict) and set(event) == fields and event['action'] in ('CONSUME_RESERVATION', 'READ_ORIGINAL_CONSUMED_TERMINAL'), 'ORIGINAL_CONSUME_FIELDS')
+        require(event['finalizer_workload_id'] == self.finalizer['workload_id'] and event['finalizer_environment'] == self.finalizer['environment'] and event['signing_key_arn'] == self.finalizer['signing_key_arn'], 'ORIGINAL_FINALIZER')
+        core = {k: v for k, v in event.items() if k != 'signature_b64'}
+        signature = base64.b64decode(event['signature_b64'], validate=True)
+        require(self.kms.verify(KeyId=self.finalizer['signing_key_arn'], Message=hashlib.sha256(canonical(core).encode()).digest(), MessageType='DIGEST', Signature=signature, SigningAlgorithm='ECDSA_SHA_256').get('SignatureValid') is True, 'ORIGINAL_SIGNATURE')
+        t = event['terminal']; terminal_digest = validate_original_terminal(t)
+        b, remote = t['binding'], t['durable_reservation']['remote_binding']
+        require(all(remote[k] == event[k] for k in ('authorization_generation', 'nonce_digest', 'run_id', 'head_sha', 'merge_sha')) and epoch(t['created_at']) <= self.now(), 'ORIGINAL_CONSUME_BINDING')
+        key = {'pk': {'S': 'RESERVE#' + b['authorization_generation']}, 'sk': {'S': 'NONCE#' + b['nonce_digest']}}
+        row = self.get(key)
+        if event['action'] == 'CONSUME_RESERVATION':
+            # Authoritative role rows were signature-verified on creation by
+            # the unchanged core; recompute their exact persisted quorum.
+            approvals = []
+            for role in ROLES:
+                approval = self.get({'pk': {'S': 'AUTH#' + b['authorization_generation']}, 'sk': {'S': 'ROLE#' + role}})
+                raw = base64.b64decode(approval.get('envelope', {}).get('S', ''), validate=True).decode()
+                a = json.loads(raw)
+                require(digest(a) == approval.get('envelope_digest', {}).get('S') and all(a.get(k) == v for k, v in b.items())
+                        and all(a.get('workload', {}).get(k) == self.roles[role][k] for k in ('signing_key_arn', 'workload_id', 'environment')), 'ORIGINAL_PERSISTED_QUORUM')
+                approvals.append(a)
+            require(len({a['workload']['run_id'] for a in approvals}) == 3 and t['quorum_digest'] == 'sha256:' + hashlib.sha256('\n'.join(sorted(digest(a) for a in approvals)).encode()).hexdigest(), 'ORIGINAL_QUORUM_DIGEST')
+            expected_workloads = [{'role': role, 'stable_id': a['workload']['workload_id'], 'signing_key_arn': a['workload']['signing_key_arn']} for role, a in zip(ROLES, approvals)]
+            require(t['workloads'] == expected_workloads, 'ORIGINAL_WORKLOADS')
+            require(row.get('state', {}).get('S') == 'RESERVED', 'ORIGINAL_ALREADY_CONSUMED_NO_RETRY')
+            values = {':reserved': {'S': 'RESERVED'}, ':consumed': {'S': 'CONSUMED'}, ':run': {'S': event['run_id']}, ':head': {'S': event['head_sha']}, ':merge': {'S': event['merge_sha']}, ':terminal': {'S': canonical(t)}, ':digest': {'S': terminal_digest}}
+            result = self.ddb.update_item(TableName=self.table, Key=key, UpdateExpression='SET #state=:consumed, merge_sha=:merge, original_terminal_json=:terminal, original_terminal_digest=:digest', ConditionExpression='#state=:reserved AND run_id=:run AND head_sha=:head AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(ir_request)', ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues=values, ReturnValues='ALL_NEW')
+            row = result.get('Attributes', {})
+        require(all(row.get(k, {}).get('S') == v for k, v in {'pk': key['pk']['S'], 'sk': key['sk']['S'], 'run_id': event['run_id'], 'head_sha': event['head_sha'], 'merge_sha': event['merge_sha'], 'state': 'CONSUMED', 'original_terminal_json': canonical(t), 'original_terminal_digest': terminal_digest}.items()), 'ORIGINAL_CONSUME_READBACK')
+        return {'ok': True, 'contract_version': '3.0.0', 'action': 'CONSUME_RESERVATION', 'authorization_generation': b['authorization_generation'], 'nonce_digest': b['nonce_digest'], 'run_id': event['run_id'], 'head_sha': b['head_sha'], 'merge_sha': event['merge_sha'], 'state': 'CONSUMED', 'conditional_write': True, 'pk': key['pk']['S'], 'sk': key['sk']['S'], 'terminal_digest': terminal_digest, 'terminal': t, 'write_performed': event['action'] == 'CONSUME_RESERVATION'}
 
     def verify(self, event, config):
         require(isinstance(event, dict) and set(event) == {'envelope', 'signature_b64'}, 'SIGNED_FIELDS')
@@ -156,6 +209,10 @@ class InterruptedReservationRecoveryLedger:
             return {'state': 'ORIGINAL_RESERVATION_MISSING', 'write_performed': False}
         require(row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('state', {}).get('S') in ('RESERVED', 'CONSUMED'), 'CONTEXT_RESERVATION')
         if row['state']['S'] == 'CONSUMED' and 'ir_request' not in row:
+            if 'original_terminal_json' in row:
+                terminal = json.loads(row['original_terminal_json']['S'])
+                require(validate_original_terminal(terminal, r) == row.get('original_terminal_digest', {}).get('S') and row.get('merge_sha', {}).get('S') == r['merge_sha'], 'ORIGINAL_STORED_TERMINAL')
+                return {'state': 'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING', 'terminal': terminal, 'immutable_ack': json.loads(row['original_immutable_ack']['S']) if 'original_immutable_ack' in row else None, 'write_performed': False}
             return {'state': 'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED', 'write_performed': False}
         pinned = json.loads(row['ir_request']['S']) if 'ir_request' in row else None
         if pinned:
@@ -287,3 +344,20 @@ class InterruptedReservationRecoveryLedger:
         self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET ir_immutable_ack=:object', ConditionExpression='#state=:consumed AND run_id=:original AND ir_terminal_digest=:digest AND attribute_not_exists(ir_immutable_ack)', ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':consumed': {'S': 'CONSUMED'}, ':original': {'S': r['original_run_id']}, ':digest': {'S': o['sha256']}, ':object': {'S': canonical(o)}}, ReturnValues='ALL_NEW')
         require(self.get(self.key(r)).get('ir_immutable_ack', {}).get('S') == canonical(o), 'ACK_READBACK')
         return {'state': 'IMMUTABLE_ACKNOWLEDGED', 'write_performed': True}
+
+    def acknowledge_original(self, event):
+        e = self.authenticate(event, 'ACK_ORIGINAL_TERMINAL_IMMUTABLE', ('object',), fresh=False)
+        r = e['request']; row = self.get(self.key(r))
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha'] and 'ir_request' not in row, 'ORIGINAL_ACK_RESERVATION')
+        t = json.loads(row.get('original_terminal_json', {}).get('S', '{}'))
+        require(validate_original_terminal(t, r) == row.get('original_terminal_digest', {}).get('S'), 'ORIGINAL_ACK_TERMINAL')
+        envelope = {'id': 'kidults-autonomous-internal-landing-immutable-envelope-v1', 'version': '1.0.0', 'receipt': t, 'receipt_sha256': digest(t), 'production': 'HOLD', 'public': 'HOLD', 'g5': 'HOLD'}
+        body_digest = 'sha256:' + hashlib.sha256((canonical(envelope) + '\n').encode()).hexdigest()
+        o = e['object']
+        require(isinstance(o, dict) and set(o) == {'bucket', 'key', 'version_id', 'sha256', 'retention_mode', 'retain_until', 'encryption_key_arn'} and o['bucket'] == self.bucket and o['key'] == 'receipts/' + r['original_generation'] + '/' + r['merge_sha'] + '/terminal.json' and isinstance(o['version_id'], str) and 0 < len(o['version_id']) <= 1024 and o['sha256'] == body_digest and o['retention_mode'] == 'COMPLIANCE' and o['encryption_key_arn'] == self.receipt_key and epoch(o['retain_until']) >= retention_horizon(t['created_at']), 'ORIGINAL_ACK_OBJECT')
+        if 'original_immutable_ack' in row:
+            require(row['original_immutable_ack']['S'] == canonical(o), 'ORIGINAL_ACK_CONFLICT')
+            return {'state': 'ORIGINAL_IMMUTABLE_ACKNOWLEDGED', 'write_performed': False}
+        saved = self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET original_immutable_ack=:object', ConditionExpression='#state=:consumed AND run_id=:original AND original_terminal_digest=:digest AND attribute_not_exists(original_immutable_ack)', ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':consumed': {'S': 'CONSUMED'}, ':original': {'S': r['original_run_id']}, ':digest': {'S': t['receipt_digest']}, ':object': {'S': canonical(o)}}, ReturnValues='ALL_NEW').get('Attributes', {})
+        require(all(saved.get(k) == row.get(k) for k in ('pk', 'sk', 'state', 'run_id', 'head_sha', 'merge_sha', 'original_terminal_digest', 'original_terminal_json')) and saved.get('original_immutable_ack', {}).get('S') == canonical(o), 'ORIGINAL_ACK_READBACK')
+        return {'state': 'ORIGINAL_IMMUTABLE_ACKNOWLEDGED', 'write_performed': True}

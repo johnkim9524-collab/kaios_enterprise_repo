@@ -313,13 +313,17 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
     "'lambda','invoke'",
     "action:'CREATE_APPROVAL'",
     "action:'CREATE_RESERVATION'",
-    "action:'CONSUME_RESERVATION'",
+    'consumeOriginalTerminalAtomically({',
     "method:'PUT'",
     'merge_method',
     'AUTONOMOUS_POSTMERGE_BINDING_FAILED',
     'openAutomaticRollback',
     "state:'QUARANTINED'",
   ]) require(runner.includes(fragment), `runner-marker:${fragment}`);
+  const atomicConsumption = read(path.resolve('scripts/kidults/kpmo/lib/atomic-original-terminal-consumption-v1.mjs'));
+  for (const fragment of ["action:'CONSUME_RESERVATION'", "action:'READ_ORIGINAL_CONSUMED_TERMINAL'", 'validateReservationConsumption({response,envelope,runId,mergeSha:merge.merge_sha,terminal})', 'canonicalJson(response.terminal)!==canonicalJson(terminal)']) {
+    require(atomicConsumption.includes(fragment), `atomic-consumption-marker:${fragment}`);
+  }
   require(!workflow.includes('KIDULTS_AUTONOMOUS_ACTOR_REGISTRY_JSON'), 'legacy-actor-registry-forbidden');
   require(runner.indexOf('await validateLiveCandidate();') < runner.indexOf('putApproval();'), 'approval-before-live-validation-forbidden');
   require((runner.match(/await validateLiveCandidate\([^;]*\);/g) || []).length >= 2, 'live-revalidation-required-before-merge');

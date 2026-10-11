@@ -19,14 +19,15 @@ export function assertFinalizerElection({policy,workflow}) {
   return {state:'RESERVATION_ELECTION_REQUIRED',authority_created:false};
 }
 
-export function validateReservationConsumption({response,envelope,runId,mergeSha}) {
-  const expected={contract_version:'2.0.0',action:'CONSUME_RESERVATION',
+export function validateReservationConsumption({response,envelope,runId,mergeSha,terminal}) {
+  const expected={contract_version:terminal?'3.0.0':'2.0.0',action:'CONSUME_RESERVATION',
     authorization_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,
     run_id:String(runId),head_sha:envelope.head_sha,merge_sha:mergeSha,
     state:'CONSUMED',conditional_write:true};
   if(response?.ok!==true||Object.entries(expected).some(([key,value])=>response[key]!==value)
     ||response.pk!==`RESERVE#${expected.authorization_generation}`
     ||response.sk!==`NONCE#${expected.nonce_digest}`)fail('AUTONOMOUS_CONSUMPTION_REMOTE_BINDING_INVALID');
+  if(terminal&&response.terminal_digest!==terminal.receipt_digest)fail('AUTONOMOUS_CONSUMPTION_TERMINAL_BINDING_INVALID');
   return {state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB',
     remote_binding:expected,ledger_key:{pk:response.pk,sk:response.sk}};
 }

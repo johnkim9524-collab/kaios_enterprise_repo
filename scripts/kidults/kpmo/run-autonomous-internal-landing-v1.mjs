@@ -12,7 +12,6 @@ import {
   validateQuorum,
   validateRecoveryGeneration,
   validateDraftReadyRebind,
-  buildTerminalReceipt,
   collectPaginatedApiValues,
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
@@ -23,7 +22,8 @@ import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequi
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
-import {assertFinalizerElection,validateReservationConsumption} from './lib/autonomous-finalizer-election-v1.mjs';
+import {consumeOriginalTerminalAtomically} from './lib/atomic-original-terminal-consumption-v1.mjs';
+import {assertFinalizerElection} from './lib/autonomous-finalizer-election-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -148,7 +148,7 @@ const graphql = async (query, variables, mutationToken) => {
   }
   return payload.data;
 };
-const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env,stdio:['ignore','pipe','pipe']}));
+const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:{...env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard'},stdio:['ignore','pipe','pipe']}));
 const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
 let ledgerWriterInvocation = 0;
 const invokeLedgerWriter = payload => {
@@ -608,17 +608,8 @@ try {
       const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
       if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
       const postmerge=await waitForExactMergeShaValidation(merge.sha, mergedPr.merged_at);
-      const consumptionResponse=invokeFinalizerWriter({
-        action:'CONSUME_RESERVATION',
-        authorization_generation:envelope.authorization_generation,
-        nonce_digest:envelope.nonce_digest,
-        run_id:required('GITHUB_RUN_ID'),
-        head_sha:envelope.head_sha,
-        merge_sha:merge.sha,
-      });
-      const consumedReservation=validateReservationConsumption({response:consumptionResponse,envelope,runId:finalizerRunId,mergeSha:merge.sha});
-      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:consumedReservation,
-        merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
+      const terminal=consumeOriginalTerminalAtomically({envelope,runId:finalizerRunId,quorum:{...quorum,lifecycle},
+        merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge,invoke:invokeFinalizerWriter});
       terminalEvidence=terminal;
       writeReceipt({...terminal,immutable_copy:{state:'PENDING_RECONCILIATION'}});
       const immutableCopy=sealImmutableReceipt(terminal);

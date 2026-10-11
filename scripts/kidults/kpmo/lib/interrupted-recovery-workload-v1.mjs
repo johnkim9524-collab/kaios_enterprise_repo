@@ -6,6 +6,18 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
   for(const candidate of candidates){
     let request=candidate.request,context=await ledger.readContext({request});
     if(['ORIGINAL_RESERVATION_MISSING','ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED'].includes(context.state)){results.push({state:context.state,write_performed:false});continue;}
+    if(context.state==='ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING'){
+      if(context.immutable_ack){results.push({state:'ORIGINAL_IMMUTABLE_ALREADY_ACKNOWLEDGED',write_performed:false});continue;}
+      if(role!=='FINALIZER'){results.push({state:'ORIGINAL_CONSUMED_SEAL_PENDING',write_performed:false});continue;}
+      await observeInterruptedRecoveryNative({request,get,now:now()});
+      check(typeof verifyDrain==='function'&&typeof ledger.acknowledgeOriginal==='function','ORIGINAL_ARCHIVE_ADAPTER');
+      await verifyDrain(request);
+      const terminal=context.terminal,key=`receipts/${request.original_generation}/${request.merge_sha}/terminal.json`;
+      const object=await immutable.seal({request,terminal,key,original:true,if_none_match:'*'});
+      try{check((await ledger.acknowledgeOriginal({request,run_id:runId,object})).state==='ORIGINAL_IMMUTABLE_ACKNOWLEDGED','ORIGINAL_ACK');}
+      catch(error){const after=await ledger.readContext({request});check(canonicalJson(after.immutable_ack)===canonicalJson(object),'ORIGINAL_ACK_UNKNOWN_NO_RETRY');}
+      results.push({state:'ORIGINAL_POSTMERGE_TERMINAL_RECOVERED_NOT_PLATFORM_CLOSURE',terminal,immutable_object:object,original_consumption_reissued:false});continue;
+    }
     for(let attempt=0;context.state==='RESERVED'&&!context.request&&role!=='ACCOUNTABLE_TRACK_AGENT'&&attempt<18;attempt++){
       await wait(5000);context=await ledger.readContext({request});
     }

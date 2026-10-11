@@ -37,6 +37,13 @@ def handler(event, context):
         raise ValueError('EVENT_INVALID')
     envelope = event.get('envelope')
     if envelope is None:
+        if event.get('action') == 'READ_ORIGINAL_CONSUMED_TERMINAL' or (event.get('action') == 'CONSUME_RESERVATION' and 'terminal' in event):
+            ledger = _interrupted_namespace['InterruptedReservationRecoveryLedger'](
+                ddb=ddb, kms=kms, table=TABLE,
+                role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role], 'signing_key_arn': ROLE_KEYS[role], 'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+                finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID, 'signing_key_arn': FINALIZER_SIGNING_KEY, 'environment': FINALIZER_ENVIRONMENT},
+                receipt_bucket=os.environ['RECEIPT_BUCKET'], receipt_key_arn=os.environ['RECEIPT_KEY_ARN'])
+            return ledger.consume_original_terminal(event)
         return _original_landing_handler(event, context)
     if not isinstance(envelope, dict):
         raise ValueError('RECOVERY_ENVELOPE_INVALID')
@@ -54,6 +61,7 @@ def handler(event, context):
         'CLAIM_MERGED_RECOVERY': 'claim',
         'CONSUME_MERGED_RECOVERY': 'consume',
         'ACK_MERGED_RECOVERY_IMMUTABLE': 'acknowledge',
+        'ACK_ORIGINAL_TERMINAL_IMMUTABLE': 'acknowledge_original',
         'SUPERSEDE_EXPIRED_MERGED_RECOVERY': 'supersede',
     }
     interrupted_method = interrupted_methods.get(envelope.get('action'))

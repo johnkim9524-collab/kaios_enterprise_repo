@@ -41,7 +41,7 @@ function fixture(){
   const runMatch=route.match(/^actions\/runs\/(\d+)$/);if(runMatch)return runs.get(Number(runMatch[1]));
   const jobMatch=route.match(/^actions\/runs\/(\d+)\/attempts\/1\/jobs/);if(jobMatch)return jobs.get(Number(jobMatch[1]));
   const artMatch=route.match(/^actions\/runs\/(\d+)\/artifacts/);if(artMatch){const rows=artifacts.get(Number(artMatch[1]))||[];return {total_count:rows.length,artifacts:rows};}
-  const listMatch=route.match(/^actions\/workflows\/([^/]+)\/runs/);if(listMatch){const rows=[...runs.values()].filter(r=>r.path.endsWith('/'+listMatch[1])&&(!route.includes('&event=push')||r.event==='push'));return {total_count:rows.length,workflow_runs:rows};}
+  const listMatch=route.match(/^actions\/workflows\/([^/]+)\/runs/);if(listMatch){const rows=[...runs.values()].filter(r=>r.path.endsWith('/'+listMatch[1])&&(!route.includes('&event=')||r.event===route.match(/&event=([^&]+)/)[1]));return {total_count:rows.length,workflow_runs:rows};}
   throw Error('UNEXPECTED_NATIVE_GET '+route);
  };
  f.collect=async()=>{const native=await observeInterruptedRecoveryNative({request,get:f.get,now});return createInterruptedRecoveryNativeEvidence({policy,readJson:f.get,readBytes:async route=>archives.get(Number(route.split('/')[2])),now:()=>now}).verifyEvidence({request,native});};return f;
@@ -55,3 +55,5 @@ for(const [name,mutate,code] of [
  ['producer archive bytes changed',f=>{const id=f.health.producers[0].artifact_id;f.archives.set(id,Buffer.from('tamper'));},'ARCHIVE'],
 ])test('full collector rejects '+name,async()=>{const f=fixture();mutate(f);await assert.rejects(f.collect(),new RegExp(code));});
 test('nested Gate sidecar tamper is rejected even with a recomputed outer ZIP digest',async()=>{const f=fixture();const entries=f.gateEntries.map(([n,v])=>[n,n==='audit-receipt.json'?text({...f.audit,receipt_digest:sha256('forged')}):v]);const bytes=zip(entries),artifact=f.artifacts.get(901)[0];artifact.digest=digest(bytes);artifact.size_in_bytes=bytes.length;f.archives.set(artifact.id,bytes);await assert.rejects(f.collect(),/ARCHIVE/);});
+
+test('newer pending producer cannot reuse an older Sentinel/Gate success',async()=>{const f=fixture(),old=f.runs.get(11);f.runs.set(999,{...old,id:999,created_at:'2026-09-05T11:59:00Z',status:'in_progress',conclusion:null});await assert.rejects(f.collect(),/NEWER_PRODUCER_INTERRUPTION/);});

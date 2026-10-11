@@ -1,17 +1,16 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T09:28:40.348624+00:00",
+  "as_of": "2026-10-11T09:49:56.646882+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
-    "verification_scope": "NATIVE_EVIDENCE_AND_AUTOMATIC_MERGED_RECOVERY_SOURCE_INTEGRATED_NOT_ACTIVATED",
-    "candidate_parent_sha": "780f94d13f50d2558825a65d3fc2c47be24bbf38"
+    "verification_scope": "NATIVE_EVIDENCE_AUTOMATIC_RECOVERY_ATOMIC_ORIGINAL_TERMINAL_SOURCE_VERIFIED_NOT_ACTIVATED",
+    "candidate_parent_sha": "62027471106c57ba7572a40a88737498c5930bbd"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
     "Fresh protected main bcfb815084d82cd5eb93918e925b0d4382121f31 unchanged; PR2654 remains Draft and unmerged.",
-    "Parent780 latest21 native workflow/event conclusions SUCCESS; no rerun and no operating-closure inference.",
     "Existing natural Gate workflow_run drives three existing distinct signed approval workloads. Verifier completion drives a separate fourth Track Finalizer run; original owner and distinct quorum rules preserved.",
     "Native trigger re-reads protected main, exact upstream run/attempt, actual authority job and Verifier recovery job/step; manual/replay/skipped reject.",
     "Generic collector validates native merged graph, required6 push suite, P0 original archive, canonical and all four original producer archives, latest Sentinel, actual Assurance audit/runtime proof and actual authority job.",
@@ -19,9 +18,14 @@
     "Discovery scopes native repository_dispatch failure/cancelled/timed_out per existing workflow with complete pagination; signed original-row read grants authority, archive hint alone does not. Expired original artifacts remain explicit unresolved observations without blocking other candidates; identity/digest conflicts reject.",
     "Read-only broker reconciliation permits native workflow_run only for READ_FINALIZER_RECOVERY_CONTEXT; no token mint, mutation, new IAM/OIDC role or rights expansion.",
     "Existing protected signed writer reads original request/evidence/role approvals; bounded quorum wait, CAS consumption and authenticated fixed-key S3 sealing are connected to automatic native workload.",
-    "Root Node185PASS; deployment/trust/policy56PASS; Python ledgers73PASS; workflow7PASS. Independent Red Team Node108PASS and generic Python32PASS.",
     "Original core bytes and historical namespace unchanged; templates change only reviewed Code plus exact existing receipt bucket Ref; no deployment.",
-    "Normal original core CONSUMED without persisted canonical terminal remains ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED read-only unresolved. No fabricated original terminal or retry."
+    "Normal consumption contract3 stores original CONSUMED state, merge, canonical terminal body and digest in one conditional write after exact persisted three-role provenance verification; contract2 historical bytes remain unchanged.",
+    "Unknown consumption reply performs only signed READ_ORIGINAL_CONSUMED_TERMINAL; no consume retry. Historical CONSUMED rows without body remain unresolved read-only.",
+    "Original archive resume uses stored body, fixed original key, identical canonical initial/recovery bytes, broker read-only drain and signed immutable ACK; lost ACK reply reconciles read-only.",
+    "Latest natural producer pending/red interrupts older proof; main is reread after final producer checks.",
+    "Root Node349PASS, Python ledgers73PASS, atomic Python9PASS, workflow7PASS, legacy consumption5PASS; independent Red Team Node119PASS and atomic Python9PASS, with no additional blocking source defect.",
+    "Fresh external head620274 boundary-validator correction reconciled without overwriting; c5ca native CI failure was actual recovery trigger mutation expectation, preserved correction plus atomic helper binding now passes workflow boundary validator.",
+    "Native CI now executes interrupted recovery and atomic original tests; local pytest unavailable, meaningful Python unittest runs passed. No deployment or runtime completion claim."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -36,13 +40,13 @@
     "Source integration addresses missing evidence adapter and automatic trigger; only deployed native execution can establish operating closure."
   ],
   "uncertainties": [
-    "Normal original core consumption and canonical terminal persistence still require one atomic contract.",
     "Generic unmerged broker-owned mutation trust bridge remains unfinished.",
-    "No deployed current candidate/native eligible terminal or two full natural chains verified."
+    "Historical consumed reservations without original terminal bytes cannot be fabricated.",
+    "No deployed candidate/native eligible terminal or two full natural chains verified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
-    "NORMAL_CONSUMED_TERMINAL_PERSISTENCE_GAP",
+    "HISTORICAL_BODYLESS_CONSUMED_READ_ONLY_UNRESOLVED",
     "UNMERGED_RECOVERY_INCOMPLETE",
     "ELIGIBLE_NATIVE_TERMINAL_AND_TWO_FULL_NATURAL_CHAINS_UNVERIFIED"
   ],
@@ -51,9 +55,12 @@
     "Protected native archive evidence collector and automatic trigger integration",
     "Separate fourth-run Finalizer without weakening quorum",
     "Read-only broker route and credential/no-retry boundary",
-    "Full ZIP positive/tamper and independent Red Team verification"
+    "Full ZIP positive/tamper and independent Red Team verification",
+    "Atomic original terminal consumption and authenticated lost-reply readback",
+    "Canonical original archive resume/immutable ACK binding",
+    "Native CI coverage and external boundary correction reconciliation"
   ],
-  "next_action": "Atomically persist canonical original terminal with normal consumption; then exact-head source/CI revalidation and protected activation gate.",
+  "next_action": "Exact-head native CI verification, then protected activation gate and actual native proof; keep old bodyless operations read-only.",
   "authority_boundary": {
     "merged": false,
     "previous_approval_rebound": false,
@@ -68,7 +75,7 @@
     "draft": true,
     "deployment": false
   },
-  "defect_disposition": "NATIVE_EVIDENCE_AND_AUTOMATIC_MERGED_RECOVERY_SOURCE_INTEGRATED; NORMAL_CORE_CONSUMED_ARCHIVE_GAP_UNRESOLVED; PARTIAL_HOLD",
+  "defect_disposition": "NATIVE_EVIDENCE_TRIGGER_AND_ATOMIC_ORIGINAL_TERMINAL_SOURCE_VERIFIED; NOT_ACTIVATED; PARTIAL_HOLD",
   "remediation_sequence": [
     "Bounded classifier and source-profile correction",
     "Existing-workflow quorum reservation election",
@@ -85,7 +92,7 @@
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/2654"
   ],
   "improvement_proposal": "No blanket classifier PASS grant; preserve authenticated source, existing roles, original operation identity, single reservation and fail-closed unresolved outcomes.",
-  "autonomous_effect": "Native merged-only recovery source automatically consumes authenticated proof and original reservation without token reissue; source not activated.",
+  "autonomous_effect": "Natural native completion connects three separate approvals and fourth-run finalizer; interrupted original terminal resumes without renewed mutation or consumption. Source not activated.",
   "global_effect": "Production/Public/G5/provider HOLD unchanged.",
   "irreplaceable_value_effect": "Preserve original generation and durable operation identity across recovery; never replace historical or unknown work with newly minted authority.",
   "transparency_effect": "Source, CI, deployment, bounded runtime and whole-platform closure remain distinct; unresolved old consumed history is explicit."

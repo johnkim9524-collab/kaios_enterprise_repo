@@ -80,6 +80,18 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     assert(selected.state==='VERIFIED_PASS','RECOVERY_LATEST_SENTINEL_NOT_SUCCESS');return selected.latest;
   };
   const proofNode=(run,digest,extra={})=>({state:'VERIFIED_PASS',source_sha:run.head_sha,run_id:String(run.id),receipt_digest:digest,...HOLD,...extra});
+  const currentProducer=async(spec,selected,sha)=>{
+    const events=spec.events.filter(e=>e!=='workflow_dispatch');
+    const rows=(await Promise.all(events.map(e=>runList(spec.workflow,sha,e)))).flat();
+    const native=rows.filter(r=>events.includes(r.event));
+    assert(native.every(r=>r.path===spec.path&&r.head_sha===sha&&r.head_branch==='main'
+      &&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id
+      &&positive(r.id)&&Number.isFinite(Date.parse(r.created_at))&&Date.parse(r.created_at)<=now()),'RECOVERY_EVIDENCE_PRODUCER_NATIVE_IDENTITY');
+    native.sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id);
+    const latest=native.at(-1);
+    assert(latest&&latest.id===selected.selected_run_id&&latest.run_attempt===1&&latest.status==='completed'
+      &&latest.conclusion==='success','RECOVERY_EVIDENCE_NEWER_PRODUCER_INTERRUPTION');
+  };
 
   const jobsFor=async run=>{
     const response=await readJson(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);
@@ -175,6 +187,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
 
     for(const selected of health.producers){
       const spec=SPECS.find(s=>s.id===selected.id);assert(spec,'RECOVERY_EVIDENCE_PRODUCER_SPEC');
+      if(generic)await currentProducer(spec,selected,sha);
       const run=await readRun(selected.selected_run_id),rows=await artifactList(run);
       const matches=rows.filter(a=>a.id===selected.artifact_id&&a.name===selected.artifact_name&&a.digest===selected.artifact_digest);
       assert(matches.length===1,'RECOVERY_EVIDENCE_PRODUCER_ARTIFACT');const artifact=matches[0];
@@ -218,6 +231,8 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
         check('SENTINEL',sentinel,healthArtifacts[0],health.receipt_digest),check('SUCCESS_AUTHORITY_GATE',gate,gateArtifacts[0],gateReceipt.receipt_digest)]};
       if(pinned)assert(canonicalJson(result)===canonicalJson(pinned),'RECOVERY_EVIDENCE_PINNED_CONTENT_DRIFT');
       const last=await readJson('branches/main');assert(last.protected===true&&last.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
+      for(const selected of health.producers)await currentProducer(SPECS.find(s=>s.id===selected.id),selected,sha);
+      const finalMain=await readJson('branches/main');assert(finalMain.protected===true&&finalMain.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
       return result;
     }
     const core={id:'kidults-postmerge-recovery-evidence-snapshot-v1',version:'1.0.0',source_sha:sha,selected_at:pinned?.selected_at||observedAt,evidence,

@@ -3,6 +3,8 @@ import {verifyInterruptedRecoveryNativeTrigger} from './interrupted-recovery-nat
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
+import {terminalObjectKey} from './autonomous-terminal-immutable-v1.mjs';
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {interruptedRecoveryObjectKey,validateInterruptedRecoveryTerminal} from './interrupted-reservation-recovery-v1.mjs';
 import {createInterruptedRecoveryAwsTransport} from './interrupted-recovery-signed-ledger-client-v1.mjs';
@@ -41,12 +43,23 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
     date.setTime(Math.ceil(date.getTime()/1000)*1000);
     return {bytes,digest,checksum:Buffer.from(digest.slice(7),'hex').toString('base64'),minimum:date};
   };
+  const prepareOriginal=({request,terminal,key})=>{
+    check(key===terminalObjectKey(terminal)&&key===`receipts/${request.original_generation}/${request.merge_sha}/terminal.json`,'ORIGINAL_OBJECT_KEY');
+    const {receipt_digest,...core}=terminal;
+    check(receipt_digest===sha256(canonicalJson(core))&&terminal.state==='RECEIPT_SEALED'
+      &&terminal.durable_reservation?.remote_binding?.contract_version==='3.0.0'
+      &&['production','public','g5'].every(k=>terminal[k]==='HOLD'),'ORIGINAL_TERMINAL');
+    const envelope={id:'kidults-autonomous-internal-landing-immutable-envelope-v1',version:'1.0.0',receipt:terminal,receipt_sha256:sha256(canonicalJson(terminal)),production:'HOLD',public:'HOLD',g5:'HOLD'};
+    const bytes=Buffer.from(canonicalJson(envelope)+'\n'),digest='sha256:'+crypto.createHash('sha256').update(bytes).digest('hex');check(bytes.length<=49152,'PAYLOAD');
+    const date=new Date(terminal.created_at),month=date.getUTCMonth();check(Number.isFinite(date.getTime()),'ORIGINAL_CREATED');date.setUTCFullYear(date.getUTCFullYear()+10);if(date.getUTCMonth()!==month)date.setUTCDate(0);date.setTime(Math.ceil(date.getTime()/1000)*1000);
+    return {bytes,digest,checksum:Buffer.from(digest.slice(7),'hex').toString('base64'),minimum:date};
+  };
   const read=async(input,pinned)=>{
-    const p=prepare(input);
+    const p=input.original?prepareOriginal(input):prepare(input);
     // The protected signed writer, not caller flags, authenticates consumed
     // history even when the current native source has advanced.
-    const consumed=await ledger.read({request:input.request,run_id:env.GITHUB_RUN_ID});
-    check(consumed?.state==='CONSUMED'&&consumed.request_digest===sha256(canonicalJson(input.request))
+    const consumed=input.original?await ledger.readContext({request:input.request}):await ledger.read({request:input.request,run_id:env.GITHUB_RUN_ID});
+    check((input.original?consumed?.state==='ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING':consumed?.state==='CONSUMED'&&consumed.request_digest===sha256(canonicalJson(input.request)))
       &&canonicalJson(consumed.terminal)===canonicalJson(input.terminal),'CONSUMED_LEDGER_BINDING');
     let head;
     try{head=await call(['s3api','head-object','--bucket',bucket,'--key',input.key,'--checksum-mode','ENABLED',...(pinned?['--version-id',pinned]:[])]);}
@@ -67,7 +80,7 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
   };
   return {read:input=>read(JSON.parse(canonicalJson(input))),seal:async input=>{
     input=JSON.parse(canonicalJson(input)); // Freeze the tuple across asynchronous S3 calls.
-    const p=prepare(input);check(input.if_none_match==='*','WRITE_BOUNDARY');
+    const p=input.original?prepareOriginal(input):prepare(input);check(input.if_none_match==='*','WRITE_BOUNDARY');
     const existing=await read(input);if(existing)return existing;
     let pinned;
     try{

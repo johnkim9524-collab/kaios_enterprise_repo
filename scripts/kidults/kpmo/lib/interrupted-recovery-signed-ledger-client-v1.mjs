@@ -77,6 +77,7 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
     claim:input=>final('CLAIM_MERGED_RECOVERY',input,{expected_revision:input.expected_revision,lease_seconds:input.lease_seconds}),
     consume:input=>final('CONSUME_MERGED_RECOVERY',input,{revision:input.revision,terminal:input.terminal},false),
     acknowledge:input=>final('ACK_MERGED_RECOVERY_IMMUTABLE',input,{object:input.object},false),
+    acknowledgeOriginal:input=>final('ACK_ORIGINAL_TERMINAL_IMMUTABLE',input,{object:input.object},false),
     supersede:input=>final('SUPERSEDE_EXPIRED_MERGED_RECOVERY',input,{expected_old_request_digest:input.expected_old_request_digest,evidence_digest:input.evidence_digest}),
   };
 }

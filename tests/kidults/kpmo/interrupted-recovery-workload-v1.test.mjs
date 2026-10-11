@@ -52,3 +52,20 @@ test('UNKNOWN and missing original reservations never approve or consume',async(
 test('undrained broker tokens stop finalizer before lease or consume',async()=>{const s=workloadSetup();s.input.verifyDrain=async()=>{throw Error('TOKEN_NOT_DRAINED');};await assert.rejects(s.call(),/TOKEN_NOT_DRAINED/);assert.equal(s.counts().claims,0);assert.equal(s.counts().seals,0);});
 test('already acknowledged terminal creates no approvals, leases, consumption or S3 request',async()=>{const s=workloadSetup();s.input.ledger.readContext=async()=>({state:'CONSUMED',request:s.input.candidates[0].request,immutable_ack:{version_id:'original'}});await s.call();assert.equal(s.extra().approvals,0);assert.equal(s.extra().drains,0);assert.equal(s.counts().seals,0);});
 test('incomplete independent quorum exhausts bounded GET wait without consumption',async()=>{const s=workloadSetup();let reads=0;s.input.ledger.readContext=async()=>{reads++;return {state:'RESERVED',request:s.input.candidates[0].request,candidate_approvals:[]};};await assert.rejects(s.call(),/INDEPENDENT_QUORUM_PENDING/);assert.equal(reads,19);assert.equal(s.counts().claims,0);});
+test('original atomic consumed terminal resumes archive only without new quorum or consumption',async()=>{
+ const s=workloadSetup(),terminal={receipt_digest:'original-body'},object={version_id:'original-version'};let ack=0;
+ s.input.ledger.readContext=async()=>({state:'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',terminal,immutable_ack:null});
+ s.input.immutable.seal=async payload=>{assert.equal(payload.original,true);assert.equal(payload.terminal,terminal);assert.equal(payload.key,'receipts/pr-42-original-generation/'+sha('d')+'/terminal.json');return object;};
+ s.input.ledger.acknowledgeOriginal=async payload=>{ack++;assert.equal(payload.object,object);return {state:'ORIGINAL_IMMUTABLE_ACKNOWLEDGED'};};
+ const r=await s.call();assert.equal(r.results[0].original_consumption_reissued,false);assert.equal(ack,1);assert.equal(s.extra().drains,1);assert.equal(s.extra().approvals,0);assert.equal(s.counts().claims,0);assert.equal(s.counts().consumes,0);assert.equal(s.counts().proofs,0);
+});
+test('original archive lost ACK reply uses readback and never retries ACK',async()=>{
+ const s=workloadSetup(),object={version_id:'one-version'};let ack=0;
+ s.input.ledger.readContext=async()=>({state:'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',terminal:{},immutable_ack:ack?object:null});
+ s.input.immutable.seal=async()=>object;
+ s.input.ledger.acknowledgeOriginal=async()=>{ack++;throw Error('lost reply');};
+ await s.call();assert.equal(ack,1);assert.equal(s.counts().consumes,0);
+});
+test('non-finalizer cannot write original archive and acknowledged archive is reused',async()=>{
+ for(const role of ['KPMO','FINALIZER']){const s=workloadSetup(role);s.input.ledger.readContext=async()=>({state:'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',immutable_ack:role==='FINALIZER'?{version_id:'existing'}:null});await s.call();assert.equal(s.extra().approvals,0);assert.equal(s.extra().drains,0);assert.equal(s.counts().seals,0);assert.equal(s.counts().consumes,0);}
+});
