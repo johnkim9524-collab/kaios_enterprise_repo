@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "679018c7ed6ad40792334cf30edd89ec43898556",
+  "revision": "200d2d4e011f990dd066f602c0b61c898d710a64",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3410,8 +3410,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "113bc31f0ce2a69f0cac47983ab5742c48ffc8ab",
-      "sha256": "sha256:31b39a5d4c16fc5dca45c011c6d3cde1ce52f42e944b7570c8b8ea5f4e9d5d88",
+      "git_blob": "83e94a314b539763f3186304f74fb7a1040526bc",
+      "sha256": "sha256:99865b51c16cdd6d708df49630847253aba17abefbb4225b9eb9d21e9a07957a",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6737,5 +6737,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b3195d69d5d1a14de470b7acb4e35133bdb34df894ce80a36a3c358c266e810c"
+  "manifest_sha256": "sha256:a920a4f23d3ce894edd872e8a6f5d9963e0c6e93525ca3f260fef915b95def34"
 }
