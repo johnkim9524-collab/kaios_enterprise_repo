@@ -291,6 +291,45 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     }
 
   });
+  // Failure debt reconciliation never substitutes for a normal eligible
+  // landing. Independently consume that landing's native exact-main terminal.
+  await attempt(['FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'],async()=>{
+    if(!out.original_terminal_reconciliation)return;
+    const base=commit.parents?.[0]?.sha;if(!base)return;
+    for(const s of finalizers){
+      for(const run of (await runs(s,base)).slice(0,contract.maximum_observation_history)){
+        if(run.status!=='completed'||run.conclusion!=='success'||run.event!=='repository_dispatch')continue;
+        const p=await packet(run,`kidults-autonomous-internal-landing-finalizer-${run.id}-1`);if(!p)continue;
+        const jobs=await get(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);
+        requireEvidence(Array.isArray(jobs.jobs)&&jobs.total_count===jobs.jobs.length&&jobs.total_count<=100
+          &&new Set(jobs.jobs.map(j=>j.id)).size===jobs.jobs.length,'NORMAL_TERMINAL_JOBS');
+        const actual=jobs.jobs.filter(j=>j.name==='Finalize exact internal landing only after durable quorum');
+        requireEvidence(actual.length===1&&actual[0].run_id===run.id
+          &&(actual[0].run_attempt===undefined||actual[0].run_attempt===1)
+          &&actual[0].status==='completed'&&actual[0].conclusion==='success'
+          &&actual[0].steps?.filter(s=>s.name==='Finalize only after durable Track KPMO Verifier quorum'
+            &&s.status==='completed'&&s.conclusion==='success').length===1,'NORMAL_ACTUAL_FINALIZER');
+        const terminal=verifyMissionTerminal(member(p,'receipt.json'),sourceSha,commit);
+        requireEvidence(terminal.binding?.repository===REPOSITORY
+          &&/^[A-Za-z0-9_.:-]{12,160}$/.test(terminal.binding.authorization_generation||'')
+          &&/^sha256:[a-f0-9]{64}$/.test(terminal.binding.nonce_digest||'')
+          &&terminal.durable_reservation?.remote_binding?.contract_version==='3.0.0'
+          &&terminal.durable_reservation.remote_binding.action==='CONSUME_RESERVATION'
+          &&terminal.durable_reservation.remote_binding.state==='CONSUMED'
+          &&terminal.durable_reservation.remote_binding.conditional_write===true
+          &&terminal.durable_reservation.remote_binding.authorization_generation===terminal.binding.authorization_generation
+          &&terminal.durable_reservation.remote_binding.nonce_digest===terminal.binding.nonce_digest
+          &&terminal.durable_reservation.ledger_key?.pk===`RESERVE#${terminal.binding.authorization_generation}`
+          &&terminal.durable_reservation.ledger_key?.sk===`NONCE#${terminal.binding.nonce_digest}`
+          &&String(terminal.durable_reservation.remote_binding.run_id)===String(run.id)
+          &&terminal.durable_reservation.remote_binding.head_sha===terminal.binding.head_sha
+          &&terminal.durable_reservation.remote_binding.merge_sha===sourceSha,'NORMAL_TERMINAL_OWNER');
+        out.normal_landing_terminal={run_id:run.id,receipt_digest:terminal.receipt_digest,source_sha:sourceSha};
+        out.original_terminal_reconciliation.normal_landing_terminal_proven=true;
+        return;
+      }
+    }
+  });
   await attempt(['WHOLE_VALUE_CHAIN_RUNTIME'],async()=>{
     const sources=contract.runtime_domain_sources||[],ids=new Set();
     const requiredDomainCount=Number(contract.runtime_domain_registry_required_count);
