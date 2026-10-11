@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "5837440e27a2c93d76a1414b8411a765a113ed22",
+  "head_branch": "codex/failure-terminal-consumers-20261012",
+  "source_head_sha": "2f893e6c8de0a763f66cafba7c6272a5fa0c07a7",
+  "source_head_tree_sha": "66ea2f75f4f6fa8dd670581f6c3e8d2fac271668",
+  "payload_digest": "sha256:9c2547bb680117048dd5d501e461ca4fc128e7f43de2c9834ddeccb46f6f681f",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

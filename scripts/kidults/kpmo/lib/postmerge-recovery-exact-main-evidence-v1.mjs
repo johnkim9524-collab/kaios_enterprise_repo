@@ -11,6 +11,7 @@ import {validateInterruptedRecoveryRequest,observeInterruptedRecoveryNative} fro
 import {verifyAssuranceReadiness} from './assurance-full-proof-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
 import {verifyFailureAssuranceParent} from './interrupted-recovery-native-trigger-v1.mjs';
+import {validateTerminalNullAssurancePacket} from './terminal-null-assurance-packet-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
 const HOLD={production:'HOLD',public:'HOLD',g5:'HOLD'};
@@ -18,6 +19,29 @@ const SENTINEL='kpmo-continuous-assurance-sentinel-health-v1.yml';
 const GATE='kpmo-continuous-assurance-success-authority-gate-v1.yml';
 const ASSURANCE='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const positive=x=>Number.isSafeInteger(x)&&x>0;
+export function validateFailureRecoveryPushSuite(suite){
+  assert(suite?.ready&&suite.required?.length===6&&suite.invalid?.length===0
+    &&suite.required.every(r=>r.conclusion==='success'||r.path===ASSURANCE&&r.conclusion==='failure')
+    &&suite.failure_count===suite.required.filter(r=>r.conclusion==='failure').length
+    &&suite.failure_count<=1,'RECOVERY_EVIDENCE_PUSH_SUITE');
+}
+export function validateFailureRecoverySentinelBinding({audit,parent,run,sentinel,health}){
+  assert(['workflow_run','repository_dispatch'].includes(run.event)&&audit.execution?.trigger===run.event
+    &&String(parent.upstream_run_id)===String(sentinel.id)&&parent.upstream_receipt_digest===health.receipt_digest,
+    'RECOVERY_FAILURE_SENTINEL_BINDING');
+  if(run.event==='repository_dispatch'){
+    // verifyFailureAssuranceParent has already authenticated the clock intake,
+    // snapshot, selected Sentinel and ZIP. Preserve the original null upstream.
+    assert(audit.execution.upstream===null,'RECOVERY_FAILURE_CLOCK_PROVENANCE');
+  }else{
+    const upstream=audit.execution.upstream;
+    assert(String(upstream?.run_id)===String(sentinel.id)&&upstream?.workflow_name===sentinel.name
+      &&upstream?.workflow_path===sentinel.path&&upstream?.workflow_event===sentinel.event
+      &&upstream?.conclusion===sentinel.conclusion&&upstream?.repository===I.repository
+      &&upstream?.head_branch==='main'&&upstream.run_attempt==='1'
+      &&upstream.source_receipt_digest===health.receipt_digest,'RECOVERY_FAILURE_CAUSAL_SENTINEL');
+  }
+}
 const transport=(route,binary=false)=>{
   try{
     const result=execFileSync('gh',['api','-H','Accept: application/vnd.github+json',`/repos/${I.repository}/${route}`],
@@ -61,7 +85,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       &&x.total_count<=100,'RECOVERY_EVIDENCE_ARTIFACT_PAGINATION');return x.artifacts;
   };
   const archive=async(run,artifact,sha,observedAt,options={})=>{
-    checkTransport(run,artifact,sha,observedAt);
+    checkTransport(run,artifact,sha,observedAt,options);
     const bytes=await readBytes(`actions/artifacts/${artifact.id}/zip`);
     assert(Buffer.isBuffer(bytes)&&bytes.length===artifact.size_in_bytes,'RECOVERY_EVIDENCE_ARCHIVE_SIZE');
     try{return {bytes,packet:readArchive(bytes,artifact.digest,options)};}
@@ -100,8 +124,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       'RECOVERY_FAILURE_PROFILE');
     const branch=await readJson('branches/main');assert(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN');
     const commit=await readJson(`commits/${sha}`);assert(commit.sha===sha,'RECOVERY_EVIDENCE_COMMIT');
-    assert(suite.ready&&suite.required.length===6&&suite.required.every(r=>r.conclusion==='success')
-      &&suite.failure_count===0&&suite.invalid.length===0,'RECOVERY_EVIDENCE_PUSH_SUITE');
+    validateFailureRecoveryPushSuite(suite);
     assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),
       'RECOVERY_EVIDENCE_PUSH_IDENTITY');
     const sentinel=await liveHealth(sha),healthArtifacts=(await artifactList(sentinel))
@@ -117,13 +140,13 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     const assuranceArtifacts=(await artifactList(parentRun)).filter(a=>a.id===parent.artifact_id
       &&a.name===`kidults-continuous-assurance-${sha}-${parent.run_id}-1`&&a.digest===parent.artifact_digest);
     assert(assuranceArtifacts.length===1,'RECOVERY_FAILURE_ASSURANCE_ARTIFACT');
-    const assurancePacket=await archive(parentRun,assuranceArtifacts[0],sha,observedAt);
+    const assurancePacket=await archive(parentRun,assuranceArtifacts[0],sha,observedAt,{allowFailedConclusion:true});
     assert(assurancePacket.packet.archive_digest===parent.archive_digest,'RECOVERY_FAILURE_ASSURANCE_ARCHIVE');
     const audit=member(assurancePacket.packet,'audit-receipt.json');
     const operatingProof=member(assurancePacket.packet,'whole-platform-operating-proof-v1.json');
     assert(audit.receipt_digest===parent.audit_receipt_digest&&audit.states?.internal_control_state==='VERIFIED_PASS'
-      &&audit.states?.promotion_eligible===false&&audit.execution?.trigger==='workflow_run'
-      &&String(audit.execution?.upstream?.run_id)===String(parent.upstream_run_id),'RECOVERY_FAILURE_AUDIT_BINDING');
+      &&audit.states?.promotion_eligible===false&&audit.execution?.trigger===parentRun.event,
+      'RECOVERY_FAILURE_AUDIT_BINDING');
     const {receipt_digest:proofDigest,...proofBody}=operatingProof;
     const failedOperating=operatingProof.operating_checks?.filter(c=>c.state==='VERIFIED_FAIL')||[];
     const terminalCheck=failedOperating[0];
@@ -156,7 +179,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       &&a.name===`kidults-autonomous-internal-landing-finalizer-${request.original_run_id}-1`
       &&a.digest===originalArchive.archive_digest);
     assert(originalArtifacts.length===1,'RECOVERY_FAILURE_ORIGINAL_ARTIFACT');
-    const originalPacket=await archive(originalRun,originalArtifacts[0],request.base_sha,observedAt);
+    const originalPacket=await archive(originalRun,originalArtifacts[0],request.base_sha,observedAt,{allowFailedConclusion:true});
     const originalMembers=originalPacket.packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='receipt.json');
     assert(originalMembers.length===1,'RECOVERY_FAILURE_ORIGINAL_RECEIPT');
     const originalReceipt=JSON.parse(originalMembers[0].text),reservation=originalReceipt.original_reservation;
@@ -168,13 +191,18 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       &&reservation.head_sha===request.head_sha&&reservation.head_tree_sha===request.head_tree_sha
       &&reservation.original_generation===request.original_generation&&reservation.nonce_digest===request.nonce_digest
       &&['production','public','g5'].every(k=>originalReceipt[k]==='HOLD'),'RECOVERY_FAILURE_ORIGINAL_NULL_BINDING');
-    const upstream=audit.execution?.upstream;
-    assert(String(upstream?.run_id)===String(sentinel.id)&&upstream?.workflow_name===sentinel.name
-      &&upstream?.workflow_path===sentinel.path&&upstream?.workflow_event===sentinel.event
-      &&upstream?.conclusion===sentinel.conclusion&&upstream?.repository===I.repository
-      &&upstream?.head_branch==='main'&&parent.upstream_run_id===sentinel.id
-      &&upstream.run_attempt==='1'&&upstream.source_receipt_digest===health.receipt_digest
-      &&parent.upstream_receipt_digest===upstream.source_receipt_digest,'RECOVERY_FAILURE_CAUSAL_SENTINEL');
+    // checkedParent above authenticates either original causal provenance or
+    // the sealed external-clock snapshot. Never fabricate audit.upstream.
+    validateFailureRecoverySentinelBinding({audit,parent,run:parentRun,sentinel,health});
+    const failedPush=suite.required.find(r=>r.conclusion==='failure');
+    if(failedPush){
+      const pushRun=await readRun(failedPush.run_id);
+      const artifacts=(await artifactList(pushRun)).filter(a=>a.name===`kidults-continuous-assurance-${sha}-${pushRun.id}-1`);
+      assert(artifacts.length===1,'RECOVERY_FAILURE_PUSH_ARTIFACT');
+      const packet=await archive(pushRun,artifacts[0],sha,observedAt,{allowFailedConclusion:true});
+      validateTerminalNullAssurancePacket({run:pushRun,audit:member(packet.packet,'audit-receipt.json'),
+        proof:member(packet.packet,'whole-platform-operating-proof-v1.json'),sourceSha:sha});
+    }
     const gateRuns=(await runList(GATE,sha)).filter(r=>r.path===`.github/workflows/${GATE}`&&r.head_sha===sha
       &&r.head_branch==='main'&&r.event==='workflow_run'&&r.repository?.full_name===I.repository
       &&String(r.repository?.id)===I.repository_id&&r.run_attempt===1);
@@ -259,7 +287,8 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     const commit=await readJson(`commits/${sha}`);assert(commit.sha===sha,'RECOVERY_EVIDENCE_COMMIT');
     const pushRuns=(await Promise.all(policy.required_workflows.map(s=>runList(s.path.split('/').at(-1),sha,'push')))).flat();
     const suite=evaluatePostMergePushSuite(pushRuns,policy,sha,commit.commit?.committer?.date);
-    assert(suite.ready&&suite.required.length===6&&suite.required.every(r=>r.conclusion==='success')
+    if(failureParent)validateFailureRecoveryPushSuite(suite);
+    else assert(suite.ready&&suite.required.length===6&&suite.required.every(r=>r.conclusion==='success')
       &&suite.failure_count===0&&suite.invalid.length===0,'RECOVERY_EVIDENCE_PUSH_SUITE');
     const pushIdentity=pushRuns.map(r=>({id:r.id,run_attempt:r.run_attempt,path:r.path,head_sha:r.head_sha,status:r.status,conclusion:r.conclusion}));
     assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),'RECOVERY_EVIDENCE_PUSH_IDENTITY');
