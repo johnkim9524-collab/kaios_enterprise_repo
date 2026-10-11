@@ -28,7 +28,7 @@ const member=(packet,basename)=>{
 };
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
   demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
-  listRuns=null,observedAt=new Date().toISOString()}){
+  listRuns=null,archiveReader=readArchive,observedAt=new Date().toISOString()}){
   const out=inventoryWholePlatform(contract,scorecard,sourceSha);
   out.observed_at=observedAt;out.repository=REPOSITORY;out.protected_evidence=[];
   const get=p=>read(`${rootUrl}/${p}`,token);
@@ -67,7 +67,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     requireEvidence(values.length===1,'ARTIFACT_CARDINALITY');const artifact=values[0];
     requireEvidence(artifact.expired===false&&artifact.workflow_run?.id===run.id&&artifact.workflow_run.head_sha===run.head_sha&&Date.parse(artifact.expires_at)>Date.parse(observedAt),'ARTIFACT_BINDING');
     const bytes=await download(REPOSITORY,artifact,token);
-    const parsed=readArchive(bytes,artifact.digest,readerOptions);
+    const parsed=archiveReader(bytes,artifact.digest,readerOptions);
     const fresh=await get(`actions/runs/${run.id}`);
     requireEvidence(fresh.status===run.status&&fresh.conclusion===run.conclusion&&fresh.run_attempt===run.run_attempt&&fresh.head_sha===run.head_sha&&fresh.path===run.path,'RUN_CHANGED');
     out.protected_evidence.push({workflow_path:run.path,run_id:run.id,run_attempt:run.run_attempt,
