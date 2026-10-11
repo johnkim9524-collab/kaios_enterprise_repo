@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "f9deb07795cfaa574719456dbc2edde73a8b2faa",
+  "revision": "a951819b13bbabe18576c0ff8eeab7f0904790cd",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -106,8 +106,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3a07b28658e3154d4130a4cc423da31ad249f385",
-      "sha256": "sha256:8b779544ea975d1116cb9895ed469ccec9a1a5dd491743dca347c9ee51430e10",
+      "git_blob": "d6be5f6f70e87b5d930fa9427f881ad637a9e489",
+      "sha256": "sha256:d8c1a206a756694996751e523c9c3da5ccbebb6fa50de2fb89b6660639603996",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4597,8 +4597,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "32e0266045c406e348bdaed019b97effa8b61284",
-      "sha256": "sha256:de3becdb0ace567e978d4b1cd620dff896d441bda067999b891e3e595fef1661",
+      "git_blob": "b3547f8ec5bc520e90b98e07063961e66e173d13",
+      "sha256": "sha256:64f92e304bba361c0360179f2caf32a4eedfb442794418310eca852f3e0609ce",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6452,5 +6452,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a6e5f895075e128760bdf66cae53b415b9db241f27883a338cc668bb94601c54"
+  "manifest_sha256": "sha256:8cbb7944c7d059bafe8546f0632f8ce776e1426b4e41af64c074b6435da0688a"
 }
