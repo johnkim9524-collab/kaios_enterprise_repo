@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "c487476a7089f2511be080af31b2f26ef14a1276",
+  "revision": "21c1daf3e00491b61086b976056898d3f720fd69",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 812
+    "file_count": 813
   },
   "files": [
     {
@@ -1951,6 +1951,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "f582126d2dd0bd2bd07f64f0a5ba2d553e37197a",
       "sha256": "sha256:5fe2cdad4f93af473f34c96d67893c40a17992fe479a27df51bf73f1616c70ca",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/closure-terminal-lineage-draft-proposal-payload-20261012.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "e914477ccb3b2de4f8ebcb852eea765bd3d6a494",
+      "sha256": "sha256:deeb2ea8c514f3138057cb830d74c748f335a3e5efeba26e2d1d0de8f91d5af5",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6749,5 +6762,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d7079d973033dd4af646c30d5821138c642477d2a2909384319cd43dd9c7c8df"
+  "manifest_sha256": "sha256:3ab59a7ac181f6d998ce8b5c6fb99de13ac63b0fd85166d5462123be73241754"
 }
