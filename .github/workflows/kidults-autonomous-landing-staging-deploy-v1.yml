@@ -128,11 +128,22 @@ jobs:
           echo "::notice::STAGING CloudFormation stack status=$stack_status reason=$stack_status_reason"
           test "$stack_status" = UPDATE_COMPLETE -o "$stack_status" = UPDATE_ROLLBACK_COMPLETE -o "$stack_status" = CREATE_COMPLETE
           aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-template.json"
-          validation=$(node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs --current "$RUNNER_TEMP/current-template.json" --desired "$TEMPLATE_PATH")
+          set +e
+          node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs \
+            --current "$RUNNER_TEMP/current-template.json" \
+            --desired "$TEMPLATE_PATH" \
+            > out/autonomous-landing-staging-deploy-v1/template-delta-validation.json \
+            2> out/autonomous-landing-staging-deploy-v1/template-delta-validation.stderr
+          validation_status=$?
+          set -e
+          if [ "$validation_status" -ne 0 ]; then
+            cat out/autonomous-landing-staging-deploy-v1/template-delta-validation.stderr >&2
+            exit "$validation_status"
+          fi
+          validation=$(cat out/autonomous-landing-staging-deploy-v1/template-delta-validation.json)
           mode=$(jq -er '.mode' <<<"$validation")
           test "$mode" = CHANGE_REQUIRED -o "$mode" = ALREADY_APPLIED
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
-          printf '%s\n' "$validation" > out/autonomous-landing-staging-deploy-v1/template-delta-validation.json
 
       - name: Create and validate exact bounded CloudFormation change set
         if: steps.preflight.outputs.mode == 'CHANGE_REQUIRED'
