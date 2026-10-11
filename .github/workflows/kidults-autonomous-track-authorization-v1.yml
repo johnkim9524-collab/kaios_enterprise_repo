@@ -6,20 +6,6 @@ on:
     workflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1']
     types: [completed]
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      gate_run_id:
-        description: Exact successful KPMO Gate run ID
-        required: true
-        type: string
-      gate_run_attempt:
-        description: Exact successful KPMO Gate run attempt
-        required: true
-        type: string
-      head_sha:
-        description: Exact protected main SHA
-        required: true
-        type: string
   repository_dispatch:
     types:
       - kidults.authorization.generation.v1
@@ -241,8 +227,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
       ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success') ||
-      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure') ||
-      (github.event_name == 'workflow_dispatch' && github.actor == 'github-actions[bot]' && inputs.gate_run_attempt == '1' && inputs.head_sha == github.sha))
+      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-TRACK
     timeout-minutes: 15

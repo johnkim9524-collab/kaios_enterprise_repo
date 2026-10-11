@@ -273,7 +273,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule):/mi.test(workflow), 'event-boundary');
   if (/^  workflow_run:/m.test(workflow)) {
     const recoveryWorkflowList = expected.recoveryWorkflows.map(value => `'${value}'`).join(', ');
-    require(workflow.includes(`  workflow_run:\n    workflows: [${recoveryWorkflowList}]\n    types: [completed]\n    branches: [main]\n${RECOVERY_WORKFLOW_DISPATCH_TRIGGER}  repository_dispatch:`), 'recovery-trigger-exact-gate');
+    require(workflow.includes(`  workflow_run:\n    workflows: [${recoveryWorkflowList}]\n    types: [completed]\n    branches: [main]\n  repository_dispatch:`), 'recovery-trigger-exact-gate');
+    require(!/^  workflow_dispatch:/m.test(workflow), 'recovery-trigger-exact-gate');
     const jobs = [...workflow.matchAll(/^  ([a-z][a-z0-9-]*):\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n|$(?![\s\S]))/gm)];
     const record = jobs.find(value => value[1] === 'record-role-approval')?.[2] || '';
     require(record.includes("if: github.event_name == 'repository_dispatch' &&"), 'live-approval-dispatch-only');
@@ -292,7 +293,6 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
       if (name === 'terminal-recovery-approval') {
         require(section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'")
           && section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'")
-          && section.includes("github.event_name == 'workflow_dispatch' && github.actor == 'github-actions[bot]' && inputs.gate_run_attempt == '1' && inputs.head_sha == github.sha")
           && section.includes("github.ref == 'refs/heads/main' && github.run_attempt == 1"), 'recovery-success-exact-main');
       }
       if (name === 'terminal-recovery-finalizer') require(section.includes("needs.terminal-recovery-approval.outputs.recovery_needed == 'true'"), 'recovery-finalizer-exact-candidate');
@@ -406,9 +406,9 @@ for (const [file, spec] of AUTONOMOUS_LANDING_WORKFLOWS) {
   const recoveryWorkflowList = spec.recoveryWorkflows.map(value => `'${value}'`).join(', ');
   const mutations = [
     [source.replace(`workflows: [${recoveryWorkflowList}]`, "workflows: ['Untrusted Gate']"), 'recovery-trigger-exact-gate'],
-    [source.replace(RECOVERY_WORKFLOW_DISPATCH_TRIGGER, ''), 'recovery-trigger-exact-gate'],
+    [source.replace('  repository_dispatch:', `${RECOVERY_WORKFLOW_DISPATCH_TRIGGER}  repository_dispatch:`), 'recovery-trigger-exact-gate'],
     [source.replace("if: github.event_name == 'repository_dispatch' &&", "if: github.ref == 'refs/heads/main' &&"), 'live-approval-dispatch-only'],
-    [source.replace("github.event_name == 'workflow_dispatch' && github.actor == 'github-actions[bot]' && inputs.gate_run_attempt == '1' && inputs.head_sha == github.sha", "github.event_name == 'schedule'"), 'recovery-success-exact-main'],
+    [source.replace("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'", "github.event_name == 'schedule'"), 'recovery-success-exact-main'],
     [source.replace('  terminal-recovery-approval:', '  terminal-recovery-unknown:'), 'recovery-approval-required'],
     [source.replace(/(  terminal-recovery-approval:[\s\S]*?contents:) read/, '$1 write'), 'recovery-github-write-forbidden'],
     [source.replace(/(  terminal-recovery-approval:[\s\S]*?)node scripts\/kidults\/kpmo\/run-postmerge-terminal-recovery-v1.mjs/, '$1node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden'],
@@ -599,7 +599,7 @@ const result = {
   mutation_cases_detected: mutationCases.length,
   recovery_mutation_cases_detected: recoveryMutationCasesDetected,
   negative_cases_rejected: negativeCases.length,
-  policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS; TYPED_EXACT_GATE_RECOVERY_WORKFLOW_DISPATCH_ONLY; DIRECT_OWNER_UI_MERGE_REQUIRES_PRECONSUMPTION_AVAILABILITY_AND_EXACT_MERGE_SHA_POSTMERGE_PROOF',
+  policy: 'NO_DIRECT_REPOSITORY_MUTATION_FROM_GITHUB_ACTIONS; EXACT_NATURAL_GATE_OR_FAILURE_ASSURANCE_TERMINAL_RECOVERY_ONLY; DIRECT_OWNER_UI_MERGE_REQUIRES_PRECONSUMPTION_AVAILABILITY_AND_EXACT_MERGE_SHA_POSTMERGE_PROOF',
   constrained_atomic_landing_exceptions: constrainedAtomicLandingExceptions,
   atomic_landing_mutation_cases_detected: atomicMutationCases.length,
   current_sold_matcher_surfaces_verified: 3,

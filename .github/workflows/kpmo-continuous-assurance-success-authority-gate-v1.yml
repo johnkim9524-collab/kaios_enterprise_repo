@@ -206,9 +206,6 @@ jobs:
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    permissions:
-      actions: write
-      contents: read
     env:
       UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
       UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
@@ -664,28 +661,3 @@ jobs:
             (.upstream_observation.conclusion=="success" and .upstream_observation.workflow_name=="KIDULTS Platform Continuous Assurance V1") and
             .state=="VERIFIED_PASS"
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null
-
-      - name: Dispatch exact-main terminal recovery roles
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          CURRENT_MAIN_SHA="$(gh api "/repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
-          test "$CURRENT_MAIN_SHA" = "$UPSTREAM_SHA"
-          jq -n \
-            --arg ref main \
-            --arg gate_run_id "$GITHUB_RUN_ID" \
-            --arg gate_run_attempt "$GITHUB_RUN_ATTEMPT" \
-            --arg head_sha "$UPSTREAM_SHA" \
-            '{ref:$ref,inputs:{gate_run_id:$gate_run_id,gate_run_attempt:$gate_run_attempt,head_sha:$head_sha}}' \
-            > "$GATE_DIR/terminal-recovery-dispatch.json"
-          for workflow in \
-            kidults-autonomous-track-authorization-v1.yml \
-            kidults-autonomous-kpmo-authorization-v1.yml \
-            kidults-autonomous-independent-verification-authorization-v1.yml
-          do
-            gh api --method POST "/repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/dispatches" \
-              --input "$GATE_DIR/terminal-recovery-dispatch.json"
-          done
