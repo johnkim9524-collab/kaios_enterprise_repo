@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO-PR2648-POSTMERGE-AUTHORITY-GATE-TRIGGER-CLOSURE",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "d5e900c59f323d83958605779aa18bc374fc208a",
+  "head_branch": "codex/assurance-gate-natural-trigger-filter-20261011",
+  "source_head_sha": "c094b8cddd5cf7ca01a73525e77bf6ebf255dd93",
+  "source_head_tree_sha": "fd18ebba34e2fb0702d00193f16120da00d8ce48",
+  "payload_digest": "sha256:6ea66df35a69fd1bc3de7fd5ad8af5cc28fed12df67e016c63c5938ceb2575c4",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
