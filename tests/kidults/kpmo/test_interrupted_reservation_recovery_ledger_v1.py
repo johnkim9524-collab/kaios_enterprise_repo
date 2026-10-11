@@ -10,6 +10,11 @@ import concurrent.futures
 import subprocess
 import tempfile
 import threading
+import json
+import os
+import sys
+import types
+from unittest import mock
 
 PATH = pathlib.Path(__file__).resolve().parents[3] / 'scripts/kidults/kpmo/lib/interrupted-reservation-recovery-ledger-v1.py'
 spec = importlib.util.spec_from_file_location('generic_recovery', PATH)
@@ -97,6 +102,25 @@ class RecoveryTest(unittest.TestCase):
         return dict(id='kidults-interrupted-reservation-terminal-v1', state='VERIFIED_PASS', request_digest=m.digest(self.request), evidence_digest=m.digest(self.evidence), recovery_run_id=run, revision=revision, merge_sha='d'*40, head_sha='b'*40, **m.HOLD)
     def consume(self, run='400', revision=1):
         return self.ledger.consume(self.final('CONSUME_MERGED_RECOVERY', run=run, revision=revision, terminal=self.terminal(run, revision)))
+    def test_actual_capsule_routes_generic_and_preserves_original_owner(self):
+        root = PATH.parents[4]
+        template = json.loads((root / 'infrastructure/aws/staging/autonomous-internal-landing-v1.json').read_text())
+        code = template['Resources']['AutonomousLedgerWriterFunction']['Properties']['Code']['ZipFile']
+        self.assertLessEqual(len(json.dumps(template, separators=(',', ':')).encode()), 51200)
+        boto = types.ModuleType('boto3'); boto.client = lambda name: self.ddb if name == 'dynamodb' else KMS()
+        errors = types.ModuleType('botocore.exceptions'); errors.ClientError = ConditionalFailure
+        env = {'LEDGER_TABLE': 'ledger', 'GITHUB_REPOSITORY': self.request['repository'], 'RECEIPT_BUCKET': 'immutable', 'RECEIPT_KEY_ARN': self.ledger.receipt_key}
+        for prefix, role in zip(('TRACK', 'KPMO', 'VERIFIER'), m.ROLES):
+            for field in ('workload_id', 'signing_key_arn', 'environment'): env[prefix+'_'+field.upper()] = self.roles[role][field]
+        for field in ('workload_id', 'signing_key_arn', 'environment'): env['FINALIZER_'+field.upper()] = self.finalizer[field]
+        ns = {}
+        with mock.patch.dict(sys.modules, {'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': errors}), mock.patch.dict(os.environ, env), mock.patch('time.time', return_value=self.clock):
+            exec(compile(code, '<actual-writer-capsule>', 'exec'), ns)
+            for role in m.ROLES: self.assertTrue(ns['handler'](self.approval(role), None)['ok'])
+            self.assertEqual(ns['handler'](self.final('CLAIM_MERGED_RECOVERY', expected_revision=0, lease_seconds=60), None)['revision'], 1)
+            self.assertEqual(ns['handler'](self.final('CONSUME_MERGED_RECOVERY', revision=1, terminal=self.terminal()), None)['state'], 'CONSUMED')
+            self.assertEqual(ns['handler'](self.final('READ_MERGED_RECOVERY'), None)['original_run_id'], '100')
+        self.assertEqual(ns['digest']('abc'), 'sha256:'+hashlib.sha256(b'abc').hexdigest())
     def test_complete_preserves_original_tuple_and_reuses_consumption(self):
         self.approve(); self.claim(); self.assertTrue(self.consume()['write_performed'])
         self.clock += 2000; self.assertFalse(self.consume()['write_performed'])

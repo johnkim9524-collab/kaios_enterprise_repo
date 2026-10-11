@@ -1,12 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T08:05:11.767215+00:00",
+  "as_of": "2026-10-11T08:15:04.346493+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
     "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
-    "candidate_parent_sha": "fd20b026760320fd47c7fbe280da78cd87a0ebad"
+    "candidate_parent_sha": "d1cd82de1d5dd851d00ce9c05ce9862cafa61414"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -34,7 +34,10 @@
     "Disjoint verification: broker/dispatcher460, generic JS26 and Python28 tests pass (514 total); generic recovery remains undeployed and unregistered.",
     "External reconciliation confirmed fd20 exact-head latest21 native workflows terminal SUCCESS; completed source-CI stage was reused without rerun.",
     "Added protected interrupted-recovery signed transport using existing workload roles, registered signing key, exact native source/run/attempt/repository_dispatch, STS identity and KMS DIGEST; fixed existing Lambda only and no retry. Admin/manual/rerun/#1677/run impersonation rejected before signing. New adapter15 tests and engine26 tests PASS.",
-    "Red Team found hidden AWS CLI retries. Both generic and historical signed clients now share a transport pinned to AWS_MAX_ATTEMPTS=1, standard retry mode and 5/20/30-second connection/read/process bounds. Actual subprocess-options test PASS; independent Red Team15/15 PASS and combined adapter/engine/historical58/58 PASS."
+    "Red Team found hidden AWS CLI retries. Both generic and historical signed clients now share a transport pinned to AWS_MAX_ATTEMPTS=1, standard retry mode and 5/20/30-second connection/read/process bounds. Actual subprocess-options test PASS; independent Red Team15/15 PASS and combined adapter/engine/historical58/58 PASS.",
+    "Generic six-action signed recovery is now registered in existing writer source. Fixed three-source digest-checked capsule preserves original core bytes and historical namespace, fits natural compact template route at41878bytes. Only writerCode and receipt bucket Ref changed; no IAM/OIDC change or deployment.",
+    "Actual capsule generic quorum/claim/consume/read preserves original run; two Python ledger suites70/70PASS. Deployment50/50PASS including fixed historical V1/V2 tests and current code/bucket/environment/IAM drift rejection. AWS template and OIDC trust2/2 PASS.",
+    "Red Team detected pre-recovery V2 to historical V1 downgrade in compatibility validation; fixed explicit tuple-contract downgrade fence and independent negative test before source publication."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -51,12 +54,12 @@
   ],
   "uncertainties": [
     "Generic unmerged recovery broker-owned mutation/fencing remains unimplemented; bounded merged-only supersession is source verified only.",
-    "Signed transport source added, but writer route registration, native evidence/S3 verification and automatic workflow wiring remain unactivated and incomplete.",
+    "Writer routing and signed transport are source registered; protected native-evidence/S3 adapters and automatic recovery workflow integration are unfinished and undeployed.",
     "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
-    "GENERIC_RECOVERY_RUNTIME_ADAPTER_AND_TRIGGER_NOT_INTEGRATED",
+    "NATIVE_PROOF_S3_ADAPTER_AND_AUTOMATIC_RECOVERY_TRIGGER_NOT_INTEGRATED",
     "UNMERGED_RECOVERY_INCOMPLETE",
     "ELIGIBLE_NATIVE_TERMINAL_AND_TWO_FULL_NATURAL_CHAINS_UNVERIFIED"
   ],
@@ -72,9 +75,10 @@
     "Generic merged-only lease/consume/immutable ACK components and cross-language engine",
     "Independent real ECDSA and concurrent CAS adversarial verification",
     "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation",
-    "Signed remote ledger transport source and negative identity/no-retry tests"
+    "Signed remote ledger transport source and negative identity/no-retry tests",
+    "Fixed-inventory compressed writer routing with authenticated generic actions and exact bounded receipt bucket binding"
   ],
-  "next_action": "Integrate protected merged-only adapters and native triggers; resolve unmerged recovery trust bridge before exact-head activation and actual natural operating proof.",
+  "next_action": "Complete protected native evidence and S3 adapters plus automatic recovery trigger; resolve unmerged trust bridge; exact-head activation and actual natural proof remain separate mandatory gates.",
   "authority_boundary": {
     "merged": false,
     "previous_approval_rebound": false,

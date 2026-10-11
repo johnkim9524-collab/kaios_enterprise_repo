@@ -48,12 +48,21 @@ const isExactConsumptionTupleCodeUpgrade=(before,after)=>
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
-  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256].includes(sha256Hex(source)))return false;
+  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(source)))return false;
   const expected=structuredClone(from);
+  const targetZip=to?.Properties?.Code?.ZipFile||'';
+  if([CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(targetZip))){
+    if(sha256Hex(source)===CONSUMPTION_V2_WRITER_SHA256)return false;
+    if(sha256Hex(source)===CONSUMPTION_V2_PRE_RECOVERY_SHA256&&sha256Hex(targetZip)===CONSUMPTION_V1_WRITER_SHA256)return false;
+    expected.Properties.Code.ZipFile=targetZip;
+    expected.Properties.Environment.Variables.RECEIPT_KEY_ARN={'Fn::GetAtt':['AutonomousReceiptKey','Arn']};
+    return equal(expected,to);
+  }
   expected.Properties.Code.ZipFile=JSON.parse(execFileSync('python3',[
     'scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py','--emit-code-from-stdin'],
     {input:JSON.stringify(source),encoding:'utf8',timeout:10000,maxBuffer:262144,stdio:['pipe','pipe','pipe']}));
   expected.Properties.Environment.Variables.RECEIPT_KEY_ARN={'Fn::GetAtt':['AutonomousReceiptKey','Arn']};
+  expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
   if(isExactConsumptionTupleCodeUpgrade(expected.Properties.Code.ZipFile,to?.Properties?.Code?.ZipFile||''))
     expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
   return equal(expected,to);

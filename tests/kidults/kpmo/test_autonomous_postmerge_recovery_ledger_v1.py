@@ -496,8 +496,10 @@ class RecoveryLedgerTests(unittest.TestCase):
         old = original['Resources']['AutonomousLedgerWriterFunction']['Properties']
         props['Code'] = old['Code']
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
+        self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
         if used_fallback:
             original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_KEY_ARN', None)
+            original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_BUCKET', None)
         self.assertEqual(actual, original)
 
     def test_bundle_is_synchronized_and_does_not_deploy(self):

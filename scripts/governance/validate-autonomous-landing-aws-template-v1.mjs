@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {execFileSync} from 'node:child_process';
 
 const file = 'infrastructure/aws/staging/autonomous-internal-landing-v1.json';
 const template = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -135,7 +136,11 @@ for (const action of ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem
 assert.equal(writerActions.includes('kms:Sign'), false);
 assert.equal(writerFunction.Runtime, 'python3.12');
 const code = writerFunction.Code.ZipFile;
-for (const marker of ['CREATE_APPROVAL','CREATE_RESERVATION','CONSUME_RESERVATION','verify_approval_signature','verify_finalizer_signature','FINALIZER_SIGNATURE_INVALID','APPROVAL_SIGNATURE_INVALID']) assert.ok(code.includes(marker), marker);
+assert.ok(code.startsWith('# KIDULTS_FIXED_LEDGER_SOURCE_CAPSULE_V1'));
+execFileSync('python3',['scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py'],{stdio:['ignore','pipe','pipe']});
+const core=fs.readFileSync('scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py','utf8');
+for (const marker of ['CREATE_APPROVAL','CREATE_RESERVATION','CONSUME_RESERVATION','verify_approval_signature','verify_finalizer_signature','FINALIZER_SIGNATURE_INVALID','APPROVAL_SIGNATURE_INVALID']) assert.ok(core.includes(marker), marker);
+assert.deepEqual(writerFunction.Environment.Variables.RECEIPT_BUCKET,{Ref:'AutonomousReceiptBucket'});
 
 for (const marker of ['AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN','AUTONOMOUS_FINALIZER_ENVIRONMENT_MISMATCH',"mode === 'APPROVAL'","mode === 'FINALIZE'",'invokeFinalizerWriter','KIDULTS_AUTONOMOUS_WORKFLOW_REF','sealImmutableReceipt','KIDULTS_AUTONOMOUS_RECEIPT_BUCKET','KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN']) assert.ok(runner.includes(marker), marker);
 for (const marker of ['OBJECT_LOCK_COMPLIANCE_VERIFIED','--object-lock-mode','COMPLIANCE','--checksum-sha256','--if-none-match','get-object','body_readback_verified']) assert.ok(immutableStore.includes(marker), marker);
