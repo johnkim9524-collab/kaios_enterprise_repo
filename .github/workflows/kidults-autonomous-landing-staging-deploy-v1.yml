@@ -8,8 +8,6 @@ on:
     paths:
       - infrastructure/aws/staging/autonomous-internal-landing-v1.json
       - .github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml
-      - tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs
-      - tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs
   workflow_dispatch:
     inputs:
       main_sha:
