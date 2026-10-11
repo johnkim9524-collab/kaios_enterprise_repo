@@ -159,7 +159,18 @@ assert.equal(ownerReview.binding.base_sha,input.mainSha);
 assert.equal(ownerReview.binding.head_sha,pr.head.sha);
 assert.equal(ownerReview.binding.head_tree_sha,input.treeSha);
 assert.equal(ownerReview.binding.scope_digest,`sha256:${crypto.createHash('sha256').update(ownerReview.binding.changed_paths.join('\n')).digest('hex')}`);
-assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:sha('d'),treeSha:input.treeSha,files:input.files,
+const staleOwnerReview=buildOwnerReviewRequired({pr,mainSha:sha('d'),treeSha:input.treeSha,files:input.files,
+  error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')});
+assert.equal(staleOwnerReview.state,'OWNER_REVIEW_REQUIRED');
+assert.equal(staleOwnerReview.binding.base_sha,pr.base.sha);
+assert.equal(staleOwnerReview.binding.current_main_sha,sha('d'));
+assert.equal(staleOwnerReview.binding.stale_base,true);
+assert.equal(staleOwnerReview.autonomous_eligible,false);
+assert.equal(staleOwnerReview.landing_authorization_created,false);
+assert.equal(staleOwnerReview.merge_authorized,false);
+assert.equal('current_main_sha' in ownerReview.binding,false);
+assert.equal('stale_base' in ownerReview.binding,false);
+assert.throws(()=>buildOwnerReviewRequired({pr:{...pr,base:{...pr.base,sha:'invalid'}},mainSha:sha('d'),treeSha:input.treeSha,files:input.files,
   error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
 assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
   error:new CapabilityDeltaError('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
@@ -725,3 +736,4 @@ test('Finalizer observes protected cutover before creating a durable reservation
   const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
   assert.ok(source.indexOf('await acquireEventToken({observeCutover:true})')<source.indexOf("action:'CREATE_RESERVATION'"));
 });
+
