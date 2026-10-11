@@ -292,7 +292,7 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
       require(!section.includes('node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden');
       if (name === 'terminal-recovery-approval') {
         require(section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'")
-          && section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'")
+          && section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'")
           && section.includes("github.ref == 'refs/heads/main' && github.run_attempt == 1"), 'recovery-success-exact-main');
       }
       if (name === 'terminal-recovery-finalizer') require(section.includes("needs.terminal-recovery-approval.outputs.recovery_needed == 'true'"), 'recovery-finalizer-exact-candidate');
@@ -408,7 +408,8 @@ for (const [file, spec] of AUTONOMOUS_LANDING_WORKFLOWS) {
     [source.replace(`workflows: [${recoveryWorkflowList}]`, "workflows: ['Untrusted Gate']"), 'recovery-trigger-exact-gate'],
     [source.replace('  repository_dispatch:', `${RECOVERY_WORKFLOW_DISPATCH_TRIGGER}  repository_dispatch:`), 'recovery-trigger-exact-gate'],
     [source.replace("if: github.event_name == 'repository_dispatch' &&", "if: github.ref == 'refs/heads/main' &&"), 'live-approval-dispatch-only'],
-    [source.replace("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'", "github.event_name == 'schedule'"), 'recovery-success-exact-main'],
+    [source.replace("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.event == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'", "github.event_name == 'schedule'"), 'recovery-success-exact-main'],
+    [source.replace("github.event.workflow_run.event == 'workflow_run'", "github.event.workflow_run.event == 'push'"), 'recovery-success-exact-main'],
     [source.replace('  terminal-recovery-approval:', '  terminal-recovery-unknown:'), 'recovery-approval-required'],
     [source.replace(/(  terminal-recovery-approval:[\s\S]*?contents:) read/, '$1 write'), 'recovery-github-write-forbidden'],
     [source.replace(/(  terminal-recovery-approval:[\s\S]*?)node scripts\/kidults\/kpmo\/run-postmerge-terminal-recovery-v1.mjs/, '$1node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden'],
