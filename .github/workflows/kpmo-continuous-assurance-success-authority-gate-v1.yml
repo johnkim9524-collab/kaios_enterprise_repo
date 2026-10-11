@@ -373,6 +373,13 @@ jobs:
             > "$GATE_DIR/upstream-assurance-run.json"
           UPSTREAM_CREATED_AT=$(jq -r '.created_at // empty' "$GATE_DIR/upstream-assurance-run.json")
           test -n "$UPSTREAM_CREATED_AT"
+          # The clock producer snapshots after queue/producer waits. Its sealed
+          # observation time, bounded by the native Assurance run, is shared by
+          # the collector and this Gate; workflow creation is not that snapshot.
+          if test "$(jq -r '.execution.trigger' "$GATE_DIR/audit-receipt.json")" = repository_dispatch; then
+            UPSTREAM_CREATED_AT=$(node scripts/kidults/kpmo/lib/assurance-clock-observation-boundary-v1.mjs \
+              "$GATE_DIR/whole-platform-operating-proof-v1.json" "$GATE_DIR/upstream-assurance-run.json" "$UPSTREAM_SHA")
+          fi
           # Query the exact source SHA only within the bounded natural observation window.
           # A naturally older or newer run cannot be joined to this Assurance generation.
           UPSTREAM_CREATED_EPOCH=$(date -u -d "$UPSTREAM_CREATED_AT" +%s)

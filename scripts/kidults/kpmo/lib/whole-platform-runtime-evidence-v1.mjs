@@ -1,6 +1,9 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {SPECS,MAX_PRODUCER_COHORT_SPAN_MS,generationIdForProducers} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {REPOSITORY} from '../validate-sentinel-producer-content-v1.mjs';
+import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
+import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
+import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 function deriveProducerCohort(producers){
   if(!Array.isArray(producers)||producers.length!==SPECS.length)return {bound:false,span_ms:null,scope:'DYNAMIC_PRODUCERS_ONLY'};
@@ -103,15 +106,22 @@ export function verifyValueChainDomainReceipt(receipt,domain,run,sourceSha){
 }
 
 // A green observer alone does not prove downstream natural completion.
-export function verifyNaturalChainTerminal(gate,gateRun,assurance,audit,health,sourceSha){
+export function verifyNaturalChainTerminal(gate,gateRun,assurance,audit,health,sourceSha,context={}){
   const {receipt_digest,...body}=gate;
   requireEvidence(receipt_digest===sha256(canonicalJson(body)), 'CHAIN_GATE_DIGEST');
   requireEvidence(gate.receipt_id==='kpmo-continuous-assurance-success-authority-gate-v1'&&gate.state==='VERIFIED_PASS'
     &&gate.repository===REPOSITORY&&gate.current_protected_main_sha===sourceSha, 'CHAIN_GATE_SOURCE');
-  const native=(run,path)=>run.repository?.full_name===REPOSITORY&&run.path===path&&run.head_sha===sourceSha
-    &&run.head_branch==='main'&&run.event==='workflow_run'&&run.run_attempt===1&&run.status==='completed'&&run.conclusion==='success';
+  const native=(run,path,events=['workflow_run'])=>run.repository?.full_name===REPOSITORY&&run.path===path&&run.head_sha===sourceSha
+    &&run.head_branch==='main'&&events.includes(run.event)&&run.run_attempt===1&&run.status==='completed'&&run.conclusion==='success';
   requireEvidence(native(gateRun,'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml')
-    &&native(assurance,'.github/workflows/kidults-platform-continuous-assurance-v1.yml'), 'CHAIN_NATIVE');
+    &&native(assurance,'.github/workflows/kidults-platform-continuous-assurance-v1.yml',['workflow_run','repository_dispatch']), 'CHAIN_NATIVE');
+  const jobs=context.gateJobs;
+  requireEvidence(Array.isArray(jobs?.jobs)&&jobs.total_count===jobs.jobs.length
+    &&jobs.jobs.every(job=>Number.isSafeInteger(job.id)&&job.id>0)
+    &&new Set(jobs.jobs.map(job=>job.id)).size===jobs.jobs.length,'CHAIN_GATE_JOBS');
+  const authority=jobs.jobs.filter(job=>job.name==='success-authority-gate');
+  requireEvidence(authority.length===1&&authority[0].run_id===gateRun.id&&authority[0].run_attempt===1
+    &&authority[0].status==='completed'&&authority[0].conclusion==='success','CHAIN_GATE_AUTHORITY_JOB');
   const u=gate.upstream_assurance;
   requireEvidence(u?.run_id===assurance.id&&u.run_attempt===assurance.run_attempt&&u.head_sha===sourceSha
     &&u.event===assurance.event&&u.conclusion==='success', 'CHAIN_ASSURANCE');
@@ -122,10 +132,23 @@ export function verifyNaturalChainTerminal(gate,gateRun,assurance,audit,health,s
   requireEvidence(auditDigest===sha256(canonicalJson(auditBody)), 'CHAIN_AUDIT_DIGEST');
   requireEvidence(audit.source?.sha===sourceSha&&audit.source?.match===true&&audit.states?.internal_control_state==='VERIFIED_PASS', 'CHAIN_AUDIT_SOURCE');
   const execution=audit.execution,upstream=execution?.upstream;
-  requireEvidence(String(execution?.workflow_run_id)===String(assurance.id)&&String(execution?.workflow_run_attempt)==='1'
-    &&String(upstream?.run_id)===String(health.observer_run_id)&&String(upstream?.run_attempt)===String(health.observer_run_attempt)
-    &&upstream?.workflow_path==='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
-    &&upstream?.repository===REPOSITORY&&upstream?.conclusion==='success', 'CHAIN_AUDIT_UPSTREAM');
+  requireEvidence(String(execution?.workflow_run_id)===String(assurance.id)&&String(execution?.workflow_run_attempt)==='1','CHAIN_AUDIT_EXECUTION');
+  if(assurance.event==='repository_dispatch'){
+    const cutoff=assuranceClockObservationBoundary({proof:context.proof,assuranceRun:assurance,sourceSha});
+    const selected=selectLatestNaturalSentinelRun(context.sentinelRuns,{sourceSha,repository:REPOSITORY,observedAt:cutoff});
+    requireEvidence(selected.state==='VERIFIED_PASS'&&selected.latest.id===health.observer_run_id
+      &&selected.latest.run_attempt===health.observer_run_attempt,'CHAIN_CLOCK_LATEST_SENTINEL');
+    const route=assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun:assurance,
+      jobs:context.assuranceJobs,proof:context.proof,sentinelRun:selected.latest});
+    const artifact=context.sentinelArtifact;
+    requireEvidence(route.mode==='EXTERNAL_CLOCK_PROOF_BOUND'&&route.sentinelRunId===health.observer_run_id
+      &&route.sentinelBinding.artifact_id===artifact?.id&&route.sentinelBinding.artifact_digest===artifact?.digest,
+      'CHAIN_CLOCK_SENTINEL_ARTIFACT');
+  }else{
+    requireEvidence(String(upstream?.run_id)===String(health.observer_run_id)&&String(upstream?.run_attempt)===String(health.observer_run_attempt)
+      &&upstream?.workflow_path==='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+      &&upstream?.repository===REPOSITORY&&upstream?.conclusion==='success', 'CHAIN_AUDIT_UPSTREAM');
+  }
   requireEvidence(gate.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'&&gate.whole_platform_authority===false
     &&gate.promotion_eligible===false&&gate.empirical_authority===false&&gate.provider_authority===false
     &&gate.database_authority===false&&gate.empirical_delta===0&&['production','public','g5'].every(k=>gate[k]==='HOLD'), 'CHAIN_HOLD');

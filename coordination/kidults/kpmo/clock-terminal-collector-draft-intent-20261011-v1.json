@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO-PR2645-POSTMERGE-CLOSURE-ITEMS-1-5",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "c4256969da367b8c30be8f9640092aef028735a2",
+  "head_branch": "codex/clock-terminal-collector-20261011",
+  "source_head_sha": "d9f2a2a1c3372b84192ecd5fa0f36c799f7fe203",
+  "source_head_tree_sha": "6ffd04b5e56105dfe16723ace74dda6d4be2129a",
+  "payload_digest": "sha256:f38b1eb5f19ba37014f6f93e88135d1625074082f2d3ec1495fadf9c97eec84e",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
