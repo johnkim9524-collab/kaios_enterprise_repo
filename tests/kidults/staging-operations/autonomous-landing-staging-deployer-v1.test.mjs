@@ -16,6 +16,50 @@ const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-landing-s
 const desired = JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json', 'utf8'));
 assert.equal(createHash('sha256').update(desired.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),'688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d');
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
+const deployedCapsuleTemplate = () => {
+  const current = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  const zip = JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-deployed-recovery-capsule.json','utf8'));
+  assert.equal(createHash('sha256').update(zip).digest('hex'),'5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690');
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile = zip;
+  return current;
+};
+test('previously landed packed capsule upgrades to exact failure-Assurance capsule', () => {
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  withFixture({current:deployedCapsuleTemplate(),desired:latest},directory=>{
+    const output=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+    assert.equal(JSON.parse(output).mode,'CHANGE_REQUIRED');
+  });
+});
+test('packed capsule change set permits only a non-replacing Lambda Code modification',()=>{
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{
+    Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',ResourceType:'AWS::Lambda::Function',Replacement:'False',
+    Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]
+  }}]};
+  withFixture({current:deployedCapsuleTemplate(),desired:latest,changeset},directory=>{
+    const argv=[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),'--changeset',path.join(directory,'changeset')];
+    assert.equal(JSON.parse(execFileSync('node',argv,{encoding:'utf8'})).mode,'CHANGE_REQUIRED');
+    changeset.Changes[0].ResourceChange.Replacement='True';
+    fs.writeFileSync(path.join(directory,'changeset'),JSON.stringify(changeset));
+    assert.notEqual(spawnSync('node',argv,{encoding:'utf8'}).status,0);
+  });
+});
+for (const [name,mutate] of [
+  ['source code',t=>{t.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
+  ['target code',t=>{t.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
+  ['environment',t=>{t.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='drift';}],
+  ['memory',t=>{t.Resources.AutonomousLedgerWriterFunction.Properties.MemorySize+=1;}],
+  ['IAM',t=>{t.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:'dynamodb:DeleteItem',Resource:'*'});}]
+]) test(`packed capsule upgrade rejects ${name} drift without legacy shape exception`,()=>{
+  const current=deployedCapsuleTemplate();
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  mutate(name==='source code'?current:latest);
+  withFixture({current,desired:latest},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+    assert.notEqual(result.status,0);
+    assert.doesNotMatch(result.stderr,/WRITER_CODE_EXPECTED_CLIENT_ERROR_IMPORT/);
+  });
+});
 const roleIds = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
 test('current capsule permits exact known V2 code and existing receipt bucket binding only',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
