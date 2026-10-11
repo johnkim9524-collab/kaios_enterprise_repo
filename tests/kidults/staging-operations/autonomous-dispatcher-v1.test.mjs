@@ -13,6 +13,9 @@ import './bounded-git-pack-decoder-v1.test.mjs';
 import './bounded-git-public-transport-v1.test.mjs';
 import './bounded-git-source-profile-v1.test.mjs';
 import './autonomous-operation-quarantine-v1.test.mjs';
+import './primary-script-lexing-v1.test.mjs';
+import './independent-script-lexing-v1.test.mjs';
+import './dispatcher-recovery-classification-v1.test.mjs';
 import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -74,7 +77,7 @@ for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERI
   for(const field of ['automatic_retry_performed','autonomous_eligible','landing_authorization_created','merge_authorized'])assert.equal(repair[field],false);
   assert.equal(repair.classification_failure.authority_created,false);
   assert.doesNotMatch(JSON.stringify(repair),/private content/);
-  for(const change of [{mainSha:sha('d')},{treeSha:'invalid'},{files:[]}])
+  for(const change of [{mainSha:'invalid'},{treeSha:'invalid'},{files:[]}])
     assert.throws(()=>buildPolicyRepairRequired({...input,...change,error}),/DISPATCH_POLICY_REPAIR_BINDING_INVALID/);
 }
 assert.equal(buildPolicyRepairRequired({...input,error:new DispatcherError('DISPATCH_CHECKS_NOT_GREEN')}),null);
@@ -159,7 +162,7 @@ assert.equal(ownerReview.binding.base_sha,input.mainSha);
 assert.equal(ownerReview.binding.head_sha,pr.head.sha);
 assert.equal(ownerReview.binding.head_tree_sha,input.treeSha);
 assert.equal(ownerReview.binding.scope_digest,`sha256:${crypto.createHash('sha256').update(ownerReview.binding.changed_paths.join('\n')).digest('hex')}`);
-assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:sha('d'),treeSha:input.treeSha,files:input.files,
+assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:'invalid',treeSha:input.treeSha,files:input.files,
   error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
 assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
   error:new CapabilityDeltaError('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);

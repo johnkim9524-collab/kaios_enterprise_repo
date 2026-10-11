@@ -27,13 +27,13 @@ const POLICY_REPAIR_CODES=new Set([
 export function buildPolicyRepairRequired({pr,mainSha,treeSha,files,error}) {
   if(!POLICY_REPAIR_CODES.has(String(error?.code||'')))return null;
   const paths=files?.map(file=>file.filename).sort();
-  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!paths?.length||paths.some(path=>typeof path!=='string'||!path)) fail('DISPATCH_POLICY_REPAIR_BINDING_INVALID');
   return {state:'POLICY_REPAIR_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,changed_path:paths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
       stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
-      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:paths,scope_digest:sha256(paths.join('\n'))},
+      base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:paths,scope_digest:sha256(paths.join('\n'))},
     recovery_action:'REPAIR_CANDIDATE_OR_CLASSIFIER_THEN_FRESH_PROTECTED_MAIN_VALIDATION',
     automatic_retry_performed:false,autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
     production:'HOLD',public:'HOLD',g5:'HOLD'};
@@ -49,7 +49,34 @@ const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
 const SHA=/^[0-9a-f]{40}$/;
 const sourceReceiptsByResults=new WeakMap();
 
+export function validateDispatcherTrigger({eventName,event={},repository,repositoryId,sourceSha,ref,runAttempt}){
+  if(ref!=='refs/heads/main'||Number(runAttempt)!==1||!SHA.test(String(sourceSha))
+    ||repository!=='johnkim9524-collab/kaios_enterprise_repo'||String(repositoryId)!=='1281328888')
+    fail('DISPATCH_TRIGGER_BINDING_INVALID');
+  if(!['schedule','workflow_dispatch','workflow_run'].includes(eventName))fail('DISPATCH_TRIGGER_EVENT_INVALID');
+  let prNumber=null;
+  if(eventName==='workflow_run'){
+    const run=event.workflow_run;
+    if(!run||run.conclusion!=='success'||run.event!=='pull_request_target'
+      ||run.path!=='.github/workflows/kidults-scope-aware-authoritative-status-v1.yml')
+      fail('DISPATCH_TRIGGER_UPSTREAM_INVALID');
+    const head=run.head_repository;
+    const prs=run.pull_requests;
+    if(prs!==undefined&&!Array.isArray(prs))fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
+    if(head&&(String(head.id)!==String(repositoryId)||head.full_name!==repository))fail('DISPATCH_TRIGGER_REPOSITORY_INVALID');
+    if(!head&&!(prs?.length))fail('DISPATCH_TRIGGER_REPOSITORY_MISSING');
+    for(const pr of prs||[]){
+      if(String(pr.head?.repo?.id)!==String(repositoryId)||!Number.isSafeInteger(pr.number)||pr.number<1)
+        fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
+    }
+    if(prs?.length===1)prNumber=prs[0].number;
+  }
+  return {state:'DISPATCH_TRIGGER_IDENTITY_VERIFIED_NOT_AUTHORIZATION',event:eventName,
+    repository,source_sha:sourceSha,pull_request:prNumber,authority_created:false};
+}
+
 export function withCapabilityRepairAnalysis(record,context,policy) {
+  if(context?.residualComparison)record={...record,stale_current_main_comparison:context.residualComparison};
   if(!context||! /^(CAPABILITY_|INDEPENDENT_)/.test(String(record.reason||'')))return record;
   const {pr,treeSha,files}=context;
   try {
@@ -109,6 +136,9 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
         receipt:{...receiptBase,state:'HOLD_SOURCE_DRIFT',binding,attempts:[...attempts,{attempt,result:'SOURCE_DRIFT'}],
           authority_created:false,repository_mutation_performed:false}};
     }
+    // The immutable tuple and paths were reconciled above. Preserve its
+    // read-only comparison when uncertainty recovery returns a disposition.
+    if(context.residualComparison)fresh={...fresh,residualComparison:context.residualComparison};
     try {
       const candidate=fresh.classificationMode==='STALE_BASE'?classifyStaleBaseCandidate(fresh):classifyCandidate(fresh);
       attempts.push({attempt,result:'CLASSIFIED_BY_EXISTING_FULL_VALIDATION'});
@@ -127,7 +157,7 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
-  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
   const scopeDigest=sha256(changedPaths.join('\n'));
   return {
@@ -136,7 +166,7 @@ export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
       changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
       stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
-      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
+      base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',
   };
@@ -310,14 +340,21 @@ export function classifyEmptyTreeRedundant({pr,mainSha,headCommit,mainCommit,fil
     changed_paths:[],head_tree_sha:headCommit.tree.sha,current_main_tree_sha:mainCommit.tree.sha,
     proof:'EXACT_COMPLETE_TREE_EQUALS_CURRENT_MAIN'}};
 }
-async function staleFilesRedundantAgainstMain({repository,mainSha,headSha,files,token}){
-  if(!files.length||files.some(file=>['removed','renamed'].includes(file.status))) return false;
+export async function compareStaleCandidateAgainstMain({repository,baseSha,mainSha,headSha,files,token}){
+  if(!SHA.test(String(baseSha))||!SHA.test(String(mainSha))||!SHA.test(String(headSha))
+    ||baseSha===mainSha||!Array.isArray(files)||!files.length||files.length>128)
+    fail('DISPATCH_STALE_COMPARISON_BINDING_INVALID');
   const comparisons=[];for(const file of files){
+    if(['removed','renamed'].includes(file.status)){
+      comparisons.push({path:file.filename,state:'STRUCTURAL_CHANGE_REQUIRES_REVIEW'});continue;
+    }
     const [head,main]=await Promise.all([contentBlobShaOrNull(repository,file.filename,headSha,token),contentBlobShaOrNull(repository,file.filename,mainSha,token)]);
-    comparisons.push(head!==null&&head===main);
-    if(!comparisons.at(-1))return false;
+    comparisons.push({path:file.filename,head_blob:head,current_main_blob:main,
+      state:head!==null&&head===main?'ALREADY_PRESENT_EXACT_BLOB':'RESIDUAL_CHANGE_REQUIRES_VALIDATION'});
   }
-  return comparisons.every(Boolean);
+  return {state:'READ_ONLY_STALE_RESIDUAL_COMPARISON',base_sha:baseSha,current_main_sha:mainSha,head_sha:headSha,
+    members:comparisons,all_changed_files_equal_current_main:comparisons.every(x=>x.state==='ALREADY_PRESENT_EXACT_BLOB'),
+    authority_created:false,autonomous_eligible:false,merge_authorized:false};
 }
 async function attachImmutableContents({repository,baseSha,headSha,files,token}){
   const attached=[];for(const file of files){
@@ -406,14 +443,15 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
       const commit=await immutableCommit(repository,pr.head.sha,token);
-      if(await staleFilesRedundantAgainstMain({repository,mainSha,headSha:pr.head.sha,files:fileRecords,token})) {
-        results.push({state:'STALE_REDUNDANT',pull_request:pr.number,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
+      const residualComparison=await compareStaleCandidateAgainstMain({repository,baseSha:pr.base.sha,mainSha,headSha:pr.head.sha,files:fileRecords,token});
+      if(residualComparison.all_changed_files_equal_current_main) {
+        results.push({state:'STALE_REDUNDANT',pull_request:pr.number,stale_current_main_comparison:residualComparison,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
       }
       const files=await attachImmutableContents({repository,baseSha:pr.base.sha,headSha:pr.head.sha,files:fileRecords,token});
-      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
+      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,residualComparison,classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
       const binding=classifyStaleBaseCandidate({pr,mainSha,files,policy});
-      results.push({state:'STALE_RECOVERABLE',pull_request:pr.number,binding});
+      results.push({state:'STALE_RECOVERABLE',pull_request:pr.number,binding,stale_current_main_comparison:residualComparison});
       continue;
     }
     const requiredChecks=pr.draft===true
@@ -446,13 +484,13 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
         production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
       if(!isOwnerReviewRequired(recovered.error)) {
-        const repair=recovered.context?.pr.base.sha===mainSha?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;
+        const repair=recovered.context?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;
         results.push(withCapabilityRepairAnalysis(repair?{...repair,reclassification:recovered.receipt}:{state:'SKIPPED',pull_request:pr.number,
           reason:recovered.error.code,reclassification:recovered.receipt},recovered.context,policy));continue;}
       error=recovered.error;candidateContext=recovered.context;
     }
-    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
-    else results.push(withCapabilityRepairAnalysis(candidateContext?.pr.base.sha===mainSha
+    if(candidateContext&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
+    else results.push(withCapabilityRepairAnalysis(candidateContext
       ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
       :{state:'SKIPPED',pull_request:pr.number,reason:error.code},candidateContext,policy));}}
   if(sourceEvidence)sourceReceiptsByResults.set(results,{...sourceEvidence,shared_read_diagnostics:token.readDiagnostics()});

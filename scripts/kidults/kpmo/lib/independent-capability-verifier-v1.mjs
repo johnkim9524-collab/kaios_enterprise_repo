@@ -28,7 +28,7 @@ const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pu
 const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').trim()).filter(Boolean);
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
-const normalizedScript=value=>String(value).replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'').replace(/\s+/g,' ').trim();
+const normalizedScript=value=>independentScriptLayout(String(value),'comparison').parts.join(' ');
 const derivedApprovalMetadataPaths=new Set([
   'coordination/kidults/governance/approval-policy-file-manifest-v1.json',
   'coordination/kidults/governance/approval-policy-inventory-v1.json',
@@ -172,51 +172,97 @@ const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
 // Independent structural recomputation. Unlike the primary token graph, this
 // walks balanced source spans and reconstructs predicate bindings directly
 // from immutable source text. Unsupported or ambiguous balance fails closed.
-const balancedEnd=(source,start,open,close,filename)=>{
-  let depth=0,quote='',escaped=false,lineComment=false,blockComment=false;
+// Independent lexical spans: opaque literal bytes stay in the comparison,
+// while only executable text participates in structural searches. Template
+// expressions are executable; their surrounding template text is opaque.
+const independentScriptLayout=(source,filename)=>{
+  const visible=source.split(''),parts=[];let index=0;
+  const fail=()=>deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:offset-${index}`);
+  const emit=(start,end,opaque=false,comment=false)=>{
+    if(!comment)parts.push(source.slice(start,end));
+    if(opaque||comment)for(let at=start;at<end;at+=1)if(source[at]!=='\n'&&source[at]!=='\r')visible[at]=' ';
+  };
+  const quoted=quote=>{const start=index++;let closed=false;
+    while(index<source.length){const char=source[index++];if(char==='\\'){if(index>=source.length)fail();index+=1;continue;}if(char===quote){closed=true;break;}if(char==='\n'||char==='\r')fail();}
+    if(!closed)fail();emit(start,index,true);
+  };
+  const regexp=()=>{const start=index++;let inClass=false,closed=false;
+    while(index<source.length){const char=source[index++];if(char==='\n'||char==='\r')fail();if(char==='\\'){if(index>=source.length||/[\r\n]/.test(source[index]))fail();index+=1;continue;}if(char==='['&&!inClass)inClass=true;else if(char===']'&&inClass)inClass=false;else if(char==='/'&&!inClass){closed=true;break;}}
+    if(!closed||inClass)fail();const flagStart=index;while(/[\w$]/.test(source[index]||''))index+=1;
+    // Unicode-set (v) nested classes require a different lexical grammar.
+    // Unsupported syntax stays closed rather than guessing its delimiter.
+    const flags=source.slice(flagStart,index);if(!/^[dgimsuy]*$/.test(flags)||new Set(flags).size!==flags.length)fail();
+    try{new RegExp(source.slice(start+1,flagStart-1),flags);}catch{fail();}emit(start,index,true);
+  };
+  const template=()=>{let start=index++;
+    while(index<source.length){const char=source[index];if(char==='\\'){index+=2;if(index>source.length)fail();continue;}
+      if(char==='`'){index+=1;emit(start,index,true);return;}
+      if(char==='$'&&source[index+1]==='{'){emit(start,index+2,true);index+=2;scan(true);start=index;continue;}
+      index+=1;
+    }fail();
+  };
+  const scan=interpolation=>{let expression=true,previous='',stack=[];
+    while(index<source.length){const start=index,char=source[index],next=source[index+1];
+      if(/\s/.test(char)){index+=1;continue;}
+      if(index===0&&char==='#'&&next==='!'){index=source.indexOf('\n',2);if(index<0)index=source.length;emit(start,index,false,true);continue;}
+      if(char==='/'&&next==='/'){index=source.indexOf('\n',index+2);if(index<0)index=source.length;emit(start,index,false,true);continue;}
+      if(char==='/'&&next==='*'){const end=source.indexOf('*/',index+2);if(end<0)fail();index=end+2;emit(start,index,false,true);continue;}
+      if(char==='"'||char==="'"){quoted(char);expression=false;previous='literal';continue;}
+      if(char==='`'){template();expression=false;previous='literal';continue;}
+      if(char==='/'&&expression){regexp();expression=false;previous='literal';continue;}
+      if(char==='/'&&!expression){index+=next==='='?2:1;emit(start,index);expression=true;previous='/';continue;}
+      const word=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
+      if(word){index+=word.length;emit(start,index);const property=previous==='.'||previous==='?.';expression=!property&&/^(return|throw|case|delete|void|typeof|new|in|instanceof|yield|await|else|do)$/.test(word);previous=property?'property':word;continue;}
+      const number=source.slice(index).match(/^(?:0[xob][0-9a-f_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?n?)/i)?.[0];
+      if(number){index+=number.length;emit(start,index);expression=false;previous='literal';continue;}
+      if(char==='}'&&interpolation&&stack.length===0){index+=1;emit(start,index,true);return;}
+      if('([{'.includes(char)){const control=char==='('&&/^(if|while|for|with|switch|catch)$/.test(previous);const block=char==='{'&&(!expression||/^(else|try|finally|do|=>|;|\)|\}|)$/.test(previous)||(previous==='{'&&stack.at(-1)?.block));stack.push({char,control,block});index+=1;emit(start,index);expression=true;previous=char;continue;}
+      if(')]}'.includes(char)){const frame=stack.pop();if(!frame||'([{'.indexOf(frame.char)!==')]}'.indexOf(char))fail();index+=1;emit(start,index);expression=frame.control||frame.block;previous=char;continue;}
+      const op=['===','!==','>>>','**=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','%=','**','<<','>>','&&=','||=','??='].find(value=>source.startsWith(value,index));
+      index+=op?.length||1;emit(start,index);if(op!=='++'&&op!=='--')expression=char!=='.';previous=op||char;
+    }
+    if(interpolation||stack.length)fail();
+  };
+  scan(false);return {visible:visible.join(''),parts};
+};
+const balancedEnd=(source,start,open,close,filename,visible=independentScriptLayout(source,filename).visible)=>{
+  let depth=0;
   for(let index=start;index<source.length;index+=1){
-    const char=source[index],next=source[index+1];
-    if(lineComment){if(char==='\n')lineComment=false;continue}
-    if(blockComment){if(char==='*'&&next==='/'){blockComment=false;index+=1}continue}
-    if(quote){if(escaped){escaped=false;continue}if(char==='\\'){escaped=true;continue}if(char===quote)quote='';continue}
-    if(char==='/'&&next==='/'){lineComment=true;index+=1;continue}
-    if(char==='/'&&next==='*'){blockComment=true;index+=1;continue}
-    if(char==='"'||char==="'"||char==='`'){quote=char;continue}
+    const char=visible[index];
     if(char===open)depth+=1;else if(char===close&&--depth===0)return index;
   }
   deny('INDEPENDENT_SCRIPT_PARSE_FAILED',filename);
 };
-const statementEnd=(source,start,filename)=>{
-  let round=0,square=0,curly=0,quote='',escaped=false;
+const statementEnd=(source,start,filename,visible=independentScriptLayout(source,filename).visible)=>{
+  let round=0,square=0,curly=0;
   for(let index=start;index<source.length;index+=1){
-    const char=source[index];
-    if(quote){if(escaped){escaped=false;continue}if(char==='\\'){escaped=true;continue}if(char===quote)quote='';continue}
-    if(char==='"'||char==="'"||char==='`'){quote=char;continue}
+    const char=visible[index];
+    if((char===')'&&round===0)||(char===']'&&square===0)||(char==='}'&&curly===0))return index-1;
     if(char==='(')round+=1;else if(char===')')round-=1;else if(char==='[')square+=1;else if(char===']')square-=1;else if(char==='{')curly+=1;else if(char==='}')curly-=1;
     if(char===';'&&round===0&&square===0&&curly===0)return index;
   }
   return source.length-1;
 };
-const namesIn=value=>[...new Set((String(value).match(/\b[A-Za-z_$][\w$]*\b/g)||[]).filter(name=>!ignoredIdentifiers.has(name)))];
+const namesIn=value=>[...new Set((independentScriptLayout(String(value),'dependency').visible.match(/\b[A-Za-z_$][\w$]*\b/g)||[]).filter(name=>!ignoredIdentifiers.has(name)))];
 const escapedName=name=>name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const sourceDefinitions=(source,name,filename)=>{
+const sourceDefinitions=(source,name,filename,visible=independentScriptLayout(source,filename).visible)=>{
   const escaped=escapedName(name);const found=[];
-  for(const pattern of [new RegExp(`\\b(?:const|let|var)\\s+${escaped}\\s*=`, 'g'),new RegExp(`(?<![.\\w$])${escaped}\\s*=`, 'g')]){
-    let match;while((match=pattern.exec(source))){const end=statementEnd(source,match.index,filename);found.push(source.slice(match.index,end+1));pattern.lastIndex=Math.max(pattern.lastIndex,end+1)}
+  for(const pattern of [new RegExp(`\\b(?:const|let|var)\\s+${escaped}\\s*=(?!=|>)`, 'g'),new RegExp(`(?<![.\\w$])${escaped}\\s*=(?!=|>)`, 'g')]){
+    let match;while((match=pattern.exec(visible))){const end=statementEnd(source,match.index,filename,visible);found.push(source.slice(match.index,end+1));pattern.lastIndex=Math.max(pattern.lastIndex,end+1)}
   }
   const functionPattern=new RegExp(`\\bfunction\\s+${escaped}\\s*\\(`,'g');let functionMatch;
-  while((functionMatch=functionPattern.exec(source))){const brace=source.indexOf('{',functionMatch.index);if(brace<0)deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:${name}`);const end=balancedEnd(source,brace,'{','}',filename);found.push(source.slice(functionMatch.index,end+1));functionPattern.lastIndex=end+1}
+  while((functionMatch=functionPattern.exec(visible))){const brace=visible.indexOf('{',functionMatch.index);if(brace<0)deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:${name}`);const end=balancedEnd(source,brace,'{','}',filename,visible);found.push(source.slice(functionMatch.index,end+1));functionPattern.lastIndex=end+1}
   return [...new Set(found.map(normalizedScript))].sort();
 };
 const independentGuardGraph=(source,filename)=>{
-  const guards=[];const ifPattern=/\bif\s*\(/g;let match;
-  while((match=ifPattern.exec(source))){
-    const open=source.indexOf('(',match.index);const conditionEnd=balancedEnd(source,open,'(',')',filename);const condition=source.slice(open+1,conditionEnd);
+  const guards=[];const ifPattern=/(?<![.\w$])if\s*\(/g;let match;const visible=independentScriptLayout(source,filename).visible;
+  while((match=ifPattern.exec(visible))){
+    const open=visible.indexOf('(',match.index);const conditionEnd=balancedEnd(source,open,'(',')',filename,visible);const condition=source.slice(open+1,conditionEnd);
     let actionStart=conditionEnd+1;while(/\s/.test(source[actionStart]||''))actionStart+=1;
-    const actionEnd=source[actionStart]==='{'?balancedEnd(source,actionStart,'{','}',filename):statementEnd(source,actionStart,filename);
-    const action=source.slice(actionStart,actionEnd+1);if(!stopAction.test(normalizedScript(action))){ifPattern.lastIndex=conditionEnd+1;continue}
+    const actionEnd=source[actionStart]==='{'?balancedEnd(source,actionStart,'{','}',filename,visible):statementEnd(source,actionStart,filename,visible);
+    const action=source.slice(actionStart,actionEnd+1);if(!stopAction.test(independentScriptLayout(action,filename).visible)){ifPattern.lastIndex=conditionEnd+1;continue}
     const visited=new Set(),dependency=[];
-    const visit=name=>{if(visited.has(name))return;visited.add(name);const definitions=sourceDefinitions(source,name,filename);dependency.push([name,definitions]);for(const definition of definitions)for(const nested of namesIn(definition))if(nested!==name)visit(nested)};
+    const visit=name=>{if(visited.has(name))return;visited.add(name);const definitions=sourceDefinitions(source,name,filename,visible);dependency.push([name,definitions]);for(const definition of definitions)for(const nested of namesIn(definition))if(nested!==name)visit(nested)};
     namesIn(condition).forEach(visit);
     guards.push({condition:normalizedScript(condition),action:normalizedScript(action),dependency:dependency.sort(([a],[b])=>a.localeCompare(b))});ifPattern.lastIndex=conditionEnd+1;
   }

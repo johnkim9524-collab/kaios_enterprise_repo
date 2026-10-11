@@ -31,30 +31,89 @@ const failClosedGuard=/\b(fail|throw|assert|deny|forbid|hold|required|quarantine
 const jsIdentifier=/^[A-Za-z_$][\w$]*$/;
 const jsKeywords=new Set(['if','else','return','throw','new','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this','class','extends','switch','case','break','continue','try','catch','finally']);
 const hardStopTokens=new Set(['throw','fail','deny','assert','forbid','quarantine']);
+const regexExpressionPrefixes=new Set(['(','[','{','=',',',';',':','?','!','~','&&','||','??','=>','==','===','!=','!==','+','-','*','%','&','|','^','<','>','<=','>=','return','throw','case','typeof','void','delete','yield','await']);
+const regexLiteralEnd=(source,start,filename)=>{
+  let escaped=false,inClass=false;
+  for(let index=start+1;index<source.length;index+=1){
+    const char=source[index];
+    if(char==='\n'||char==='\r')fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:regex`);
+    if(escaped){escaped=false;continue;}
+    if(char==='\\'){escaped=true;continue;}
+    if(char==='[')inClass=true;
+    else if(char===']')inClass=false;
+    else if(char==='/'&&!inClass){
+      let end=index+1;while(/[\w$]/.test(source[end]||''))end+=1;
+      const flags=source.slice(index+1,end);
+      // Nested Unicode-set classes are outside this structural lexer.
+      if(/[^dgimsuy]/.test(flags)||new Set(flags).size!==flags.length)
+        fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:regex-flags`);
+      try{new RegExp(source.slice(start+1,index),flags);}catch{fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:regex`);}
+      return end;
+    }
+  }
+  fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:regex`);
+};
 
 // This is intentionally a small, fail-closed structural parser rather than a
 // line classifier. It builds the guard predicate -> binding definition graph
 // needed for immutable base/head comparison without executing target code.
 const tokenizeScript=(source,filename)=>{
-  const tokens=[];
-  for(let index=0;index<source.length;){
+  const tokens=[];let index=0;
+  const parseFailure=detail=>fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${detail}`);
+  const template=()=>{
+    let start=index++;
+    while(index<source.length){
+      if(source[index]==='\\'){index+=2;if(index>source.length)parseFailure('template');continue;}
+      if(source[index]==='`'){index+=1;tokens.push(JSON.stringify(source.slice(start,index)));return;}
+      if(source[index]==='$'&&source[index+1]==='{'){
+        tokens.push(JSON.stringify(source.slice(start,index+2)));index+=2;
+        code(true);tokens.push(JSON.stringify('}'));start=index;continue;
+      }
+      index+=1;
+    }
+    parseFailure('template');
+  };
+  const code=interpolation=>{
+  const groups=[];let operandExpected=true;
+  while(index<source.length){
     const char=source[index];
     if(/\s/.test(char)){index+=1;continue}
+    if(index===0&&source.startsWith('#!')){index=source.indexOf('\n');if(index<0)index=source.length;continue;}
     if(char==='/'&&source[index+1]==='/'){index=source.indexOf('\n',index+2);if(index<0)break;continue}
     if(char==='/'&&source[index+1]==='*'){const end=source.indexOf('*/',index+2);if(end<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:comment`);index=end+2;continue}
-    if(char==='"'||char==="'"||char==='`'){
+    if(char==='/'&&operandExpected){
+      const end=regexLiteralEnd(source,index,filename);
+      tokens.push(source.slice(index,end));index=end;operandExpected=false;continue;
+    }
+    if(char==='`'){template();operandExpected=false;continue;}
+    if(char==='"'||char==="'"){
       const quote=char;let end=index+1;let escaped=false;
-      for(;end<source.length;end+=1){const next=source[end];if(escaped){escaped=false;continue}if(next==='\\'){escaped=true;continue}if(next===quote){end+=1;break}}
+      for(;end<source.length;end+=1){const next=source[end];if(escaped){escaped=false;continue}if(next==='\\'){escaped=true;continue}if(next===quote){end+=1;break}if(next==='\n'||next==='\r')parseFailure('string');}
       if(end>source.length||source[end-1]!==quote)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:string`);
-      tokens.push(source.slice(index,end));index=end;continue;
+      tokens.push(source.slice(index,end));index=end;operandExpected=false;continue;
     }
     const identifier=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
-    if(identifier){tokens.push(identifier);index+=identifier.length;continue}
-    const number=source.slice(index).match(/^(?:0[xob][0-9a-f]+|\d+(?:\.\d+)?)/i)?.[0];
-    if(number){tokens.push(number);index+=number.length;continue}
-    const operator=['===','!==','>>>','**=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','/=','%=','**'].find(value=>source.startsWith(value,index));
-    tokens.push(operator||char);index+=(operator||char).length;
+    if(identifier){const property=['.','?.'].includes(tokens.at(-1));tokens.push(identifier);index+=identifier.length;operandExpected=!property&&regexExpressionPrefixes.has(identifier);continue}
+    const number=source.slice(index).match(/^(?:0[xob][0-9a-f_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?n?)/i)?.[0];
+    if(number){tokens.push(number);index+=number.length;operandExpected=false;continue}
+    if(char==='}'&&interpolation&&groups.length===0){index+=1;return;}
+    if('([{'.includes(char)){
+      const previous=tokens.at(-1);const property=['.','?.'].includes(tokens.at(-2));
+      const control=char==='('&&!property&&['if','while','for','with','switch','catch'].includes(previous);
+      const block=char==='{'&&(!operandExpected||[')', '}', '=>','else','try','finally','do',';'].includes(previous)||previous===undefined||(previous==='{'&&groups.at(-1)?.block));
+      groups.push({opening:char,control,block});tokens.push(char);index+=1;operandExpected=true;continue;
+    }
+    if(')]}'.includes(char)){
+      const group=groups.pop();if(!group||'([{'.indexOf(group.opening)!==')]}'.indexOf(char))parseFailure('delimiter');
+      tokens.push(char);index+=1;operandExpected=group.control||group.block;continue;
+    }
+    const operator=['===','!==','>>>','**=','&&=','||=','??=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','/=','%=','**','<<','>>'].find(value=>source.startsWith(value,index));
+    const token=operator||char;tokens.push(token);index+=token.length;
+    if(!['++','--'].includes(token))operandExpected=token!=='.'&&token!=='?.';
   }
+  if(interpolation||groups.length)parseFailure('delimiter');
+  };
+  code(false);
   return tokens;
 };
 
@@ -89,7 +148,7 @@ const scriptBindingGraph=(source,filename)=>{
   }
   const guards=[];
   for(let index=0;index<tokens.length;index+=1){
-    if(tokens[index]!=='if'||tokens[index+1]!=='(')continue;
+    if(tokens[index]!=='if'||tokens[index+1]!=='('||['.','?.'].includes(tokens[index-1]))continue;
     const conditionEnd=matchingToken(tokens,index+1,'(',')',filename);const condition=tokens.slice(index+2,conditionEnd);
     const statementStart=conditionEnd+1;let statementEnd=statementStart;
     if(tokens[statementStart]==='{')statementEnd=matchingToken(tokens,statementStart,'{','}',filename);
