@@ -1,0 +1,8 @@
+{
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "base": "main",
+  "head": "codex/deploy-capsule-transition-20261011",
+  "draft": true,
+  "title": "fix: validate exact deployed recovery capsule upgrade",
+  "body": "Automatic STAGING deployment 38149715554 failed with WRITER_CODE_EXPECTED_CLIENT_ERROR_IMPORT before creating or executing a change set. Recognize only the exact archived writer capsule 5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690 to desired capsule d160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d transition. Preserve entire Lambda resource equality outside Code.ZipFile and full template/change-set bounds. Incompatible legacy uncompressed structure is a nonmatch, not a premature assertion.\n\nValidation: 53 regression and negative tests passed; archived main44424 template reproducer now VERIFIED_PASS / CHANGE_REQUIRED. Source, target, environment, memory, IAM drift and replacement are rejected. Independent red-team review found no additional concrete blocker.\n\nRuntime deployment, original reservation terminal and two natural exact-main authority generations remain unverified. No reconsume, manual generation or promotion is authorized. Production/Public/G5/provider HOLD.\n\nautonomous_effect: restore bounded automatic STAGING writer upgrade.\nglobal_effect: preserve existing producer scope.\nirreplaceable_value_effect: retain exact-source recovery lineage.\ntransparency_effect: distinguish archived template evidence from live writer verification."
+}
