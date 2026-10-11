@@ -74,3 +74,11 @@ test('primary recognizes newline declaration boundary after a complete operand',
     new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   }
 });
+
+test('primary recognizes declarations directly after switch clause labels',()=>{
+  for(const [declaration,fallback] of [['class C {}','class D {}'],['function f(){}','function g(){}']]){
+    const source=`switch(kind){case condition ? 1 : 2: ${declaration} /if\\(fake\\{throw/.test(value);break;default:${fallback} /if\\(fake\\{throw/.test(value);}if(!flag)throw new Error('HOLD');`;
+    new Function('kind','condition','value','flag',source);
+    assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});

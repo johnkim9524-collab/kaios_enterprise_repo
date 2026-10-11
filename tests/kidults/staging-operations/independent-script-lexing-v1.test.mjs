@@ -83,3 +83,8 @@ test('regex following declaration remains significant in protected predicate',()
 for(const source of [String.raw`const x=1
 function f(){} /if\(fake\{throw/.test(value);`,String.raw`const x=1
 class C{} /if\(fake\{throw/.test(value);`])test('ASI declaration boundary preserves opaque regex: '+source,()=>pass(source));
+
+for(const source of [
+  String.raw`switch(kind){case condition ? 1 : 2: class C{} /if\(fake\{throw/.test(value);break;default:class D{} /if\(fake\{throw/.test(value);}`,
+  String.raw`switch(kind){case 1:function f(){} /if\(fake\{throw/.test(value);break;default:function g(){} /if\(fake\{throw/.test(value);}`,
+])test('switch clause declaration boundary preserves opaque regex: '+source,()=>pass(source));
