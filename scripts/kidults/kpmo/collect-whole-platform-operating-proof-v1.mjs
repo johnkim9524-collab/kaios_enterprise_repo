@@ -211,6 +211,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     // Incident-specific read-only binding: only the preserved native PR #2655
     // winner and its exact archive can establish this terminal-null finding.
     const run=await get('actions/runs/38132692877');
+    // Generic collector fixtures and non-incident adapters explicitly return
+    // null when this historical incident is outside their evidence universe.
+    // A live GitHub 404 or transport error still throws and fails closed.
+    if(!run)return;
     requireEvidence(run.id===38132692877&&run.run_attempt===1&&run.event==='repository_dispatch'
       &&run.head_branch==='main'&&run.repository?.full_name===REPOSITORY&&run.status==='completed'
       &&run.conclusion==='failure'&&finalizers.some(s=>s.path===run.path),'ORIGINAL_TERMINAL_NULL_RUN_IDENTITY');

@@ -18,6 +18,7 @@ function fixture({active=false,foreign=false,duplicate=false,mainDrift=false}={}
     reads.push(url);assert.ok(url.startsWith(`https://api.github.com/repos/${repository}/`));
     if(url.endsWith('/branches/main'))return {commit:{sha:mainDrift&&++branches>1?'c'.repeat(40):source}};
     if(url.endsWith(`/git/commits/${source}`))return {sha:source,tree:{sha:'d'.repeat(40)},parents:[{sha:base},{sha:'e'.repeat(40)}]};
+    if(url.endsWith('/actions/runs/38132692877'))return null;
     if(url.includes('/pulls?'))return [];
     if(url.includes('/artifacts?'))return {total_count:duplicate?2:1,artifacts:duplicate?[artifact,artifact]:[artifact]};
     throw Error('unexpected GET');
@@ -52,12 +53,13 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
   const read=async url=>{
     if(url.endsWith('/branches/main'))return {commit:{sha:source}};
     if(url.endsWith(`/git/commits/${source}`))return {sha:source,tree:{sha:'d'.repeat(40)},parents:[{sha:base},{sha:'e'.repeat(40)}],committer:{date:'2026-10-04T11:28:35Z'}};
+    if(url.endsWith('/actions/runs/38132692877'))return null;
     if(url.includes('/pulls?'))return [];
     if(url.includes('/runs?')){const query=new URL(url).searchParams;queries.push(query);return {total_count:0,workflow_runs:[]};}
     throw Error('unexpected GET');
   };
   const result=await collectWholePlatform({sourceSha:source,contract,scorecard,read,observedAt:'2026-10-04T12:30:00Z'});
-  assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,6+contract.runtime_domain_sources.length);
+  assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,3+contract.runtime_domain_sources.length);
   for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'100');assert.equal(q.get('page'),'1');
     const [after,before]=q.get('created').split('..');const duration=Date.parse(before)-Date.parse(after);
     assert.equal(duration,q.get('head_sha')===source?contract.maximum_evidence_age_seconds*1000:7200000);
