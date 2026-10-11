@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {classifyAssuranceCompletion} from '../../../scripts/kidults/kpmo/lib/assurance-completion-disposition-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40);
 const fixture=(conclusion='success')=>({expected:{repository:repo,sha,run_id:123,run_attempt:2},
@@ -13,3 +14,12 @@ test('failed/cancelled audit is rejected even if workflow is green',()=>{for(con
 test('skipped audit cannot disguise failed/missing classifier',()=>{for(const c of ['failure','skipped']){const f=fixture('skipped');f.jobs[1].conclusion=c;assert.throws(()=>classifyAssuranceCompletion(f),/CLASSIFICATION_NOT_VERIFIED/);}const f=fixture('skipped');f.jobs.pop();assert.throws(()=>classifyAssuranceCompletion(f),/CLASSIFICATION_NOT_VERIFIED/);});
 test('fork/wrong workflow/stale SHA/attempt cannot qualify',()=>{for(const mutation of [f=>f.run.repository.full_name='fork/repo',f=>f.run.head_repository.full_name='fork/repo',f=>f.run.path='untrusted.yml',f=>f.run.head_sha='b'.repeat(40),f=>f.run.run_attempt=1,f=>f.run.status='in_progress']){const f=fixture();mutation(f);assert.throws(()=>classifyAssuranceCompletion(f),/RUN_BINDING/);}});
 test('job replay, duplicates and missing/multiple audit fail closed',()=>{for(const mutate of [f=>f.jobs[0].run_attempt=1,f=>f.jobs[0].head_sha='b'.repeat(40),f=>f.jobs.push({...f.jobs[0]}),f=>f.jobs.shift(),f=>f.jobs.push({...f.jobs[0],id:3})]){const f=fixture();mutate(f);assert.throws(()=>classifyAssuranceCompletion(f));}});
+test('success authority gate admits only causal or authenticated external-clock Assurance events',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','utf8');
+  for(const [start,end] of [['  classify-assurance-completion:','  success-authority-gate:'],['  success-authority-gate:','  scheduled-authority-gate:']]){
+    const job=workflow.slice(workflow.indexOf(start),workflow.indexOf(end));
+    assert.match(job,/github\.event\.workflow_run\.event == 'workflow_run'/);
+    assert.match(job,/github\.event\.workflow_run\.event == 'repository_dispatch'/);
+    assert.doesNotMatch(job,/github\.event\.workflow_run\.event == 'push'/);
+  }
+});
