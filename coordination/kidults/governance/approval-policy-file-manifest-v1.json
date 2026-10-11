@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "200d2d4e011f990dd066f602c0b61c898d710a64",
+  "revision": "4413eeee2a2c69c6e4752d9b2f598145c4c0e2dd",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 810
+    "file_count": 809
   },
   "files": [
     {
@@ -132,8 +132,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a3009bce0f00aefe1f7cbd2f5470f97a4873c913",
-      "sha256": "sha256:11e0e04ab11011409b723bcb704d5a4153e87e1551ccd672eb7699b88989d052",
+      "git_blob": "18217b57727fd7b2869c4f106c64c2e83ad052ac",
+      "sha256": "sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "47528bce95ff41063662d21963617219783b671c",
-      "sha256": "sha256:a260917bc2a0b9cefeaa31645f4dd150b2c4812817a615e9996751307065efb4",
+      "git_blob": "84b87f3093f63f1d3bec517f7a823045c34ad79a",
+      "sha256": "sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -171,8 +171,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f752fd62180a2ac0907f7ad42d5fc49b37328b25",
-      "sha256": "sha256:2760e8082c795a18513a0c147d9d4c87902b1e4977b4706659cc90f6f080d0cf",
+      "git_blob": "c04390b8ebbc24e71aaa7e9a4c2964d9feb566bd",
+      "sha256": "sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -680,19 +680,6 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "ef00b033868ccbdac9714295334f54b8b5d2a7e9",
       "sha256": "sha256:62a3532dedd3f2554bd27244c7dd5477a6fd31ea08e8fa55950ae0507a9bf7a3",
-      "authorization_routing": {
-        "route": "INTERNAL_REVERSIBLE",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
-        }
-      }
-    },
-    {
-      "path": ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ca9baba3a507b5e2a35129c732b56d88c0a33488",
-      "sha256": "sha256:dbae5781bd91ca3de7d4728bdd7c3ea4357e80146260ba1eb886e065f50503f9",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4844,8 +4831,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bd7aeffc4b653dffb004c9321694dd45d9651d84",
-      "sha256": "sha256:2eb1c2de767963cc32e3ad449ba73ede5120eaced02fb67fca10f96f40f280e9",
+      "git_blob": "6dca81d1b0cd88b3ff1e4bcca3b2d5ea287c65e2",
+      "sha256": "sha256:d004327b6f7e52878a981ddb040f0dabdb191fdb522b0a02f5c2e3260d414f16",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6559,8 +6546,8 @@
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "c648a3db2696578b8429dfab1e22af6cbe8cc0ec",
-      "sha256": "sha256:b5a9a6c27a7045772fc0979768e549e80ed86660be9c31705a9152880621261d"
+      "git_blob": "d951ffdf1f8b8a6b9b516be54896a9f273a3dfe3",
+      "sha256": "sha256:fbdbc642ad603caa6aa5de6ee6266030205afbb50b84c5bfe2ed5370ed12574e"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -6737,5 +6724,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a920a4f23d3ce894edd872e8a6f5d9963e0c6e93525ca3f260fef915b95def34"
+  "manifest_sha256": "sha256:ce2e2860d894cb78415f71f569f1597a16abee27550e904d1e1b9f7581909c6a"
 }
