@@ -1,0 +1,8 @@
+{
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "base": "main",
+  "head": "codex/assurance-gate-natural-trigger-filter-20261011",
+  "draft": true,
+  "title": "fix(kpmo): filter non-natural Assurance authority triggers",
+  "body": "PR #2648 merged exact head e251369eea225038f748370091585205cebfc670 as protected-main commit d5e900c59f323d83958605779aa18bc374fc208a with zero file delta. The post-merge push Assurance run 38097191098 completed a full audit, but Success Authority Gate run 38097252463 then failed ASSURANCE_SENTINEL_OBSERVATION_ROUTE_INVALID because a push event was admitted even though the authority route accepts only causal workflow_run or authenticated external-clock repository_dispatch generations.\n\nFilter both completion classification and the success-authority job to those two supported natural evidence events. A push-triggered validation remains non-authorizing and no longer emits a false failed authority gate. Add a negative regression test that requires both job guards and excludes push.\n\nValidation: assurance-completion-disposition tests 7/7 pass; YAML parsing, authority-gate validator, and autonomous approval-policy envelope validation pass on exact branch head. Derived approval manifest and inventory are regenerated after this immutable proposal intent.\n\nEvidence: https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38097252463 and job https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38097252463/job/114345628314. Rollback reverts this bounded internal workflow filter. Production/Public/G5 and provider activation remain HOLD; this Draft grants no Ready, approval, merge, dispatch, deployment, credential, ruleset, or promotion authority."
+}
