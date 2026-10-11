@@ -1,3 +1,5 @@
+import {verifyFailureTerminalReconciliation} from './lib/failure-terminal-reconciliation-proof-v1.mjs';
+import {observeInterruptedRecoveryNative} from './lib/interrupted-reservation-recovery-v1.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -233,6 +235,61 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       &&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_TERMINAL_NULL_RECEIPT');
     mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_FAIL',
       'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',[run.id,artifact.artifact_id,artifact.artifact_digest]);
+    const recoverySpec=finalizers.find(s=>s.id==='FINALIZER_track');
+    // A recovered debt survives later main commits and observation windows.
+    // Search the native archive history, never mint a replacement generation.
+    let recoveryHistory=[];
+    if(listRuns)recoveryHistory=await listRuns(REPOSITORY,recoverySpec,null,token);
+    else{
+      let count,total;
+      for(let page=1;page<=10;page++){
+        const query=new URLSearchParams({branch:"main",created:`<=${observedAt}`,per_page:"100",page:String(page)});
+        const index=await get(`actions/workflows/${recoverySpec.workflow}/runs?${query}`);
+        requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
+          &&Number.isSafeInteger(index.total_count)&&index.total_count>=0,'RECOVERY_HISTORY_INDEX');
+        if(count===undefined){total=index.total_count;count=Math.min(total,1000);}
+        requireEvidence(index.total_count===total,'RECOVERY_HISTORY_CHANGED');
+        recoveryHistory.push(...index.workflow_runs);
+        requireEvidence(recoveryHistory.length<=count,'RECOVERY_HISTORY_CARDINALITY');
+        if(recoveryHistory.length===count)break;
+        requireEvidence(index.workflow_runs.length===100&&page<10,'RECOVERY_HISTORY_TRUNCATED');
+      }
+    }
+    requireEvidence(new Set(recoveryHistory.map(r=>r.id)).size===recoveryHistory.length,'RECOVERY_HISTORY_DUPLICATE');
+    for(const recovery of recoveryHistory){
+      if(recovery.run_attempt!==1||!recoverySpec.events.includes(recovery.event))continue;
+      requireEvidence(recovery.path===recoverySpec.path&&recovery.head_branch==='main'
+        &&recovery.repository?.full_name===REPOSITORY&&recovery.run_attempt===1
+        &&recoverySpec.events.includes(recovery.event),'RECOVERY_HISTORY_IDENTITY');
+      if(recovery.status!=='completed'||recovery.conclusion!=='success')continue;
+      const recoveryPacket=await packet(recovery,`kidults-postmerge-terminal-recovery-finalizer-${recovery.id}-1`);
+      if(!recoveryPacket)continue;
+      const jobs=await get(`actions/runs/${recovery.id}/attempts/1/jobs?per_page=100`);
+      requireEvidence(Array.isArray(jobs.jobs)&&jobs.total_count===jobs.jobs.length&&jobs.total_count<=100
+        &&new Set(jobs.jobs.map(j=>j.id)).size===jobs.jobs.length,'RECOVERY_NATIVE_JOBS');
+      const actual=jobs.jobs.filter(j=>j.name==='Bounded original reservation terminal recovery FINALIZER');
+      requireEvidence(actual.length===1&&actual[0].run_id===recovery.id
+        &&(actual[0].run_attempt===undefined||actual[0].run_attempt===1)
+        &&actual[0].status==='completed'&&actual[0].conclusion==='success'
+        &&actual[0].steps?.filter(s=>s.name==='Run bounded signed terminal recovery workload'
+          &&s.status==='completed'&&s.conclusion==='success').length===1,'RECOVERY_ACTUAL_FINALIZER');
+      const result=member(recoveryPacket,'interrupted-FINALIZER.json');
+      requireEvidence(result.source_sha===recovery.head_sha&&result.role_run_id===String(recovery.id)
+        &&Array.isArray(result.results),'RECOVERY_RESULT_BINDING');
+      const recovered=result.results.filter(r=>r.state==='RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY'
+        &&r.request?.original_run_id===String(run.id));
+      if(!recovered.length)continue;
+      requireEvidence(recovered.length===1,'RECOVERY_RESULT_CARDINALITY');
+      const verified=verifyFailureTerminalReconciliation(recovered[0],{sourceSha:recovery.head_sha,runId:recovery.id,original,observedAt});
+      await observeInterruptedRecoveryNative({request:recovered[0].request,get,now:Date.parse(observedAt),currentSourceSha:sourceSha});
+      out.original_terminal_reconciliation={...verified,recovery_run_id:recovery.id,
+        supersedes:[run.id,artifact.artifact_id,artifact.artifact_digest],normal_landing_terminal_proven:false};
+      mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_PASS',
+        'ORIGINAL_FAILURE_TERMINAL_RECONCILED_NOT_OPERATING_AUTHORITY',
+        [recovery.id,verified.terminal_digest,verified.immutable.version_id]);
+      break;
+    }
+
   });
   await attempt(['WHOLE_VALUE_CHAIN_RUNTIME'],async()=>{
     const sources=contract.runtime_domain_sources||[],ids=new Set();
@@ -273,13 +330,14 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     domain_ids:verifiedDomains.filter(d=>connected.includes(d.id)).map(d=>d.id).sort(),
     deferred_domain_ids:contract.value_chain_dimensions.filter(id=>!connected.includes(id)).sort()};
   out.autonomous_runtime_readiness_proven=autonomyReady;
-  out.autonomous_operating_proven=autonomyReady&&Array.isArray(autonomyPolicy.required_operating_checks)
+  const normalTerminalProven=out.original_terminal_reconciliation?.normal_landing_terminal_proven!==false;
+  out.autonomous_operating_proven=normalTerminalProven&&autonomyReady&&Array.isArray(autonomyPolicy.required_operating_checks)
     &&JSON.stringify([...autonomyPolicy.required_operating_checks].sort())===JSON.stringify([
       'CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS','PROTECTED_LANDING',
       'AWS_CONFIGURATION_AND_IMMUTABILITY','NATIVE_DISPATCH','NATIVE_RESUME_REUSE','FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'].sort())
     &&autonomyPolicy.required_operating_checks.every(id=>out.operating_checks.some(c=>c.id===id&&c.state==='VERIFIED_PASS'));
   out.runtime_evidence_demand=buildRuntimeEvidenceDemand({definition:demandDefinition,contract,proof:out});
-  out.whole_platform_runtime_proven=out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
+  out.whole_platform_runtime_proven=normalTerminalProven&&out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';
   out.receipt_digest=sha256(canonicalJson(out));return out;
 }

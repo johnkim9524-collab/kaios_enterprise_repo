@@ -51,3 +51,15 @@ for(const [name,mutate] of [
     route.endsWith('/artifacts?per_page=100')?{total_count:2,artifacts:[f.artifact,{...f.artifact,id:903}]}:null;}],
   ['archive bytes mismatch',f=>{f.readBytes=async()=>Buffer.from('tampered');}],
 ])test(`rejects ${name}`,async()=>{const f=fixture();mutate(f);await assert.rejects(bindAssuranceUpstreamSentinelReceipt({run:f.run,sourceSha:sha,get:f.get,readBytes:f.readBytes,archiveReader:f.archiveReader,observedAt:'2026-10-11T11:30:00Z'}));});
+
+test('natural repository_dispatch requires the actual authenticated clock intake job',async()=>{
+  for(const authenticated of [true,false]){
+    const f=fixture();f.run.event='repository_dispatch';const original=f.get;
+    f.get=async route=>route.includes('/jobs?')?{total_count:1,jobs:[{id:910,run_id:901,run_attempt:1,
+      name:'exact-main-health',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',
+        status:'completed',conclusion:authenticated?'success':'skipped'}]}]}:original(route);
+    const action=()=>bindAssuranceUpstreamSentinelReceipt({run:f.run,sourceSha:sha,get:f.get,readBytes:f.readBytes,
+      archiveReader:f.archiveReader,observedAt:'2026-10-11T11:30:00Z'});
+    if(authenticated)assert.equal((await action()).run_id,901);else await assert.rejects(action(),/NATURAL_CLOCK_INTAKE/);
+  }
+});

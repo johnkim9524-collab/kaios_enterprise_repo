@@ -78,15 +78,16 @@ function failureWorkloadSetup(role='KPMO'){
  const s=workloadSetup(role),request=s.input.candidates[0].request,parent={kind:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',source_sha:request.source_sha,
    actual_authority_granted:false,platform_closure:false,promotion_eligible:false};
  s.input.candidates[0].failure_parent=parent;
- const proof=failureProfile(request.source_sha);let failureApprovals=0,failureFinalizations=0,failureAcks=0;
+ const proof=failureProfile(request.source_sha);let failureApprovals=0,failureFinalizations=0,failureAcks=0,storedTerminal=null,storedObject=null;
  s.input.evidence.verifyEvidence=async()=>proof;
  s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:null,evidence_digest:null,approvals:[]});
  s.input.ledger.createFailureApproval=async()=>{failureApprovals++;return {state:'FAILURE_ASSURANCE_APPROVAL_STORED'};};
- s.input.ledger.finalizeFailureTerminal=async({terminal})=>{failureFinalizations++;return {state:'FAILURE_ASSURANCE_TERMINAL_RECORDED',terminal};};
- s.input.ledger.acknowledgeFailureTerminal=async()=>{failureAcks++;return {state:'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED'};};
- if(role==='FINALIZER')s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:proof,
+ s.input.ledger.finalizeFailureTerminal=async({terminal})=>{failureFinalizations++;storedTerminal=terminal;return {state:'FAILURE_ASSURANCE_TERMINAL_RECORDED',terminal};};
+ s.input.ledger.acknowledgeFailureTerminal=async({object})=>{failureAcks++;storedObject=object;return {state:'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED'};};
+ if(role==='FINALIZER')s.input.ledger.readFailureContext=async()=>({state:storedTerminal?'FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED':'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:proof,terminal:storedTerminal,immutable_ack:storedObject,write_performed:false,
    evidence_digest:sha256(canonicalJson(proof)),approvals:['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].map((role,i)=>({role,approval_run_id:String(500+i)}))});
  s.input.immutable.seal=async({terminal,failure_assurance,key})=>{assert.equal(failure_assurance,true);assert.equal(key,failureAssuranceRecoveryObjectKey(request));return {key,sha256:sha256(canonicalJson(terminal)),version_id:'failure-version'};};
+ s.input.immutable.read=async()=>storedObject;
  s.input.verifyDrain=async()=>{};
  return {s,proof,counts:()=>({failureApprovals,failureFinalizations,failureAcks})};
 }
@@ -106,7 +107,8 @@ test('recorded failure terminal resumes only immutable seal and ACK after interr
    source_sha:request.source_sha,merge_sha:request.merge_sha,original_state:'CONSUMED',original_terminal_present:false,
    actual_authority_granted:false,platform_closure:false,...HOLD};
  f.s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED',request,evidence:proof,
-   evidence_digest:sha256(canonicalJson(proof)),terminal,approvals:[],immutable_ack:null});
+   evidence_digest:sha256(canonicalJson(proof)),terminal,approvals:[],immutable_ack:f.counts().failureAcks?f.s.input._object:null,write_performed:false});
+ const ack=f.s.input.ledger.acknowledgeFailureTerminal;f.s.input.ledger.acknowledgeFailureTerminal=async p=>{f.s.input._object=p.object;return ack(p);};
  const result=await f.s.call();assert.equal(result.results[0].state,'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY');
  assert.deepEqual(f.counts(),{failureApprovals:0,failureFinalizations:0,failureAcks:1});assert.equal(f.s.counts().consumes,0);
 });

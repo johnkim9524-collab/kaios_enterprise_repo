@@ -4,7 +4,9 @@ import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 
 // The producer collects after queue/producer waits, not at workflow creation.
 // Use its archive-authenticated, sealed snapshot time within the native run.
-export function assuranceClockObservationBoundary({proof,assuranceRun,sourceSha}){
+export function assuranceClockObservationBoundary({proof,assuranceRun,sourceSha,profile='success'}){
+  if(!['success','failed-terminal-recovery'].includes(profile))throw new Error('ASSURANCE_CLOCK_OBSERVATION_BOUNDARY_INVALID');
+  const expectedConclusion=profile==='success'?'success':'failure';
   const {receipt_digest,...body}=proof||{};
   const value=proof?.observed_at;
   const canonicalTime=typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)
@@ -15,7 +17,7 @@ export function assuranceClockObservationBoundary({proof,assuranceRun,sourceSha}
     ||assuranceRun?.repository?.full_name!==proof.repository||assuranceRun.head_sha!==sourceSha
     ||assuranceRun.path!=='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
     ||assuranceRun.head_branch!=='main'||assuranceRun.event!=='repository_dispatch'
-    ||assuranceRun.run_attempt!==1||assuranceRun.status!=='completed'||assuranceRun.conclusion!=='success'
+    ||assuranceRun.run_attempt!==1||assuranceRun.status!=='completed'||assuranceRun.conclusion!==expectedConclusion
     ||!canonicalTime||![observed,start,end].every(Number.isFinite)||observed<start||observed>end)
     throw new Error('ASSURANCE_CLOCK_OBSERVATION_BOUNDARY_INVALID');
   return proof.observed_at;

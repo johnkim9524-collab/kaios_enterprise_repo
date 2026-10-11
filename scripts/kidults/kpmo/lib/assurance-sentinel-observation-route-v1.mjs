@@ -7,7 +7,9 @@ const workflowPath='.github/workflows/kidults-platform-continuous-assurance-v1.y
 const fail=()=>{throw new Error('ASSURANCE_SENTINEL_OBSERVATION_ROUTE_INVALID');};
 
 // Clock authentication is native classify-job evidence, never a receipt label alone.
-export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,jobs,proof,sentinelRun}){
+export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,jobs,proof,sentinelRun,profile='success'}){
+  if(!['success','failed-terminal-recovery'].includes(profile))fail();
+  const failedProfile=profile==='failed-terminal-recovery';
   if(audit?.source?.sha!==sourceSha)fail();
   if(audit?.execution?.trigger==='workflow_run'){
     if(!audit.execution.upstream)fail();
@@ -26,7 +28,7 @@ export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,
     ||! /^[A-Za-z0-9_-]{32,128}:slot:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(suffix)
     ||assuranceRun?.event!=='repository_dispatch'||assuranceRun.path!==workflowPath
     ||assuranceRun.head_sha!==sourceSha||assuranceRun.head_branch!=='main'
-    ||assuranceRun.repository?.full_name!==repository||assuranceRun.status!=='completed'||assuranceRun.conclusion!=='success'
+    ||assuranceRun.repository?.full_name!==repository||assuranceRun.status!=='completed'||assuranceRun.conclusion!==(failedProfile?'failure':'success')
     ||assuranceRun.run_attempt!==1||String(audit.execution.workflow_run_id)!==String(assuranceRun.id)
     ||String(audit.execution.workflow_run_attempt)!=='1'
     ||!Array.isArray(jobs?.jobs)||jobs.total_count!==jobs.jobs.length
@@ -52,11 +54,12 @@ export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,
   const selected=sentinelRun?bindings.filter(row=>Number(row.run_id)===Number(sentinelRun.id)):bindings;
   if(selected.length!==1)fail();
   const binding=selected[0];
+  if(failedProfile&&!sentinelRun)fail();
   if(sentinelRun){
     if(Number(sentinelRun.id)!==Number(binding.run_id)||sentinelRun.run_attempt!==1
       ||sentinelRun.path!==sentinelPath||sentinelRun.head_sha!==sourceSha||sentinelRun.head_branch!=='main'
       ||sentinelRun.repository?.full_name!==repository
-      ||!['workflow_run','repository_dispatch','schedule','workflow_dispatch'].includes(sentinelRun.event)
+      ||!(failedProfile?['workflow_run','repository_dispatch','schedule']:['workflow_run','repository_dispatch','schedule','workflow_dispatch']).includes(sentinelRun.event)
       ||sentinelRun.status!=='completed'||sentinelRun.conclusion!=='success')fail();
 
   }

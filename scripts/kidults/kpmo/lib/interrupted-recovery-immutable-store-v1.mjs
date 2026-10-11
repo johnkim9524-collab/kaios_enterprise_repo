@@ -81,7 +81,7 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
     });
     return {bucket,key:input.key,version_id:head.VersionId,sha256:p.digest,retention_mode:'COMPLIANCE',retain_until:new Date(until).toISOString(),encryption_key_arn:keyArn};
   };
-  return {read:input=>read(JSON.parse(canonicalJson(input))),seal:async input=>{
+  return {read:input=>read(JSON.parse(canonicalJson(input)),input.version_id),seal:async input=>{
     input=JSON.parse(canonicalJson(input)); // Freeze the tuple across asynchronous S3 calls.
     const p=input.original?prepareOriginal(input):prepare(input);check(input.if_none_match==='*','WRITE_BOUNDARY');
     const existing=await read(input);if(existing)return existing;

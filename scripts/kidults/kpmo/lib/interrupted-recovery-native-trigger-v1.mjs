@@ -1,3 +1,7 @@
+import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
+import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
+import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
+import {bindAssuranceUpstreamSentinelReceipt} from '../bind-assurance-upstream-sentinel-receipt-v1.mjs';
 // Read-only authentication of the existing Gate workflow_run trigger.
 import fs from 'node:fs';
 import {readArchive,checkTransport} from '../validate-sentinel-producer-content-v1.mjs';
@@ -13,7 +17,7 @@ const nativeBytes=route=>execFileSync('gh',['api',`repos/${repository}/${route}`
 export async function verifyFailureAssuranceParent({run,eventAction='completed',sourceSha,get,readBytes,archiveReader=readArchive}){
   check(eventAction==='completed'&&run?.name===assuranceName&&run.path===assurancePath
     &&run.status==='completed'&&run.conclusion==='failure'&&run.run_attempt===1&&run.head_sha===sourceSha
-    &&run.head_branch==='main'&&run.event==='workflow_run'
+    &&run.head_branch==='main'&&['workflow_run','repository_dispatch'].includes(run.event)
     &&run.repository?.full_name===repository&&String(run.repository?.id)==='1281328888'
     &&run.head_repository?.full_name===repository,'FAILURE_ASSURANCE_TRIGGER');
   const live=await get(`actions/runs/${run.id}`);
@@ -41,11 +45,34 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const proof=JSON.parse(proofMembers[0].text),proofUnsigned=structuredClone(proof);delete proofUnsigned.receipt_digest;
   const failedChecks=(proof.operating_checks||[]).filter(c=>c.state==='VERIFIED_FAIL');
   const terminalCheck=failedChecks[0];
-  const upstream=audit.execution?.upstream;
+  let upstream=audit.execution?.upstream;
+  if(live.event==='repository_dispatch'){
+    const observedAt=assuranceClockObservationBoundary({proof,assuranceRun:live,sourceSha,profile:'failed-terminal-recovery'});
+    // Authenticate the archive snapshot, never a newer run observed later.
+    const cutoff=Date.parse(observedAt),start=cutoff-24*60*60*1000;
+    const created=encodeURIComponent(`${new Date(start).toISOString()}..${observedAt}`);
+    const runs=[];let total=null;
+    for(let page=1;page<=10;page++){
+      const rows=await get(`actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?head_sha=${sourceSha}&created=${created}&per_page=100&page=${page}`);
+      check(Array.isArray(rows.workflow_runs)&&Number.isSafeInteger(rows.total_count)&&rows.total_count>=0&&rows.total_count<=1000
+        &&rows.workflow_runs.length<=100&&(total===null||total===rows.total_count),'FAILURE_CLOCK_SENTINEL_LIST');
+      total=rows.total_count;runs.push(...rows.workflow_runs);
+      check(runs.length<=total&&new Set(runs.map(row=>row.id)).size===runs.length,'FAILURE_CLOCK_SENTINEL_LIST');
+      if(runs.length===total)break;
+      check(rows.workflow_runs.length===100&&page<10,'FAILURE_CLOCK_SENTINEL_LIST');
+    }
+    const bounded=runs.filter(row=>Number.isFinite(Date.parse(row.created_at))&&Date.parse(row.created_at)>=start&&Date.parse(row.created_at)<=cutoff);
+    const selected=selectLatestNaturalSentinelRun(bounded,{sourceSha,repository,observedAt});
+    check(selected.latest?.conclusion==='success','FAILURE_CLOCK_SENTINEL_SELECTION');
+    const route=assuranceSentinelObservationRoute({audit,proof,sourceSha,assuranceRun:live,jobs,sentinelRun:selected.latest,profile:'failed-terminal-recovery'});
+    const binding=await bindAssuranceUpstreamSentinelReceipt({run:selected.latest,sourceSha,get,readBytes,archiveReader});
+    check(binding.artifact_id===Number(route.sentinelBinding.artifact_id)&&binding.artifact_digest===route.sentinelBinding.artifact_digest,'FAILURE_CLOCK_SENTINEL_ARCHIVE');
+    upstream={run_id:String(binding.run_id),run_attempt:'1',workflow_name:selected.latest.name,workflow_path:selected.latest.path,workflow_event:selected.latest.event,conclusion:'success',repository,head_branch:'main',source_receipt_digest:binding.receipt_digest};
+  }
   check(audit.receipt_type==='KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE'&&audit.source?.sha===sourceSha
     &&audit.source?.actual_sha===sourceSha&&audit.source?.expected_sha===sourceSha&&audit.source?.match===true
     &&String(audit.execution?.workflow_run_id)===String(live.id)&&String(audit.execution?.workflow_run_attempt)==='1'
-    &&audit.execution?.trigger==='workflow_run'&&audit.execution?.workflow_run_id===String(live.id)
+    &&audit.execution?.trigger===live.event&&audit.execution?.workflow_run_id===String(live.id)
     &&audit.states?.internal_control_state==='VERIFIED_PASS'&&audit.states?.promotion_eligible===false
     &&Array.isArray(audit.checks)&&audit.checks.length>0&&audit.checks.every(c=>c.required===true)
     &&audit.checks.filter(c=>c.state!=='VERIFIED_PASS').length===0

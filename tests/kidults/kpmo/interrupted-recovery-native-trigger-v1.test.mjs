@@ -59,3 +59,62 @@ test('failure Assurance parent is admitted only for isolated terminal-null proof
   x=>{x.proof.operating_checks.push({id:'OTHER_FAILURE',state:'VERIFIED_FAIL'});delete x.proof.receipt_digest;x.proof.receipt_digest=sha256(canonicalJson(x.proof));x.bytes=zip([['audit-receipt.json',text(x.assurance)],['whole-platform-operating-proof-v1.json',text(x.proof)]]);x.artifact.digest=digest(x.bytes);x.artifact.size_in_bytes=x.bytes.length;}
  ]){const x=failedAssuranceFixture();mutate(x);await assert.rejects(verifyInterruptedRecoveryNativeTrigger(x));}
 });
+
+function failedClockFixture(){
+ const f=failedAssuranceFixture(),now=f.assurance.created_at;
+ f.assurance.event='repository_dispatch';
+ f.audit.source.kind='PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK';
+ f.audit.execution.trigger='repository_dispatch';f.audit.execution.upstream=null;
+ f.audit.execution.canonical_identity={alias:false,canonical_run_id:'990',canonical_run_attempt:'1',source_sha:sha,upstream_class:'ASSURANCE_EXTERNAL_NATURAL_CLOCK',generation_discriminator:`assurance-external-clock:kidults-natural-clock-v1:ASSURANCE:${sha}:${'n'.repeat(32)}:slot:2026-10-11T00:00:00.000Z`};
+ f.proof.observed_at=now;
+ f.sentinel={id:991,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',path:'.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',event:'repository_dispatch',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',created_at:new Date(Date.parse(now)-60000).toISOString(),updated_at:now,run_started_at:new Date(Date.parse(now)-59000).toISOString(),repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
+ const body={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',version:'1.0.0',repository:repo,source_sha:sha,observer_run_id:991,observer_run_attempt:1,coverage_scope:'CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM',runtime_health_proven:false,whole_platform_authority:false,promotion_eligible:false,provider_authority:false,database_authority:false,public:'HOLD',production:'HOLD',g5:'HOLD',empirical_delta:0,state:'VERIFIED_PASS',semantic_content_verified:true,producers:['SHADOW','REQUIREMENT','RESERVE','CANONICAL_TRUTH'].map(id=>({id,state:'VERIFIED_PASS',artifact_content_validated:true})),failed_producers:[],waiting_producers:[]};
+ f.health={...body,receipt_digest:sha256(canonicalJson(body))};
+ f.sentinelBytes=zip([['kpmo-continuous-assurance-sentinel-health-v1.json',text(f.health)]]);
+ f.sentinelArtifact={id:994,name:`kpmo-continuous-assurance-sentinel-health-v1-${sha}-991-1`,digest:digest(f.sentinelBytes),size_in_bytes:f.sentinelBytes.length,expired:false,created_at:now,expires_at:new Date(Date.now()+86400000).toISOString(),workflow_run:{id:991,head_sha:sha}};
+ f.proof.protected_evidence=[{workflow_path:f.sentinel.path,run_id:991,run_attempt:1,source_sha:sha,artifact_id:994,artifact_digest:f.sentinelArtifact.digest}];
+ f.jobs={total_count:2,jobs:[{id:993,run_id:990,run_attempt:1,name:'audit',status:'completed',conclusion:'failure'},{id:995,run_id:990,run_attempt:1,name:'classify-canonical-identity',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]};
+ f.reseal=()=>{let u=structuredClone(f.audit);delete u.observed_at;delete u.receipt_digest;f.audit.receipt_digest=sha256(canonicalJson(u));delete f.proof.receipt_digest;f.proof.receipt_digest=sha256(canonicalJson(f.proof));f.bytes=zip([['audit-receipt.json',text(f.audit)],['whole-platform-operating-proof-v1.json',text(f.proof)]]);f.artifact.digest=digest(f.bytes);f.artifact.size_in_bytes=f.bytes.length;};f.reseal();
+ const get=f.get,reader=f.archiveReader;
+ f.get=async route=>{if(route==='actions/runs/990/attempts/1/jobs?per_page=100')return f.jobs;if(route.includes('sentinel-health-v1.yml/runs?'))return {total_count:1,workflow_runs:[f.sentinel]};if(route==='actions/runs/991/attempts/1/jobs?per_page=100')return {total_count:1,jobs:[{id:996,run_id:991,run_attempt:1,name:'exact-main-health',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]};if(route==='actions/runs/991')return f.sentinel;if(route==='actions/runs/991/artifacts?per_page=100')return {total_count:1,artifacts:[f.sentinelArtifact]};return get(route);};
+ f.readBytes=async route=>route==='actions/artifacts/994/zip'?f.sentinelBytes:f.bytes;
+ f.archiveReader=(input,expected)=>{if(input===f.sentinelBytes){assert.equal(digest(input),expected);return {archive_digest:expected,members:[{name:'kpmo-continuous-assurance-sentinel-health-v1.json',encoding:'utf-8',text:text(f.health),sha256:digest(text(f.health))}]};}return reader(input,expected);};return f;
+}
+test('failed authenticated external clock consumes natural Sentinel archive without granting authority',async()=>{
+ const f=failedClockFixture(),r=await verifyInterruptedRecoveryNativeTrigger(f);assert.equal(r.recovery_parent.actual_authority_granted,false);assert.equal(r.recovery_parent.platform_closure,false);assert.equal(r.recovery_parent.upstream_run_id,'991');
+});
+for(const [name,mutate] of [
+ ['manual Sentinel',f=>f.sentinel.event='workflow_dispatch'],
+ ['unauthenticated clock',f=>f.jobs.jobs[1].steps[0].conclusion='skipped'],
+ ['clock alias',f=>f.audit.execution.canonical_identity.alias=true],
+ ['snapshot outside run',f=>f.proof.observed_at=new Date(Date.parse(f.assurance.updated_at)+1000).toISOString()],
+ ['foreign artifact',f=>f.proof.protected_evidence[0].artifact_id=999],
+ ['second failure',f=>f.proof.operating_checks.push({id:'OTHER',state:'VERIFIED_FAIL'})],
+ ['failed classifier',f=>f.jobs.jobs[1].conclusion='failure'],
+ ['unsealed proof',f=>f.proof.source_sha='b'.repeat(40)]
+])test('failed clock rejects '+name,async()=>{const f=failedClockFixture();mutate(f);f.reseal();await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f));});
+
+test('failed clock opt-in never weakens default success boundary or route',async()=>{
+ const f=failedClockFixture();
+ const {assuranceClockObservationBoundary}=await import('../../../scripts/kidults/kpmo/lib/assurance-clock-observation-boundary-v1.mjs');
+ const {assuranceSentinelObservationRoute}=await import('../../../scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs');
+ const boundary={proof:f.proof,assuranceRun:f.assurance,sourceSha:sha};
+ assert.throws(()=>assuranceClockObservationBoundary(boundary),/BOUNDARY_INVALID/);
+ assert.throws(()=>assuranceClockObservationBoundary({...boundary,profile:'unregistered'}),/BOUNDARY_INVALID/);
+ assert.throws(()=>assuranceSentinelObservationRoute({audit:f.audit,sourceSha:sha,assuranceRun:f.assurance,jobs:f.jobs,proof:f.proof,sentinelRun:f.sentinel}),/ROUTE_INVALID/);
+});
+
+test('failed clock paginates a complete stable snapshot and excludes post-snapshot runs',async()=>{
+ const f=failedClockFixture(),get=f.get,calls=[];
+ const older=Array.from({length:99},(_,i)=>({...f.sentinel,id:2000+i,conclusion:'skipped'}));
+ const future={...f.sentinel,id:9999,created_at:new Date(Date.parse(f.proof.observed_at)+1000).toISOString()};
+ f.get=async route=>{if(route.includes('sentinel-health-v1.yml/runs?')){calls.push(route);assert.match(route,/created=/);return {total_count:101,workflow_runs:route.endsWith('page=1')?[f.sentinel,...older]:[future]};}return get(route);};
+ const result=await verifyInterruptedRecoveryNativeTrigger(f);assert.equal(result.recovery_parent.upstream_run_id,'991');assert.equal(calls.length,2);
+});
+test('failed clock rejects pagination total drift and incomplete pages',async()=>{
+ for(const drift of [true,false]){
+  const f=failedClockFixture(),get=f.get;
+  f.get=async route=>{if(route.includes('sentinel-health-v1.yml/runs?'))return route.endsWith('page=1')?{total_count:101,workflow_runs:Array.from({length:100},(_,i)=>({...f.sentinel,id:2000+i,conclusion:'skipped'}))}:{total_count:drift?102:101,workflow_runs:[]};return get(route);};
+  await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f),/FAILURE_CLOCK_SENTINEL_LIST/);
+ }
+});
