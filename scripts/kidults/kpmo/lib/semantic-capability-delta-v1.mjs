@@ -74,8 +74,7 @@ const tokenizeScript=(source,filename)=>{
     parseFailure('template');
   };
   const code=interpolation=>{
-  const groups=[];const constructs=[];let operandExpected=true,lastTokenEnd=index;
-  let caseLabelDepth=null,caseTernaryDepth=0,caseClauseBoundaryDepth=null;
+  const groups=[];const constructs=[];const clauseColons=new Set();let operandExpected=true,lastTokenEnd=index,closedSwitchAt=-1;
   while(index<source.length){
     const char=source[index];
     if(/\s/.test(char)){index+=1;continue}
@@ -98,19 +97,15 @@ const tokenizeScript=(source,filename)=>{
     const identifier=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
     if(identifier){
       const previous=tokens.at(-1);const property=['.','?.'].includes(previous);
-      if(!property&&(identifier==='case'||identifier==='default'&&previous!=='export')){
-        caseLabelDepth=groups.length;caseTernaryDepth=0;caseClauseBoundaryDepth=null;
-      }
+      if(!property&&groups.at(-1)?.switchBody&&['case','default'].includes(identifier))groups.at(-1).clause={ternaries:0};
       if(!property&&['function','class'].includes(identifier)){
         let before=tokens.length-1;
         while(['async','export','default'].includes(tokens[before]))before-=1;
         const prefix=tokens[before];
         const declaration=prefix===undefined||prefix===';'||prefix==='{'&&groups.at(-1)?.block||prefix==='}'&&operandExpected
-          ||lineBoundary&&!operandExpected&&(!groups.length||groups.at(-1)?.block)
-          ||prefix===':'&&caseClauseBoundaryDepth===groups.length;
+          ||prefix===':'&&clauseColons.has(before)||lineBoundary&&!operandExpected&&(!groups.length||groups.at(-1)?.block);
         constructs.push({kind:identifier,depth:groups.length,expression:!declaration,parameters:false,ready:identifier==='class'});
       }
-      if(caseClauseBoundaryDepth===groups.length&&!['async','export','default'].includes(identifier))caseClauseBoundaryDepth=null;
       tokens.push(identifier);index+=identifier.length;lastTokenEnd=index;operandExpected=!property&&regexExpressionPrefixes.has(identifier);continue
     }
     const number=source.slice(index).match(/^(?:0[xob][0-9a-f_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?n?)/i)?.[0];
@@ -125,22 +120,19 @@ const tokenizeScript=(source,filename)=>{
       if(parameters)construct.parameters=true;
       const body=char==='{'&&construct?.depth===groups.length&&construct.ready;
       if(body)constructs.pop();
-      groups.push({opening:char,control,block,parameters:parameters?construct:null,bodyExpression:body?construct.expression:null});tokens.push(char);index+=1;operandExpected=true;continue;
+      groups.push({opening:char,control,switchControl:control&&previous==='switch',switchBody:char==='{'&&closedSwitchAt===tokens.length-1,block,parameters:parameters?construct:null,bodyExpression:body?construct.expression:null});tokens.push(char);index+=1;operandExpected=true;continue;
     }
     if(')]}'.includes(char)){
       const group=groups.pop();if(!group||'([{'.indexOf(group.opening)!==')]}'.indexOf(char))parseFailure('delimiter');
       if(group.parameters)group.parameters.ready=true;
-      tokens.push(char);index+=1;operandExpected=group.bodyExpression===null?group.control||group.block:!group.bodyExpression;continue;
+      tokens.push(char);if(group.switchControl)closedSwitchAt=tokens.length-1;index+=1;operandExpected=group.bodyExpression===null?group.control||group.block:!group.bodyExpression;continue;
     }
     const operator=['===','!==','>>>','**=','&&=','||=','??=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','/=','%=','**','<<','>>'].find(value=>source.startsWith(value,index));
-    const token=operator||char;tokens.push(token);index+=token.length;
-    if(caseLabelDepth===groups.length){
-      if(token==='?')caseTernaryDepth+=1;
-      else if(token===':'){
-        if(caseTernaryDepth>0)caseTernaryDepth-=1;
-        else{caseClauseBoundaryDepth=groups.length;caseLabelDepth=null;}
-      }
-    }
+    const token=operator||char;
+    const clause=groups.at(-1)?.switchBody&&groups.at(-1).clause;
+    if(clause&&token==='?')clause.ternaries+=1;
+    if(clause&&token===':'){if(clause.ternaries)clause.ternaries-=1;else{clauseColons.add(tokens.length);groups.at(-1).clause=null;}}
+    tokens.push(token);index+=token.length;
     if(!['++','--'].includes(token))operandExpected=token!=='.'&&token!=='?.';
   }
   if(interpolation||groups.length)parseFailure('delimiter');

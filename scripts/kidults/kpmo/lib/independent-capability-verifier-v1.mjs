@@ -201,8 +201,7 @@ const independentScriptLayout=(source,filename)=>{
       index+=1;
     }fail();
   };
-  const scan=interpolation=>{let expression=true,previous='',stack=[],constructs=[],statement=true,asyncStatement=null;
-    let caseLabelDepth=null,caseTernaryDepth=0;
+  const scan=interpolation=>{let expression=true,previous='',stack=[],constructs=[],statement=true,asyncStatement=null,closedControl=null;
     while(index<source.length){const start=index,char=source[index],next=source[index+1];
       if(/\s/.test(char)){index+=1;continue;}
       if(index===0&&char==='#'&&next==='!'){index=source.indexOf('\n',2);if(index<0)index=source.length;emit(start,index,false,true);continue;}
@@ -213,8 +212,9 @@ const independentScriptLayout=(source,filename)=>{
       if(char==='/'&&expression){regexp();expression=false;previous='literal';continue;}
       if(char==='/'&&!expression){index+=next==='='?2:1;emit(start,index);expression=true;previous='/';continue;}
       const word=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
-      if(word){const lineBoundary=/[\r\n]/.test(source.slice(lastTokenEnd,index))&&!expression;const statementAtStart=statement;index+=word.length;emit(start,index);const property=previous==='.'||previous==='?.';
-        if(!property&&statementAtStart&&(word==='case'||word==='default'&&previous!=='export')){caseLabelDepth=stack.length;caseTernaryDepth=0;}
+      if(word){const lineBoundary=/[\r\n]/.test(source.slice(lastTokenEnd,index))&&!expression;index+=word.length;emit(start,index);const property=previous==='.'||previous==='?.';
+        const switchFrame=stack.at(-1);
+        if(!property&&switchFrame?.switchBody&&(word==='case'||word==='default'))switchFrame.caseLabel={ternaries:0};
         if(!property&&(word==='function'||word==='class')){
           const declaration=statement||lineBoundary||(previous==='async'&&asyncStatement===true);
           constructs.push({kind:word,depth:stack.length,stage:word==='function'?'parameters':'body',declaration});
@@ -233,18 +233,14 @@ const independentScriptLayout=(source,filename)=>{
         const control=char==='('&&/^(if|while|for|with|switch|catch)$/.test(previous);
         const block=char==='{'&&(!!body||!expression||/^(else|try|finally|do|=>|;|\)|\}|)$/.test(previous)||(previous==='{'&&stack.at(-1)?.block));
         const expressionBody=!!body&&!body.declaration||char==='{'&&previous==='=>';
-        stack.push({char,control,block,parameters,expressionBody});index+=1;emit(start,index);expression=true;statement=char==='{'&&block;previous=char;continue;}
-      if(')]}'.includes(char)){const frame=stack.pop();if(!frame||'([{'.indexOf(frame.char)!==')]}'.indexOf(char))fail();index+=1;emit(start,index);if(frame.parameters)frame.parameters.stage='body';expression=frame.expressionBody?false:frame.control||frame.block;statement=char==='}'&&frame.block&&!frame.expressionBody;previous=char;continue;}
+        stack.push({char,control,controlWord:control?previous:null,block,parameters,expressionBody,switchBody:char==='{'&&previous===')'&&closedControl==='switch',caseLabel:null});index+=1;emit(start,index);expression=true;statement=char==='{'&&block;previous=char;continue;}
+      if(')]}'.includes(char)){const frame=stack.pop();if(!frame||'([{'.indexOf(frame.char)!==')]}'.indexOf(char))fail();index+=1;emit(start,index);if(frame.parameters)frame.parameters.stage='body';closedControl=frame.controlWord;expression=frame.expressionBody?false:frame.control||frame.block;statement=char==='}'&&frame.block&&!frame.expressionBody;previous=char;continue;}
       const op=['===','!==','>>>','**=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','%=','**','<<','>>','&&=','||=','??='].find(value=>source.startsWith(value,index));
-      const token=op||char;let clauseBoundary=false;
-      if(caseLabelDepth===stack.length){
-        if(token==='?')caseTernaryDepth+=1;
-        else if(token===':'){
-          if(caseTernaryDepth>0)caseTernaryDepth-=1;
-          else{clauseBoundary=true;caseLabelDepth=null;}
-        }
-      }
-      index+=op?.length||1;emit(start,index);if(op!=='++'&&op!=='--')expression=char!=='.';previous=token;statement=char===';'||clauseBoundary;
+      const label=stack.at(-1)?.switchBody?stack.at(-1).caseLabel:null;
+      let caseBoundary=false;
+      if(label&&char==='?'&&!op)label.ternaries+=1;
+      if(label&&char===':'){if(label.ternaries)label.ternaries-=1;else{caseBoundary=true;stack.at(-1).caseLabel=null;}}
+      index+=op?.length||1;emit(start,index);if(op!=='++'&&op!=='--')expression=char!=='.';previous=op||char;statement=char===';'||caseBoundary;
     }
     if(interpolation||stack.length)fail();
   };

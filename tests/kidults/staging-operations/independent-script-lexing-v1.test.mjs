@@ -88,3 +88,28 @@ for(const source of [
   String.raw`switch(kind){case condition ? 1 : 2: class C{} /if\(fake\{throw/.test(value);break;default:class D{} /if\(fake\{throw/.test(value);}`,
   String.raw`switch(kind){case 1:function f(){} /if\(fake\{throw/.test(value);break;default:function g(){} /if\(fake\{throw/.test(value);}`,
 ])test('switch clause declaration boundary preserves opaque regex: '+source,()=>pass(source));
+
+for(const source of [
+  String.raw`switch(value){case 1: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){default: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case flag?1:2: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case flag?a?1:2:3: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case ({key:1}).key: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case (flag?1:2): switch(other){default: class C{} /if\(fake\{throw/.test(value);}break;}`,
+  String.raw`switch(value){case 1: const ratio=flag?class {} / 2:class {} / 3;break;}`,
+  String.raw`switch(value){case 1: const obj={key:class {} / 2};break;}`,
+])test('switch label boundary differs from ternary/object colon: '+source,()=>pass(source));
+
+test('case class executable guard remains protected',()=>{
+  const source='switch(value){case 1: class C{method(){if(!allowed)throw new Error("DENIED");}} /[{}]/.test(value);}';
+  reject(source,source.replace('!allowed','allowed'));
+});
+
+test('switch declaration followed by regex guard cannot change predicate',()=>{
+  const source='switch(value){default: class C{} if(!/^safe$/.test(value))throw new Error("DENIED");}';
+  reject(source,source.replace('^safe$','.*'));
+});
+test('ternary class expression after case retains nested executable guard',()=>{
+  const source='switch(value){case 1: const ratio=flag?class {method(){if(!allowed)throw new Error("DENIED");}} / 2:class {} / 3;}';
+  reject(source,source.replace('!allowed','allowed'));
+});

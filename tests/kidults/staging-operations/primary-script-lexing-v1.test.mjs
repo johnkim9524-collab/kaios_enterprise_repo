@@ -82,3 +82,21 @@ test('primary recognizes declarations directly after switch clause labels',()=>{
     assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   }
 });
+
+test('primary switch clause declarations preserve regex while ternary and object colons preserve expressions',()=>{
+  for(const clause of ['case 1:', 'default:', 'case flag?1:2:', 'case flag?a?1:2:3:', 'case ({key:1}).key:']){
+    const source=String.raw`switch(value){${clause} class C{} /if\(fake\{throw/.test(value);break;}`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+  for(const source of [
+    String.raw`switch(value){case (flag?1:2):switch(other){default:class C{} /if\(fake\{throw/.test(value);}break;}`,
+    'switch(value){case 1:const ratio=flag?class {} / 2:class {} / 3;break;}',
+    'switch(value){case 1:const obj={key:class {} / 2};break;}',
+  ]){new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');}
+  for(const source of [
+    'switch(value){case 1:class C{method(){if(!allowed)throw new Error("HOLD");}} /[{}]/.test(value);}',
+    'switch(value){case 1:const ratio=flag?class {method(){if(!allowed)throw new Error("HOLD");}} / 2:class {} / 3;}',
+  ])assert.throws(()=>check(source,source.replace('!allowed','allowed')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  const source='switch(value){default:class C{} if(!/^safe$/.test(value))throw new Error("HOLD");}';
+  assert.throws(()=>check(source,source.replace('^safe$','.*')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+});
