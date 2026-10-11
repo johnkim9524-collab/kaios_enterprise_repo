@@ -1,0 +1,61 @@
+{
+  "agent_id": "Atlas-KPMO-native-repair-20261011",
+  "as_of": "2026-10-11T01:28:29.364257+00:00",
+  "scope": "Native UNKNOWN-operation containment correction; runtime closure remains separate",
+  "state": "IMPLEMENTED_NOT_VERIFIED",
+  "facts": {
+    "source_head": "cb0a2909ae7ccd7ce1728cec32f5ca299d8841b8",
+    "base_sha": "351d66392b19581d93730a614d1ea364c416b536",
+    "local_regression": "368/368",
+    "independent_redteam": "36/36",
+    "native_dispatch_verified": false,
+    "reservation_consumption_verified": false,
+    "immutable_terminal_verified": false
+  },
+  "evidence_refs": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38095032919",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38095032919/artifacts/11684829271"
+  ],
+  "inferences": [
+    "Known UNKNOWN reselection causes reconciliation churn; it does not prove all eligible dispatch is blocked."
+  ],
+  "uncertainties": [
+    "No actual current-main native terminal chain authenticated."
+  ],
+  "blockers": [
+    "Exact-head protected source-profile activation decision and remote CI pending.",
+    "Actual legitimate native eligible work, quorum, consumed reservation and immutable terminal proof absent."
+  ],
+  "actions_executed": [
+    "Strict PR-wide original-operation quarantine implemented.",
+    "Normal candidate checks preserved.",
+    "Source-profile dependency byte hashes rebound.",
+    "368 regression and 36 independent review checks passed."
+  ],
+  "next_action": "Publish one exact Draft proposal and verify remote CI; then obtain exact-head protected activation decision.",
+  "authority_boundary": "PR1677 read-only; no retry/reissue/Ready/approval/merge/deploy; Production/Public/G5/provider HOLD.",
+  "defect_disposition": "Known UNKNOWN reselection contained locally; runtime closure unresolved.",
+  "remediation_sequence": [
+    "Contain original UNKNOWN",
+    "Validate source profile and regressions",
+    "Review exact Draft and remote CI",
+    "Protected activation decision",
+    "Observe actual natural native chain and authenticate terminal"
+  ],
+  "verification_evidence_refs": [
+    "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
+    "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
+    "tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs",
+    "tests/kidults/kpmo/whole-platform-collector-v1.test.mjs",
+    "tests/kidults/kpmo/autonomous-terminal-immutable-v1.test.mjs"
+  ],
+  "truth_sync_refs": [
+    "coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json",
+    "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json"
+  ],
+  "improvement_proposal": "Reconcile original UNKNOWN using authenticated read-only evidence before any quarantine release.",
+  "autonomous_effect": "Skip prohibited candidate without weakening unrelated native eligibility.",
+  "global_effect": "No whole-platform readiness or operating closure promotion.",
+  "irreplaceable_value_effect": "Preserve actual authority and operation identity rather than manufacture closure.",
+  "transparency_effect": "Bind quarantine to original operation and archive SHA256; distinguish code validation from runtime evidence."
+}

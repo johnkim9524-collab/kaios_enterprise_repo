@@ -12,6 +12,7 @@ import './bounded-git-source-reader-v1.test.mjs';
 import './bounded-git-pack-decoder-v1.test.mjs';
 import './bounded-git-public-transport-v1.test.mjs';
 import './bounded-git-source-profile-v1.test.mjs';
+import './autonomous-operation-quarantine-v1.test.mjs';
 import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
