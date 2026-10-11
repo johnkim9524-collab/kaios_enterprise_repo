@@ -1,0 +1,24 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "351d66392b19581d93730a614d1ea364c416b536",
+  "head_branch": "codex/native-operation-quarantine-20261011",
+  "source_head_sha": "cb0a2909ae7ccd7ce1728cec32f5ca299d8841b8",
+  "source_head_tree_sha": "859bf979995cb7f2e4461241fad362c7da88071a",
+  "canonical_payload": {
+    "repository_full_name": "johnkim9524-collab/kaios_enterprise_repo",
+    "base": "main",
+    "head": "codex/native-operation-quarantine-20261011",
+    "title": "fix: quarantine UNKNOWN native lifecycle work before dispatch discovery",
+    "body": "Natural Dispatcher run 38095032919 selected PR #1677 for stale convergence despite its original exact-bound operation remaining UNKNOWN, then ended with LIFECYCLE_BROKER_NOT_VERIFIED and no eligible dispatch. Quarantine that PR before file/source discovery using a strict committed manifest bound to the original operation key and authenticated archive provenance. Main/head/Ready drift cannot authorize another attempt; unrelated candidates retain existing eligibility checks. The native CLI requires this manifest, and malformed configuration fails before network access.\n\nRebind the bounded source profile to the dispatcher and its two new dependencies without changing authority, limits, quorum or HOLD. Release of the quarantine still requires authenticated original-operation reconciliation; Owner approval alone is not reconciliation.\n\nValidation: full dispatcher/resume/collector/immutable-terminal regression 368/368 passed; independent holistic Red Team suite 36/36 passed with no additional blocking code defect. This is a containment correction, not native operational closure. Current Owner landing does not supply native dispatch/resume, reservation consumption or immutable terminal proof; actual eligible native work and authenticated full-chain receipts remain required. No canary PR, manual dispatch, replay or artificial success evidence was created. PR #1677 remains read-only. Production/Public/G5 and provider activation remain HOLD; HTTP405 race remains a likely contributor, not a confirmed sole cause.\n\nProtected source-profile activation requires an exact-head Owner decision after remote CI. Rollback: revert this change and its profile bindings together; never retry the UNKNOWN operation. Review the committed 21-field receipt for scope and evidence.",
+    "draft": true,
+    "maintainer_can_modify": false
+  },
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:1e17b3ecfb3de91ee3736f5a56e89845784eb7ad75718884122fdb579c168715"
+}
