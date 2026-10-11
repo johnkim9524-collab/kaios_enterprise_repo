@@ -1,9 +1,10 @@
 """Execute the actual template writer with local service doubles; no AWS proof."""
-import ast
 import copy
 import json
 from pathlib import Path
 import re
+import sys
+import types
 import unittest
 from unittest.mock import patch
 
@@ -48,16 +49,18 @@ class Kms:
 
 
 def load(ledger):
-    tree = ast.parse(SOURCE)
-    tree.body = [node for node in tree.body if not (
-        isinstance(node, ast.Import) and any(alias.name == 'boto3' for alias in node.names)
-        or isinstance(node, ast.ImportFrom) and node.module == 'botocore.exceptions'
-        or isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id in ('ddb', 'kms') for target in node.targets)
-    )]
-    keys = re.findall(r"os.environ\['([^']+)'\]", SOURCE)
-    namespace = {'ddb': ledger, 'kms': Kms(), 'ClientError': ConditionalError}
-    with patch.dict('os.environ', {key: key for key in keys}):
-        exec(compile(tree, '<actual-template-ledger-writer>', 'exec'), namespace)
+    # Execute the actual capsule unchanged. AST deletion at the outer level
+    # cannot intercept imports in its digest-checked embedded core.
+    core = (ROOT / 'scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py').read_text()
+    keys = re.findall(r"os.environ\['([^']+)'\]", SOURCE + core)
+    boto = types.ModuleType('boto3'); kms = Kms()
+    boto.client = lambda name: ledger if name == 'dynamodb' else kms
+    errors = types.ModuleType('botocore.exceptions'); errors.ClientError = ConditionalError
+    namespace = {}
+    with patch.dict('os.environ', {key: key for key in keys}), patch.dict(sys.modules, {
+        'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': errors,
+    }):
+        exec(compile(SOURCE, '<actual-template-ledger-writer>', 'exec'), namespace)
     return namespace
 
 

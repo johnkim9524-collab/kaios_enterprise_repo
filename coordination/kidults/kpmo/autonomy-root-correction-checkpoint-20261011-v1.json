@@ -1,12 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T08:15:04.346493+00:00",
+  "as_of": "2026-10-11T08:22:34.509928+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
     "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
-    "candidate_parent_sha": "d1cd82de1d5dd851d00ce9c05ce9862cafa61414"
+    "candidate_parent_sha": "1bb57d3691f55d5af5437f8347bf463404221ec9"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -37,7 +37,8 @@
     "Red Team found hidden AWS CLI retries. Both generic and historical signed clients now share a transport pinned to AWS_MAX_ATTEMPTS=1, standard retry mode and 5/20/30-second connection/read/process bounds. Actual subprocess-options test PASS; independent Red Team15/15 PASS and combined adapter/engine/historical58/58 PASS.",
     "Generic six-action signed recovery is now registered in existing writer source. Fixed three-source digest-checked capsule preserves original core bytes and historical namespace, fits natural compact template route at41878bytes. Only writerCode and receipt bucket Ref changed; no IAM/OIDC change or deployment.",
     "Actual capsule generic quorum/claim/consume/read preserves original run; two Python ledger suites70/70PASS. Deployment50/50PASS including fixed historical V1/V2 tests and current code/bucket/environment/IAM drift rejection. AWS template and OIDC trust2/2 PASS.",
-    "Red Team detected pre-recovery V2 to historical V1 downgrade in compatibility validation; fixed explicit tuple-contract downgrade fence and independent negative test before source publication."
+    "Red Team detected pre-recovery V2 to historical V1 downgrade in compatibility validation; fixed explicit tuple-contract downgrade fence and independent negative test before source publication.",
+    "Exact1bb57 native CI38124320905/job114425390155 failed only consumption fixture loader: outer AST filtering did not intercept embedded boto3 imports. Updated test harness executes actual capsule unchanged with service module doubles; original five tuple/signature/CAS tests PASS and ledger70PASS. No production dependency or mutation boundary relaxed."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -55,7 +56,8 @@
   "uncertainties": [
     "Generic unmerged recovery broker-owned mutation/fencing remains unimplemented; bounded merged-only supersession is source verified only.",
     "Writer routing and signed transport are source registered; protected native-evidence/S3 adapters and automatic recovery workflow integration are unfinished and undeployed.",
-    "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified."
+    "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified.",
+    "Local pytest unavailable; full native CI required on corrected fixture head. Previous nativeCI failure remains historical fact until new exact-head success verified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
@@ -76,7 +78,8 @@
     "Independent real ECDSA and concurrent CAS adversarial verification",
     "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation",
     "Signed remote ledger transport source and negative identity/no-retry tests",
-    "Fixed-inventory compressed writer routing with authenticated generic actions and exact bounded receipt bucket binding"
+    "Fixed-inventory compressed writer routing with authenticated generic actions and exact bounded receipt bucket binding",
+    "Read actual failed native job logs; correct capsule-aware actual backend test harness without rerun or weakened assertions"
   ],
   "next_action": "Complete protected native evidence and S3 adapters plus automatic recovery trigger; resolve unmerged trust bridge; exact-head activation and actual natural proof remain separate mandatory gates.",
   "authority_boundary": {
