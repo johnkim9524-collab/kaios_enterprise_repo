@@ -14,11 +14,20 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def workflow(self, name):
         return yaml.load((ROOT / f'.github/workflows/kidults-autonomous-{name}-authorization-v1.yml').read_text(), Loader=yaml.BaseLoader)
 
-    def test_same_natural_gate_drives_all_roles_without_recursive_role_chain(self):
+    def test_same_natural_gate_drives_approvals_with_separate_fourth_run_finalizer(self):
         for name in FILES:
             trigger = self.workflow(name)['on']['workflow_run']
-            self.assertEqual(trigger, {'workflows': ['KPMO Continuous Assurance Success Authority Gate V1'],
+            expected = ['KPMO Continuous Assurance Success Authority Gate V1']
+            if name == 'track':
+                expected.append('KIDULTS Autonomous Independent Verification V1')
+            self.assertEqual(trigger, {'workflows': expected,
                                       'types': ['completed'], 'branches': ['main']})
+        finalizer = self.workflow('track')['jobs']['interrupted-recovery-finalizer']
+        self.assertNotIn('needs', finalizer)
+        self.assertIn("workflow_run.name == 'KIDULTS Autonomous Independent Verification V1'", finalizer['if'])
+        self.assertIn("workflow_run.event == 'workflow_run'", finalizer['if'])
+        self.assertIn('github.run_attempt == 1', finalizer['if'])
+        self.assertIn("workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1'", self.workflow('track')['jobs']['terminal-recovery-approval']['if'])
 
     def test_original_live_candidate_path_remains_dispatch_only(self):
         for name in FILES:
@@ -29,7 +38,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
             for key, job in self.workflow(name)['jobs'].items():
-                if not key.startswith('terminal-recovery-'):
+                if not key.startswith(('terminal-recovery-', 'interrupted-recovery-')):
                     continue
                 self.assertEqual(job['permissions'], {'actions': 'read', 'contents': 'read', 'id-token': 'write', 'pull-requests': 'read'})
                 script = '\n'.join(step.get('run', '') for step in job['steps'])

@@ -1,3 +1,4 @@
+import {runNativeInterruptedRecovery} from './run-interrupted-terminal-recovery-v1.mjs';
 import {consumedRecoveryObservation} from './lib/consumed-recovery-observation-v1.mjs';
 // Protected workflow entry point for one historic terminal-only incident.
 import fs from 'node:fs';
@@ -25,6 +26,8 @@ assert(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===env.G
 const role=env.KIDULTS_RECOVERY_ROLE;
 assert(['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER','FINALIZER'].includes(role),'RECOVERY_RUNTIME_ROLE');
 if(role==='FINALIZER')assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main`,'RECOVERY_RUNTIME_FINALIZER_WORKFLOW');
+const generic=await runNativeInterruptedRecovery();
+if(generic.actual_candidates>0){console.log(JSON.stringify(generic));process.exit(0);}
 const ledger=await createRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA});
 const historical=consumedRecoveryObservation(await ledger.discoverContext());
 if(historical){

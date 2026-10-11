@@ -21,7 +21,9 @@ export function sealAutonomousTerminal({receipt,bucket,keyArn,aws,tempRoot}){
   requireProof(/^arn:aws:kms:ap-northeast-2:528314240275:key\/[A-Za-z0-9-]+$/.test(keyArn),'KEY');
   const key=terminalObjectKey(receipt),envelope={id:'kidults-autonomous-internal-landing-immutable-envelope-v1',version:'1.0.0',receipt,
     receipt_sha256:sha256(canonicalJson(receipt)),production:'HOLD',public:'HOLD',g5:'HOLD'};
-  const bytes=Buffer.from(`${JSON.stringify(envelope,null,2)}\n`);
+  // New atomic originals have a stable canonical codec across native resumes.
+  // Historical v2 bodies retain their existing immutable byte representation.
+  const bytes=Buffer.from(`${receipt.durable_reservation.remote_binding?.contract_version==='3.0.0'?canonicalJson(envelope):JSON.stringify(envelope,null,2)}\n`);
   requireProof(bytes.length<=49152,'PAYLOAD_BOUND');
   const checksum=Buffer.from(sha256(bytes).slice(7),'hex').toString('base64');
   const retain=new Date(receipt.created_at);requireProof(Number.isFinite(retain.getTime())&&retain.toISOString()===receipt.created_at,'CREATED_AT');retain.setUTCFullYear(retain.getUTCFullYear()+10);

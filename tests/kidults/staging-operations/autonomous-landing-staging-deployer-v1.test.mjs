@@ -11,9 +11,30 @@ import {execFileSync, spawnSync} from 'node:child_process';
 const bootstrap = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json', 'utf8'));
 const approvalManifest = JSON.parse(fs.readFileSync('coordination/kidults/governance/approval-policy-file-manifest-v1.json', 'utf8'));
 const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml', 'utf8');
-const desired = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json', 'utf8'));
+// Freeze historical upgrade tests; compressed current code must not erase the
+// legacy V1/V2 adversarial transition coverage.
+const desired = JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json', 'utf8'));
+assert.equal(createHash('sha256').update(desired.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),'688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d');
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
 const roleIds = ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'];
+test('current capsule permits exact known V2 code and existing receipt bucket binding only',()=>{
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  withFixture({current:desired,desired:latest},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).mode,'CHANGE_REQUIRED');
+  });
+});
+for(const [name,mutate] of [
+ ['code',d=>d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift'],
+ ['bucket',d=>d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'OtherBucket'}],
+ ['extra environment',d=>d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='unexpected'],
+ ['IAM',d=>d.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['dynamodb:Scan'],Resource:'*'})],
+])test('current capsule rejects '+name+' drift',()=>{
+ const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));mutate(latest);
+ withFixture({current:desired,desired:latest},directory=>{
+   const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});assert.notEqual(result.status,0);
+ });
+});
 
 const boundedQuery = {
   Effect: 'Allow',
@@ -420,4 +441,38 @@ for(const [name,mutate] of [
     const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
     assert.notEqual(result.status,0);
   });
+});
+
+const consumptionV1Template = () => {
+  const current=structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile.replace("        if any(attrs.get(key, {}).get('S') != value for key, value in\n               [('pk', pk), ('sk', sk), ('run_id', run_id), ('head_sha', head_sha),\n                ('state', 'CONSUMED'), ('merge_sha', merge_sha)]):\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'contract_version': '2.0.0', 'action': action, 'pk': attrs['pk']['S'], 'sk': attrs['sk']['S'],\n                'authorization_generation': generation, 'nonce_digest': nonce, 'run_id': attrs['run_id']['S'],\n                'head_sha': attrs['head_sha']['S'], 'merge_sha': attrs['merge_sha']['S'],\n                'state': attrs['state']['S'], 'conditional_write': True}\n","        if attrs.get('state', {}).get('S') != 'CONSUMED' or attrs.get('merge_sha', {}).get('S') != merge_sha:\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n");
+  assert.equal(createHash("sha256").update(current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest("hex"),"3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad");
+  return current;
+};
+test('pre-recovery V2 and full V2 cannot downgrade to historical V1',()=>{
+ const before=structuredClone(desired);
+ before.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=fs.readFileSync('scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py','utf8');
+ delete before.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.RECEIPT_KEY_ARN;
+ for(const current of [before,desired])withFixture({current,desired:consumptionV1Template()},directory=>{
+   const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});assert.notEqual(result.status,0);
+ });
+});
+test('exact consumption v1 to v2 accepts only code modification',()=>{
+  const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},ChangeSource:'DirectModification'}]}}]};
+  withFixture({current:consumptionV1Template(),desired,changeset},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),'--changeset',path.join(directory,'changeset')],{encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);
+  });
+});
+for(const [name,mutate] of [
+ ['code drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# unexpected';}],
+ ['memory drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.MemorySize=1024;}],
+ ['environment drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='unexpected';}],
+ ['IAM drift',d=>{d.Resources.TrackApprovalRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['dynamodb:PutItem'],Resource:'*'});}],
+])test(`consumption tuple upgrade rejects ${name}`,()=>{
+ const changed=structuredClone(desired);mutate(changed);
+ withFixture({current:consumptionV1Template(),desired:changed},directory=>{
+  const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+  assert.notEqual(result.status,0);
+ });
 });

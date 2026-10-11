@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import {execFileSync} from 'node:child_process';
+import {createInterruptedRecoveryAwsTransport} from './interrupted-recovery-signed-ledger-client-v1.mjs';
 import {canonicalJson,sha256} from './autonomous-internal-landing-v1.mjs';
 import {POSTMERGE_RECOVERY_INCIDENT as I,validatePostmergeRecoveryRequest,validateRecoveryEvidenceSnapshot} from './autonomous-postmerge-recovery-v1.mjs';
 import {recoveryImmutableAckFields} from './postmerge-recovery-immutable-store-v1.mjs';
@@ -16,8 +16,7 @@ const definitions={
   INDEPENDENT_VERIFIER:['verifier','KIDULTS-AUTONOMOUS-VERIFIER','kidults-independent-verifier-v1','kidults-autonomous-independent-verification-authorization-v1.yml'],
   FINALIZER:['finalizer','KIDULTS-AUTONOMOUS-FINALIZER','kidults-finalizer-v1',null],
 };
-const defaultAws=args=>JSON.parse(execFileSync('aws',[...args,'--region','ap-northeast-2','--output','json'],
-  {encoding:'utf8',timeout:30000,stdio:['ignore','pipe','pipe']}));
+const defaultAws=createInterruptedRecoveryAwsTransport();
 
 export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourceSha,env=process.env,aws=defaultAws,tempRoot=os.tmpdir(),now=()=>Date.now()}){
   const definition=definitions[role];assert(definition,'RECOVERY_CLIENT_ROLE');

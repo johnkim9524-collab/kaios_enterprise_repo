@@ -7,6 +7,8 @@ import {evaluatePostMergePushSuite,validatePolicy} from '../consume-direct-owner
 import {SPECS} from '../resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {checkTransport,readArchive,validateProducerContent,validateCoverageAliasClosure} from '../validate-sentinel-producer-content-v1.mjs';
 import {validateSentinelObservation} from '../validate-sentinel-observation-v1.mjs';
+import {validateInterruptedRecoveryRequest,observeInterruptedRecoveryNative} from './interrupted-reservation-recovery-v1.mjs';
+import {verifyAssuranceReadiness} from './assurance-full-proof-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
@@ -32,7 +34,7 @@ const sealed=(receipt,id)=>{
   assert(Object.entries(HOLD).every(([k,v])=>receipt[k]===v),'RECOVERY_EVIDENCE_HOLD');
 };
 
-export function createRecoveryExactMainEvidence({policy,readJson=route=>transport(route),readBytes=route=>transport(route,true),now=()=>Date.now()}){
+function createExactMainEvidence({policy,readJson=route=>transport(route),readBytes=route=>transport(route,true),now=()=>Date.now()},generic=false){
   validatePolicy(policy);assert(policy.required_workflows.length===6,'RECOVERY_EVIDENCE_REQUIRED_SET');
   const readRun=async id=>{
     assert(positive(Number(id)),'RECOVERY_EVIDENCE_RUN_ID');const run=await readJson(`actions/runs/${id}`);
@@ -78,11 +80,35 @@ export function createRecoveryExactMainEvidence({policy,readJson=route=>transpor
     assert(selected.state==='VERIFIED_PASS','RECOVERY_LATEST_SENTINEL_NOT_SUCCESS');return selected.latest;
   };
   const proofNode=(run,digest,extra={})=>({state:'VERIFIED_PASS',source_sha:run.head_sha,run_id:String(run.id),receipt_digest:digest,...HOLD,...extra});
+  const currentProducer=async(spec,selected,sha)=>{
+    const events=spec.events.filter(e=>e!=='workflow_dispatch');
+    const rows=(await Promise.all(events.map(e=>runList(spec.workflow,sha,e)))).flat();
+    const native=rows.filter(r=>events.includes(r.event));
+    assert(native.every(r=>r.path===spec.path&&r.head_sha===sha&&r.head_branch==='main'
+      &&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id
+      &&positive(r.id)&&Number.isFinite(Date.parse(r.created_at))&&Date.parse(r.created_at)<=now()),'RECOVERY_EVIDENCE_PRODUCER_NATIVE_IDENTITY');
+    native.sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id);
+    const latest=native.at(-1);
+    assert(latest&&latest.id===selected.selected_run_id&&latest.run_attempt===1&&latest.status==='completed'
+      &&latest.conclusion==='success','RECOVERY_EVIDENCE_NEWER_PRODUCER_INTERRUPTION');
+  };
 
-  const collect=async(request,pinned=null)=>{
-    validatePostmergeRecoveryRequest(request,{now:now()});
+  const jobsFor=async run=>{
+    const response=await readJson(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);
+    assert(Array.isArray(response.jobs)&&response.total_count===response.jobs.length&&response.total_count<=100
+      &&new Set(response.jobs.map(j=>j.id)).size===response.jobs.length,'RECOVERY_EVIDENCE_JOB_CARDINALITY');
+    assert(response.jobs.every(j=>positive(j.id)&&j.run_id===run.id&&(j.run_attempt===undefined||j.run_attempt===1)),'RECOVERY_EVIDENCE_JOB_ATTEMPT');
+    return {...response,jobs:response.jobs.map(j=>({...j,run_attempt:1}))};
+  };
+  const collect=async(request,pinned=null,native=null)=>{
+    if(generic){
+      validateInterruptedRecoveryRequest(request,{now:now()});
+      const authenticated=await observeInterruptedRecoveryNative({request,get:readJson,now:now()});
+      assert(canonicalJson(authenticated)===canonicalJson(native),'RECOVERY_EVIDENCE_NATIVE_CONTEXT');
+    }
+    else validatePostmergeRecoveryRequest(request,{now:now()});
     const sha=request.source_sha,observedAt=new Date(now()).toISOString();
-    if(pinned){
+    if(pinned&&!generic){
       validateRecoveryEvidenceSnapshot(pinned,request,{now:now()});
       const {snapshot_digest,...core}=pinned;
       assert(pinned.id==='kidults-postmerge-recovery-evidence-snapshot-v1'&&pinned.version==='1.0.0'
@@ -97,10 +123,14 @@ export function createRecoveryExactMainEvidence({policy,readJson=route=>transpor
       &&suite.failure_count===0&&suite.invalid.length===0,'RECOVERY_EVIDENCE_PUSH_SUITE');
     const pushIdentity=pushRuns.map(r=>({id:r.id,run_attempt:r.run_attempt,path:r.path,head_sha:r.head_sha,status:r.status,conclusion:r.conclusion}));
     assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),'RECOVERY_EVIDENCE_PUSH_IDENTITY');
-    const sentinel=pinned?await readRun(pinned.evidence?.sentinel?.run_id):await liveHealth(sha);
-    const gate=pinned?await readRun(pinned.evidence?.success_authority_gate?.run_id):await latestGate(sha);
+    const sentinel=pinned&&!generic?await readRun(pinned.evidence?.sentinel?.run_id):await liveHealth(sha);
+    const gate=pinned&&!generic?await readRun(pinned.evidence?.success_authority_gate?.run_id):await latestGate(sha);
     assert(sentinel.path===`.github/workflows/${SENTINEL}`&&gate.path===`.github/workflows/${GATE}`
       &&gate.event==='workflow_run','RECOVERY_EVIDENCE_SNAPSHOT_RUN_PATH');
+    const gateJobs=await jobsFor(gate);
+    const authority=gateJobs.jobs.filter(j=>j.name==='success-authority-gate');
+    assert(authority.length===1&&authority[0].status==='completed'&&authority[0].conclusion==='success',
+      'RECOVERY_EVIDENCE_ACTUAL_AUTHORITY_NOT_SUCCESS');
     const healthArtifacts=(await artifactList(sentinel)).filter(a=>a.name===`kpmo-continuous-assurance-sentinel-health-v1-${sha}-${sentinel.id}-1`);
     assert(healthArtifacts.length===1,'RECOVERY_EVIDENCE_SENTINEL_ARTIFACT');
     const healthPacket=await archive(sentinel,healthArtifacts[0],sha,observedAt);
@@ -108,7 +138,14 @@ export function createRecoveryExactMainEvidence({policy,readJson=route=>transpor
     validateSentinelObservation(health,{GITHUB_REPOSITORY:I.repository,GITHUB_SHA:sha,GITHUB_RUN_ID:String(sentinel.id),GITHUB_RUN_ATTEMPT:'1',SENTINEL_RESOLVER_OUTCOME:'success'});
     const gateArtifacts=(await artifactList(gate)).filter(a=>a.name.startsWith(`kpmo-continuous-assurance-success-authority-gate-${sha}-`));
     assert(gateArtifacts.length===1,'RECOVERY_EVIDENCE_GATE_ARTIFACT');
-    const gatePacket=await archive(gate,gateArtifacts[0],sha,observedAt,{authorityGateHealthDigest:healthArtifacts[0].digest});
+    // Artifact name is only a discovery hint. Native run/artifact identity and
+    // the sealed Gate's upstream tuple must independently agree below.
+    const association=gateArtifacts[0].name.match(new RegExp(`^kpmo-continuous-assurance-success-authority-gate-${sha}-([1-9][0-9]*)-1$`));
+    assert(association,'RECOVERY_EVIDENCE_GATE_ARTIFACT_NAME');
+    const assurance=await readRun(association[1]);
+    const assuranceArtifacts=(await artifactList(assurance)).filter(a=>a.name===`kidults-continuous-assurance-${sha}-${assurance.id}-1`);
+    assert(assuranceArtifacts.length===1,'RECOVERY_EVIDENCE_ASSURANCE_ARTIFACT');
+    const gatePacket=await archive(gate,gateArtifacts[0],sha,observedAt,{authorityGateHealthDigest:healthArtifacts[0].digest,authorityGateAssuranceDigest:assuranceArtifacts[0].digest});
     const gateReceipt=member(gatePacket.packet,'kpmo-continuous-assurance-success-authority-gate-v1.json');
     sealed(gateReceipt,'kpmo-continuous-assurance-success-authority-gate-v1');
     assert(gateReceipt.current_protected_main_sha===sha&&gateReceipt.coverage_scope==='CORE_FOUR_ONLY_NOT_WHOLE_PLATFORM'
@@ -117,15 +154,40 @@ export function createRecoveryExactMainEvidence({policy,readJson=route=>transpor
       &&gateReceipt.producer_health_conclusion==='success'&&gateReceipt.producer_health_receipt_digest===health.receipt_digest
       &&['whole_platform_authority','promotion_eligible','empirical_authority','provider_authority','database_authority'].every(k=>gateReceipt[k]===false)
       &&gateReceipt.empirical_delta===0,'RECOVERY_EVIDENCE_GATE_HEALTH_BINDING');
-    const upstream=gateReceipt.upstream_observation,assurance=await readRun(upstream?.run_id);
+    const upstream=gateReceipt.upstream_observation;
+    assert(upstream?.run_id===assurance.id,'RECOVERY_EVIDENCE_ASSURANCE_BINDING');
     assert(upstream.workflow_name===assurance.name&&assurance.path===ASSURANCE&&assurance.head_sha===sha
       &&assurance.head_branch==='main'&&assurance.status==='completed'&&assurance.conclusion==='success'
       &&upstream.head_sha===sha&&upstream.run_attempt===1&&upstream.event===assurance.event&&upstream.conclusion==='success'
       &&gateArtifacts[0].name===`kpmo-continuous-assurance-success-authority-gate-${sha}-${assurance.id}-1`,
       'RECOVERY_EVIDENCE_ASSURANCE_BINDING');
+    const assuranceJobs=await jobsFor(assurance),audits=assuranceJobs.jobs.filter(j=>j.name==='audit');
+    assert(audits.length===1&&audits[0].status==='completed'&&audits[0].conclusion==='success','RECOVERY_EVIDENCE_ACTUAL_AUDIT_NOT_SUCCESS');
+    const assurancePacket=await archive(assurance,assuranceArtifacts[0],sha,observedAt);
+    readArchive(gatePacket.bytes,gateArtifacts[0].digest,{authorityGateHealthDigest:healthArtifacts[0].digest,authorityGateAssuranceDigest:assuranceArtifacts[0].digest});
+    const audit=member(assurancePacket.packet,'audit-receipt.json'),operatingProof=member(assurancePacket.packet,'whole-platform-operating-proof-v1.json');
+    const auditMember=assurancePacket.packet.members.find(m=>m.name.split('/').at(-1)==='audit-receipt.json');
+    const proofMember=assurancePacket.packet.members.find(m=>m.name.split('/').at(-1)==='whole-platform-operating-proof-v1.json');
+    const archiveCore={receipt_type:'KPMO_ASSURANCE_ARCHIVE_VALIDATION',state:'VERIFIED_PASS',readback_verified:true,
+      source_sha:sha,assurance_run_id:assurance.id,assurance_run_attempt:1,artifact_id:assuranceArtifacts[0].id,
+      artifact_digest:assuranceArtifacts[0].digest,archive_digest:assurancePacket.packet.archive_digest,
+      archive_size_bytes:assurancePacket.bytes.length,member_count:assurancePacket.packet.members.length,
+      audit_receipt_count:1,runtime_proof_count:1,audit_receipt_archive_member_digest:auditMember.sha256,
+      runtime_proof_archive_member_digest:proofMember.sha256};
+    const readiness=verifyAssuranceReadiness({audit,proof:operatingProof,assuranceRun:assurance,auditJob:audits[0],sourceSha:sha,
+      sentinel:{run_id:sentinel.id,run_attempt:1,artifact_id:healthArtifacts[0].id,artifact_digest:healthArtifacts[0].digest,assurance_attempt:1},
+      archivePacket:assurancePacket.packet,archiveReceipt:{...archiveCore,receipt_digest:sha256(canonicalJson(archiveCore))},
+      assuranceArtifact:assuranceArtifacts[0],assuranceJobs,sentinelRun:sentinel,runtimeScope:'AUTONOMOUS_CONTROL_PLANE'});
+    assert(readiness.sentinel_run_id===sentinel.id,'RECOVERY_EVIDENCE_ASSURANCE_LATEST_TUPLE');
+    assert(gateReceipt.producer_health_artifact_id===healthArtifacts[0].id&&gateReceipt.producer_health_artifact_digest===healthArtifacts[0].digest
+      &&gateReceipt.assurance_artifact_id===assuranceArtifacts[0].id&&gateReceipt.assurance_artifact_digest===assuranceArtifacts[0].digest
+      &&gateReceipt.assurance_audit_receipt_digest===readiness.audit_receipt_digest
+      &&gateReceipt.assurance_runtime_proof_digest===readiness.runtime_proof_digest,'RECOVERY_EVIDENCE_GATE_ARCHIVE_BINDING');
     const proofs=[];let canonicalNode;
+
     for(const selected of health.producers){
       const spec=SPECS.find(s=>s.id===selected.id);assert(spec,'RECOVERY_EVIDENCE_PRODUCER_SPEC');
+      if(generic)await currentProducer(spec,selected,sha);
       const run=await readRun(selected.selected_run_id),rows=await artifactList(run);
       const matches=rows.filter(a=>a.id===selected.artifact_id&&a.name===selected.artifact_name&&a.digest===selected.artifact_digest);
       assert(matches.length===1,'RECOVERY_EVIDENCE_PRODUCER_ARTIFACT');const artifact=matches[0];
@@ -148,16 +210,40 @@ export function createRecoveryExactMainEvidence({policy,readJson=route=>transpor
       canonical_truth:canonicalNode,sentinel:proofNode(sentinel,health.receipt_digest,{producers:proofs,failed_producers:[],waiting_producers:[],artifact_id:healthArtifacts[0].id,artifact_digest:healthArtifacts[0].digest}),
       success_authority_gate:proofNode(gate,gateReceipt.receipt_digest,{assurance_run_id:String(assurance.id),artifact_id:gateArtifacts[0].id,artifact_digest:gateArtifacts[0].digest})};
     // Reuse the terminal contract validator without writing a terminal receipt.
-    buildPostmergeRecoveryTerminal({request,recoveryRunId:'1',evidence});
+    if(!generic)buildPostmergeRecoveryTerminal({request,recoveryRunId:'1',evidence});
     const reread=await readJson('branches/main');assert(reread.protected===true&&reread.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
     const latest=await liveHealth(sha);
-    if(!pinned)assert(latest.id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
-    else await latestGate(sha); // Never use the pinned success to bypass a newer failure/HOLD.
+    assert(latest.id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
+    assert((await latestGate(sha)).id===gate.id,'RECOVERY_EVIDENCE_GATE_MOVED'); // // Never use the pinned success to bypass a newer failure/HOLD.
+    if(generic){
+      assert(native&&native.source_sha===sha&&native.merge_sha===request.merge_sha,'RECOVERY_EVIDENCE_NATIVE_CONTEXT');
+      const p0=suite.required.find(r=>r.path==='.github/workflows/kidults-p0-control-plane-closure-v1.yml');
+      assert(p0,'RECOVERY_EVIDENCE_P0_REQUIRED');
+      const p0Run=await readRun(p0.run_id),p0Artifacts=(await artifactList(p0Run)).filter(a=>a.name==='kidults-p0-control-plane-closure-v1');
+      assert(p0Artifacts.length===1,'RECOVERY_EVIDENCE_P0_ARTIFACT');
+      const p0Packet=await archive(p0Run,p0Artifacts[0],sha,observedAt),p0Receipt=member(p0Packet.packet,'kidults-p0-control-plane-closure-receipt-v1.json');
+      assert(p0Receipt.id==='kidults-p0-control-plane-closure-receipt-v1'&&p0Receipt.state==='VERIFIED_PASS'
+        &&p0Receipt.exact_source_sha===sha&&p0Receipt.repository===I.repository&&p0Receipt.run_id===p0Run.id&&p0Receipt.run_attempt===1,'RECOVERY_EVIDENCE_P0_CONTENT');
+      const check=(kind,run,artifact,digest)=>({kind,run_id:String(run.id),run_attempt:1,source_sha:sha,conclusion:'success',
+        artifact_id:artifact.id,archive_digest:artifact.digest,receipt_digest:digest});
+      const result={...native,checks:[check('REQUIRED_PUSH_SUITE',p0Run,p0Artifacts[0],sha256(canonicalJson({pushIdentity,p0Receipt}))),
+        check('CANONICAL_TRUTH',{id:canonicalNode.run_id},{id:canonicalNode.artifact_id,digest:canonicalNode.artifact_digest},canonicalNode.receipt_digest),
+        check('SENTINEL',sentinel,healthArtifacts[0],health.receipt_digest),check('SUCCESS_AUTHORITY_GATE',gate,gateArtifacts[0],gateReceipt.receipt_digest)]};
+      if(pinned)assert(canonicalJson(result)===canonicalJson(pinned),'RECOVERY_EVIDENCE_PINNED_CONTENT_DRIFT');
+      const last=await readJson('branches/main');assert(last.protected===true&&last.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
+      for(const selected of health.producers)await currentProducer(SPECS.find(s=>s.id===selected.id),selected,sha);
+      const finalMain=await readJson('branches/main');assert(finalMain.protected===true&&finalMain.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
+      return result;
+    }
     const core={id:'kidults-postmerge-recovery-evidence-snapshot-v1',version:'1.0.0',source_sha:sha,selected_at:pinned?.selected_at||observedAt,evidence,
       scope:'ORIGINAL_LANDING_TERMINAL_RECOVERY_ONLY_NOT_WHOLE_PLATFORM',...HOLD};
     const snapshot={...core,snapshot_digest:sha256(canonicalJson(core))};
     if(pinned)assert(canonicalJson(snapshot)===canonicalJson(pinned),'RECOVERY_EVIDENCE_PINNED_CONTENT_DRIFT');
     return snapshot;
   };
-  return {selectSnapshot:request=>collect(request),verifySnapshot:(request,snapshot)=>collect(request,snapshot)};
+  return generic?{verifyEvidence:({request,native,pinned=null})=>collect(request,pinned,native)}
+    :{selectSnapshot:request=>collect(request),verifySnapshot:(request,snapshot)=>collect(request,snapshot)};
 }
+
+export const createRecoveryExactMainEvidence=options=>createExactMainEvidence(options);
+export const createInterruptedRecoveryNativeEvidence=options=>createExactMainEvidence(options,true);

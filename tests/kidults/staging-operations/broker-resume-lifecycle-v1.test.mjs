@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
-import {brokerResumeLifecycle,brokerMintFinalizer,observeLifecycleCutover} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
+import {canonicalJson} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {brokerResumeLifecycle,brokerMintFinalizer,observeLifecycleCutover,classifyFinalizerTokenDrain,brokerReadFinalizerRecoveryContext} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
 const {assertPublicMintBoundary}=createRequire(import.meta.url)('../../../infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs');
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40);
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -18,7 +19,7 @@ function setup({operation=event.operation,lost=false,drift=false,reversed=false,
   const e=structuredClone(event);e.operation=operation;if(operation==='REDUNDANT_PR_HYGIENE')e.binding.changed_paths=[];
   const conditional=()=>Object.assign(new Error('conditional'),{name:'ConditionalCheckFailedException'});
   const dependencies={config:{repository,repositoryId:'123',operationTable:'test-table',activationRunFloor:'100'},
-    now:()=>time,getPrivateKey:async()=>key,mint:async()=>{mints++;return {ok:true,token:'PRIVATE_WRITE_TOKEN',read_token:'PRIVATE_READ_TOKEN'};},
+    now:()=>time,getPrivateKey:async()=>key,mint:async()=>{mints++;return {ok:true,token:'PRIVATE_WRITE_TOKEN',read_token:'PRIVATE_READ_TOKEN',expires_at:new Date(time+3600000).toISOString()};},
     ledgerRequest:async(op,p)=>{
       const k=JSON.stringify(p.Key||{pk:p.Item.pk,sk:p.Item.sk});
       if(op==='Get')return {Item:structuredClone(rows.get(k))};
@@ -105,31 +106,33 @@ test('the first protected lifecycle call starts one durable legacy-token drain a
   s.dependencies.now=()=>time+3840000;assert.equal((await s.call('eligible')).reason,'FAMILY_PHASE_INVOCATION_DRAIN_WINDOW');
   s.dependencies.now=()=>time+4080000;assert.equal((await s.call('eligible')).state,'EXECUTED_VERIFIED');assert.equal(s.counts().writes,1);
 });
-const finalizerEvent={action:'MINT_INSTALLATION_TOKEN',repository,repository_id:'123',pull_request:42,base_sha:sha('c'),head_sha:sha('b'),authorization_generation:'finalizer-generation-1'};
+const finalizerEvent={action:'MINT_INSTALLATION_TOKEN',repository,repository_id:'123',pull_request:42,base_sha:sha('c'),head_sha:sha('b'),authorization_generation:'finalizer-generation-1',nonce_digest:'sha256:'+'a'.repeat(64),run_id:'101',run_attempt:1};
+const finalizerIdentity={caller_class:'FINALIZER',run_id:'101',source_sha:sha('c')};
 test('Finalizer token handoff shares the lifecycle fence and never reissues a lost token',async()=>{
-  const s=setup();const results=await Promise.all(Array.from({length:12},(_,i)=>brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:`finalizer-${i}`})));
+  const s=setup();const results=await Promise.all(Array.from({length:12},(_,i)=>brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:`finalizer-${i}`})));
   assert.equal(results.filter(r=>r.ok).length,1);assert.equal(s.counts().mints,1);
   const handoff=results.find(r=>r.ok).protected_handoff;
   assert.equal(handoff.state,'TOKEN_ISSUED_NOT_LANDING_SUCCESS');assert.doesNotMatch(JSON.stringify(handoff),/PRIVATE_(WRITE|READ)_TOKEN/);
   assert.equal((await s.call('later-lifecycle')).state,'HOLD_RECONCILE');assert.deepEqual(s.counts(),{writes:0,mints:1});
-  assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:'replacement'})).state,'HOLD_RECONCILE');assert.equal(s.counts().mints,1);
+  assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'replacement'})).state,'HOLD_RECONCILE');assert.equal(s.counts().mints,1);
 });
 test('Finalizer cannot obtain a write token while lifecycle outcome is UNKNOWN',async()=>{
   const s=setup({lost:true});await assert.rejects(s.call());
-  const result=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:'finalizer'});
+  const result=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'finalizer'});
   assert.equal(result.state,'HOLD_RECONCILE');assert.deepEqual(s.counts(),{writes:1,mints:1});
 });
 
 test('Finalizer and lifecycle share the drain without claiming a writer before readiness',async()=>{
   const s=setup();s.rows.clear();
   const first=await observeLifecycleCutover(s.dependencies);
-  const held=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:'early'});
+  const held=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'early'});
   assert.equal(held.reason,'LEGACY_TOKEN_DRAIN_WINDOW');assert.equal(held.not_before,first.not_before);
   assert.equal((await s.call()).not_before,first.not_before);
   assert.deepEqual(s.counts(),{writes:0,mints:0});assert.equal(s.rows.size,1);
   s.dependencies.now=()=>time+3840000;
+  const priorMint=s.dependencies.mint; s.dependencies.mint=async()=>({...await priorMint(),expires_at:new Date(s.dependencies.now()+3600000).toISOString()});
   assert.equal((await observeLifecycleCutover(s.dependencies)).state,'CUTOVER_READY');
-  assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,owner:'ready'})).ok,true);
+  assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'ready'})).ok,true);
   assert.deepEqual(s.counts(),{writes:0,mints:1});
 });
 
@@ -360,4 +363,116 @@ for(const corruption of ['schema','owner','binding'])test(`malformed orphan ${co
   if(corruption==='binding')family.binding.payload_sha256=`sha256:${'0'.repeat(64)}`;
   assert.equal((await s.call('replacement',driftInput(s))).state,'HOLD_RECONCILE');
   assert.deepEqual(s.counts(),{writes:0,mints:0});
+});
+
+test('protected token expiry is signed, durable and only a read-only recovery prerequisite',async()=>{
+ const s=setup();const result=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'});
+ const receipt=result.protected_handoff;
+ const familyRow=[...s.rows.values()].find(r=>r.schema==='FINALIZER_TOKEN_FENCE_V2');
+ const operationRow=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+ const input={receipt,familyRow,operationRow,publicKey:crypto.createPublicKey(key),now:time+3600000};
+ assert.equal(classifyFinalizerTokenDrain(input).reason,'FINALIZER_TOKEN_DRAIN_WAIT');
+ const drained=classifyFinalizerTokenDrain({...input,now:time+3660000});
+ assert.equal(drained.state,'TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY');
+ assert.equal(drained.recovery_authority,false);assert.equal(drained.mutation_attempted,false);
+ assert.deepEqual(drained.original_execution,{run_id:'101',run_attempt:1,source_sha:sha('c'),authorization_generation:'finalizer-generation-1',nonce_digest:'sha256:'+'a'.repeat(64)});
+ for(const mutate of [
+  r=>r.token_expires_at=new Date(time+900000).toISOString(),
+  r=>r.original_execution.run_id='999',r=>r.original_execution.nonce_digest='sha256:'+'b'.repeat(64),
+  r=>r.signature='forged',r=>r.drain_not_before=0,
+ ]) {
+  const forged=structuredClone(receipt);mutate(forged);
+  assert.equal(classifyFinalizerTokenDrain({...input,receipt:forged,now:time+3660000}).state,'HOLD_RECONCILE');
+ }
+ assert.equal(classifyFinalizerTokenDrain({...input,operationRow:{...operationRow,state:'UNKNOWN'},now:time+3660000}).state,'HOLD_RECONCILE');
+ assert.equal(classifyFinalizerTokenDrain({...input,familyRow:{...familyRow,owner:'replacement'},now:time+3660000}).state,'HOLD_RECONCILE');
+ assert.equal(classifyFinalizerTokenDrain({...input,familyRow:{...familyRow,schema:undefined},now:time+3660000}).reason,'LEGACY_FINALIZER_TOKEN_EXPIRY_UNBOUND');
+ assert.equal(s.counts().mints,1);
+});
+for(const mutate of [e=>e.run_id='102',e=>e.run_attempt=2,e=>delete e.nonce_digest,e=>e.nonce_digest='invalid'])
+test('finalizer handoff rejects caller-selected execution binding before mint',async()=>{
+ const s=setup(),e=structuredClone(finalizerEvent);mutate(e);
+ await assert.rejects(brokerMintFinalizer({...s.dependencies,event:e,callerIdentity:finalizerIdentity,owner:'claim'}),/FINALIZER_INPUT/);
+ assert.equal(s.counts().mints,0);
+});
+for(const expires_at of [undefined,'invalid',new Date(time+1000).toISOString(),new Date(time+4000000).toISOString()])
+test('missing or unbounded minted expiry never produces an authenticated success',async()=>{
+ const s=setup();s.dependencies.mint=async()=>({ok:true,token:'PRIVATE_WRITE_TOKEN',expires_at});
+ await assert.rejects(brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'claim'}),/FINALIZER_TOKEN_EXPIRY_UNBOUND/);
+ const row=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+ assert.equal(row.state,'UNKNOWN');
+ assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'replacement'})).state,'HOLD_RECONCILE');
+});
+
+test('mint that returns after the protected invocation deadline remains UNKNOWN without replay',async()=>{
+ const s=setup();let clock=time;s.dependencies.now=()=>clock;
+ s.dependencies.mint=async()=>{clock=time+180001;return {ok:true,token:'PRIVATE_WRITE_TOKEN',expires_at:new Date(time+3600000).toISOString()};};
+ await assert.rejects(brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'}),/FINALIZER_TOKEN_EXPIRY_UNBOUND/);
+ const row=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+ assert.equal(row.state,'UNKNOWN');
+ assert.equal((await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'replacement'})).state,'HOLD_RECONCILE');
+});
+test('paused pre-mint invocation cannot mint after its durable deadline',async()=>{
+ const s=setup();let clock=time;s.dependencies.now=()=>clock;
+ s.dependencies.getPrivateKey=async()=>{clock=time+180001;return key;};
+ await assert.rejects(brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'}),/FINALIZER_MINT_WINDOW_EXPIRED/);
+ assert.equal(s.counts().mints,0);
+});
+test('event-provided identity is never substituted for protected handler identity',async()=>{
+ const s=setup();const e={...finalizerEvent,callerIdentity:finalizerIdentity};
+ await assert.rejects(brokerMintFinalizer({...s.dependencies,event:e,owner:'original'}),/FINALIZER_INPUT/);
+ assert.equal(s.counts().mints,0);
+});
+test('a missing operation success receipt cannot prove drained tokens',async()=>{
+ const s=setup();const r=await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'});
+ const familyRow=[...s.rows.values()].find(r=>r.schema==='FINALIZER_TOKEN_FENCE_V2');
+ const operationRow=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+ delete operationRow.receipt;
+ assert.equal(classifyFinalizerTokenDrain({receipt:r.protected_handoff,familyRow,operationRow,publicKey:crypto.createPublicKey(key),now:time+3660000}).state,'HOLD_RECONCILE');
+});
+
+async function recoveryContextSetup({merged=true}={}) {
+ const s=setup();await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'});
+ const current=sha(merged?'d':'c');
+ const input={action:'READ_FINALIZER_RECOVERY_CONTEXT',repository,repository_id:'123',pull_request:42,head_sha:sha('b'),base_sha:current,run_id:'202',run_attempt:1};
+ const native={run:{id:101,run_attempt:1,head_sha:sha('c'),head_branch:'main',repository:{full_name:repository,id:123},
+   path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',event:'repository_dispatch',status:'completed',conclusion:'failure',updated_at:new Date(time+1000).toISOString()},
+   pr:{number:42,state:merged?'closed':'open',merged,merge_commit_sha:merged?current:null,
+     head:{sha:sha('b'),repo:{full_name:repository}},base:{ref:'main',sha:sha('c'),repo:{full_name:repository}}},
+   main:{name:'main',protected:true,commit:{sha:current}},
+   head:{sha:sha('b'),tree:{sha:sha('f')}},merge:{sha:sha('d'),tree:{sha:sha('f')},parents:[{sha:sha('c')},{sha:sha('b')}]}};
+ let reads=0,readMints=0;const ledgerRequest=s.dependencies.ledgerRequest;
+ const deps={...s.dependencies,now:()=>time+3660000,ledgerRequest:async(op,p)=>{assert.equal(op,'Get');assert.equal(p.ConsistentRead,true);return ledgerRequest(op,p);},
+   mint:async()=>{readMints++;return {ok:true,token:'PRIVATE_READ_TOKEN'};},request:async(url,options)=>{
+     assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,'Bearer PRIVATE_READ_TOKEN');reads++;
+     const route=url.split(`/repos/${repository}`)[1];
+     const name=route==='/actions/runs/101'?'run':route==='/pulls/42'?'pr':route==='/branches/main'?'main':route.endsWith(sha('b'))?'head':route.endsWith(sha('d'))?'merge':null;
+     assert.ok(name);return {ok:true,json:async()=>structuredClone(native[name])};
+   }};
+ const identity={caller_class:'FINALIZER',run_id:'202',source_sha:current};
+ return {s,input,native,deps,counts:()=>({reads,readMints}),call:()=>brokerReadFinalizerRecoveryContext({...deps,event:input,callerIdentity:identity})};
+}
+test('generic recovery context authenticates original token drain and native merge graph with GET only',async()=>{
+ const r=await recoveryContextSetup();const before=JSON.stringify([...r.s.rows]);const result=await r.call();
+ assert.equal(result.receipt.state,'POSTMERGE_RECONCILIATION_CONTEXT_ONLY');assert.equal(result.receipt.recovery_authority,false);
+ assert.equal(result.receipt.original_execution.run_id,'101');assert.deepEqual(result.receipt.merge.ordered_parents,[sha('c'),sha('b')]);
+ assert.equal(before,JSON.stringify([...r.s.rows]));assert.deepEqual(r.counts(),{reads:6,readMints:1});
+ const {signature,...signed}=result.receipt;assert.equal(crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(signed)),crypto.createPublicKey(key),Buffer.from(signature,'base64')),true);
+ assert.doesNotMatch(JSON.stringify(result),/PRIVATE_(WRITE|READ)_TOKEN/);
+});
+test('unmerged context explicitly withholds mutation/recovery authority',async()=>{
+ const r=await recoveryContextSetup({merged:false});const result=await r.call();
+ assert.equal(result.receipt.state,'UNMERGED_REQUIRES_PROTECTED_RECOVERY_PROTOCOL');assert.equal(result.receipt.merge,null);
+ assert.equal(result.receipt.recovery_authority,false);assert.equal(result.receipt.mutation_attempted,false);
+});
+for(const corrupt of [r=>r.native.run.status='in_progress',r=>r.native.run.run_attempt=2,r=>r.native.run.event='workflow_dispatch',
+ r=>r.native.run.head_sha=sha('e'),r=>r.native.main.commit.sha=sha('e'),r=>r.native.main.protected=false,
+ r=>r.native.pr.head.sha=sha('e'),r=>r.native.merge.parents.reverse(),r=>r.native.merge.tree.sha=sha('e')])
+test('recovery context rejects native execution/tuple/merge drift without granting authority',async()=>{
+ const r=await recoveryContextSetup();corrupt(r);const result=await r.call();assert.equal(result.state,'HOLD_RECONCILE');assert.equal(result.recovery_authority,false);
+});
+for(const corrupt of [r=>r.deps.now=()=>time+3600000,r=>[...r.s.rows.values()].find(x=>x.schema==='FINALIZER_TOKEN_FENCE_V2').schema='LEGACY',
+ r=>[...r.s.rows.values()].find(x=>x.pk.startsWith('RESUME_OPERATION_V1#')).state='UNKNOWN',r=>r.input.pull_request=1677])
+test('undrained/legacy/UNKNOWN/quarantined work cannot even mint the narrow reader',async()=>{
+ const r=await recoveryContextSetup();corrupt(r);assert.equal((await r.call()).state,'HOLD_RECONCILE');assert.deepEqual(r.counts(),{reads:0,readMints:0});
 });

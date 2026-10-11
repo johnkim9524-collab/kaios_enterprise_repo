@@ -1,0 +1,8 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {atomicOriginalFixture} from './atomic-original-terminal-fixture-v1.mjs';
+import {consumeOriginalTerminalAtomically} from '../../../scripts/kidults/kpmo/lib/atomic-original-terminal-consumption-v1.mjs';
+const response=t=>({ok:true,...t.durable_reservation.remote_binding,...t.durable_reservation.ledger_key,terminal:t,terminal_digest:t.receipt_digest});
+test('terminal is prepared and included in the single original consumption RPC',()=>{const f=atomicOriginalFixture(),calls=[];const t=consumeOriginalTerminalAtomically({...f,invoke:p=>{calls.push(p);return response(p.terminal);}});assert.deepEqual(t,f.terminal);assert.equal(calls.length,1);assert.deepEqual(calls[0].terminal,f.terminal);});
+test('lost consume reply only reads the exact persisted body, never consumes again',()=>{const f=atomicOriginalFixture(),calls=[];const t=consumeOriginalTerminalAtomically({...f,invoke:p=>{calls.push(p.action);if(p.action==='CONSUME_RESERVATION')throw Error('lost');return response(p.terminal);}});assert.deepEqual(t,f.terminal);assert.deepEqual(calls,['CONSUME_RESERVATION','READ_ORIGINAL_CONSUMED_TERMINAL']);});
+for(const [name,mutate] of [['foreign tuple',r=>r.run_id='101'],['wrong terminal digest',r=>r.terminal_digest='sha256:'+'f'.repeat(64)],['different stored body',r=>r.terminal={...r.terminal,created_at:'2026-10-11T00:02:00.000Z'}],['legacy contract',r=>r.contract_version='2.0.0']])test('atomic original refuses '+name,()=>{const f=atomicOriginalFixture();assert.throws(()=>consumeOriginalTerminalAtomically({...f,invoke:p=>{const r=response(p.terminal);mutate(r);return r;}}));});

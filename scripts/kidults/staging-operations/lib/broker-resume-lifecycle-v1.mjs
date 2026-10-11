@@ -7,6 +7,117 @@ const sha=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x);
 const fail=code=>{throw new Error(`RESUME_LIFECYCLE_DENIED:${code}`);};
 const profiles={STALE_BASE_CONVERGENCE:'AUTONOMOUS_STALE_BASE_CONVERGENCE',REDUNDANT_PR_HYGIENE:'AUTONOMOUS_REDUNDANT_PR_HYGIENE'};
 
+// Protected read-only recovery prerequisite. The public key and both rows must
+// come from the broker's own key/consistent ledger reads, never event claims.
+// Expiry proves only token quiescence; it grants no lease, merge, reservation
+// transfer or terminal authority. Legacy/UNKNOWN handoffs remain unresolved.
+export function classifyFinalizerTokenDrain({receipt,familyRow,operationRow,publicKey,now=Date.now()}) {
+  const held=reason=>({state:'HOLD_RECONCILE',reason,mutation_attempted:false,recovery_authority:false});
+  if(familyRow?.schema!=='FINALIZER_TOKEN_FENCE_V2'||receipt?.contract_version!=='2.0.0')
+    return held('LEGACY_FINALIZER_TOKEN_EXPIRY_UNBOUND');
+  let boundKey;
+  try {boundKey=operationKey(receipt.binding);} catch {return held('FINALIZER_TOKEN_DRAIN_BINDING_INVALID');}
+  if(!Number.isSafeInteger(now)||operationRow?.state!=='SUCCESS'||familyRow.state!=='IN_FLIGHT'
+    ||operationRow.owner!==familyRow.owner||!operationRow.receipt||canonicalJson(operationRow.receipt)!==canonicalJson(receipt)
+    ||receipt.id!=='kidults-broker-finalizer-token-handoff-v1'||receipt.state!=='TOKEN_ISSUED_NOT_LANDING_SUCCESS'
+    ||receipt.binding?.operation_kind!=='FINALIZER_TOKEN_HANDOFF'||boundKey!==receipt.key
+    ||familyRow.operation_key!==receipt.key||canonicalJson(operationRow.binding)!==canonicalJson(receipt.binding)
+    ||canonicalJson(familyRow.binding)!==canonicalJson(receipt.binding)
+    ||canonicalJson(familyRow.original_execution)!==canonicalJson(receipt.original_execution))
+    return held('FINALIZER_TOKEN_DRAIN_BINDING_INVALID');
+  const e=receipt.original_execution,started=receipt.mint_started_at,expires=Date.parse(receipt.token_expires_at);
+  if(!Number.isSafeInteger(started)||started<1||!Number.isSafeInteger(expires)||expires<started+900000
+    ||familyRow.mint_started_at!==started||familyRow.mint_not_after!==started+180000
+    ||familyRow.token_not_after!==started+3840000||receipt.token_not_after!==familyRow.token_not_after
+    ||expires>receipt.token_not_after||receipt.drain_not_before!==expires+60000
+    ||familyRow.drain_not_before!==familyRow.token_not_after+60000
+    ||! /^[1-9][0-9]{0,15}$/.test(e?.run_id||'')||e?.run_attempt!==1||!sha(e?.source_sha)
+    ||! /^[A-Za-z0-9_.:-]{12,160}$/.test(e?.authorization_generation||'')
+    ||! /^sha256:[a-f0-9]{64}$/.test(e?.nonce_digest||''))return held('FINALIZER_TOKEN_DRAIN_TIME_INVALID');
+  const {signature,...signed}=receipt;
+  try {
+    if(typeof signature!=='string'||receipt.key_fingerprint!==sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'))
+      ||!crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(signed)),publicKey,Buffer.from(signature,'base64')))
+      return held('FINALIZER_TOKEN_DRAIN_SIGNATURE_INVALID');
+  } catch {return held('FINALIZER_TOKEN_DRAIN_SIGNATURE_INVALID');}
+  if(now<receipt.drain_not_before)return held('FINALIZER_TOKEN_DRAIN_WAIT');
+  return {state:'TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY',original_execution:e,
+    token_expires_at:receipt.token_expires_at,mutation_attempted:false,recovery_authority:false};
+}
+
+// Protected read-only reconciliation endpoint. All original execution facts
+// come from consistent broker ledger reads, and run/PR/graph facts come from
+// native GETs. This never transfers a reservation or issues a mutation token.
+export async function brokerReadFinalizerRecoveryContext({event,config,ledgerRequest,getPrivateKey,mint,request,callerIdentity,now=()=>Date.now()}) {
+  const held=reason=>({ok:false,state:'HOLD_RECONCILE',reason,mutation_attempted:false,recovery_authority:false});
+  if(event?.action!=='READ_FINALIZER_RECOVERY_CONTEXT'||event.repository!==config.repository
+    ||String(event.repository_id)!==String(config.repositoryId)||!config.operationTable
+    ||!Number.isSafeInteger(event.pull_request)||event.pull_request<1||!sha(event.head_sha)||!sha(event.base_sha)
+    ||event.head_sha===event.base_sha||! /^[1-9][0-9]{0,15}$/.test(String(event.run_id))||event.run_attempt!==1
+    ||callerIdentity?.caller_class!=='FINALIZER'||callerIdentity.run_id!==String(event.run_id)
+    ||callerIdentity.source_sha!==event.base_sha)fail('RECOVERY_CONTEXT_INPUT');
+  if(event.pull_request===1677)return held('QUARANTINED_UNKNOWN_OPERATION');
+  const family=sha256(canonicalJson({repository:config.repository,pull_request:event.pull_request,expected_head_sha:event.head_sha}));
+  const familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:{pk:`RESUME_TUPLE_V1#${family}`,sk:'OPERATION'},ConsistentRead:true})).Item;
+  if(!familyRow)return held('ORIGINAL_FINALIZER_FAMILY_MISSING');
+  if(familyRow.schema!=='FINALIZER_TOKEN_FENCE_V2')return held('LEGACY_FINALIZER_TOKEN_EXPIRY_UNBOUND');
+  const ledger=new DynamoDBOperationLedger({request:ledgerRequest,table:config.operationTable,repository:config.repository});
+  const operationRow=await ledger.read(familyRow.operation_key);
+  const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey);
+  const drain=classifyFinalizerTokenDrain({receipt:operationRow?.receipt,familyRow,operationRow,publicKey,now:now()});
+  if(drain.state!=='TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY')return held(drain.reason);
+  const e=drain.original_execution,expectedTarget=`${event.pull_request}:${e.source_sha}:${event.head_sha}`;
+  if(operationRow.binding.repository!==config.repository||operationRow.binding.exact_target!==expectedTarget
+    ||e.run_id===String(event.run_id))return held('ORIGINAL_EXECUTION_TARGET_MISMATCH');
+  // Mint only the narrow read token through the handler's explicit readOnly
+  // capability; no token is returned or persisted by this endpoint.
+  const reader=await mint({action:'MINT_INSTALLATION_TOKEN',repository:config.repository,repository_id:String(config.repositoryId),
+    pull_request:event.pull_request,base_sha:e.source_sha,head_sha:event.head_sha,authorization_generation:'finalizer-recovery-context-read'});
+  if(reader.ok!==true||typeof reader.token!=='string')fail('RECOVERY_CONTEXT_READER');
+  const get=async route=>{
+    const response=await request(`https://api.github.com/repos/${config.repository}${route}`,{method:'GET',redirect:'error',signal:AbortSignal.timeout(10000),
+      headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${reader.token}`,'X-GitHub-Api-Version':'2022-11-28'}});
+    if(!response.ok||response.redirected)fail('RECOVERY_CONTEXT_NATIVE_READ');
+    return response.json();
+  };
+  const [run,pr,main,head]=await Promise.all([get(`/actions/runs/${e.run_id}`),get(`/pulls/${event.pull_request}`),get('/branches/main'),get(`/git/commits/${event.head_sha}`)]);
+  const finalizerPaths=['track','kpmo','independent-verification'].map(role=>`.github/workflows/kidults-autonomous-${role}-authorization-v1.yml`);
+  if(String(run.id)!==e.run_id||run.run_attempt!==1||run.head_sha!==e.source_sha||run.head_branch!=='main'
+    ||run.repository?.full_name!==config.repository||String(run.repository?.id)!==String(config.repositoryId)
+    ||!finalizerPaths.includes(run.path)||run.event!=='repository_dispatch'||run.status!=='completed'
+    ||!['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale'].includes(run.conclusion)
+    ||!Number.isFinite(Date.parse(run.completed_at||run.updated_at))||Date.parse(run.completed_at||run.updated_at)>now())
+    return held('ORIGINAL_NATIVE_FINALIZER_NOT_TERMINAL');
+  if(main.name!=='main'||main.protected!==true||main.commit?.sha!==event.base_sha||pr.number!==event.pull_request
+    ||pr.head?.sha!==event.head_sha||pr.base?.ref!=='main'||pr.base?.repo?.full_name!==config.repository
+    ||pr.head?.repo?.full_name!==config.repository||head.sha!==event.head_sha||!sha(head.tree?.sha))return held('RECOVERY_CONTEXT_LIVE_TUPLE_DRIFT');
+  let merge=null;
+  if(pr.merged===true){
+    if(pr.state!=='closed'||!sha(pr.merge_commit_sha))return held('RECOVERY_CONTEXT_MERGE_NOT_CURRENT_MAIN');
+    if(pr.merge_commit_sha!==event.base_sha){
+      const comparison=await get(`/compare/${pr.merge_commit_sha}...${event.base_sha}?per_page=1&page=2`);
+      if(comparison.status!=='ahead'||comparison.behind_by!==0||comparison.base_commit?.sha!==pr.merge_commit_sha
+        ||comparison.merge_base_commit?.sha!==pr.merge_commit_sha)return held('RECOVERY_CONTEXT_MERGE_NOT_ANCESTOR');
+    }
+    const commit=await get(`/git/commits/${pr.merge_commit_sha}`);
+    if(commit.sha!==pr.merge_commit_sha||commit.tree?.sha!==head.tree.sha
+      ||canonicalJson(commit.parents?.map(p=>p.sha))!==canonicalJson([e.source_sha,event.head_sha]))return held('RECOVERY_CONTEXT_MERGE_GRAPH_MISMATCH');
+    merge={merge_sha:commit.sha,tree_sha:commit.tree.sha,ordered_parents:commit.parents.map(p=>p.sha)};
+  } else if(pr.state!=='open'||pr.base?.sha!==e.source_sha||event.base_sha!==e.source_sha)return held('RECOVERY_CONTEXT_UNMERGED_TUPLE_DRIFT');
+  const reread=await get('/branches/main');
+  if(reread.name!=='main'||reread.protected!==true||reread.commit?.sha!==event.base_sha)return held('RECOVERY_CONTEXT_MAIN_CHANGED');
+  const observed=now();
+  const signed={id:'kidults-finalizer-recovery-context-v1',version:'1.0.0',state:merge?'POSTMERGE_RECONCILIATION_CONTEXT_ONLY':'UNMERGED_REQUIRES_PROTECTED_RECOVERY_PROTOCOL',
+    repository:config.repository,repository_id:String(config.repositoryId),pull_request:event.pull_request,source_sha:event.base_sha,
+    original_execution:e,original_handoff_key:operationRow.receipt.key,original_handoff_digest:sha256(canonicalJson(operationRow.receipt)),
+    head_sha:event.head_sha,head_tree_sha:head.tree.sha,merge,token_drain:drain.state,
+    native_original_run:{id:e.run_id,run_attempt:1,path:run.path,event:run.event,head_sha:run.head_sha,status:run.status,conclusion:run.conclusion},
+    observed_at:new Date(observed).toISOString(),expires_at:new Date(observed+300000).toISOString(),
+    mutation_attempted:false,recovery_authority:false,production:'HOLD',public:'HOLD',g5:'HOLD',
+    key_fingerprint:sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'))};
+  return {ok:true,receipt:{...signed,signature:crypto.sign('RSA-SHA256',Buffer.from(canonicalJson(signed)),privateKey).toString('base64')}};
+}
+
 export async function observeLifecycleCutover({config,ledgerRequest,now=()=>Date.now()}) {
   if(!config.operationTable)fail('CUTOVER_TABLE');
   const cutoverKey={pk:'RESUME_TUPLE_V1#LIFECYCLE_CUTOVER_V1',sk:'OPERATION'};
@@ -304,28 +415,43 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
 // Finalizer tokens retain their existing permissions, but the token handoff
 // shares the PR/head family fence with update and close. A reservation follower
 // must exit before calling this adapter. Issued tokens are not stored/replayed.
-export async function brokerMintFinalizer({event,config,ledgerRequest,getPrivateKey,mint,owner,now=()=>Date.now()}){
+export async function brokerMintFinalizer({event,config,ledgerRequest,getPrivateKey,mint,owner,callerIdentity,now=()=>Date.now()}){
   if(event?.action!=='MINT_INSTALLATION_TOKEN'||event.repository!==config.repository||String(event.repository_id)!==String(config.repositoryId)
     ||!Number.isSafeInteger(Number(event.pull_request))||Number(event.pull_request)<1||!sha(event.base_sha)||!sha(event.head_sha)
     ||event.base_sha===event.head_sha||!config.operationTable||!owner
+    ||! /^[1-9][0-9]{0,15}$/.test(String(event.run_id))||event.run_attempt!==1
+    ||! /^[A-Za-z0-9_.:-]{12,160}$/.test(event.authorization_generation||'')
+    ||! /^sha256:[a-f0-9]{64}$/.test(event.nonce_digest||'')
+    ||callerIdentity?.caller_class!=='FINALIZER'||callerIdentity.run_id!==String(event.run_id)
+    ||callerIdentity.source_sha!==event.base_sha
     ||(event.permission_profile&&event.permission_profile!=='AUTONOMOUS_EVENT_DISPATCH'))fail('FINALIZER_INPUT');
   const cutover=await observeLifecycleCutover({config,ledgerRequest,now});
   if(!cutover.ok)return cutover;
   const binding={repository:config.repository,root_mission_id:'KIDULTS-AUTONOMOUS-LIFECYCLE',stage_id:`finalizer-token:${event.pull_request}`,
     operation_kind:'FINALIZER_TOKEN_HANDOFF',exact_target:`${event.pull_request}:${event.base_sha}:${event.head_sha}`,
-    payload_sha256:sha256(canonicalJson({permission_profile:'AUTONOMOUS_EVENT_DISPATCH',permissions:['contents:write','pull_requests:write']}))};
+    payload_sha256:sha256(canonicalJson({permission_profile:'AUTONOMOUS_EVENT_DISPATCH',permissions:['contents:write','pull_requests:write'],
+      authorization_generation:event.authorization_generation,nonce_digest:event.nonce_digest,run_id:String(event.run_id),run_attempt:1}))};
   const key=operationKey(binding),family=sha256(canonicalJson({repository:config.repository,pull_request:Number(event.pull_request),expected_head_sha:event.head_sha}));
   const familyKey={pk:`RESUME_TUPLE_V1#${family}`,sk:'OPERATION'};
   const ledger=new DynamoDBOperationLedger({request:ledgerRequest,table:config.operationTable,repository:config.repository});
   const current=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
   if(current)return {ok:false,state:'HOLD_RECONCILE',reason:'PR_HEAD_ALREADY_OWNED',key:current.operation_key};
-  try{await ledgerRequest('Put',{TableName:config.operationTable,Item:{...familyKey,operation_key:key,owner,state:'IN_FLIGHT'},ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
+  const mintStartedAt=now(),mintNotAfter=mintStartedAt+180000,tokenNotAfter=mintNotAfter+3660000;
+  const originalExecution={run_id:String(event.run_id),run_attempt:1,source_sha:event.base_sha,
+    authorization_generation:event.authorization_generation,nonce_digest:event.nonce_digest};
+  try{await ledgerRequest('Put',{TableName:config.operationTable,Item:{...familyKey,operation_key:key,owner,state:'IN_FLIGHT',
+    schema:'FINALIZER_TOKEN_FENCE_V2',binding,original_execution:originalExecution,
+    mint_started_at:mintStartedAt,mint_not_after:mintNotAfter,token_not_after:tokenNotAfter,
+    drain_not_before:tokenNotAfter+60000},ConditionExpression:'attribute_not_exists(pk) AND attribute_not_exists(sk)'});}
   catch(error){if(error?.name!=='ConditionalCheckFailedException')throw error;return {ok:false,state:'HOLD_RECONCILE',reason:'PR_HEAD_CONCURRENT_WRITER'};}
   const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey);
   const fingerprint=sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'));
   const verify=async receipt=>{
     if(receipt?.id!=='kidults-broker-finalizer-token-handoff-v1'||receipt.key!==key||receipt.state!=='TOKEN_ISSUED_NOT_LANDING_SUCCESS'
-      ||receipt.key_fingerprint!==fingerprint||canonicalJson(receipt.binding)!==canonicalJson(binding))return false;
+      ||receipt.key_fingerprint!==fingerprint||canonicalJson(receipt.binding)!==canonicalJson(binding)
+      ||receipt.contract_version!=='2.0.0'||canonicalJson(receipt.original_execution)!==canonicalJson(originalExecution)
+      ||receipt.mint_started_at!==mintStartedAt||receipt.token_not_after!==tokenNotAfter
+      ||!Number.isFinite(Date.parse(receipt.token_expires_at))||Date.parse(receipt.token_expires_at)>tokenNotAfter)return false;
     const {signature,...signed}=receipt;
     return typeof signature==='string'&&crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(signed)),publicKey,Buffer.from(signature,'base64'));
   };
@@ -334,9 +460,15 @@ export async function brokerMintFinalizer({event,config,ledgerRequest,getPrivate
     const row=await ledger.read(key);if(!row||row.state==='IN_FLIGHT'&&row.owner===owner)return {state:'ABSENT'};
     return row.state==='SUCCESS'?{state:'SUCCESS',receipt:row.receipt}:{state:'UNKNOWN'};
   },verifyReceipt:verify,authorize:async()=>true,execute:async()=>{
+    if(now()>mintNotAfter)fail('FINALIZER_MINT_WINDOW_EXPIRED');
     minted=await mint(event);
     if(minted.ok!==true||typeof minted.token!=='string')fail('FINALIZER_TOKEN_DENIED');
+    const expiresAt=Date.parse(minted.expires_at);
+    if(now()>mintNotAfter||!Number.isFinite(expiresAt)||expiresAt<now()+900000||expiresAt>tokenNotAfter)
+      fail('FINALIZER_TOKEN_EXPIRY_UNBOUND');
     const signed={id:'kidults-broker-finalizer-token-handoff-v1',state:'TOKEN_ISSUED_NOT_LANDING_SUCCESS',key,binding,key_fingerprint:fingerprint,
+      contract_version:'2.0.0',original_execution:originalExecution,mint_started_at:mintStartedAt,
+      token_expires_at:minted.expires_at,token_not_after:tokenNotAfter,drain_not_before:expiresAt+60000,
       observed_at:new Date(now()).toISOString(),production:'HOLD',public:'HOLD',g5:'HOLD'};
     return {...signed,signature:crypto.sign('RSA-SHA256',Buffer.from(canonicalJson(signed)),privateKey).toString('base64')};
   }});

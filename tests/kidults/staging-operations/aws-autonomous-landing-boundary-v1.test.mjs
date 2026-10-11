@@ -78,15 +78,16 @@ test('finalizer reservation is a single-winner lease and followers exit without 
   assert.match(code,/ConditionExpression='#s = :reserved AND run_id = :run AND head_sha = :head'/);
 });
 
-test('normal-ops finalization is verifier-only, writer-bound, and bounded', () => {
+test('normal-ops finalization is quorum-and-reservation elected, writer-bound, and bounded', () => {
   const recovery=landingPolicy.bounded_recovery.normal_ops_finalizer;
-  assert.equal(recovery.elected_workflow,'KIDULTS Autonomous Independent Verification V1');
-  assert.equal(recovery.track_kpmo_finalizer_behavior,'SUCCESSFUL_NON_MERGING_FOLLOWER');
+  assert.equal(recovery.election_mode,'ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM');
+  assert.equal(recovery.allowed_workflows.length,3);
+  assert.equal(recovery.losing_finalizer_behavior,'SUCCESSFUL_NON_MERGING_RESERVATION_FOLLOWER');
   assert.equal(recovery.writer_policy_rejection_retry,false);
   assert.equal(recovery.persistent_writer_failure,'FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL');
   assert.match(runner,/finalizer_quorum_wait_seconds\|\|90/);
-  assert.match(runner,/state:'FINALIZER_ROLE_FOLLOWER'/);
-  assert.match(runner,/required\('GITHUB_WORKFLOW'\)!==electedWorkflow/);
+  assert.match(runner,/assertFinalizerElection/);
+  assert.match(runner,/assertFinalizerElection\(\{policy,workflow:required\('GITHUB_WORKFLOW'\)\}\)/);
   assert.match(runner,/writer_retry_attempts\|\|3/);
   assert.match(runner,/error\.code!==?'?AUTONOMOUS_LEDGER_WRITER_FAILURE'?/);
   assert.doesNotMatch(runner,/RECOVERY_VERIFIER_ELECTED|GITHUB_EXACT_HEAD_FAILOVER|primary_writer_failure/);

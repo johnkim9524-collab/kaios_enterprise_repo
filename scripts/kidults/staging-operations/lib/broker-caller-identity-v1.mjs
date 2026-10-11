@@ -5,7 +5,7 @@ const paths=['kidults-autonomous-track-authorization-v1.yml','kidults-autonomous
 const fail=code=>{throw new Error(`BROKER_CALLER_IDENTITY_DENIED:${code}`);};
 // Identity is verified independently of caller-selected profiles or AWS session
 // names. JWT/JWKS content and credentials never enter a receipt or error.
-export async function verifyBrokerCallerIdentity({token,repository,repositoryId,sourceSha,callerClass,runId,request,nativeRequest=request,now=()=>Date.now()}){
+export async function verifyBrokerCallerIdentity({token,repository,repositoryId,sourceSha,callerClass,runId,readOnlyRecovery=false,request,nativeRequest=request,now=()=>Date.now()}){
   if(typeof token!=='string'||token.length>16384||! /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)
     ||!['FINALIZER','DISPATCHER'].includes(callerClass)||! /^[a-f0-9]{40}$/.test(sourceSha||''))fail('INPUT');
   const parts=token.split('.');let header,claims;
@@ -37,6 +37,6 @@ export async function verifyBrokerCallerIdentity({token,repository,repositoryId,
   if(run.id!==Number(claims.run_id)||run.run_attempt!==1||run.repository?.full_name!==repository||String(run.repository?.id)!==String(repositoryId)
     ||run.head_repository?.full_name!==repository||run.head_branch!=='main'||run.head_sha!==sourceSha||run.path!==workflowPath
     ||!['in_progress','queued','pending','waiting'].includes(run.status)
-    ||!(callerClass==='FINALIZER'?['repository_dispatch','workflow_dispatch']:['schedule','workflow_run','workflow_dispatch']).includes(run.event))fail('NATIVE_RUN');
+    ||!(callerClass==='FINALIZER'?(readOnlyRecovery?['repository_dispatch','workflow_run']:['repository_dispatch','workflow_dispatch']):['schedule','workflow_run','workflow_dispatch']).includes(run.event))fail('NATIVE_RUN');
   return {caller_class:callerClass,run_id:String(run.id),source_sha:sourceSha};
 }

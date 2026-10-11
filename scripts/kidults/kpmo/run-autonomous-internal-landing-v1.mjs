@@ -12,7 +12,6 @@ import {
   validateQuorum,
   validateRecoveryGeneration,
   validateDraftReadyRebind,
-  buildTerminalReceipt,
   collectPaginatedApiValues,
   validateLiveChangedPaths,
 } from './lib/autonomous-internal-landing-v1.mjs';
@@ -23,6 +22,8 @@ import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequi
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
+import {consumeOriginalTerminalAtomically} from './lib/atomic-original-terminal-consumption-v1.mjs';
+import {assertFinalizerElection} from './lib/autonomous-finalizer-election-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -147,7 +148,7 @@ const graphql = async (query, variables, mutationToken) => {
   }
   return payload.data;
 };
-const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env,stdio:['ignore','pipe','pipe']}));
+const awsJson = (args,env=process.env) => JSON.parse(execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:{...env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard'},stdio:['ignore','pipe','pipe']}));
 const awsText = args => execFileSync('aws',args,{encoding:'utf8',timeout:30000,env:process.env,stdio:['ignore','pipe','pipe']}).trim();
 let ledgerWriterInvocation = 0;
 const invokeLedgerWriter = payload => {
@@ -195,7 +196,8 @@ const acquireEventToken = async ({observeCutover=false}={}) => {
       '--cli-binary-format','raw-in-base64-out',
       '--payload',JSON.stringify({action:observeCutover?'OBSERVE_LIFECYCLE_CUTOVER':'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
-        authorization_generation:envelope.authorization_generation,caller_oidc_token:identity}),
+        authorization_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),run_attempt:1,caller_oidc_token:identity}),
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
@@ -220,6 +222,16 @@ const acquireEventToken = async ({observeCutover=false}={}) => {
       || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000
       || response.protected_handoff?.id!=='kidults-broker-finalizer-token-handoff-v1'
       || response.protected_handoff.state!=='TOKEN_ISSUED_NOT_LANDING_SUCCESS'
+      || response.protected_handoff.contract_version!=='2.0.0'
+      || response.protected_handoff.token_expires_at!==response.expires_at
+      || response.protected_handoff.original_execution?.run_id!==required('GITHUB_RUN_ID')
+      || response.protected_handoff.original_execution?.run_attempt!==1
+      || response.protected_handoff.original_execution?.source_sha!==envelope.base_sha
+      || response.protected_handoff.original_execution?.authorization_generation!==envelope.authorization_generation
+      || response.protected_handoff.original_execution?.nonce_digest!==envelope.nonce_digest
+      || !Number.isSafeInteger(response.protected_handoff.token_not_after)
+      || expiresAt>response.protected_handoff.token_not_after
+      || response.protected_handoff.drain_not_before!==expiresAt+60000
       || response.protected_handoff.binding?.repository!==repository
       || response.protected_handoff.binding?.operation_kind!=='FINALIZER_TOKEN_HANDOFF'
       || response.protected_handoff.binding?.exact_target!==`${envelope.pull_request}:${envelope.base_sha}:${envelope.head_sha}`
@@ -555,13 +567,7 @@ try {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const finalizerRunId=required('GITHUB_RUN_ID');
-      const electedWorkflow=policy.bounded_recovery?.normal_ops_finalizer?.elected_workflow;
-      if(required('GITHUB_WORKFLOW')!==electedWorkflow){
-        const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_ROLE_FOLLOWER',authorization_generation:envelope.authorization_generation,finalizer_run_id:finalizerRunId,elected_workflow:electedWorkflow,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
-        writeReceipt(follower);
-        console.log(JSON.stringify(follower));
-        process.exit(0);
-      }
+      assertFinalizerElection({policy,workflow:required('GITHUB_WORKFLOW')});
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       await acquireEventToken({observeCutover:true});
@@ -602,16 +608,8 @@ try {
       const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
       if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
       const postmerge=await waitForExactMergeShaValidation(merge.sha, mergedPr.merged_at);
-      invokeFinalizerWriter({
-        action:'CONSUME_RESERVATION',
-        authorization_generation:envelope.authorization_generation,
-        nonce_digest:envelope.nonce_digest,
-        run_id:required('GITHUB_RUN_ID'),
-        head_sha:envelope.head_sha,
-        merge_sha:merge.sha,
-      });
-      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
-        merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
+      const terminal=consumeOriginalTerminalAtomically({envelope,runId:finalizerRunId,quorum:{...quorum,lifecycle},
+        merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge,invoke:invokeFinalizerWriter});
       terminalEvidence=terminal;
       writeReceipt({...terminal,immutable_copy:{state:'PENDING_RECONCILIATION'}});
       const immutableCopy=sealImmutableReceipt(terminal);
@@ -634,6 +632,7 @@ try {
   }
   const failure={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'QUARANTINED',failure_code:error.code||error.message,
     authorization_generation:envelope.authorization_generation,merge_performed:mergePerformed,merge_sha:mergeSha,rollback,
+    original_reservation:{pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,head_tree_sha:envelope.head_tree_sha,original_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,original_run_id:required('GITHUB_RUN_ID'),original_run_attempt:1},
     terminal_evidence:terminalEvidence,retry_without_reconciliation:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',created_at:new Date().toISOString()};
   writeReceipt(failure);
