@@ -13,14 +13,29 @@ import {createRecoveryWorkload} from './lib/postmerge-recovery-workload-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
 const env=process.env;
-assert(env.GITHUB_ACTIONS==='true'&&env.GITHUB_EVENT_NAME==='workflow_run'&&env.GITHUB_RUN_ATTEMPT==='1','RECOVERY_RUNTIME_EVENT');
+assert(env.GITHUB_ACTIONS==='true'&&['workflow_run','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME)&&env.GITHUB_RUN_ATTEMPT==='1','RECOVERY_RUNTIME_EVENT');
 const event=JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
-const upstream=event.workflow_run;
-assert(event.action==='completed'&&upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
+let upstream;
+if(env.GITHUB_EVENT_NAME==='workflow_run'){
+  assert(event.action==='completed','RECOVERY_RUNTIME_UPSTREAM');
+  upstream=event.workflow_run;
+}else{
+  const inputs=event.inputs;
+  assert(/^[1-9][0-9]{0,19}$/.test(inputs?.gate_run_id||'')
+    &&inputs.gate_run_attempt==='1'&&inputs.head_sha===env.GITHUB_SHA,'RECOVERY_RUNTIME_DISPATCH');
+  upstream=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${inputs.gate_run_id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
+}
+assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
   &&upstream.path==='.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'
   &&upstream.status==='completed'&&upstream.conclusion==='success'&&upstream.run_attempt===1
+  &&upstream.event==='workflow_run'
   &&upstream.head_branch==='main'&&upstream.head_sha===env.GITHUB_SHA
-  &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_UPSTREAM');
+  &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id
+  &&upstream.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM');
+const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
+assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name','event'].every(key=>live[key]===upstream[key])
+  &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id
+  &&live.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
 assert(['production','public','g5'].every(key=>env[`KIDULTS_${key.toUpperCase()}_STATE`]==='HOLD'),'RECOVERY_RUNTIME_HOLD');
 assert(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===env.GITHUB_SHA,'RECOVERY_RUNTIME_CHECKOUT');
 const role=env.KIDULTS_RECOVERY_ROLE;
@@ -36,9 +51,6 @@ if(historical){
   if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`approval_run_id=${env.GITHUB_RUN_ID}\nrecovery_needed=false\n`);
   console.log(JSON.stringify(historical));process.exit(0);
 }
-const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
-assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name'].every(key=>live[key]===upstream[key])
-  &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
 const github=createRecoveryGitHubObservation({token:env.GITHUB_TOKEN});
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json','utf8'));
 const evidence=createRecoveryExactMainEvidence({policy});

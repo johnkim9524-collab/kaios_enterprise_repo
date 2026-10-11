@@ -6,6 +6,20 @@ on:
     workflows: ['KPMO Continuous Assurance Success Authority Gate V1']
     types: [completed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      gate_run_id:
+        description: Exact successful KPMO Gate run ID
+        required: true
+        type: string
+      gate_run_attempt:
+        description: Exact successful KPMO Gate run attempt
+        required: true
+        type: string
+      head_sha:
+        description: Exact protected main SHA
+        required: true
+        type: string
   repository_dispatch:
     types:
       - kidults.authorization.generation.v1
@@ -19,7 +33,7 @@ permissions: {}
 jobs:
   record-role-approval:
     name: Record exact role-scoped autonomous approval
-    if: github.event_name == 'repository_dispatch' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'kidults.authorization.generation.v1' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-KPMO
     timeout-minutes: 10
@@ -224,7 +238,10 @@ jobs:
 
   terminal-recovery-approval:
     name: Bounded original reservation terminal recovery KPMO
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: >-
+      github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.gate_run_attempt == '1' && inputs.head_sha == github.sha))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-KPMO
     timeout-minutes: 15

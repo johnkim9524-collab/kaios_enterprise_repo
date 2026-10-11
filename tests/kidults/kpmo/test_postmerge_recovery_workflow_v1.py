@@ -14,6 +14,9 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def workflow(self, name):
         return yaml.load((ROOT / f'.github/workflows/kidults-autonomous-{name}-authorization-v1.yml').read_text(), Loader=yaml.BaseLoader)
 
+    def gate_workflow(self):
+        return yaml.load((ROOT / '.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml').read_text(), Loader=yaml.BaseLoader)
+
     def test_same_natural_gate_drives_approvals_with_separate_fourth_run_finalizer(self):
         for name in FILES:
             trigger = self.workflow(name)['on']['workflow_run']
@@ -34,6 +37,27 @@ class RecoveryWorkflowTests(unittest.TestCase):
             workflow = self.workflow(name)
             self.assertEqual(workflow['on']['repository_dispatch']['types'], ['kidults.authorization.generation.v1'])
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
+            self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
+            self.assertEqual(list(workflow['on']['workflow_dispatch']['inputs']),
+                             ['gate_run_id', 'gate_run_attempt', 'head_sha'])
+            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            self.assertIn("github.event_name == 'workflow_dispatch'", recovery_if)
+            self.assertIn("inputs.gate_run_attempt == '1'", recovery_if)
+            self.assertIn('inputs.head_sha == github.sha', recovery_if)
+
+    def test_verified_gate_dispatches_only_exact_main_recovery_hint(self):
+        gate = self.gate_workflow()['jobs']['success-authority-gate']
+        self.assertEqual(gate['permissions'], {'actions': 'write', 'contents': 'read'})
+        dispatch = next(step for step in gate['steps'] if step.get('name') == 'Dispatch exact-main terminal recovery roles')
+        script = dispatch['run']
+        self.assertIn('CURRENT_MAIN_SHA', script)
+        self.assertIn('test "$CURRENT_MAIN_SHA" = "$UPSTREAM_SHA"', script)
+        self.assertIn('gate_run_id', script)
+        self.assertIn('gate_run_attempt', script)
+        self.assertIn('head_sha', script)
+        self.assertIn('/actions/workflows/${workflow}/dispatches', script)
+        for workflow in FILES:
+            self.assertIn(f'kidults-autonomous-{workflow}-authorization-v1.yml', script)
 
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
@@ -69,9 +93,14 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertIn('RECOVERY_RUNTIME_EVENT', result.stderr)
 
     def test_manual_dispatch_and_attempt_replay_cannot_reach_credentials(self):
-        for event_name, attempt in [('workflow_dispatch', '1'), ('workflow_run', '2')]:
+        for event_name, attempt in [('repository_dispatch', '1'), ('workflow_run', '2')]:
             result = self.run_entrypoint({'GITHUB_ACTIONS': 'true', 'GITHUB_EVENT_NAME': event_name, 'GITHUB_RUN_ATTEMPT': attempt})
             self.assertIn('RECOVERY_RUNTIME_EVENT', result.stderr)
+
+        result = self.run_entrypoint({'GITHUB_ACTIONS': 'true', 'GITHUB_EVENT_NAME': 'workflow_dispatch',
+                                      'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_SHA': 'a' * 40},
+                                     {'inputs': {}})
+        self.assertIn('RECOVERY_RUNTIME_DISPATCH', result.stderr)
 
     def test_untrusted_upstream_cannot_reach_credentials(self):
         result = self.run_entrypoint({'GITHUB_ACTIONS': 'true', 'GITHUB_EVENT_NAME': 'workflow_run', 'GITHUB_RUN_ATTEMPT': '1'},
