@@ -31,6 +31,21 @@ const failClosedGuard=/\b(fail|throw|assert|deny|forbid|hold|required|quarantine
 const jsIdentifier=/^[A-Za-z_$][\w$]*$/;
 const jsKeywords=new Set(['if','else','return','throw','new','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this','class','extends','switch','case','break','continue','try','catch','finally']);
 const hardStopTokens=new Set(['throw','fail','deny','assert','forbid','quarantine']);
+const regexPrefixTokens=new Set(['(','[','{','=',':',',',';','!','&&','||','??','?','=>','return','throw','case','delete','void','typeof','instanceof','in','of','yield','await']);
+
+const readRegexLiteral=(source,start,filename)=>{
+  let index=start+1,escaped=false,inClass=false;
+  for(;index<source.length;index+=1){
+    const char=source[index];
+    if(escaped){escaped=false;continue}
+    if(char==='\\'){escaped=true;continue}
+    if(char==='['){inClass=true;continue}
+    if(char===']'&&inClass){inClass=false;continue}
+    if(char==='/'&&!inClass){index+=1;while(/[A-Za-z]/.test(source[index]||''))index+=1;return index}
+    if(char==='\n'||char==='\r')break;
+  }
+  fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:regex`);
+};
 
 // This is intentionally a small, fail-closed structural parser rather than a
 // line classifier. It builds the guard predicate -> binding definition graph
@@ -42,6 +57,9 @@ const tokenizeScript=(source,filename)=>{
     if(/\s/.test(char)){index+=1;continue}
     if(char==='/'&&source[index+1]==='/'){index=source.indexOf('\n',index+2);if(index<0)break;continue}
     if(char==='/'&&source[index+1]==='*'){const end=source.indexOf('*/',index+2);if(end<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:comment`);index=end+2;continue}
+    if(char==='/'&&(tokens.length===0||regexPrefixTokens.has(tokens.at(-1)))){
+      const end=readRegexLiteral(source,index,filename);tokens.push(source.slice(index,end));index=end;continue;
+    }
     if(char==='"'||char==="'"||char==='`'){
       const quote=char;let end=index+1;let escaped=false;
       for(;end<source.length;end+=1){const next=source[end];if(escaped){escaped=false;continue}if(next==='\\'){escaped=true;continue}if(next===quote){end+=1;break}}
@@ -379,3 +397,4 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
   }
   return {state:'SEMANTIC_CAPABILITY_DELTA_PASS',evidence};
 };
+

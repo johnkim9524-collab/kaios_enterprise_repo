@@ -127,16 +127,18 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
-  if(!pr||pr.base?.sha!==mainSha||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
   const scopeDigest=sha256(changedPaths.join('\n'));
+  const staleBase=pr.base.sha!==mainSha;
   return {
     state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,
       changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
       stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
-      base_sha:mainSha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
+      base_sha:pr.base.sha,head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest,
+      ...(staleBase?{current_main_sha:mainSha,stale_base:true}:{})},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',
   };
@@ -451,7 +453,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
           reason:recovered.error.code,reclassification:recovered.receipt},recovered.context,policy));continue;}
       error=recovered.error;candidateContext=recovered.context;
     }
-    if(candidateContext&&candidateContext.pr.base.sha===mainSha&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
+    if(candidateContext&&isOwnerReviewRequired(error)) results.push(withCapabilityRepairAnalysis(buildOwnerReviewRequired({...candidateContext,error}),candidateContext,policy));
     else results.push(withCapabilityRepairAnalysis(candidateContext?.pr.base.sha===mainSha
       ?buildPolicyRepairRequired({...candidateContext,error})||{state:'SKIPPED',pull_request:pr.number,reason:error.code}
       :{state:'SKIPPED',pull_request:pr.number,reason:error.code},candidateContext,policy));}}
@@ -530,3 +532,4 @@ if(import.meta.url===`file://${process.argv[1]}`){
           activation_constraint:x.capability_repair_analysis.activation_constraint,
           receipt_digest:x.capability_repair_analysis.receipt_digest}:null}))}));
 }
+
