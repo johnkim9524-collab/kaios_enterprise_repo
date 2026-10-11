@@ -1,12 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T07:36:54.406996+00:00",
+  "as_of": "2026-10-11T08:05:11.767215+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
     "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
-    "candidate_parent_sha": "d22437f671234a946ff0417b7feeac3825260717"
+    "candidate_parent_sha": "fd20b026760320fd47c7fbe280da78cd87a0ebad"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -31,7 +31,10 @@
     "Root broker/dispatcher Node460/460 PASS, new generic engine16/16 PASS, independent Python22/22 PASS with actual P-256 ECDSA tamper rejection, 12-thread single-winner CAS and actual JS/Python canonical/digest interoperability.",
     "Generic merged-only components are not registered in the production writer or connected to native role workflows; source modules and local proofs are not runtime closure. Historical #2555 remains unchanged.",
     "Expired unconsumed merged-only recovery requests now support at most two authenticated supersessions: old request and lease expired, same original identity, fresh independent three-role quorum, original-row conditional CAS, no terminal or mutation authority renewal.",
-    "Disjoint verification: broker/dispatcher460, generic JS26 and Python28 tests pass (514 total); generic recovery remains undeployed and unregistered."
+    "Disjoint verification: broker/dispatcher460, generic JS26 and Python28 tests pass (514 total); generic recovery remains undeployed and unregistered.",
+    "External reconciliation confirmed fd20 exact-head latest21 native workflows terminal SUCCESS; completed source-CI stage was reused without rerun.",
+    "Added protected interrupted-recovery signed transport using existing workload roles, registered signing key, exact native source/run/attempt/repository_dispatch, STS identity and KMS DIGEST; fixed existing Lambda only and no retry. Admin/manual/rerun/#1677/run impersonation rejected before signing. New adapter15 tests and engine26 tests PASS.",
+    "Red Team found hidden AWS CLI retries. Both generic and historical signed clients now share a transport pinned to AWS_MAX_ATTEMPTS=1, standard retry mode and 5/20/30-second connection/read/process bounds. Actual subprocess-options test PASS; independent Red Team15/15 PASS and combined adapter/engine/historical58/58 PASS."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -48,7 +51,7 @@
   ],
   "uncertainties": [
     "Generic unmerged recovery broker-owned mutation/fencing remains unimplemented; bounded merged-only supersession is source verified only.",
-    "New merged-only writer/engine require protected adapter registration, native role/workflow trigger integration and actual deployed receipts.",
+    "Signed transport source added, but writer route registration, native evidence/S3 verification and automatic workflow wiring remain unactivated and incomplete.",
     "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified."
   ],
   "blockers": [
@@ -68,7 +71,8 @@
     "Protected native read-only recovery diagnostic implementation",
     "Generic merged-only lease/consume/immutable ACK components and cross-language engine",
     "Independent real ECDSA and concurrent CAS adversarial verification",
-    "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation"
+    "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation",
+    "Signed remote ledger transport source and negative identity/no-retry tests"
   ],
   "next_action": "Integrate protected merged-only adapters and native triggers; resolve unmerged recovery trust bridge before exact-head activation and actual natural operating proof.",
   "authority_boundary": {
