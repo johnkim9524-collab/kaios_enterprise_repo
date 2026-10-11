@@ -58,6 +58,17 @@ export function interruptedRecoveryObjectKey(request){
   return `receipts/${request.original_generation}/interrupted-postmerge-v1/${request.merge_sha}.json`;
 }
 
+export function validateInterruptedRecoveryTerminal(terminal,request){
+  const requestDigest=validateInterruptedRecoveryRequest(request,{fresh:false});
+  requireProof(eq(Object.keys(terminal).sort(),'id state request_digest evidence_digest recovery_run_id revision merge_sha head_sha production public g5 provider_activation'.split(' ').sort())
+    &&terminal.id==='kidults-interrupted-reservation-terminal-v1'&&terminal.state==='VERIFIED_PASS'
+    &&run(terminal.recovery_run_id)&&terminal.recovery_run_id!==request.original_run_id&&Number.isSafeInteger(terminal.revision)&&terminal.revision>0
+    &&/^sha256:[a-f0-9]{64}$/.test(terminal.evidence_digest||'')
+    &&terminal.request_digest===requestDigest&&terminal.merge_sha===request.merge_sha&&terminal.head_sha===request.head_sha
+    &&Object.entries(HOLD).every(([k,v])=>terminal[k]===v),'STORED_TERMINAL');
+  return sha256(canonicalJson(terminal));
+}
+
 // Fresh independent role approvals must already be staged for this exact
 // request/evidence. The writer authenticates both old and new quorum, checks
 // service-clock quiescence, preserves old signed records and caps changes at 2.
@@ -130,12 +141,7 @@ export async function resumeInterruptedPostmerge({request,recoveryRunId,ledger,g
       requireProof(reconciled.state==='CONSUMED'&&reconciled.request_digest===requestDigest&&eq(reconciled.terminal,terminal),'CONSUME_UNKNOWN_NO_RETRY');
     }
   } else requireProof(context.state==='CONSUMED'&&terminal,'RESERVATION_STATE');
-  requireProof(eq(Object.keys(terminal).sort(),'id state request_digest evidence_digest recovery_run_id revision merge_sha head_sha production public g5 provider_activation'.split(' ').sort())
-    &&terminal.id==='kidults-interrupted-reservation-terminal-v1'&&terminal.state==='VERIFIED_PASS'
-    &&run(terminal.recovery_run_id)&&terminal.recovery_run_id!==request.original_run_id&&Number.isSafeInteger(terminal.revision)&&terminal.revision>0
-    &&/^sha256:[a-f0-9]{64}$/.test(terminal.evidence_digest||'')
-    &&terminal.request_digest===requestDigest&&terminal.merge_sha===request.merge_sha&&terminal.head_sha===request.head_sha
-    &&Object.entries(HOLD).every(([k,v])=>terminal[k]===v),'STORED_TERMINAL');
+  validateInterruptedRecoveryTerminal(terminal,request);
   // Consumed history grants only sealing of its immutable stored terminal,
   // even when the original request expired. No fresh approval or lease.
   const object=await immutable.seal({request,terminal,key:interruptedRecoveryObjectKey(request),if_none_match:'*'});
