@@ -54,3 +54,23 @@ test('primary unsupported or unterminated lexical constructs remain fail closed'
   for(const source of ['const t=`${value;','const text="unclosed;','if(flag){throw new Error("HOLD");','const x=1; /* unclosed'])
     assert.throws(()=>check(source),/CAPABILITY_SCRIPT_PARSE_FAILED/);
 });
+
+test('primary expression bodies permit division while declarations permit following regex',()=>{
+  for(const expr of ['function(){}','function named(){}','function*(){}','async function(){}','class {}','class Named {}','class extends Object {}','function(a=function(){}){}']){
+    const source=`const ratio = ${expr} / 2; if(ratio<1)throw new Error('HOLD');`;
+    new Function(source);
+    assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+    assert.throws(()=>check(source,source.replace('ratio<1','ratio<0')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  }
+  for(const decl of ['function f(){}','function* f(){}','async function f(){}','class C {}']){
+    const source=`${decl} /if\\(fake\\{throw/.test(value);if(!flag)throw new Error('HOLD');`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});
+
+test('primary recognizes newline declaration boundary after a complete operand',()=>{
+  for(const declaration of ['function f(){}','class C {}']){
+    const source=`const x=1\n${declaration} /if\\(fake\\{throw/.test(value);if(!flag)throw new Error('HOLD');`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});

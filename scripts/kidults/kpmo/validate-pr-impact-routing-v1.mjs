@@ -9,7 +9,7 @@ const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
 const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
 const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
 const dispatcherNativeRepositoryGuard = '((github.event.workflow_run.head_repository.id == github.repository_id && (!github.event.workflow_run.pull_requests[0].head.repo.id || github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)) || (!github.event.workflow_run.head_repository.id && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))';
-const dispatcherJobGuard = `if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && ${dispatcherNativeRepositoryGuard}))`;
+const dispatcherJobGuard = `if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && github.event.workflow_run.pull_requests[0].number > 0 && !github.event.workflow_run.pull_requests[1].number && ${dispatcherNativeRepositoryGuard}))`;
 const dispatcherRuntimeIdentityCall = 'const receipt=validateDispatcherTrigger({eventName:process.env.GITHUB_EVENT_NAME,event:JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,\'utf8\')),repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:process.env.GITHUB_SHA,ref:process.env.GITHUB_REF,runAttempt:process.env.GITHUB_RUN_ATTEMPT});';
 const dispatcherTerminalWorkflow = 'workflows: [KIDULTS Scope-Aware Authoritative Status V1]';
 const dispatcherRecoverySchedule = "cron: '17 * * * *'";
@@ -241,7 +241,9 @@ if (files.includes(autonomousDispatcherWorkflow)) {
     source.replace('!github.event.workflow_run.head_repository.id && ', ''),
     source.replace(dispatcherRuntimeIdentityCall, 'const receipt={authority_created:false};'),
     source.replace('github.run_attempt == 1', 'true'),
-    source.replace("github.ref == 'refs/heads/main'", 'true')
+    source.replace("github.ref == 'refs/heads/main'", 'true'),
+    source.replace('github.event.workflow_run.pull_requests[0].number > 0 && ', ''),
+    source.replace('!github.event.workflow_run.pull_requests[1].number && ', '')
   ];
   for (const [index, mutated] of mutations.entries()) {
     if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
@@ -277,7 +279,7 @@ const receipt = {
     recovery_schedule: 'HOURLY',
     source_checkout: 'TRUSTED_BASE_ONLY',
     exact_pr_binding: true,
-    mutation_cases: 11
+    mutation_cases: 13
   },
   violations
 };

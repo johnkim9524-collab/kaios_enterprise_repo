@@ -48,3 +48,38 @@ for(const source of [
   'const r=/(/;', 'const r=/[a&&b]/v;',
   'const x=1; /* unclosed', 'if(flag){throw new Error("DENIED");',
 ])test('unsupported or malformed lexical source fails closed: '+source,()=>assert.throws(()=>verify(source),error=>error.code==='INDEPENDENT_SCRIPT_PARSE_FAILED'));
+
+for(const source of [
+  'const ratio=function(){} / 2;',
+  'const ratio=function named(){} / 2;',
+  'const ratio=async function named(){} / 2;',
+  'const ratio=function* named(){} / 2;',
+  'const ratio=async function* named(){} / 2;',
+  'const ratio=class {} / 2;',
+  'const ratio=class Named extends Parent {} / 2;',
+  'const ratio=()=>{};const value=ratio / 2;',
+  'function declared(){} /[{}]/.test(value);',
+  'async function declared(){} /[{}]/.test(value);',
+  'function* declared(){} /[{}]/.test(value);',
+  'class Declared {} /[{}]/.test(value);',
+  'export default function declared(){} /[{}]/.test(value);',
+  'const outer=function(a=function inner(){} / 2,b={}){function nested(){} /[{}]/.test(value);} / 2;',
+  'const outer=function(a=class Named {} / 2){return function(){} / 2;} / 2;',
+  'const text=`${function(){} / 2} ${class {} / 2}`;',
+  'const outer=class extends (function(){} / 2) {} / 2;',
+])test('expression body close preserves slash context: '+source,()=>pass(source));
+
+for(const source of [
+  'const ratio=function(){if(!allowed)throw new Error("DENIED");} / 2;',
+  'const ratio=class {method(){if(!allowed)throw new Error("DENIED");}} / 2;',
+  'const outer=function(a=function(){if(!allowed)throw new Error("DENIED");} / 2){} / 2;',
+])test('expression division cannot hide executable guards: '+source,()=>reject(source,source.replace('!allowed','allowed')));
+
+test('regex following declaration remains significant in protected predicate',()=>{
+  const source='function declared(){} if(!/^safe$/.test(value))throw new Error("DENIED");';
+  reject(source,source.replace('^safe$','.*'));
+});
+
+for(const source of [String.raw`const x=1
+function f(){} /if\(fake\{throw/.test(value);`,String.raw`const x=1
+class C{} /if\(fake\{throw/.test(value);`])test('ASI declaration boundary preserves opaque regex: '+source,()=>pass(source));
