@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "00ac5c95edb1ea36e45bd5a06ac813f81f9d6a6a",
+  "revision": "87aa5fec1261bd3fa697d30f68ff3db792fcce10",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 775
+    "file_count": 776
   },
   "files": [
     {
@@ -1815,6 +1815,19 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "fc0af624e7a7862dfce0872f7f0c9b788851ade5",
       "sha256": "sha256:55f6771d6e7491d4d6c1ad77b7ff2825c1c08991c905a9eeabb7845ec63de07a"
+    },
+    {
+      "path": "coordination/kidults/kpmo/assurance-gate-trigger-filter-draft-payload-20261011-v1.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "41536c1fac6d3594319023d45c4f0730855debe6",
+      "sha256": "sha256:694025f6b78adc76afdb0b301fccbd9c2717652b8dcdc68d4f97a99f965f88a0",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
     },
     {
       "path": "coordination/kidults/kpmo/atomic-landing-terminal-recovery-34918732361-v1.json",
@@ -6394,5 +6407,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3e3b78fa1c9fe4e0c9dfe13a62018c24f8d4f3eb375d70349117b6c1b5c2a2e4"
+  "manifest_sha256": "sha256:ca7ccba2851d5de2b13eea3593e6c561076a239d6278861cbdafb1d2cee3fe19"
 }
