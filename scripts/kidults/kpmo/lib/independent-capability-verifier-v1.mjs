@@ -176,10 +176,10 @@ const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
 // while only executable text participates in structural searches. Template
 // expressions are executable; their surrounding template text is opaque.
 const independentScriptLayout=(source,filename)=>{
-  const visible=source.split(''),parts=[];let index=0;
+  const visible=source.split(''),parts=[];let index=0,lastTokenEnd=0;
   const fail=()=>deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:offset-${index}`);
   const emit=(start,end,opaque=false,comment=false)=>{
-    if(!comment)parts.push(source.slice(start,end));
+    if(!comment){parts.push(source.slice(start,end));lastTokenEnd=end;}
     if(opaque||comment)for(let at=start;at<end;at+=1)if(source[at]!=='\n'&&source[at]!=='\r')visible[at]=' ';
   };
   const quoted=quote=>{const start=index++;let closed=false;
@@ -201,7 +201,7 @@ const independentScriptLayout=(source,filename)=>{
       index+=1;
     }fail();
   };
-  const scan=interpolation=>{let expression=true,previous='',stack=[];
+  const scan=interpolation=>{let expression=true,previous='',stack=[],constructs=[],statement=true,asyncStatement=null,closedControl=null;
     while(index<source.length){const start=index,char=source[index],next=source[index+1];
       if(/\s/.test(char)){index+=1;continue;}
       if(index===0&&char==='#'&&next==='!'){index=source.indexOf('\n',2);if(index<0)index=source.length;emit(start,index,false,true);continue;}
@@ -212,14 +212,35 @@ const independentScriptLayout=(source,filename)=>{
       if(char==='/'&&expression){regexp();expression=false;previous='literal';continue;}
       if(char==='/'&&!expression){index+=next==='='?2:1;emit(start,index);expression=true;previous='/';continue;}
       const word=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
-      if(word){index+=word.length;emit(start,index);const property=previous==='.'||previous==='?.';expression=!property&&/^(return|throw|case|delete|void|typeof|new|in|instanceof|yield|await|else|do)$/.test(word);previous=property?'property':word;continue;}
+      if(word){const lineBoundary=/[\r\n]/.test(source.slice(lastTokenEnd,index))&&!expression;index+=word.length;emit(start,index);const property=previous==='.'||previous==='?.';
+        const switchFrame=stack.at(-1);
+        if(!property&&switchFrame?.switchBody&&(word==='case'||word==='default'))switchFrame.caseLabel={ternaries:0};
+        if(!property&&(word==='function'||word==='class')){
+          const declaration=statement||lineBoundary||(previous==='async'&&asyncStatement===true);
+          constructs.push({kind:word,depth:stack.length,stage:word==='function'?'parameters':'body',declaration});
+        }
+        if(word==='async'&&!property)asyncStatement=statement;
+        if(!/^(export|default|async)$/.test(word)||property)statement=false;
+        expression=!property&&/^(return|throw|case|delete|void|typeof|new|in|instanceof|yield|await|else|do)$/.test(word);previous=property?'property':word;continue;}
       const number=source.slice(index).match(/^(?:0[xob][0-9a-f_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?n?)/i)?.[0];
       if(number){index+=number.length;emit(start,index);expression=false;previous='literal';continue;}
       if(char==='}'&&interpolation&&stack.length===0){index+=1;emit(start,index,true);return;}
-      if('([{'.includes(char)){const control=char==='('&&/^(if|while|for|with|switch|catch)$/.test(previous);const block=char==='{'&&(!expression||/^(else|try|finally|do|=>|;|\)|\}|)$/.test(previous)||(previous==='{'&&stack.at(-1)?.block));stack.push({char,control,block});index+=1;emit(start,index);expression=true;previous=char;continue;}
-      if(')]}'.includes(char)){const frame=stack.pop();if(!frame||'([{'.indexOf(frame.char)!==')]}'.indexOf(char))fail();index+=1;emit(start,index);expression=frame.control||frame.block;previous=char;continue;}
+      if('([{'.includes(char)){
+        const pending=constructs.at(-1),atBoundary=pending&&pending.depth===stack.length;
+        const parameters=char==='('&&atBoundary&&pending.kind==='function'&&pending.stage==='parameters'?pending:null;
+        if(parameters)parameters.stage='inside-parameters';
+        const body=char==='{'&&atBoundary&&pending.stage==='body'?constructs.pop():null;
+        const control=char==='('&&/^(if|while|for|with|switch|catch)$/.test(previous);
+        const block=char==='{'&&(!!body||!expression||/^(else|try|finally|do|=>|;|\)|\}|)$/.test(previous)||(previous==='{'&&stack.at(-1)?.block));
+        const expressionBody=!!body&&!body.declaration||char==='{'&&previous==='=>';
+        stack.push({char,control,controlWord:control?previous:null,block,parameters,expressionBody,switchBody:char==='{'&&previous===')'&&closedControl==='switch',caseLabel:null});index+=1;emit(start,index);expression=true;statement=char==='{'&&block;previous=char;continue;}
+      if(')]}'.includes(char)){const frame=stack.pop();if(!frame||'([{'.indexOf(frame.char)!==')]}'.indexOf(char))fail();index+=1;emit(start,index);if(frame.parameters)frame.parameters.stage='body';closedControl=frame.controlWord;expression=frame.expressionBody?false:frame.control||frame.block;statement=char==='}'&&frame.block&&!frame.expressionBody;previous=char;continue;}
       const op=['===','!==','>>>','**=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','%=','**','<<','>>','&&=','||=','??='].find(value=>source.startsWith(value,index));
-      index+=op?.length||1;emit(start,index);if(op!=='++'&&op!=='--')expression=char!=='.';previous=op||char;
+      const label=stack.at(-1)?.switchBody?stack.at(-1).caseLabel:null;
+      let caseBoundary=false;
+      if(label&&char==='?'&&!op)label.ternaries+=1;
+      if(label&&char===':'){if(label.ternaries)label.ternaries-=1;else{caseBoundary=true;stack.at(-1).caseLabel=null;}}
+      index+=op?.length||1;emit(start,index);if(op!=='++'&&op!=='--')expression=char!=='.';previous=op||char;statement=char===';'||caseBoundary;
     }
     if(interpolation||stack.length)fail();
   };

@@ -602,15 +602,15 @@
       "job_timeout_minutes": 10
     },
     "source_sha256": {
-      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:2f1b496126f8d8284a079aa3daef77ebbea8e8c04da65334192a6ac6714f2eb4",
+      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:bac595841b1108476ebbbf23377563cc64f5ce26be7b8c2d79affe468e5e5fb0",
       "scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs": "sha256:4e066ff50e5106c3f554be81db5e65a082ff0fa52d30abc92e5cccecff4d290f",
       "coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json": "sha256:e28a2210b5651f92d46cc54259474b6892f512c26f16b3ec194a6436cc236701",
       "scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs": "sha256:a12b4180bd9d7653485792227c76d9029ee840bf7c15080793e5eecc4bb83dee",
       "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
       "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
       "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:2c89c22203c4a914e8751e576d757584b592417c64e8c7df8f0a7369e19f6484",
-      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:e0203ba88900f888948d43424d3776bd9c28dd2f6bd0ec3d4f253708f78c6a9f",
-      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:41f0cf7e97b81e6298ebb00c81e0477979c0638ace3aa446be4b20ee84b3d14a"
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:54a7b9ea890249422c012af67adb1a3d25a4f5e35e178c0d7bb40c28bcb872d4",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:1b919a006ced8bc9c3726178fa5cf7ca8bf5ac49e5b26c6de31acfa1735217f4"
     }
   }
 }

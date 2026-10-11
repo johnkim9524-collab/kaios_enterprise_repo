@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO-AUTONOMOUS-NORMAL-OPERATIONS-CLOSURE",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "d31928fcfb32771f39e602cc75a7bae7ad899d1d",
+  "head_branch": "codex/holistic-boundary-repair-20261011",
+  "source_head_sha": "d03203108aef938156432bd7094620a038a1c7b9",
+  "source_head_tree_sha": "92ca632232d014fb5a0409bd58905f96058cdfd1",
+  "payload_digest": "sha256:5de37ccdda49bbecd87d2a7ec7898888cc42bf4f091301bf9d129365c4b4fee4",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

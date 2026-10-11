@@ -18,6 +18,7 @@ const OWNER_REVIEW_CODES=new Set([
   'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
   'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+  'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
 const POLICY_REPAIR_CODES=new Set([
@@ -31,7 +32,7 @@ export function buildPolicyRepairRequired({pr,mainSha,treeSha,files,error}) {
     ||!SHA.test(String(treeSha))||!paths?.length||paths.some(path=>typeof path!=='string'||!path)) fail('DISPATCH_POLICY_REPAIR_BINDING_INVALID');
   return {state:'POLICY_REPAIR_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,changed_path:paths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
-      stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
       base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:paths,scope_digest:sha256(paths.join('\n'))},
     recovery_action:'REPAIR_CANDIDATE_OR_CLASSIFIER_THEN_FRESH_PROTECTED_MAIN_VALIDATION',
@@ -62,14 +63,14 @@ export function validateDispatcherTrigger({eventName,event={},repository,reposit
       fail('DISPATCH_TRIGGER_UPSTREAM_INVALID');
     const head=run.head_repository;
     const prs=run.pull_requests;
-    if(prs!==undefined&&!Array.isArray(prs))fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
+    if(!Array.isArray(prs)||prs.length!==1)fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
     if(head&&(String(head.id)!==String(repositoryId)||head.full_name!==repository))fail('DISPATCH_TRIGGER_REPOSITORY_INVALID');
     if(!head&&!(prs?.length))fail('DISPATCH_TRIGGER_REPOSITORY_MISSING');
     for(const pr of prs||[]){
       if(String(pr.head?.repo?.id)!==String(repositoryId)||!Number.isSafeInteger(pr.number)||pr.number<1)
         fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
     }
-    if(prs?.length===1)prNumber=prs[0].number;
+    prNumber=prs[0].number;
   }
   return {state:'DISPATCH_TRIGGER_IDENTITY_VERIFIED_NOT_AUTHORIZATION',event:eventName,
     repository,source_sha:sourceSha,pull_request:prNumber,authority_created:false};
@@ -164,7 +165,7 @@ export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
     state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,
       changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
-      stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
       base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
@@ -405,6 +406,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       if(filePlans.has(pr.number))fail('DISPATCH_SOURCE_PLAN_DUPLICATE');
       const files=Object.freeze(records.map(record=>Object.freeze({...record})));filePlans.set(pr.number,files);
       try{assertDelegatedPathScope(files,policy);}catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;continue;}
+      // Oversize stale candidates need only bound metadata and a head tree,
+      // never a whole-source preparation that can exhaust the global budget.
+      if(pr.base.sha!==mainSha&&files.length>128)continue;
       sources.add(pr.base.sha);sources.add(pr.head.sha);plan.push({pr,files});
     }
     if(plan.length){
@@ -442,7 +446,14 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       // Path-only denials need no blob reads. This is the same mandatory
       // scope gate used by classification, never a grant based on metadata.
       assertDelegatedPathScope(fileRecords,policy);
-      const commit=await immutableCommit(repository,pr.head.sha,token);
+      const commit=fileRecords.length>128
+        ?await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)
+        :await immutableCommit(repository,pr.head.sha,token);
+      if(fileRecords.length>128){
+        const review=buildOwnerReviewRequired({pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,error:new DispatcherError('DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED')});
+        review.bounded_comparison={changed_file_count:fileRecords.length,max_comparison_files:128,comparison_performed:false,authority_created:false};
+        results.push(review);continue;
+      }
       const residualComparison=await compareStaleCandidateAgainstMain({repository,baseSha:pr.base.sha,mainSha,headSha:pr.head.sha,files:fileRecords,token});
       if(residualComparison.all_changed_files_equal_current_main) {
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,stale_current_main_comparison:residualComparison,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});

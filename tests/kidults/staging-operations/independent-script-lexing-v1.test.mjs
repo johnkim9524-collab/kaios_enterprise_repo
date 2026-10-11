@@ -48,3 +48,68 @@ for(const source of [
   'const r=/(/;', 'const r=/[a&&b]/v;',
   'const x=1; /* unclosed', 'if(flag){throw new Error("DENIED");',
 ])test('unsupported or malformed lexical source fails closed: '+source,()=>assert.throws(()=>verify(source),error=>error.code==='INDEPENDENT_SCRIPT_PARSE_FAILED'));
+
+for(const source of [
+  'const ratio=function(){} / 2;',
+  'const ratio=function named(){} / 2;',
+  'const ratio=async function named(){} / 2;',
+  'const ratio=function* named(){} / 2;',
+  'const ratio=async function* named(){} / 2;',
+  'const ratio=class {} / 2;',
+  'const ratio=class Named extends Parent {} / 2;',
+  'const ratio=()=>{};const value=ratio / 2;',
+  'function declared(){} /[{}]/.test(value);',
+  'async function declared(){} /[{}]/.test(value);',
+  'function* declared(){} /[{}]/.test(value);',
+  'class Declared {} /[{}]/.test(value);',
+  'export default function declared(){} /[{}]/.test(value);',
+  'const outer=function(a=function inner(){} / 2,b={}){function nested(){} /[{}]/.test(value);} / 2;',
+  'const outer=function(a=class Named {} / 2){return function(){} / 2;} / 2;',
+  'const text=`${function(){} / 2} ${class {} / 2}`;',
+  'const outer=class extends (function(){} / 2) {} / 2;',
+])test('expression body close preserves slash context: '+source,()=>pass(source));
+
+for(const source of [
+  'const ratio=function(){if(!allowed)throw new Error("DENIED");} / 2;',
+  'const ratio=class {method(){if(!allowed)throw new Error("DENIED");}} / 2;',
+  'const outer=function(a=function(){if(!allowed)throw new Error("DENIED");} / 2){} / 2;',
+])test('expression division cannot hide executable guards: '+source,()=>reject(source,source.replace('!allowed','allowed')));
+
+test('regex following declaration remains significant in protected predicate',()=>{
+  const source='function declared(){} if(!/^safe$/.test(value))throw new Error("DENIED");';
+  reject(source,source.replace('^safe$','.*'));
+});
+
+for(const source of [String.raw`const x=1
+function f(){} /if\(fake\{throw/.test(value);`,String.raw`const x=1
+class C{} /if\(fake\{throw/.test(value);`])test('ASI declaration boundary preserves opaque regex: '+source,()=>pass(source));
+
+for(const source of [
+  String.raw`switch(kind){case condition ? 1 : 2: class C{} /if\(fake\{throw/.test(value);break;default:class D{} /if\(fake\{throw/.test(value);}`,
+  String.raw`switch(kind){case 1:function f(){} /if\(fake\{throw/.test(value);break;default:function g(){} /if\(fake\{throw/.test(value);}`,
+])test('switch clause declaration boundary preserves opaque regex: '+source,()=>pass(source));
+
+for(const source of [
+  String.raw`switch(value){case 1: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){default: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case flag?1:2: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case flag?a?1:2:3: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case ({key:1}).key: class C{} /if\(fake\{throw/.test(value);break;}`,
+  String.raw`switch(value){case (flag?1:2): switch(other){default: class C{} /if\(fake\{throw/.test(value);}break;}`,
+  String.raw`switch(value){case 1: const ratio=flag?class {} / 2:class {} / 3;break;}`,
+  String.raw`switch(value){case 1: const obj={key:class {} / 2};break;}`,
+])test('switch label boundary differs from ternary/object colon: '+source,()=>pass(source));
+
+test('case class executable guard remains protected',()=>{
+  const source='switch(value){case 1: class C{method(){if(!allowed)throw new Error("DENIED");}} /[{}]/.test(value);}';
+  reject(source,source.replace('!allowed','allowed'));
+});
+
+test('switch declaration followed by regex guard cannot change predicate',()=>{
+  const source='switch(value){default: class C{} if(!/^safe$/.test(value))throw new Error("DENIED");}';
+  reject(source,source.replace('^safe$','.*'));
+});
+test('ternary class expression after case retains nested executable guard',()=>{
+  const source='switch(value){case 1: const ratio=flag?class {method(){if(!allowed)throw new Error("DENIED");}} / 2:class {} / 3;}';
+  reject(source,source.replace('!allowed','allowed'));
+});

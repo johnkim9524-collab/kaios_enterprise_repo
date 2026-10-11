@@ -74,41 +74,65 @@ const tokenizeScript=(source,filename)=>{
     parseFailure('template');
   };
   const code=interpolation=>{
-  const groups=[];let operandExpected=true;
+  const groups=[];const constructs=[];const clauseColons=new Set();let operandExpected=true,lastTokenEnd=index,closedSwitchAt=-1;
   while(index<source.length){
     const char=source[index];
     if(/\s/.test(char)){index+=1;continue}
     if(index===0&&source.startsWith('#!')){index=source.indexOf('\n');if(index<0)index=source.length;continue;}
     if(char==='/'&&source[index+1]==='/'){index=source.indexOf('\n',index+2);if(index<0)break;continue}
     if(char==='/'&&source[index+1]==='*'){const end=source.indexOf('*/',index+2);if(end<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:comment`);index=end+2;continue}
+    const lineBoundary=/[\r\n]/.test(source.slice(lastTokenEnd,index));
+    lastTokenEnd=index+1;
     if(char==='/'&&operandExpected){
       const end=regexLiteralEnd(source,index,filename);
-      tokens.push(source.slice(index,end));index=end;operandExpected=false;continue;
+      tokens.push(source.slice(index,end));index=end;lastTokenEnd=index;operandExpected=false;continue;
     }
-    if(char==='`'){template();operandExpected=false;continue;}
+    if(char==='`'){template();lastTokenEnd=index;operandExpected=false;continue;}
     if(char==='"'||char==="'"){
       const quote=char;let end=index+1;let escaped=false;
       for(;end<source.length;end+=1){const next=source[end];if(escaped){escaped=false;continue}if(next==='\\'){escaped=true;continue}if(next===quote){end+=1;break}if(next==='\n'||next==='\r')parseFailure('string');}
       if(end>source.length||source[end-1]!==quote)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:string`);
-      tokens.push(source.slice(index,end));index=end;operandExpected=false;continue;
+      tokens.push(source.slice(index,end));index=end;lastTokenEnd=index;operandExpected=false;continue;
     }
     const identifier=source.slice(index).match(/^[A-Za-z_$][\w$]*/)?.[0];
-    if(identifier){const property=['.','?.'].includes(tokens.at(-1));tokens.push(identifier);index+=identifier.length;operandExpected=!property&&regexExpressionPrefixes.has(identifier);continue}
+    if(identifier){
+      const previous=tokens.at(-1);const property=['.','?.'].includes(previous);
+      if(!property&&groups.at(-1)?.switchBody&&['case','default'].includes(identifier))groups.at(-1).clause={ternaries:0};
+      if(!property&&['function','class'].includes(identifier)){
+        let before=tokens.length-1;
+        while(['async','export','default'].includes(tokens[before]))before-=1;
+        const prefix=tokens[before];
+        const declaration=prefix===undefined||prefix===';'||prefix==='{'&&groups.at(-1)?.block||prefix==='}'&&operandExpected
+          ||prefix===':'&&clauseColons.has(before)||lineBoundary&&!operandExpected&&(!groups.length||groups.at(-1)?.block);
+        constructs.push({kind:identifier,depth:groups.length,expression:!declaration,parameters:false,ready:identifier==='class'});
+      }
+      tokens.push(identifier);index+=identifier.length;lastTokenEnd=index;operandExpected=!property&&regexExpressionPrefixes.has(identifier);continue
+    }
     const number=source.slice(index).match(/^(?:0[xob][0-9a-f_]+|(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*)(?:e[+-]?[\d_]+)?n?)/i)?.[0];
-    if(number){tokens.push(number);index+=number.length;operandExpected=false;continue}
+    if(number){tokens.push(number);index+=number.length;lastTokenEnd=index;operandExpected=false;continue}
     if(char==='}'&&interpolation&&groups.length===0){index+=1;return;}
     if('([{'.includes(char)){
       const previous=tokens.at(-1);const property=['.','?.'].includes(tokens.at(-2));
       const control=char==='('&&!property&&['if','while','for','with','switch','catch'].includes(previous);
       const block=char==='{'&&(!operandExpected||[')', '}', '=>','else','try','finally','do',';'].includes(previous)||previous===undefined||(previous==='{'&&groups.at(-1)?.block));
-      groups.push({opening:char,control,block});tokens.push(char);index+=1;operandExpected=true;continue;
+      const construct=constructs.at(-1);
+      const parameters=char==='('&&construct?.kind==='function'&&construct.depth===groups.length&&!construct.parameters;
+      if(parameters)construct.parameters=true;
+      const body=char==='{'&&construct?.depth===groups.length&&construct.ready;
+      if(body)constructs.pop();
+      groups.push({opening:char,control,switchControl:control&&previous==='switch',switchBody:char==='{'&&closedSwitchAt===tokens.length-1,block,parameters:parameters?construct:null,bodyExpression:body?construct.expression:null});tokens.push(char);index+=1;operandExpected=true;continue;
     }
     if(')]}'.includes(char)){
       const group=groups.pop();if(!group||'([{'.indexOf(group.opening)!==')]}'.indexOf(char))parseFailure('delimiter');
-      tokens.push(char);index+=1;operandExpected=group.control||group.block;continue;
+      if(group.parameters)group.parameters.ready=true;
+      tokens.push(char);if(group.switchControl)closedSwitchAt=tokens.length-1;index+=1;operandExpected=group.bodyExpression===null?group.control||group.block:!group.bodyExpression;continue;
     }
     const operator=['===','!==','>>>','**=','&&=','||=','??=','=>','==','!=','<=','>=','&&','||','??','?.','++','--','+=','-=','*=','/=','%=','**','<<','>>'].find(value=>source.startsWith(value,index));
-    const token=operator||char;tokens.push(token);index+=token.length;
+    const token=operator||char;
+    const clause=groups.at(-1)?.switchBody&&groups.at(-1).clause;
+    if(clause&&token==='?')clause.ternaries+=1;
+    if(clause&&token===':'){if(clause.ternaries)clause.ternaries-=1;else{clauseColons.add(tokens.length);groups.at(-1).clause=null;}}
+    tokens.push(token);index+=token.length;
     if(!['++','--'].includes(token))operandExpected=token!=='.'&&token!=='?.';
   }
   if(interpolation||groups.length)parseFailure('delimiter');

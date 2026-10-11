@@ -728,3 +728,24 @@ test('Finalizer observes protected cutover before creating a durable reservation
   const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
   assert.ok(source.indexOf('await acquireEventToken({observeCutover:true})')<source.indexOf("action:'CREATE_RESERVATION'"));
 });
+for(const sourceTransport of [false,true])test(`129-file stale candidate retains exact review binding without blob reads or eligibility sourceTransport=${sourceTransport}`,async()=>{
+  let blobReads=0, filePages=0;
+  const candidate={...pr,base:{...pr.base,sha:sha('d')}};
+  const files=Array.from({length:129},(_,i)=>({filename:`scripts/large-${i}.mjs`,status:'modified'}));
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',sourceTransport,fetchImpl:async url=>{
+    const u=new URL(url),p=u.pathname;
+    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+    if(p.endsWith('/pulls'))return fakeResponse(200,[candidate]);
+    if(p.endsWith('/pulls/42'))return fakeResponse(200,candidate);
+    if(p.endsWith('/files')){filePages++;const page=Number(u.searchParams.get('page'));return fakeResponse(200,files.slice((page-1)*100,page*100));}
+    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
+    if(p.includes('/contents/'))blobReads++;
+    throw Error('large candidate must not read blobs/status/checks');
+  }});
+  assert.equal(filePages,2);assert.equal(blobReads,0);assert.equal(results.length,1);
+  const r=results[0];assert.equal(r.state,'OWNER_REVIEW_REQUIRED');assert.equal(r.reason,'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED');
+  assert.equal(r.binding.base_sha,sha('d'));assert.equal(r.binding.current_main_sha,sha('a'));assert.equal(r.binding.head_sha,sha('b'));assert.equal(r.binding.changed_paths.length,129);
+  assert.equal(r.bounded_comparison.comparison_performed,false);assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);
+});

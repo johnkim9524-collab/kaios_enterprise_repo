@@ -54,3 +54,49 @@ test('primary unsupported or unterminated lexical constructs remain fail closed'
   for(const source of ['const t=`${value;','const text="unclosed;','if(flag){throw new Error("HOLD");','const x=1; /* unclosed'])
     assert.throws(()=>check(source),/CAPABILITY_SCRIPT_PARSE_FAILED/);
 });
+
+test('primary expression bodies permit division while declarations permit following regex',()=>{
+  for(const expr of ['function(){}','function named(){}','function*(){}','async function(){}','class {}','class Named {}','class extends Object {}','function(a=function(){}){}']){
+    const source=`const ratio = ${expr} / 2; if(ratio<1)throw new Error('HOLD');`;
+    new Function(source);
+    assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+    assert.throws(()=>check(source,source.replace('ratio<1','ratio<0')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  }
+  for(const decl of ['function f(){}','function* f(){}','async function f(){}','class C {}']){
+    const source=`${decl} /if\\(fake\\{throw/.test(value);if(!flag)throw new Error('HOLD');`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});
+
+test('primary recognizes newline declaration boundary after a complete operand',()=>{
+  for(const declaration of ['function f(){}','class C {}']){
+    const source=`const x=1\n${declaration} /if\\(fake\\{throw/.test(value);if(!flag)throw new Error('HOLD');`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});
+
+test('primary recognizes declarations directly after switch clause labels',()=>{
+  for(const [declaration,fallback] of [['class C {}','class D {}'],['function f(){}','function g(){}']]){
+    const source=`switch(kind){case condition ? 1 : 2: ${declaration} /if\\(fake\\{throw/.test(value);break;default:${fallback} /if\\(fake\\{throw/.test(value);}if(!flag)throw new Error('HOLD');`;
+    new Function('kind','condition','value','flag',source);
+    assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+});
+
+test('primary switch clause declarations preserve regex while ternary and object colons preserve expressions',()=>{
+  for(const clause of ['case 1:', 'default:', 'case flag?1:2:', 'case flag?a?1:2:3:', 'case ({key:1}).key:']){
+    const source=String.raw`switch(value){${clause} class C{} /if\(fake\{throw/.test(value);break;}`;
+    new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  }
+  for(const source of [
+    String.raw`switch(value){case (flag?1:2):switch(other){default:class C{} /if\(fake\{throw/.test(value);}break;}`,
+    'switch(value){case 1:const ratio=flag?class {} / 2:class {} / 3;break;}',
+    'switch(value){case 1:const obj={key:class {} / 2};break;}',
+  ]){new Function(source);assert.equal(check(source).state,'SEMANTIC_CAPABILITY_DELTA_PASS');}
+  for(const source of [
+    'switch(value){case 1:class C{method(){if(!allowed)throw new Error("HOLD");}} /[{}]/.test(value);}',
+    'switch(value){case 1:const ratio=flag?class {method(){if(!allowed)throw new Error("HOLD");}} / 2:class {} / 3;}',
+  ])assert.throws(()=>check(source,source.replace('!allowed','allowed')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+  const source='switch(value){default:class C{} if(!/^safe$/.test(value))throw new Error("HOLD");}';
+  assert.throws(()=>check(source,source.replace('^safe$','.*')),/CAPABILITY_GUARD_DEPENDENCY_CHANGED/);
+});
