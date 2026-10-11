@@ -8,6 +8,9 @@ const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
 const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
 const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
 const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
+const dispatcherNativeRepositoryGuard = '((github.event.workflow_run.head_repository.id == github.repository_id && (!github.event.workflow_run.pull_requests[0].head.repo.id || github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)) || (!github.event.workflow_run.head_repository.id && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))';
+const dispatcherJobGuard = `if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && ${dispatcherNativeRepositoryGuard}))`;
+const dispatcherRuntimeIdentityCall = 'const receipt=validateDispatcherTrigger({eventName:process.env.GITHUB_EVENT_NAME,event:JSON.parse(fs.readFileSync(process.env.GITHUB_EVENT_PATH,\'utf8\')),repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:process.env.GITHUB_SHA,ref:process.env.GITHUB_REF,runAttempt:process.env.GITHUB_RUN_ATTEMPT});';
 const dispatcherTerminalWorkflow = 'workflows: [KIDULTS Scope-Aware Authoritative Status V1]';
 const dispatcherRecoverySchedule = "cron: '17 * * * *'";
 const allowedUnbounded = new Set([
@@ -31,6 +34,11 @@ function autonomousDispatcherViolations(source) {
   if (!source.includes(dispatcherWorkflowRunRepositoryGuard)
       || !source.includes("github.event.workflow_run.conclusion == 'success'")
       || !source.includes("github.event.workflow_run.event == 'pull_request_target'")) problems.push('DISPATCHER_TERMINAL_EVENT_GUARD_MISSING');
+  // Pin the full job predicate: substring presence alone cannot reject a
+  // contradictory fork fallback or an always-true alternative branch.
+  if (!source.split(/\r?\n/).some(line=>line.trim()===dispatcherJobGuard)) problems.push('DISPATCHER_NATIVE_IDENTITY_JOB_GUARD_INVALID');
+  if (!source.includes("import {validateDispatcherTrigger} from './scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';")
+      || !source.includes(dispatcherRuntimeIdentityCall)) problems.push('DISPATCHER_RUNTIME_IDENTITY_VALIDATION_MISSING');
   if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
   if (!source.includes(dispatcherExactPrBinding)) problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
   return problems;
@@ -224,11 +232,16 @@ if (files.includes(autonomousDispatcherWorkflow)) {
   }
   const mutations = [
     source.replace(dispatcherTerminalWorkflow, 'workflows: [CI Validation]'),
-    source.replace(` && ${dispatcherWorkflowRunRepositoryGuard}`, ''),
+    source.replace(dispatcherNativeRepositoryGuard, 'true'),
     source.replace("github.event.workflow_run.conclusion == 'success'", 'true'),
     source.replace('          persist-credentials: false', '          persist-credentials: true'),
     source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}'),
-    source.replace(dispatcherRecoverySchedule, "cron: '*/10 * * * *'")
+    source.replace(dispatcherRecoverySchedule, "cron: '*/10 * * * *'"),
+    source.replace('github.event.workflow_run.head_repository.id == github.repository_id', 'true'),
+    source.replace('!github.event.workflow_run.head_repository.id && ', ''),
+    source.replace(dispatcherRuntimeIdentityCall, 'const receipt={authority_created:false};'),
+    source.replace('github.run_attempt == 1', 'true'),
+    source.replace("github.ref == 'refs/heads/main'", 'true')
   ];
   for (const [index, mutated] of mutations.entries()) {
     if (mutated === source || autonomousDispatcherViolations(mutated).length === 0) {
@@ -264,7 +277,7 @@ const receipt = {
     recovery_schedule: 'HOURLY',
     source_checkout: 'TRUSTED_BASE_ONLY',
     exact_pr_binding: true,
-    mutation_cases: 6
+    mutation_cases: 11
   },
   violations
 };
