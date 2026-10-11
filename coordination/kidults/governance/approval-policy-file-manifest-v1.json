@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 780
+    "file_count": 781
   },
   "files": [
     {
@@ -6428,6 +6428,12 @@
       "sha256": "sha256:ef6578c6a2303db24f01c99c2342cee36815b7c0b3e51edbd7432382fa5bf5f2"
     },
     {
+      "path": "tests/kidults/staging-operations/stale-owner-review-disposition-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "5203ec01557865af467beaacd9e9048f122bebee",
+      "sha256": "sha256:518d2cee9876e8b29a6502caa4fd66c5400a9bc259b83bc4ca3d4174e6bfd35a"
+    },
+    {
       "path": "tests/observability/test_runtime.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "f6410d7df7221c90956ec5eabf76c06ba1fdfb9b",
@@ -6452,6 +6458,6 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3be0021dcdf8252390d6dc346d0c429bfa80d6a29151c5c97995807c34347128"
+  "manifest_sha256": "sha256:da548299dfdf2485be9402efcdc09dc246ba21c4404fc576370fa66c84ac4650"
 }
 
