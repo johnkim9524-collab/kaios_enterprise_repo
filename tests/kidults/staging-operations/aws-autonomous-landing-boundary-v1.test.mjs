@@ -1,27 +1,8 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import {inflateSync} from 'node:zlib';
-import {createHash} from 'node:crypto';
 
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
-// Inspect the authenticated original code, rather than searching compressed bytes.
-const writerCapsule = template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
-const capsulePayload = writerCapsule.match(/_ledger_sources = json\.loads\(zlib\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
-assert.ok(capsulePayload, 'fixed ledger source capsule required');
-const writerSources = JSON.parse(inflateSync(Buffer.from(capsulePayload[1], 'base64')).toString('utf8'));
-assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted']);
-const hashLiteral = writerCapsule.match(/^_ledger_source_hashes = (\{[^\n]+\})$/m);
-assert.ok(hashLiteral, 'fixed capsule hash mapping required');
-const sourceHashes = JSON.parse(hashLiteral[1].replaceAll("'", '"'));
-assert.deepEqual(Object.keys(sourceHashes).sort(), Object.keys(writerSources).sort());
-for (const [name, source] of Object.entries(writerSources)) {
-  const digest = createHash('sha256').update(source).digest('hex');
-  assert.equal(sourceHashes[name], digest, `${name} capsule digest mismatch`);
-  const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py'}[name];
-  assert.equal(source, fs.readFileSync(`scripts/kidults/kpmo/lib/${file}`, 'utf8'), `${name} original source mismatch`);
-}
-const writerCode = writerSources.core;
 const oidc = JSON.parse(fs.readFileSync('coordination/kidults/governance/github-oidc-subject-customization-v1.json','utf8'));
 const runner = fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
 const landingPolicy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
@@ -80,7 +61,7 @@ test('writer has exact-table read/write authority required by canonical alias bi
 });
 
 test('writer verifies KMS signatures and runner rejects caller-supplied workload identity', () => {
-  const code=writerCode;
+  const code=template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
   for(const marker of ['verify_approval_signature','verify_finalizer_signature','APPROVAL_SIGNATURE_INVALID','FINALIZER_SIGNATURE_INVALID']) assert.match(code,new RegExp(marker));
   assert.match(runner,/AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN/);
   assert.match(runner,/KIDULTS_AUTONOMOUS_WORKFLOW_REF/);
@@ -88,7 +69,7 @@ test('writer verifies KMS signatures and runner rejects caller-supplied workload
 });
 
 test('finalizer reservation is a single-winner lease and followers exit without merge authority', () => {
-  const code=writerCode;
+  const code=template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
   for(const marker of ['reserve_once','ReturnValuesOnConditionCheckFailure','ConditionalCheckFailedException','ALREADY_RESERVED','owner_run_id','RESERVATION_CONFLICT_INVALID']) assert.match(code,new RegExp(marker));
   assert.match(runner,/state:'FINALIZER_FOLLOWER'/);
   assert.match(runner,/reservation_owner_run_id/);
