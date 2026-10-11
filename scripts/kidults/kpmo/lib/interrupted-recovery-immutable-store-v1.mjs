@@ -1,3 +1,4 @@
+import {verifyInterruptedRecoveryNativeTrigger} from './interrupted-recovery-native-trigger-v1.mjs';
 // Protected S3 adapter only; never dispatches, deploys or creates authority.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -17,8 +18,9 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
   check(/^[a-f0-9]{40}$/.test(sourceSha||'')&&env.GITHUB_ACTIONS==='true'&&env.GITHUB_REPOSITORY===repo
     &&env.GITHUB_REPOSITORY_ID==='1281328888'&&env.GITHUB_REF==='refs/heads/main'&&env.GITHUB_SHA===sourceSha
     &&env.GITHUB_WORKFLOW_SHA===sourceSha&&env.GITHUB_RUN_ATTEMPT==='1'&&/^[1-9][0-9]{0,15}$/.test(env.GITHUB_RUN_ID||'')
-    &&env.GITHUB_EVENT_NAME==='repository_dispatch'&&['track','kpmo','independent-verification'].some(x=>
+    &&['repository_dispatch','workflow_run'].includes(env.GITHUB_EVENT_NAME)&&['track','kpmo','independent-verification'].some(x=>
       env.GITHUB_WORKFLOW_REF===`${repo}/.github/workflows/kidults-autonomous-${x}-authorization-v1.yml@refs/heads/main`),'CONTEXT');
+  if(env.GITHUB_EVENT_NAME==='workflow_run')await verifyInterruptedRecoveryNativeTrigger({env});
   const identity=await aws(['sts','get-caller-identity']);
   check(identity.Account==='528314240275'&&/^arn:aws:sts::528314240275:assumed-role\/kidults-autonomous-finalizer-staging-role\/[^/]+$/.test(identity.Arn||''),'IDENTITY');
   const call=async args=>{try{return await aws(args);}catch(error){

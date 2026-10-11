@@ -1,47 +1,27 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T08:54:01.743356+00:00",
+  "as_of": "2026-10-11T09:28:40.348624+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
-    "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
-    "candidate_parent_sha": "687a5d50d6c6c349055141b1f031b91b4c8a3460"
+    "verification_scope": "NATIVE_EVIDENCE_AND_AUTOMATIC_MERGED_RECOVERY_SOURCE_INTEGRATED_NOT_ACTIVATED",
+    "candidate_parent_sha": "780f94d13f50d2558825a65d3fc2c47be24bbf38"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
-    "Current protected main bcfb815 remains unchanged; completed PR2653 landing reused.",
-    "Implemented bounded handoff run-name display repair and applied it to the workflow.",
-    "Both classifiers now extract complete function bodies after balanced destructured/default parameters; actual current Dispatcher and hidden predicate-body mutations tested.",
-    "Generic classifier-PASS-based profile rebind was rejected by Red Team before activation. Current rebind permits only appended ASCII line comments or an existing exact reviewed source transition; other trust roots, keys, limits and HOLD unchanged.",
-    "Three existing role finalizers contend only after complete distinct quorum; original conditional reservation elects one writer. No new role, generation, nonce or IAM/OIDC permission added.",
-    "Backend consume v2 checks ALL_NEW pk/sk/run/head/state/merge and returns exact remote tuple; runner rejects absent, contradictory or legacy ok-only binding before sealing.",
-    "Root targeted suite484/484 and governance/lexer134/134 passed; five actual-template local backend tests passed; standalone landing and AWS template validators passed.",
-    "AWS template resource, IAM/OIDC trust and parameters unchanged outside writer code.",
-    "Independent Red Team127 classifier tests,20 election/consume tests and12 adversarial tail rejections passed; no additional blocking source difference found in reviewed scope.",
-    "Token handoff v2 binds broker-authenticated native run/attempt/source, original generation and nonce, actual expiry and bounded mint deadline into the signed durable receipt.",
-    "Broker family stores a 180-second mint bound and 3840-second token upper bound before issuance; late/missing/unbounded expiry remains UNKNOWN and cannot remint.",
-    "Runner rejects legacy or mismatched token expiry/run/generation/nonce before using the mutation token.",
-    "Read-only token drain classifier authenticates same family/operation/receipt/signature; legacy, missing receipt and UNKNOWN remain HOLD. TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY grants no lease or mutation.",
-    "Rebuilt broker templates alter Code.ZipFile only; IAM/environment/profiles unchanged. Node broker/dispatcher suites445/445 PASS; independent Red Team113/113 PASS before four added clock/identity/receipt regressions.",
-    "Protected read-only READ_FINALIZER_RECOVERY_CONTEXT authenticates original ledger token drain plus native original run, current protected main, PR and ordered merge graph. UNKNOWN, legacy, rerun, drift and #1677 reject; no reservation transfer or write-token return.",
-    "New generic merged-only ledger component preserves original generation/nonce/run/head; three distinct KMS-signed roles pin one request/evidence, service-clock lease/revision CAS elects one terminal-recovery execution, and consumed terminal/digest persist atomically.",
-    "New merged-only orchestration reobserves native exact-main before consumption; ambiguous consumption RPC only reads back exact persisted terminal and never reissues. Archive interruption can resume consumed history after authority expiry without new approval/lease/consume.",
-    "Immutable ACK is bound to fixed object/version/body digest, exact encryption key and issued-at plus ten calendar years COMPLIANCE retention. Native transport authentication remains a required protected adapter, not a caller boolean.",
-    "Root broker/dispatcher Node460/460 PASS, new generic engine16/16 PASS, independent Python22/22 PASS with actual P-256 ECDSA tamper rejection, 12-thread single-winner CAS and actual JS/Python canonical/digest interoperability.",
-    "Generic merged-only components are not registered in the production writer or connected to native role workflows; source modules and local proofs are not runtime closure. Historical #2555 remains unchanged.",
-    "Expired unconsumed merged-only recovery requests now support at most two authenticated supersessions: old request and lease expired, same original identity, fresh independent three-role quorum, original-row conditional CAS, no terminal or mutation authority renewal.",
-    "Disjoint verification: broker/dispatcher460, generic JS26 and Python28 tests pass (514 total); generic recovery remains undeployed and unregistered.",
-    "External reconciliation confirmed fd20 exact-head latest21 native workflows terminal SUCCESS; completed source-CI stage was reused without rerun.",
-    "Added protected interrupted-recovery signed transport using existing workload roles, registered signing key, exact native source/run/attempt/repository_dispatch, STS identity and KMS DIGEST; fixed existing Lambda only and no retry. Admin/manual/rerun/#1677/run impersonation rejected before signing. New adapter15 tests and engine26 tests PASS.",
-    "Red Team found hidden AWS CLI retries. Both generic and historical signed clients now share a transport pinned to AWS_MAX_ATTEMPTS=1, standard retry mode and 5/20/30-second connection/read/process bounds. Actual subprocess-options test PASS; independent Red Team15/15 PASS and combined adapter/engine/historical58/58 PASS.",
-    "Generic six-action signed recovery is now registered in existing writer source. Fixed three-source digest-checked capsule preserves original core bytes and historical namespace, fits natural compact template route at41878bytes. Only writerCode and receipt bucket Ref changed; no IAM/OIDC change or deployment.",
-    "Actual capsule generic quorum/claim/consume/read preserves original run; two Python ledger suites70/70PASS. Deployment50/50PASS including fixed historical V1/V2 tests and current code/bucket/environment/IAM drift rejection. AWS template and OIDC trust2/2 PASS.",
-    "Red Team detected pre-recovery V2 to historical V1 downgrade in compatibility validation; fixed explicit tuple-contract downgrade fence and independent negative test before source publication.",
-    "Exact1bb57 native CI38124320905/job114425390155 failed only consumption fixture loader: outer AST filtering did not intercept embedded boto3 imports. Updated test harness executes actual capsule unchanged with service module doubles; original five tuple/signature/CAS tests PASS and ledger70PASS. No production dependency or mutation boundary relaxed.",
-    "Fresh external reconciliation confirmed head687 native21/21 terminalSUCCESS; no rerun performed.",
-    "Generic protected S3 adapter authenticates signed ledger CONSUMED and exact stored terminal before fixed-key version/checksum/bytes/KMS/COMPLIANCE verification; uncertain put is reconciled read-only without second put.",
-    "Red Team identified advanced-main consumed-history sealing blocker; corrected via protected signed ledger exact history binding, not caller flags. Local adapter15, engine26 and signed RPC15 tests PASS; no AWS execution/deployment claimed."
+    "Fresh protected main bcfb815084d82cd5eb93918e925b0d4382121f31 unchanged; PR2654 remains Draft and unmerged.",
+    "Parent780 latest21 native workflow/event conclusions SUCCESS; no rerun and no operating-closure inference.",
+    "Existing natural Gate workflow_run drives three existing distinct signed approval workloads. Verifier completion drives a separate fourth Track Finalizer run; original owner and distinct quorum rules preserved.",
+    "Native trigger re-reads protected main, exact upstream run/attempt, actual authority job and Verifier recovery job/step; manual/replay/skipped reject.",
+    "Generic collector validates native merged graph, required6 push suite, P0 original archive, canonical and all four original producer archives, latest Sentinel, actual Assurance audit/runtime proof and actual authority job.",
+    "First Gate ZIP read binds both original health and Assurance archive digests from native metadata; nested sidecars and sealed Gate upstream/artifact/member digests must agree.",
+    "Discovery scopes native repository_dispatch failure/cancelled/timed_out per existing workflow with complete pagination; signed original-row read grants authority, archive hint alone does not. Expired original artifacts remain explicit unresolved observations without blocking other candidates; identity/digest conflicts reject.",
+    "Read-only broker reconciliation permits native workflow_run only for READ_FINALIZER_RECOVERY_CONTEXT; no token mint, mutation, new IAM/OIDC role or rights expansion.",
+    "Existing protected signed writer reads original request/evidence/role approvals; bounded quorum wait, CAS consumption and authenticated fixed-key S3 sealing are connected to automatic native workload.",
+    "Root Node185PASS; deployment/trust/policy56PASS; Python ledgers73PASS; workflow7PASS. Independent Red Team Node108PASS and generic Python32PASS.",
+    "Original core bytes and historical namespace unchanged; templates change only reviewed Code plus exact existing receipt bucket Ref; no deployment.",
+    "Normal original core CONSUMED without persisted canonical terminal remains ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED read-only unresolved. No fabricated original terminal or retry."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -53,38 +33,27 @@
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs"
   ],
   "inferences": [
-    "Atomic existing-finalizer reservation election addresses late approval liveness within the original common fanout.",
-    "Limited comment rebind does not establish arbitrary internal code repair autonomy."
+    "Source integration addresses missing evidence adapter and automatic trigger; only deployed native execution can establish operating closure."
   ],
   "uncertainties": [
-    "Generic unmerged recovery broker-owned mutation/fencing remains unimplemented; bounded merged-only supersession is source verified only.",
-    "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified.",
-    "S3 adapter is source implemented; protected native-evidence producer and automatic recovery trigger remain unfinished/undeployed."
+    "Normal original core consumption and canonical terminal persistence still require one atomic contract.",
+    "Generic unmerged broker-owned mutation trust bridge remains unfinished.",
+    "No deployed current candidate/native eligible terminal or two full natural chains verified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
-    "NATIVE_PROOF_S3_ADAPTER_AND_AUTOMATIC_RECOVERY_TRIGGER_NOT_INTEGRATED",
+    "NORMAL_CONSUMED_TERMINAL_PERSISTENCE_GAP",
     "UNMERGED_RECOVERY_INCOMPLETE",
     "ELIGIBLE_NATIVE_TERMINAL_AND_TWO_FULL_NATURAL_CHAINS_UNVERIFIED"
   ],
   "actions_executed": [
-    "Fresh protected main reconciliation",
-    "Bounded local policy/code/workflow/backend correction",
-    "Source profile byte regeneration",
-    "Adversarial Red Team review and backend source execution tests",
-    "Signed durable exact token expiry binding correction",
-    "Native caller tuple binding and bounded mint deadline",
-    "Read-only authenticated drain prerequisite and adversarial regressions",
-    "Protected native read-only recovery diagnostic implementation",
-    "Generic merged-only lease/consume/immutable ACK components and cross-language engine",
-    "Independent real ECDSA and concurrent CAS adversarial verification",
-    "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation",
-    "Signed remote ledger transport source and negative identity/no-retry tests",
-    "Fixed-inventory compressed writer routing with authenticated generic actions and exact bounded receipt bucket binding",
-    "Read actual failed native job logs; correct capsule-aware actual backend test harness without rerun or weakened assertions",
-    "Implement generic immutable adapter with authenticated consumed-history read and bounded no-retry S3 reconciliation"
+    "Fresh external main/head/comments/native-CI reconciliation",
+    "Protected native archive evidence collector and automatic trigger integration",
+    "Separate fourth-run Finalizer without weakening quorum",
+    "Read-only broker route and credential/no-retry boundary",
+    "Full ZIP positive/tamper and independent Red Team verification"
   ],
-  "next_action": "Complete protected native-evidence producer and automatic recovery integration, then unmerged trust bridge; activation and actual eligible native/natural proof remain mandatory.",
+  "next_action": "Atomically persist canonical original terminal with normal consumption; then exact-head source/CI revalidation and protected activation gate.",
   "authority_boundary": {
     "merged": false,
     "previous_approval_rebound": false,
@@ -99,7 +68,7 @@
     "draft": true,
     "deployment": false
   },
-  "defect_disposition": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_SOURCE_VERIFIED_NOT_INTEGRATED; PARTIAL_HOLD",
+  "defect_disposition": "NATIVE_EVIDENCE_AND_AUTOMATIC_MERGED_RECOVERY_SOURCE_INTEGRATED; NORMAL_CORE_CONSUMED_ARCHIVE_GAP_UNRESOLVED; PARTIAL_HOLD",
   "remediation_sequence": [
     "Bounded classifier and source-profile correction",
     "Existing-workflow quorum reservation election",
@@ -116,8 +85,8 @@
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/2654"
   ],
   "improvement_proposal": "No blanket classifier PASS grant; preserve authenticated source, existing roles, original operation identity, single reservation and fail-closed unresolved outcomes.",
-  "autonomous_effect": "Merged-only source components resume interrupted terminal consumption/sealing without replacing original owner; no native operating closure or unmerged mutation authority claimed.",
+  "autonomous_effect": "Native merged-only recovery source automatically consumes authenticated proof and original reservation without token reissue; source not activated.",
   "global_effect": "Production/Public/G5/provider HOLD unchanged.",
   "irreplaceable_value_effect": "Preserve original generation and durable operation identity across recovery; never replace historical or unknown work with newly minted authority.",
-  "transparency_effect": "Local source verification is separate from deployment and native runtime evidence."
+  "transparency_effect": "Source, CI, deployment, bounded runtime and whole-platform closure remain distinct; unresolved old consumed history is explicit."
 }

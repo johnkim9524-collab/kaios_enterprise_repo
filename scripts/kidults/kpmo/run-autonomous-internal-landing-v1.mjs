@@ -641,6 +641,7 @@ try {
   }
   const failure={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'QUARANTINED',failure_code:error.code||error.message,
     authorization_generation:envelope.authorization_generation,merge_performed:mergePerformed,merge_sha:mergeSha,rollback,
+    original_reservation:{pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,head_tree_sha:envelope.head_tree_sha,original_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,original_run_id:required('GITHUB_RUN_ID'),original_run_attempt:1},
     terminal_evidence:terminalEvidence,retry_without_reconciliation:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',created_at:new Date().toISOString()};
   writeReceipt(failure);

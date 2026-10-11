@@ -1,3 +1,4 @@
+import {verifyInterruptedRecoveryNativeTrigger} from './interrupted-recovery-native-trigger-v1.mjs';
 // Protected workload transport only; no executable entry point or AWS retries.
 // Registration in the existing writer is a separate, unactivated source step.
 import fs from 'node:fs';
@@ -31,9 +32,10 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
   check(!env.AWS_PROFILE&&!env.AWS_DEFAULT_PROFILE,'ADMIN_PROFILE');
   check(env.GITHUB_ACTIONS==='true'&&env.GITHUB_REPOSITORY===repo&&env.GITHUB_REPOSITORY_ID==='1281328888'
     &&env.GITHUB_REF==='refs/heads/main'&&env.GITHUB_SHA===sourceSha&&env.GITHUB_WORKFLOW_SHA===sourceSha
-    &&env.GITHUB_RUN_ATTEMPT==='1'&&/^[1-9][0-9]{0,15}$/.test(env.GITHUB_RUN_ID||'')&&env.GITHUB_EVENT_NAME==='repository_dispatch','CONTEXT');
+    &&env.GITHUB_RUN_ATTEMPT==='1'&&/^[1-9][0-9]{0,15}$/.test(env.GITHUB_RUN_ID||'')&&['repository_dispatch','workflow_run'].includes(env.GITHUB_EVENT_NAME),'CONTEXT');
   const index={ACCOUNTABLE_TRACK_AGENT:0,KPMO:1,INDEPENDENT_VERIFIER:2}[role];
   check(role==='FINALIZER'?workflows.includes(env.GITHUB_WORKFLOW_REF):env.GITHUB_WORKFLOW_REF===workflows[index],'WORKFLOW');
+  if(env.GITHUB_EVENT_NAME==='workflow_run')await verifyInterruptedRecoveryNativeTrigger({env});
   const identity=await aws(['sts','get-caller-identity']);
   check(identity.Account==='528314240275'&&new RegExp(`^arn:aws:sts::528314240275:assumed-role/kidults-autonomous-${def[0]}-staging-role/[^/]+$`).test(identity.Arn||''),'IDENTITY');
   const workload={workload_id:def[2],environment:'KIDULTS-AUTONOMOUS-'+def[1],signing_key_arn:signingKeyArn};
@@ -63,6 +65,7 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
     return invoke({action,...binding(input.request,fresh),run_id:env.GITHUB_RUN_ID,run_attempt:1,workload,...extra});
   };
   return {
+    readContext:async({request})=>invoke({action:'READ_MERGED_RECOVERY_CONTEXT',...binding(request,false),role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload}),
     // Native evidence is verified by each protected role before reaching this
     // transport. The writer independently validates schema, digest and quorum.
     createApproval:async({request,evidence})=>{

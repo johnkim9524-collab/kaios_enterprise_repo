@@ -50,6 +50,7 @@ def handler(event, context):
     interrupted_methods = {
         'APPROVE_MERGED_RESERVATION_RECOVERY': 'create_approval',
         'READ_MERGED_RECOVERY': 'read',
+        'READ_MERGED_RECOVERY_CONTEXT': 'read_context',
         'CLAIM_MERGED_RECOVERY': 'claim',
         'CONSUME_MERGED_RECOVERY': 'consume',
         'ACK_MERGED_RECOVERY_IMMUTABLE': 'acknowledge',

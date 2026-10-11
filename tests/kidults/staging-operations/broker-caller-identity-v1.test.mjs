@@ -49,3 +49,9 @@ test('forged signature cannot reach native credential read',async()=>{
 for(const mutate of [f=>f.run.run_attempt=2,f=>f.run.head_sha='b'.repeat(40),f=>f.run.path='.github/workflows/other.yml',f=>f.run.status='completed',f=>f.run.repository.id=999])test('native metadata drift rejects otherwise valid signed identity',async()=>{
   const f=fixture();mutate(f);await assert.rejects(verify(f),/NATIVE_RUN/);
 });
+test('workflow_run finalizer is accepted only by the explicit read-only recovery route',async()=>{
+ const f=fixture();f.run.event='workflow_run';
+ await assert.rejects(verify(f),/NATIVE_RUN/);
+ assert.equal((await verify(f,{readOnlyRecovery:true})).result.caller_class,'FINALIZER');
+});
+test('read-only recovery does not admit a manual finalizer',async()=>{const f=fixture();f.run.event='workflow_dispatch';await assert.rejects(verify(f,{readOnlyRecovery:true}),/NATIVE_RUN/);});

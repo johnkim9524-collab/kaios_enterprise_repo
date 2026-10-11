@@ -102,6 +102,37 @@ class RecoveryTest(unittest.TestCase):
         return dict(id='kidults-interrupted-reservation-terminal-v1', state='VERIFIED_PASS', request_digest=m.digest(self.request), evidence_digest=m.digest(self.evidence), recovery_run_id=run, revision=revision, merge_sha='d'*40, head_sha='b'*40, **m.HOLD)
     def consume(self, run='400', revision=1):
         return self.ledger.consume(self.final('CONSUME_MERGED_RECOVERY', run=run, revision=revision, terminal=self.terminal(run, revision)))
+    def context(self, role='FINALIZER', request=None):
+        r = request or self.request
+        config = self.finalizer if role == 'FINALIZER' else self.roles[role]
+        return signed(dict(action='READ_MERGED_RECOVERY_CONTEXT', request=copy.deepcopy(r), request_digest=m.digest(r), role=role, run_id='900', run_attempt=1, workload=config))
+    def test_signed_context_has_no_write_and_validates_all_candidate_approvals(self):
+        before = self.ddb.writes
+        self.assertIsNone(self.ledger.read_context(self.context())['request'])
+        self.assertEqual(self.ddb.writes, before)
+        self.approve()
+        before = self.ddb.writes
+        result = self.ledger.read_context(self.context('KPMO'))
+        self.assertEqual(result['request'], self.request)
+        self.assertEqual(result['evidence'], self.evidence)
+        self.assertEqual(len(result['candidate_approvals']), 3)
+        self.assertEqual(result['approval']['role'], 'KPMO')
+        self.assertEqual(self.ddb.writes, before)
+    def test_context_quarantine_forgery_and_native_identity_never_write(self):
+        packet = self.context()
+        packet['signature_b64'] = base64.b64encode(b'forged').decode()
+        with self.assertRaisesRegex(ValueError, 'SIGNATURE'):
+            self.ledger.read_context(packet)
+        self.request['pull_request'] = 1677
+        with self.assertRaisesRegex(ValueError, 'QUARANTINE'):
+            self.ledger.read_context(self.context())
+        self.assertEqual(self.ddb.writes, 0)
+    def test_original_core_consumed_is_not_generic_recovery_success(self):
+        self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]['state'] = {'S': 'CONSUMED'}
+        result = self.ledger.read_context(self.context())
+        self.assertEqual(result['state'], 'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED')
+        self.assertFalse(result['write_performed'])
+
     def test_actual_capsule_routes_generic_and_preserves_original_owner(self):
         root = PATH.parents[4]
         template = json.loads((root / 'infrastructure/aws/staging/autonomous-internal-landing-v1.json').read_text())

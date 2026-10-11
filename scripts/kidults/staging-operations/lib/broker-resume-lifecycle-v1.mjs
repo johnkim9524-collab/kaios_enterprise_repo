@@ -93,7 +93,12 @@ export async function brokerReadFinalizerRecoveryContext({event,config,ledgerReq
     ||pr.head?.repo?.full_name!==config.repository||head.sha!==event.head_sha||!sha(head.tree?.sha))return held('RECOVERY_CONTEXT_LIVE_TUPLE_DRIFT');
   let merge=null;
   if(pr.merged===true){
-    if(pr.state!=='closed'||!sha(pr.merge_commit_sha)||pr.merge_commit_sha!==event.base_sha)return held('RECOVERY_CONTEXT_MERGE_NOT_CURRENT_MAIN');
+    if(pr.state!=='closed'||!sha(pr.merge_commit_sha))return held('RECOVERY_CONTEXT_MERGE_NOT_CURRENT_MAIN');
+    if(pr.merge_commit_sha!==event.base_sha){
+      const comparison=await get(`/compare/${pr.merge_commit_sha}...${event.base_sha}?per_page=1&page=2`);
+      if(comparison.status!=='ahead'||comparison.behind_by!==0||comparison.base_commit?.sha!==pr.merge_commit_sha
+        ||comparison.merge_base_commit?.sha!==pr.merge_commit_sha)return held('RECOVERY_CONTEXT_MERGE_NOT_ANCESTOR');
+    }
     const commit=await get(`/git/commits/${pr.merge_commit_sha}`);
     if(commit.sha!==pr.merge_commit_sha||commit.tree?.sha!==head.tree.sha
       ||canonicalJson(commit.parents?.map(p=>p.sha))!==canonicalJson([e.source_sha,event.head_sha]))return held('RECOVERY_CONTEXT_MERGE_GRAPH_MISMATCH');

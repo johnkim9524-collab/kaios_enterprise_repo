@@ -125,7 +125,7 @@ exports.handler=async (event,context) => {
     };
     callerIdentity=await identity.verifyBrokerCallerIdentity({token:event.caller_oidc_token,repository:process.env.GITHUB_REPOSITORY,
       repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:event.base_sha||event.envelope?.base_sha||event.binding?.current_main_sha,
-      callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,request,nativeRequest});
+      callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,readOnlyRecovery:event.action==='READ_FINALIZER_RECOVERY_CONTEXT',request,nativeRequest});
     const {caller_oidc_token,...operationEvent}=event;event=operationEvent;
   }
   if(['RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION','MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT'].includes(event?.action)) {
