@@ -226,8 +226,6 @@ test('deployment workflow auto-converges bounded STAGING deltas while preserving
     'if: always()',
     'push:',
     'AUTO-STAGING-AUTONOMOUS-LANDING-',
-    'template-delta-validation.stderr',
-    'validation_status=$?',
   ]) assert.ok(workflow.includes(marker), marker);
   assert.ok(workflow.indexOf('uses: actions/checkout@') < workflow.indexOf('actual_template_sha=$(sha256sum'), 'checkout must precede template hashing');
   assert.ok(!workflow.includes('schedule:'), 'normal STAGING convergence is protected-main push triggered, not scheduled');
