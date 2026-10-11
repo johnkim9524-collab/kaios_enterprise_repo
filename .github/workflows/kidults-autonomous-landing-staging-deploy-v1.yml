@@ -128,7 +128,13 @@ jobs:
           echo "::notice::STAGING CloudFormation stack status=$stack_status reason=$stack_status_reason"
           test "$stack_status" = UPDATE_COMPLETE -o "$stack_status" = UPDATE_ROLLBACK_COMPLETE -o "$stack_status" = CREATE_COMPLETE
           aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-template.json"
-          validation=$(node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs --current "$RUNNER_TEMP/current-template.json" --desired "$TEMPLATE_PATH")
+          validation_exit=0
+          validation=$(node scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs --current "$RUNNER_TEMP/current-template.json" --desired "$TEMPLATE_PATH" \
+            --diagnostic out/autonomous-landing-staging-deploy-v1/template-mismatch.json) || validation_exit=$?
+          aws lambda get-function --function-name "kidults-autonomous-ledger-writer-staging" \
+            --query 'Configuration.{CodeSha256:CodeSha256,RevisionId:RevisionId,LastModified:LastModified,Runtime:Runtime}' --output json \
+            > out/autonomous-landing-staging-deploy-v1/live-writer-code-identity.json
+          test "$validation_exit" = 0 || exit "$validation_exit"
           mode=$(jq -er '.mode' <<<"$validation")
           test "$mode" = CHANGE_REQUIRED -o "$mode" = ALREADY_APPLIED
           echo "mode=$mode" >> "$GITHUB_OUTPUT"

@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "776e7b896a121a4aa02e8e01a8357090fcf202be",
+  "head_branch": "codex/staging-preflight-evidence-20261011",
+  "source_head_sha": "776e7b896a121a4aa02e8e01a8357090fcf202be",
+  "source_head_tree_sha": "57cef056cde3c91dfc153ef1ba263cad0d52c436",
+  "payload_digest": "sha256:6c3368d80bce386cc36acac1d55d0ab86a25cfd34368d33ec6b0d6b87f12f54c",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}

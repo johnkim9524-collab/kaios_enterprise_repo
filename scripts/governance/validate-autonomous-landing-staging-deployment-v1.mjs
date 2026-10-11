@@ -290,7 +290,45 @@ const currentPath = value('--current');
 const desiredPath = value('--desired');
 const current = read(currentPath);
 const desired = read(desiredPath);
-const mode = validateTemplates(current, desired);
+// Evidence only: preserve bounded hashes before a failed preflight exits.
+// Never publish template values, inline code, policy documents or environment.
+const diagnosticPath = args.includes('--diagnostic') ? value('--diagnostic') : null;
+let mode;
+try {
+  mode = validateTemplates(current, desired);
+} catch (error) {
+  if (diagnosticPath) {
+    const digest = object => object === undefined ? null : sha256Hex(JSON.stringify(stable(object)));
+    const resourceIds = [...new Set([...Object.keys(current?.Resources || {}), ...Object.keys(desired?.Resources || {})])].sort();
+    const safeName = name => /^[A-Za-z][A-Za-z0-9]{0,255}$/.test(name) ? name : 'REDACTED_INVALID_IDENTIFIER';
+    fs.writeFileSync(diagnosticPath, JSON.stringify({
+      id: 'kidults-autonomous-landing-template-mismatch-v1',
+      version: '1.0.0', state: 'VERIFIED_FAIL', promotion_eligible: false,
+      current_template_sha256: digest(current), desired_template_sha256: digest(desired),
+      top_level_sections: [...new Set([...Object.keys(current || {}), ...Object.keys(desired || {})])].sort().slice(0, 256).map(section => ({
+        section: safeName(section), current_sha256: digest(current?.[section]),
+        desired_sha256: digest(desired?.[section]), equal: equal(current?.[section], desired?.[section]),
+      })),
+      resources_truncated: resourceIds.length > 256,
+      resources: resourceIds.slice(0, 256).map(logicalId => ({
+        logical_id: safeName(logicalId),
+        current_sha256: digest(current?.Resources?.[logicalId]),
+        desired_sha256: digest(desired?.Resources?.[logicalId]),
+        equal: equal(current?.Resources?.[logicalId], desired?.Resources?.[logicalId]),
+      })),
+      current_writer_inline_sha256: typeof current?.Resources?.[WRITER_FUNCTION_ID]?.Properties?.Code?.ZipFile === 'string'
+        ? sha256Hex(current.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile) : null,
+      desired_writer_inline_sha256: typeof desired?.Resources?.[WRITER_FUNCTION_ID]?.Properties?.Code?.ZipFile === 'string'
+        ? sha256Hex(desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile) : null,
+      authority_granted: false, deployment_performed: false,
+      production: 'HOLD', public: 'HOLD', g5: 'HOLD', provider_activation: 'HOLD',
+    }, null, 2) + '\n', {flag: 'wx', mode: 0o600});
+    // Assertion diffs can include untrusted desired values. Diagnostic mode
+    // exposes only a fixed rejection code; the nonzero exit is unchanged.
+    throw new Error('TEMPLATE_PREFLIGHT_REJECTED');
+  }
+  throw error;
+}
 if (args.includes('--changeset')) {
   assert.equal(mode, 'CHANGE_REQUIRED', 'CHANGE_SET_NOT_ALLOWED_FOR_ALREADY_APPLIED_TEMPLATE');
   validateChangeSet(read(value('--changeset')), current, desired);

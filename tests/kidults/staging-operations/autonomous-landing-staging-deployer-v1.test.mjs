@@ -85,6 +85,49 @@ const withFixture = (files, callback) => {
   }
 };
 
+for (const [label, mutate] of [
+  ['IAM', d => d.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow', Action:['dynamodb:Scan'], Resource:'*'})],
+  ['inline writer', d => d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile += '\n# SECRET_DIAGNOSTIC_MARKER'],
+  ['environment', d => d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA = 'SECRET_DIAGNOSTIC_MARKER'],
+  ['top-level', d => d.Metadata = {secret:'SECRET_DIAGNOSTIC_MARKER'}],
+]) test('failed '+label+' preflight persists only bounded hashes and never grants deployment', () => {
+  const current = structuredClone(desired); mutate(current);
+  withFixture({current, desired}, directory => {
+    const diagnostic = path.join(directory, 'diagnostic');
+    const result = spawnSync('node', [validator, '--current', path.join(directory,'current'), '--desired', path.join(directory,'desired'), '--diagnostic', diagnostic], {encoding:'utf8'});
+    assert.notEqual(result.status, 0);
+    const raw = fs.readFileSync(diagnostic,'utf8'), receipt = JSON.parse(raw);
+    assert.equal(receipt.state,'VERIFIED_FAIL');
+    assert.equal(receipt.authority_granted,false); assert.equal(receipt.deployment_performed,false);
+    assert.equal(receipt.promotion_eligible,false);
+    assert.doesNotMatch(raw + result.stdout + result.stderr,/SECRET_DIAGNOSTIC_MARKER/);
+    assert.match(receipt.current_template_sha256,/^[a-f0-9]{64}$/);
+    assert.ok(receipt.top_level_sections.some(section => !section.equal));
+    assert.equal(receipt.current_writer_inline_sha256,createHash('sha256').update(current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'));
+    const again = spawnSync('node', [validator, '--current', path.join(directory,'current'), '--desired', path.join(directory,'desired'), '--diagnostic', diagnostic], {encoding:'utf8'});
+    assert.notEqual(again.status,0); assert.equal(fs.readFileSync(diagnostic,'utf8'),raw);
+  });
+});
+
+test('preflight checks original failure before mode output and preserves failure artifacts', () => {
+  const failureCheck = workflow.indexOf('test "$validation_exit" = 0 || exit "$validation_exit"');
+  assert.ok(failureCheck > workflow.indexOf('--diagnostic out/autonomous-landing-staging-deploy-v1/template-mismatch.json'));
+  assert.ok(failureCheck < workflow.indexOf('echo "mode=$mode"'));
+  assert.match(workflow,/--query 'Configuration\.\{CodeSha256:CodeSha256,RevisionId:RevisionId,LastModified:LastModified,Runtime:Runtime\}'/);
+  assert.match(workflow,/if: always\(\)/);
+});
+
+test('desired authority drift cannot leak assertion values through diagnostic stderr', () => {
+  const unsafe = structuredClone(desired);
+  unsafe.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['kms:SECRET_DIAGNOSTIC_MARKER'],Resource:'SECRET_DIAGNOSTIC_MARKER'});
+  withFixture({current:desired,desired:unsafe}, directory => {
+    const diagnostic = path.join(directory,'diagnostic');
+    const result = spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),'--diagnostic',diagnostic],{encoding:'utf8'});
+    assert.notEqual(result.status,0); assert.match(result.stderr,/TEMPLATE_PREFLIGHT_REJECTED/);
+    assert.doesNotMatch(result.stdout+result.stderr+fs.readFileSync(diagnostic,'utf8'),/SECRET_DIAGNOSTIC_MARKER/);
+  });
+});
+
 test('bootstrap trust is exact workflow/environment and permissions are bounded to three STAGING roles', () => {
   const trust = bootstrap.Resources.DeployerRole.Properties.AssumeRolePolicyDocument.Statement[0];
   assert.equal(trust.Condition.StringEquals['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
