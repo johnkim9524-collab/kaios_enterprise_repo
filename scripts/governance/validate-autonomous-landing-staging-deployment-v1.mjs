@@ -43,13 +43,14 @@ const RECOVERY_BASE_WRITER_SHA256 = '2d8ffee622929b322de4b75957122ca44928cef08ba
 const CONSUMPTION_V1_WRITER_SHA256 = '3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad';
 const CONSUMPTION_V2_WRITER_SHA256 = '688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d';
 const CONSUMPTION_V2_PRE_RECOVERY_SHA256 = '7820ad57800393b22ec77afe30e4c2a082610ac8a2020322bf9243841fdd6bf2';
+const PREVIOUS_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
-  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(source)))return false;
+  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256,PREVIOUS_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source)))return false;
   const expected=structuredClone(from);
   const targetZip=to?.Properties?.Code?.ZipFile||'';
   // The deployed stack can legitimately lag more than one reviewed writer
@@ -57,6 +58,13 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   // desired capsule contains the reviewed V2 core plus the bounded recovery
   // sources.  Admit only that exact historical/current digest pair and the
   // exact receipt-bucket binding; every other property still has to match.
+  // The immediately previous deployed recovery capsule differs from the current
+  // capsule only by its reviewed writer code. Admit that one exact digest pair;
+  // equal() keeps every non-code function property fail-closed.
+  if(sha256Hex(source)===PREVIOUS_RECOVERY_CAPSULE_WRITER_SHA256&&sha256Hex(targetZip)===CURRENT_RECOVERY_CAPSULE_WRITER_SHA256){
+    expected.Properties.Code.ZipFile=targetZip;
+    return equal(expected,to);
+  }
   if(sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(targetZip)===CURRENT_RECOVERY_CAPSULE_WRITER_SHA256){
     expected.Properties.Code.ZipFile=targetZip;
     expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};

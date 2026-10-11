@@ -29,6 +29,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             workflow = self.workflow(name)
             job_if = workflow['jobs']['terminal-recovery-approval']['if']
             self.assertIn("workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'", job_if)
+            self.assertIn("workflow_run.event == 'workflow_run'", job_if)
             self.assertIn("workflow_run.conclusion == 'failure'", job_if)
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
             self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
