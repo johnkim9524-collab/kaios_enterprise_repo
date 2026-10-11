@@ -4,7 +4,7 @@
   "status": "REPOSITORY_WIDE_ROUTING_COVERAGE_ENFORCED",
   "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
   "audit": {
-    "baseline_sha": "d6cff22b08274fe650f77aa0330caf3d89d7e2df",
+    "baseline_sha": "1ae129d397d0c83bfc3d301f6dab60dc7bce2774",
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 815,
