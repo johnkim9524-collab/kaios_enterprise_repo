@@ -109,6 +109,7 @@ exports.handler=async (event,context) => {
   };
   const identityConfig={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
     appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID};
+  let callerIdentity;
   if(['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION'].includes(event?.action)){
     const name='scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs';
     const identity=typeof __resumeLoad==='function'?await __resumeLoad(name):await import(`../../../${name}`);
@@ -122,7 +123,7 @@ exports.handler=async (event,context) => {
         authorization_generation:'broker-native-identity-read'});
       return request(url,{...options,headers:{...options.headers,Authorization:`Bearer ${read.token}`,'X-GitHub-Api-Version':'2022-11-28'}});
     };
-    await identity.verifyBrokerCallerIdentity({token:event.caller_oidc_token,repository:process.env.GITHUB_REPOSITORY,
+    callerIdentity=await identity.verifyBrokerCallerIdentity({token:event.caller_oidc_token,repository:process.env.GITHUB_REPOSITORY,
       repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:event.base_sha||event.envelope?.base_sha||event.binding?.current_main_sha,
       callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,request,nativeRequest});
     const {caller_oidc_token,...operationEvent}=event;event=operationEvent;
@@ -139,7 +140,7 @@ exports.handler=async (event,context) => {
     const config={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
       appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID,
       operationTable:process.env.RESUME_OPERATION_TABLE,activationRunFloor:process.env.RESUME_ACTIVATION_RUN_FLOOR};
-    return resume({event,config,getPrivateKey,request,owner:context?.awsRequestId,
+    return resume({event,config,getPrivateKey,request,owner:context?.awsRequestId,callerIdentity,
       ledgerRequest:(operation,params)=>db.send(new commands[operation](params)),
       mint:createHandler({getPrivateKey,request,config,includeReadToken:event.action==='RESUME_LIFECYCLE_OPERATION'})});
   }

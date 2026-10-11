@@ -196,7 +196,8 @@ const acquireEventToken = async ({observeCutover=false}={}) => {
       '--cli-binary-format','raw-in-base64-out',
       '--payload',JSON.stringify({action:observeCutover?'OBSERVE_LIFECYCLE_CUTOVER':'MINT_INSTALLATION_TOKEN',repository,repository_id:repositoryId,
         pull_request:envelope.pull_request,base_sha:envelope.base_sha,head_sha:envelope.head_sha,
-        authorization_generation:envelope.authorization_generation,caller_oidc_token:identity}),
+        authorization_generation:envelope.authorization_generation,nonce_digest:envelope.nonce_digest,
+        run_id:required('GITHUB_RUN_ID'),run_attempt:1,caller_oidc_token:identity}),
       '--output','json',outputPath,
     ],isolatedEnv);
     if (metadata.FunctionError) throw new AutonomousLandingError('AUTONOMOUS_EVENT_TOKEN_BROKER_ERROR');
@@ -221,6 +222,16 @@ const acquireEventToken = async ({observeCutover=false}={}) => {
       || !Number.isFinite(expiresAt) || expiresAt<Date.now()+10*60*1000
       || response.protected_handoff?.id!=='kidults-broker-finalizer-token-handoff-v1'
       || response.protected_handoff.state!=='TOKEN_ISSUED_NOT_LANDING_SUCCESS'
+      || response.protected_handoff.contract_version!=='2.0.0'
+      || response.protected_handoff.token_expires_at!==response.expires_at
+      || response.protected_handoff.original_execution?.run_id!==required('GITHUB_RUN_ID')
+      || response.protected_handoff.original_execution?.run_attempt!==1
+      || response.protected_handoff.original_execution?.source_sha!==envelope.base_sha
+      || response.protected_handoff.original_execution?.authorization_generation!==envelope.authorization_generation
+      || response.protected_handoff.original_execution?.nonce_digest!==envelope.nonce_digest
+      || !Number.isSafeInteger(response.protected_handoff.token_not_after)
+      || expiresAt>response.protected_handoff.token_not_after
+      || response.protected_handoff.drain_not_before!==expiresAt+60000
       || response.protected_handoff.binding?.repository!==repository
       || response.protected_handoff.binding?.operation_kind!=='FINALIZER_TOKEN_HANDOFF'
       || response.protected_handoff.binding?.exact_target!==`${envelope.pull_request}:${envelope.base_sha}:${envelope.head_sha}`

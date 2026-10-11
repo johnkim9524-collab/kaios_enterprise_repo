@@ -1,13 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T06:17:15.650Z",
+  "as_of": "2026-10-11T06:58:46.716090+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
-    "pull_request": 2653,
+    "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
-    "head_sha": "89f0cbfbd87db661de9bc85b5278183f8a89efbc",
-    "tree_sha": "5d38f33512c707503dc4aed04952876fd90df1fb",
-    "verification_scope": "REVIEWED_LOCAL_AUTONOMY_ROOT_CORRECTION_NOT_ACTIVATED"
+    "verification_scope": "TOKEN_EXPIRY_RECOVERY_PREREQUISITE_SOURCE_VERIFIED_NOT_ACTIVATED",
+    "candidate_parent_sha": "de2dc5c0afc351a4f70fa5df81e16114cae8c161"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -19,7 +18,12 @@
     "Backend consume v2 checks ALL_NEW pk/sk/run/head/state/merge and returns exact remote tuple; runner rejects absent, contradictory or legacy ok-only binding before sealing.",
     "Root targeted suite484/484 and governance/lexer134/134 passed; five actual-template local backend tests passed; standalone landing and AWS template validators passed.",
     "AWS template resource, IAM/OIDC trust and parameters unchanged outside writer code.",
-    "Independent Red Team127 classifier tests,20 election/consume tests and12 adversarial tail rejections passed; no additional blocking source difference found in reviewed scope."
+    "Independent Red Team127 classifier tests,20 election/consume tests and12 adversarial tail rejections passed; no additional blocking source difference found in reviewed scope.",
+    "Token handoff v2 binds broker-authenticated native run/attempt/source, original generation and nonce, actual expiry and bounded mint deadline into the signed durable receipt.",
+    "Broker family stores a 180-second mint bound and 3840-second token upper bound before issuance; late/missing/unbounded expiry remains UNKNOWN and cannot remint.",
+    "Runner rejects legacy or mismatched token expiry/run/generation/nonce before using the mutation token.",
+    "Read-only token drain classifier authenticates same family/operation/receipt/signature; legacy, missing receipt and UNKNOWN remain HOLD. TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY grants no lease or mutation.",
+    "Rebuilt broker templates alter Code.ZipFile only; IAM/environment/profiles unchanged. Node broker/dispatcher suites445/445 PASS; independent Red Team113/113 PASS before four added clock/identity/receipt regressions."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -35,9 +39,9 @@
     "Limited comment rebind does not establish arbitrary internal code repair autonomy."
   ],
   "uncertainties": [
-    "Winner termination after RESERVED still lacks verified generic recovery.",
-    "No deployed backend v2/workload registry proof or new native terminal proof.",
-    "Two distinct natural full chains on activated corrected main remain unverified."
+    "Generic original-reservation recovery lease and broker-owned mutation/fencing are not implemented.",
+    "No deployed broker v2 tuple/expiry proof or actual eligible native terminal proof.",
+    "Protected source activation and two distinct natural full chains remain separate verification."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
@@ -48,11 +52,14 @@
     "Fresh protected main reconciliation",
     "Bounded local policy/code/workflow/backend correction",
     "Source profile byte regeneration",
-    "Adversarial Red Team review and backend source execution tests"
+    "Adversarial Red Team review and backend source execution tests",
+    "Signed durable exact token expiry binding correction",
+    "Native caller tuple binding and bounded mint deadline",
+    "Read-only authenticated drain prerequisite and adversarial regressions"
   ],
-  "next_action": "Finish generic reservation-winner recovery contract before normal operating closure; publish reviewed development proposal, exact-head validation, protected activation and actual deployed/native proof remain separate.",
+  "next_action": "Implement and verify the protected original-reservation recovery lease and broker-owned mutation protocol; do not treat token drain as recovery authority or native operating closure.",
   "authority_boundary": {
-    "merged": true,
+    "merged": false,
     "previous_approval_rebound": false,
     "rerun": false,
     "duplicate_dispatch": false,
@@ -61,9 +68,11 @@
     "public": "HOLD",
     "g5": "HOLD",
     "provider": "HOLD",
-    "complete_verified": false
+    "complete_verified": false,
+    "draft": true,
+    "deployment": false
   },
-  "defect_disposition": "SOURCE_CORRECTIONS_VERIFIED_LOCALLY; PARTIAL_HOLD",
+  "defect_disposition": "TOKEN_EXPIRY_PERSISTENCE_GAP_CORRECTED_IN_SOURCE; PARTIAL_HOLD",
   "remediation_sequence": [
     "Bounded classifier and source-profile correction",
     "Existing-workflow quorum reservation election",
