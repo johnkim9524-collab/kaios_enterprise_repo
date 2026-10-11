@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {validateTerminalNullAssurancePacket,ORIGINAL_TERMINAL_NULL_REFS,TERMINAL_NULL_PUSH_CONTROL_IDS} from '../../../scripts/kidults/kpmo/lib/terminal-null-assurance-packet-v1.mjs';
 import {validateFailureRecoveryPushSuite,validateFailureRecoverySentinelBinding} from '../../../scripts/kidults/kpmo/lib/postmerge-recovery-exact-main-evidence-v1.mjs';
@@ -52,8 +53,19 @@ for(const [name,mutate,reseal=true] of [
 ])test('reject '+name,()=>{const f=fixture();mutate(f);if(reseal)seal(f);assert.throws(()=>validateTerminalNullAssurancePacket(f),/PACKET_INVALID/);});
 test('Owner structural classifier requires content in addition to exact failed steps',()=>{
  const j=jobs(),f=fixture();assert.equal(classifyAssuranceSemantics(j,sourceSha,101).ok,false);
- const r=classifyAssuranceSemantics(j,sourceSha,101,'push',f);assert.equal(r.ok,true);assert.equal(r.state,'VERIFIED_FAIL');assert.equal(r.landing_integrity_only,true);assert.equal(r.producer_health_authority,false);
+ const r=classifyAssuranceSemantics(j,sourceSha,101,'push',f);assert.equal(r.ok,true);assert.equal(r.failure_disposition,'VERIFIED_FAIL');assert.equal(r.landing_integrity_only,true);assert.equal(r.producer_health_authority,false);
  j[0].steps.push({name:'Other failed check',status:'completed',conclusion:'failure'});assert.equal(classifyAssuranceSemantics(j,sourceSha,101,'push',f).ok,false);
+});
+test('actual final workflow predicate consumes the classified failure without health authority',()=>{
+ const r=classifyAssuranceSemantics(jobs(),sourceSha,101,'push',fixture());
+ const workflow=fs.readFileSync('.github/workflows/kidults-direct-owner-landing-handoff-v1.yml','utf8');
+ const expression=workflow.match(/const classifiedAssuranceHold = ([\s\S]+?);/)[1];
+ const accepts=new Function('proof',`return (${expression});`);
+ const proof={required_failure_count:1,required_workflows:[{path,conclusion:'failure'}],assurance_semantic_classification:r};
+ assert.equal(accepts(proof),true);assert.equal(r.failure_disposition,'VERIFIED_FAIL');assert.equal(r.actual_authority_granted,false);
+ assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.promotion_eligible,false);
+ proof.required_failure_count=2;assert.equal(accepts(proof),false);
+ proof.required_failure_count=1;proof.assurance_semantic_classification={...r,producer_health_authority:true};assert.equal(accepts(proof),false);
 });
 test('failure-only push suite permits one Assurance failure, never another workflow',()=>{
  const suite={ready:true,invalid:[],failure_count:1,required:[{path,conclusion:'failure'},...Array.from({length:5},(_,i)=>({path:'other'+i,conclusion:'success'}))]};

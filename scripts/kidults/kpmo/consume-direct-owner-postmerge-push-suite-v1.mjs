@@ -231,7 +231,8 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId, expect
       &&failurePacket&&String(failurePacket.run?.id)===String(expectedRunId)&&failurePacket.run.event==='push'){
       try{
         const content=validateTerminalNullAssurancePacket({...failurePacket,sourceSha:mergeSha});
-        return {ok:true,state:'ASSURANCE_ORIGINAL_TERMINAL_FAILURE_RETAINED',...content,
+        return {...content,ok:true,state:'ASSURANCE_FAIL_CLOSED_HOLD_RECEIPT_RETAINED',
+          failure_disposition:content.state,failure_kind:'ORIGINAL_TERMINAL_NULL_V1',
           exact_merge_sha:mergeSha,run_id:Number(expectedRunId),audit_job_id:Number(audit.id),bindings,
           failed_steps:terminalFailureSteps,archive_digest:failurePacket.archive_digest,
           artifact_id:failurePacket.artifact_id,landing_integrity_only:true};
