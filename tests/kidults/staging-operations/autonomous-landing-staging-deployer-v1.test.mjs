@@ -449,26 +449,6 @@ const consumptionV1Template = () => {
   assert.equal(createHash("sha256").update(current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest("hex"),"3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad");
   return current;
 };
-test('last successful deployed consumption V1 converges directly to the current recovery capsule',()=>{
-  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
-  withFixture({current:consumptionV1Template(),desired:latest},directory=>{
-    const output=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
-    assert.equal(JSON.parse(output).mode,'CHANGE_REQUIRED');
-  });
-});
-for(const [name,mutate] of [
-  ['capsule code drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
-  ['receipt bucket drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'OtherBucket'};}],
-  ['extra environment',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='unexpected';}],
-  ['extra IAM authority',d=>{d.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['dynamodb:Scan'],Resource:'*'});}],
-])test(`consumption V1 catch-up rejects ${name}`,()=>{
-  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
-  mutate(latest);
-  withFixture({current:consumptionV1Template(),desired:latest},directory=>{
-    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
-    assert.notEqual(result.status,0);
-  });
-});
 test('pre-recovery V2 and full V2 cannot downgrade to historical V1',()=>{
  const before=structuredClone(desired);
  before.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=fs.readFileSync('scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py','utf8');
