@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "51cb7453d1b9a541923c2c50381c2b9eb037d0b1",
+  "revision": "4c391d9288d4ac2df8d37ffce2895760c919436a",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1923,8 +1923,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomy-root-correction-checkpoint-20261011-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cc663c4a2ea9fba9adb00098a7511f7b885f1cd5",
-      "sha256": "sha256:0afbe43fe8bec4dbe9de9e07530e21fa52bdf4c7c65f0f83bbf207191c4f13b6",
+      "git_blob": "d9e3a7a31127d7de068ccb404a5d4a6f6c619d42",
+      "sha256": "sha256:4ab15afb1b6aef0f5012b1c831bcca5120402bfb76ad9b536cc19b9687d4a712",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -3209,20 +3209,20 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "262f57449bdfd792278f65358e52878263a711d4",
-      "sha256": "sha256:9227fb048a2a7e57234f7cb818d31ab0e1b65ae743f1f015f322b2d67e270fc4"
+      "git_blob": "10ae7c5e66d75eb702aabf98c74ca30e95d0d996",
+      "sha256": "sha256:bef25dcb388e10bd141114019597ead0e4671e2088254aa9ae9a5c51b0591acc"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "cf6d8ef6ff01d609eae5c0a9df779bd43b71e336",
-      "sha256": "sha256:abbd2d71f8062e462c672dafbafa931c69af46896d0c50239d101dd79c05e470"
+      "git_blob": "144562f30d183c3560f2e0ec0b30e67981039790",
+      "sha256": "sha256:79f9997f89c76288a5993d8e21606108877196870ca67a56b041a97a689100ff"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "22c7348310a1114420dd7f7f96fafd58ab75936e",
-      "sha256": "sha256:80311ef4925691a2e0c9d3f19bc6556b690c235e9bea1c448e2260e91a6fb164"
+      "git_blob": "226bc65bb075e12b872b5484f0193d868aa9860c",
+      "sha256": "sha256:dbff869343d4deef7493c4900b7ab66e50ab1344a3a3e217c45ef9d48f0c876b"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -4220,8 +4220,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "74fb3891ce7f65a9efa655f9b276ffbf8cf1ce6c",
-      "sha256": "sha256:00822e5c022165215689281852f4271acb20132476e63fa0381c147e9761f83d",
+      "git_blob": "3d22429d970b874dc01f8a9b20e2f8f22da14dc9",
+      "sha256": "sha256:fcd8bbf1b0eafcdcfa5180e611458f8a3f74504f11aecd7352caa6356e9176f9",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5111,8 +5111,8 @@
     {
       "path": "scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cafd6f5df2861bfc1f8196973a2929f9c64d6ba6",
-      "sha256": "sha256:75b052f8a39a7efd0c7658730f006854f8d998c4adc3303d5061790d8d9a9b21",
+      "git_blob": "6c53409b4bafc1b0a949aff8ac4968ace10459ae",
+      "sha256": "sha256:955b3c470c48824a62998f305823619653adb6f416cb4ca82d570dd4b656ec38",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6445,8 +6445,8 @@
     {
       "path": "tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b04a5e88b5e34b20f90248deaa1d2ec460031138",
-      "sha256": "sha256:24811e7a802003cd571e79ac3b56901327a345ab31ccde311747f8805a93a117"
+      "git_blob": "05351d4b3c747a43ee0db27dc62c0e2949840c20",
+      "sha256": "sha256:d73d68cb16338425fbaa707f13dcff836447fa28cb44105607689f60334b2439"
     },
     {
       "path": "tests/kidults/staging-operations/capability-repair-analysis-v1.test.mjs",
@@ -6509,5 +6509,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:36a0f28f9a701c72d27432fbaeb647fb7e0a6bba924575a3945b89c463cbafd2"
+  "manifest_sha256": "sha256:7c3a5bd638604846d1de59b01ff09e115e0142c62f48bb56115d575ca229d974"
 }
