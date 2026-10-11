@@ -421,3 +421,29 @@ for(const [name,mutate] of [
     assert.notEqual(result.status,0);
   });
 });
+
+const consumptionV1Template = () => {
+  const current=structuredClone(desired);
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile.replace("        if any(attrs.get(key, {}).get('S') != value for key, value in\n               [('pk', pk), ('sk', sk), ('run_id', run_id), ('head_sha', head_sha),\n                ('state', 'CONSUMED'), ('merge_sha', merge_sha)]):\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'contract_version': '2.0.0', 'action': action, 'pk': attrs['pk']['S'], 'sk': attrs['sk']['S'],\n                'authorization_generation': generation, 'nonce_digest': nonce, 'run_id': attrs['run_id']['S'],\n                'head_sha': attrs['head_sha']['S'], 'merge_sha': attrs['merge_sha']['S'],\n                'state': attrs['state']['S'], 'conditional_write': True}\n","        if attrs.get('state', {}).get('S') != 'CONSUMED' or attrs.get('merge_sha', {}).get('S') != merge_sha:\n            raise ValueError('CONSUME_NOT_CONFIRMED')\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}\n");
+  assert.equal(createHash("sha256").update(current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest("hex"),"3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad");
+  return current;
+};
+test('exact consumption v1 to v2 accepts only code modification',()=>{
+  const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},ChangeSource:'DirectModification'}]}}]};
+  withFixture({current:consumptionV1Template(),desired,changeset},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),'--changeset',path.join(directory,'changeset')],{encoding:'utf8'});
+    assert.equal(result.status,0,result.stderr);
+  });
+});
+for(const [name,mutate] of [
+ ['code drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# unexpected';}],
+ ['memory drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.MemorySize=1024;}],
+ ['environment drift',d=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='unexpected';}],
+ ['IAM drift',d=>{d.Resources.TrackApprovalRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:['dynamodb:PutItem'],Resource:'*'});}],
+])test(`consumption tuple upgrade rejects ${name}`,()=>{
+ const changed=structuredClone(desired);mutate(changed);
+ withFixture({current:consumptionV1Template(),desired:changed},directory=>{
+  const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+  assert.notEqual(result.status,0);
+ });
+});
