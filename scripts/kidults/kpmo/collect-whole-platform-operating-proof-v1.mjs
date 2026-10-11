@@ -26,6 +26,15 @@ const member=(packet,basename)=>{
   const values=packet.members.filter(m=>path.posix.basename(m.name)===basename);
   requireEvidence(values.length===1,'MEMBER_CARDINALITY');return JSON.parse(values[0].text);
 };
+export function originalRecoveryHistoryQuery(originalRun,observedAt,page){
+  const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
+  requireEvidence(originalRun?.id===38132692877&&Number.isFinite(start)&&Number.isFinite(end)&&start<=end
+    &&Number.isInteger(page)&&page>=1&&page<=10,'RECOVERY_HISTORY_INCIDENT_WINDOW');
+  // A terminal recovering this reservation cannot predate its original run.
+  // Keep all source SHAs: reconciliation survives later protected-main merges.
+  return new URLSearchParams({branch:'main',created:`${new Date(start).toISOString()}..${observedAt}`,
+    status:'success',per_page:'100',page:String(page)});
+}
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
   demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
   listRuns=null,archiveReader=readArchive,observedAt=new Date().toISOString()}){
@@ -243,7 +252,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     else{
       let count,total;
       for(let page=1;page<=10;page++){
-        const query=new URLSearchParams({branch:"main",created:`<=${observedAt}`,per_page:"100",page:String(page)});
+        const query=originalRecoveryHistoryQuery(run,observedAt,page);
         const index=await get(`actions/workflows/${recoverySpec.workflow}/runs?${query}`);
         requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
           &&Number.isSafeInteger(index.total_count)&&index.total_count>=0,'RECOVERY_HISTORY_INDEX');

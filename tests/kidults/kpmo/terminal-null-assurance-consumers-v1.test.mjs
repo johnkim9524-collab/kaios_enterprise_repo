@@ -4,9 +4,22 @@ import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-
 import {validateTerminalNullAssurancePacket,ORIGINAL_TERMINAL_NULL_REFS,TERMINAL_NULL_PUSH_CONTROL_IDS} from '../../../scripts/kidults/kpmo/lib/terminal-null-assurance-packet-v1.mjs';
 import {validateFailureRecoveryPushSuite,validateFailureRecoverySentinelBinding} from '../../../scripts/kidults/kpmo/lib/postmerge-recovery-exact-main-evidence-v1.mjs';
 import {classifyAssuranceSemantics} from '../../../scripts/kidults/kpmo/consume-direct-owner-postmerge-push-suite-v1.mjs';
+import {originalRecoveryHistoryQuery} from '../../../scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs';
 const sourceSha='a'.repeat(40),repo='johnkim9524-collab/kaios_enterprise_repo';
 const path='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const seal=f=>{const {receipt_digest,observed_at,...core}=f.audit;f.audit.receipt_digest=sha256(canonicalJson(core));delete f.proof.receipt_digest;f.proof.receipt_digest=sha256(canonicalJson(f.proof));};
+test('recovery history excludes pre-incident runs without losing cross-main recovery',()=>{
+ const q=originalRecoveryHistoryQuery({id:38132692877,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',1);
+ assert.equal(q.get('created'),'2026-10-10T00:00:00.000Z..2026-10-11T22:00:00Z');assert.equal(q.get('status'),'success');
+ assert.equal(q.has('head_sha'),false);assert.equal(q.has('event'),false);assert.equal(q.get('per_page'),'100');
+});
+test('invalid incident windows and page budgets never widen the query',()=>{
+ for(const [run,at,page] of [[{id:1,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',1],
+ [{id:38132692877},'2026-10-11T22:00:00Z',1],
+ [{id:38132692877,created_at:'2026-10-12T00:00:00Z'},'2026-10-11T22:00:00Z',1],
+ [{id:38132692877,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',11]])
+ assert.throws(()=>originalRecoveryHistoryQuery(run,at,page),/INCIDENT_WINDOW/);
+});
 function fixture(){
  const run={id:101,run_attempt:1,path,head_sha:sourceSha,head_branch:'main',event:'push',status:'completed',conclusion:'failure',repository:{full_name:repo,id:1281328888}};
  const audit={receipt_type:'KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE',source:{sha:sourceSha,actual_sha:sourceSha,expected_sha:sourceSha,match:true,kind:'PROTECTED_MAIN_PUSH'},execution:{trigger:'push',profile:'deep',upstream:null,workflow_run_id:'101',workflow_run_attempt:'1'},states:{internal_control_state:'VERIFIED_PASS',promotion_eligible:false},checks:TERMINAL_NULL_PUSH_CONTROL_IDS.map(id=>({id,required:true,state:'VERIFIED_PASS'}))};
