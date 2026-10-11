@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "4413eeee2a2c69c6e4752d9b2f598145c4c0e2dd",
+  "revision": "613d93c7e60f17709ad2de3afe5bb6223432805d",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 809
+    "file_count": 810
   },
   "files": [
     {
@@ -3397,8 +3397,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "83e94a314b539763f3186304f74fb7a1040526bc",
-      "sha256": "sha256:99865b51c16cdd6d708df49630847253aba17abefbb4225b9eb9d21e9a07957a",
+      "git_blob": "45372c002ad811e5e7233ffa9464c4ff862a9df9",
+      "sha256": "sha256:b03c3482b7b2a1f458ccf2e608b3412d10a2a07cc614cd7f5a5fa6804e6f0d7b",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6588,8 +6588,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b12cc21fa0677aa897897fc9166c698981b1d04e",
-      "sha256": "sha256:0faea9ec94bf0289c4ef091e248ad1ad28dd94aa12413ba48a807075d50ab74e"
+      "git_blob": "b6dfafb49fd06959c28e90ba5dd4236d579ea8e7",
+      "sha256": "sha256:9740e8d524a5df26c33e71ab76543d348fc0c16bb94f1b3b5b59e047c299c6ad"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
@@ -6664,6 +6664,12 @@
       "sha256": "sha256:452b0e07f650a06cf5e038e3a80decce4052e99f8ffc7942484c7540125d143a"
     },
     {
+      "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-deployed-recovery-capsule.json",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "d4b29b97e54941db7ec799a2d663dcb4604d2693",
+      "sha256": "sha256:38db6e22f00749100a21ad15d6f234f65c949627194a1492e0d25b09474eb322"
+    },
+    {
       "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "00e2062fa8a3f8852c4461e59f0d728576e7fff1",
@@ -6724,5 +6730,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ce2e2860d894cb78415f71f569f1597a16abee27550e904d1e1b9f7581909c6a"
+  "manifest_sha256": "sha256:479b3899520fba97332a999eba04c8e8168db41118cd0e995678d7926f10152d"
 }

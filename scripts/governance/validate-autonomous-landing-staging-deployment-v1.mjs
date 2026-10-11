@@ -29,9 +29,11 @@ const expectedLegacyWriterZipFromDesired = desiredZip => {
   const reserveBlock = "\ndef reserve_once(item):\n    try:\n        ddb.put_item(\n            TableName=TABLE,\n            Item=item,\n            ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)',\n            ReturnValuesOnConditionCheckFailure='ALL_OLD'\n        )\n        return {'state': 'RESERVED', 'owner_run_id': item['run_id']['S']}\n    except ClientError as error:\n        if error.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':\n            raise\n        prior = error.response.get('Item') or {}\n        owner_run_id = prior.get('run_id', {}).get('S', '')\n        prior_head_sha = prior.get('head_sha', {}).get('S', '')\n        prior_state = prior.get('state', {}).get('S', '')\n        if prior_state != 'RESERVED' or prior_head_sha != item['head_sha']['S'] or not RUN_ID.fullmatch(owner_run_id):\n            raise ValueError('RESERVATION_CONFLICT_INVALID')\n        return {'state': 'ALREADY_RESERVED', 'owner_run_id': owner_run_id}\n";
   const desiredReservation = "        reservation = reserve_once({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk, **reservation}";
   const legacyReservation = "        put_unique({\n            'pk': {'S': pk}, 'sk': {'S': sk}, 'state': {'S': 'RESERVED'},\n            'run_id': {'S': run_id}, 'head_sha': {'S': head_sha}\n        })\n        return {'ok': True, 'action': action, 'pk': pk, 'sk': sk}";
-  assert.ok(desiredZip.includes('from botocore.exceptions import ClientError'), 'WRITER_CODE_EXPECTED_CLIENT_ERROR_IMPORT');
-  assert.ok(desiredZip.includes(reserveBlock), 'WRITER_CODE_EXPECTED_RESERVE_ONCE');
-  assert.ok(desiredZip.includes(desiredReservation), 'WRITER_CODE_EXPECTED_RESERVATION_RETURN');
+  // This historical recognizer applies only to the uncompressed writer.
+  // An unrelated capsule is a non-match, never a reason to skip other exact
+  // transition checks or to accept an unregistered change.
+  if (!desiredZip.includes('from botocore.exceptions import ClientError\n')
+      || !desiredZip.includes(reserveBlock) || !desiredZip.includes(desiredReservation)) return null;
   return desiredZip
     .replace('from botocore.exceptions import ClientError\n', '')
     .replace(reserveBlock, '')
@@ -44,11 +46,20 @@ const CONSUMPTION_V1_WRITER_SHA256 = '3d2042663c64ce97360bb53ecb6758fea25303e0c2
 const CONSUMPTION_V2_WRITER_SHA256 = '688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d';
 const CONSUMPTION_V2_PRE_RECOVERY_SHA256 = '7820ad57800393b22ec77afe30e4c2a082610ac8a2020322bf9243841fdd6bf2';
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
+const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
+  // Exact previously landed capsule to failure-Assurance capsule. Keep every
+  // non-code Lambda property identical; no IAM/environment drift is admitted.
+  if (typeof source === 'string' && sha256Hex(source) === DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256
+      && sha256Hex(to?.Properties?.Code?.ZipFile || '') === CURRENT_RECOVERY_CAPSULE_WRITER_SHA256) {
+    const expected = structuredClone(from);
+    expected.Properties.Code.ZipFile = to.Properties.Code.ZipFile;
+    return equal(expected, to);
+  }
   if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(source)))return false;
   const expected=structuredClone(from);
   const targetZip=to?.Properties?.Code?.ZipFile||'';
