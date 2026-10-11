@@ -91,10 +91,10 @@ export function readArchive(bytes,expectedDigest,{coverageCandidate=false,author
     'ARCHIVE_MEMBER_ENCODING_CONTRACT');
   return packet;
 }
-export function checkTransport(run,artifact,sourceSha,observedAt){
+export function checkTransport(run,artifact,sourceSha,observedAt,{allowFailedConclusion=false}={}){
   req(run?.repository?.full_name===REPOSITORY&&run.head_branch==='main'&&run.head_sha===sourceSha,'CONTENT_RUN_REPOSITORY_SHA');
   req(positive(run.id)&&positive(run.run_attempt),'CONTENT_RUN_IDENTITY');
-  req(run.status==='completed'&&run.conclusion==='success','CONTENT_RUN_NOT_SUCCESS');
+  req(run.status==='completed'&&(run.conclusion==='success'||allowFailedConclusion&&run.conclusion==='failure'),'CONTENT_RUN_NOT_SUCCESS');
   req(positive(artifact?.id)&&artifact.expired===false&&DIGEST.test(artifact.digest||''),'CONTENT_ARTIFACT_IDENTITY');
   req(artifact.workflow_run?.id===run.id&&artifact.workflow_run.head_sha===run.head_sha,'CONTENT_ARTIFACT_RUN_BINDING');
   req(Number.isSafeInteger(artifact.size_in_bytes)&&artifact.size_in_bytes>0&&artifact.size_in_bytes<=MAX_ARCHIVE_BYTES,'CONTENT_ARTIFACT_SIZE');

@@ -16,11 +16,12 @@ async function runNativeInterruptedRecoveryInternal(){
   const readBytes=route=>execFileSync('gh',['api',`repos/${env.GITHUB_REPOSITORY}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   const discovery=await discoverInterruptedRecoveryCandidates({sourceSha:env.GITHUB_SHA,upstream,get:recoveryNativeGet,readBytes});
   const role=env.KIDULTS_RECOVERY_ROLE;
+  const failureParent=upstream.recovery_parent?.kind==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'?upstream.recovery_parent:null;
   if(!discovery.candidates.length){
     const result={state:'NO_RECOVERABLE_NATIVE_CANDIDATE_NOT_CLOSURE',actual_candidates:0,unrecoverable_legacy_or_missing_artifacts:discovery.unrecoverable_legacy_or_missing_artifacts,unresolved:discovery.unresolved,write_performed:false,promotion_eligible:false};
     fs.mkdirSync('out/postmerge-terminal-recovery-v1',{recursive:true});
     fs.writeFileSync(`out/postmerge-terminal-recovery-v1/interrupted-${role}.json`,JSON.stringify(result,null,2)+'\n');
-    if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,'generic_recovery_needed=false\n');
+    if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`generic_recovery_needed=false\n${failureParent?'recovery_needed=false\n':''}`);
     return result;
   }
   const ledger=await createInterruptedRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA});
@@ -33,10 +34,11 @@ async function runNativeInterruptedRecoveryInternal(){
   result.unrecoverable_legacy_or_missing_artifacts=discovery.unrecoverable_legacy_or_missing_artifacts;
   result.unresolved=discovery.unresolved;
   result.actual_candidates=discovery.candidates.length;
-  result.source_sha=env.GITHUB_SHA;result.gate_run_id=upstream.id;result.role_run_id=env.GITHUB_RUN_ID;
+  result.source_sha=env.GITHUB_SHA;result.role_run_id=env.GITHUB_RUN_ID;
+  if(failureParent)result.recovery_parent=failureParent;else result.gate_run_id=upstream.id;
   fs.mkdirSync('out/postmerge-terminal-recovery-v1',{recursive:true});
   fs.writeFileSync(`out/postmerge-terminal-recovery-v1/interrupted-${role}.json`,JSON.stringify(result,null,2)+'\n');
-  if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`generic_recovery_needed=${discovery.candidates.length>0}\n`);
+  if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`generic_recovery_needed=${failureParent?'false':discovery.candidates.length>0}\n${failureParent?`recovery_needed=${discovery.candidates.length>0}\n`:''}`);
   return result;
 }
 

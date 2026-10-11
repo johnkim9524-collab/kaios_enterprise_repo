@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {runInterruptedRecoveryWorkload} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-workload-v1.mjs';
-import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest,supersedeExpiredInterruptedPostmerge} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
+import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest,supersedeExpiredInterruptedPostmerge,failureAssuranceRecoveryObjectKey} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
 const HOLD={production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40),time=Date.parse('2026-10-11T00:00:00Z');
 function setup(){
@@ -68,4 +68,45 @@ test('original archive lost ACK reply uses readback and never retries ACK',async
 });
 test('non-finalizer cannot write original archive and acknowledged archive is reused',async()=>{
  for(const role of ['KPMO','FINALIZER']){const s=workloadSetup(role);s.input.ledger.readContext=async()=>({state:'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',immutable_ack:role==='FINALIZER'?{version_id:'existing'}:null});await s.call();assert.equal(s.extra().approvals,0);assert.equal(s.extra().drains,0);assert.equal(s.counts().seals,0);assert.equal(s.counts().consumes,0);}
+});
+
+function failureProfile(sourceSha){return {evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',source_sha:sourceSha,
+  checks:['REQUIRED_PUSH_SUITE','CANONICAL_TRUTH','SENTINEL','TERMINAL_NULL_ASSURANCE_FAILURE'].map((kind,i)=>({kind,
+    run_id:String(700+i),run_attempt:1,source_sha:sourceSha,conclusion:i===3?'failure':'success',artifact_id:800+i,
+    archive_digest:'sha256:'+'1'.repeat(64),receipt_digest:'sha256:'+'2'.repeat(64)}))};}
+function failureWorkloadSetup(role='KPMO'){
+ const s=workloadSetup(role),request=s.input.candidates[0].request,parent={kind:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',source_sha:request.source_sha,
+   actual_authority_granted:false,platform_closure:false,promotion_eligible:false};
+ s.input.candidates[0].failure_parent=parent;
+ const proof=failureProfile(request.source_sha);let failureApprovals=0,failureFinalizations=0,failureAcks=0;
+ s.input.evidence.verifyEvidence=async()=>proof;
+ s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:null,evidence_digest:null,approvals:[]});
+ s.input.ledger.createFailureApproval=async()=>{failureApprovals++;return {state:'FAILURE_ASSURANCE_APPROVAL_STORED'};};
+ s.input.ledger.finalizeFailureTerminal=async({terminal})=>{failureFinalizations++;return {state:'FAILURE_ASSURANCE_TERMINAL_RECORDED',terminal};};
+ s.input.ledger.acknowledgeFailureTerminal=async()=>{failureAcks++;return {state:'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED'};};
+ if(role==='FINALIZER')s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:proof,
+   evidence_digest:sha256(canonicalJson(proof)),approvals:['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].map((role,i)=>({role,approval_run_id:String(500+i)}))});
+ s.input.immutable.seal=async({terminal,failure_assurance,key})=>{assert.equal(failure_assurance,true);assert.equal(key,failureAssuranceRecoveryObjectKey(request));return {key,sha256:sha256(canonicalJson(terminal)),version_id:'failure-version'};};
+ s.input.verifyDrain=async()=>{};
+ return {s,proof,counts:()=>({failureApprovals,failureFinalizations,failureAcks})};
+}
+test('failure Assurance role stores only its distinct signed approval on the existing CONSUMED reservation',async()=>{
+ const f=failureWorkloadSetup('KPMO'),result=await f.s.call();assert.equal(result.results[0].state,'FAILURE_ASSURANCE_APPROVAL_STORED');
+ assert.deepEqual(f.counts(),{failureApprovals:1,failureFinalizations:0,failureAcks:0});assert.equal(f.s.counts().consumes,0);
+});
+test('failure Assurance finalizer writes a separate false-authority terminal and immutable ACK',async()=>{
+ const f=failureWorkloadSetup('FINALIZER'),result=await f.s.call();assert.equal(result.results[0].state,'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY');
+ assert.equal(result.results[0].terminal.actual_authority_granted,false);assert.equal(result.results[0].terminal.platform_closure,false);
+ assert.deepEqual(f.counts(),{failureApprovals:0,failureFinalizations:1,failureAcks:1});assert.equal(f.s.counts().consumes,0);
+});
+test('recorded failure terminal resumes only immutable seal and ACK after interruption',async()=>{
+ const f=failureWorkloadSetup('FINALIZER'),request=f.s.input.candidates[0].request,proof=f.proof;
+ const terminal={id:'kidults-interrupted-failure-assurance-terminal-v1',state:'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY',
+   request_digest:sha256(canonicalJson(request)),evidence_digest:sha256(canonicalJson(proof)),recovery_run_id:'400',
+   source_sha:request.source_sha,merge_sha:request.merge_sha,original_state:'CONSUMED',original_terminal_present:false,
+   actual_authority_granted:false,platform_closure:false,...HOLD};
+ f.s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED',request,evidence:proof,
+   evidence_digest:sha256(canonicalJson(proof)),terminal,approvals:[],immutable_ack:null});
+ const result=await f.s.call();assert.equal(result.results[0].state,'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY');
+ assert.deepEqual(f.counts(),{failureApprovals:0,failureFinalizations:0,failureAcks:1});assert.equal(f.s.counts().consumes,0);
 });

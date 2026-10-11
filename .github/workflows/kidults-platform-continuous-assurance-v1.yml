@@ -1240,6 +1240,15 @@ jobs:
           node scripts/kidults/kpmo/validate-sharded-reserve-assurance-watch-v1.mjs
           node scripts/kidults/kpmo/validate-canonical-truth-assurance-watch-v1.mjs
 
+      - name: Bind exact upstream Sentinel receipt digest
+        if: >-
+          github.event_name == 'workflow_run' &&
+          github.event.workflow_run.path == '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml' &&
+          github.event.workflow_run.conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/kidults/kpmo/bind-assurance-upstream-sentinel-receipt-v1.mjs
+
       - name: Run audit and always retain receipt
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
         run: >-

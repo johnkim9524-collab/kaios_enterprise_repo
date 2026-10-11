@@ -2,20 +2,99 @@
 import fs from 'node:fs';
 import {readArchive,checkTransport} from '../validate-sentinel-producer-content-v1.mjs';
 import {execFileSync} from 'node:child_process';
+import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
+const assuranceName='KIDULTS Platform Continuous Assurance V1';
+const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const check=(ok,code)=>{if(!ok)throw new Error('INTERRUPTED_TRIGGER_'+code);};
 export const recoveryNativeGet=route=>JSON.parse(execFileSync('gh',['api',`repos/${repository}/${route}`],
   {encoding:'utf8',timeout:30000,maxBuffer:2*1024*1024,stdio:['ignore','pipe','pipe']}));
 const nativeBytes=route=>execFileSync('gh',['api',`repos/${repository}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
-export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,event,get=recoveryNativeGet,readBytes=nativeBytes}){
-  check(env.GITHUB_EVENT_NAME==='workflow_run'&&env.GITHUB_RUN_ATTEMPT==='1'&&env.GITHUB_REF==='refs/heads/main'
+export async function verifyFailureAssuranceParent({run,eventAction='completed',sourceSha,get,readBytes,archiveReader=readArchive}){
+  check(eventAction==='completed'&&run?.name===assuranceName&&run.path===assurancePath
+    &&run.status==='completed'&&run.conclusion==='failure'&&run.run_attempt===1&&run.head_sha===sourceSha
+    &&run.head_branch==='main'&&run.event==='workflow_run'
+    &&run.repository?.full_name===repository&&String(run.repository?.id)==='1281328888'
+    &&run.head_repository?.full_name===repository,'FAILURE_ASSURANCE_TRIGGER');
+  const live=await get(`actions/runs/${run.id}`);
+  check(['id','name','path','event','head_sha','head_branch','run_attempt','status','conclusion'].every(k=>live[k]===run[k])
+    &&live.repository?.full_name===repository&&String(live.repository?.id)==='1281328888'
+    &&live.head_repository?.full_name===repository,'FAILURE_ASSURANCE_READBACK');
+  const jobs=await get(`actions/runs/${live.id}/attempts/1/jobs?per_page=100`);
+  check(Array.isArray(jobs.jobs)&&jobs.total_count===jobs.jobs.length&&jobs.total_count<=100
+    &&new Set(jobs.jobs.map(j=>j.id)).size===jobs.jobs.length,'FAILURE_ASSURANCE_JOBS');
+  const failed=jobs.jobs.filter(j=>j.status==='completed'&&j.conclusion==='failure');
+  check(failed.length===1&&failed[0].name==='audit'&&failed[0].run_id===live.id
+    &&(failed[0].run_attempt===undefined||failed[0].run_attempt===1),'FAILURE_ASSURANCE_DISPOSITION');
+  const listing=await get(`actions/runs/${live.id}/artifacts?per_page=100`);
+  check(Array.isArray(listing.artifacts)&&listing.total_count===listing.artifacts.length&&listing.total_count<=100,'FAILURE_ASSURANCE_ARTIFACT_LIST');
+  const name=`kidults-continuous-assurance-${sourceSha}-${live.id}-1`,artifacts=listing.artifacts.filter(a=>a.name===name);
+  check(artifacts.length===1,'FAILURE_ASSURANCE_ARTIFACT');const artifact=artifacts[0];
+  checkTransport(live,artifact,sourceSha,new Date().toISOString(),{allowFailedConclusion:true});
+  const bytes=await readBytes(`actions/artifacts/${artifact.id}/zip`);
+  check(Buffer.isBuffer(bytes)&&bytes.length===artifact.size_in_bytes,'FAILURE_ASSURANCE_ARCHIVE_SIZE');
+  const packet=archiveReader(bytes,artifact.digest),members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='audit-receipt.json');
+  check(members.length===1,'FAILURE_ASSURANCE_AUDIT_CARDINALITY');
+  const audit=JSON.parse(members[0].text),unsigned=structuredClone(audit);delete unsigned.observed_at;delete unsigned.receipt_digest;
+  const proofMembers=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='whole-platform-operating-proof-v1.json');
+  check(proofMembers.length===1,'FAILURE_ASSURANCE_OPERATING_PROOF_CARDINALITY');
+  const proof=JSON.parse(proofMembers[0].text),proofUnsigned=structuredClone(proof);delete proofUnsigned.receipt_digest;
+  const failedChecks=(proof.operating_checks||[]).filter(c=>c.state==='VERIFIED_FAIL');
+  const terminalCheck=failedChecks[0];
+  const upstream=audit.execution?.upstream;
+  check(audit.receipt_type==='KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE'&&audit.source?.sha===sourceSha
+    &&audit.source?.actual_sha===sourceSha&&audit.source?.expected_sha===sourceSha&&audit.source?.match===true
+    &&String(audit.execution?.workflow_run_id)===String(live.id)&&String(audit.execution?.workflow_run_attempt)==='1'
+    &&audit.execution?.trigger==='workflow_run'&&audit.execution?.workflow_run_id===String(live.id)
+    &&audit.states?.internal_control_state==='VERIFIED_PASS'&&audit.states?.promotion_eligible===false
+    &&Array.isArray(audit.checks)&&audit.checks.length>0&&audit.checks.every(c=>c.required===true)
+    &&audit.checks.filter(c=>c.state!=='VERIFIED_PASS').length===0
+    &&proof.id==='kidults-whole-platform-operating-proof-v1'&&proof.source_sha===sourceSha
+    &&proof.repository===repository&&proof.state==='VERIFIED_FAIL'&&proof.whole_platform_runtime_proven===false
+    &&proof.receipt_digest===sha256(canonicalJson(proofUnsigned))&&failedChecks.length===1
+    &&terminalCheck?.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'
+    &&terminalCheck.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
+    &&Array.isArray(terminalCheck.evidence_refs)&&terminalCheck.evidence_refs.length===3
+    &&/^[1-9][0-9]{0,15}$/.test(String(terminalCheck.evidence_refs[0]))
+    &&Number.isSafeInteger(terminalCheck.evidence_refs[1])&&terminalCheck.evidence_refs[1]>0
+    &&/^sha256:[a-f0-9]{64}$/.test(terminalCheck.evidence_refs[2]||'')
+    &&upstream?.workflow_name==='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
+    &&upstream.workflow_path==='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
+    &&['workflow_run','repository_dispatch'].includes(upstream.workflow_event)&&upstream.conclusion==='success'
+    &&upstream.repository===repository&&upstream.head_branch==='main'
+    &&/^\d+$/.test(upstream.run_id||'')&&upstream.run_attempt==='1'
+    &&/^sha256:[a-f0-9]{64}$/.test(upstream.source_receipt_digest||'')
+    &&/^sha256:[a-f0-9]{64}$/.test(audit.receipt_digest||'')&&audit.receipt_digest===sha256(canonicalJson(unsigned)),
+    'FAILURE_ASSURANCE_AUDIT_BINDING');
+  const branch=await get('branches/main');check(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===sourceSha,'FAILURE_ASSURANCE_MAIN');
+  const parent={kind:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',run_id:live.id,run_attempt:1,workflow_path:assurancePath,
+    source_sha:sourceSha,artifact_id:artifact.id,artifact_digest:artifact.digest,archive_digest:packet.archive_digest,
+    audit_receipt_digest:audit.receipt_digest,operating_proof_digest:proof.receipt_digest,
+    terminal_check_id:terminalCheck.id,terminal_check_reason:terminalCheck.reason,
+    terminal_check_evidence_refs:terminalCheck.evidence_refs,
+    upstream_run_id:upstream.run_id,upstream_receipt_digest:upstream.source_receipt_digest,
+    audit_job_id:failed[0].id,conclusion:'failure',actual_authority_granted:false,
+    platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+  return {...live,recovery_parent:parent};
+}
+export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,event,get=recoveryNativeGet,readBytes=nativeBytes,archiveReader=readArchive}){
+  check(['workflow_run','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME)&&env.GITHUB_RUN_ATTEMPT==='1'&&env.GITHUB_REF==='refs/heads/main'
     &&env.GITHUB_REPOSITORY===repository&&env.GITHUB_REPOSITORY_ID==='1281328888'
     &&/^[a-f0-9]{40}$/.test(env.GITHUB_SHA||'')&&env.GITHUB_WORKFLOW_SHA===env.GITHUB_SHA,'CONTEXT');
   event??=JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
   let upstream=event.workflow_run;
+  if(env.GITHUB_EVENT_NAME==='workflow_dispatch'){
+    const inputs=event.inputs||{};
+    check(env.GITHUB_ACTOR==='github-actions[bot]'
+      &&/^[1-9][0-9]{0,19}$/.test(inputs.gate_run_id||'')&&inputs.gate_run_attempt==='1'
+      &&inputs.head_sha===env.GITHUB_SHA,'DISPATCH_GATE_HINT');
+    upstream=await get(`actions/runs/${inputs.gate_run_id}`);
+  }
+  if(upstream?.name===assuranceName&&upstream.conclusion==='failure')
+    return verifyFailureAssuranceParent({run:upstream,eventAction:event.action,sourceSha:env.GITHUB_SHA,get,readBytes,archiveReader});
   if(upstream?.name==='KIDULTS Autonomous Independent Verification V1'){
     check(event.action==='completed'&&upstream.path==='.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml'
-      &&upstream.event==='workflow_run'&&upstream.status==='completed'&&upstream.conclusion==='success'
+      &&['workflow_run','workflow_dispatch'].includes(upstream.event)&&upstream.status==='completed'&&upstream.conclusion==='success'
       &&upstream.run_attempt===1&&upstream.head_branch==='main'&&upstream.head_sha===env.GITHUB_SHA
       &&upstream.repository?.full_name===repository&&String(upstream.repository?.id)==='1281328888','VERIFIER_TRIGGER');
     const role=await get(`actions/runs/${upstream.id}`);
@@ -32,14 +111,23 @@ export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,ev
     const selected=artifacts.artifacts.filter(a=>a.name===`kidults-postmerge-terminal-recovery-independent_verifier-${role.id}-1`);
     check(selected.length===1,'VERIFIER_ARTIFACT');checkTransport(role,selected[0],env.GITHUB_SHA,new Date().toISOString());
     const bytes=await readBytes(`actions/artifacts/${selected[0].id}/zip`);check(Buffer.isBuffer(bytes)&&bytes.length===selected[0].size_in_bytes,'VERIFIER_ARCHIVE');
-    const packet=readArchive(bytes,selected[0].digest),members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='interrupted-INDEPENDENT_VERIFIER.json');
+    const packet=archiveReader(bytes,selected[0].digest),members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='interrupted-INDEPENDENT_VERIFIER.json');
     check(members.length===1,'VERIFIER_RECEIPT');const receipt=JSON.parse(members[0].text);
-    check(receipt.source_sha===env.GITHUB_SHA&&Number.isSafeInteger(receipt.gate_run_id)&&receipt.gate_run_id>0
-      &&receipt.role_run_id===String(role.id)&&receipt.actual_candidates>0,'VERIFIER_GATE_LINEAGE');
+    check(receipt.source_sha===env.GITHUB_SHA&&receipt.role_run_id===String(role.id)&&receipt.actual_candidates>0,'VERIFIER_LINEAGE');
+    if(receipt.recovery_parent?.kind==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'){
+      check(receipt.gate_run_id===undefined&&receipt.recovery_parent.source_sha===env.GITHUB_SHA,'VERIFIER_FAILURE_LINEAGE');
+      const failed=await get(`actions/runs/${receipt.recovery_parent.run_id}`);
+      upstream=await verifyFailureAssuranceParent({run:failed,eventAction:'completed',sourceSha:env.GITHUB_SHA,get,readBytes,archiveReader});
+      check(canonicalJson(upstream.recovery_parent)===canonicalJson(receipt.recovery_parent),'VERIFIER_FAILURE_RECEIPT_BINDING');
+      const branch=await get('branches/main');check(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===env.GITHUB_SHA,'MAIN');
+      return upstream;
+    }
+    check(Number.isSafeInteger(receipt.gate_run_id)&&receipt.gate_run_id>0,'VERIFIER_GATE_LINEAGE');
     upstream=await get(`actions/runs/${receipt.gate_run_id}`);
   }
 
-  check(event.action==='completed'&&Number.isSafeInteger(upstream?.id)&&upstream.id>0
+  check((env.GITHUB_EVENT_NAME==='workflow_dispatch'||event.action==='completed')
+    &&Number.isSafeInteger(upstream?.id)&&upstream.id>0
     &&upstream.name==='KPMO Continuous Assurance Success Authority Gate V1'
     &&upstream.path==='.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'
     &&upstream.event==='workflow_run'&&upstream.status==='completed'&&upstream.conclusion==='success'

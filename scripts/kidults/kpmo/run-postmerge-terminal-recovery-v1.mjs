@@ -16,6 +16,7 @@ const env=process.env;
 assert(env.GITHUB_ACTIONS==='true'&&['workflow_run','workflow_dispatch'].includes(env.GITHUB_EVENT_NAME)&&env.GITHUB_RUN_ATTEMPT==='1','RECOVERY_RUNTIME_EVENT');
 const event=JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
 let upstream;
+let isFailureAssuranceParent=false;
 if(env.GITHUB_EVENT_NAME==='workflow_run'){
   assert(event.action==='completed','RECOVERY_RUNTIME_UPSTREAM');
   upstream=event.workflow_run;
@@ -25,7 +26,10 @@ if(env.GITHUB_EVENT_NAME==='workflow_run'){
     &&inputs.gate_run_attempt==='1'&&inputs.head_sha===env.GITHUB_SHA,'RECOVERY_RUNTIME_DISPATCH');
   upstream=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${inputs.gate_run_id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
 }
-assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
+if(env.GITHUB_EVENT_NAME==='workflow_run'&&upstream?.name==='KIDULTS Platform Continuous Assurance V1'
+  &&upstream?.conclusion==='failure'){
+  isFailureAssuranceParent=true;
+}else assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
   &&upstream.path==='.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'
   &&upstream.status==='completed'&&upstream.conclusion==='success'&&upstream.run_attempt===1
   &&upstream.event==='workflow_run'
@@ -33,9 +37,12 @@ assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
   &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id
   &&upstream.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM');
 const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
-assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name','event'].every(key=>live[key]===upstream[key])
-  &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id
-  &&live.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
+if(isFailureAssuranceParent){
+  assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name','event'].every(key=>live[key]===upstream[key])
+    &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_FAILURE_READBACK');
+}else assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name','event'].every(key=>live[key]===upstream[key])
+    &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id
+    &&live.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM_READBACK');
 assert(['production','public','g5'].every(key=>env[`KIDULTS_${key.toUpperCase()}_STATE`]==='HOLD'),'RECOVERY_RUNTIME_HOLD');
 assert(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===env.GITHUB_SHA,'RECOVERY_RUNTIME_CHECKOUT');
 const role=env.KIDULTS_RECOVERY_ROLE;
@@ -43,6 +50,12 @@ assert(['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER','FINALIZER'].inc
 if(role==='FINALIZER')assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main`,'RECOVERY_RUNTIME_FINALIZER_WORKFLOW');
 const generic=await runNativeInterruptedRecovery();
 if(generic.actual_candidates>0){console.log(JSON.stringify(generic));process.exit(0);}
+if(isFailureAssuranceParent){
+  assert(env.GITHUB_OUTPUT,'RECOVERY_RUNTIME_OUTPUT_REQUIRED');
+  fs.appendFileSync(env.GITHUB_OUTPUT,`approval_run_id=${env.GITHUB_RUN_ID}\nrecovery_needed=false\n`);
+  console.log(JSON.stringify({state:generic.state,original_reservation_terminal:'UNRESOLVED',promotion_eligible:false}));
+  process.exit(0);
+}
 const ledger=await createRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA});
 const historical=consumedRecoveryObservation(await ledger.discoverContext());
 if(historical){

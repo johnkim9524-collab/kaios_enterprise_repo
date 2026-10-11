@@ -73,6 +73,18 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
       return invoke({action:'APPROVE_MERGED_RESERVATION_RECOVERY',...binding(request,true),evidence,evidence_digest:sha256(canonicalJson(evidence)),
         role,approval_run_id:env.GITHUB_RUN_ID,approval_run_attempt:1,workload});
     },
+    readFailureContext:async({request})=>invoke({action:'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT',...binding(request,false),role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload}),
+    createFailureApproval:async({request,evidence})=>{
+      check(role!=='FINALIZER','APPROVAL_ROLE');check(evidence?.source_sha===sourceSha
+        &&evidence?.evidence_profile==='TERMINAL_NULL_ASSURANCE_FAILURE_V1','FAILURE_EVIDENCE');
+      return invoke({action:'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY',...binding(request,true),evidence,evidence_digest:sha256(canonicalJson(evidence)),
+        role,approval_run_id:env.GITHUB_RUN_ID,approval_run_attempt:1,workload});
+    },
+    finalizeFailureTerminal:async({request,terminal,evidence_digest,run_id=env.GITHUB_RUN_ID})=>{
+      check(role==='FINALIZER'&&run_id===env.GITHUB_RUN_ID,'FINALIZER_REQUIRED');
+      return invoke({action:'FINALIZE_FAILED_ASSURANCE_TERMINAL_RECOVERY',...binding(request,false),run_id,run_attempt:1,terminal,evidence_digest,workload});
+    },
+    acknowledgeFailureTerminal:input=>final('ACK_FAILED_ASSURANCE_TERMINAL_IMMUTABLE',input,{object:input.object},false),
     read:input=>final('READ_MERGED_RECOVERY',input,{},false),
     claim:input=>final('CLAIM_MERGED_RECOVERY',input,{expected_revision:input.expected_revision,lease_seconds:input.lease_seconds}),
     consume:input=>final('CONSUME_MERGED_RECOVERY',input,{revision:input.revision,terminal:input.terminal},false),

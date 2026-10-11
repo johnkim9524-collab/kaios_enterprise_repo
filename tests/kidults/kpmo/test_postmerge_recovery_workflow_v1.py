@@ -17,20 +17,23 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def gate_workflow(self):
         return yaml.load((ROOT / '.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml').read_text(), Loader=yaml.BaseLoader)
 
-    def test_same_natural_gate_drives_approvals_with_separate_fourth_run_finalizer(self):
+    def test_gate_success_and_assurance_failure_routes_are_single_delivery(self):
         for name in FILES:
             trigger = self.workflow(name)['on']['workflow_run']
             expected = ['KPMO Continuous Assurance Success Authority Gate V1']
-            if name == 'track':
-                expected.append('KIDULTS Autonomous Independent Verification V1')
+            expected.append('KIDULTS Platform Continuous Assurance V1')
             self.assertEqual(trigger, {'workflows': expected,
                                       'types': ['completed'], 'branches': ['main']})
-        finalizer = self.workflow('track')['jobs']['interrupted-recovery-finalizer']
-        self.assertNotIn('needs', finalizer)
-        self.assertIn("workflow_run.name == 'KIDULTS Autonomous Independent Verification V1'", finalizer['if'])
-        self.assertIn("workflow_run.event == 'workflow_run'", finalizer['if'])
-        self.assertIn('github.run_attempt == 1', finalizer['if'])
-        self.assertIn("workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1'", self.workflow('track')['jobs']['terminal-recovery-approval']['if'])
+        self.assertNotIn('interrupted-recovery-finalizer', self.workflow('track')['jobs'])
+        for name in FILES:
+            workflow = self.workflow(name)
+            job_if = workflow['jobs']['terminal-recovery-approval']['if']
+            self.assertIn("workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'", job_if)
+            self.assertIn("workflow_run.conclusion == 'failure'", job_if)
+            self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
+            self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
+            self.assertIn("github.actor == 'github-actions[bot]'", job_if)
+            self.assertIn("inputs.gate_run_attempt == '1'", job_if)
 
     def test_original_live_candidate_path_remains_dispatch_only(self):
         for name in FILES:
@@ -49,6 +52,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
         gate = self.gate_workflow()['jobs']['success-authority-gate']
         self.assertEqual(gate['permissions'], {'actions': 'write', 'contents': 'read'})
         dispatch = next(step for step in gate['steps'] if step.get('name') == 'Dispatch exact-main terminal recovery roles')
+        self.assertEqual(dispatch['if'], "github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'")
         script = dispatch['run']
         self.assertIn('CURRENT_MAIN_SHA', script)
         self.assertIn('test "$CURRENT_MAIN_SHA" = "$UPSTREAM_SHA"', script)
@@ -69,10 +73,26 @@ class RecoveryWorkflowTests(unittest.TestCase):
                 for forbidden in ['gh pr merge', 'gh workflow run', 'repository_dispatch', 'update-function-code', 'cloudformation deploy']:
                     self.assertNotIn(forbidden, script)
 
-    def test_finalizer_only_track_later_run_with_existing_approval(self):
+    def test_failure_assurance_terminal_route_is_distinct_and_tracks_parent_lineage(self):
+        runner = (ROOT / 'scripts/kidults/kpmo/run-interrupted-terminal-recovery-v1.mjs').read_text()
+        workload = (ROOT / 'scripts/kidults/kpmo/lib/interrupted-recovery-workload-v1.mjs').read_text()
+        verifier = (ROOT / 'scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs').read_text()
+        for name in FILES:
+            workflow = self.workflow(name)
+            names = workflow['on']['workflow_run']['workflows']
+            self.assertIn('KIDULTS Platform Continuous Assurance V1', names)
+            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            self.assertIn("workflow_run.conclusion == 'failure'", recovery_if)
+            self.assertNotIn("github.event_name == 'workflow_run'", workflow['jobs']['record-role-approval']['if'])
+        self.assertIn('result.recovery_parent=failureParent', runner)
+        self.assertIn('ledger.createFailureApproval', workload)
+        self.assertIn('recoverFailureAssuranceTerminal', workload)
+        self.assertIn('TERMINAL_NULL_ASSURANCE_FAILURE_V1', verifier)
+        self.assertIn("terminalCheck?.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'", verifier)
+
+    def test_track_finalizer_runs_once_after_same_run_quorum(self):
         job = self.workflow('track')['jobs']['terminal-recovery-finalizer']
         self.assertEqual(job['needs'], 'terminal-recovery-approval')
-        self.assertIn('outputs.approval_run_id != github.run_id', job['if'])
         self.assertIn("outputs.recovery_needed == 'true'", job['if'])
         for name in FILES[1:]:
             self.assertNotIn('terminal-recovery-finalizer', self.workflow(name)['jobs'])

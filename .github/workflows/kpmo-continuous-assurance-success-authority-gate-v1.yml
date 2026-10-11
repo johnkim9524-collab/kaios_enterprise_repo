@@ -666,6 +666,7 @@ jobs:
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null
 
       - name: Dispatch exact-main terminal recovery roles
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

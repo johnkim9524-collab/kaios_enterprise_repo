@@ -10,6 +10,7 @@ import {validateSentinelObservation} from '../validate-sentinel-observation-v1.m
 import {validateInterruptedRecoveryRequest,observeInterruptedRecoveryNative} from './interrupted-reservation-recovery-v1.mjs';
 import {verifyAssuranceReadiness} from './assurance-full-proof-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
+import {verifyFailureAssuranceParent} from './interrupted-recovery-native-trigger-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
 const HOLD={production:'HOLD',public:'HOLD',g5:'HOLD'};
@@ -93,6 +94,137 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       &&latest.conclusion==='success','RECOVERY_EVIDENCE_NEWER_PRODUCER_INTERRUPTION');
   };
 
+  const collectFailureEvidence=async({request,native,parent,originalArchive,sha,observedAt,pushRuns,suite,pushIdentity})=>{
+    assert(parent?.kind==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'&&parent.source_sha===sha
+      &&parent.actual_authority_granted===false&&parent.platform_closure===false&&parent.promotion_eligible===false,
+      'RECOVERY_FAILURE_PROFILE');
+    const branch=await readJson('branches/main');assert(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN');
+    const commit=await readJson(`commits/${sha}`);assert(commit.sha===sha,'RECOVERY_EVIDENCE_COMMIT');
+    assert(suite.ready&&suite.required.length===6&&suite.required.every(r=>r.conclusion==='success')
+      &&suite.failure_count===0&&suite.invalid.length===0,'RECOVERY_EVIDENCE_PUSH_SUITE');
+    assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),
+      'RECOVERY_EVIDENCE_PUSH_IDENTITY');
+    const sentinel=await liveHealth(sha),healthArtifacts=(await artifactList(sentinel))
+      .filter(a=>a.name===`kpmo-continuous-assurance-sentinel-health-v1-${sha}-${sentinel.id}-1`);
+    assert(healthArtifacts.length===1,'RECOVERY_FAILURE_SENTINEL_ARTIFACT');
+    const healthPacket=await archive(sentinel,healthArtifacts[0],sha,observedAt);
+    const health=member(healthPacket.packet,'kpmo-continuous-assurance-sentinel-health-v1.json');
+    validateSentinelObservation(health,{GITHUB_REPOSITORY:I.repository,GITHUB_SHA:sha,GITHUB_RUN_ID:String(sentinel.id),
+      GITHUB_RUN_ATTEMPT:'1',SENTINEL_RESOLVER_OUTCOME:'success'});
+    const parentRun=await readRun(parent.run_id);
+    const checkedParent=await verifyFailureAssuranceParent({run:parentRun,sourceSha:sha,get:readJson,readBytes});
+    assert(canonicalJson(checkedParent.recovery_parent)===canonicalJson(parent),'RECOVERY_FAILURE_PARENT_MOVED');
+    const assuranceArtifacts=(await artifactList(parentRun)).filter(a=>a.id===parent.artifact_id
+      &&a.name===`kidults-continuous-assurance-${sha}-${parent.run_id}-1`&&a.digest===parent.artifact_digest);
+    assert(assuranceArtifacts.length===1,'RECOVERY_FAILURE_ASSURANCE_ARTIFACT');
+    const assurancePacket=await archive(parentRun,assuranceArtifacts[0],sha,observedAt);
+    assert(assurancePacket.packet.archive_digest===parent.archive_digest,'RECOVERY_FAILURE_ASSURANCE_ARCHIVE');
+    const audit=member(assurancePacket.packet,'audit-receipt.json');
+    const operatingProof=member(assurancePacket.packet,'whole-platform-operating-proof-v1.json');
+    assert(audit.receipt_digest===parent.audit_receipt_digest&&audit.states?.internal_control_state==='VERIFIED_PASS'
+      &&audit.states?.promotion_eligible===false&&audit.execution?.trigger==='workflow_run'
+      &&String(audit.execution?.upstream?.run_id)===String(parent.upstream_run_id),'RECOVERY_FAILURE_AUDIT_BINDING');
+    const {receipt_digest:proofDigest,...proofBody}=operatingProof;
+    const failedOperating=operatingProof.operating_checks?.filter(c=>c.state==='VERIFIED_FAIL')||[];
+    const terminalCheck=failedOperating[0];
+    assert(operatingProof.id==='kidults-whole-platform-operating-proof-v1'&&operatingProof.repository===I.repository
+      &&operatingProof.source_sha===sha&&operatingProof.state==='VERIFIED_FAIL'
+      &&operatingProof.whole_platform_runtime_proven===false&&proofDigest===sha256(canonicalJson(proofBody))
+      &&failedOperating.length===1&&terminalCheck?.id===parent.terminal_check_id
+      &&terminalCheck.reason===parent.terminal_check_reason
+      &&terminalCheck.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
+      &&canonicalJson(terminalCheck.evidence_refs)===canonicalJson(parent.terminal_check_evidence_refs)
+      &&String(terminalCheck.evidence_refs?.[0])===String(request.original_run_id)
+      &&terminalCheck.evidence_refs?.[1]===originalArchive?.artifact_id
+      &&terminalCheck.evidence_refs?.[2]===originalArchive?.archive_digest,'RECOVERY_FAILURE_TERMINAL_NULL_ONLY');
+    const assuranceJobs=await jobsFor(parentRun),failedJobs=assuranceJobs.jobs.filter(j=>j.status==='completed'&&j.conclusion==='failure');
+    assert(failedJobs.length===1&&failedJobs[0].name==='audit'&&failedJobs[0].id===parent.audit_job_id,
+      'RECOVERY_FAILURE_AUDIT_ONLY');
+    const assuranceRuns=(await runList(ASSURANCE,sha)).filter(r=>r.path===ASSURANCE&&r.head_sha===sha&&r.head_branch==='main'
+      &&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id&&r.run_attempt===1);
+    assuranceRuns.sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id);
+    assert(assuranceRuns.at(-1)?.id===parentRun.id,'RECOVERY_FAILURE_ASSURANCE_NOT_LATEST');
+    assert(request.pull_request===2655&&originalArchive?.artifact_id===parent.terminal_check_evidence_refs?.[1]
+      &&originalArchive?.archive_digest===parent.terminal_check_evidence_refs?.[2]
+      &&String(request.original_run_id)===String(parent.terminal_check_evidence_refs?.[0]),'RECOVERY_FAILURE_ORIGINAL_REFERENCE');
+    const originalRun=await readRun(request.original_run_id);
+    assert([`.github/workflows/kidults-autonomous-track-authorization-v1.yml`,
+      `.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml`,
+      `.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml`].includes(originalRun.path),
+      'RECOVERY_FAILURE_ORIGINAL_PATH');
+    const originalArtifacts=(await artifactList(originalRun)).filter(a=>a.id===originalArchive.artifact_id
+      &&a.name===`kidults-autonomous-internal-landing-finalizer-${request.original_run_id}-1`
+      &&a.digest===originalArchive.archive_digest);
+    assert(originalArtifacts.length===1,'RECOVERY_FAILURE_ORIGINAL_ARTIFACT');
+    const originalPacket=await archive(originalRun,originalArtifacts[0],request.base_sha,observedAt);
+    const originalMembers=originalPacket.packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='receipt.json');
+    assert(originalMembers.length===1,'RECOVERY_FAILURE_ORIGINAL_RECEIPT');
+    const originalReceipt=JSON.parse(originalMembers[0].text),reservation=originalReceipt.original_reservation;
+    assert(originalReceipt.id==='kidults-autonomous-internal-landing-terminal-receipt-v1'
+      &&originalReceipt.state==='QUARANTINED'&&originalReceipt.merge_performed===true
+      &&originalReceipt.terminal_evidence===null&&originalReceipt.retry_without_reconciliation===false
+      &&reservation?.pull_request===2655&&String(reservation.original_run_id)===String(originalRun.id)
+      &&reservation.original_run_attempt===1&&reservation.base_sha===request.base_sha
+      &&reservation.head_sha===request.head_sha&&reservation.head_tree_sha===request.head_tree_sha
+      &&reservation.original_generation===request.original_generation&&reservation.nonce_digest===request.nonce_digest
+      &&['production','public','g5'].every(k=>originalReceipt[k]==='HOLD'),'RECOVERY_FAILURE_ORIGINAL_NULL_BINDING');
+    const upstream=audit.execution?.upstream;
+    assert(String(upstream?.run_id)===String(sentinel.id)&&upstream?.workflow_name===sentinel.name
+      &&upstream?.workflow_path===sentinel.path&&upstream?.workflow_event===sentinel.event
+      &&upstream?.conclusion===sentinel.conclusion&&upstream?.repository===I.repository
+      &&upstream?.head_branch==='main'&&parent.upstream_run_id===sentinel.id
+      &&upstream.run_attempt==='1'&&upstream.source_receipt_digest===health.receipt_digest
+      &&parent.upstream_receipt_digest===upstream.source_receipt_digest,'RECOVERY_FAILURE_CAUSAL_SENTINEL');
+    const gateRuns=(await runList(GATE,sha)).filter(r=>r.path===`.github/workflows/${GATE}`&&r.head_sha===sha
+      &&r.head_branch==='main'&&r.event==='workflow_run'&&r.repository?.full_name===I.repository
+      &&String(r.repository?.id)===I.repository_id&&r.run_attempt===1);
+    gateRuns.sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at)||a.id-b.id);
+    const latestGateRun=gateRuns.at(-1);assert(latestGateRun,'RECOVERY_FAILURE_GATE_OBSERVATION_REQUIRED');
+    const latestGateJobs=await jobsFor(await readRun(latestGateRun.id));
+    const authority=latestGateJobs.jobs.filter(j=>j.name==='success-authority-gate');
+    assert(authority.length===1&&!(authority[0].status==='completed'&&authority[0].conclusion==='success'),
+      'RECOVERY_FAILURE_MUST_NOT_MASK_AUTHORITY_SUCCESS');
+    const p0=suite.required.find(r=>r.path==='.github/workflows/kidults-p0-control-plane-closure-v1.yml');
+    assert(p0,'RECOVERY_FAILURE_P0_REQUIRED');
+    const p0Run=await readRun(p0.run_id),p0Artifacts=(await artifactList(p0Run)).filter(a=>a.name==='kidults-p0-control-plane-closure-v1');
+    assert(p0Artifacts.length===1,'RECOVERY_FAILURE_P0_ARTIFACT');
+    const p0Packet=await archive(p0Run,p0Artifacts[0],sha,observedAt),p0Receipt=member(p0Packet.packet,'kidults-p0-control-plane-closure-receipt-v1.json');
+    assert(p0Receipt.id==='kidults-p0-control-plane-closure-receipt-v1'&&p0Receipt.state==='VERIFIED_PASS'
+      &&p0Receipt.exact_source_sha===sha&&p0Receipt.repository===I.repository&&p0Receipt.run_id===p0Run.id
+      &&p0Receipt.run_attempt===1,'RECOVERY_FAILURE_P0_CONTENT');
+    const proofs=[];let canonicalNode;
+    for(const selected of health.producers){
+      const spec=SPECS.find(s=>s.id===selected.id);assert(spec,'RECOVERY_FAILURE_PRODUCER_SPEC');
+      await currentProducer(spec,selected,sha);
+      const run=await readRun(selected.selected_run_id),rows=await artifactList(run);
+      const matches=rows.filter(a=>a.id===selected.artifact_id&&a.name===selected.artifact_name&&a.digest===selected.artifact_digest);
+      assert(matches.length===1,'RECOVERY_FAILURE_PRODUCER_ARTIFACT');
+      let content=validateProducerContent(spec,run,matches[0],await readBytes(`actions/artifacts/${matches[0].id}/zip`),sha,observedAt);
+      if(content.alias){
+        const alias=content.alias,leaderArtifact=await readJson(`actions/artifacts/${alias.canonical_artifact_id}`);
+        const leaderRun=await readRun(leaderArtifact.workflow_run?.id),leaderBytes=await readBytes(`actions/artifacts/${leaderArtifact.id}/zip`);
+        content=validateCoverageAliasClosure(content,validateProducerContent(spec,leaderRun,leaderArtifact,leaderBytes,sha,observedAt),leaderRun,leaderArtifact);
+      }
+      assert(content.state==='VERIFIED_PASS'&&content.artifact_content_validated===true,'RECOVERY_FAILURE_PRODUCER_CONTENT');
+      const proof={id:spec.id,state:'VERIFIED_PASS',run_id:String(run.id),artifact_id:matches[0].id,
+        artifact_digest:matches[0].digest,member_digests:content.member_digests};proofs.push(proof);
+      if(spec.id==='CANONICAL_TRUTH')canonicalNode=proofNode(run,sha256(canonicalJson(proof)),
+        {proof_digest_kind:'AUTHENTICATED_NATIVE_ARTIFACT_CONTENT_PROOF',artifact_id:matches[0].id,artifact_digest:matches[0].digest});
+    }
+    assert(canonicalNode,'RECOVERY_FAILURE_CANONICAL_TRUTH');
+    const p0Digest=sha256(canonicalJson({pushIdentity,p0Receipt}));
+    const check=(kind,run,artifact,receiptDigest,conclusion='success')=>({kind,run_id:String(run.id),run_attempt:1,
+      source_sha:sha,conclusion,artifact_id:artifact.id,archive_digest:artifact.digest,receipt_digest:receiptDigest});
+    const result={...native,evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',checks:[
+      check('REQUIRED_PUSH_SUITE',p0Run,p0Artifacts[0],p0Digest),
+      check('CANONICAL_TRUTH',{id:canonicalNode.run_id},{id:canonicalNode.artifact_id,digest:canonicalNode.artifact_digest},canonicalNode.receipt_digest),
+      check('SENTINEL',sentinel,healthArtifacts[0],health.receipt_digest),
+      check('TERMINAL_NULL_ASSURANCE_FAILURE',parentRun,assuranceArtifacts[0],audit.receipt_digest,'failure')]};
+    const finalMain=await readJson('branches/main');assert(finalMain.protected===true&&finalMain.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
+    assert((await liveHealth(sha)).id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
+    return result;
+  };
+
   const jobsFor=async run=>{
     const response=await readJson(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);
     assert(Array.isArray(response.jobs)&&response.total_count===response.jobs.length&&response.total_count<=100
@@ -100,11 +232,19 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     assert(response.jobs.every(j=>positive(j.id)&&j.run_id===run.id&&(j.run_attempt===undefined||j.run_attempt===1)),'RECOVERY_EVIDENCE_JOB_ATTEMPT');
     return {...response,jobs:response.jobs.map(j=>({...j,run_attempt:1}))};
   };
-  const collect=async(request,pinned=null,native=null)=>{
+  const collect=async(request,pinned=null,native=null,originalArchive=null)=>{
+    const failureParent=generic&&native?.recovery_parent?.kind==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'?native.recovery_parent:null;
+    const nativeBase=native?{...native}:null;if(nativeBase)delete nativeBase.recovery_parent;
     if(generic){
       validateInterruptedRecoveryRequest(request,{now:now()});
       const authenticated=await observeInterruptedRecoveryNative({request,get:readJson,now:now()});
-      assert(canonicalJson(authenticated)===canonicalJson(native),'RECOVERY_EVIDENCE_NATIVE_CONTEXT');
+      assert(canonicalJson(authenticated)===canonicalJson(nativeBase),'RECOVERY_EVIDENCE_NATIVE_CONTEXT');
+      if(failureParent){
+        const parentRun=await readRun(failureParent.run_id);
+        const verified=await verifyFailureAssuranceParent({run:parentRun,sourceSha:request.source_sha,
+          get:readJson,readBytes});
+        assert(canonicalJson(verified.recovery_parent)===canonicalJson(failureParent),'RECOVERY_FAILURE_PARENT_BINDING');
+      }
     }
     else validatePostmergeRecoveryRequest(request,{now:now()});
     const sha=request.source_sha,observedAt=new Date(now()).toISOString();
@@ -123,6 +263,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       &&suite.failure_count===0&&suite.invalid.length===0,'RECOVERY_EVIDENCE_PUSH_SUITE');
     const pushIdentity=pushRuns.map(r=>({id:r.id,run_attempt:r.run_attempt,path:r.path,head_sha:r.head_sha,status:r.status,conclusion:r.conclusion}));
     assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),'RECOVERY_EVIDENCE_PUSH_IDENTITY');
+    if(failureParent)return collectFailureEvidence({request,native:nativeBase,parent:failureParent,originalArchive,sha,observedAt,pushRuns,suite,pushIdentity});
     const sentinel=pinned&&!generic?await readRun(pinned.evidence?.sentinel?.run_id):await liveHealth(sha);
     const gate=pinned&&!generic?await readRun(pinned.evidence?.success_authority_gate?.run_id):await latestGate(sha);
     assert(sentinel.path===`.github/workflows/${SENTINEL}`&&gate.path===`.github/workflows/${GATE}`
@@ -241,7 +382,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     if(pinned)assert(canonicalJson(snapshot)===canonicalJson(pinned),'RECOVERY_EVIDENCE_PINNED_CONTENT_DRIFT');
     return snapshot;
   };
-  return generic?{verifyEvidence:({request,native,pinned=null})=>collect(request,pinned,native)}
+  return generic?{verifyEvidence:({request,native,pinned=null,originalArchive=null})=>collect(request,pinned,native,originalArchive)}
     :{selectSnapshot:request=>collect(request),verifySnapshot:(request,snapshot)=>collect(request,snapshot)};
 }
 

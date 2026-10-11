@@ -62,16 +62,24 @@ def validate_request(r, now, fresh=True):
 def validate_evidence(e, r):
     # Facts, not authorization booleans. Three protected signers authenticate
     # these native references independently; schema alone proves no runtime.
-    require(isinstance(e, dict) and set(e) == {'repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha', 'merge_parents', 'merged_at', 'original_run', 'checks'} | set(HOLD), 'EVIDENCE_FIELDS')
+    legacy_fields = {'repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha', 'merge_parents', 'merged_at', 'original_run', 'checks'} | set(HOLD)
+    failure_fields = legacy_fields | {'evidence_profile'}
+    require(isinstance(e, dict) and set(e) in (legacy_fields, failure_fields), 'EVIDENCE_FIELDS')
     require(all(e[k] == r[k] for k in ('repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha')) and all(e[k] == v for k, v in HOLD.items()), 'EVIDENCE_BINDING')
     require(e['merge_parents'] == [r['base_sha'], r['head_sha']], 'MERGE_GRAPH')
     require(epoch(e['merged_at']) <= epoch(r['issued_at']), 'MERGE_TIME')
     n = e['original_run']
     require(isinstance(n, dict) and set(n) == {'run_id', 'run_attempt', 'source_sha', 'status', 'conclusion'} and n['run_id'] == r['original_run_id'] and type(n['run_attempt']) is int and n['run_attempt'] == 1 and n['source_sha'] == r['base_sha'] and n['status'] == 'completed' and n['conclusion'] in ('cancelled', 'failure', 'timed_out'), 'ORIGINAL_NATIVE_RUN')
     checks = e['checks']
-    require(isinstance(checks, list) and len(checks) == 4 and {x.get('kind') for x in checks if isinstance(x, dict)} == {'REQUIRED_PUSH_SUITE', 'CANONICAL_TRUTH', 'SENTINEL', 'SUCCESS_AUTHORITY_GATE'}, 'CHECKS')
+    normal_kinds = {'REQUIRED_PUSH_SUITE', 'CANONICAL_TRUTH', 'SENTINEL', 'SUCCESS_AUTHORITY_GATE'}
+    failed_assurance_kinds = {'REQUIRED_PUSH_SUITE', 'CANONICAL_TRUTH', 'SENTINEL', 'TERMINAL_NULL_ASSURANCE_FAILURE'}
+    failure_profile = e.get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+    require(not ('evidence_profile' in e and not failure_profile), 'EVIDENCE_PROFILE')
+    allowed_kinds = failed_assurance_kinds if failure_profile else normal_kinds
+    require(isinstance(checks, list) and len(checks) == 4 and {x.get('kind') for x in checks if isinstance(x, dict)} == allowed_kinds, 'CHECKS')
     for c in checks:
-        require(set(c) == {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'} and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1 and c['source_sha'] == r['source_sha'] and c['conclusion'] == 'success' and type(c['artifact_id']) is int and c['artifact_id'] > 0 and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest')), 'CHECK_BINDING')
+        expected_conclusion = 'failure' if failure_profile and c.get('kind') == 'TERMINAL_NULL_ASSURANCE_FAILURE' else 'success'
+        require(set(c) == {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'} and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1 and c['source_sha'] == r['source_sha'] and c['conclusion'] == expected_conclusion and type(c['artifact_id']) is int and c['artifact_id'] > 0 and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest')), 'CHECK_BINDING')
     return digest(e)
 
 
@@ -172,6 +180,171 @@ class InterruptedReservationRecoveryLedger:
         require(validate_request(e['request'], self.now(), fresh) == e['request_digest'] and validate_evidence(e['evidence'], e['request']) == e['evidence_digest'], 'APPROVAL_DIGEST')
         require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id']) and e['approval_run_id'] != e['request']['original_run_id'] and type(e['approval_run_attempt']) is int and e['approval_run_attempt'] == 1, 'APPROVAL_RUN')
         return e
+
+    @staticmethod
+    def failure_approval_key(request_digest, role):
+        return {'pk': {'S': 'AUTH#FAILURE_ASSURANCE#' + request_digest}, 'sk': {'S': 'ROLE#' + role}}
+
+    @staticmethod
+    def failure_object_key(request):
+        return 'receipts/' + request['original_generation'] + '/interrupted-postmerge-failure-assurance-v1/' + request['merge_sha'] + '.json'
+
+    def failure_approval(self, event, fresh=True):
+        role = event.get('envelope', {}).get('role')
+        require(role in self.roles, 'FAILURE_ROLE')
+        e = self.verify(event, self.roles[role])
+        fields = {'action', 'request', 'request_digest', 'evidence', 'evidence_digest', 'role', 'approval_run_id', 'approval_run_attempt', 'workload'}
+        require(set(e) == fields and e['action'] == 'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY', 'FAILURE_APPROVAL_FIELDS')
+        require(validate_request(e['request'], self.now(), fresh) == e['request_digest']
+                and e['evidence'].get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+                and validate_evidence(e['evidence'], e['request']) == e['evidence_digest'], 'FAILURE_APPROVAL_DIGEST')
+        require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id'])
+                and e['approval_run_id'] != e['request']['original_run_id']
+                and type(e['approval_run_attempt']) is int and e['approval_run_attempt'] == 1, 'FAILURE_APPROVAL_RUN')
+        return e
+
+    def failure_context(self, event):
+        e = event.get('envelope', {}); role = e.get('role')
+        require(role in self.roles or role == 'FINALIZER', 'FAILURE_CONTEXT_ROLE')
+        self.verify(event, self.finalizer if role == 'FINALIZER' else self.roles[role])
+        require(set(e) == {'action', 'request', 'request_digest', 'role', 'run_id', 'run_attempt', 'workload'}
+                and e['action'] == 'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT', 'FAILURE_CONTEXT_FIELDS')
+        r = e['request']
+        require(validate_request(r, self.now(), False) == e['request_digest']
+                and isinstance(e['run_id'], str) and RUN.fullmatch(e['run_id'])
+                and e['run_id'] != r['original_run_id'] and type(e['run_attempt']) is int and e['run_attempt'] == 1, 'FAILURE_CONTEXT_BINDING')
+        row = self.get(self.key(r))
+        if not row:
+            return {'state': 'ORIGINAL_RESERVATION_MISSING', 'write_performed': False}
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
+                and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha'
+                ] and not any(k in row for k in ('original_terminal_json', 'original_terminal_digest', 'original_immutable_ack',
+                    'ir_request', 'ir_terminal', 'ir_terminal_digest', 'ir_immutable_ack')), 'FAILURE_TERMINAL_NULL_ONLY')
+        pinned = json.loads(row['failure_request']['S']) if 'failure_request' in row else None
+        evidence = json.loads(row['failure_evidence']['S']) if 'failure_evidence' in row else None
+        if pinned:
+            require(pinned == r and evidence is not None
+                    and validate_evidence(evidence, pinned) == row.get('failure_evidence_digest', {}).get('S'), 'FAILURE_CONTEXT_PIN')
+        approvals = []
+        for candidate_role in ROLES:
+            prior = self.get(self.failure_approval_key(e['request_digest'], candidate_role))
+            if prior:
+                a = self.failure_approval(json.loads(prior['signed_event']['S']), fresh=False)
+                require(a['role'] == candidate_role and a['request_digest'] == e['request_digest']
+                        and a['evidence_digest'] == row.get('failure_evidence_digest', {}).get('S'), 'FAILURE_CONTEXT_APPROVAL')
+                approvals.append(a)
+        require(len({a['approval_run_id'] for a in approvals}) == len(approvals), 'FAILURE_CONTEXT_RUN_COLLISION')
+        if 'failure_terminal' in row:
+            terminal = json.loads(row['failure_terminal']['S'])
+            require(row.get('failure_terminal_digest', {}).get('S') == digest(terminal)
+                    and pinned == r and evidence is not None and terminal.get('request_digest') == e['request_digest']
+                    and terminal.get('evidence_digest') == row.get('failure_evidence_digest', {}).get('S')
+                    and terminal.get('original_state') == 'CONSUMED' and terminal.get('original_terminal_present') is False
+                    and terminal.get('actual_authority_granted') is False and terminal.get('platform_closure') is False
+                    and all(terminal.get(k) == v for k, v in HOLD.items()), 'FAILURE_TERMINAL_DIGEST')
+            return {'state': 'FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED', 'request': pinned, 'evidence': evidence,
+                    'terminal': terminal, 'evidence_digest': row.get('failure_evidence_digest', {}).get('S'),
+                    'approvals': approvals,
+                    'immutable_ack': json.loads(row['failure_immutable_ack']['S']) if 'failure_immutable_ack' in row else None,
+                    'write_performed': False}
+        require(not any(k in row for k in ('failure_terminal_digest', 'failure_immutable_ack')), 'FAILURE_TERMINAL_PARTIAL_WRITE')
+        return {'state': 'FAILURE_ASSURANCE_TERMINAL_PENDING', 'request': pinned, 'evidence': evidence,
+                'evidence_digest': row.get('failure_evidence_digest', {}).get('S'), 'approvals': approvals,
+                'terminal': None, 'immutable_ack': None, 'write_performed': False}
+
+    def create_failure_approval(self, event):
+        e = self.failure_approval(event); r = e['request']; row = self.get(self.key(r))
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
+                and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha'
+                ] and 'original_terminal_json' not in row and 'original_terminal_digest' not in row
+                and 'original_immutable_ack' not in row and 'ir_terminal' not in row and 'ir_terminal_digest' not in row
+                and 'ir_immutable_ack' not in row and 'ir_request' not in row and 'failure_terminal' not in row
+                and 'failure_terminal_digest' not in row and 'failure_immutable_ack' not in row, 'FAILURE_TERMINAL_NULL_ONLY')
+        require(row.get('failure_request', {}).get('S') in (None, canonical(r)), 'FAILURE_REQUEST_CONFLICT')
+        require(row.get('failure_evidence_digest', {}).get('S') in (None, e['evidence_digest']), 'FAILURE_EVIDENCE_CONFLICT')
+        if 'failure_request' not in row:
+            try:
+                self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET failure_request=:request, failure_evidence_digest=:evidence, failure_evidence=:body',
+                    ConditionExpression='#state=:consumed AND run_id=:original AND head_sha=:head AND merge_sha=:merge AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(original_terminal_digest) AND attribute_not_exists(original_immutable_ack) AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND attribute_not_exists(ir_immutable_ack) AND attribute_not_exists(ir_request) AND attribute_not_exists(failure_terminal) AND attribute_not_exists(failure_terminal_digest) AND attribute_not_exists(failure_immutable_ack) AND attribute_not_exists(failure_request)',
+                    ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':request': {'S': canonical(r)}, ':evidence': {'S': e['evidence_digest']}, ':body': {'S': canonical(e['evidence'])}, ':consumed': {'S': 'CONSUMED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']}, ':merge': {'S': r['merge_sha']}})
+            except Exception:
+                row = self.get(self.key(r))
+                require(row.get('failure_request', {}).get('S') == canonical(r)
+                        and row.get('failure_evidence_digest', {}).get('S') == e['evidence_digest'], 'FAILURE_PIN_UNKNOWN_NO_RETRY')
+        key = self.failure_approval_key(e['request_digest'], e['role']); prior = self.get(key)
+        if prior:
+            require(canonical(self.failure_approval(json.loads(prior['signed_event']['S']), fresh=False)) == canonical(e), 'FAILURE_APPROVAL_CONFLICT')
+            return {'state': 'EXISTING_FAILURE_ASSURANCE_APPROVAL', 'write_performed': False}
+        try:
+            self.ddb.put_item(TableName=self.table, Item={**key, 'signed_event': {'S': canonical(event)}},
+                              ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)')
+        except Exception:
+            # A lost response or concurrent exact writer is settled by a
+            # consistent read of the immutable approval row. Never reissue.
+            prior = self.get(key)
+            require(prior.get('signed_event', {}).get('S') == canonical(event), 'FAILURE_APPROVAL_UNKNOWN_NO_RETRY')
+            return {'state': 'EXISTING_FAILURE_ASSURANCE_APPROVAL', 'write_performed': False}
+        return {'state': 'FAILURE_ASSURANCE_APPROVAL_STORED', 'write_performed': True}
+
+    def finalize_failure_terminal(self, event):
+        e = self.authenticate(event, 'FINALIZE_FAILED_ASSURANCE_TERMINAL_RECOVERY', ('terminal', 'evidence_digest'), fresh=False)
+        r = e['request']; row = self.get(self.key(r)); t = e['terminal']
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
+                and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha'
+                ] and row.get('failure_request', {}).get('S') == canonical(r)
+                and row.get('failure_evidence_digest', {}).get('S') == e['evidence_digest']
+                and not any(k in row for k in ('original_terminal_json', 'original_terminal_digest', 'original_immutable_ack',
+                    'ir_request', 'ir_terminal', 'ir_terminal_digest', 'ir_immutable_ack')), 'FAILURE_FINALIZER_CONTEXT')
+        evidence = json.loads(row['failure_evidence']['S'])
+        require(validate_evidence(evidence, r) == e['evidence_digest'], 'FAILURE_FINALIZER_EVIDENCE')
+        runs = set()
+        for role in ROLES:
+            approval = self.failure_approval(json.loads(self.get(self.failure_approval_key(e['request_digest'], role)).get('signed_event', {}).get('S', '{}')))
+            require(approval['role'] == role and approval['request_digest'] == e['request_digest']
+                    and approval['evidence_digest'] == e['evidence_digest'], 'FAILURE_FINALIZER_QUORUM')
+            runs.add(approval['approval_run_id'])
+        require(len(runs) == 3 and e['run_id'] not in runs, 'FAILURE_FINALIZER_RUN_COLLISION')
+        terminal_fields = {'id', 'state', 'request_digest', 'evidence_digest', 'recovery_run_id', 'source_sha', 'merge_sha',
+                           'original_state', 'original_terminal_present', 'actual_authority_granted', 'platform_closure'} | set(HOLD)
+        require(isinstance(t, dict) and set(t) == terminal_fields
+                and t['id'] == 'kidults-interrupted-failure-assurance-terminal-v1'
+                and t['state'] == 'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY'
+                and t['request_digest'] == e['request_digest'] and t['evidence_digest'] == e['evidence_digest']
+                and t['recovery_run_id'] == e['run_id'] and t['source_sha'] == r['source_sha'] and t['merge_sha'] == r['merge_sha']
+                and t['original_state'] == 'CONSUMED' and t['original_terminal_present'] is False
+                and t['actual_authority_granted'] is False and t['platform_closure'] is False
+                and all(t.get(k) == v for k, v in HOLD.items()), 'FAILURE_TERMINAL')
+        if 'failure_terminal' in row:
+            require(row['failure_terminal']['S'] == canonical(t), 'FAILURE_TERMINAL_CONFLICT')
+            return {'state': 'FAILURE_ASSURANCE_TERMINAL_RECONCILED', 'terminal_digest': digest(t), 'write_performed': False}
+        result = self.ddb.update_item(TableName=self.table, Key=self.key(r),
+            UpdateExpression='SET failure_terminal=:terminal, failure_terminal_digest=:digest',
+            ConditionExpression='#state=:consumed AND run_id=:original AND head_sha=:head AND merge_sha=:merge AND failure_request=:request AND failure_evidence_digest=:evidence AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(original_terminal_digest) AND attribute_not_exists(original_immutable_ack) AND attribute_not_exists(ir_request) AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND attribute_not_exists(ir_immutable_ack) AND attribute_not_exists(failure_terminal) AND attribute_not_exists(failure_terminal_digest) AND attribute_not_exists(failure_immutable_ack)',
+            ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':consumed': {'S': 'CONSUMED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']}, ':merge': {'S': r['merge_sha']}, ':request': {'S': canonical(r)}, ':evidence': {'S': e['evidence_digest']}, ':terminal': {'S': canonical(t)}, ':digest': {'S': digest(t)}}, ReturnValues='ALL_NEW')
+        attrs = result.get('Attributes', {})
+        require(attrs.get('state', {}).get('S') == 'CONSUMED' and attrs.get('run_id', {}).get('S') == r['original_run_id']
+                and attrs.get('merge_sha', {}).get('S') == r['merge_sha'] and attrs.get('failure_terminal', {}).get('S') == canonical(t)
+                and attrs.get('failure_terminal_digest', {}).get('S') == digest(t), 'FAILURE_TERMINAL_READBACK')
+        return {'state': 'FAILURE_ASSURANCE_TERMINAL_RECORDED', 'terminal_digest': digest(t), 'write_performed': True}
+
+    def acknowledge_failure_terminal(self, event):
+        e = self.authenticate(event, 'ACK_FAILED_ASSURANCE_TERMINAL_IMMUTABLE', ('object',), fresh=False)
+        r = e['request']; row = self.get(self.key(r)); o = e['object']
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id'
+                ] and row.get('failure_request', {}).get('S') == canonical(r) and 'failure_terminal' in row, 'FAILURE_ACK_CONTEXT')
+        t = json.loads(row['failure_terminal']['S']); td = row['failure_terminal_digest']['S']
+        require(td == digest(t) and isinstance(o, dict) and set(o) == {'bucket', 'key', 'version_id', 'sha256', 'retention_mode', 'retain_until', 'encryption_key_arn'}
+                and o['bucket'] == self.bucket and o['key'] == self.failure_object_key(r) and isinstance(o['version_id'], str)
+                and 0 < len(o['version_id']) <= 1024 and o['sha256'] == td and o['retention_mode'] == 'COMPLIANCE'
+                and o['encryption_key_arn'] == self.receipt_key and epoch(o['retain_until']) >= retention_horizon(r['issued_at']), 'FAILURE_IMMUTABLE_BINDING')
+        if 'failure_immutable_ack' in row:
+            require(row['failure_immutable_ack']['S'] == canonical(o), 'FAILURE_IMMUTABLE_CONFLICT')
+            return {'state': 'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED', 'write_performed': False}
+        self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET failure_immutable_ack=:object',
+            ConditionExpression='#state=:consumed AND run_id=:original AND failure_request=:request AND failure_terminal_digest=:digest AND attribute_not_exists(failure_immutable_ack)',
+            ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':consumed': {'S': 'CONSUMED'}, ':original': {'S': r['original_run_id']}, ':request': {'S': canonical(r)}, ':digest': {'S': td}, ':object': {'S': canonical(o)}}, ReturnValues='ALL_NEW')
+        require(self.get(self.key(r)).get('failure_immutable_ack', {}).get('S') == canonical(o), 'FAILURE_IMMUTABLE_ACK_READBACK')
+        return {'state': 'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED', 'write_performed': True}
 
     def supersession_context(self, r):
         # New request is only staged; no authority until the original row CAS.
