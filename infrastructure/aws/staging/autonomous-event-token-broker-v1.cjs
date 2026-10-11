@@ -110,7 +110,7 @@ exports.handler=async (event,context) => {
   const identityConfig={repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
     appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID};
   let callerIdentity;
-  if(['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION'].includes(event?.action)){
+  if(['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT','RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION'].includes(event?.action)){
     const name='scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs';
     const identity=typeof __resumeLoad==='function'?await __resumeLoad(name):await import(`../../../${name}`);
     // Only a signature- and claim-validated identity reaches this read-only
@@ -125,14 +125,14 @@ exports.handler=async (event,context) => {
     };
     callerIdentity=await identity.verifyBrokerCallerIdentity({token:event.caller_oidc_token,repository:process.env.GITHUB_REPOSITORY,
       repositoryId:process.env.GITHUB_REPOSITORY_ID,sourceSha:event.base_sha||event.envelope?.base_sha||event.binding?.current_main_sha,
-      callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,request,nativeRequest});
+      callerClass:['MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT'].includes(event.action)?'FINALIZER':'DISPATCHER',runId:event.run_id,request,nativeRequest});
     const {caller_oidc_token,...operationEvent}=event;event=operationEvent;
   }
-  if(['RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION','MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER'].includes(event?.action)) {
+  if(['RESUME_AUTHORIZATION_DISPATCH','RESUME_LIFECYCLE_OPERATION','MINT_INSTALLATION_TOKEN','OBSERVE_LIFECYCLE_CUTOVER','READ_FINALIZER_RECOVERY_CONTEXT'].includes(event?.action)) {
     const modulePath=event.action==='RESUME_AUTHORIZATION_DISPATCH'?'scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs':'scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
     const load=typeof __resumeLoad==='function' ? __resumeLoad : async name => import(`../../../${name}`);
     const loaded=await load(modulePath);
-    const resume=event.action==='RESUME_AUTHORIZATION_DISPATCH'?loaded.brokerResumeDispatchWithCutover:event.action==='MINT_INSTALLATION_TOKEN'?loaded.brokerMintFinalizer:event.action==='OBSERVE_LIFECYCLE_CUTOVER'?loaded.observeLifecycleCutover:loaded.brokerResumeLifecycle;
+    const resume=event.action==='RESUME_AUTHORIZATION_DISPATCH'?loaded.brokerResumeDispatchWithCutover:event.action==='MINT_INSTALLATION_TOKEN'?loaded.brokerMintFinalizer:event.action==='OBSERVE_LIFECYCLE_CUTOVER'?loaded.observeLifecycleCutover:event.action==='READ_FINALIZER_RECOVERY_CONTEXT'?loaded.brokerReadFinalizerRecoveryContext:loaded.brokerResumeLifecycle;
     const {DynamoDBClient}=require('@aws-sdk/client-dynamodb');
     const {DynamoDBDocumentClient,GetCommand,PutCommand,UpdateCommand}=require('@aws-sdk/lib-dynamodb');
     const db=DynamoDBDocumentClient.from(new DynamoDBClient({region:process.env.AWS_REGION,maxAttempts:1}));
@@ -142,7 +142,7 @@ exports.handler=async (event,context) => {
       operationTable:process.env.RESUME_OPERATION_TABLE,activationRunFloor:process.env.RESUME_ACTIVATION_RUN_FLOOR};
     return resume({event,config,getPrivateKey,request,owner:context?.awsRequestId,callerIdentity,
       ledgerRequest:(operation,params)=>db.send(new commands[operation](params)),
-      mint:createHandler({getPrivateKey,request,config,includeReadToken:event.action==='RESUME_LIFECYCLE_OPERATION'})});
+      mint:createHandler({getPrivateKey,request,config,includeReadToken:event.action==='RESUME_LIFECYCLE_OPERATION',readOnly:event.action==='READ_FINALIZER_RECOVERY_CONTEXT'})});
   }
   return createHandler({getPrivateKey,config:{repository:process.env.GITHUB_REPOSITORY,
     repositoryId:process.env.GITHUB_REPOSITORY_ID,appId:process.env.GITHUB_APP_ID,

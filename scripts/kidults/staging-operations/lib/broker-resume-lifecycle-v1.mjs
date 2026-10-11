@@ -45,6 +45,74 @@ export function classifyFinalizerTokenDrain({receipt,familyRow,operationRow,publ
     token_expires_at:receipt.token_expires_at,mutation_attempted:false,recovery_authority:false};
 }
 
+// Protected read-only reconciliation endpoint. All original execution facts
+// come from consistent broker ledger reads, and run/PR/graph facts come from
+// native GETs. This never transfers a reservation or issues a mutation token.
+export async function brokerReadFinalizerRecoveryContext({event,config,ledgerRequest,getPrivateKey,mint,request,callerIdentity,now=()=>Date.now()}) {
+  const held=reason=>({ok:false,state:'HOLD_RECONCILE',reason,mutation_attempted:false,recovery_authority:false});
+  if(event?.action!=='READ_FINALIZER_RECOVERY_CONTEXT'||event.repository!==config.repository
+    ||String(event.repository_id)!==String(config.repositoryId)||!config.operationTable
+    ||!Number.isSafeInteger(event.pull_request)||event.pull_request<1||!sha(event.head_sha)||!sha(event.base_sha)
+    ||event.head_sha===event.base_sha||! /^[1-9][0-9]{0,15}$/.test(String(event.run_id))||event.run_attempt!==1
+    ||callerIdentity?.caller_class!=='FINALIZER'||callerIdentity.run_id!==String(event.run_id)
+    ||callerIdentity.source_sha!==event.base_sha)fail('RECOVERY_CONTEXT_INPUT');
+  if(event.pull_request===1677)return held('QUARANTINED_UNKNOWN_OPERATION');
+  const family=sha256(canonicalJson({repository:config.repository,pull_request:event.pull_request,expected_head_sha:event.head_sha}));
+  const familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:{pk:`RESUME_TUPLE_V1#${family}`,sk:'OPERATION'},ConsistentRead:true})).Item;
+  if(!familyRow)return held('ORIGINAL_FINALIZER_FAMILY_MISSING');
+  if(familyRow.schema!=='FINALIZER_TOKEN_FENCE_V2')return held('LEGACY_FINALIZER_TOKEN_EXPIRY_UNBOUND');
+  const ledger=new DynamoDBOperationLedger({request:ledgerRequest,table:config.operationTable,repository:config.repository});
+  const operationRow=await ledger.read(familyRow.operation_key);
+  const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey);
+  const drain=classifyFinalizerTokenDrain({receipt:operationRow?.receipt,familyRow,operationRow,publicKey,now:now()});
+  if(drain.state!=='TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY')return held(drain.reason);
+  const e=drain.original_execution,expectedTarget=`${event.pull_request}:${e.source_sha}:${event.head_sha}`;
+  if(operationRow.binding.repository!==config.repository||operationRow.binding.exact_target!==expectedTarget
+    ||e.run_id===String(event.run_id))return held('ORIGINAL_EXECUTION_TARGET_MISMATCH');
+  // Mint only the narrow read token through the handler's explicit readOnly
+  // capability; no token is returned or persisted by this endpoint.
+  const reader=await mint({action:'MINT_INSTALLATION_TOKEN',repository:config.repository,repository_id:String(config.repositoryId),
+    pull_request:event.pull_request,base_sha:e.source_sha,head_sha:event.head_sha,authorization_generation:'finalizer-recovery-context-read'});
+  if(reader.ok!==true||typeof reader.token!=='string')fail('RECOVERY_CONTEXT_READER');
+  const get=async route=>{
+    const response=await request(`https://api.github.com/repos/${config.repository}${route}`,{method:'GET',redirect:'error',signal:AbortSignal.timeout(10000),
+      headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${reader.token}`,'X-GitHub-Api-Version':'2022-11-28'}});
+    if(!response.ok||response.redirected)fail('RECOVERY_CONTEXT_NATIVE_READ');
+    return response.json();
+  };
+  const [run,pr,main,head]=await Promise.all([get(`/actions/runs/${e.run_id}`),get(`/pulls/${event.pull_request}`),get('/branches/main'),get(`/git/commits/${event.head_sha}`)]);
+  const finalizerPaths=['track','kpmo','independent-verification'].map(role=>`.github/workflows/kidults-autonomous-${role}-authorization-v1.yml`);
+  if(String(run.id)!==e.run_id||run.run_attempt!==1||run.head_sha!==e.source_sha||run.head_branch!=='main'
+    ||run.repository?.full_name!==config.repository||String(run.repository?.id)!==String(config.repositoryId)
+    ||!finalizerPaths.includes(run.path)||run.event!=='repository_dispatch'||run.status!=='completed'
+    ||!['success','failure','cancelled','timed_out','action_required','neutral','skipped','stale'].includes(run.conclusion)
+    ||!Number.isFinite(Date.parse(run.completed_at||run.updated_at))||Date.parse(run.completed_at||run.updated_at)>now())
+    return held('ORIGINAL_NATIVE_FINALIZER_NOT_TERMINAL');
+  if(main.name!=='main'||main.protected!==true||main.commit?.sha!==event.base_sha||pr.number!==event.pull_request
+    ||pr.head?.sha!==event.head_sha||pr.base?.ref!=='main'||pr.base?.repo?.full_name!==config.repository
+    ||pr.head?.repo?.full_name!==config.repository||head.sha!==event.head_sha||!sha(head.tree?.sha))return held('RECOVERY_CONTEXT_LIVE_TUPLE_DRIFT');
+  let merge=null;
+  if(pr.merged===true){
+    if(pr.state!=='closed'||!sha(pr.merge_commit_sha)||pr.merge_commit_sha!==event.base_sha)return held('RECOVERY_CONTEXT_MERGE_NOT_CURRENT_MAIN');
+    const commit=await get(`/git/commits/${pr.merge_commit_sha}`);
+    if(commit.sha!==pr.merge_commit_sha||commit.tree?.sha!==head.tree.sha
+      ||canonicalJson(commit.parents?.map(p=>p.sha))!==canonicalJson([e.source_sha,event.head_sha]))return held('RECOVERY_CONTEXT_MERGE_GRAPH_MISMATCH');
+    merge={merge_sha:commit.sha,tree_sha:commit.tree.sha,ordered_parents:commit.parents.map(p=>p.sha)};
+  } else if(pr.state!=='open'||pr.base?.sha!==e.source_sha||event.base_sha!==e.source_sha)return held('RECOVERY_CONTEXT_UNMERGED_TUPLE_DRIFT');
+  const reread=await get('/branches/main');
+  if(reread.name!=='main'||reread.protected!==true||reread.commit?.sha!==event.base_sha)return held('RECOVERY_CONTEXT_MAIN_CHANGED');
+  const observed=now();
+  const signed={id:'kidults-finalizer-recovery-context-v1',version:'1.0.0',state:merge?'POSTMERGE_RECONCILIATION_CONTEXT_ONLY':'UNMERGED_REQUIRES_PROTECTED_RECOVERY_PROTOCOL',
+    repository:config.repository,repository_id:String(config.repositoryId),pull_request:event.pull_request,source_sha:event.base_sha,
+    original_execution:e,original_handoff_key:operationRow.receipt.key,original_handoff_digest:sha256(canonicalJson(operationRow.receipt)),
+    head_sha:event.head_sha,head_tree_sha:head.tree.sha,merge,token_drain:drain.state,
+    native_original_run:{id:e.run_id,run_attempt:1,path:run.path,event:run.event,head_sha:run.head_sha,status:run.status,conclusion:run.conclusion},
+    observed_at:new Date(observed).toISOString(),expires_at:new Date(observed+300000).toISOString(),
+    mutation_attempted:false,recovery_authority:false,production:'HOLD',public:'HOLD',g5:'HOLD',
+    key_fingerprint:sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'))};
+  return {ok:true,receipt:{...signed,signature:crypto.sign('RSA-SHA256',Buffer.from(canonicalJson(signed)),privateKey).toString('base64')}};
+}
+
 export async function observeLifecycleCutover({config,ledgerRequest,now=()=>Date.now()}) {
   if(!config.operationTable)fail('CUTOVER_TABLE');
   const cutoverKey={pk:'RESUME_TUPLE_V1#LIFECYCLE_CUTOVER_V1',sk:'OPERATION'};

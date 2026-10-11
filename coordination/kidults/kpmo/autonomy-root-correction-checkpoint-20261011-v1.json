@@ -1,12 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T06:58:46.716090+00:00",
+  "as_of": "2026-10-11T07:24:23.776668+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
-    "verification_scope": "TOKEN_EXPIRY_RECOVERY_PREREQUISITE_SOURCE_VERIFIED_NOT_ACTIVATED",
-    "candidate_parent_sha": "de2dc5c0afc351a4f70fa5df81e16114cae8c161"
+    "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
+    "candidate_parent_sha": "0763d25a42ce4591b9400d94ed8aebd879aac263"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -23,7 +23,13 @@
     "Broker family stores a 180-second mint bound and 3840-second token upper bound before issuance; late/missing/unbounded expiry remains UNKNOWN and cannot remint.",
     "Runner rejects legacy or mismatched token expiry/run/generation/nonce before using the mutation token.",
     "Read-only token drain classifier authenticates same family/operation/receipt/signature; legacy, missing receipt and UNKNOWN remain HOLD. TOKEN_DRAIN_VERIFIED_NOT_RECOVERY_AUTHORITY grants no lease or mutation.",
-    "Rebuilt broker templates alter Code.ZipFile only; IAM/environment/profiles unchanged. Node broker/dispatcher suites445/445 PASS; independent Red Team113/113 PASS before four added clock/identity/receipt regressions."
+    "Rebuilt broker templates alter Code.ZipFile only; IAM/environment/profiles unchanged. Node broker/dispatcher suites445/445 PASS; independent Red Team113/113 PASS before four added clock/identity/receipt regressions.",
+    "Protected read-only READ_FINALIZER_RECOVERY_CONTEXT authenticates original ledger token drain plus native original run, current protected main, PR and ordered merge graph. UNKNOWN, legacy, rerun, drift and #1677 reject; no reservation transfer or write-token return.",
+    "New generic merged-only ledger component preserves original generation/nonce/run/head; three distinct KMS-signed roles pin one request/evidence, service-clock lease/revision CAS elects one terminal-recovery execution, and consumed terminal/digest persist atomically.",
+    "New merged-only orchestration reobserves native exact-main before consumption; ambiguous consumption RPC only reads back exact persisted terminal and never reissues. Archive interruption can resume consumed history after authority expiry without new approval/lease/consume.",
+    "Immutable ACK is bound to fixed object/version/body digest, exact encryption key and issued-at plus ten calendar years COMPLIANCE retention. Native transport authentication remains a required protected adapter, not a caller boolean.",
+    "Root broker/dispatcher Node460/460 PASS, new generic engine16/16 PASS, independent Python22/22 PASS with actual P-256 ECDSA tamper rejection, 12-thread single-winner CAS and actual JS/Python canonical/digest interoperability.",
+    "Generic merged-only components are not registered in the production writer or connected to native role workflows; source modules and local proofs are not runtime closure. Historical #2555 remains unchanged."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -39,14 +45,15 @@
     "Limited comment rebind does not establish arbitrary internal code repair autonomy."
   ],
   "uncertainties": [
-    "Generic original-reservation recovery lease and broker-owned mutation/fencing are not implemented.",
-    "No deployed broker v2 tuple/expiry proof or actual eligible native terminal proof.",
-    "Protected source activation and two distinct natural full chains remain separate verification."
+    "Generic unmerged recovery broker-owned mutation/fencing and expired-unconsumed request supersession are not implemented.",
+    "New merged-only writer/engine require protected adapter registration, native role/workflow trigger integration and actual deployed receipts.",
+    "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
-    "GENERIC_RESERVED_WINNER_RECOVERY_INCOMPLETE",
-    "CURRENT_NATIVE_TERMINAL_AND_NATURAL_CHAIN_UNVERIFIED"
+    "GENERIC_RECOVERY_RUNTIME_ADAPTER_AND_TRIGGER_NOT_INTEGRATED",
+    "UNMERGED_RECOVERY_AND_EXPIRED_UNCONSUMED_SUPERSESSION_INCOMPLETE",
+    "ELIGIBLE_NATIVE_TERMINAL_AND_TWO_FULL_NATURAL_CHAINS_UNVERIFIED"
   ],
   "actions_executed": [
     "Fresh protected main reconciliation",
@@ -55,9 +62,12 @@
     "Adversarial Red Team review and backend source execution tests",
     "Signed durable exact token expiry binding correction",
     "Native caller tuple binding and bounded mint deadline",
-    "Read-only authenticated drain prerequisite and adversarial regressions"
+    "Read-only authenticated drain prerequisite and adversarial regressions",
+    "Protected native read-only recovery diagnostic implementation",
+    "Generic merged-only lease/consume/immutable ACK components and cross-language engine",
+    "Independent real ECDSA and concurrent CAS adversarial verification"
   ],
-  "next_action": "Implement and verify the protected original-reservation recovery lease and broker-owned mutation protocol; do not treat token drain as recovery authority or native operating closure.",
+  "next_action": "Integrate protected merged-only adapters and natural workflow triggers; complete bounded unmerged recovery and expired-unconsumed supersession before exact-head activation. No manual/synthetic proof, #1677 reissue or implicit authority transfer.",
   "authority_boundary": {
     "merged": false,
     "previous_approval_rebound": false,
@@ -72,7 +82,7 @@
     "draft": true,
     "deployment": false
   },
-  "defect_disposition": "TOKEN_EXPIRY_PERSISTENCE_GAP_CORRECTED_IN_SOURCE; PARTIAL_HOLD",
+  "defect_disposition": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_SOURCE_VERIFIED_NOT_INTEGRATED; PARTIAL_HOLD",
   "remediation_sequence": [
     "Bounded classifier and source-profile correction",
     "Existing-workflow quorum reservation election",
@@ -86,10 +96,10 @@
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38116031484"
   ],
   "truth_sync_refs": [
-    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/2653"
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/2654"
   ],
   "improvement_proposal": "No blanket classifier PASS grant; preserve authenticated source, existing roles, original operation identity, single reservation and fail-closed unresolved outcomes.",
-  "autonomous_effect": "Late approvals can use their existing finalizer; no new human prompt or generation for this delay case. General code repair and winner interruption are not declared complete.",
+  "autonomous_effect": "Merged-only source components resume interrupted terminal consumption/sealing without replacing original owner; no native operating closure or unmerged mutation authority claimed.",
   "global_effect": "Production/Public/G5/provider HOLD unchanged.",
   "irreplaceable_value_effect": "Preserve original generation and durable operation identity across recovery; never replace historical or unknown work with newly minted authority.",
   "transparency_effect": "Local source verification is separate from deployment and native runtime evidence."

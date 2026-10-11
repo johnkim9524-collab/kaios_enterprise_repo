@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
-import {brokerResumeLifecycle,brokerMintFinalizer,observeLifecycleCutover,classifyFinalizerTokenDrain} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
+import {canonicalJson} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {brokerResumeLifecycle,brokerMintFinalizer,observeLifecycleCutover,classifyFinalizerTokenDrain,brokerReadFinalizerRecoveryContext} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
 const {assertPublicMintBoundary}=createRequire(import.meta.url)('../../../infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs');
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40);
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -428,4 +429,50 @@ test('a missing operation success receipt cannot prove drained tokens',async()=>
  const operationRow=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
  delete operationRow.receipt;
  assert.equal(classifyFinalizerTokenDrain({receipt:r.protected_handoff,familyRow,operationRow,publicKey:crypto.createPublicKey(key),now:time+3660000}).state,'HOLD_RECONCILE');
+});
+
+async function recoveryContextSetup({merged=true}={}) {
+ const s=setup();await brokerMintFinalizer({...s.dependencies,event:finalizerEvent,callerIdentity:finalizerIdentity,owner:'original'});
+ const current=sha(merged?'d':'c');
+ const input={action:'READ_FINALIZER_RECOVERY_CONTEXT',repository,repository_id:'123',pull_request:42,head_sha:sha('b'),base_sha:current,run_id:'202',run_attempt:1};
+ const native={run:{id:101,run_attempt:1,head_sha:sha('c'),head_branch:'main',repository:{full_name:repository,id:123},
+   path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',event:'repository_dispatch',status:'completed',conclusion:'failure',updated_at:new Date(time+1000).toISOString()},
+   pr:{number:42,state:merged?'closed':'open',merged,merge_commit_sha:merged?current:null,
+     head:{sha:sha('b'),repo:{full_name:repository}},base:{ref:'main',sha:sha('c'),repo:{full_name:repository}}},
+   main:{name:'main',protected:true,commit:{sha:current}},
+   head:{sha:sha('b'),tree:{sha:sha('f')}},merge:{sha:sha('d'),tree:{sha:sha('f')},parents:[{sha:sha('c')},{sha:sha('b')}]}};
+ let reads=0,readMints=0;const ledgerRequest=s.dependencies.ledgerRequest;
+ const deps={...s.dependencies,now:()=>time+3660000,ledgerRequest:async(op,p)=>{assert.equal(op,'Get');assert.equal(p.ConsistentRead,true);return ledgerRequest(op,p);},
+   mint:async()=>{readMints++;return {ok:true,token:'PRIVATE_READ_TOKEN'};},request:async(url,options)=>{
+     assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,'Bearer PRIVATE_READ_TOKEN');reads++;
+     const route=url.split(`/repos/${repository}`)[1];
+     const name=route==='/actions/runs/101'?'run':route==='/pulls/42'?'pr':route==='/branches/main'?'main':route.endsWith(sha('b'))?'head':route.endsWith(sha('d'))?'merge':null;
+     assert.ok(name);return {ok:true,json:async()=>structuredClone(native[name])};
+   }};
+ const identity={caller_class:'FINALIZER',run_id:'202',source_sha:current};
+ return {s,input,native,deps,counts:()=>({reads,readMints}),call:()=>brokerReadFinalizerRecoveryContext({...deps,event:input,callerIdentity:identity})};
+}
+test('generic recovery context authenticates original token drain and native merge graph with GET only',async()=>{
+ const r=await recoveryContextSetup();const before=JSON.stringify([...r.s.rows]);const result=await r.call();
+ assert.equal(result.receipt.state,'POSTMERGE_RECONCILIATION_CONTEXT_ONLY');assert.equal(result.receipt.recovery_authority,false);
+ assert.equal(result.receipt.original_execution.run_id,'101');assert.deepEqual(result.receipt.merge.ordered_parents,[sha('c'),sha('b')]);
+ assert.equal(before,JSON.stringify([...r.s.rows]));assert.deepEqual(r.counts(),{reads:6,readMints:1});
+ const {signature,...signed}=result.receipt;assert.equal(crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(signed)),crypto.createPublicKey(key),Buffer.from(signature,'base64')),true);
+ assert.doesNotMatch(JSON.stringify(result),/PRIVATE_(WRITE|READ)_TOKEN/);
+});
+test('unmerged context explicitly withholds mutation/recovery authority',async()=>{
+ const r=await recoveryContextSetup({merged:false});const result=await r.call();
+ assert.equal(result.receipt.state,'UNMERGED_REQUIRES_PROTECTED_RECOVERY_PROTOCOL');assert.equal(result.receipt.merge,null);
+ assert.equal(result.receipt.recovery_authority,false);assert.equal(result.receipt.mutation_attempted,false);
+});
+for(const corrupt of [r=>r.native.run.status='in_progress',r=>r.native.run.run_attempt=2,r=>r.native.run.event='workflow_dispatch',
+ r=>r.native.run.head_sha=sha('e'),r=>r.native.main.commit.sha=sha('e'),r=>r.native.main.protected=false,
+ r=>r.native.pr.head.sha=sha('e'),r=>r.native.merge.parents.reverse(),r=>r.native.merge.tree.sha=sha('e')])
+test('recovery context rejects native execution/tuple/merge drift without granting authority',async()=>{
+ const r=await recoveryContextSetup();corrupt(r);const result=await r.call();assert.equal(result.state,'HOLD_RECONCILE');assert.equal(result.recovery_authority,false);
+});
+for(const corrupt of [r=>r.deps.now=()=>time+3600000,r=>[...r.s.rows.values()].find(x=>x.schema==='FINALIZER_TOKEN_FENCE_V2').schema='LEGACY',
+ r=>[...r.s.rows.values()].find(x=>x.pk.startsWith('RESUME_OPERATION_V1#')).state='UNKNOWN',r=>r.input.pull_request=1677])
+test('undrained/legacy/UNKNOWN/quarantined work cannot even mint the narrow reader',async()=>{
+ const r=await recoveryContextSetup();corrupt(r);assert.equal((await r.call()).state,'HOLD_RECONCILE');assert.deepEqual(r.counts(),{reads:0,readMints:0});
 });
