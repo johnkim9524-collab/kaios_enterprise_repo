@@ -24,6 +24,42 @@ const matchesProtectedDiagnosticRepair=(file,policy)=>{
     ||t.base_digest===t.head_digest)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
   return file.status==='modified'&&digest(file.base_content)===t.base_digest&&digest(file.head_content)===t.head_digest;
 };
+// Rebinding a dispatcher implementation already accepted by this protected
+// verifier is derived metadata. Only appended ASCII comments or an existing
+// exact protected registration are supported; generic classifier PASS is not
+// a proof of unchanged executable effects. Independent proof is still required.
+// The supplied policy is the protected evaluator policy, never the candidate.
+const matchesRegisteredDiagnosticProfileRebind=(file,files,policy)=>{
+  const path='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json';
+  const source='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(file.filename!==path||file.status!=='modified'||files.filter(entry=>entry.filename===path).length!==1)return false;
+  let before,after;try{before=JSON.parse(file.base_content);after=JSON.parse(file.head_content);}catch{return false;}
+  if(JSON.stringify(before)!==JSON.stringify(policy))return false;
+  const a=before.immutable_source_read_profile,b=after.immutable_source_read_profile;
+  if(!a||!b||!a.source_sha256||!b.source_sha256)return false;
+  const keys=Object.keys(a.source_sha256).sort();
+  if(JSON.stringify(keys)!==JSON.stringify(Object.keys(b.source_sha256).sort()))return false;
+  const changed=keys.filter(key=>a.source_sha256[key]!==b.source_sha256[key]);
+  if(changed.length!==1||changed[0]!==source)return false;
+  const candidates=files.filter(entry=>entry.filename===source);
+  if(candidates.length!==1)return false;
+  // Derived hash refresh never changes the verifier policy. Evaluate the
+  // implementation against the protected policy, without candidate metadata.
+  const sourceDelta=candidates[0];
+  const tail=sourceDelta.head_content.slice(sourceDelta.base_content.length);
+  const commentOnly=sourceDelta.status==='modified'&&sourceDelta.base_content.endsWith('\n')
+    &&sourceDelta.head_content.startsWith(sourceDelta.base_content)
+    &&/^(?:\/\/[\x20-\x7e]*\n)+$/.test(tail);
+  if(!commentOnly&&!matchesProtectedDiagnosticRepair(sourceDelta,policy))return false;
+  if(a.source_sha256[source]!==digest(candidates[0].base_content)||b.source_sha256[source]!==digest(candidates[0].head_content))return false;
+  // No verifier, reader, transport or quarantine source changes can piggyback.
+  for(const key of keys.filter(key=>key!==source)){
+    const entries=files.filter(entry=>entry.filename===key);
+    if(entries.length>1||entries.some(entry=>entry.status!=='modified'||entry.base_content!==entry.head_content))return false;
+  }
+  const normalized=structuredClone(after);normalized.immutable_source_read_profile.source_sha256[source]=a.source_sha256[source];
+  return JSON.stringify(before)===JSON.stringify(normalized);
+};
 const isComment=line=>/^\s*(#|\/\/|\/\*|\*|<!--)/.test(line);
 const riskyValue=/\b(secrets\.|vars\.|id-token|curl\b|wget\b|gh\s+api\b|aws\s|gcloud\s|az\s|terraform\b|kubectl\b|https?:\/\/|configure-aws-credentials|--admin-bypass|force\s*:\s*true)\b/i;
 const writeKey=/^(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events)$/;
@@ -154,8 +190,11 @@ const scriptBindingGraph=(source,filename)=>{
   const add=(name,node)=>{const existing=bindings.get(name)||[];existing.push(node);bindings.set(name,existing)};
   for(let index=0;index<tokens.length;index+=1){
     if(tokens[index]==='function'&&jsIdentifier.test(tokens[index+1]||'')){
-      const name=tokens[index+1];const brace=tokens.indexOf('{',index+2);
-      if(brace<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${name}`);
+      const name=tokens[index+1];const params=tokens.indexOf('(',index+2);
+      if(params<0)fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${name}`);
+      const paramsEnd=matchingToken(tokens,params,'(',')',filename);
+      const brace=paramsEnd+1;
+      if(tokens[brace]!=='{')fail('CAPABILITY_SCRIPT_PARSE_FAILED',`${filename}:${name}`);
       const end=matchingToken(tokens,brace,'{','}',filename);add(name,tokens.slice(index,end+1));index=end;continue;
     }
     if(['const','let','var'].includes(tokens[index])&&jsIdentifier.test(tokens[index+1]||'')){
@@ -442,6 +481,7 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(typeof filename!=='string'||!filename) fail('CAPABILITY_PATH_INVALID');
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
+    if(matchesRegisteredDiagnosticProfileRebind(file,files,policy)){evidence.push({filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
     if(matchesProtectedDiagnosticRepair(file,policy)){evidence.push({filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){evidence.push({filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content)});continue;}
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);

@@ -22,8 +22,76 @@ const independentlyMatchesProtectedRepair=(file,policy)=>{
   return crypto.createHash('sha256').update(file.base_content,'utf8').digest('hex')===entry.base_digest.substring(7)
     &&crypto.createHash('sha256').update(file.head_content,'utf8').digest('hex')===entry.head_digest.substring(7);
 };
+// Independent verification of derived dispatcher hashes. The source delta
+// is evaluated separately under the protected policy; it cannot refresh this
+// verifier, the source reader, transport, profile validator or quarantine.
+// Candidate policy updates cannot add transitions or refresh any trust root.
+const independentlyMatchesDiagnosticProfileRebind=(entry,files,protectedPolicy)=>{
+  if(entry.filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'||entry.status!=='modified'||files.filter(file=>file.filename===entry.filename).length!==1)return false;
+  let left,right;try{left=JSON.parse(entry.base_content);right=JSON.parse(entry.head_content);}catch{return false;}
+  if(JSON.stringify(left)!==JSON.stringify(protectedPolicy))return false;
+  const oldRegistry=left.immutable_source_read_profile?.source_sha256,newRegistry=right.immutable_source_read_profile?.source_sha256;
+  if(!oldRegistry||!newRegistry)return false;
+  const names=Object.keys(oldRegistry);
+  if(names.length!==Object.keys(newRegistry).length||names.some(name=>!Object.hasOwn(newRegistry,name)))return false;
+  const dispatcher='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';let changes=0;
+  for(const name of names){
+    if(oldRegistry[name]===newRegistry[name]){
+      if(name!==dispatcher&&files.some(file=>file.filename===name&&(file.status!=='modified'||file.base_content!==file.head_content)))return false;
+      continue;
+    }
+    if(name!==dispatcher||++changes!==1)return false;
+    const sources=files.filter(file=>file.filename===name);
+    if(sources.length!==1)return false;
+    const sourcePair=sources[0];
+    let remaining=sourcePair.head_content.startsWith(sourcePair.base_content)?sourcePair.head_content.substring(sourcePair.base_content.length):null;
+    let safeComments=sourcePair.status==='modified'&&sourcePair.base_content.endsWith('\n')&&typeof remaining==='string'&&remaining.length>0;
+    if(safeComments)for(const line of remaining.split('\n').slice(0,-1)){
+      if(!line.startsWith('//')||[...line].some(char=>char.charCodeAt(0)<32||char.charCodeAt(0)>126)){safeComments=false;break;}
+    }
+    safeComments=safeComments&&remaining.endsWith('\n');
+    if(!safeComments&&!independentlyMatchesProtectedRepair(sourcePair,protectedPolicy))return false;
+    const source=sources[0];
+    if(hash(source.base_content)!==oldRegistry[name]||hash(source.head_content)!==newRegistry[name])return false;
+  }
+  if(changes!==1)return false;
+  const lhs=structuredClone(left),rhs=structuredClone(right);
+  delete lhs.immutable_source_read_profile.source_sha256[dispatcher];delete rhs.immutable_source_read_profile.source_sha256[dispatcher];
+  return JSON.stringify(lhs)===JSON.stringify(rhs);
+};
 const deny=(code,detail='')=>{const error=new Error(detail?`${code}:${detail}`:code);error.code=code;throw error};
 const governed=(name,policy)=>(policy.delegated_internal_path_prefixes||[]).some(prefix=>name.startsWith(prefix))||(policy.delegated_internal_exact_path_exceptions||[]).includes(name);
+// A display-only replacement is deliberately narrower than YAML capability
+// equivalence: one known top-level scalar changes, all other bytes stay exact.
+const handoffDisplayDelta=file=>{
+  if(file.filename!=='.github/workflows/kidults-direct-owner-landing-handoff-v1.yml'||file.status!=='modified')return false;
+  const extract=source=>{
+    const lines=source.match(/[^\n]*\n|[^\n]+$/g)||[];
+    const positions=lines.map((line,index)=>/^run-name:/.test(line)?index:-1).filter(index=>index>=0);
+    if(positions.length!==1)return null;
+    const start=positions[0],header=lines[start].replace(/\r?\n$/,''),value=header.slice('run-name:'.length).trim();
+    let end=start+1,scalar;
+    if(value==='>-'){
+      const content=[];
+      while(end<lines.length&&/^ {2,}\S/.test(lines[end])){content.push(lines[end].trim());end+=1;}
+      if(!content.length||content.length>8)return null;
+      scalar=content.join(' ');
+    }else{
+      // JSON double-quoted scalars are a bounded subset of YAML quoted scalars.
+      try{scalar=JSON.parse(value);}catch{return null;}
+      if(typeof scalar!=='string')return null;
+    }
+    if(scalar.length>1024||/[\r\n]/.test(scalar))return null;
+    return {scalar,outside:lines.slice(0,start).concat(lines.slice(end)).join('')};
+  };
+  const a=extract(file.base_content),b=extract(file.head_content);
+  if(!a||!b||a.outside!==b.outside)return false;
+  const old='KIDULTS Direct Owner Handoff PR #${{ inputs.pull_request_number }} @ ${{ inputs.expected_head_sha }} / ${{ inputs.handoff_authorization_id }}';
+  const next="${{ github.event_name == 'workflow_dispatch' && format('KIDULTS Direct Owner Handoff PR #{0} @ {1} / {2}', inputs.pull_request_number, inputs.expected_head_sha, inputs.handoff_authorization_id) || format('KIDULTS Direct Owner Approval-Mutation Watch issue #{0} / {1}', github.event.issue.number, github.event.action) }}";
+  // Exact display grammar preserves the consumer's handoff run-name contract.
+  // No secrets, token, vars, new expression references or executable YAML are admitted.
+  return a.scalar===old&&b.scalar===next;
+};
 const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pull_request_target|permissions|environment|if|secrets|vars|id-token|contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events|curl|wget|gh api|aws |gcloud |terraform|kubectl|https?:\/\/|force:|fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|authorization|credential|production|public|g5)\b/i;
 const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').trim()).filter(Boolean);
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
@@ -272,19 +340,31 @@ const sourceDefinitions=(source,name,filename,visible=independentScriptLayout(so
     let match;while((match=pattern.exec(visible))){const end=statementEnd(source,match.index,filename,visible);found.push(source.slice(match.index,end+1));pattern.lastIndex=Math.max(pattern.lastIndex,end+1)}
   }
   const functionPattern=new RegExp(`\\bfunction\\s+${escaped}\\s*\\(`,'g');let functionMatch;
-  while((functionMatch=functionPattern.exec(visible))){const brace=visible.indexOf('{',functionMatch.index);if(brace<0)deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:${name}`);const end=balancedEnd(source,brace,'{','}',filename,visible);found.push(source.slice(functionMatch.index,end+1));functionPattern.lastIndex=end+1}
+  while((functionMatch=functionPattern.exec(visible))){
+    const paramsStart=functionPattern.lastIndex-1;
+    const paramsEnd=balancedEnd(source,paramsStart,'(',')',filename,visible);
+    let brace=paramsEnd+1;while(/\s/.test(visible[brace]||'')&&brace<visible.length)brace+=1;
+    if(visible[brace]!=='{')deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:${name}`);
+    const end=balancedEnd(source,brace,'{','}',filename,visible);
+    found.push(source.slice(functionMatch.index,end+1));functionPattern.lastIndex=end+1;
+  }
   return [...new Set(found.map(normalizedScript))].sort();
 };
 const independentGuardGraph=(source,filename)=>{
   const guards=[];const ifPattern=/(?<![.\w$])if\s*\(/g;let match;const visible=independentScriptLayout(source,filename).visible;
+  // Immutable source-local parsing cache only. No live evidence or policy
+  // decision is cached across candidates, generations or invocations.
+  const definitionCache=new Map(),nameCache=new Map();
+  const definitionsFor=name=>{if(!definitionCache.has(name))definitionCache.set(name,sourceDefinitions(source,name,filename,visible));return definitionCache.get(name);};
+  const identifiersFor=value=>{if(!nameCache.has(value))nameCache.set(value,namesIn(value));return nameCache.get(value);};
   while((match=ifPattern.exec(visible))){
     const open=visible.indexOf('(',match.index);const conditionEnd=balancedEnd(source,open,'(',')',filename,visible);const condition=source.slice(open+1,conditionEnd);
     let actionStart=conditionEnd+1;while(/\s/.test(source[actionStart]||''))actionStart+=1;
     const actionEnd=source[actionStart]==='{'?balancedEnd(source,actionStart,'{','}',filename,visible):statementEnd(source,actionStart,filename,visible);
     const action=source.slice(actionStart,actionEnd+1);if(!stopAction.test(independentScriptLayout(action,filename).visible)){ifPattern.lastIndex=conditionEnd+1;continue}
     const visited=new Set(),dependency=[];
-    const visit=name=>{if(visited.has(name))return;visited.add(name);const definitions=sourceDefinitions(source,name,filename,visible);dependency.push([name,definitions]);for(const definition of definitions)for(const nested of namesIn(definition))if(nested!==name)visit(nested)};
-    namesIn(condition).forEach(visit);
+    const visit=name=>{if(visited.has(name))return;visited.add(name);const definitions=definitionsFor(name);dependency.push([name,definitions]);for(const definition of definitions)for(const nested of identifiersFor(definition))if(nested!==name)visit(nested)};
+    identifiersFor(condition).forEach(visit);
     guards.push({condition:normalizedScript(condition),action:normalizedScript(action),dependency:dependency.sort(([a],[b])=>a.localeCompare(b))});ifPattern.lastIndex=conditionEnd+1;
   }
   return guards.sort((a,b)=>JSON.stringify(a).localeCompare(JSON.stringify(b)));
@@ -344,6 +424,8 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    if(independentlyMatchesDiagnosticProfileRebind(file,files,policy)){receipts.push({filename:file.filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
+    if(handoffDisplayDelta(file)){receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_HANDOFF_RUN_NAME_DISPLAY_ONLY',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
     if(independentlyMatchesProtectedRepair(file,policy)){receipts.push({filename:file.filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){receipts.push({filename:file.filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;}
     if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)){

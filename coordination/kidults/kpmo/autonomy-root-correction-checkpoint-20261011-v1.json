@@ -1,0 +1,87 @@
+{
+  "agent_id": "atlas-kpmo-native-repair",
+  "as_of": "2026-10-11T06:17:15.650Z",
+  "scope": {
+    "repository": "johnkim9524-collab/kaios_enterprise_repo",
+    "pull_request": 2653,
+    "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
+    "head_sha": "89f0cbfbd87db661de9bc85b5278183f8a89efbc",
+    "tree_sha": "5d38f33512c707503dc4aed04952876fd90df1fb",
+    "verification_scope": "REVIEWED_LOCAL_AUTONOMY_ROOT_CORRECTION_NOT_ACTIVATED"
+  },
+  "state": "PARTIAL_HOLD",
+  "facts": [
+    "Current protected main bcfb815 remains unchanged; completed PR2653 landing reused.",
+    "Implemented bounded handoff run-name display repair and applied it to the workflow.",
+    "Both classifiers now extract complete function bodies after balanced destructured/default parameters; actual current Dispatcher and hidden predicate-body mutations tested.",
+    "Generic classifier-PASS-based profile rebind was rejected by Red Team before activation. Current rebind permits only appended ASCII line comments or an existing exact reviewed source transition; other trust roots, keys, limits and HOLD unchanged.",
+    "Three existing role finalizers contend only after complete distinct quorum; original conditional reservation elects one writer. No new role, generation, nonce or IAM/OIDC permission added.",
+    "Backend consume v2 checks ALL_NEW pk/sk/run/head/state/merge and returns exact remote tuple; runner rejects absent, contradictory or legacy ok-only binding before sealing.",
+    "Root targeted suite484/484 and governance/lexer134/134 passed; five actual-template local backend tests passed; standalone landing and AWS template validators passed.",
+    "AWS template resource, IAM/OIDC trust and parameters unchanged outside writer code.",
+    "Independent Red Team127 classifier tests,20 election/consume tests and12 adversarial tail rejections passed; no additional blocking source difference found in reviewed scope."
+  ],
+  "evidence_refs": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/infrastructure/aws/staging/autonomous-internal-landing-v1.json",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs"
+  ],
+  "inferences": [
+    "Atomic existing-finalizer reservation election addresses late approval liveness within the original common fanout.",
+    "Limited comment rebind does not establish arbitrary internal code repair autonomy."
+  ],
+  "uncertainties": [
+    "Winner termination after RESERVED still lacks verified generic recovery.",
+    "No deployed backend v2/workload registry proof or new native terminal proof.",
+    "Two distinct natural full chains on activated corrected main remain unverified."
+  ],
+  "blockers": [
+    "CORRECTED_SOURCE_NOT_ACTIVATED",
+    "GENERIC_RESERVED_WINNER_RECOVERY_INCOMPLETE",
+    "CURRENT_NATIVE_TERMINAL_AND_NATURAL_CHAIN_UNVERIFIED"
+  ],
+  "actions_executed": [
+    "Fresh protected main reconciliation",
+    "Bounded local policy/code/workflow/backend correction",
+    "Source profile byte regeneration",
+    "Adversarial Red Team review and backend source execution tests"
+  ],
+  "next_action": "Finish generic reservation-winner recovery contract before normal operating closure; publish reviewed development proposal, exact-head validation, protected activation and actual deployed/native proof remain separate.",
+  "authority_boundary": {
+    "merged": true,
+    "previous_approval_rebound": false,
+    "rerun": false,
+    "duplicate_dispatch": false,
+    "unknown_1677_retry": false,
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "provider": "HOLD",
+    "complete_verified": false
+  },
+  "defect_disposition": "SOURCE_CORRECTIONS_VERIFIED_LOCALLY; PARTIAL_HOLD",
+  "remediation_sequence": [
+    "Bounded classifier and source-profile correction",
+    "Existing-workflow quorum reservation election",
+    "Exact backend consumption binding",
+    "Generic original-reservation winner interruption recovery",
+    "Protected activation and natural/native operating proof"
+  ],
+  "verification_evidence_refs": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38116013783/job/114400982526",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38116031580",
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/actions/runs/38116031484"
+  ],
+  "truth_sync_refs": [
+    "https://github.com/johnkim9524-collab/kaios_enterprise_repo/pull/2653"
+  ],
+  "improvement_proposal": "No blanket classifier PASS grant; preserve authenticated source, existing roles, original operation identity, single reservation and fail-closed unresolved outcomes.",
+  "autonomous_effect": "Late approvals can use their existing finalizer; no new human prompt or generation for this delay case. General code repair and winner interruption are not declared complete.",
+  "global_effect": "Production/Public/G5/provider HOLD unchanged.",
+  "irreplaceable_value_effect": "Preserve original generation and durable operation identity across recovery; never replace historical or unknown work with newly minted authority.",
+  "transparency_effect": "Local source verification is separate from deployment and native runtime evidence."
+}

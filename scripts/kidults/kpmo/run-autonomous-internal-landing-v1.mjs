@@ -23,6 +23,7 @@ import {bindRequiredGateEvidence,sameRequiredGateEvidenceAuthority,validateRequi
 import {validateDispatchEvent} from './lib/autonomous-dispatch-fanout-v1.mjs';
 import {evaluateAutonomousPostmerge} from './lib/autonomous-postmerge-validation-v1.mjs';
 import {sealAutonomousTerminal} from './lib/autonomous-terminal-immutable-v1.mjs';
+import {assertFinalizerElection,validateReservationConsumption} from './lib/autonomous-finalizer-election-v1.mjs';
 
 const required = name => {
   const value = process.env[name];
@@ -555,13 +556,7 @@ try {
       const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const finalizerRunId=required('GITHUB_RUN_ID');
-      const electedWorkflow=policy.bounded_recovery?.normal_ops_finalizer?.elected_workflow;
-      if(required('GITHUB_WORKFLOW')!==electedWorkflow){
-        const follower={id:'kidults-autonomous-internal-landing-terminal-receipt-v1',version:'1.0.0',state:'FINALIZER_ROLE_FOLLOWER',authorization_generation:envelope.authorization_generation,finalizer_run_id:finalizerRunId,elected_workflow:electedWorkflow,merge_performed:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
-        writeReceipt(follower);
-        console.log(JSON.stringify(follower));
-        process.exit(0);
-      }
+      assertFinalizerElection({policy,workflow:required('GITHUB_WORKFLOW')});
       const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
       await acquireEventToken({observeCutover:true});
@@ -602,7 +597,7 @@ try {
       const [mergedPr,main,mergeCommit]=await Promise.all([api(`/pulls/${envelope.pull_request}`),api('/branches/main'),api(`/git/commits/${merge.sha}`)]);
       if (mergedPr.merged!==true||main.commit?.sha!==merge.sha||mergeCommit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_POSTMERGE_BINDING_FAILED');
       const postmerge=await waitForExactMergeShaValidation(merge.sha, mergedPr.merged_at);
-      invokeFinalizerWriter({
+      const consumptionResponse=invokeFinalizerWriter({
         action:'CONSUME_RESERVATION',
         authorization_generation:envelope.authorization_generation,
         nonce_digest:envelope.nonce_digest,
@@ -610,7 +605,8 @@ try {
         head_sha:envelope.head_sha,
         merge_sha:merge.sha,
       });
-      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:{state:'CONSUMED',conditional_write:true,backend:'AWS_DYNAMODB'},
+      const consumedReservation=validateReservationConsumption({response:consumptionResponse,envelope,runId:finalizerRunId,mergeSha:merge.sha});
+      const terminal=buildTerminalReceipt({quorum:{...quorum,lifecycle},reservation:consumedReservation,
         merge:{merge_sha:merge.sha,main_sha:main.commit.sha,head_sha:envelope.head_sha,tree_sha:mergeCommit.tree.sha},postmerge});
       terminalEvidence=terminal;
       writeReceipt({...terminal,immutable_copy:{state:'PENDING_RECONCILIATION'}});
