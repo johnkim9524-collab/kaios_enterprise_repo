@@ -147,7 +147,7 @@ class RecoveryTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'EVIDENCE_CONFLICT'): self.ledger.create_approval(self.approval(m.ROLES[1]))
         self.request['source_sha'] = 'f'*40; self.evidence['source_sha'] = 'f'*40
         for c in self.evidence['checks']: c['source_sha'] = 'f'*40
-        with self.assertRaisesRegex(ValueError, 'PINNED_REQUEST'): self.ledger.create_approval(self.approval(m.ROLES[1]))
+        with self.assertRaisesRegex(ValueError, 'SUPERSESSION_NOT_QUIESCENT'): self.ledger.create_approval(self.approval(m.ROLES[1]))
     def test_all_new_corruption_fails_closed_then_read_reconciles(self):
         self.approve(); self.claim(); self.ddb.corrupt = True
         with self.assertRaisesRegex(ValueError, 'CONSUME_READBACK'): self.consume()
@@ -242,6 +242,72 @@ console.log(JSON.stringify({requestDigest:validateInterruptedRecoveryRequest(r,{
         self.assertEqual(produced['evidenceDigest'], m.validate_evidence(self.evidence, self.request))
         self.assertEqual(produced['terminal'], self.terminal()); self.assertEqual(produced['terminalDigest'], m.digest(self.terminal()))
         self.assertEqual(produced['canonicalTerminal'], m.canonical(self.terminal()))
+    def advance_request(self, offset=0):
+        from datetime import datetime, timezone
+        self.clock += 1201
+        self.request['issued_at'] = datetime.fromtimestamp(self.clock + offset, timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        self.request['expires_at'] = datetime.fromtimestamp(self.clock + 1200 + offset, timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+    def stage_new(self, first_run=600):
+        for i, role in enumerate(m.ROLES): self.ledger.create_approval(self.approval(role, str(first_run+i)))
+    def supersede(self, old_digest, run='700'):
+        return self.ledger.supersede(self.final('SUPERSEDE_EXPIRED_MERGED_RECOVERY', run=run, expected_old_request_digest=old_digest, evidence_digest=m.digest(self.evidence)))
+    def test_supersession_preserves_original_and_old_signed_records(self):
+        self.approve(); old = copy.deepcopy(self.request); old_digest = m.digest(old); self.advance_request(); self.stage_new()
+        self.assertEqual(self.supersede(old_digest)['supersessions'], 1)
+        with self.assertRaisesRegex(ValueError, 'PINNED_REQUEST'):
+            old_event = self.final('READ_MERGED_RECOVERY'); old_event['envelope']['request'] = old; old_event['envelope']['request_digest'] = old_digest
+            self.ledger.read(signed(old_event['envelope']))
+        self.claim(); self.consume()
+        self.assertEqual(self.ledger.reservation(self.request)['run_id']['S'], '100')
+        for role in m.ROLES:
+            self.assertTrue(self.ledger.get({'pk': {'S': 'AUTH#POSTMERGE#'+old_digest}, 'sk': {'S': 'ROLE#'+role}}))
+    def test_supersession_requires_expired_request_and_lease(self):
+        self.approve(); old_digest = m.digest(self.request); self.request['expires_at'] = '2026-10-11T00:21:00Z'
+        with self.assertRaisesRegex(ValueError, 'NOT_QUIESCENT'): self.stage_new()
+        self.setUp(); self.approve(); old_digest = m.digest(self.request); self.advance_request()
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]; row['ir_lease_until'] = {'N': str(self.clock+60)}
+        with self.assertRaisesRegex(ValueError, 'NOT_QUIESCENT'): self.stage_new()
+    def test_supersession_two_budget_and_no_consumed_or_unknown(self):
+        self.approve()
+        for generation in range(2):
+            old_digest = m.digest(self.request); self.advance_request(); self.stage_new(600+generation*10)
+            self.assertEqual(self.supersede(old_digest)['supersessions'], generation+1)
+        self.advance_request()
+        with self.assertRaisesRegex(ValueError, 'BUDGET'): self.stage_new(800)
+        for state in ['UNKNOWN', 'CONSUMED']:
+            self.setUp(); self.approve(); self.advance_request()
+            self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]['state'] = {'S': state}
+            with self.assertRaisesRegex(ValueError, 'SUPERSESSION_RESERVATION'): self.stage_new()
+    def test_old_quorum_cannot_mix_with_fresh_or_forged_old(self):
+        self.approve(); old_digest = m.digest(self.request); self.advance_request()
+        with self.assertRaises(ValueError): self.supersede(old_digest)
+        self.stage_new(200)
+        with self.assertRaisesRegex(ValueError, 'FRESH_ROLE_RUN'): self.supersede(old_digest)
+        key = {'pk': {'S': 'AUTH#POSTMERGE#'+old_digest}, 'sk': {'S': 'ROLE#'+m.ROLES[0]}}
+        self.ddb.rows[self.ddb.key(key)]['signed_event'] = {'S': '{}'}
+        with self.assertRaises(ValueError): self.supersede(old_digest)
+    def test_twelve_supersession_proposals_have_one_pin(self):
+        self.approve(); old_digest = m.digest(self.request); self.advance_request(); proposals=[]
+        for i in range(12):
+            self.request['expires_at'] = '2026-10-11T00:40:01.%03dZ' % i
+            self.stage_new(600+i*3)
+            proposals.append(self.final('SUPERSEDE_EXPIRED_MERGED_RECOVERY', run=str(800+i), expected_old_request_digest=old_digest, evidence_digest=m.digest(self.evidence)))
+        barrier = threading.Barrier(12)
+        def contender(event):
+            barrier.wait()
+            try: return self.ledger.supersede(event)['state']
+            except (ValueError, ConditionalFailure): return 'FENCED'
+        with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
+            states=list(pool.map(contender, proposals))
+        self.assertEqual(states.count('POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY'), 1)
+        self.assertEqual(states.count('FENCED'), 11)
+        row=self.ledger.get(self.ledger.key(self.request)); self.assertEqual(row['ir_supersessions']['N'], '1'); self.assertEqual(row['run_id']['S'], '100')
+    def test_supersession_cannot_change_original_identity_or_preserve_terminal(self):
+        self.approve(); self.advance_request(); self.request['pull_request'] = 43; self.evidence['pull_request'] = 43
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_IDENTITY'): self.stage_new()
+        self.setUp(); self.approve(); self.advance_request()
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]; row['ir_terminal_digest'] = {'S': 'sha256:'+'0'*64}
+        with self.assertRaisesRegex(ValueError, 'SUPERSESSION_RESERVATION'): self.stage_new()
     def test_config_requires_independent_signers(self):
         roles = copy.deepcopy(self.roles); roles[m.ROLES[1]]['signing_key_arn'] = roles[m.ROLES[0]]['signing_key_arn']
         with self.assertRaisesRegex(ValueError, 'SIGNER_COLLISION'): m.InterruptedReservationRecoveryLedger(ddb=self.ddb, kms=KMS(), table='ledger', role_config=roles, finalizer_config=self.finalizer, receipt_bucket='immutable', receipt_key_arn='arn:aws:kms:ap-northeast-2:123456789012:key/receipt-key')

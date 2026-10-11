@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
+import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest,supersedeExpiredInterruptedPostmerge} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
 const HOLD={production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40),time=Date.parse('2026-10-11T00:00:00Z');
 function setup(){
@@ -64,4 +64,35 @@ test('UNKNOWN state and quarantined operation never claim or issue merge',async(
 test('native observer uses only fixed GET routes and requires protected current main',async()=>{
  const s=setup();s.rows.main.protected=false;
  await assert.rejects(observeInterruptedRecoveryNative({request:s.input.request,get:s.input.get,now:time}),/CURRENT_MAIN/);
+});
+
+function supersessionSetup(){
+ const s=setup();s.setClock(time+1260000);s.context.supersessions=0;
+ const oldRequest=s.input.request,request={...oldRequest,issued_at:new Date(time+1260000).toISOString(),expires_at:new Date(time+2460000).toISOString()};
+ let writes=0;
+ s.input.ledger.supersede=async({expected_old_request_digest,evidence_digest})=>{
+   assert.equal(expected_old_request_digest,s.context.request_digest);writes++;
+   s.context.request_digest=sha256(canonicalJson(request));s.context.evidence_digest=evidence_digest;s.context.supersessions++;
+   return {state:'POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY',request_digest:s.context.request_digest,evidence_digest,
+     original_run_id:'100',supersessions:s.context.supersessions};
+ };
+ const input={...s.input,oldRequest,request};return {...s,request,input,writes:()=>writes,call:()=>supersedeExpiredInterruptedPostmerge(input)};
+}
+test('expired merged request supersession preserves original identity and only changes an authenticated pin',async()=>{
+ const s=supersessionSetup(),before=structuredClone(s.input.oldRequest),result=await s.call();
+ assert.deepEqual(s.input.oldRequest,before);assert.equal(result.original_run_id,'100');assert.equal(result.original_landing_authority_renewed,false);
+ assert.equal(result.merge_performed,false);assert.equal(s.writes(),1);assert.equal(s.counts().consumes,0);
+});
+test('supersession response loss reconciles the new exact pin without reissuing CAS',async()=>{
+ const s=supersessionSetup(),supersede=s.input.ledger.supersede;s.input.ledger.supersede=async input=>{await supersede(input);throw Error('lost CAS reply');};
+ assert.equal((await s.call()).supersessions,1);assert.equal(s.writes(),1);
+});
+test('supersession unknown with no exact new pin is held without retry',async()=>{
+ const s=supersessionSetup();s.input.ledger.supersede=async()=>{throw Error('unknown');};
+ await assert.rejects(s.call(),/SUPERSESSION_UNKNOWN_NO_RETRY/);assert.equal(s.writes(),0);
+});
+for(const corrupt of [s=>s.request.original_run_id='999',s=>s.request.pull_request=1677,s=>s.context.state='UNKNOWN',
+ s=>s.context.state='CONSUMED',s=>s.context.supersessions=2,s=>s.context.terminal={state:'already terminal'},s=>s.setClock(time+1000)])
+test('identity drift, UNKNOWN, consumed history and exhausted budget cannot supersede',async()=>{
+ const s=supersessionSetup();corrupt(s);await assert.rejects(s.call(),/INTERRUPTED_RECOVERY/);assert.equal(s.writes(),0);
 });

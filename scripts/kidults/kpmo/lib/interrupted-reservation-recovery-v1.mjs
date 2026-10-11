@@ -58,6 +58,43 @@ export function interruptedRecoveryObjectKey(request){
   return `receipts/${request.original_generation}/interrupted-postmerge-v1/${request.merge_sha}.json`;
 }
 
+// Fresh independent role approvals must already be staged for this exact
+// request/evidence. The writer authenticates both old and new quorum, checks
+// service-clock quiescence, preserves old signed records and caps changes at 2.
+// A supersession never reissues a merge or renews original landing authority.
+export async function supersedeExpiredInterruptedPostmerge({oldRequest,request,recoveryRunId,ledger,get,verifyEvidence,now=()=>Date.now()}){
+  const oldDigest=validateInterruptedRecoveryRequest(oldRequest,{now:now(),fresh:false});
+  const newDigest=validateInterruptedRecoveryRequest(request,{now:now()});
+  requireProof(run(recoveryRunId)&&recoveryRunId!==request.original_run_id&&typeof ledger?.read==='function'
+    &&typeof ledger?.supersede==='function'&&typeof verifyEvidence==='function','SUPERSESSION_ADAPTER');
+  requireProof(oldDigest!==newDigest&&Date.parse(oldRequest.expires_at)<=now()&&Date.parse(request.issued_at)>=Date.parse(oldRequest.expires_at),'SUPERSESSION_TIME');
+  requireProof(fields.filter(k=>!['source_sha','issued_at','expires_at'].includes(k)).every(k=>eq(oldRequest[k],request[k])),'SUPERSESSION_ORIGINAL_IDENTITY');
+  const context=await ledger.read({request:oldRequest,run_id:recoveryRunId});
+  requireProof(context.state==='RESERVED'&&!context.terminal&&context.request_digest===oldDigest&&context.original_run_id===request.original_run_id
+    &&Number.isSafeInteger(context.supersessions)&&context.supersessions>=0&&context.supersessions<2,'SUPERSESSION_CONTEXT');
+  const native=await observeInterruptedRecoveryNative({request,get,now:now()});
+  const evidence=await verifyEvidence({request,native});
+  requireProof(evidence&&Object.keys(native).every(k=>eq(evidence[k],native[k]))&&Array.isArray(evidence.checks)&&evidence.checks.length===4,'EVIDENCE_BINDING');
+  const evidenceDigest=sha256(canonicalJson(evidence));
+  await observeInterruptedRecoveryNative({request,get,now:now()});
+  validateInterruptedRecoveryRequest(request,{now:now()});
+  let response;
+  try {response=await ledger.supersede({request,run_id:recoveryRunId,expected_old_request_digest:oldDigest,evidence_digest:evidenceDigest});}
+  catch(error){
+    // Reconcile a potentially completed CAS by reading the new exact pin;
+    // never repeat an ambiguous supersession RPC or alter the old request.
+    const after=await ledger.read({request,run_id:recoveryRunId});
+    requireProof(after.state==='RESERVED'&&!after.terminal&&after.request_digest===newDigest&&after.evidence_digest===evidenceDigest
+      &&after.original_run_id===request.original_run_id&&after.supersessions===context.supersessions+1,'SUPERSESSION_UNKNOWN_NO_RETRY');
+    response={state:'POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY',...after};
+    response.state='POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY';
+  }
+  requireProof(response.state==='POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY'&&response.request_digest===newDigest
+    &&response.evidence_digest===evidenceDigest&&response.original_run_id===request.original_run_id
+    &&response.supersessions===context.supersessions+1,'SUPERSESSION_READBACK');
+  return {...response,original_landing_authority_renewed:false,merge_performed:false,...HOLD};
+}
+
 // Adapters must perform signature verification themselves. read/claim/consume
 // map to the protected merged-only writer; immutable.seal reconciles a fixed
 // if-none-match object and verifies version/body/checksum/COMPLIANCE/KMS.

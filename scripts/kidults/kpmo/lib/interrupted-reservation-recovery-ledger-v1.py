@@ -120,17 +120,44 @@ class InterruptedReservationRecoveryLedger:
         require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id']) and e['approval_run_id'] != e['request']['original_run_id'] and type(e['approval_run_attempt']) is int and e['approval_run_attempt'] == 1, 'APPROVAL_RUN')
         return e
 
+    def supersession_context(self, r):
+        # New request is only staged; no authority until the original row CAS.
+        row = self.get(self.key(r))
+        require(row.get('state', {}).get('S') == 'RESERVED' and row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and 'ir_terminal' not in row and 'ir_terminal_digest' not in row, 'SUPERSESSION_RESERVATION')
+        require('ir_request' in row, 'SUPERSESSION_PIN_MISSING')
+        old = json.loads(row['ir_request']['S'])
+        validate_request(old, self.now(), False)
+        require(epoch(old['expires_at']) <= self.now() and float(row.get('ir_lease_until', {}).get('N', '0')) <= self.now(), 'SUPERSESSION_NOT_QUIESCENT')
+        immutable = REQUEST_FIELDS - {'issued_at', 'expires_at', 'source_sha'}
+        require(all(r[k] == old[k] for k in immutable) and r != old and epoch(r['issued_at']) >= epoch(old['expires_at']), 'SUPERSESSION_ORIGINAL_IDENTITY')
+        count = int(row.get('ir_supersessions', {}).get('N', '0'))
+        require(0 <= count < 2 and str(count) == row.get('ir_supersessions', {}).get('N', '0'), 'SUPERSESSION_BUDGET')
+        old_runs = set()
+        for role in ROLES:
+            key = {'pk': {'S': 'AUTH#POSTMERGE#' + digest(old)}, 'sk': {'S': 'ROLE#' + role}}
+            signed_old = json.loads(self.get(key).get('signed_event', {}).get('S', '{}'))
+            approval = self.approval(signed_old, fresh=False)
+            require(approval['role'] == role and approval['request_digest'] == digest(old) and approval['evidence_digest'] == row.get('ir_evidence_digest', {}).get('S'), 'SUPERSESSION_OLD_SIGNATURE')
+            old_runs.add(approval['approval_run_id'])
+        require(len(old_runs) == 3, 'SUPERSESSION_OLD_QUORUM')
+        return row, old, count, old_runs
+
     def create_approval(self, event):
-        e = self.approval(event); r = e['request']; row = self.reservation(r)
-        require(row['state']['S'] == 'RESERVED', 'ALREADY_CONSUMED')
-        if 'ir_request' not in row:
-            self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET ir_request=:request, ir_evidence_digest=:evidence', ConditionExpression='#state=:reserved AND run_id=:original AND head_sha=:head AND attribute_not_exists(ir_request)', ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':request': {'S': canonical(r)}, ':evidence': {'S': e['evidence_digest']}, ':reserved': {'S': 'RESERVED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']}})
-        row = self.reservation(r)
-        require(row['ir_evidence_digest']['S'] == e['evidence_digest'], 'EVIDENCE_CONFLICT')
+        e = self.approval(event); r = e['request']; row = self.get(self.key(r))
+        staged = row.get('ir_request', {}).get('S') not in (None, canonical(r))
+        if staged:
+            self.supersession_context(r)
+        else:
+            row = self.reservation(r)
+            require(row['state']['S'] == 'RESERVED', 'ALREADY_CONSUMED')
+            if 'ir_request' not in row:
+                self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET ir_request=:request, ir_evidence_digest=:evidence', ConditionExpression='#state=:reserved AND run_id=:original AND head_sha=:head AND attribute_not_exists(ir_request)', ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={':request': {'S': canonical(r)}, ':evidence': {'S': e['evidence_digest']}, ':reserved': {'S': 'RESERVED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']}})
+            row = self.reservation(r)
+            require(row['ir_evidence_digest']['S'] == e['evidence_digest'], 'EVIDENCE_CONFLICT')
         key = {'pk': {'S': 'AUTH#POSTMERGE#' + e['request_digest']}, 'sk': {'S': 'ROLE#' + e['role']}}
         prior = self.get(key)
         if prior:
-            require(prior.get('signed_event', {}).get('S') == canonical(event), 'APPROVAL_CONFLICT')
+            require(canonical(self.approval(json.loads(prior.get('signed_event', {}).get('S', '{}')))) == canonical(e), 'APPROVAL_CONFLICT')
             return {'state': 'EXISTING_APPROVAL'}
         self.ddb.put_item(TableName=self.table, Item={**key, 'signed_event': {'S': canonical(event)}}, ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)')
         return {'state': 'APPROVAL_STORED'}
@@ -149,6 +176,27 @@ class InterruptedReservationRecoveryLedger:
             require(a['role'] == role and a['request_digest'] == e['request_digest'] and a['evidence_digest'] == row.get('ir_evidence_digest', {}).get('S'), 'QUORUM')
             runs.add(a['approval_run_id'])
         require(len(runs) == 3 and e['run_id'] not in runs, 'QUORUM_RUN_COLLISION')
+
+    def supersede(self, event):
+        e = self.authenticate(event, 'SUPERSEDE_EXPIRED_MERGED_RECOVERY', ('expected_old_request_digest', 'evidence_digest'))
+        r = e['request']; row, old, count, old_runs = self.supersession_context(r)
+        require(e['expected_old_request_digest'] == digest(old) and isinstance(e['evidence_digest'], str) and DIGEST.fullmatch(e['evidence_digest']), 'SUPERSESSION_DIGEST')
+        self.quorum(e, {'ir_evidence_digest': {'S': e['evidence_digest']}})
+        for role in ROLES:
+            new = self.approval(json.loads(self.get({'pk': {'S': 'AUTH#POSTMERGE#' + e['request_digest']}, 'sk': {'S': 'ROLE#' + role}})['signed_event']['S']))
+            require(new['approval_run_id'] not in old_runs, 'SUPERSESSION_FRESH_ROLE_RUN')
+        condition = 'attribute_not_exists(ir_supersessions)' if count == 0 else 'ir_supersessions=:oldcount'
+        values = {':reserved': {'S': 'RESERVED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']}, ':old': {'S': canonical(old)}, ':old_evidence': row['ir_evidence_digest'], ':request': {'S': canonical(r)}, ':evidence': {'S': e['evidence_digest']}, ':count': {'N': str(count + 1)}}
+        if count: values[':oldcount'] = {'N': str(count)}
+        if 'ir_lease_until' in row:
+            condition += ' AND ir_lease_until<=:now'
+            values[':now'] = {'N': str(self.now())}
+        else:
+            condition += ' AND attribute_not_exists(ir_lease_until)'
+        result = self.ddb.update_item(TableName=self.table, Key=self.key(r), UpdateExpression='SET ir_request=:request, ir_evidence_digest=:evidence, ir_supersessions=:count', ConditionExpression='#state=:reserved AND run_id=:original AND head_sha=:head AND ir_request=:old AND ir_evidence_digest=:old_evidence AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND ' + condition, ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues=values, ReturnValues='ALL_NEW')
+        attrs = result.get('Attributes', {})
+        require(attrs.get('run_id', {}).get('S') == r['original_run_id'] and attrs.get('head_sha', {}).get('S') == r['head_sha'] and all(attrs.get(k) == v for k, v in self.key(r).items()) and attrs.get('state', {}).get('S') == 'RESERVED' and attrs.get('ir_request', {}).get('S') == canonical(r) and attrs.get('ir_evidence_digest', {}).get('S') == e['evidence_digest'] and attrs.get('ir_supersessions', {}).get('N') == str(count + 1), 'SUPERSESSION_READBACK')
+        return {'state': 'POSTMERGE_RECOVERY_REQUEST_SUPERSEDED_NOT_LANDING_AUTHORITY', 'request_digest': e['request_digest'], 'evidence_digest': e['evidence_digest'], 'supersessions': count + 1, 'original_run_id': r['original_run_id']}
 
     def claim(self, event):
         e = self.authenticate(event, 'CLAIM_MERGED_RECOVERY', ('expected_revision', 'lease_seconds'))
@@ -171,7 +219,7 @@ class InterruptedReservationRecoveryLedger:
     def read(self, event):
         e = self.authenticate(event, 'READ_MERGED_RECOVERY', fresh=False)
         row = self.reservation(e['request'])
-        return {'state': row['state']['S'], 'request_digest': e['request_digest'], 'original_run_id': row['run_id']['S'], 'revision': int(row.get('ir_revision', {}).get('N', '0')), 'terminal': json.loads(row['ir_terminal']['S']) if 'ir_terminal' in row else None, 'immutable_ack': json.loads(row['ir_immutable_ack']['S']) if 'ir_immutable_ack' in row else None}
+        return {'state': row['state']['S'], 'request_digest': e['request_digest'], 'evidence_digest': row.get('ir_evidence_digest', {}).get('S'), 'supersessions': int(row.get('ir_supersessions', {}).get('N', '0')), 'original_run_id': row['run_id']['S'], 'revision': int(row.get('ir_revision', {}).get('N', '0')), 'terminal': json.loads(row['ir_terminal']['S']) if 'ir_terminal' in row else None, 'immutable_ack': json.loads(row['ir_immutable_ack']['S']) if 'ir_immutable_ack' in row else None}
 
     def consume(self, event):
         e = self.authenticate(event, 'CONSUME_MERGED_RECOVERY', ('revision', 'terminal'), fresh=False)

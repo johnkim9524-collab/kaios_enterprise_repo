@@ -1,12 +1,12 @@
 {
   "agent_id": "atlas-kpmo-native-repair",
-  "as_of": "2026-10-11T07:24:23.776668+00:00",
+  "as_of": "2026-10-11T07:36:54.406996+00:00",
   "scope": {
     "repository": "johnkim9524-collab/kaios_enterprise_repo",
     "pull_request": 2654,
     "exact_main_sha": "bcfb815084d82cd5eb93918e925b0d4382121f31",
     "verification_scope": "GENERIC_MERGED_ONLY_RECOVERY_COMPONENTS_VERIFIED_NOT_RUNTIME_INTEGRATED",
-    "candidate_parent_sha": "0763d25a42ce4591b9400d94ed8aebd879aac263"
+    "candidate_parent_sha": "d22437f671234a946ff0417b7feeac3825260717"
   },
   "state": "PARTIAL_HOLD",
   "facts": [
@@ -29,7 +29,9 @@
     "New merged-only orchestration reobserves native exact-main before consumption; ambiguous consumption RPC only reads back exact persisted terminal and never reissues. Archive interruption can resume consumed history after authority expiry without new approval/lease/consume.",
     "Immutable ACK is bound to fixed object/version/body digest, exact encryption key and issued-at plus ten calendar years COMPLIANCE retention. Native transport authentication remains a required protected adapter, not a caller boolean.",
     "Root broker/dispatcher Node460/460 PASS, new generic engine16/16 PASS, independent Python22/22 PASS with actual P-256 ECDSA tamper rejection, 12-thread single-winner CAS and actual JS/Python canonical/digest interoperability.",
-    "Generic merged-only components are not registered in the production writer or connected to native role workflows; source modules and local proofs are not runtime closure. Historical #2555 remains unchanged."
+    "Generic merged-only components are not registered in the production writer or connected to native role workflows; source modules and local proofs are not runtime closure. Historical #2555 remains unchanged.",
+    "Expired unconsumed merged-only recovery requests now support at most two authenticated supersessions: old request and lease expired, same original identity, fresh independent three-role quorum, original-row conditional CAS, no terminal or mutation authority renewal.",
+    "Disjoint verification: broker/dispatcher460, generic JS26 and Python28 tests pass (514 total); generic recovery remains undeployed and unregistered."
   ],
   "evidence_refs": [
     "https://github.com/johnkim9524-collab/kaios_enterprise_repo/blob/bcfb815084d82cd5eb93918e925b0d4382121f31/coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
@@ -45,14 +47,14 @@
     "Limited comment rebind does not establish arbitrary internal code repair autonomy."
   ],
   "uncertainties": [
-    "Generic unmerged recovery broker-owned mutation/fencing and expired-unconsumed request supersession are not implemented.",
+    "Generic unmerged recovery broker-owned mutation/fencing remains unimplemented; bounded merged-only supersession is source verified only.",
     "New merged-only writer/engine require protected adapter registration, native role/workflow trigger integration and actual deployed receipts.",
     "No deployed broker v2 tuple/expiry proof or eligible native terminal proof; source activation and two full natural chains remain unverified."
   ],
   "blockers": [
     "CORRECTED_SOURCE_NOT_ACTIVATED",
     "GENERIC_RECOVERY_RUNTIME_ADAPTER_AND_TRIGGER_NOT_INTEGRATED",
-    "UNMERGED_RECOVERY_AND_EXPIRED_UNCONSUMED_SUPERSESSION_INCOMPLETE",
+    "UNMERGED_RECOVERY_INCOMPLETE",
     "ELIGIBLE_NATIVE_TERMINAL_AND_TWO_FULL_NATURAL_CHAINS_UNVERIFIED"
   ],
   "actions_executed": [
@@ -65,9 +67,10 @@
     "Read-only authenticated drain prerequisite and adversarial regressions",
     "Protected native read-only recovery diagnostic implementation",
     "Generic merged-only lease/consume/immutable ACK components and cross-language engine",
-    "Independent real ECDSA and concurrent CAS adversarial verification"
+    "Independent real ECDSA and concurrent CAS adversarial verification",
+    "Bounded expired-unconsumed merged-only request supersession with ambiguous CAS read-back and original identity preservation"
   ],
-  "next_action": "Integrate protected merged-only adapters and natural workflow triggers; complete bounded unmerged recovery and expired-unconsumed supersession before exact-head activation. No manual/synthetic proof, #1677 reissue or implicit authority transfer.",
+  "next_action": "Integrate protected merged-only adapters and native triggers; resolve unmerged recovery trust bridge before exact-head activation and actual natural operating proof.",
   "authority_boundary": {
     "merged": false,
     "previous_approval_rebound": false,
