@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "f96756a7f6031bca0a7c2d08ad29eb85f45d3a86",
+  "revision": "c8a146676133726cdeaef41ccaa2d302435958cd",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3699,8 +3699,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "488354a33e0164eca86734ef68533e8d4334a826",
-      "sha256": "sha256:fa074d8474acd34b0dbea6c23b1b17af380fb1b8ede99c75ea1a2c09cef84657",
+      "git_blob": "f7d08f933a670e52298a8870126d93414ce5668d",
+      "sha256": "sha256:64f552ff04069ac8a49166419d3b608fb93441b2d0e444fc15b9fa93e1f1d73e",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6422,8 +6422,8 @@
     {
       "path": "tests/kidults/kpmo/failure-terminal-collector-ingestion-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6d709a6255a0f0dead2e3bbd0f070355c3f2f506",
-      "sha256": "sha256:fcb447549bef3e9d7e77199dd515dbff4dca5473d4fa6526188ee9cc4f061d1b"
+      "git_blob": "82d820e4dbb06d8b4dabb06e6a8b0dc373873ffd",
+      "sha256": "sha256:90e4efb06c311580393e0b17b6330c87e1c2a0f028360cfbb8819cde4bcf94e3"
     },
     {
       "path": "tests/kidults/kpmo/failure-terminal-reconciliation-fixture-v1.mjs",
@@ -6774,5 +6774,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5797db23d690439fa4d9a09467b89bf436221f333152ca2035881bfb44c2d58e"
+  "manifest_sha256": "sha256:b4fec82baea50d0a2b3c648e48ba252245ba8cebbc6a273c2bbefd8a3694908b"
 }
