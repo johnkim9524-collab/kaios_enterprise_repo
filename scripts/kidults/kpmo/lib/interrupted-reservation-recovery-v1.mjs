@@ -28,12 +28,12 @@ export function validateInterruptedRecoveryRequest(request,{now=Date.now(),fresh
 }
 
 // get is a fixed authenticated GET-only transport. There is no write callback.
-export async function observeInterruptedRecoveryNative({request,get,now=Date.now()}){
+export async function observeInterruptedRecoveryNative({request,get,now=Date.now(),currentSourceSha=request.source_sha}){
   validateInterruptedRecoveryRequest(request,{now,fresh:false});
   requireProof(typeof get==='function','NATIVE_READER');
   const r=request;
   const [main,pr,original,commit]=await Promise.all([get('branches/main'),get(`pulls/${r.pull_request}`),get(`actions/runs/${r.original_run_id}`),get(`git/commits/${r.merge_sha}`)]);
-  requireProof(main.name==='main'&&main.protected===true&&main.commit?.sha===r.source_sha,'CURRENT_MAIN');
+  requireProof(main.name==='main'&&main.protected===true&&main.commit?.sha===currentSourceSha,'CURRENT_MAIN');
   requireProof(pr.number===r.pull_request&&pr.state==='closed'&&pr.merged===true&&pr.merge_commit_sha===r.merge_sha&&pr.head?.sha===r.head_sha
     &&pr.base?.ref==='main'&&pr.base?.repo?.full_name===repository&&pr.head?.repo?.full_name===repository,'MERGED_PR');
   requireProof(Number.isFinite(Date.parse(pr.merged_at))&&Date.parse(pr.merged_at)<=Date.parse(r.issued_at),'MERGE_TIME');
@@ -42,12 +42,17 @@ export async function observeInterruptedRecoveryNative({request,get,now=Date.now
   requireProof(String(original.id)===r.original_run_id&&original.run_attempt===1&&original.head_sha===r.base_sha&&original.head_branch==='main'
     &&original.repository?.full_name===repository&&String(original.repository?.id)===repositoryId&&paths.includes(original.path)
     &&original.event==='repository_dispatch'&&original.status==='completed'&&['failure','cancelled','timed_out'].includes(original.conclusion),'ORIGINAL_NATIVE_RUN');
+  if(currentSourceSha!==r.source_sha){
+    const ancestry=await get(`compare/${r.source_sha}...${currentSourceSha}`);
+    requireProof(ancestry.base_commit?.sha===r.source_sha&&ancestry.merge_base_commit?.sha===r.source_sha
+      &&ancestry.behind_by===0&&['ahead','identical'].includes(ancestry.status),'RECOVERY_SOURCE_ANCESTRY');
+  }
   if(r.source_sha!==r.merge_sha){
     const comparison=await get(`compare/${r.merge_sha}...${r.source_sha}?per_page=1&page=2`);
     requireProof(comparison.base_commit?.sha===r.merge_sha&&comparison.merge_base_commit?.sha===r.merge_sha&&comparison.behind_by===0
       &&comparison.status==='ahead','MERGE_NOT_ANCESTOR');
   }
-  const latest=await get('branches/main');requireProof(latest.name==='main'&&latest.protected===true&&latest.commit?.sha===r.source_sha,'MAIN_CHANGED');
+  const latest=await get('branches/main');requireProof(latest.name==='main'&&latest.protected===true&&latest.commit?.sha===currentSourceSha,'MAIN_CHANGED');
   return {repository,source_sha:r.source_sha,pull_request:r.pull_request,merge_sha:r.merge_sha,head_sha:r.head_sha,head_tree_sha:r.head_tree_sha,
     merge_parents:[r.base_sha,r.head_sha],merged_at:pr.merged_at,
     original_run:{run_id:r.original_run_id,run_attempt:1,source_sha:r.base_sha,status:'completed',conclusion:original.conclusion},...HOLD};
@@ -120,7 +125,19 @@ export async function recoverFailureAssuranceTerminal({request,recoveryRunId,led
       &&canonicalJson(context.immutable_ack)===canonicalJson(object),'FAILURE_ACK_UNKNOWN_NO_RETRY');
     ack={state:'FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED',write_reissued:false};}
   requireProof(ack.state==='FAILURE_ASSURANCE_IMMUTABLE_ACKNOWLEDGED','FAILURE_IMMUTABLE_ACK');
-  return {state:'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY',terminal,terminal_digest:object.sha256,immutable:object,
+  // A successful ACK response alone is not a terminal readback. Re-read the
+  // signed writer's consistent row and the pinned immutable bytes before export.
+  context=await ledger.readFailureContext({request});
+  requireProof(context.state==='FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED'
+    &&context.write_performed===false&&canonicalJson(context.request)===canonicalJson(request)
+    &&canonicalJson(context.terminal)===canonicalJson(terminal)
+    &&context.evidence_digest===evidenceDigest&&canonicalJson(context.evidence)===canonicalJson(proof)
+    &&canonicalJson(context.immutable_ack)===canonicalJson(object),'FAILURE_FINAL_READBACK');
+  requireProof(typeof immutable.read==='function','FAILURE_IMMUTABLE_READBACK_ADAPTER');
+  const immutableReadback=await immutable.read({request,terminal,key,failure_assurance:true,version_id:object.version_id});
+  requireProof(canonicalJson(immutableReadback)===canonicalJson(object),'FAILURE_IMMUTABLE_FINAL_READBACK');
+  return {state:'RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY',reconciliation_run_id:recoveryRunId,request,consistent_read:context,
+    immutable_readback:immutableReadback,terminal,terminal_digest:object.sha256,immutable:object,
     original_reservation_reconsumed:false,original_terminal_created:false,actual_authority_granted:false,platform_closure:false,
     promotion_eligible:false,...HOLD};
 }

@@ -15,7 +15,7 @@ const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`ASSURANCE_SENTINEL_BIN
 
 export async function bindAssuranceUpstreamSentinelReceipt({run,sourceSha,get,readBytes,archiveReader=readArchive,observedAt=new Date().toISOString()}){
   requireEvidence(/^[a-f0-9]{40}$/.test(sourceSha||''),'SOURCE_SHA');
-  requireEvidence(run?.name===SENTINEL_NAME&&run.path===SENTINEL_PATH&&run.event==='workflow_run'
+  requireEvidence(run?.name===SENTINEL_NAME&&run.path===SENTINEL_PATH&&['workflow_run','repository_dispatch'].includes(run.event)
     &&run.status==='completed'&&run.conclusion==='success'&&run.run_attempt===1
     &&run.head_sha===sourceSha&&run.head_branch==='main'
     &&run.repository?.full_name===REPOSITORY&&String(run.repository?.id)==='1281328888'
@@ -24,6 +24,17 @@ export async function bindAssuranceUpstreamSentinelReceipt({run,sourceSha,get,re
   requireEvidence(['id','name','path','event','status','conclusion','run_attempt','head_sha','head_branch'].every(k=>live[k]===run[k])
     &&live.repository?.full_name===REPOSITORY&&String(live.repository?.id)==='1281328888'
     &&live.head_repository?.full_name===REPOSITORY,'LIVE_RUN');
+  if(live.event==='repository_dispatch'){
+    const jobs=await get(`actions/runs/${live.id}/attempts/1/jobs?per_page=100`);
+    requireEvidence(Array.isArray(jobs.jobs)&&jobs.total_count===jobs.jobs.length&&jobs.total_count<=100
+      &&new Set(jobs.jobs.map(j=>j.id)).size===jobs.jobs.length,'NATURAL_CLOCK_JOBS');
+    const health=jobs.jobs.filter(j=>j.name==='exact-main-health');
+    requireEvidence(health.length===1&&health[0].run_id===live.id
+      &&(health[0].run_attempt===undefined||health[0].run_attempt===1)
+      &&health[0].status==='completed'&&health[0].conclusion==='success'
+      &&health[0].steps?.filter(s=>s.name==='Verify independent natural-clock receipt'
+        &&s.status==='completed'&&s.conclusion==='success').length===1,'NATURAL_CLOCK_INTAKE');
+  }
   const listing=await get(`actions/runs/${live.id}/artifacts?per_page=100`);
   requireEvidence(Array.isArray(listing.artifacts)&&listing.total_count===listing.artifacts.length&&listing.total_count<=100,'ARTIFACT_LIST');
   const name=`kpmo-continuous-assurance-sentinel-health-v1-${sourceSha}-${live.id}-1`;

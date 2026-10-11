@@ -96,3 +96,28 @@ for(const corrupt of [s=>s.request.original_run_id='999',s=>s.request.pull_reque
 test('identity drift, UNKNOWN, consumed history and exhausted budget cannot supersede',async()=>{
  const s=supersessionSetup();corrupt(s);await assert.rejects(s.call(),/INTERRUPTED_RECOVERY/);assert.equal(s.writes(),0);
 });
+
+test('read-only historical reconciliation explicitly binds archived source ancestor to current main',async()=>{
+ const s=setup(),current=sha('f'),calls=[];s.rows.main.commit.sha=current;
+ const get=async route=>{calls.push(route);if(route===`compare/${s.input.request.source_sha}...${current}`)return {base_commit:{sha:s.input.request.source_sha},merge_base_commit:{sha:s.input.request.source_sha},behind_by:0,status:'ahead'};return s.input.get(route);};
+ await observeInterruptedRecoveryNative({request:s.input.request,get,now:time,currentSourceSha:current});
+ assert.ok(calls.includes(`compare/${s.input.request.source_sha}...${current}`));
+ assert.equal(s.counts().claims+s.counts().consumes+s.counts().seals+s.counts().acks,0);
+ await assert.rejects(observeInterruptedRecoveryNative({request:s.input.request,get,now:time}),/CURRENT_MAIN/);
+});
+for(const [name,comparison] of [
+ ['diverged',{status:'diverged',behind_by:1}],
+ ['foreign merge base',{status:'ahead',behind_by:0,merge_base_commit:{sha:sha('a')}}],
+ ['wrong comparison base',{status:'ahead',behind_by:0,base_commit:{sha:sha('a')}}]
+])test('historical source rejects '+name,async()=>{
+ const s=setup(),current=sha('f');s.rows.main.commit.sha=current;
+ const get=async route=>route===`compare/${s.input.request.source_sha}...${current}`?{base_commit:{sha:s.input.request.source_sha},merge_base_commit:{sha:s.input.request.source_sha},...comparison}:s.input.get(route);
+ await assert.rejects(observeInterruptedRecoveryNative({request:s.input.request,get,now:time,currentSourceSha:current}),/RECOVERY_SOURCE_ANCESTRY/);
+ assert.equal(s.counts().consumes,0);
+});
+test('historical observation rejects main drift after ancestry readback',async()=>{
+ const s=setup(),current=sha('f');s.rows.main.commit.sha=current;let reads=0;
+ const get=async route=>{if(route==='branches/main'&&++reads===2)return {name:'main',protected:true,commit:{sha:sha('a')}};if(route===`compare/${s.input.request.source_sha}...${current}`)return {base_commit:{sha:s.input.request.source_sha},merge_base_commit:{sha:s.input.request.source_sha},behind_by:0,status:'ahead'};return s.input.get(route);};
+ await assert.rejects(observeInterruptedRecoveryNative({request:s.input.request,get,now:time,currentSourceSha:current}),/MAIN_CHANGED/);
+ assert.equal(s.counts().consumes,0);
+});
