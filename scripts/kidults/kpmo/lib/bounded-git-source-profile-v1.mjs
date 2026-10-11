@@ -4,6 +4,8 @@ import {createHash} from 'node:crypto';
 // Candidate policy is never a grant for changing protected main or this registry.
 export const SOURCE_PROFILE_PATHS=Object.freeze([
   'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs',
+  'scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs',
+  'coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json',
   'scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs',
   'scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs',
   'scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs',

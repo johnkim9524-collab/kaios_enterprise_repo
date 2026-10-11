@@ -1,0 +1,32 @@
+{
+  "id": "kidults-autonomous-operation-quarantine-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "release_requires_authenticated_original_operation_reconciliation": true,
+  "entries": [
+    {
+      "pull_request": 1677,
+      "state": "UNKNOWN",
+      "operation_key": "sha256:89a44e802239f53669f93707d7c608d8ff342bf5ce2ff4087968caea01ec1115",
+      "binding": {
+        "repository": "johnkim9524-collab/kaios_enterprise_repo",
+        "root_mission_id": "KIDULTS-AUTONOMOUS-LIFECYCLE",
+        "stage_id": "lifecycle:1677",
+        "operation_kind": "STALE_BASE_CONVERGENCE",
+        "exact_target": "1677:8f69cc8926bbafad72fec0be19f7d2b12f85aeec:62f5c3c0ef12732c8b7b5e6e3df45e9ee687a383:099e3438e996d04432093ded4ec0ac8a5f87e86e",
+        "payload_sha256": "sha256:ba3772aa3922f68928ff55a14e919f62f8d7aa4b70e2b72ec1c0d3a4aaab336d"
+      },
+      "evidence": {
+        "run_id": 38095032919,
+        "run_attempt": 1,
+        "source_sha": "c4256969da367b8c30be8f9640092aef028735a2",
+        "artifact_id": 11684829271,
+        "archive_sha256": "cc71f45d6eb5ae93169619efc4d0656b9459bc2a0665363bdd2eb14b80344fe7",
+        "member": "lifecycle/pr-1677-convergence.json"
+      }
+    }
+  ],
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

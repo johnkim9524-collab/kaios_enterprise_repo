@@ -9,6 +9,7 @@ import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semant
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
 import {analyzeCapabilityRepair} from './lib/capability-repair-analysis-v1.mjs';
+import {validateOperationQuarantine,quarantinedOperation} from './lib/autonomous-operation-quarantine-v1.mjs';
 
 export class DispatcherError extends Error { constructor(code,detail=''){ super(detail?`${code}:${detail}`:code); this.code=code; } }
 export const isCandidateRejection=error=>error instanceof DispatcherError || error instanceof CapabilityDeltaError
@@ -333,8 +334,9 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 async function immutableCommit(repository,ref,client){
   return client.sourceReader?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
 }
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false,operationQuarantine=null}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
+  if(operationQuarantine!==null)validateOperationQuarantine(operationQuarantine,repository);
   if(typeof sourceTransport!=='boolean'||(sourceTransport&&sourceReader!==undefined))fail('DISPATCH_CONFIGURATION_INVALID');
   if(sourceReader!==undefined){
     assertBoundedGitSourceReader(sourceReader);
@@ -358,6 +360,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   if(sourceTransport){
     const sources=new Set([mainSha]),plan=[];
     for(const pr of prs){
+      if(quarantinedOperation(pr,operationQuarantine))continue;
       if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(pr.head?.sha)))continue;
       const records=await pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
       const fresh=await api(`/repos/${repository}/pulls/${pr.number}`,token);
@@ -387,6 +390,8 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   const results=[];
   for(const pr of prs){let candidateContext=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
+    const quarantine=quarantinedOperation(pr,operationQuarantine);
+    if(quarantine){results.push(quarantine);continue;}
     const completeFileRecords=await fileRecordsFor(pr);
     if (!completeFileRecords.length) {
       const [headCommit,mainCommit]=await Promise.all([
@@ -510,8 +515,9 @@ if(import.meta.url===`file://${process.argv[1]}`){
       if(process.env.KIDULTS_AUTONOMOUS_POLICY_PATH&&process.env.KIDULTS_AUTONOMOUS_POLICY_PATH!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json')fail('DISPATCH_SOURCE_PROFILE_POLICY_PATH_INVALID');
       const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
       const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json','utf8'));
+      const operationQuarantine=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json','utf8'));
       const sourceTransport=isBoundedGitSourceProfileEnabled(policy,path=>fs.readFileSync(path));
-      return discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID,sourceTransport});}});
+      return discover({repository:process.env.GITHUB_REPOSITORY,token:process.env.GITHUB_TOKEN,prNumber:process.env.KIDULTS_PR_NUMBER?Number(process.env.KIDULTS_PR_NUMBER):null,policy,approvalPolicy,generationSeed:process.env.GITHUB_RUN_ID,sourceTransport,operationQuarantine});}});
   console.log(JSON.stringify({state:'DISPATCH_SCAN_COMPLETE',eligible:results.filter(x=>x.state==='ELIGIBLE').length,
     owner_review_required:results.filter(x=>x.state==='OWNER_REVIEW_REQUIRED').length,
     policy_repair_required:results.filter(x=>x.state==='POLICY_REPAIR_REQUIRED').length,
