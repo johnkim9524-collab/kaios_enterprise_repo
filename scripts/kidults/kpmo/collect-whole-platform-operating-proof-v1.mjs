@@ -208,18 +208,31 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     }
   });
   await attempt(['FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'],async()=>{
-    const base=commit.parents?.[0]?.sha;if(!base)return;
-    for(const s of finalizers){
-      for(const run of (await runs(s,base)).slice(0,contract.maximum_observation_history)){
-        if(run.status!=='completed')continue;
-        const p=await packet(run,`kidults-autonomous-internal-landing-finalizer-${run.id}-${run.run_attempt}`);if(!p)continue;
-        const outer=member(p,'receipt.json'),r=outer.terminal_evidence||outer;
-        if(r.merge?.merge_sha!==sourceSha)continue;
-        verifyMissionTerminal(r,sourceSha,commit);
-        mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_PASS','ORIGINAL_RESERVATION_AND_IMMUTABLE_VERSION_CONSUMED',[run.id,r.receipt_digest]);
-        return;
-      }
-    }
+    // Incident-specific read-only binding: only the preserved native PR #2655
+    // winner and its exact archive can establish this terminal-null finding.
+    const run=await get('actions/runs/38132692877');
+    // Generic collector fixtures and non-incident adapters explicitly return
+    // null when this historical incident is outside their evidence universe.
+    // A live GitHub 404 or transport error still throws and fails closed.
+    if(!run)return;
+    requireEvidence(run.id===38132692877&&run.run_attempt===1&&run.event==='repository_dispatch'
+      &&run.head_branch==='main'&&run.repository?.full_name===REPOSITORY&&run.status==='completed'
+      &&run.conclusion==='failure'&&finalizers.some(s=>s.path===run.path),'ORIGINAL_TERMINAL_NULL_RUN_IDENTITY');
+    const p=await packet(run,`kidults-autonomous-internal-landing-finalizer-${run.id}-1`);if(!p)return;
+    const artifact=out.protected_evidence.find(x=>String(x.run_id)===String(run.id));
+    requireEvidence(artifact?.artifact_id===11700046124
+      &&artifact.artifact_digest==='sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'
+      &&p.archive_digest===artifact.artifact_digest,'ORIGINAL_TERMINAL_NULL_ARTIFACT_BINDING');
+    const members=p.members.filter(x=>path.posix.basename(x.name)==='receipt.json'&&x.encoding==='utf-8');
+    requireEvidence(members.length===1,'ORIGINAL_TERMINAL_NULL_RECEIPT_CARDINALITY');
+    const receipt=JSON.parse(members[0].text),original=receipt.original_reservation;
+    requireEvidence(receipt.id==='kidults-autonomous-internal-landing-terminal-receipt-v1'
+      &&receipt.state==='QUARANTINED'&&receipt.merge_performed===true&&receipt.terminal_evidence===null
+      &&receipt.retry_without_reconciliation===false&&original?.pull_request===2655
+      &&String(original.original_run_id)===String(run.id)&&original.original_run_attempt===1
+      &&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_TERMINAL_NULL_RECEIPT');
+    mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_FAIL',
+      'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',[run.id,artifact.artifact_id,artifact.artifact_digest]);
   });
   await attempt(['WHOLE_VALUE_CHAIN_RUNTIME'],async()=>{
     const sources=contract.runtime_domain_sources||[],ids=new Set();

@@ -27,7 +27,7 @@ class ConditionalFailure(Exception):
 
 class DDB:
     def __init__(self):
-        self.rows = {}; self.writes = 0; self.corrupt = False; self.lock = threading.RLock()
+        self.rows = {}; self.writes = 0; self.corrupt = False; self.fail_after_put = False; self.lock = threading.RLock()
     def key(self, key):
         return tuple((x, tuple(v.items())) for x, v in sorted(key.items()))
     def get_item(self, **p):
@@ -54,6 +54,9 @@ class DDB:
     def put_item(self, **p):
         key = self.key({k: p['Item'][k] for k in ('pk', 'sk')}); row = self.rows.get(key, {})
         self.condition(p, row); self.rows[key] = copy.deepcopy(p['Item']); self.writes += 1
+        if self.fail_after_put:
+            self.fail_after_put = False
+            raise TimeoutError('simulated response loss after durable write')
     def update_item(self, **p):
         with self.lock:
             key = self.key(p['Key']); row = self.rows.get(key, {})
@@ -192,6 +195,55 @@ class RecoveryTest(unittest.TestCase):
             if mutation == 'sha': self.request['merge_sha'] = ''
             with self.assertRaises(ValueError): self.ledger.create_approval(self.approval(m.ROLES[0]))
             self.assertEqual(self.ddb.writes, 0)
+    def test_failure_assurance_profile_is_discriminated_and_never_aliases_success_authority(self):
+        evidence = copy.deepcopy(self.evidence)
+        evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        self.assertEqual(m.validate_evidence(evidence, self.request), m.digest(evidence))
+        mixed = copy.deepcopy(evidence)
+        mixed['checks'][-1]['kind'] = 'SUCCESS_AUTHORITY_GATE'
+        with self.assertRaisesRegex(ValueError, 'CHECKS'): m.validate_evidence(mixed, self.request)
+        unknown = copy.deepcopy(evidence)
+        unknown['evidence_profile'] = 'ASSURANCE_FAILURE_IS_AUTHORITY_SUCCESS'
+        with self.assertRaisesRegex(ValueError, 'EVIDENCE_PROFILE'): m.validate_evidence(unknown, self.request)
+    def test_failure_assurance_terminal_uses_distinct_quorum_and_never_reconsumes_original_row(self):
+        self.ddb.rows[self.ddb.key(self.ledger.key(self.request))].update(state={'S':'CONSUMED'}, merge_sha={'S':'d'*40})
+        self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        for role in m.ROLES:
+            event = signed(dict(action='APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence),
+                role=role, approval_run_id=str(200+m.ROLES.index(role)), approval_run_attempt=1, workload=self.roles[role]))
+            self.assertEqual(self.ledger.create_failure_approval(event)['state'], 'FAILURE_ASSURANCE_APPROVAL_STORED')
+        context = signed(dict(action='READ_FAILED_ASSURANCE_TERMINAL_CONTEXT', request=copy.deepcopy(self.request),
+            request_digest=m.digest(self.request), role='FINALIZER', run_id='400', run_attempt=1, workload=self.finalizer))
+        self.assertEqual(self.ledger.failure_context(context)['state'], 'FAILURE_ASSURANCE_TERMINAL_PENDING')
+        terminal = dict(id='kidults-interrupted-failure-assurance-terminal-v1', state='RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY',
+            request_digest=m.digest(self.request), evidence_digest=m.digest(self.evidence), recovery_run_id='400', source_sha='e'*40,
+            merge_sha='d'*40, original_state='CONSUMED', original_terminal_present=False, actual_authority_granted=False,
+            platform_closure=False, **m.HOLD)
+        final = signed(dict(action='FINALIZE_FAILED_ASSURANCE_TERMINAL_RECOVERY', request=copy.deepcopy(self.request),
+            request_digest=m.digest(self.request), run_id='400', run_attempt=1, terminal=terminal,
+            evidence_digest=m.digest(self.evidence), workload=self.finalizer))
+        self.assertEqual(self.ledger.finalize_failure_terminal(final)['state'], 'FAILURE_ASSURANCE_TERMINAL_RECORDED')
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]
+        self.assertEqual(row['state']['S'], 'CONSUMED')
+        self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
+        self.assertEqual(row['failure_terminal']['S'], m.canonical(terminal))
+    def test_failure_approval_lost_write_response_is_read_reconciled_without_retry(self):
+        self.ddb.rows[self.ddb.key(self.ledger.key(self.request))].update(state={'S':'CONSUMED'}, merge_sha={'S':'d'*40})
+        self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        event = signed(dict(action='APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY', request=copy.deepcopy(self.request),
+            request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence),
+            role=m.ROLES[0], approval_run_id='200', approval_run_attempt=1, workload=self.roles[m.ROLES[0]]))
+        self.ddb.fail_after_put = True
+        result = self.ledger.create_failure_approval(event)
+        self.assertEqual(result, {'state':'EXISTING_FAILURE_ASSURANCE_APPROVAL','write_performed':False})
+        self.assertEqual(self.ddb.writes, 2)  # One request pin and one approval put.
+        self.assertEqual(self.ledger.failure_context(signed(dict(action='READ_FAILED_ASSURANCE_TERMINAL_CONTEXT',
+            request=copy.deepcopy(self.request), request_digest=m.digest(self.request), role='FINALIZER',
+            run_id='400', run_attempt=1, workload=self.finalizer)))['state'], 'FAILURE_ASSURANCE_TERMINAL_PENDING')
     def test_forged_signature_or_wrong_workload_reject(self):
         e = self.approval(m.ROLES[0]); e['signature_b64'] = base64.b64encode(b'forged').decode()
         with self.assertRaisesRegex(ValueError, 'SIGNATURE'): self.ledger.create_approval(e)

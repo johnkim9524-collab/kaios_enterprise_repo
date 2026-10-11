@@ -4,7 +4,7 @@ import {readArchive} from '../validate-sentinel-producer-content-v1.mjs';
 import {validateInterruptedRecoveryRequest,observeInterruptedRecoveryNative} from './interrupted-reservation-recovery-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',id='1281328888';
 const check=(ok,code)=>{if(!ok)throw Error('INTERRUPTED_DISCOVERY_'+code);};
-export async function discoverInterruptedRecoveryCandidates({sourceSha,upstream,get,readBytes,now=()=>Date.now(),maxPages=10}){
+export async function discoverInterruptedRecoveryCandidates({sourceSha,upstream,failureParent=upstream?.recovery_parent,get,readBytes,archiveReader=readArchive,now=()=>Date.now(),maxPages=10}){
   check(/^[a-f0-9]{40}$/.test(sourceSha)&&Number.isSafeInteger(maxPages)&&maxPages>0&&maxPages<=10,'CONFIG');
   const candidates=[];let unrecoverable=0;const unresolved=[];
   for(const role of ['track','kpmo','independent-verification']){
@@ -37,19 +37,22 @@ export async function discoverInterruptedRecoveryCandidates({sourceSha,upstream,
           unrecoverable++;unresolved.push({run_id:run.id,artifact_id:artifact.id,state:'EXPIRED_ORIGINAL_ARTIFACT_READ_ONLY_UNRESOLVED'});continue;
         }
         const bytes=await readBytes(`actions/artifacts/${artifact.id}/zip`);check(Buffer.isBuffer(bytes)&&bytes.length===artifact.size_in_bytes,'ARCHIVE_SIZE');
-        const packet=readArchive(bytes,artifact.digest),members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='receipt.json');
+        const packet=archiveReader(bytes,artifact.digest),members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)==='receipt.json');
         check(members.length===1,'RECEIPT_CARDINALITY');const receipt=JSON.parse(members[0].text),o=receipt.original_reservation;
         if(!o){unrecoverable++;continue;}
-        if(o.pull_request===1677)continue;
+        if([1677,2214].includes(o.pull_request))continue;
+        if(failureParent&&o.pull_request!==2655)continue;
         check(receipt.id==='kidults-autonomous-internal-landing-terminal-receipt-v1'&&receipt.state==='QUARANTINED'
           &&receipt.authorization_generation===o.original_generation&&o.original_run_id===String(run.id)&&o.original_run_attempt===1
-          &&o.base_sha===run.head_sha&&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_RECEIPT');
+          &&o.base_sha===run.head_sha&&receipt.merge_performed===true&&receipt.terminal_evidence===null
+          &&receipt.retry_without_reconciliation===false&&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_RECEIPT');
         const pr=await get(`pulls/${o.pull_request}`);if(!pr.merged||pr.state!=='closed')continue;
-        const issued=upstream.created_at,request={id:'kidults-interrupted-reservation-postmerge-request-v1',version:'1.0.0',repository:repo,repository_id:id,
+        const issued=failureParent?upstream.updated_at:upstream.created_at,request={id:'kidults-interrupted-reservation-postmerge-request-v1',version:'1.0.0',repository:repo,repository_id:id,
           ...o,merge_sha:pr.merge_commit_sha,source_sha:sourceSha,issued_at:issued,expires_at:new Date(Date.parse(issued)+1800000).toISOString(),
           production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
         validateInterruptedRecoveryRequest(request,{now:now()});await observeInterruptedRecoveryNative({request,get,now:now()});
-        candidates.push({request,original_archive_digest:artifact.digest,original_artifact_id:artifact.id});
+        candidates.push({request,original_archive_digest:artifact.digest,original_artifact_id:artifact.id,
+          ...(failureParent?{failure_parent:failureParent}: {})});
       }
       if(count===total)break;
       check(count<total&&list.workflow_runs.length===100&&page<maxPages,'PAGINATION_INCOMPLETE');

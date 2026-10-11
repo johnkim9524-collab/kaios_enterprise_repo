@@ -3,7 +3,7 @@ run-name: "KIDULTS Autonomous Independent Verification V1 ${{ github.event.actio
 
 on:
   workflow_run:
-    workflows: ['KPMO Continuous Assurance Success Authority Gate V1']
+    workflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1']
     types: [completed]
     branches: [main]
   repository_dispatch:
@@ -19,7 +19,7 @@ permissions: {}
 jobs:
   record-role-approval:
     name: Record exact role-scoped autonomous approval
-    if: github.event_name == 'repository_dispatch' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'kidults.authorization.generation.v1' && github.ref == 'refs/heads/main' && github.run_attempt == 1
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-VERIFIER
     timeout-minutes: 10
@@ -224,7 +224,10 @@ jobs:
 
   terminal-recovery-approval:
     name: Bounded original reservation terminal recovery INDEPENDENT_VERIFIER
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: >-
+      github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-VERIFIER
     timeout-minutes: 15

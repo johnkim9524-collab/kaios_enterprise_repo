@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "aedee8b2507229d4e07345dea3f0f602a9005da7",
+  "revision": "4413eeee2a2c69c6e4752d9b2f598145c4c0e2dd",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 808
+    "file_count": 809
   },
   "files": [
     {
@@ -132,8 +132,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5f681ffa050254f958c200a08c12eec8f05a54a0",
-      "sha256": "sha256:0c1afa4d9acbd7b8674c79b4f249e7cfb2e9bd645a60873f8c3bf4cbbe6797f6",
+      "git_blob": "18217b57727fd7b2869c4f106c64c2e83ad052ac",
+      "sha256": "sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -145,8 +145,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "872edae312d82e3ecd6c6506302eb08ec39df19b",
-      "sha256": "sha256:0d992cbcc4addbef6171c26269b2db74e0efd3b6ff98778b0d1e2bb28c9a49ad",
+      "git_blob": "84b87f3093f63f1d3bec517f7a823045c34ad79a",
+      "sha256": "sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -171,8 +171,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "154713c79adab23809f26e27f4459fef424e7c2d",
-      "sha256": "sha256:1242dd6739e0b53347d9dfdf38ffa987afa12a45b458c91505350a33b9020eca",
+      "git_blob": "c04390b8ebbc24e71aaa7e9a4c2964d9feb566bd",
+      "sha256": "sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -561,8 +561,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "14e6539241e2cc539ac29fd47c0f08f0daca45e0",
-      "sha256": "sha256:cfe09f65b34d858c846061ac02c4687cc44013a1cdd90c0949658eadc93876f9",
+      "git_blob": "6c4c658ea0d0cce156e78c7e80aa893f133c4c9b",
+      "sha256": "sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3227,8 +3227,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "7ac20009e8266ea1c83f4960811aff436084e899",
-      "sha256": "sha256:bcee189a8fb03d6725ced1660d0bea904e93ae510b851a4bec9001bb58799a86"
+      "git_blob": "30d3080389da38d77f41ad50146b27562ffc1a95",
+      "sha256": "sha256:31a58d98fce640d65f9b3ae6811cfc4bdca7b8d3432843cd6dd6c728ec5f5e33"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -3397,8 +3397,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "113bc31f0ce2a69f0cac47983ab5742c48ffc8ab",
-      "sha256": "sha256:31b39a5d4c16fc5dca45c011c6d3cde1ce52f42e944b7570c8b8ea5f4e9d5d88",
+      "git_blob": "83e94a314b539763f3186304f74fb7a1040526bc",
+      "sha256": "sha256:99865b51c16cdd6d708df49630847253aba17abefbb4225b9eb9d21e9a07957a",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -3686,8 +3686,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2d9addf74eea30cdbdf7469876bc6e4ec9f4cf5d",
-      "sha256": "sha256:3bdd4cc94433c05f67f38bb7e3aa4be6147ee83c6bdf27a5980fb9976e0548d6",
+      "git_blob": "a9e0cf214ec024790a2ca673ed87f1d7c98fba1b",
+      "sha256": "sha256:3e74930f85432fc9b5c1ecbeeb00cd49234589075600397067426bd0dc3c8676",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4076,8 +4076,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-discovery-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d72b92d12b80512a9b031c192852960a841186ff",
-      "sha256": "sha256:c208d9f012330d3cd4a3837d443523049fb5a987f3393404bb2ca932fa9b47ed",
+      "git_blob": "c86a23fbe1c3b33638d842defedc274edcbb9135",
+      "sha256": "sha256:190fdbf08ead826caf6e8825cccbf20458c0174ee1d415f72cf29947cacc35a6",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4089,8 +4089,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-immutable-store-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5690e91d74148bcf1797adc03bc7af47914f6406",
-      "sha256": "sha256:c273bdacc0a2be44bd7d225a3d0e91c9bc59efb7b797ad1a945d6d81d4623eec",
+      "git_blob": "99742043acba7f8e0b3fe216b7b32bbf02367fcf",
+      "sha256": "sha256:97897f0e4a7f947f199c0e1e11e50f2bd901562060d19825283805c78a994e37",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -4102,8 +4102,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "382ba44188af7b2977e385e2bfdaddccde06f15d",
-      "sha256": "sha256:df7be6ea1b95beb5cf7dec167a651213347f5c41c7bc0056a7a49f8bb8f0f632",
+      "git_blob": "f6073d48d16af39000bad978ec73e6030c90d7f0",
+      "sha256": "sha256:b425e7089e8d54764626540e1f505441da15af4ef35195f556b2dedd15184183",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4115,8 +4115,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4c7639ade30fcbaf9d9195d316493897f6cf965c",
-      "sha256": "sha256:b91a963285fef47861e8a0a3328d3996fdff00250f7a385ea35b9d9e85467b3d",
+      "git_blob": "c90f76193ca8c0cf0f545ef29f9a819e126bd65d",
+      "sha256": "sha256:4ba7a4cba30284005282268cb9bea41b78c771fc8a01591b6bf9a7730025e823",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4128,8 +4128,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-workload-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ee672f9e0e26657f8a5c025a6f16d3aaac2a2c57",
-      "sha256": "sha256:0548a5b658a56be1c8e20d7c63e792c979de4c49323c8d46a2ed8a61fcb84dc1",
+      "git_blob": "ae56150b96253234f864468b60633acea066535c",
+      "sha256": "sha256:97914306d5583b7d98a351375e342f6b3bed7579ec9fcfc3f66995e38e348eeb",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4141,8 +4141,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-reservation-recovery-ledger-v1.py",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7c91c38782820fb65d3033b75066848fe7bb9862",
-      "sha256": "sha256:8d1c278fab7f8158c80293305533e9f14b03eea61bb16467cab4963a3ba20fef",
+      "git_blob": "4781053a285bbb41fb4f2f0c13bed18c9effc5ca",
+      "sha256": "sha256:26f79d794604943617dd6b1f9a0b8e7d9477f8e0e67c979c08089241ac1315b5",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4154,8 +4154,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fd31549b7103b45f0a017a5f1b1f80104dbc79d8",
-      "sha256": "sha256:6327ba9cb56357879cceb9ac5d381aa95497ecaa9e35ff1ec3a934dbf5840989",
+      "git_blob": "e587dade7f740b509389c8c52af50ef0474d3282",
+      "sha256": "sha256:d0839108e2838df45a61506235de3d1f293a92c0952d9e3c5ab5fe61d85730da",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4182,6 +4182,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "17b68645ae4a12f4438db08ae57a566c3e6d7e74",
       "sha256": "sha256:c74526b9c5d212456542bda2b7952488dae0c8369c2127e51fc33b01555bb628",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/lib/postmerge-recovery-exact-main-evidence-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "00bad47d414cc8421162b59a4110bfb8a7f44a3a",
+      "sha256": "sha256:883426f680456569c805fa142a7e8d6f9ef989cc75eab3b7a579dde5c34e98b7",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4402,8 +4415,8 @@
     {
       "path": "scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "980ca0e148ce20d49d7772f1b6784518d4a00b47",
-      "sha256": "sha256:ab9ac81888fed6e89ec91b3ac5666f322c4c83abe84bf70d5342c2664ed3e80d",
+      "git_blob": "0ab9a0b4335e1a7814c7804d19f9848d69eab1e2",
+      "sha256": "sha256:bce401e130a7c3f0d9f65e2bb0397937b8d5da2a1d211b89b4654953573854c8",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4818,8 +4831,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-workflow-repository-mutation-boundary-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "258466a400438924a2279413a8e8d62a32185408",
-      "sha256": "sha256:7c978cded04f6cf0eaf186da198e8f7b3dea949e49fa3dd98a0324323409aefc",
+      "git_blob": "6dca81d1b0cd88b3ff1e4bcca3b2d5ea287c65e2",
+      "sha256": "sha256:d004327b6f7e52878a981ddb040f0dabdb191fdb522b0a02f5c2e3260d414f16",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5203,8 +5216,8 @@
     {
       "path": "scripts/kidults/staging-operations/bundle-postmerge-recovery-ledger-v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "666446c81986a09ffe5439ff5055ec3d6b3c0247",
-      "sha256": "sha256:39a77d35854d5d197bd54f360445e748be110663fc577fe0d6012068de6423bf"
+      "git_blob": "42bf216e711c3ea5d67e3a57e7672aa142784e73",
+      "sha256": "sha256:05e5946d5d068194e990ea60454a2fe5e1feab07f76f81584beb732cbb8d276e"
     },
     {
       "path": "scripts/kidults/staging-operations/lib/autonomous-runtime-v1.mjs",
@@ -6419,8 +6432,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-discovery-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "57c8f5fd25c090590948e626cdcbb485a5d2385b",
-      "sha256": "sha256:6efaeaef7f351ab75da8d917e243288bf52bc0c5ba14a028f4e566cd37c08e7a"
+      "git_blob": "6ce5167bd96af9869009139e2ed52f10ab90219c",
+      "sha256": "sha256:88168dd1cb954adb533d7e2691c42c8b04c591f8e970bb84c799cf4f0f8614af"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-immutable-store-v1.test.mjs",
@@ -6437,8 +6450,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-native-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "7d6f60276b658cd8a454343c0871e9dc1f99e33e",
-      "sha256": "sha256:ef505b3f8199f06b5e0251e545454e74a5e92ecd1c524d3fa3c875db347e84cf"
+      "git_blob": "94461c9d9a787de5e9a9a1599748b683cd505206",
+      "sha256": "sha256:dc710ff634e212225964bd2d71403cc9ccee640b3798449d59e63cfb5b0b1069"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-signed-ledger-client-v1.test.mjs",
@@ -6449,8 +6462,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-workload-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "089d96a8492b3cf7dd6bbbf34b1bf1ecc2eb93df",
-      "sha256": "sha256:a2b2ac6dedbd21324944e6d4d3a56cfe028f1470f5f5288075de21f534397fb9"
+      "git_blob": "93797d0808e7d2233fa4f797f7cd386c030579ae",
+      "sha256": "sha256:de0ef27d9e2fce1a2e2727a7710d4a160aa3fcd57423c987e4da5ebaa0b1e049"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-reservation-recovery-v1.test.mjs",
@@ -6521,8 +6534,8 @@
     {
       "path": "tests/kidults/kpmo/test_interrupted_reservation_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f91a565e12ee60ff513fda6a7e1c93ee77a4d603",
-      "sha256": "sha256:01bf95845ff6daf515c44725fc1bb10fa72b505e87cb8dcf9f05859a687be9b5"
+      "git_blob": "82f80420f85b573ad65ebed3049f569faae9fb93",
+      "sha256": "sha256:e0190b527e28d906f820a28b89d8f48fb80da785d905eb8561b8c1ce30c8dd45"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -6533,8 +6546,8 @@
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3128d67d4d5ef3baf7ef952830a1a3c95317523e",
-      "sha256": "sha256:0a83d1f4311689b3847099a8e2e6628db7bffd273a186af6aa37836dfc36e75f"
+      "git_blob": "d951ffdf1f8b8a6b9b516be54896a9f273a3dfe3",
+      "sha256": "sha256:fbdbc642ad603caa6aa5de6ee6266030205afbb50b84c5bfe2ed5370ed12574e"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -6711,5 +6724,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4be95bb4d21cdbd994118e801b45042a14718979ed2f1cead6712e26206e96f8"
+  "manifest_sha256": "sha256:ce2e2860d894cb78415f71f569f1597a16abee27550e904d1e1b9f7581909c6a"
 }

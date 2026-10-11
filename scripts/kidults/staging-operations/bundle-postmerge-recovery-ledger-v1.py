@@ -56,11 +56,15 @@ def handler(event, context):
     }
     interrupted_methods = {
         'APPROVE_MERGED_RESERVATION_RECOVERY': 'create_approval',
+        'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY': 'create_failure_approval',
         'READ_MERGED_RECOVERY': 'read',
         'READ_MERGED_RECOVERY_CONTEXT': 'read_context',
+        'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT': 'failure_context',
         'CLAIM_MERGED_RECOVERY': 'claim',
         'CONSUME_MERGED_RECOVERY': 'consume',
         'ACK_MERGED_RECOVERY_IMMUTABLE': 'acknowledge',
+        'FINALIZE_FAILED_ASSURANCE_TERMINAL_RECOVERY': 'finalize_failure_terminal',
+        'ACK_FAILED_ASSURANCE_TERMINAL_IMMUTABLE': 'acknowledge_failure_terminal',
         'ACK_ORIGINAL_TERMINAL_IMMUTABLE': 'acknowledge_original',
         'SUPERSEDE_EXPIRED_MERGED_RECOVERY': 'supersede',
     }
