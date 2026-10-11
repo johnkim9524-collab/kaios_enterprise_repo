@@ -172,6 +172,26 @@ const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
 // Independent structural recomputation. Unlike the primary token graph, this
 // walks balanced source spans and reconstructs predicate bindings directly
 // from immutable source text. Unsupported or ambiguous balance fails closed.
+const regexCanStart=(source,start)=>{
+  let index=start-1;while(index>=0&&/\s/.test(source[index]))index-=1;
+  if(index<0)return true;
+  if(/[(\[{=:,;!?&|+*%^~<>-]/.test(source[index]))return true;
+  const word=source.slice(0,index+1).match(/([A-Za-z_$][\w$]*)$/)?.[1];
+  return ['return','throw','case','delete','void','typeof','instanceof','in','of','yield','await'].includes(word||'');
+};
+const regexEnd=(source,start,filename)=>{
+  let index=start+1,escaped=false,inClass=false;
+  for(;index<source.length;index+=1){
+    const char=source[index];
+    if(escaped){escaped=false;continue}
+    if(char==='\\'){escaped=true;continue}
+    if(char==='['){inClass=true;continue}
+    if(char===']'&&inClass){inClass=false;continue}
+    if(char==='/'&&!inClass){index+=1;while(/[A-Za-z]/.test(source[index]||''))index+=1;return index-1}
+    if(char==='\n'||char==='\r')break;
+  }
+  deny('INDEPENDENT_SCRIPT_PARSE_FAILED',`${filename}:regex`);
+};
 const balancedEnd=(source,start,open,close,filename)=>{
   let depth=0,quote='',escaped=false,lineComment=false,blockComment=false;
   for(let index=start;index<source.length;index+=1){
@@ -181,16 +201,22 @@ const balancedEnd=(source,start,open,close,filename)=>{
     if(quote){if(escaped){escaped=false;continue}if(char==='\\'){escaped=true;continue}if(char===quote)quote='';continue}
     if(char==='/'&&next==='/'){lineComment=true;index+=1;continue}
     if(char==='/'&&next==='*'){blockComment=true;index+=1;continue}
+    if(char==='/'&&regexCanStart(source,index)){index=regexEnd(source,index,filename);continue}
     if(char==='"'||char==="'"||char==='`'){quote=char;continue}
     if(char===open)depth+=1;else if(char===close&&--depth===0)return index;
   }
   deny('INDEPENDENT_SCRIPT_PARSE_FAILED',filename);
 };
 const statementEnd=(source,start,filename)=>{
-  let round=0,square=0,curly=0,quote='',escaped=false;
+  let round=0,square=0,curly=0,quote='',escaped=false,lineComment=false,blockComment=false;
   for(let index=start;index<source.length;index+=1){
-    const char=source[index];
+    const char=source[index],next=source[index+1];
+    if(lineComment){if(char==='\n')lineComment=false;continue}
+    if(blockComment){if(char==='*'&&next==='/'){blockComment=false;index+=1}continue}
     if(quote){if(escaped){escaped=false;continue}if(char==='\\'){escaped=true;continue}if(char===quote)quote='';continue}
+    if(char==='/'&&next==='/'){lineComment=true;index+=1;continue}
+    if(char==='/'&&next==='*'){blockComment=true;index+=1;continue}
+    if(char==='/'&&regexCanStart(source,index)){index=regexEnd(source,index,filename);continue}
     if(char==='"'||char==="'"||char==='`'){quote=char;continue}
     if(char==='(')round+=1;else if(char===')')round-=1;else if(char==='[')square+=1;else if(char===']')square-=1;else if(char==='{')curly+=1;else if(char==='}')curly-=1;
     if(char===';'&&round===0&&square===0&&curly===0)return index;
@@ -297,3 +323,4 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   }
   return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts))};
 };
+
