@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {execFileSync} from 'node:child_process';
+import {checkTransport,readArchive} from './validate-sentinel-producer-content-v1.mjs';
+import {validateTerminalNullAssurancePacket} from './lib/terminal-null-assurance-packet-v1.mjs';
 
 const shaPattern = /^[0-9a-f]{40}$/;
 const receiptId = 'kidults-direct-owner-landing-handoff-receipt-v1';
@@ -148,7 +151,7 @@ function successfulNamedStep(steps, name) {
   return matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success';
 }
 
-export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId, expectedEvent = 'push') {
+export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId, expectedEvent = 'push', failurePacket = null) {
   requireCondition(Array.isArray(jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_INVALID');
   requireCondition(shaPattern.test(mergeSha || ''), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_MERGE_SHA_INVALID');
   requireCondition(Number.isInteger(Number(expectedRunId)) && Number(expectedRunId) > 0, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_RUN_ID_INVALID');
@@ -220,6 +223,20 @@ export function classifyAssuranceSemantics(jobs, mergeSha, expectedRunId, expect
       const matches = (audit.steps || []).filter(step => step?.name === name);
       return matches.length === 1 && matches[0].status === 'completed' && matches[0].conclusion === 'success';
     });
+    const terminalFailureSteps=['Reconcile whole platform operating receipts without side effects',
+      'Observe internal recovery evidence without claiming operating completion'];
+    if(expectedEvent==='push'&&conclusions.every(value=>value==='skipped')&&retainedHoldProofValid
+      &&successfulNamedStep(audit.steps,assuranceWatchCoverageStep)
+      &&failedSteps.length===2&&terminalFailureSteps.every(name=>failedSteps.some(step=>step.name===name))
+      &&failurePacket&&String(failurePacket.run?.id)===String(expectedRunId)&&failurePacket.run.event==='push'){
+      try{
+        const content=validateTerminalNullAssurancePacket({...failurePacket,sourceSha:mergeSha});
+        return {ok:true,state:'ASSURANCE_ORIGINAL_TERMINAL_FAILURE_RETAINED',...content,
+          exact_merge_sha:mergeSha,run_id:Number(expectedRunId),audit_job_id:Number(audit.id),bindings,
+          failed_steps:terminalFailureSteps,archive_digest:failurePacket.archive_digest,
+          artifact_id:failurePacket.artifact_id,landing_integrity_only:true};
+      }catch{return {ok:false,reason:'ASSURANCE_TERMINAL_FAILURE_PACKET_INVALID'};}
+    }
     if (conclusions.every(value => value === 'skipped') &&
         failedSteps.length === 1 && failedSteps[0].name === assuranceAllowedHoldFailureStep &&
         retainedHoldProofValid) {
@@ -473,6 +490,25 @@ async function main() {
   const assuranceSettleDeadline = Date.now() + Math.min(waitSeconds, 30) * 1000;
   let assuranceSemanticProof = null;
   let latestAssuranceJobs = [];
+  const readFailurePacket=async()=>{
+    const run=await request(`/actions/runs/${assuranceRun.run_id}`);
+    const listing=await request(`/actions/runs/${run.id}/artifacts?per_page=100`);
+    requireCondition(Array.isArray(listing?.artifacts)&&listing.total_count===listing.artifacts.length&&listing.total_count<=100,
+      'DIRECT_OWNER_POSTMERGE_FAILURE_ARTIFACT_LIST_INVALID');
+    const matches=listing.artifacts.filter(a=>a.name===`kidults-continuous-assurance-${mergeSha}-${run.id}-1`);
+    requireCondition(matches.length===1,'DIRECT_OWNER_POSTMERGE_FAILURE_ARTIFACT_CARDINALITY');
+    const artifact=matches[0];checkTransport(run,artifact,mergeSha,new Date().toISOString(),{allowFailedConclusion:true});
+    const bytes=execFileSync('gh',['api',`repos/${repository}/actions/artifacts/${artifact.id}/zip`],
+      {timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
+    requireCondition(bytes.length===artifact.size_in_bytes,'DIRECT_OWNER_POSTMERGE_FAILURE_ARCHIVE_SIZE');
+    const packet=readArchive(bytes,artifact.digest);
+    const member=name=>{
+      const rows=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)===name);
+      requireCondition(rows.length===1,'DIRECT_OWNER_POSTMERGE_FAILURE_MEMBER_CARDINALITY');return JSON.parse(rows[0].text);
+    };
+    return {run,audit:member('audit-receipt.json'),proof:member('whole-platform-operating-proof-v1.json'),
+      artifact_id:artifact.id,archive_digest:packet.archive_digest};
+  };
   while (true) {
     const jobsPayload = await request(`/actions/runs/${assuranceRun.run_id}/jobs?per_page=100`);
     requireCondition(Array.isArray(jobsPayload?.jobs), 'DIRECT_OWNER_POSTMERGE_ASSURANCE_JOBS_SHAPE_INVALID');
@@ -486,7 +522,10 @@ async function main() {
       latestAssuranceJobs = jobsPayload.jobs;
     }
     if (assuranceJobMetadataSettled(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event)) {
-      assuranceSemanticProof = classifyAssuranceSemantics(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event);
+      const needsPacket=assuranceRun.conclusion==='failure'
+        &&latestAssuranceJobs[0]?.steps?.filter(s=>s.status==='completed'&&s.conclusion==='failure').length===2;
+      assuranceSemanticProof = classifyAssuranceSemantics(latestAssuranceJobs, mergeSha, assuranceRun.run_id, policy.event,
+        needsPacket?await readFailurePacket():null);
       requireCondition(assuranceSemanticProof.ok === true, 'DIRECT_OWNER_POSTMERGE_ASSURANCE_SEMANTIC_CLASSIFICATION_INVALID', assuranceSemanticProof);
       break;
     }
