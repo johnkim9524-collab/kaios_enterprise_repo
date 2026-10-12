@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {validateInterruptedRecoveryRequest} from './interrupted-reservation-recovery-v1.mjs';
 
@@ -38,7 +39,7 @@ export function recoveryTransportDiagnostic({metadata,output,envelope,sourceSha,
   try{
     const stat=fs.lstatSync(output);
     if(!stat.isFile()||stat.isSymbolicLink()||stat.size>131072){diagnostic.response_state='REJECTED_FILE';return diagnostic;}
-    const bytes=fs.readFileSync(output);diagnostic.response_sha256=sha256(bytes);diagnostic.response_state='BOUNDED_BYTES';
+    const bytes=fs.readFileSync(output);diagnostic.response_sha256='sha256:'+createHash('sha256').update(bytes).digest('hex');diagnostic.response_state='BOUNDED_BYTES';
     const response=JSON.parse(bytes.toString('utf8'));
     if(['ValueError','KeyError','TypeError','RuntimeError','ClientError'].includes(response?.errorType))diagnostic.error_type=response.errorType;
     if(safeWriterCodes.has(response?.errorMessage))diagnostic.writer_error_code=response.errorMessage;

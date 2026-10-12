@@ -13,6 +13,7 @@ import {
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {validateOwnerRecoveryBootstrapResume} from '../../governance/lib/owner-recovery-bootstrap-resume-v1.mjs';
 import {verifyDirectOwnerMergeWindow} from './lib/direct-owner-merge-window-v1.mjs';
+import {githubHttpFailureError} from './lib/github-http-failure-diagnostic-v1.mjs';
 
 const MARKER = 'KIDULTS_DIRECT_OWNER_EVENT_EMITTING_MERGE_APPROVAL_V2';
 const OPERATION = 'MERGE_PROTECTED_MAIN';
@@ -62,7 +63,7 @@ const request = async (apiPath, options = {}) => {
     redirect: 'error',
   });
   const payload = response.status === 204 ? null : await response.json().catch(() => null);
-  if (!response.ok) fail(`DIRECT_OWNER_HANDOFF_GITHUB_API_${response.status}`);
+  if (!response.ok) throw githubHttpFailureError({apiPath,method:options.method||'GET',response,payload});
   return payload;
 };
 const pages = async apiPath => {
@@ -471,11 +472,14 @@ try {
   console.log(JSON.stringify(receipt, null, 2));
 } catch (error) {
   const failureCode = String(error?.code || error?.message || 'DIRECT_OWNER_HANDOFF_FAILED').slice(0, 140);
+  let failureStatusDiagnostic;
   if (statusTouched) {
-    try { await publish('failure', failureCode); } catch {}
+    try { await publish('failure', failureCode); } catch (publishError) {failureStatusDiagnostic=publishError.http_diagnostic;}
   }
   try {
     writeReceipt({...receipt, state: 'VERIFIED_FAIL', failure_code: failureCode,
+      ...(error.http_diagnostic?{http_diagnostic:error.http_diagnostic}:{}),
+      ...(failureStatusDiagnostic?{failure_status_publish_diagnostic:failureStatusDiagnostic}:{}),
       ...(error.merge_time_precision ? {merge_time_precision: error.merge_time_precision} : {}),
       handoff_closed_at: new Date().toISOString()});
   } catch {}

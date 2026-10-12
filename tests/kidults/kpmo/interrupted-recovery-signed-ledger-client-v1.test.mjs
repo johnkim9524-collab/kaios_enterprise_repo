@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {execFileSync,spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
+import {createHash} from 'node:crypto';
 import {createInterruptedRecoverySignedLedgerClient,createInterruptedRecoveryAwsTransport,recoveryTransportDiagnostic} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',source='e'.repeat(40),key='arn:aws:kms:ap-northeast-2:528314240275:key/key-1',now=Date.parse('2026-10-11T00:01:00Z');
@@ -86,6 +87,7 @@ test('malformed, oversized and symlink responses never escape bounded diagnostic
  try{
   const output=path.join(dir,'response.json'),input={metadata:{StatusCode:200,FunctionError:'Unhandled'},output,envelope:{action:'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT'},sourceSha:source,role:'KPMO',runId:'400'};
   fs.writeFileSync(output,'malformed private content');let d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'BOUNDED_BYTES');assert.equal(d.error_type,null);assert.equal(JSON.stringify(d).includes('private'),false);
+  const invalidUtf8=Buffer.from([0xff,0xfe,0x80]);fs.writeFileSync(output,invalidUtf8);d=recoveryTransportDiagnostic(input);assert.equal(d.response_sha256,'sha256:'+createHash('sha256').update(invalidUtf8).digest('hex'));
   fs.writeFileSync(output,'x'.repeat(131073));d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'REJECTED_FILE');assert.equal(d.response_sha256,null);
   fs.unlinkSync(output);const secret=path.join(dir,'secret');fs.writeFileSync(secret,'private');fs.symlinkSync(secret,output);
   d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'REJECTED_FILE');assert.equal(d.response_sha256,null);
