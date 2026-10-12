@@ -1,7 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {createInterruptedRecoverySignedLedgerClient,createInterruptedRecoveryAwsTransport} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs';
+import os from 'node:os';
+import path from 'node:path';
+import {execFileSync,spawnSync} from 'node:child_process';
+import {pathToFileURL} from 'node:url';
+import {createHash} from 'node:crypto';
+import {createInterruptedRecoverySignedLedgerClient,createInterruptedRecoveryAwsTransport,recoveryTransportDiagnostic} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',source='e'.repeat(40),key='arn:aws:kms:ap-northeast-2:528314240275:key/key-1',now=Date.parse('2026-10-11T00:01:00Z');
 function fixture(role='FINALIZER'){
@@ -29,6 +34,65 @@ for(const [name,mutate] of [
 test('run impersonation and quarantined operation never sign',async()=>{const f=fixture(),c=await f.client();await assert.rejects(c.read({request:f.request,run_id:'401'}),/EXECUTION_BINDING/);f.request.pull_request=1677;await assert.rejects(c.read({request:f.request,run_id:'400'}),/QUARANTINE/);assert.equal(f.calls.filter(x=>x[0]==='kms').length,0);});
 test('role cannot perform finalizer CAS; finalizer cannot approve',async()=>{const f=fixture('KPMO'),c=await f.client();await assert.rejects(c.supersede({request:f.request,run_id:'400'}),/FINALIZER_REQUIRED/);const g=fixture();await assert.rejects((await g.client()).createApproval({request:g.request,evidence:{source_sha:source}}),/APPROVAL_ROLE/);});
 test('ambiguous Lambda failure invokes once only',async()=>{const f=fixture(),c=await f.client();f.metadata.FunctionError='Unhandled';await assert.rejects(c.consume({request:f.request,run_id:'400',revision:1,terminal:{}}),/NO_RETRY/);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);});
+test('failed writer read preserves safe cause and hash before private response deletion',async()=>{
+ const f=fixture('KPMO'),c=await f.client();f.metadata.FunctionError='Unhandled';
+ f.response={errorType:'ValueError',errorMessage:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY',stackTrace:['private stack secret'],payload:'private secret'};
+ let caught;try{await c.readFailureContext({request:f.request});}catch(e){caught=e;}
+ assert.match(caught.message,/TRANSPORT_UNKNOWN_NO_RETRY/);const d=caught.recovery_transport_diagnostic;
+ assert.equal(d.operation,'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT');assert.equal(d.status_code,200);assert.equal(d.function_error,'Unhandled');
+ assert.equal(d.error_type,'ValueError');assert.equal(d.writer_error_code,f.response.errorMessage);
+ assert.equal(d.response_sha256,sha256(Buffer.from(JSON.stringify(f.response))));
+ assert.equal(d.retry_authorized,false);assert.equal(d.actual_authority_granted,false);
+ assert.equal(JSON.stringify(d).includes('private'),false);assert.equal(JSON.stringify(d).includes('signature'),false);
+ const invocation=f.calls.find(x=>x[0]==='lambda');assert.equal(fs.existsSync(invocation.at(-1)),false);
+ assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
+});
+test('AWS failure classification never retains resource, account or error message',async()=>{
+ const f=fixture(),c=await f.client();f.metadata.FunctionError='Handled';f.response={errorType:'ClientError',errorMessage:'An error occurred (AccessDeniedException) when calling the GetItem operation: private resource secret'};
+ let caught;try{await c.read({request:f.request,run_id:'400'});}catch(e){caught=e;}
+ const d=caught.recovery_transport_diagnostic;assert.equal(d.aws_error_code,'AccessDeniedException');assert.equal(d.writer_error_code,null);
+ assert.equal(JSON.stringify(d).includes('private'),false);assert.equal(JSON.stringify(d).includes('GetItem'),false);
+});
+test('unregistered error strings and function metadata are never copied',async()=>{
+ const f=fixture(),c=await f.client();f.metadata={StatusCode:503,FunctionError:'private metadata'};
+ f.response={errorType:'private type',errorMessage:'INTERRUPTED_RECOVERY_SIGNATURE secret'};
+ let caught;try{await c.read({request:f.request,run_id:'400'});}catch(e){caught=e;}
+ const d=caught.recovery_transport_diagnostic;assert.equal(d.status_code,503);assert.equal(d.function_error,null);assert.equal(d.error_type,null);assert.equal(d.writer_error_code,null);assert.equal(JSON.stringify(d).includes('secret'),false);
+});
+test('CLI invocation failure has a safe diagnostic without a second invoke',async()=>{
+ const f=fixture(),original=f.aws;f.aws=async args=>{if(args[0]==='lambda'){f.calls.push(args);throw new Error('private stderr signature secret');}return original(args);};
+ const c=await f.client();let caught;try{await c.read({request:f.request,run_id:'400'});}catch(e){caught=e;}
+ assert.equal(caught.message,'INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');assert.equal(caught.recovery_transport_diagnostic.response_state,'UNAVAILABLE');
+ assert.equal(JSON.stringify(caught.recovery_transport_diagnostic).includes('secret'),false);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
+});
+test('actual recovery CLI catch retains diagnostic artifact and remains nonzero',()=>{
+ const root=process.cwd(),dir=fs.mkdtempSync(path.join(os.tmpdir(),'recovery-hold-regression-'));
+ try{
+  const expected=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
+  const gitDir=execFileSync('git',['rev-parse','--absolute-git-dir'],{encoding:'utf8'}).trim();
+  const diagnostic={id:'kidults-interrupted-recovery-transport-diagnostic-v1',status_code:200,function_error:'Unhandled',writer_error_code:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY',retry_authorized:false,actual_authority_granted:false,promotion_eligible:false};
+  const stub=`export const recoveryNativeGet=()=>{throw Error('UNEXPECTED_GET')}; export const verifyFailureAssuranceParent=()=>{throw Error('UNEXPECTED_PARENT')}; export async function verifyInterruptedRecoveryNativeTrigger(){const e=new Error('INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');e.recovery_transport_diagnostic=${JSON.stringify(diagnostic)};throw e;}`;
+  const stubUrl='data:text/javascript,'+encodeURIComponent(stub);
+  const loader=path.join(dir,'trusted-test-loader.mjs');
+  fs.writeFileSync(loader,`export async function resolve(specifier,context,nextResolve){if(specifier.endsWith('/interrupted-recovery-native-trigger-v1.mjs'))return {url:${JSON.stringify(stubUrl)},shortCircuit:true};return nextResolve(specifier,context);}`);
+  const env={...process.env,GITHUB_SHA:expected,GIT_DIR:gitDir};delete env.NODE_OPTIONS;
+  const result=spawnSync(process.execPath,['--loader',pathToFileURL(loader).href,path.join(root,'scripts/kidults/kpmo/run-interrupted-terminal-recovery-v1.mjs')],{cwd:dir,env,encoding:'utf8',timeout:30000});
+  assert.equal(result.status,1);assert.match(result.stderr,/INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY/);
+  const receipt=JSON.parse(fs.readFileSync(path.join(dir,'out/postmerge-terminal-recovery-v1/interrupted-hold.json')));
+  assert.equal(receipt.state,'HOLD');assert.equal(receipt.promotion_eligible,false);assert.deepEqual(receipt.transport_diagnostic,diagnostic);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+test('malformed, oversized and symlink responses never escape bounded diagnostic',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'recovery-response-bounds-'));
+ try{
+  const output=path.join(dir,'response.json'),input={metadata:{StatusCode:200,FunctionError:'Unhandled'},output,envelope:{action:'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT'},sourceSha:source,role:'KPMO',runId:'400'};
+  fs.writeFileSync(output,'malformed private content');let d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'BOUNDED_BYTES');assert.equal(d.error_type,null);assert.equal(JSON.stringify(d).includes('private'),false);
+  const invalidUtf8=Buffer.from([0xff,0xfe,0x80]);fs.writeFileSync(output,invalidUtf8);d=recoveryTransportDiagnostic(input);assert.equal(d.response_sha256,'sha256:'+createHash('sha256').update(invalidUtf8).digest('hex'));
+  fs.writeFileSync(output,'x'.repeat(131073));d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'REJECTED_FILE');assert.equal(d.response_sha256,null);
+  fs.unlinkSync(output);const secret=path.join(dir,'secret');fs.writeFileSync(secret,'private');fs.symlinkSync(secret,output);
+  d=recoveryTransportDiagnostic(input);assert.equal(d.response_state,'REJECTED_FILE');assert.equal(d.response_sha256,null);
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
 test('fresh source drift rejects but read-only historical request remains bound',async()=>{const f=fixture(),c=await f.client();f.request.source_sha='a'.repeat(40);await assert.rejects(c.claim({request:f.request,run_id:'400',expected_revision:0,lease_seconds:120}),/SOURCE_BINDING/);await c.read({request:f.request,run_id:'400'});assert.equal(f.envelope.request.source_sha,'a'.repeat(40));});
 test('actual subprocess contract overrides ambient CLI retries and bounds network timeouts',()=>{
  let calls=0;
