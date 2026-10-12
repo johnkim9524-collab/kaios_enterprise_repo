@@ -67,10 +67,11 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
     expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
     return equal(expected,to);
   }
-  // Exact previously landed capsule to failure-Assurance capsule. Keep every
-  // non-code Lambda property identical; no IAM/environment drift is admitted.
+  // Exact previously landed capsules may converge directly to the reviewed
+  // original-terminal-repair capsule. Keep every non-code Lambda property
+  // identical; no IAM/environment drift is admitted.
   if (typeof source === 'string' && [DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
-      && sha256Hex(to?.Properties?.Code?.ZipFile || '') === CURRENT_RECOVERY_CAPSULE_WRITER_SHA256) {
+      && sha256Hex(to?.Properties?.Code?.ZipFile || '') === ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256) {
     const expected = structuredClone(from);
     expected.Properties.Code.ZipFile = to.Properties.Code.ZipFile;
     return equal(expected, to);
@@ -83,7 +84,7 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   // desired capsule contains the reviewed V2 core plus the bounded recovery
   // sources.  Admit only that exact historical/current digest pair and the
   // exact receipt-bucket binding; every other property still has to match.
-  if(sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(targetZip)===CURRENT_RECOVERY_CAPSULE_WRITER_SHA256){
+  if(sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(targetZip)===ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256){
     expected.Properties.Code.ZipFile=targetZip;
     expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
     return equal(expected,to);
