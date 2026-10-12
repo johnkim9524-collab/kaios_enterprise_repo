@@ -45,7 +45,8 @@ const RECOVERY_BASE_WRITER_SHA256 = '2d8ffee622929b322de4b75957122ca44928cef08ba
 const CONSUMPTION_V1_WRITER_SHA256 = '3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad';
 const CONSUMPTION_V2_WRITER_SHA256 = '688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d';
 const CONSUMPTION_V2_PRE_RECOVERY_SHA256 = '7820ad57800393b22ec77afe30e4c2a082610ac8a2020322bf9243841fdd6bf2';
-const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
+const FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
+const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
@@ -54,7 +55,7 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const source=from?.Properties?.Code?.ZipFile;
   // Exact previously landed capsule to failure-Assurance capsule. Keep every
   // non-code Lambda property identical; no IAM/environment drift is admitted.
-  if (typeof source === 'string' && sha256Hex(source) === DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256
+  if (typeof source === 'string' && [DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
       && sha256Hex(to?.Properties?.Code?.ZipFile || '') === CURRENT_RECOVERY_CAPSULE_WRITER_SHA256) {
     const expected = structuredClone(from);
     expected.Properties.Code.ZipFile = to.Properties.Code.ZipFile;
