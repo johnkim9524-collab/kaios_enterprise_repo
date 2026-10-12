@@ -45,7 +45,7 @@ export async function discoverInterruptedRecoveryCandidates({sourceSha,upstream,
           &&o.base_sha===run.head_sha&&receipt.merge_performed===true&&receipt.terminal_evidence===null
           &&receipt.retry_without_reconciliation===false&&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_RECEIPT');
         const pr=await get(`pulls/${o.pull_request}`);if(!pr.merged||pr.state!=='closed'){check(!failureParent,'EXACT_ORIGINAL_UNMERGED');return;}
-        const issued=failureParent?upstream.updated_at:upstream.created_at,request={id:'kidults-interrupted-reservation-postmerge-request-v1',version:'1.0.0',repository:repo,repository_id:id,
+        const issued=new Date(now()).toISOString(),request={id:'kidults-interrupted-reservation-postmerge-request-v1',version:'1.0.0',repository:repo,repository_id:id,
           ...o,merge_sha:pr.merge_commit_sha,source_sha:sourceSha,issued_at:issued,expires_at:new Date(Date.parse(issued)+1800000).toISOString(),
           production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
         validateInterruptedRecoveryRequest(request,{now:now()});await observeInterruptedRecoveryNative({request,get,now:now()});

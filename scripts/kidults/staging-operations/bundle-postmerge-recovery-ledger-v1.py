@@ -65,6 +65,8 @@ def handler(event, context):
         'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'finalize_original_terminal_repair',
         'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE': 'acknowledge_original_terminal_repair',
         'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT': 'read_original_terminal_repair_context',
+        'CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'claim_original_terminal_repair',
+        'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'supersede_original_terminal_repair',
         'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY': 'create_failure_approval',
         'READ_MERGED_RECOVERY': 'read',
         'READ_MERGED_RECOVERY_CONTEXT': 'read_context',

@@ -108,6 +108,13 @@ class RecoveryTest(unittest.TestCase):
             'head_sha': {'S': self.request['head_sha']}, 'merge_sha': {'S': self.request['merge_sha']}, 'state': {'S': 'RESERVED'}}
     def approval(self, role, run=None):
         return signed(dict(action='APPROVE_MERGED_RESERVATION_RECOVERY', request=copy.deepcopy(self.request), request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence), role=role, approval_run_id=run or str(200+m.ROLES.index(role)), approval_run_attempt=1, workload=self.roles[role]))
+    def original_repair_approval(self, request, evidence, role, run_id, old_request=None):
+        envelope=dict(action='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR',request=copy.deepcopy(request),
+            request_digest=m.digest(request),evidence=copy.deepcopy(evidence),evidence_digest=m.digest(evidence),
+            role=role,approval_run_id=str(run_id),approval_run_attempt=1,workload=self.roles[role])
+        if old_request is not None:
+            envelope.update(old_request=copy.deepcopy(old_request),old_request_digest=m.digest(old_request))
+        return signed(envelope)
     def approve(self):
         for role in m.ROLES: self.ledger.create_approval(self.approval(role))
     def final(self, action, run='400', **extra):
@@ -173,11 +180,79 @@ class RecoveryTest(unittest.TestCase):
             before = self.ddb.writes
             self.assertEqual(ns['handler'](read_event, None)['state'], 'ORIGINAL_TERMINAL_REPAIR_PENDING')
             self.assertEqual(self.ddb.writes, before)
+            claim_event=signed(dict(action='CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',request=repair_request,
+                request_digest=m.digest(repair_request),run_id='900',run_attempt=1,expected_revision=0,
+                lease_seconds=60,workload=self.finalizer))
+            with self.assertRaisesRegex(ValueError,'ORIGINAL_REPAIR_CLAIM_CONTEXT'):
+                ns['handler'](claim_event,None)
             for role in m.ROLES: self.assertTrue(ns['handler'](self.approval(role), None)['ok'])
             self.assertEqual(ns['handler'](self.final('CLAIM_MERGED_RECOVERY', expected_revision=0, lease_seconds=60), None)['revision'], 1)
             self.assertEqual(ns['handler'](self.final('CONSUME_MERGED_RECOVERY', revision=1, terminal=self.terminal()), None)['state'], 'CONSUMED')
             self.assertEqual(ns['handler'](self.final('READ_MERGED_RECOVERY'), None)['original_run_id'], '100')
         self.assertEqual(ns['digest']('abc'), 'sha256:'+hashlib.sha256(b'abc').hexdigest())
+
+    def test_original_repair_supersession_binds_expired_request_and_quiescent_reservation(self):
+        self.use_original_repair_case()
+        old = copy.deepcopy(self.request); old_evidence = copy.deepcopy(self.evidence)
+        old_digest = m.digest(old); old_ed = m.digest(old_evidence)
+        for i,role in enumerate(m.ROLES):
+            self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(old,old_evidence,role,210+i))
+        self.clock = int(m.epoch(old['expires_at'])) + 1
+        new = copy.deepcopy(old); new['issued_at'] = '2026-10-12T00:30:00Z'; new['expires_at'] = '2026-10-12T01:00:00Z'
+        self.clock = int(m.epoch(new['issued_at']))
+        for i,role in enumerate(m.ROLES):
+            self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(new,old_evidence,role,310+i,old))
+        event = signed({'action':'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR','request':new,
+            'request_digest':m.digest(new),'old_request':old,'old_request_digest':old_digest,
+            'evidence':old_evidence,'evidence_digest':old_ed,'run_id':'700','run_attempt':1,'workload':self.finalizer})
+        result = self.ledger.supersede_original_terminal_repair(event)
+        self.assertEqual(result['state'],'ORIGINAL_TERMINAL_REPAIR_SUPERSEDED_NEW_QUORUM_VERIFIED')
+        self.assertFalse(result['old_approvals_reusable'])
+        row=self.ledger.get(self.ledger.key(new))
+        self.assertEqual(row['repair_request']['S'],m.canonical(new))
+        self.assertEqual(row['repair_evidence_digest']['S'],old_ed)
+        self.request=new
+        lease=self.ledger.claim_original_terminal_repair(self.final('CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',run='701',
+            expected_revision=1,lease_seconds=60))
+        self.assertEqual(lease['revision'],2)
+
+    def test_original_repair_supersession_rejects_active_lease_and_terminal_race(self):
+        for field in ('repair_lease_until','ir_lease_until'):
+            with self.subTest(field=field):
+                self.use_original_repair_case()
+                old = copy.deepcopy(self.request); body = copy.deepcopy(self.evidence)
+                ed = m.digest(body); rd = m.digest(old)
+                row = self.ddb.rows[self.ddb.key(self.ledger.key(old))]
+                row.update(repair_request={'S':m.canonical(old)},repair_evidence={'S':m.canonical(body)},repair_evidence_digest={'S':ed},
+                           )
+                self.clock = int(m.epoch(old['expires_at']))+1
+                new=copy.deepcopy(old);new['issued_at']='2026-10-12T00:30:00Z';new['expires_at']='2026-10-12T01:00:00Z'
+                self.clock=int(m.epoch(new['issued_at']))
+                for i,role in enumerate(m.ROLES):
+                    self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(new,body,role,410+i,old))
+                row[field]={'N':str(self.clock+90)}
+                event=signed({'action':'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR','request':new,'request_digest':m.digest(new),
+                    'old_request':old,'old_request_digest':rd,'evidence':body,'evidence_digest':ed,'run_id':'701','run_attempt':1,'workload':self.finalizer})
+                with self.assertRaisesRegex(ValueError,'ORIGINAL_REPAIR_SUCCESSOR_NOT_QUIESCENT'):
+                    self.ledger.supersede_original_terminal_repair(event)
+    def test_original_repair_successor_needs_three_fresh_nonfinalizer_signatures(self):
+        self.use_original_repair_case()
+        old=copy.deepcopy(self.request);body=copy.deepcopy(self.evidence);old_digest=m.digest(old)
+        for i,role in enumerate(m.ROLES):
+            self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(old,body,role,210+i))
+        self.clock=int(m.epoch(old['expires_at']))+1
+        new=copy.deepcopy(old);new['issued_at']='2026-10-12T00:30:00Z';new['expires_at']='2026-10-12T01:00:00Z'
+        self.clock=int(m.epoch(new['issued_at']))
+        def event():
+            return signed({'action':'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR','request':new,
+                'request_digest':m.digest(new),'old_request':old,'old_request_digest':old_digest,
+                'evidence':body,'evidence_digest':m.digest(body),'run_id':'700','run_attempt':1,'workload':self.finalizer})
+        with self.assertRaisesRegex(ValueError,'ORIGINAL_REPAIR_SUCCESSOR_QUORUM'):
+            self.ledger.supersede_original_terminal_repair(event())
+        for i,role in enumerate(m.ROLES):
+            self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(new,body,role,210+i,old))
+        with self.assertRaisesRegex(ValueError,'ORIGINAL_REPAIR_SUCCESSOR_FRESH_QUORUM'):
+            self.ledger.supersede_original_terminal_repair(event())
     def test_complete_preserves_original_tuple_and_reuses_consumption(self):
         self.approve(); self.claim(); self.assertTrue(self.consume()['write_performed'])
         self.clock += 2000; self.assertFalse(self.consume()['write_performed'])
@@ -272,7 +347,11 @@ class RecoveryTest(unittest.TestCase):
             original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
             actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
         terminal['repair_digest'] = m.digest(terminal)
-        final = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
+        lease=self.ledger.claim_original_terminal_repair(self.final('CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',run='400',
+            expected_revision=0,lease_seconds=60))
+        self.assertEqual(lease['revision'],1)
+        final = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal,
+            evidence_digest=m.digest(evidence),expected_revision=lease['revision'])
         result = self.ledger.finalize_original_terminal_repair(final)
         self.assertEqual(result['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
         self.assertFalse(result['actual_authority_granted']); self.assertFalse(result['promotion_eligible'])
@@ -331,9 +410,39 @@ class RecoveryTest(unittest.TestCase):
             original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
             actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
         terminal['repair_digest'] = m.digest(terminal)
-        packet = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
-        with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_QUORUM_RUN_COLLISION'):
-            self.ledger.finalize_original_terminal_repair(packet)
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_CLAIM_QUORUM'):
+            self.ledger.claim_original_terminal_repair(self.final('CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',run='400',
+                expected_revision=0,lease_seconds=60))
+
+    def test_original_terminal_repair_cas_fences_concurrent_merge_sha_change(self):
+        self.use_original_repair_case()
+        evidence=copy.deepcopy(self.evidence)
+        for i,role in enumerate(m.ROLES):
+            self.ledger.create_original_terminal_repair_approval(self.original_repair_approval(self.request,evidence,role,200+i))
+        lease=self.ledger.claim_original_terminal_repair(self.final('CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',run='400',
+            expected_revision=0,lease_seconds=60))
+        terminal=dict(id='kidults-original-reservation-terminal-repair-v1',version='1.0.0',state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            lifecycle_state='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY',authority_scope='ORIGINAL_TERMINAL_DEBT_ONLY',
+            original_reservation_transition={'id':'kidults-original-reservation-transition-v1','from_state':'RESERVED','to_state':'CONSUMED',
+                'ledger_key':{'pk':'RESERVE#'+self.request['original_generation'],'sk':'NONCE#'+self.request['nonce_digest']},
+                'conditional_cas':True,'merge_sha':self.request['merge_sha']},
+            request_digest=m.digest(self.request),evidence_digest=m.digest(evidence),original_run_id=self.request['original_run_id'],
+            original_head_sha=self.request['head_sha'],original_merge_sha=self.request['merge_sha'],original_state='RESERVED',
+            original_terminal_present=False,actual_authority_granted=False,platform_closure=False,
+            created_at='2026-10-11T00:01:00Z',**{k:'HOLD' for k in ('production','public','g5')})
+        terminal['repair_digest']=m.digest(terminal)
+        original_update=self.ddb.update_item
+        def race(**params):
+            if 'repair_terminal_json' in params.get('UpdateExpression',''):
+                self.ddb.rows[self.ddb.key(params['Key'])]['merge_sha']={'S':'0'*40}
+            return original_update(**params)
+        self.ddb.update_item=race
+        with self.assertRaises(ConditionalFailure):
+            self.ledger.finalize_original_terminal_repair(self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR',run='400',
+                terminal=terminal,evidence_digest=m.digest(evidence),expected_revision=lease['revision']))
+        row=self.ledger.get(self.ledger.key(self.request))
+        self.assertEqual(row['state']['S'],'RESERVED')
+        self.assertNotIn('repair_terminal_json',row)
         self.assertEqual(self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]['state']['S'], 'RESERVED')
     def test_failure_profile_cannot_create_normal_approval_for_any_role(self):
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'

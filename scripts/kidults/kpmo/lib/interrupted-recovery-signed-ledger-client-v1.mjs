@@ -147,19 +147,31 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
       return invoke({action:'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY',...binding(request,true),evidence,evidence_digest:sha256(canonicalJson(evidence)),
         role,approval_run_id:env.GITHUB_RUN_ID,approval_run_attempt:1,workload});
     },
-    createOriginalTerminalRepairApproval:async({request,evidence})=>{
+    createOriginalTerminalRepairApproval:async({request,evidence,oldRequest})=>{
       check(role!=='FINALIZER','APPROVAL_ROLE');check(evidence?.source_sha===sourceSha
         &&evidence?.evidence_profile==='TERMINAL_NULL_ASSURANCE_FAILURE_V1','ORIGINAL_REPAIR_EVIDENCE');
       return invoke({action:'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR',...binding(request,true),evidence,
+        ...(oldRequest?{old_request:oldRequest,old_request_digest:sha256(canonicalJson(oldRequest))}:{}),
         evidence_digest:sha256(canonicalJson(evidence)),role,approval_run_id:env.GITHUB_RUN_ID,
         approval_run_attempt:1,workload});
     },
     readOriginalTerminalRepairContext:async({request})=>invoke({action:'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT',
       ...binding(request,false),role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload}),
-    finalizeOriginalTerminalRepair:async({request,terminal,evidence_digest,run_id=env.GITHUB_RUN_ID})=>{
+    claimOriginalTerminalRepair:async({request,expected_revision,lease_seconds=120})=>{
+      check(role==='FINALIZER','FINALIZER_REQUIRED');
+      return invoke({action:'CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',...binding(request,false),run_id:env.GITHUB_RUN_ID,
+        run_attempt:1,expected_revision,lease_seconds,workload});
+    },
+    supersedeOriginalTerminalRepair:async({oldRequest,request,evidence})=>{
+      check(role==='FINALIZER','FINALIZER_REQUIRED');
+      return invoke({action:'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR',...binding(request,true),
+        old_request:oldRequest,old_request_digest:sha256(canonicalJson(oldRequest)),evidence,
+        evidence_digest:sha256(canonicalJson(evidence)),run_id:env.GITHUB_RUN_ID,run_attempt:1,workload});
+    },
+    finalizeOriginalTerminalRepair:async({request,terminal,evidence_digest,expected_revision,run_id=env.GITHUB_RUN_ID})=>{
       check(role==='FINALIZER'&&run_id===env.GITHUB_RUN_ID,'FINALIZER_REQUIRED');
       return invoke({action:'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR',...binding(request,false),run_id,run_attempt:1,
-        terminal,evidence_digest,workload});
+        terminal,evidence_digest,expected_revision,workload});
     },
     acknowledgeOriginalTerminalRepair:input=>final('ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE',input,{object:input.object,evidence_digest:input.evidence_digest},false),
     finalizeFailureTerminal:async({request,terminal,evidence_digest,run_id=env.GITHUB_RUN_ID})=>{

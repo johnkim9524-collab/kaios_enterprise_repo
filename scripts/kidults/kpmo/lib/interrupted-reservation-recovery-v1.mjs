@@ -82,6 +82,16 @@ export function validateOriginalTerminalRepairRequest(request){
   return requestDigest;
 }
 
+export function validateOriginalTerminalRepairSuccessor(oldRequest,newRequest,{now=Date.now()}={}){
+  const oldDigest=validateOriginalTerminalRepairRequest(oldRequest);
+  validateInterruptedRecoveryRequest(newRequest,{now,fresh:true});
+  const mutable=new Set(['issued_at','expires_at']);
+  requireProof(fields.filter(key=>!mutable.has(key)).every(key=>oldRequest[key]===newRequest[key]),'ORIGINAL_REPAIR_SUCCESSOR_IDENTITY');
+  requireProof(Object.entries(ORIGINAL_TERMINAL_REPAIR_CASE).every(([key,value])=>newRequest[key]===value),'ORIGINAL_REPAIR_INCIDENT');
+  requireProof(Date.parse(oldRequest.expires_at)<=now&&Date.parse(newRequest.issued_at)>=Date.parse(oldRequest.expires_at),'ORIGINAL_REPAIR_SUCCESSOR_WINDOW');
+  return oldDigest;
+}
+
 export function validateOriginalTerminalRepairEvidence(evidence,request){
   validateOriginalTerminalRepairRequest(request);
   const kinds=['REQUIRED_PUSH_SUITE','CANONICAL_TRUTH','SENTINEL','TERMINAL_NULL_ASSURANCE_FAILURE'];
@@ -145,7 +155,7 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
   validateOriginalTerminalRepairRequest(request);
   requireProof(run(recoveryRunId)&&recoveryRunId!==request?.original_run_id
     &&typeof ledger?.readOriginalTerminalRepairContext==='function'&&typeof ledger?.finalizeOriginalTerminalRepair==='function'
-    &&typeof ledger?.acknowledgeOriginalTerminalRepair==='function'&&typeof evidence==='function'
+    &&typeof ledger?.claimOriginalTerminalRepair==='function'&&typeof ledger?.acknowledgeOriginalTerminalRepair==='function'&&typeof evidence==='function'
     &&typeof immutable?.seal==='function'&&typeof immutable?.read==='function'&&typeof verifyDrain==='function','ORIGINAL_REPAIR_ADAPTER');
   const proof=await evidence({request});
   const evidenceDigest=validateOriginalTerminalRepairEvidence(proof,request);
@@ -158,6 +168,16 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
     requireProof(context.approvals?.length===3&&new Set(context.approvals.map(a=>a.role)).size===3
       &&new Set(context.approvals.map(a=>a.approval_run_id)).size===3,'ORIGINAL_REPAIR_QUORUM');
     await verifyDrain(request);
+    let revision;
+    if(context.repair_execution_run===recoveryRunId&&context.repair_lease_until*1000>now()){
+      revision=context.repair_revision;
+    }else{
+      const lease=await ledger.claimOriginalTerminalRepair({request,expected_revision:context.repair_revision,lease_seconds:120});
+      requireProof(lease.state==='ORIGINAL_TERMINAL_REPAIR_LEASE_ONLY'&&lease.owner_run_id===recoveryRunId
+        &&lease.request_digest===sha256(canonicalJson(request))&&lease.evidence_digest===evidenceDigest
+        &&Number.isSafeInteger(lease.revision)&&lease.revision===context.repair_revision+1,'ORIGINAL_REPAIR_LEASE_BINDING');
+      revision=lease.revision;
+    }
     terminal={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',
       lifecycle_state:'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY',authority_scope:'ORIGINAL_TERMINAL_DEBT_ONLY',
       original_reservation_transition:{id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
@@ -167,7 +187,8 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
       original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
       production:'HOLD',public:'HOLD',g5:'HOLD',created_at:new Date(now()).toISOString()};
     terminal.repair_digest=sha256(canonicalJson(terminal));validateOriginalTerminalRepairTerminal(terminal,request);
-    try{await ledger.finalizeOriginalTerminalRepair({request,terminal,evidence_digest:evidenceDigest,run_id:recoveryRunId});}
+    try{await ledger.finalizeOriginalTerminalRepair({request,terminal,evidence_digest:evidenceDigest,
+      expected_revision:revision,run_id:recoveryRunId});}
     catch(error){context=await ledger.readOriginalTerminalRepairContext({request});
       requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.terminal)===canonicalJson(terminal),'ORIGINAL_REPAIR_CAS_UNKNOWN_NO_RETRY');}
   }else validateOriginalTerminalRepairTerminal(terminal,request);

@@ -1,6 +1,6 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,supersedeExpiredInterruptedPostmerge,recoverFailureAssuranceTerminal,recoverOriginalTerminalRepair,
-  validateOriginalTerminalRepairRequest,validateOriginalTerminalRepairEvidence,validateOriginalTerminalRepairTerminal,validateOriginalTerminalRepairAck} from './interrupted-reservation-recovery-v1.mjs';
+  validateOriginalTerminalRepairRequest,validateOriginalTerminalRepairSuccessor,validateOriginalTerminalRepairEvidence,validateOriginalTerminalRepairTerminal,validateOriginalTerminalRepairAck} from './interrupted-reservation-recovery-v1.mjs';
 const check=(ok,code)=>{if(!ok)throw Error('INTERRUPTED_WORKLOAD_'+code);};
 export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get,evidence,immutable,verifyDrain,runId,now=()=>Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
   const results=[];
@@ -15,15 +15,25 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
       if(repairContext.state==='ORIGINAL_RESERVATION_MISSING'){
         results.push({state:repairContext.state,write_performed:false});continue;
       }
-      if(['ORIGINAL_TERMINAL_REPAIR_PENDING','ORIGINAL_TERMINAL_DEBT_ONLY'].includes(repairContext.state)){
+      if(['ORIGINAL_TERMINAL_REPAIR_PENDING','ORIGINAL_TERMINAL_REPAIR_SUCCESSOR_PENDING','ORIGINAL_TERMINAL_DEBT_ONLY'].includes(repairContext.state)){
         validateOriginalTerminalRepairRequest(request);
+        const successorPending=repairContext.state==='ORIGINAL_TERMINAL_REPAIR_SUCCESSOR_PENDING';
+        if(successorPending){
+          validateOriginalTerminalRepairSuccessor(repairContext.old_request,request,{now:now()});
+          check(repairContext.old_request_digest===sha256(canonicalJson(repairContext.old_request)),'ORIGINAL_REPAIR_SUCCESSOR_OLD_BINDING');
+        }
         const native=await observeInterruptedRecoveryNative({request,get,now:now()});
         const originalArchive={artifact_id:candidate.original_artifact_id,archive_digest:candidate.original_archive_digest};
         const proof=await evidence.verifyEvidence({request,native:{...native,recovery_parent:parent},originalArchive});
         const proofDigest=validateOriginalTerminalRepairEvidence(proof,request);
-        if(repairContext.state==='ORIGINAL_TERMINAL_DEBT_ONLY'||repairContext.request!==null){
+        if(repairContext.state==='ORIGINAL_TERMINAL_DEBT_ONLY'||(repairContext.request!==null&&!successorPending)){
           check(canonicalJson(repairContext.request)===canonicalJson(request)
             &&repairContext.evidence_digest===proofDigest&&canonicalJson(repairContext.evidence)===canonicalJson(proof),'ORIGINAL_REPAIR_CONTEXT_PIN');
+        }else if(successorPending){
+          check(canonicalJson(repairContext.request)===canonicalJson(request)
+            &&(repairContext.evidence===null?repairContext.evidence_digest===null:
+              repairContext.evidence_digest===proofDigest&&canonicalJson(repairContext.evidence)===canonicalJson(proof)),
+            'ORIGINAL_REPAIR_SUCCESSOR_CONTEXT_PIN');
         }else check(repairContext.evidence===null&&repairContext.evidence_digest===null,'ORIGINAL_REPAIR_EMPTY_CONTEXT');
         if(repairContext.state==='ORIGINAL_TERMINAL_DEBT_ONLY'){
           validateOriginalTerminalRepairTerminal(repairContext.terminal,request);
@@ -53,7 +63,8 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
             const prior=repairContext.approvals?.find(a=>a.role===role);
             if(prior){check(prior.request_digest===sha256(canonicalJson(request))&&prior.evidence_digest===proofDigest,'ORIGINAL_REPAIR_APPROVAL_BINDING');results.push({state:'EXISTING_ORIGINAL_TERMINAL_REPAIR_APPROVAL',write_performed:false});continue;}
             check(['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].includes(role),'ORIGINAL_REPAIR_APPROVAL_ROLE');
-            try{results.push(await ledger.createOriginalTerminalRepairApproval({request,evidence:proof}));}
+            try{results.push(await ledger.createOriginalTerminalRepairApproval({request,evidence:proof,
+              ...(successorPending?{oldRequest:repairContext.old_request}:{})}));}
             catch(error){
               const after=await ledger.readOriginalTerminalRepairContext({request}),a=after.approvals?.find(x=>x.role===role);
               check(a&&a.approval_run_id===runId&&a.request_digest===sha256(canonicalJson(request))&&a.evidence_digest===proofDigest,'ORIGINAL_REPAIR_APPROVAL_UNKNOWN_NO_RETRY');
@@ -64,7 +75,18 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
           for(let attempt=0;repairContext.approvals?.length!==3&&attempt<18;attempt++){
             await wait(5000);repairContext=await ledger.readOriginalTerminalRepairContext({request});
           }
-          check(repairContext.state==='ORIGINAL_TERMINAL_REPAIR_PENDING'&&repairContext.approvals?.length===3,'ORIGINAL_REPAIR_QUORUM_PENDING');
+          check(repairContext.state===(successorPending?'ORIGINAL_TERMINAL_REPAIR_SUCCESSOR_PENDING':'ORIGINAL_TERMINAL_REPAIR_PENDING')
+            &&repairContext.approvals?.length===3&&repairContext.evidence_digest===proofDigest,'ORIGINAL_REPAIR_QUORUM_PENDING');
+          if(successorPending){
+            await verifyDrain(request);
+            check(typeof ledger.supersedeOriginalTerminalRepair==='function','ORIGINAL_REPAIR_SUPERSESSION_ADAPTER');
+            await ledger.supersedeOriginalTerminalRepair({oldRequest:repairContext.old_request,request,evidence:proof});
+            repairContext=await ledger.readOriginalTerminalRepairContext({request});
+            check(repairContext.state==='ORIGINAL_TERMINAL_REPAIR_PENDING'
+              &&canonicalJson(repairContext.request)===canonicalJson(request)
+              &&repairContext.evidence_digest===proofDigest&&repairContext.approvals?.length===3,
+              'ORIGINAL_REPAIR_SUPERSESSION_READBACK');
+          }
         }
         check(role==='FINALIZER'&&typeof verifyDrain==='function','ORIGINAL_REPAIR_FINALIZER');
         results.push(await recoverOriginalTerminalRepair({request,recoveryRunId:runId,ledger,evidence:async()=>proof,
