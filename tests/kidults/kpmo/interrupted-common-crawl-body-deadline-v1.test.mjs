@@ -33,6 +33,20 @@ test('real stalled headers and abort-ignoring transport both respect deadline', 
   await assert.rejects(get(s.url, {timeoutMs: 40, fetchImpl: () => {calls++; return new Promise(() => {});}}), deadline);
   assert.equal(calls, 1);
 });
+test('late abort-ignoring headers never start a body read after the deadline', async () => {
+  let reads = 0, cancellations = 0;
+  const fetchImpl = async () => {
+    await new Promise(resolve => setTimeout(resolve, 70));
+    return {ok: true, headers: new Headers(), body: {
+      getReader() {reads++; throw new Error('LATE_BODY_READ');},
+      cancel() {cancellations++; return Promise.resolve();},
+    }};
+  };
+  await assert.rejects(get('https://index.commoncrawl.org/test', {fetchImpl, timeoutMs: 20}), deadline);
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(reads, 0);
+  assert.equal(cancellations, 1);
+});
 for (const declared of [false, true]) {
   test(`real oversized ${declared ? 'declared' : 'chunked'} body is rejected without retry`, async t => {
     const s = await serve(t, (_, res) => {

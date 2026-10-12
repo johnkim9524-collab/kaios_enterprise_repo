@@ -26,6 +26,10 @@ export async function getCommonCrawlIndexResponse(url, {
           Accept: 'application/json,text/plain',
           'User-Agent': 'KIDULTS-ASI-Common-Crawl-Host-Expansion-v1',
         }});
+        if (controller.signal.aborted) {
+          try {response?.body?.cancel()?.catch(() => {});} catch {}
+          throw error('READ_DEADLINE_EXCEEDED');
+        }
         if (!response.ok) {
           if ((response.status === 429 || response.status >= 500) && attempt < 2)
             return {retry: true};
@@ -39,7 +43,9 @@ export async function getCommonCrawlIndexResponse(url, {
         if (response.body !== null) {
           reader = response.body.getReader();
           for (;;) {
+            if (controller.signal.aborted) throw error('READ_DEADLINE_EXCEEDED');
             const {done, value} = await reader.read();
+            if (controller.signal.aborted) throw error('READ_DEADLINE_EXCEEDED');
             if (done) break;
             if (!(value instanceof Uint8Array)) throw error('BODY_CHUNK_INVALID');
             bytes += value.byteLength;
