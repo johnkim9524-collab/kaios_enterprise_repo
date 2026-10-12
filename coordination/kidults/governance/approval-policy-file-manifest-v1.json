@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1ed4225db4feb77476801ea2104c9a9217c77b82",
+  "revision": "5af46a923654122a5c37a3145587a061ba293a64",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -15,14 +15,14 @@
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "45c13cd2e801712840754a94de0f89879213b8e5",
-      "sha256": "sha256:2d32c3f639b7707e0b4d2eae18f9f85cdf3585f9e9bcd6c17844119b6a1bd1ad"
+      "git_blob": "f763251dba99adc1f1d1f4841a6209400335e677",
+      "sha256": "sha256:7c53cfc204b2f478b38c332ed1b2a0f9d0c1a120b1607f2eb3ea19b483711298"
     },
     {
       "path": ".github/copilot-instructions.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a90bf98c1f46c15140b0222af5f7e620f3884c36",
-      "sha256": "sha256:7f52d66c32abf07c01a83de6d81c22ad217eb81efeb4360ca6f2093dba2030c7"
+      "git_blob": "9907402447362821ac1490d4f65bdef2223e8d2d",
+      "sha256": "sha256:0ea86d75f4b1e82605bb582f8f3142e9def752a9079398c65f385b1141c11df2"
     },
     {
       "path": ".github/workflows/ci-validation.yml",
@@ -756,8 +756,8 @@
     {
       "path": "AGENTS.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "d966c80c513f87c5fef6a9904149173148512575",
-      "sha256": "sha256:86a398962d262ebec91348d74f5d54cab923d18e98d1bc08e7474995ef148b78"
+      "git_blob": "3b0d4e3e559d3a6742f9762471c82fd26fa180f7",
+      "sha256": "sha256:51cce52a7c87986bb1815dccfcd3226115608940263b1cc0d706ae28919c868d"
     },
     {
       "path": "CONSTITUTION.md",
@@ -1236,8 +1236,8 @@
     {
       "path": "coordination/kidults/bootstrap/README.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "52a5f334c82d135182f085df431cef2d9300ec17",
-      "sha256": "sha256:48c9e9c79b2f602ad2a180f81e21b1280bc99776a7456bb9aa4782573f200475"
+      "git_blob": "e46910a12b000a2921fc159624dc993a1a8be0a6",
+      "sha256": "sha256:874d34ef45ac97813efe9ba5fce427e44318d935b1dd023626742ef0822d377c"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_C_PORTAL_V502_BOOTSTRAP.md",
@@ -1320,8 +1320,8 @@
     {
       "path": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cc2be20a15839bc84e791a76bf066807df5faac5",
-      "sha256": "sha256:0ef012dc5bf57ceb405f1aa810ebb110fc448e1efac7072dd4d722b07f9c01f4",
+      "git_blob": "8d50b944c80666a21d6db9628ebb3ad6349c5964",
+      "sha256": "sha256:42eecc3f2518294d9c5da917b7460f1d7d9c18655517a933d01741e4d2cec396",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1333,8 +1333,8 @@
     {
       "path": "coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3b7ff7643b93089a8a564279839b309e4a08eaeb",
-      "sha256": "sha256:250c6f6814f4fa3fb3e508ff8655c178068c327c7f2438983d4af678a41bf5e1",
+      "git_blob": "83924fd49009a881e2344e43ba334c7fe8336f0f",
+      "sha256": "sha256:e130fa8cb1d37c7f398f7411d3d7686663eef2a047b81f252e96f9b95ef1cfb3",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1346,8 +1346,8 @@
     {
       "path": "coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4f9e831e4797ab641f4d1576dfb80e05b8138688",
-      "sha256": "sha256:83a9ba2915cde5f1e28a419d668c278878792ef969182ff41df5479d9c0c7c34",
+      "git_blob": "b6cd03505a2ee47aa43e82dbc45920dc3feb6f7c",
+      "sha256": "sha256:19d166db7d6d20d4ee011d385d98d5290c19a0430a2d14d4ca00db041fba7eea",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1359,8 +1359,8 @@
     {
       "path": "coordination/kidults/governance/ai-agent-operating-rules-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2c233707d0889e5d00b196992e00d6cf401b18f5",
-      "sha256": "sha256:ac3f121fb30302478c33f638ed29cbd57bfac4c913127b27f339104661f98b73",
+      "git_blob": "a603e8ba556ded045b13a21cdabfa2a9662c5905",
+      "sha256": "sha256:9adea599b32dbb367cb87384578dcdafb8255eec291a237ce8d2af98bb7c5bf0",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -1765,8 +1765,8 @@
     {
       "path": "coordination/kidults/governance/resume-contract-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "24655571dbd730f12819778d5bf2afb32c048802",
-      "sha256": "sha256:c411e16ebc528fa50fab0d153bfd02ea97b24e0f47b0b543f40b920f678a7ba1",
+      "git_blob": "cf6666671eb9b7340b491fe20a3b67846f0b7c67",
+      "sha256": "sha256:6c8af319f781a928d12db3a2b25228d24c21bbd9b1d6c38e9a78bbf5791557e8",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2536,8 +2536,8 @@
     {
       "path": "coordination/kidults/registry/ai-agent-governance-registry-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "22bf26c5757d78d26f2f3fce2d7d12d83131dfcd",
-      "sha256": "sha256:0246cc40f3b74aad9b104ae9c42c87caa886e774b03514ae5e4884efbd453aff"
+      "git_blob": "7615a7d1e62468cbad08976512d29e5c36e7668d",
+      "sha256": "sha256:a028069723c44a7ec90c2475b256d7689511971f9b6d49d8c941eb4a5d06e8ca"
     },
     {
       "path": "coordination/kidults/registry/cluster/records/cluster-discovery-authority-shadow-r1.json",
@@ -2602,8 +2602,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "c2b9d00fa2e5a35c6b7b8b3fe6ac7210f8086a15",
-      "sha256": "sha256:ec8ee7ea1f0ceab603df3b83dc9ddcf0be0f8debf5523ab6a033971f438d6dc4"
+      "git_blob": "00fc8e4207cc1a27fd90475d993cf454297f5091",
+      "sha256": "sha256:a75f72a8da4e60357b9882d01515f8e5a27b7d9d3491b4a19a48bea95a2a50cc"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3435,8 +3435,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-bootstrap-remediation-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "516837e9aeac3540e06b61605bf9812816a7a69e",
-      "sha256": "sha256:6ecd0ca641b2e5a3773968c6e2bd9e197748aa4fa5f6b668a0f932de63445ed8",
+      "git_blob": "a4b0293736ad5bbd23931bf9b05399277444f945",
+      "sha256": "sha256:2e8908cf434b1a8f5ec9070d1ed21b8a5f6548786968f9e9cf3f31196a4963b3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3448,8 +3448,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "54bdc93e498f0cfc7d4acfa494f62161598c54ec",
-      "sha256": "sha256:168724c7a9585921f3f34934015329001088c6a7dcc60fd364d2bd12a014ff89",
+      "git_blob": "6977903c04875b01225054c227b55a94a7006b43",
+      "sha256": "sha256:d2f522064b63cccefbe6fe6101637984f76f5e4c2d098843c2aff6e3035e0104",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6363,8 +6363,8 @@
     {
       "path": "tests/governance/interactive-local-work-policy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1636b9d1af0ebb94ab90769a69c11ccf1280624c",
-      "sha256": "sha256:86bc79d60e4c2bb4169b6c7db10afb56a12eca7c8359fe4804e37e908653fab7",
+      "git_blob": "58f4eabe2c0c33d60e5b7652e157b24990415c42",
+      "sha256": "sha256:d13cb3adfc124090cbcf8bf235e7f744d46bda9f8145b9d460e51acfa05f210b",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6960,6 +6960,6 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7e67635dbd2ce233f52569f11090f2cf44dfff843902ccda63da467e7860ba8d",
+  "manifest_sha256": "sha256:96f6802d5e66c3b7b59d05dcb7c60b373dc57ddba78f5d27c2c30740826eab96",
   "audit": {}
 }
