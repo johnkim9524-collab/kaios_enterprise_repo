@@ -52,6 +52,13 @@ test('collector accepts the real Track approval and FINALIZER jobs sharing one w
   assert.equal(verifyOriginalTerminalRepairReconciliation(f.result,{...options,runId:400}).transition.to_state,'CONSUMED');
 });
 
+test('collector rejects KPMO or verifier approval sharing the FINALIZER run ID',()=>{
+  for(const role of ['KPMO','INDEPENDENT_VERIFIER']){
+    const f=fixture();f.context.approvals.find(a=>a.role===role).approval_run_id='400';
+    assert.throws(()=>verifyOriginalTerminalRepairReconciliation(f.result,{...options,runId:400}),/ORIGINAL_TERMINAL_REPAIR_RECONCILIATION_QUORUM/);
+  }
+});
+
 test('collector rejects missing CAS/readback evidence and authority promotion',()=>{
   for(const mutate of [
     r=>{r.terminal.original_reservation_transition.conditional_cas=false;},
