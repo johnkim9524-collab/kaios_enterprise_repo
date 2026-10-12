@@ -7,9 +7,9 @@
   "base_branch": "main",
   "base_sha": "176c806d905716806087d3590ca4f204aecf5d77",
   "head_branch": "codex/recovery-admission-20261012",
-  "source_head_sha": "02447113269da83a14d83ef703b2c3f23d189d89",
-  "source_head_tree_sha": "b80b3fb87b2ac71b072bb66dce2dd441b387e963",
-  "payload_digest": "sha256:fbcd663e5d7671ab44c858a708d1817ee4aa659ac3f4932a596dbdd902856d56",
+  "source_head_sha": "e4e8333b6b2a63b45fc8b43db0762fb147825a3a",
+  "source_head_tree_sha": "3dc9ba5e44f48d3d995d2ef374b4435d4d557816",
+  "payload_digest": "sha256:71bac05a2adbf71db9d886673fe3f5dd39b73cdd6eaed21995f453ebafb31d8c",
   "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
   "authority_granted": false
 }
