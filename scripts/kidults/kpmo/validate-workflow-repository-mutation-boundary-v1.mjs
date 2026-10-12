@@ -8,6 +8,7 @@ const ATOMIC_LANDING_RUNNER = path.resolve('scripts/kidults/kpmo/run-atomic-gove
 const ATOMIC_LANDING_POST_VALIDATOR = path.resolve('scripts/kidults/market/current-sold-postlanding-v1.mjs');
 const ATOMIC_LANDING_TERMINAL_RECONCILER = path.resolve('scripts/kidults/kpmo/reconcile-atomic-landing-terminal-v1.mjs');
 const POSTMERGE_RECOVERY_RUNNER = path.resolve('scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs');
+const RECOVERY_ADMISSION_POLICY = path.resolve('scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs');
 const RECOVERY_WORKFLOW_DISPATCH_TRIGGER = `  workflow_dispatch:
     inputs:
       gate_run_id:
@@ -243,6 +244,7 @@ function constrainedAtomicLandingViolations(workflow, runner, postValidator, ter
 function constrainedAutonomousLandingViolations(workflow, runner, expected) {
   const findings = [];
   const recoveryRunner = read(POSTMERGE_RECOVERY_RUNNER);
+  const recoveryAdmissionPolicy = read(RECOVERY_ADMISSION_POLICY);
   const require = (condition, id) => { if (!condition) findings.push(`autonomous-landing-${id}`); };
   for (const fragment of [
     'repository_dispatch:',
@@ -315,7 +317,11 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
     require(recoveryRunner.includes('inputs?.gate_run_id')
       && recoveryRunner.includes("inputs.gate_run_attempt==='1'")
       && recoveryRunner.includes('inputs.head_sha===env.GITHUB_SHA'), 'recovery-runner-dispatch-input-binding');
-    require(recoveryRunner.includes("repos/${I.repository}/actions/runs/${inputs.gate_run_id}"), 'recovery-runner-live-gate-readback');
+    require(recoveryAdmissionPolicy.includes('const live=await get(`actions/runs/${run.id}`);')
+      && recoveryAdmissionPolicy.includes('const listing=await get(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);')
+      && recoveryAdmissionPolicy.includes('run.run_attempt===1')
+      && recoveryAdmissionPolicy.includes("const authority=listing.jobs.filter(j=>j.name==='success-authority-gate');")
+      && recoveryAdmissionPolicy.includes("check(authority.length===1,'AUTHORITY_CARDINALITY');"), 'recovery-admission-live-gate-readback');
   }
 
   require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
