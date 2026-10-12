@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e3304b0c33844b7e60f92f39af6e4954ded7d613",
+  "revision": "8ae8b0548f5c18ac264a62fd4f15bde8215f13ab",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4141,8 +4141,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cfafc8e1b18b157e752460a972d40f51beee0474",
-      "sha256": "sha256:2471c76212c0d1a0c7c41edaeecdf7d6e90d767141b59a92fdb29f0cb681e460",
+      "git_blob": "4551adf0d19a475a476bf911080f96370dcd3772",
+      "sha256": "sha256:d9fbeb605504c4eb59e383fd1138bc7b57e06b108b9e8c67fb9255614f244440",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4402,8 +4402,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f876754df4d189c2e7e9f298c1ebe2c402101cdf",
-      "sha256": "sha256:20b352e390c14c748bfb1936e3658d562023d45b7225227fa16f508256ab3501",
+      "git_blob": "ff4b90c7b5ee034a3afe7230e7e4568a50bbaab3",
+      "sha256": "sha256:ab929d8ee5ab0b9f4f2067694957f58ab5bdd01a83741ec6494f0f1892d2a170",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -6500,8 +6500,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-signed-ledger-client-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f0dd13a541967a18e46f47b083da2462a3b0c352",
-      "sha256": "sha256:5eedeb8b612ef0e05fa4744fb6b00100dff4c5d6fc70d9277c5df7a5ee85e47f"
+      "git_blob": "79f2edc2fb05f5eab7acf77f0934ed98a3535423",
+      "sha256": "sha256:c6170b20b251ebe901bfe6b005dd60b02ae6de75c8c15171dd910390fa83df53"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-workload-v1.test.mjs",
@@ -6774,5 +6774,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c2537060b89cfc25825c30dd137bcc004d0eb7acdb6ec029cc06204389c25fae"
+  "manifest_sha256": "sha256:5399c6cc73ffa671b1699e904d42b9ec47199f6b64cc382c29afca9c9b68a8b6"
 }
