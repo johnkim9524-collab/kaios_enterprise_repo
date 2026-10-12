@@ -1,0 +1,52 @@
+{
+  "id": "kidults-canonical-anchor-github-capture-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "observed_at": "2026-10-12T04:11:33.469Z",
+  "source": {
+    "workflow_run_id": 35129257302,
+    "artifact_id": 10460765552,
+    "artifact_name": "kidults-representative-product-foundation-v1",
+    "artifact_digest": "sha256:7565f7ed7cfa37ef0cb1f4b00f7f599bc398d93ab44a9101449a314c4150ddee",
+    "validated_head": "b76c8e1a42f451f4340d771e5d7d559099aa2977",
+    "source_branch": "feat/kidults-phase2-content-data-provider-foundation"
+  },
+  "run": {
+    "id": 35129257302,
+    "path": ".github/workflows/kidults-representative-product-foundation-v1.yml",
+    "head_sha": "b76c8e1a42f451f4340d771e5d7d559099aa2977",
+    "head_branch": "feat/kidults-phase2-content-data-provider-foundation",
+    "status": "completed",
+    "conclusion": "success",
+    "repository": "johnkim9524-collab/kaios_enterprise_repo"
+  },
+  "artifact": {
+    "id": 10460765552,
+    "name": "kidults-representative-product-foundation-v1",
+    "digest": "sha256:7565f7ed7cfa37ef0cb1f4b00f7f599bc398d93ab44a9101449a314c4150ddee",
+    "expired": false,
+    "created_at": "2026-09-16T17:36:57Z",
+    "expires_at": "2026-10-16T17:36:56Z",
+    "size_in_bytes": 56075,
+    "workflow_run": {
+      "id": 35129257302,
+      "head_sha": "b76c8e1a42f451f4340d771e5d7d559099aa2977"
+    }
+  },
+  "archive": {
+    "path": "coordination/kidults/product/capsules/representative-anchor-foundation-10460765552.zip",
+    "blob_sha": "792a41055e6db055ef0e222268e0a9a7c12a11cb",
+    "digest": "sha256:7565f7ed7cfa37ef0cb1f4b00f7f599bc398d93ab44a9101449a314c4150ddee",
+    "size_in_bytes": 56075,
+    "byte_exact_original": true
+  },
+  "authority": "STRUCTURAL_PREFLIGHT_ONLY",
+  "capture_source": "AUTHENTICATED_GITHUB_CONNECTOR_SNAPSHOT",
+  "current_github_live_metadata_proven": false,
+  "qualified_product_count": 0,
+  "acquisition_authorized": false,
+  "promotion_eligible": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD"
+}

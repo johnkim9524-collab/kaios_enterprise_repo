@@ -45,8 +45,20 @@ function fixture(mutate=()=>{}){
  const archiveReader=(bytes,digest)=>{const historical=bytes.toString()==='historic',normal=bytes.toString()==='normal';assert.equal(digest,historical?oldArtifact.digest:newArtifact.digest);
   return {archive_digest:digest,members:[{name:historical||normal?'receipt.json':'interrupted-FINALIZER.json',encoding:'utf-8',text:JSON.stringify(historical?oldReceipt:normal?normalReceipt:result)}]};};
  return {reads,run:()=>collectWholePlatform({sourceSha:state.currentSource,contract,scorecard,observedAt:'2026-10-12T00:30:00Z',read,
-  listRuns:async(_,spec,sha)=>spec.id==='FINALIZER_track'?(sha===null?[recovery]:sha===request.base_sha&&state.normal?[normalRun]:[]):[],download:async(_,a)=>Buffer.from(a.id===oldArtifact.id?'historic':a.id===1000?'normal':'recovery'),archiveReader})};
+  listRuns:async(_,spec,sha)=>{if(spec.id==='FINALIZER_track'&&sha===null&&state.historyError)throw Error(state.historyError);return spec.id==='FINALIZER_track'?(sha===null?[recovery]:sha===request.base_sha&&state.normal?[normalRun]:[]):[];},download:async(_,a)=>Buffer.from(a.id===oldArtifact.id?'historic':a.id===1000?'normal':'recovery'),archiveReader,
+  // This suite isolates signed terminal semantics with synthetic historic bytes.
+  // Real ZIP/byte-cache corruption is independently exercised in collector/cache suites.
+  archiveByteCacheFactory:({download})=>async({repository,artifact,token})=>download(repository,artifact,token)})};
 }
+test('recovery lookup failure retains original authenticated debt without hiding the new failure',async()=>{
+ const proof=await fixture(s=>s.historyError='WHOLE_RUNTIME_RECOVERY_HISTORY_TRUNCATED').run();
+ const check=proof.operating_checks.find(c=>c.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL');
+ assert.equal(check.state,'VERIFIED_FAIL');assert.equal(check.reason,'WHOLE_RUNTIME_RECOVERY_HISTORY_TRUNCATED');
+ assert.deepEqual(proof.original_terminal_null_observation.evidence_refs,[38132692877,11700046124,
+  'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4']);
+ assert.equal(proof.original_terminal_null_observation.actual_authority_granted,false);
+ assert.equal(proof.original_terminal_reconciliation,undefined);assert.equal(proof.whole_platform_runtime_proven,false);
+});
 test('collector ingests authenticated finalizer readback and explicitly supersedes only historic debt',async()=>{
  const f=fixture(),proof=await f.run(),check=proof.operating_checks.find(c=>c.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL');
  assert.equal(check.state,'VERIFIED_PASS',JSON.stringify(check));assert.equal(proof.original_terminal_reconciliation.scope,'ORIGINAL_TERMINAL_DEBT_ONLY');
