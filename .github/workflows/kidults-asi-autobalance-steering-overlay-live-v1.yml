@@ -22,6 +22,9 @@ permissions:
   contents: read
   actions: read
 
+env:
+  STEERING_PEER_FRESHNESS_SLO_SECONDS: '5400'
+
 concurrency:
   group: kidults-asi-autobalance-steering-overlay-live-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}
   cancel-in-progress: true
@@ -50,7 +53,7 @@ jobs:
           node scripts/kidults/source-intelligence/validate-asi-autobalance-steering-provenance-v1.mjs
           node scripts/kidults/redteam/validate-artifact-consumer-orchestration-v1.mjs
 
-      - name: Restore exact-generation steering inputs or wait for peer
+      - name: Restore latest exact-generation steering inputs or fail closed
         id: inputs
         env:
           GH_TOKEN: ${{ github.token }}
@@ -78,8 +81,8 @@ jobs:
               'KIDULTS ASI Self-Driving Control Loop v1|.github/workflows/kidults-asi-self-driving-control-loop-v1.yml') ;;
               *) echo 'INVALID_STEERING_TRIGGER' >&2; exit 1 ;;
             esac
-            EXPECTED_GENERATION_SHA="$CURRENT_SHA"
-            BINDING_MODE='WORKFLOW_RUN_EXACT_CURRENT_MAIN'
+            EXPECTED_GENERATION_SHA="$TRIGGER_SOURCE_SHA"
+            BINDING_MODE='WORKFLOW_RUN_EXACT_TRIGGER'
           elif [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
             test -n "$PR_BASE_SHA"
             EXPECTED_GENERATION_SHA="$PR_BASE_SHA"
@@ -91,55 +94,119 @@ jobs:
           fi
           export EXPECTED_GENERATION_SHA BINDING_MODE
 
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs" > /tmp/base-runs.json
-          BASE_RUN_ID=$(jq -r --arg sha "$EXPECTED_GENERATION_SHA" \
-            '[.workflow_runs[] | select(.name=="KIDULTS ASI Self-Driving Control Loop v1" and .path==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")][0].id // empty' /tmp/base-runs.json)
-
-          gh api --method GET -H 'Accept: application/vnd.github+json' \
-            -f branch=main -f status=success -f per_page=100 \
-            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml/runs" > /tmp/balance-runs.json
-          AUTOBALANCE_RUN_ID=$(jq -r --arg sha "$EXPECTED_GENERATION_SHA" \
-            '[.workflow_runs[] | select(.name=="KIDULTS ASI Throughput Coverage Autobalance Live v1" and .path==".github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml" and .head_branch=="main" and .head_sha==$sha and .status=="completed" and .conclusion=="success")][0].id // empty' /tmp/balance-runs.json)
-
-          if [ -z "$BASE_RUN_ID" ] || [ -z "$AUTOBALANCE_RUN_ID" ]; then
-            MISSING=()
-            [ -n "$BASE_RUN_ID" ] || MISSING+=(self_driving_base)
-            [ -n "$AUTOBALANCE_RUN_ID" ] || MISSING+=(throughput_autobalance)
-            printf -v MISSING_CSV '%s,' "${MISSING[@]}"; MISSING_CSV=${MISSING_CSV%,}
-            export MISSING_CSV
-            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          write_fail_receipt() {
+            local code="$1"
+            local detail="${2:-}"
+            export STEERING_FAILURE_CODE="$code" STEERING_FAILURE_DETAIL="$detail"
             node - <<'NODE'
           const fs=require('node:fs'),e=process.env;
           fs.writeFileSync('/tmp/asi-autobalance-steering-provenance-v1.json',JSON.stringify({
             id:'kidults-asi-autobalance-steering-provenance-v1',
-            status:'WAITING_FOR_EXACT_GENERATION_PEER',
+            status:'VERIFIED_FAIL',
+            failure_code:e.STEERING_FAILURE_CODE,
+            failure_detail:e.STEERING_FAILURE_DETAIL||null,
             binding_mode:e.BINDING_MODE,
             consumer_source_sha:e.GITHUB_SHA,
             expected_generation_sha:e.EXPECTED_GENERATION_SHA,
-            missing_roles:(e.MISSING_CSV||'').split(',').filter(Boolean),
             trigger_workflow_run_id:e.TRIGGER_RUN_ID||null,
             trigger_workflow_name:e.TRIGGER_WORKFLOW_NAME||null,
             promotion_allowed:false,
             public_release:'HOLD',production:'HOLD'
           },null,2)+'\n');
           NODE
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          }
+
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-self-driving-control-loop-v1.yml/runs" > /tmp/base-runs.json
+          gh api --method GET -H 'Accept: application/vnd.github+json' \
+            -f branch=main -f per_page=100 \
+            "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml/runs" > /tmp/balance-runs.json
+
+          BASE_LATEST=$(jq -c --arg sha "$EXPECTED_GENERATION_SHA" \
+            '[.workflow_runs[] | select(.name=="KIDULTS ASI Self-Driving Control Loop v1" and .path==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" and .head_branch=="main" and .head_sha==$sha)] | sort_by(.created_at) | reverse | .[0] // empty' /tmp/base-runs.json)
+          AUTOBALANCE_LATEST=$(jq -c --arg sha "$EXPECTED_GENERATION_SHA" \
+            '[.workflow_runs[] | select(.name=="KIDULTS ASI Throughput Coverage Autobalance Live v1" and .path==".github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml" and .head_branch=="main" and .head_sha==$sha)] | sort_by(.created_at) | reverse | .[0] // empty' /tmp/balance-runs.json)
+
+          BASE_RECORD="$BASE_LATEST"
+          AUTOBALANCE_RECORD="$AUTOBALANCE_LATEST"
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_run' ]; then
+            if [ "$TRIGGER_WORKFLOW_NAME" = 'KIDULTS ASI Self-Driving Control Loop v1' ]; then
+              BASE_RECORD=$(jq -c --arg sha "$EXPECTED_GENERATION_SHA" --argjson run "$TRIGGER_RUN_ID" \
+                '[.workflow_runs[] | select(.id==$run and .name=="KIDULTS ASI Self-Driving Control Loop v1" and .path==".github/workflows/kidults-asi-self-driving-control-loop-v1.yml" and .head_branch=="main" and .head_sha==$sha)] | if length==1 then .[0] else empty end' /tmp/base-runs.json)
+            else
+              AUTOBALANCE_RECORD=$(jq -c --arg sha "$EXPECTED_GENERATION_SHA" --argjson run "$TRIGGER_RUN_ID" \
+                '[.workflow_runs[] | select(.id==$run and .name=="KIDULTS ASI Throughput Coverage Autobalance Live v1" and .path==".github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml" and .head_branch=="main" and .head_sha==$sha)] | if length==1 then .[0] else empty end' /tmp/balance-runs.json)
+            fi
+          fi
+
+          if [ -z "$BASE_RECORD" ] || [ -z "$AUTOBALANCE_RECORD" ]; then
+            write_fail_receipt 'WAITING_FOR_EXACT_GENERATION_PEER' 'missing exact-SHA peer'
             exit 0
           fi
 
-          BASE_SOURCE_SHA=$(jq -r --argjson run "$BASE_RUN_ID" '[.workflow_runs[] | select(.id==$run)][0].head_sha // empty' /tmp/base-runs.json)
-          AUTOBALANCE_SOURCE_SHA=$(jq -r --argjson run "$AUTOBALANCE_RUN_ID" '[.workflow_runs[] | select(.id==$run)][0].head_sha // empty' /tmp/balance-runs.json)
+          BASE_RUN_ID=$(jq -r '.id' <<<"$BASE_RECORD")
+          BASE_SOURCE_SHA=$(jq -r '.head_sha' <<<"$BASE_RECORD")
+          BASE_STATUS=$(jq -r '.status' <<<"$BASE_RECORD")
+          BASE_CONCLUSION=$(jq -r '.conclusion // empty' <<<"$BASE_RECORD")
+          BASE_CREATED_AT=$(jq -r '.created_at // empty' <<<"$BASE_RECORD")
+          AUTOBALANCE_RUN_ID=$(jq -r '.id' <<<"$AUTOBALANCE_RECORD")
+          AUTOBALANCE_SOURCE_SHA=$(jq -r '.head_sha' <<<"$AUTOBALANCE_RECORD")
+          AUTOBALANCE_STATUS=$(jq -r '.status' <<<"$AUTOBALANCE_RECORD")
+          AUTOBALANCE_CONCLUSION=$(jq -r '.conclusion // empty' <<<"$AUTOBALANCE_RECORD")
+          AUTOBALANCE_CREATED_AT=$(jq -r '.created_at // empty' <<<"$AUTOBALANCE_RECORD")
+
           test "$BASE_SOURCE_SHA" = "$EXPECTED_GENERATION_SHA"
           test "$AUTOBALANCE_SOURCE_SHA" = "$EXPECTED_GENERATION_SHA"
           test "$BASE_SOURCE_SHA" = "$AUTOBALANCE_SOURCE_SHA"
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_run' ]; then
+            if [ "$TRIGGER_WORKFLOW_NAME" = 'KIDULTS ASI Self-Driving Control Loop v1' ]; then
+              test "$BASE_RUN_ID" = "$TRIGGER_RUN_ID"
+            else
+              test "$AUTOBALANCE_RUN_ID" = "$TRIGGER_RUN_ID"
+            fi
+          fi
+
+          if [ "$BASE_STATUS" != 'completed' ] || [ "$BASE_CONCLUSION" != 'success' ]; then
+            write_fail_receipt 'UPSTREAM_LATEST_EXACT_GENERATION_NON_SUCCESS' "self_driving:${BASE_RUN_ID}:${BASE_STATUS}:${BASE_CONCLUSION}"
+            exit 0
+          fi
+          if [ "$AUTOBALANCE_STATUS" != 'completed' ] || [ "$AUTOBALANCE_CONCLUSION" != 'success' ]; then
+            write_fail_receipt 'UPSTREAM_LATEST_EXACT_GENERATION_NON_SUCCESS' "throughput_autobalance:${AUTOBALANCE_RUN_ID}:${AUTOBALANCE_STATUS}:${AUTOBALANCE_CONCLUSION}"
+            exit 0
+          fi
+
+          NOW_EPOCH=$(date -u +%s)
+          BASE_CREATED_EPOCH=$(date -u -d "$BASE_CREATED_AT" +%s 2>/dev/null || true)
+          AUTOBALANCE_CREATED_EPOCH=$(date -u -d "$AUTOBALANCE_CREATED_AT" +%s 2>/dev/null || true)
+          if [ -z "$BASE_CREATED_EPOCH" ] || [ -z "$AUTOBALANCE_CREATED_EPOCH" ]; then
+            write_fail_receipt 'UPSTREAM_STEERING_TIMESTAMP_MALFORMED' "base=${BASE_CREATED_AT};autobalance=${AUTOBALANCE_CREATED_AT}"
+            exit 0
+          fi
+          BASE_AGE_SECONDS=$((NOW_EPOCH - BASE_CREATED_EPOCH))
+          AUTOBALANCE_AGE_SECONDS=$((NOW_EPOCH - AUTOBALANCE_CREATED_EPOCH))
+          if [ "$BASE_AGE_SECONDS" -lt 0 ] || [ "$AUTOBALANCE_AGE_SECONDS" -lt 0 ]; then
+            write_fail_receipt 'UPSTREAM_STEERING_TIMESTAMP_FUTURE' "base_age=${BASE_AGE_SECONDS};autobalance_age=${AUTOBALANCE_AGE_SECONDS}"
+            exit 0
+          fi
+          if [ "$BASE_AGE_SECONDS" -gt "$STEERING_PEER_FRESHNESS_SLO_SECONDS" ] || [ "$AUTOBALANCE_AGE_SECONDS" -gt "$STEERING_PEER_FRESHNESS_SLO_SECONDS" ]; then
+            write_fail_receipt 'UPSTREAM_STEERING_GENERATION_STALE' "base_age=${BASE_AGE_SECONDS};autobalance_age=${AUTOBALANCE_AGE_SECONDS};slo=${STEERING_PEER_FRESHNESS_SLO_SECONDS}"
+            exit 0
+          fi
+          PEER_SKEW_SECONDS=$((BASE_CREATED_EPOCH - AUTOBALANCE_CREATED_EPOCH))
+          [ "$PEER_SKEW_SECONDS" -ge 0 ] || PEER_SKEW_SECONDS=$((-PEER_SKEW_SECONDS))
+          if [ "$PEER_SKEW_SECONDS" -gt "$STEERING_PEER_FRESHNESS_SLO_SECONDS" ]; then
+            write_fail_receipt 'UPSTREAM_STEERING_PEER_SKEW_STALE' "peer_skew=${PEER_SKEW_SECONDS};slo=${STEERING_PEER_FRESHNESS_SLO_SECONDS}"
+            exit 0
+          fi
 
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/runs/${BASE_RUN_ID}/artifacts?per_page=100" > /tmp/base-artifacts.json
-          BASE_RECORD=$(jq -c --argjson run "$BASE_RUN_ID" --arg sha "$BASE_SOURCE_SHA" \
+          BASE_RECORD_ARTIFACT=$(jq -c --argjson run "$BASE_RUN_ID" --arg sha "$BASE_SOURCE_SHA" \
             '[.artifacts[] | select(.name=="kidults-asi-self-driving-cycle-v1" and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | if length==1 then .[0] else empty end' /tmp/base-artifacts.json)
-          test -n "$BASE_RECORD"
-          BASE_ID=$(jq -r '.id' <<<"$BASE_RECORD")
-          BASE_DIGEST=$(jq -r '.digest // empty' <<<"$BASE_RECORD")
+          test -n "$BASE_RECORD_ARTIFACT"
+          BASE_ID=$(jq -r '.id' <<<"$BASE_RECORD_ARTIFACT")
+          BASE_DIGEST=$(jq -r '.digest // empty' <<<"$BASE_RECORD_ARTIFACT")
           [[ "$BASE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           gh api -H 'Accept: application/vnd.github+json' "/repos/${GITHUB_REPOSITORY}/actions/artifacts/${BASE_ID}/zip" > /tmp/base.zip
           unzip -q -o /tmp/base.zip -d /tmp/base-raw
@@ -168,12 +235,17 @@ jobs:
             echo "STEERING_EXPECTED_GENERATION_SHA=$EXPECTED_GENERATION_SHA"
             echo "STEERING_BASE_RUN_ID=$BASE_RUN_ID"
             echo "STEERING_BASE_SOURCE_SHA=$BASE_SOURCE_SHA"
+            echo "STEERING_BASE_CREATED_AT=$BASE_CREATED_AT"
+            echo "STEERING_BASE_AGE_SECONDS=$BASE_AGE_SECONDS"
             echo "STEERING_BASE_ID=$BASE_ID"
             echo "STEERING_BASE_DIGEST=$BASE_DIGEST"
             echo "STEERING_AUTOBALANCE_RUN_ID=$AUTOBALANCE_RUN_ID"
             echo "STEERING_AUTOBALANCE_SOURCE_SHA=$AUTOBALANCE_SOURCE_SHA"
+            echo "STEERING_AUTOBALANCE_CREATED_AT=$AUTOBALANCE_CREATED_AT"
+            echo "STEERING_AUTOBALANCE_AGE_SECONDS=$AUTOBALANCE_AGE_SECONDS"
             echo "STEERING_AUTOBALANCE_ID=$BAL_ID"
             echo "STEERING_AUTOBALANCE_DIGEST=$BAL_DIGEST"
+            echo "STEERING_PEER_SKEW_SECONDS=$PEER_SKEW_SECONDS"
           } >> "$GITHUB_ENV"
           echo 'ready=true' >> "$GITHUB_OUTPUT"
 
@@ -193,16 +265,18 @@ jobs:
           set -euo pipefail
           node - <<'NODE'
           const fs=require('node:fs'),e=process.env;
-          const req=['STEERING_BINDING_MODE','STEERING_EXPECTED_GENERATION_SHA','STEERING_BASE_RUN_ID','STEERING_BASE_SOURCE_SHA','STEERING_BASE_ID','STEERING_BASE_DIGEST','STEERING_AUTOBALANCE_RUN_ID','STEERING_AUTOBALANCE_SOURCE_SHA','STEERING_AUTOBALANCE_ID','STEERING_AUTOBALANCE_DIGEST'];
+          const req=['STEERING_BINDING_MODE','STEERING_EXPECTED_GENERATION_SHA','STEERING_BASE_RUN_ID','STEERING_BASE_SOURCE_SHA','STEERING_BASE_CREATED_AT','STEERING_BASE_AGE_SECONDS','STEERING_BASE_ID','STEERING_BASE_DIGEST','STEERING_AUTOBALANCE_RUN_ID','STEERING_AUTOBALANCE_SOURCE_SHA','STEERING_AUTOBALANCE_CREATED_AT','STEERING_AUTOBALANCE_AGE_SECONDS','STEERING_AUTOBALANCE_ID','STEERING_AUTOBALANCE_DIGEST','STEERING_PEER_SKEW_SECONDS'];
           for(const k of req) if(!e[k]) throw new Error('MISSING_'+k);
           if(e.STEERING_BASE_SOURCE_SHA!==e.STEERING_EXPECTED_GENERATION_SHA||e.STEERING_AUTOBALANCE_SOURCE_SHA!==e.STEERING_EXPECTED_GENERATION_SHA) throw new Error('MIXED_GENERATION_INPUTS');
           for(const k of ['STEERING_BASE_DIGEST','STEERING_AUTOBALANCE_DIGEST']) if(!/^sha256:[0-9a-f]{64}$/.test(e[k])) throw new Error('INVALID_'+k);
           fs.writeFileSync('/tmp/asi-autobalance-steering-provenance-v1.json',JSON.stringify({
             id:'kidults-asi-autobalance-steering-provenance-v1',status:'VERIFIED_EXACT_GENERATION_BINDING',
             binding_mode:e.STEERING_BINDING_MODE,consumer_source_sha:e.GITHUB_SHA,expected_generation_sha:e.STEERING_EXPECTED_GENERATION_SHA,
+            freshness_slo_seconds:Number(e.STEERING_PEER_FRESHNESS_SLO_SECONDS),peer_skew_seconds:Number(e.STEERING_PEER_SKEW_SECONDS),
+            trigger_workflow_run_id:e.TRIGGER_RUN_ID||null,trigger_workflow_name:e.TRIGGER_WORKFLOW_NAME||null,
             inputs:[
-              {role:'self_driving_base',workflow_path:'.github/workflows/kidults-asi-self-driving-control-loop-v1.yml',run_id:Number(e.STEERING_BASE_RUN_ID),head_sha:e.STEERING_BASE_SOURCE_SHA,artifact_id:Number(e.STEERING_BASE_ID),digest:e.STEERING_BASE_DIGEST},
-              {role:'throughput_autobalance',workflow_path:'.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml',run_id:Number(e.STEERING_AUTOBALANCE_RUN_ID),head_sha:e.STEERING_AUTOBALANCE_SOURCE_SHA,artifact_id:Number(e.STEERING_AUTOBALANCE_ID),digest:e.STEERING_AUTOBALANCE_DIGEST}
+              {role:'self_driving_base',workflow_path:'.github/workflows/kidults-asi-self-driving-control-loop-v1.yml',run_id:Number(e.STEERING_BASE_RUN_ID),head_sha:e.STEERING_BASE_SOURCE_SHA,created_at:e.STEERING_BASE_CREATED_AT,age_seconds:Number(e.STEERING_BASE_AGE_SECONDS),artifact_id:Number(e.STEERING_BASE_ID),digest:e.STEERING_BASE_DIGEST},
+              {role:'throughput_autobalance',workflow_path:'.github/workflows/kidults-asi-throughput-coverage-autobalance-live-v1.yml',run_id:Number(e.STEERING_AUTOBALANCE_RUN_ID),head_sha:e.STEERING_AUTOBALANCE_SOURCE_SHA,created_at:e.STEERING_AUTOBALANCE_CREATED_AT,age_seconds:Number(e.STEERING_AUTOBALANCE_AGE_SECONDS),artifact_id:Number(e.STEERING_AUTOBALANCE_ID),digest:e.STEERING_AUTOBALANCE_DIGEST}
             ],mixed_generation_allowed:false,promotion_allowed:false,public_release:'HOLD',production:'HOLD'
           },null,2)+'\n');
           NODE
@@ -216,7 +290,32 @@ jobs:
           NODE
           if node scripts/kidults/source-intelligence/validate-asi-autobalance-steering-overlay-v1.mjs /tmp/bad-overlay.json; then exit 1; fi
 
+      - name: Ensure terminal fail-closed steering receipt
+        if: always()
+        env:
+          INPUT_OUTCOME: ${{ steps.inputs.outcome }}
+          INPUT_READY: ${{ steps.inputs.outputs.ready || '' }}
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs'),e=process.env,p='/tmp/asi-autobalance-steering-provenance-v1.json';
+          let keep=false;
+          try {
+            const x=JSON.parse(fs.readFileSync(p,'utf8'));
+            keep=x && x.promotion_allowed===false && x.public_release==='HOLD' && x.production==='HOLD' && ['VERIFIED_FAIL','VERIFIED_EXACT_GENERATION_BINDING'].includes(x.status);
+          } catch {}
+          if(!keep){
+            fs.writeFileSync(p,JSON.stringify({
+              id:'kidults-asi-autobalance-steering-provenance-v1',status:'VERIFIED_FAIL',failure_code:'STEERING_PIPELINE_TERMINAL_FAILURE',
+              input_outcome:e.INPUT_OUTCOME||null,input_ready:e.INPUT_READY||null,consumer_source_sha:e.GITHUB_SHA,
+              trigger_workflow_run_id:e.TRIGGER_RUN_ID||null,trigger_workflow_name:e.TRIGGER_WORKFLOW_NAME||null,
+              promotion_allowed:false,public_release:'HOLD',production:'HOLD'
+            },null,2)+'\n');
+          }
+          NODE
+
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
         with:
           name: kidults-asi-autobalance-steering-overlay-live-v1
           path: |
@@ -224,3 +323,9 @@ jobs:
             /tmp/asi-discovery-steering-plan-autobalanced-v1.json
           retention-days: 30
           if-no-files-found: error
+
+      - name: Fail closed when steering fan-in is unresolved
+        if: always() && (steps.inputs.outcome != 'success' || steps.inputs.outputs.ready != 'true')
+        run: |
+          echo 'STEERING_FAN_IN_UNRESOLVED' >&2
+          exit 1
