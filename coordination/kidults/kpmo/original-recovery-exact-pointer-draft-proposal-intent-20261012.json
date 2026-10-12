@@ -6,10 +6,10 @@
   "operation": "CREATE_DRAFT_PR",
   "base_branch": "main",
   "base_sha": "9dd9fff7da7464d9c15c3e02dcf630cb4539270b",
-  "head_branch": "codex/common-crawl-body-deadline-20261012",
-  "source_head_sha": "1ef771ea75cb4572c1df6aea7e565ef4e5408e17",
-  "source_head_tree_sha": "27b46d9b45d2240a65b103455b9d5182b7c286ef",
-  "payload_digest": "sha256:d4910f47e95daf038998efe19eb5f58d15c5ee4089f07eaa9c73e40d390dc8e4",
+  "head_branch": "codex/original-recovery-exact-pointer-20261012",
+  "source_head_sha": "10132c306e8a0ca348e12404e403fbb45eaa3a98",
+  "source_head_tree_sha": "bc6283dad6afaa6d7a767dd45a2cec0fd5b1cb1f",
+  "payload_digest": "sha256:0a9266679f8c33c3806a618595f86e85d3a4ca65e16e7ca1addf0b7d88cf1611",
   "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
   "authority_granted": false
 }

@@ -93,7 +93,7 @@ function completeChainFixture({missingGate=false,manual=false,clock=false,gateSk
       if(missingAssuranceZip)delete members['assurance-packet.zip'];
     }
     const bytes=execFileSync('python3',['-c','import io,json,sys,zipfile,base64; b=io.BytesIO(); z=zipfile.ZipFile(b,"w"); [(z.writestr(k,base64.b64decode(v["base64"]) if isinstance(v,dict) else v)) for k,v in json.load(sys.stdin).items()]; z.close(); sys.stdout.buffer.write(b.getvalue())'],{input:JSON.stringify(members)});
-    const a={id:r.id+10000,name,digest:digest(bytes),expired:false,expires_at:'2026-11-01T00:00:00Z',workflow_run:{id:r.id,head_sha:source}};
+    const a={id:r.id+10000,name,digest:digest(bytes),size_in_bytes:bytes.length,expired:false,expires_at:'2026-11-01T00:00:00Z',workflow_run:{id:r.id,head_sha:source}};
     artifacts.set(r.id,[a]);archives.set(a.id,bytes);native.set(r.id,r);return a;
   };
   for(let generation=0;generation<2;generation++){

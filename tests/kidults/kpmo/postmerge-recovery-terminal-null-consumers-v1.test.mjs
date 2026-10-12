@@ -11,7 +11,7 @@ const path='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const seal=f=>{const {receipt_digest,observed_at,...core}=f.audit;f.audit.receipt_digest=sha256(canonicalJson(core));delete f.proof.receipt_digest;f.proof.receipt_digest=sha256(canonicalJson(f.proof));};
 test('recovery history excludes pre-incident runs without losing cross-main recovery',()=>{
  const q=originalRecoveryHistoryQuery({id:38132692877,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',1);
- assert.equal(q.get('created'),'2026-10-10T00:00:00.000Z..2026-10-11T22:00:00Z');assert.equal(q.get('status'),'success');
+ assert.equal(q.get('created'),'2026-10-10T00:00:00.000Z..2026-10-11T22:00:00Z');assert.equal(q.has('status'),false);
  assert.equal(q.has('head_sha'),false);assert.equal(q.has('event'),false);assert.equal(q.get('per_page'),'100');
 });
 test('invalid incident windows and page budgets never widen the query',()=>{

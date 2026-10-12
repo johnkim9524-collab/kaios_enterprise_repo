@@ -1,3 +1,4 @@
+import {createInvocationArchiveByteCache} from './lib/invocation-archive-byte-cache-v1.mjs';
 import {verifyFailureTerminalReconciliation} from './lib/failure-terminal-reconciliation-proof-v1.mjs';
 import {observeInterruptedRecoveryNative} from './lib/interrupted-reservation-recovery-v1.mjs';
 import fs from 'node:fs';
@@ -32,15 +33,44 @@ export function originalRecoveryHistoryQuery(originalRun,observedAt,page){
     &&Number.isInteger(page)&&page>=1&&page<=10,'RECOVERY_HISTORY_INCIDENT_WINDOW');
   // A terminal recovering this reservation cannot predate its original run.
   // Keep all source SHAs: reconciliation survives later protected-main merges.
+  // Status is mutable even for runs created before the fixed cutoff. Filtering
+  // success here changes page membership as in-flight runs finish.
   return new URLSearchParams({branch:'main',created:`${new Date(start).toISOString()}..${observedAt}`,
-    status:'success',per_page:'100',page:String(page)});
+    per_page:'100',page:String(page)});
+}
+export async function listOriginalRecoveryHistory({originalRun,observedAt,get,workflow}){
+  const history=[];let total;
+  for(let page=1;page<=10;page++){
+    const query=originalRecoveryHistoryQuery(originalRun,observedAt,page);
+    const index=await get(`actions/workflows/${workflow}/runs?${query}`);
+    requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
+      &&Number.isSafeInteger(index.total_count)&&index.total_count>=0
+      &&index.incomplete_results!==true,'RECOVERY_HISTORY_INDEX');
+    // A bounded prefix cannot establish that an older reconciliation is absent.
+    requireEvidence(index.total_count<=1000,'RECOVERY_HISTORY_TRUNCATED');
+    if(total===undefined)total=index.total_count;
+    requireEvidence(index.total_count===total,'RECOVERY_HISTORY_CHANGED');
+    history.push(...index.workflow_runs);
+    requireEvidence(history.length<=total,'RECOVERY_HISTORY_CARDINALITY');
+    if(history.length===total){
+      requireEvidence(new Set(history.map(r=>r.id)).size===history.length,'RECOVERY_HISTORY_DUPLICATE');
+      const start=Date.parse(originalRun.created_at),end=Date.parse(observedAt);
+      requireEvidence(history.every(r=>Number.isSafeInteger(r?.id)&&r.id>0
+        &&Number.isFinite(Date.parse(r.created_at))&&Date.parse(r.created_at)>=start
+        &&Date.parse(r.created_at)<=end),'RECOVERY_HISTORY_INCIDENT_WINDOW');
+      return history;
+    }
+    requireEvidence(index.workflow_runs.length===100&&page<10,'RECOVERY_HISTORY_TRUNCATED');
+  }
+  throw new Error('WHOLE_RUNTIME_RECOVERY_HISTORY_TRUNCATED');
 }
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
   demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
-  listRuns=null,archiveReader=readArchive,observedAt=new Date().toISOString()}){
+  listRuns=null,archiveReader=readArchive,archiveByteCacheFactory=createInvocationArchiveByteCache,observedAt=new Date().toISOString()}){
   const out=inventoryWholePlatform(contract,scorecard,sourceSha);
   out.observed_at=observedAt;out.repository=REPOSITORY;out.protected_evidence=[];
   const get=p=>read(`${rootUrl}/${p}`,token);
+  const readBytes=archiveByteCacheFactory({download});
   const main=await get('branches/main');requireEvidence(main.commit?.sha===sourceSha,'EXACT_MAIN');
   const commit=await get(`git/commits/${sourceSha}`);
   requireEvidence(commit.sha===sourceSha,'COMMIT');
@@ -75,7 +105,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     if(!values.length)return null;
     requireEvidence(values.length===1,'ARTIFACT_CARDINALITY');const artifact=values[0];
     requireEvidence(artifact.expired===false&&artifact.workflow_run?.id===run.id&&artifact.workflow_run.head_sha===run.head_sha&&Date.parse(artifact.expires_at)>Date.parse(observedAt),'ARTIFACT_BINDING');
-    const bytes=await download(REPOSITORY,artifact,token);
+    const bytes=await readBytes({repository:REPOSITORY,artifact,sourceSha:run.head_sha,runAttempt:run.run_attempt,token});
     const parsed=archiveReader(bytes,artifact.digest,readerOptions);
     const fresh=await get(`actions/runs/${run.id}`);
     requireEvidence(fresh.status===run.status&&fresh.conclusion===run.conclusion&&fresh.run_attempt===run.run_attempt&&fresh.head_sha===run.head_sha&&fresh.path===run.path,'RUN_CHANGED');
@@ -244,26 +274,19 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       &&['production','public','g5'].every(k=>receipt[k]==='HOLD'),'ORIGINAL_TERMINAL_NULL_RECEIPT');
     mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_FAIL',
       'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',[run.id,artifact.artifact_id,artifact.artifact_digest]);
+    // Preserve the independently authenticated original finding even when a
+    // later recovery lookup fails. It does not satisfy the terminal check or
+    // suppress that lookup failure in the strict Assurance classifier.
+    out.original_terminal_null_observation={state:'VERIFIED_FAIL',
+      reason:'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',
+      evidence_refs:[run.id,artifact.artifact_id,artifact.artifact_digest],
+      actual_authority_granted:false,retry_without_reconciliation:false};
     const recoverySpec=finalizers.find(s=>s.id==='FINALIZER_track');
     // A recovered debt survives later main commits and observation windows.
     // Search the native archive history, never mint a replacement generation.
     let recoveryHistory=[];
     if(listRuns)recoveryHistory=await listRuns(REPOSITORY,recoverySpec,null,token);
-    else{
-      let count,total;
-      for(let page=1;page<=10;page++){
-        const query=originalRecoveryHistoryQuery(run,observedAt,page);
-        const index=await get(`actions/workflows/${recoverySpec.workflow}/runs?${query}`);
-        requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
-          &&Number.isSafeInteger(index.total_count)&&index.total_count>=0,'RECOVERY_HISTORY_INDEX');
-        if(count===undefined){total=index.total_count;count=Math.min(total,1000);}
-        requireEvidence(index.total_count===total,'RECOVERY_HISTORY_CHANGED');
-        recoveryHistory.push(...index.workflow_runs);
-        requireEvidence(recoveryHistory.length<=count,'RECOVERY_HISTORY_CARDINALITY');
-        if(recoveryHistory.length===count)break;
-        requireEvidence(index.workflow_runs.length===100&&page<10,'RECOVERY_HISTORY_TRUNCATED');
-      }
-    }
+    else recoveryHistory=await listOriginalRecoveryHistory({originalRun:run,observedAt,get,workflow:recoverySpec.workflow});
     requireEvidence(new Set(recoveryHistory.map(r=>r.id)).size===recoveryHistory.length,'RECOVERY_HISTORY_DUPLICATE');
     for(const recovery of recoveryHistory){
       if(recovery.run_attempt!==1||!recoverySpec.events.includes(recovery.event))continue;

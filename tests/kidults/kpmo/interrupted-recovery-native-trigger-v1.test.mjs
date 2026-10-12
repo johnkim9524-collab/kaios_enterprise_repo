@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {zip,text} from './recovery-native-archive-fixture-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
-import {verifyInterruptedRecoveryNativeTrigger} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
+import {verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40);
 function fixture(){
  const upstream={id:100,name:'KPMO Continuous Assurance Success Authority Gate V1',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repo,id:1281328888}};
@@ -78,7 +78,7 @@ function failedClockFixture(){
  const get=f.get,reader=f.archiveReader;
  f.get=async route=>{if(route==='actions/runs/990/attempts/1/jobs?per_page=100')return f.jobs;if(route.includes('sentinel-health-v1.yml/runs?'))return {total_count:1,workflow_runs:[f.sentinel]};if(route==='actions/runs/991/attempts/1/jobs?per_page=100')return {total_count:1,jobs:[{id:996,run_id:991,run_attempt:1,name:'exact-main-health',status:'completed',conclusion:'success',steps:[{name:'Verify independent natural-clock receipt',status:'completed',conclusion:'success'}]}]};if(route==='actions/runs/991')return f.sentinel;if(route==='actions/runs/991/artifacts?per_page=100')return {total_count:1,artifacts:[f.sentinelArtifact]};return get(route);};
  f.readBytes=async route=>route==='actions/artifacts/994/zip'?f.sentinelBytes:f.bytes;
- f.archiveReader=(input,expected)=>{if(input===f.sentinelBytes){assert.equal(digest(input),expected);return {archive_digest:expected,members:[{name:'kpmo-continuous-assurance-sentinel-health-v1.json',encoding:'utf-8',text:text(f.health),sha256:digest(text(f.health))}]};}return reader(input,expected);};return f;
+ f.archiveReader=(input,expected)=>{if(digest(input)===f.sentinelArtifact.digest){assert.equal(digest(input),expected);return {archive_digest:expected,members:[{name:'kpmo-continuous-assurance-sentinel-health-v1.json',encoding:'utf-8',text:text(f.health),sha256:digest(text(f.health))}]};}return reader(input,expected);};return f;
 }
 test('failed authenticated external clock consumes natural Sentinel archive without granting authority',async()=>{
  const f=failedClockFixture(),r=await verifyInterruptedRecoveryNativeTrigger(f);assert.equal(r.recovery_parent.actual_authority_granted,false);assert.equal(r.recovery_parent.platform_closure,false);assert.equal(r.recovery_parent.upstream_run_id,'991');
@@ -118,3 +118,38 @@ test('failed clock rejects pagination total drift and incomplete pages',async()=
   await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f),/FAILURE_CLOCK_SENTINEL_LIST/);
  }
 });
+
+import fsToken from 'node:fs';import osToken from 'node:os';import pathToken from 'node:path';
+import {createInterruptedRecoverySignedLedgerClient} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-signed-ledger-client-v1.mjs';
+function capabilityFixture(f=failedAssuranceFixture()){
+ const dir=fsToken.mkdtempSync(pathToken.join(osToken.tmpdir(),'recovery-token-')),eventPath=pathToken.join(dir,'event.json');
+ Object.assign(f.env,{GITHUB_ACTIONS:'true',GITHUB_RUN_ID:'400',GITHUB_WORKFLOW_REF:`${repo}/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main`,GITHUB_EVENT_PATH:eventPath,GITHUB_ACTOR:'github-actions[bot]',KIDULTS_RECOVERY_ROLE:'KPMO',KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN:'arn:aws:kms:ap-northeast-2:528314240275:key/key-1',KIDULTS_PRODUCTION_STATE:'HOLD',KIDULTS_PUBLIC_STATE:'HOLD',KIDULTS_G5_STATE:'HOLD'});
+ fsToken.writeFileSync(eventPath,JSON.stringify(f.event));f.byteReads=0;
+ f.nativeReads=[];const get=f.get,bytes=f.readBytes;f.get=async route=>{f.nativeReads.push(route);if(f.readError&&route==='branches/main')throw f.readError;return get(route);};
+ if(bytes)f.readBytes=async route=>{f.byteReads++;return bytes(route);};
+ f.close=()=>fsToken.rmSync(dir,{recursive:true,force:true});f.mint=()=>verifyInterruptedRecoveryNativeTriggerOnce(f);
+ f.consume=(token,extra={})=>consumeInterruptedRecoveryNativeTriggerToken({token,env:f.env,...extra});return f;
+}
+test('private token reuses verified original ZIP once but repeats metadata and semantics before client AWS',async()=>{
+ const f=capabilityFixture();try{const {upstream,token}=await f.mint();assert.ok(Object.isFrozen(upstream.recovery_parent));assert.equal(f.byteReads,1);
+ let awsCalls=0;const client=await createInterruptedRecoverySignedLedgerClient({role:'KPMO',signingKeyArn:f.env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:sha,env:f.env,nativeVerificationToken:token,aws:async args=>{assert.equal(args[0],'sts');awsCalls++;return {Account:'528314240275',Arn:'arn:aws:sts::528314240275:assumed-role/kidults-autonomous-kpmo-staging-role/session'};}});
+ assert.ok(client);assert.equal(awsCalls,1);assert.equal(f.byteReads,1);assert.equal(f.calls.filter(x=>x==='actions/runs/990/artifacts?per_page=100').length,2);assert.equal(f.calls.filter(x=>x==='branches/main').length,2);
+ await assert.rejects(f.consume(token),/CONSUMED/);
+ }finally{f.close();}
+});
+for(const [name,make] of [['plain',()=>({})],['clone',t=>structuredClone(t)],['serialized',t=>JSON.parse(JSON.stringify(t))],['boolean',()=>true],['null',()=>null]])test('reject '+name+' token without any native request',async()=>{const f=capabilityFixture();try{const {token}=await f.mint(),calls=f.calls.length;await assert.rejects(f.consume(make(token)),/TOKEN_UNKNOWN/);assert.equal(f.calls.length,calls);}finally{f.close();}});
+for(const key of ['GITHUB_SHA','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','GITHUB_WORKFLOW_REF','GITHUB_REF','GITHUB_REPOSITORY','GITHUB_ACTOR','GITHUB_EVENT_NAME','GITHUB_EVENT_PATH','KIDULTS_RECOVERY_ROLE','KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN','KIDULTS_PRODUCTION_STATE','KIDULTS_PUBLIC_STATE','KIDULTS_G5_STATE'])test('changed '+key+' consumes/rejects token before read or AWS',async()=>{const f=capabilityFixture();try{const {token}=await f.mint(),calls=f.calls.length;f.env[key]='changed';await assert.rejects(f.consume(token),/TOKEN_CONTEXT/);assert.equal(f.calls.length,calls);await assert.rejects(f.consume(token),/CONSUMED/);}finally{f.close();}});
+test('changed event file is rejected without full verification fallback',async()=>{const f=capabilityFixture();try{const {token}=await f.mint(),calls=f.calls.length;fsToken.writeFileSync(f.env.GITHUB_EVENT_PATH,JSON.stringify({...f.event,action:'requested'}));await assert.rejects(f.consume(token),/TOKEN_EVENT/);assert.equal(f.calls.length,calls);}finally{f.close();}});
+for(const time of [()=>NaN,()=>0,()=>Date.now()+900001])test('invalid/backward/expired clock rejects token before native reads',async()=>{const f=capabilityFixture();try{const {token}=await f.mint(),calls=f.calls.length;await assert.rejects(f.consume(token,{now:time}),/TOKEN_EXPIRED/);assert.equal(f.calls.length,calls);}finally{f.close();}});
+for(const [name,mutate] of [['rerun',f=>f.assurance.run_attempt=2],['new conclusion',f=>f.assurance.conclusion='success'],['expired archive',f=>f.artifact.expired=true],['borrowed archive',f=>f.artifact.workflow_run.id=991],['digest drift',f=>f.artifact.digest='sha256:'+'0'.repeat(64)]])test('fresh '+name+' is rejected even with cached bytes',async()=>{const f=capabilityFixture();try{const {token}=await f.mint();mutate(f);await assert.rejects(f.consume(token));await assert.rejects(f.consume(token),/CONSUMED/);}finally{f.close();}});
+test('fresh main API403 is preserved and client never reaches AWS',async()=>{const f=capabilityFixture();try{const {token}=await f.mint();f.readError=Error('API_403');let aws=0;await assert.rejects(createInterruptedRecoverySignedLedgerClient({role:'KPMO',signingKeyArn:f.env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:sha,env:f.env,nativeVerificationToken:token,aws:async()=>{aws++;}}),e=>e===f.readError);assert.equal(aws,0);await assert.rejects(f.consume(token),/CONSUMED/);}finally{f.close();}});
+test('concurrent token consumption has exactly one verified winner',async()=>{const f=capabilityFixture();try{const {token}=await f.mint(),r=await Promise.allSettled([f.consume(token),f.consume(token)]);assert.equal(r.filter(x=>x.status==='fulfilled').length,1);assert.equal(r.filter(x=>x.status==='rejected').length,1);assert.equal(f.byteReads,1);}finally{f.close();}});
+test('failed full verification cannot issue a token',async()=>{const f=capabilityFixture();try{f.assurance.conclusion='success';await assert.rejects(f.mint());assert.equal(f.byteReads,0);}finally{f.close();}});
+test('full proof is deeply immutable and cannot mutate the recorded parent',async()=>{const f=capabilityFixture();try{const {upstream,token}=await f.mint();assert.throws(()=>{upstream.recovery_parent.terminal_check_evidence_refs[0]='other';},TypeError);assert.equal((await f.consume(token)).recovery_parent.terminal_check_evidence_refs[0],'800');}finally{f.close();}});
+
+test('clock parent reuses both bound ZIPs while rechecking the actual Sentinel run',async()=>{const f=capabilityFixture(failedClockFixture());try{const {token}=await f.mint();assert.equal(f.byteReads,2);await f.consume(token);assert.equal(f.byteReads,2);assert.equal(f.nativeReads.filter(x=>x==='actions/runs/991').length,2);}finally{f.close();}});
+test('clock parent cannot reuse a Sentinel after its native attempt advances',async()=>{const f=capabilityFixture(failedClockFixture());try{const {token}=await f.mint();f.sentinel.run_attempt=2;await assert.rejects(f.consume(token));assert.equal(f.byteReads,2);}finally{f.close();}});
+for(const milliseconds of [899999,900000])test('token exact15-minute boundary '+milliseconds+'ms',async()=>{
+ const f=capabilityFixture(),real=Date.now,time=real();try{Date.now=()=>time;const {token}=await f.mint();Date.now=real;if(milliseconds===899999)await f.consume(token,{now:()=>time+milliseconds});else await assert.rejects(f.consume(token,{now:()=>time+milliseconds}),/TOKEN_EXPIRED/);}finally{Date.now=real;f.close();}
+});
+test('parent request expiry is an earlier cap than the token15-minute lifetime',async()=>{const f=capabilityFixture(),real=Date.now,time=real();try{f.assurance.updated_at=new Date(time-1800000+10).toISOString();Date.now=()=>time;const {token}=await f.mint();Date.now=real;await assert.rejects(f.consume(token,{now:()=>time+10}),/TOKEN_EXPIRED/);}finally{Date.now=real;f.close();}});
