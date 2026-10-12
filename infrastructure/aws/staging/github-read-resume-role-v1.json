@@ -1,0 +1,72 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Isolated staging OIDC role for the exact GitHub read-resume handoff; shared budget rows only.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:iam::528314240275:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "LedgerTableArn": {
+      "Type": "String",
+      "Default": "arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger",
+      "AllowedPattern": "^arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger$"
+    }
+  },
+  "Resources": {
+    "GithubReadResumeRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-github-read-resume-staging-role",
+        "MaxSessionDuration": 900,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {"Federated": {"Ref": "GitHubOidcProviderArn"}},
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-github-read-resume-handoff-v1.yml@refs/heads/main"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "github-read-resume-shared-budget-only",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+                  "Resource": {"Ref": "LedgerTableArn"},
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": ["GITHUB_READ_BUDGET#*"]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {"Key": "Environment", "Value": "STAGING"},
+          {"Key": "System", "Value": "GithubReadResume"},
+          {"Key": "Production", "Value": "HOLD"},
+          {"Key": "Public", "Value": "HOLD"},
+          {"Key": "G5", "Value": "HOLD"}
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "GithubReadResumeRoleArn": {
+      "Value": {"Fn::GetAtt": ["GithubReadResumeRole", "Arn"]}
+    }
+  }
+}

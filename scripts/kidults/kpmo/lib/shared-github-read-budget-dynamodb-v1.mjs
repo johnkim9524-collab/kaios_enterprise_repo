@@ -8,10 +8,11 @@ const canonical=x=>Array.isArray(x)?`[${x.map(canonical).join(',')}]`:x&&typeof 
 const digest=x=>createHash('sha256').update(canonical(x)).digest('hex');
 const table='kidults-autonomous-landing-staging-ledger';
 const region='ap-northeast-2';
+const callerRolePattern=/^arn:aws:sts::528314240275:assumed-role\/(?:kidults-autonomous-(?:track|kpmo|verifier)-staging-role|kidults-github-read-resume-staging-role)\/[^/]+$/;
 export function createProtectedDynamoDbGithubReadBudgetStore({scope,aws=execFileSync,identity}={}){
   check(scope?.repository===repo&&scope.resource==='core'&&/^[A-Za-z0-9_-]{1,80}$/.test(scope.quota_owner_id||''),'SCOPE');
   const caller=identity??JSON.parse(aws('aws',['sts','get-caller-identity','--region',region,'--output','json'],{encoding:'utf8',timeout:10000,stdio:['ignore','pipe','pipe']}));
-  check(caller?.Account==='528314240275'&&/^arn:aws:sts::528314240275:assumed-role\/kidults-autonomous-(track|kpmo|verifier)-staging-role\/[^/]+$/.test(caller.Arn||''),'IDENTITY');
+  check(caller?.Account==='528314240275'&&callerRolePattern.test(caller.Arn||''),'IDENTITY');
   const key=`GITHUB_READ_BUDGET#${digest(scope)}`,ddbKey=JSON.stringify({pk:{S:key},sk:{S:'V1'}});
   const call=(args)=>JSON.parse(aws('aws',[...args,'--region',region,'--output','json','--cli-connect-timeout','5','--cli-read-timeout','10'],
     {encoding:'utf8',timeout:20000,stdio:['ignore','pipe','pipe'],env:{...process.env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard'}}));

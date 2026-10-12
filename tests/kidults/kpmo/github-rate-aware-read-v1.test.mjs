@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGithubRateAwareRead,createReadBudget,readResumeCheckpoint} from '../../../scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs';
+import {createSharedGithubReadBudget} from '../../../scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs';
 const url='https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10';
 const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:20,run_attempt:1,original_run_id:38132692877,original_run_attempt:1};
 function fixture(responses){let time=100000,calls=0;const waits=[],checkpoints=[];
@@ -22,6 +23,35 @@ test('shared invocation budget caps concurrent callers and calls',async()=>{let 
 test('body cap cancels without waiting for uncooperative cleanup',async()=>{let cancelled=false;const f=fixture([{ok:true,status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(1048577)}),cancel:()=>{cancelled=true;return new Promise(()=>{});},releaseLock:()=>{}})}}]);await assert.rejects(f.read(url),/RESPONSE_BOUND/);assert.equal(cancelled,true);});
 test('clock rollback is not retry authority',async()=>{const f=fixture([response(200)]);f.setTime(99999);await assert.rejects(f.read(url),/CLOCK_ROLLBACK/);assert.equal(f.calls(),0);});
 test('foreign origin cannot receive token',async()=>{const f=fixture([]);await assert.rejects(f.read('https://example.com/repos/test'),/ORIGIN/);assert.equal(f.calls(),0);});
+test('bounded artifact ZIP bytes follow only an HTTPS GitHub artifact storage redirect',async()=>{
+ const bytes=Buffer.from('zip-data'),url='https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/artifacts/123/zip';
+ let calls=0;
+ const read=createGithubRateAwareRead({token:'fake',binding,responseMode:'bytes',maxBytes:1024,allowArtifactRedirect:true,
+  fetchImpl:async(target,options)=>{calls++;
+   if(calls===1){assert.equal(options.redirect,'manual');assert.equal(options.headers.Authorization,'Bearer fake');return new Response('',{status:302,headers:{location:'https://run-1.blob.core.windows.net/container?sig=opaque'}});}
+   assert.equal(target.hostname,'run-1.blob.core.windows.net');assert.equal(options.redirect,'error');assert.equal(options.headers.Authorization,undefined);
+   assert.equal(options.headers['X-GitHub-Api-Version'],undefined);return new Response(bytes,{status:200});}});
+ assert.deepEqual(await read(url),bytes);
+ assert.equal(calls,2);
+});
+test('artifact ZIP redirect to an untrusted host is rejected',async()=>{
+ let calls=0;
+ const read=createGithubRateAwareRead({token:'fake',binding,responseMode:'bytes',maxBytes:1024,allowArtifactRedirect:true,
+  fetchImpl:async()=>{calls++;return new Response('',{status:302,headers:{location:'https://example.com/archive?secret=hidden'}});}});
+ await assert.rejects(read('https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/artifacts/123/zip'),/GITHUB_READ_REDIRECT/);
+ assert.equal(calls,1);
+});
+test('duplicate handoff events sharing a protected budget cannot reissue a GET',async()=>{
+ let row=null,requests=0;const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'handoff-test'};
+ const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async(_key,version,next)=>{
+  await new Promise(resolve=>setTimeout(resolve,0));if((row?.version??0)!==version)return 'CONFLICT';row=structuredClone(next);return 'COMMITTED';}};
+ const make=(run_id)=>createGithubRateAwareRead({token:'fake',binding:{...binding,run_id,source_sha:'a'.repeat(40)},now:()=>100000,
+  budget:createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:2,now:()=>100000}),
+  operationDedupeKey:'producer:987:1:'+('a'.repeat(40)),fetchImpl:async()=>{requests++;return response(200);}});
+ const results=await Promise.allSettled([make('200')(url),make('201')(url)]);
+ assert.equal(results.filter(item=>item.status==='fulfilled').length,1);assert.equal(requests,1);
+ assert.equal(results.filter(item=>item.status==='rejected'&&/OPERATION_REBIND/.test(item.reason.message)).length,1);
+});
 test('checkpoint excludes nonce and credentials',()=>{const c=readResumeCheckpoint({binding:{...binding,nonce:'SECRET',token:'SECRET'},route:'/repos/test/actions/runs/10',resumeAt:100000,attempts:1,reason:'HTTP_RATE_LIMIT'});assert.ok(!JSON.stringify(c).includes('SECRET'));assert.equal(c.actual_authority_granted,false);});
 test('checkpoint keeps exact run identity across a resumed attempt',()=>{const c=readResumeCheckpoint({binding:{...binding,run_attempt:2},route:'/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10',resumeAt:100000,attempts:1,reason:'HTTP_RATE_LIMIT'});assert.equal(c.binding.run_attempt,2);assert.equal(c.binding.run_id,20);assert.equal(c.original_reservation_preserved,true);});
 

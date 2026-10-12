@@ -1,0 +1,69 @@
+name: KIDULTS GitHub Read Resume Handoff V1
+run-name: "KIDULTS GitHub Read Resume Handoff V1 ${{ github.event.workflow_run.id }}"
+
+on:
+  workflow_run:
+    workflows:
+      - KIDULTS Autonomous Track Authorization V1
+      - KIDULTS Autonomous KPMO Authorization V1
+      - KIDULTS Autonomous Independent Verification V1
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: kidults-github-read-resume-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  consume-read-only-checkpoint:
+    if: github.event_name == 'workflow_run' && github.event.action == 'completed' && github.event.workflow_run.conclusion == 'failure' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-READ-RESUME
+    timeout-minutes: 20
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact protected main consumer
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Verify exact consumer checkout and event binding
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node -e 'const e=JSON.parse(require("node:fs").readFileSync(process.env.GITHUB_EVENT_PATH,"utf8")); const r=e.workflow_run; if(e.action!=="completed"||!Number.isSafeInteger(r?.id)||!Number.isSafeInteger(r?.run_attempt)||!/^[a-f0-9]{40}$/.test(r?.head_sha||"")||r?.head_branch!=="main"||r?.repository?.full_name!==process.env.GITHUB_REPOSITORY||String(r?.repository?.id)!==process.env.GITHUB_REPOSITORY_ID)process.exit(1)'
+      - name: Consume exact deferred read through the shared cross-runner budget
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
+          KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
+          AWS_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-read-resume-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          aws sts get-caller-identity --output json | jq -e '.Account == "528314240275" and (.Arn | contains("assumed-role/kidults-github-read-resume-staging-role/"))' >/dev/null
+          node scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs
+      - name: Preserve bounded read-only handoff receipt
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-${{ github.run_id }}
+          path: out/github-read-resume-handoff-v1/receipt.json
+          if-no-files-found: warn
+          retention-days: 90

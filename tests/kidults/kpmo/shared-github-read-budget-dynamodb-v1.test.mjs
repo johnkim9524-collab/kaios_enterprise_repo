@@ -46,6 +46,13 @@ test('DynamoDB conflicts are surfaced and ambiguous writes are never replayed',a
 
 test('adapter rejects unrelated AWS identities, quota owners, and partition keys',async()=>{
   assert.throws(()=>createProtectedDynamoDbGithubReadBudgetStore({scope,identity:{Account:'1',Arn:'arn:bad'}}),/IDENTITY/);
+  assert.throws(()=>createProtectedDynamoDbGithubReadBudgetStore({scope,identity:{Account:'528314240275',Arn:'arn:aws:sts::528314240275:assumed-role/kidults-github-read-resume-staging-role-evil/run-1'}}),/IDENTITY/);
   assert.throws(()=>createProtectedDynamoDbGithubReadBudgetStore({scope:{...scope,quota_owner_id:'*'},identity}),/SCOPE/);
   const f=fixture();await assert.rejects(f.store.read('AUTH#anything'),/KEY/);
+});
+
+test('dedicated read-resume runner role is admitted to the shared protected budget',()=>{
+  const store=createProtectedDynamoDbGithubReadBudgetStore({scope,identity:{Account:'528314240275',
+    Arn:'arn:aws:sts::528314240275:assumed-role/kidults-github-read-resume-staging-role/run-1'}});
+  assert.equal(store.authority,'PROTECTED_ATOMIC_CAS');
 });

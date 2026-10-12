@@ -21,6 +21,7 @@ function routeAllowed(route,binding){
     /^actions\/runs\/[1-9][0-9]{0,15}\/attempts\/(?:[1-9]|[1-9][0-9]|100)\/jobs\?per_page=100$/,
     /^actions\/runs\/[1-9][0-9]{0,15}\/artifacts\?per_page=100$/,
     /^actions\/artifacts\/[1-9][0-9]{0,15}$/,
+    /^actions\/artifacts\/[1-9][0-9]{0,15}\/zip$/,
     /^pulls\/[1-9][0-9]{0,5}$/,
     /^branches\/main$/,
     /^git\/commits\/[a-f0-9]{40}$/,
@@ -38,13 +39,13 @@ function routeAllowed(route,binding){
     if(run[2]&&run[1]===binding.parent_run_id&&run[1]!==binding.run_id&&run[1]!==binding.original_run_id)
       check(Number(run[2])===binding.parent_run_attempt,'ROUTE_TARGET_ATTEMPT');
   }
-  const artifact=path.match(/^actions\/artifacts\/([1-9][0-9]{0,15})$/);
+  const artifact=path.match(/^actions\/artifacts\/([1-9][0-9]{0,15})(?:\/zip)?$/);
   if(artifact)check(String(binding.original_artifact_id||'')===artifact[1],'ROUTE_TARGET_ARTIFACT');
   return {path};
 }
 
-export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact,archiveBytes,expected,read,now=()=>Date.now(),archiveReader=readArchive}){
-  check(typeof read==='function'&&checkpoint?.id==='kidults-github-read-resume-checkpoint-v1'
+export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,archiveBytes,expected,now=()=>Date.now(),archiveReader=readArchive,packet:providedPacket}){
+  check(checkpoint?.id==='kidults-github-read-resume-checkpoint-v1'
     &&checkpoint.version==='1.0.0'&&checkpoint.state==='READ_DEFERRED_NOT_AUTHORITY','CHECKPOINT');
   const b=checkpoint.binding;
   check(b?.original_run_id===undefined||(Number.isSafeInteger(b.original_run_attempt)&&b.original_run_attempt>=1&&b.original_run_attempt<=100),'CHECKPOINT_ORIGINAL_ATTEMPT');
@@ -58,7 +59,7 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
     &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'CHECKPOINT_SCOPE');
   check(run?.id===Number(b.run_id)&&run.run_attempt===b.run_attempt&&run.head_sha===b.source_sha
     &&run.repository?.full_name===REPO&&String(run.repository?.id)===REPO_ID
-    &&run.path===expected.workflow_path&&run.event==='repository_dispatch'
+    &&run.path===expected.workflow_path&&['repository_dispatch','workflow_run'].includes(run.event)
     &&run.head_branch==='main','NATIVE_RUN_BINDING');
   check([...WORKFLOWS.values()].includes(run.path),'WORKFLOW_NOT_ALLOWLISTED');
   const role=[...WORKFLOWS].find(([,path])=>path===run.path)[0];
@@ -70,7 +71,7 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
     &&Number.isSafeInteger(artifact.size_in_bytes)&&artifact.size_in_bytes>0&&artifact.size_in_bytes<=8*1024*1024
     &&Number.isFinite(Date.parse(artifact.expires_at))&&Date.parse(artifact.expires_at)>now(),'ARTIFACT_BINDING');
   check(Buffer.isBuffer(archiveBytes)&&archiveBytes.length===artifact.size_in_bytes,'ARCHIVE_SIZE');
-  const packet=archiveReader(archiveBytes,artifact.digest);
+  const packet=providedPacket??archiveReader(archiveBytes,artifact.digest);
   const members=packet.members.filter(m=>m.encoding==='utf-8'&&m.name==='checkpoints.jsonl');
   check(members.length===1,'CHECKPOINT_MEMBER_CARDINALITY');
   const lines=members[0].text.split(/\r?\n/).filter(Boolean);
@@ -78,15 +79,23 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
   const entries=lines.map(line=>{try{return JSON.parse(line);}catch{check(false,'CHECKPOINT_JSON');}});
   const wanted=entries.filter(c=>c?.id==='kidults-github-read-resume-checkpoint-v1'
     &&c.binding?.run_id===b.run_id&&c.binding?.run_attempt===b.run_attempt&&c.binding?.source_sha===b.source_sha);
-  check(wanted.length===1&&JSON.stringify(wanted[0])===JSON.stringify(checkpoint),'CHECKPOINT_CARDINALITY_OR_DRIFT');
+  check(wanted.length>=1&&wanted.length<=8&&wanted.some(value=>JSON.stringify(value)===JSON.stringify(checkpoint)),
+    'CHECKPOINT_CARDINALITY_OR_DRIFT');
   const resumeAt=Date.parse(checkpoint.resume_at);
-  check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at&&now()>=resumeAt,'RESUME_NOT_DUE');
+  check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at,'RESUME_TIME');
   check(checkpoint.unfinished_operation?.method==='GET','METHOD');
-  routeAllowed(checkpoint.unfinished_operation.route,b);
-  const value=await read(checkpoint.unfinished_operation.route);
+  const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,b);
+  return {packet,resumeAt,route:checkpoint.unfinished_operation.route,allowedRoute};
+}
+
+export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact,archiveBytes,expected,read,now=()=>Date.now(),archiveReader=readArchive,packet:providedPacket}){
+  check(typeof read==='function','READ_CALLBACK');
+  const validated=validateGithubReadResumeCheckpoint({checkpoint,run,artifact,archiveBytes,expected,now,archiveReader,packet:providedPacket});
+  check(now()>=validated.resumeAt,'RESUME_NOT_DUE');
+  const value=await read(validated.route);
   return {state:'READ_ONLY_CHECKPOINT_RESUMED',value,run_id:run.id,run_attempt:run.run_attempt,
     source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,
-    method:'GET',route:checkpoint.unfinished_operation.route,checkpoint_consumed:true,
+    method:'GET',route:validated.route,checkpoint_consumed:true,
     actual_authority_granted:false,reservation_write_performed:false,approval_created:false};
 }
 

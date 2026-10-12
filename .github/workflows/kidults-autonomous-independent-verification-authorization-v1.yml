@@ -273,6 +273,14 @@ jobs:
           name: kidults-recovery-execution-admission-independent-verification-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/recovery-execution-admission-v1
           retention-days: 90
+      - name: Preserve admission read-resume checkpoint
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-github-read-resume-independent-verification-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/github-read-resume-v1/
+          if-no-files-found: ignore
+          retention-days: 90
 
   terminal-recovery-approval:
     name: Bounded original reservation terminal recovery INDEPENDENT_VERIFIER

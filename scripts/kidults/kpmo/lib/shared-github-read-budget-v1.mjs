@@ -81,7 +81,11 @@ export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=
     check(binding&&now()<deadline,'DEADLINE');
     const request={...binding,issued_at:binding.issued_at??now()};
     const permit=await api.acquire(request);
-    if(!permit.fetch_allowed){const error=Error('SHARED_GITHUB_READ_BUDGET_DEFERRED');error.resume_at=Date.parse(permit.resume_at);throw error;}
+    if(!permit.fetch_allowed){
+      if(permit.state==='EXISTING_PERMIT_NO_REISSUE'||permit.state==='IN_FLIGHT_NO_REISSUE')
+        throw Error('SHARED_GITHUB_READ_DUPLICATE_OPERATION_NO_REPLAY');
+      const error=Error('SHARED_GITHUB_READ_BUDGET_DEFERRED');error.resume_at=Date.parse(permit.resume_at);throw error;
+    }
     const release=()=>{};let finished=false;
     release.finish=async()=>{if(finished)return;await api.finish(request,permit.fence);finished=true;};
     return release;

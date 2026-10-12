@@ -1,0 +1,45 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readWithBoundedGithubDeferrals} from '../../../scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs';
+
+const route='actions/runs/4321/attempts/2/jobs?per_page=100';
+const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:'9001',run_attempt:1,
+  original_run_id:38132692877,original_run_attempt:1,original_artifact_id:11700046124,
+  original_artifact_digest:'sha256:'+'b'.repeat(64)};
+const checkpoint=(resumeAt)=>({id:'kidults-github-read-resume-checkpoint-v1',version:'1.0.0',state:'READ_DEFERRED_NOT_AUTHORITY',binding:structuredClone(binding),
+  unfinished_operation:{method:'GET',route:`/repos/johnkim9524-collab/kaios_enterprise_repo/${route}`},reason:'HTTP_RATE_LIMIT',
+  resume_at:new Date(resumeAt).toISOString(),original_reservation_preserved:true,reservation_write_performed:false,
+  producer_failure_claimed:false,actual_authority_granted:false,promotion_eligible:false,mutation_retry_authorized:false});
+function deferred(cp){const error=Error('GITHUB_READ_DEFERRED');error.read_resume_checkpoint=cp;return error;}
+
+test('a valid deferred GET resumes once within the same runner deadline',async()=>{
+  let now=1000,calls=0,waits=0;
+  const result=await readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>now,
+    wait:async ms=>{waits++;now+=ms;},read:async()=>{calls++;if(calls===1)throw deferred(checkpoint(3000));return {id:4321};}});
+  assert.deepEqual(result,{value:{id:4321},deferrals:1});assert.equal(calls,2);assert.equal(waits,1);
+});
+
+test('a second deferral is bounded and preserved for a HOLD receipt',async()=>{
+  let now=1000,calls=0;
+  await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:9000,now:()=>now,
+    wait:async ms=>{now+=ms;},read:async()=>{calls++;throw deferred(checkpoint(now+1000));}}),/GITHUB_READ_DEFERRED/);
+  assert.equal(calls,3);
+});
+
+test('wrong runner binding, route, authority flags and out-of-deadline wait fail closed',async t=>{
+  const mutations=[
+    cp=>{cp.binding.run_id='9002';},
+    cp=>{cp.unfinished_operation.route+='/extra';},
+    cp=>{cp.actual_authority_granted=true;},
+    cp=>{cp.resume_at=new Date(20000).toISOString();},
+  ];
+  for(const mutate of mutations){
+    await t.test('reject malformed checkpoint',async()=>{
+      const cp=checkpoint(3000);mutate(cp);let calls=0;
+      await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>1000,
+        wait:async()=>{},
+        read:async()=>{calls++;throw deferred(cp);}}),/BOUNDED_GITHUB_READ_/);
+      assert.equal(calls,1);
+    });
+  }
+});
