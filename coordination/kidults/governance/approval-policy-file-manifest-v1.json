@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "29f1f847b4d1dc480a920e61d033950d6b6531da",
+  "revision": "d8110e51196d3d0e8681311abce56aa4b2784795",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4284,8 +4284,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/original-terminal-repair-reconciliation-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "35f7f8521d80ab450249ed7b9c9817223fabd292",
-      "sha256": "sha256:a357d5e82a717eff83bf5117c92394f6bab72334aaec5d41338543a626be88ea",
+      "git_blob": "a1a68a141061edc75984d1d54aa52bd71d2c1f76",
+      "sha256": "sha256:a545c26d44e6421bf71191f39eee21aa00e0c3db2d3bb8c62334b8b1fb94f57b",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6602,8 +6602,8 @@
     {
       "path": "tests/kidults/kpmo/original-terminal-repair-reconciliation-proof-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "fc9a6fe321ee13732fa031db4890cb7367929cd9",
-      "sha256": "sha256:598a289441def084041f9f886b356252dd1b46fcb01ef9c99c9d12d50ca3057e"
+      "git_blob": "55b2fe11b63149bdb78b37ffbee1156d602871c1",
+      "sha256": "sha256:8357b031c1d50dcd9795d815f13849b6597df0c6eda9e71d2c494a78b5574d15"
     },
     {
       "path": "tests/kidults/kpmo/original-terminal-repair-v1.test.mjs",
