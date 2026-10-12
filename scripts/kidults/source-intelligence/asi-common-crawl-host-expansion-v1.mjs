@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { getCommonCrawlIndexResponse as get } from './common-crawl-index-http-v1.mjs';
 
 const input = process.argv[2] || 'discovery-out/global-low-risk-discovery.json';
 const out = process.argv[3] || '/tmp/asi-common-crawl-host-expansion-v1.json';
@@ -13,28 +14,6 @@ const hash = value => crypto.createHash('sha256').update(String(value)).digest('
 const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
 const normalizeHost = value => new URL(String(value || '')).hostname.toLowerCase().replace(/^www\./, '');
 const builderPath = 'scripts/kidults/source-intelligence/build-asi-common-crawl-seed-frontier-v1.mjs';
-
-async function get(url, attempt = 0) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: 'application/json,text/plain',
-        'User-Agent': 'KIDULTS-ASI-Common-Crawl-Host-Expansion-v1'
-      }
-    });
-    if ((response.status === 429 || response.status >= 500) && attempt < 2) {
-      await sleep(700 * (2 ** attempt));
-      return get(url, attempt + 1);
-    }
-    if (!response.ok) throw new Error(`HTTP_${response.status}`);
-    return response;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
 
 const isValidFrontier = value => Boolean(
   value &&

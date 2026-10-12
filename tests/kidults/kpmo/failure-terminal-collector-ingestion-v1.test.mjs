@@ -45,7 +45,10 @@ function fixture(mutate=()=>{}){
  const archiveReader=(bytes,digest)=>{const historical=bytes.toString()==='historic',normal=bytes.toString()==='normal';assert.equal(digest,historical?oldArtifact.digest:newArtifact.digest);
   return {archive_digest:digest,members:[{name:historical||normal?'receipt.json':'interrupted-FINALIZER.json',encoding:'utf-8',text:JSON.stringify(historical?oldReceipt:normal?normalReceipt:result)}]};};
  return {reads,run:()=>collectWholePlatform({sourceSha:state.currentSource,contract,scorecard,observedAt:'2026-10-12T00:30:00Z',read,
-  listRuns:async(_,spec,sha)=>spec.id==='FINALIZER_track'?(sha===null?[recovery]:sha===request.base_sha&&state.normal?[normalRun]:[]):[],download:async(_,a)=>Buffer.from(a.id===oldArtifact.id?'historic':a.id===1000?'normal':'recovery'),archiveReader})};
+  listRuns:async(_,spec,sha)=>spec.id==='FINALIZER_track'?(sha===null?[recovery]:sha===request.base_sha&&state.normal?[normalRun]:[]):[],download:async(_,a)=>Buffer.from(a.id===oldArtifact.id?'historic':a.id===1000?'normal':'recovery'),archiveReader,
+  // This suite isolates signed terminal semantics with synthetic historic bytes.
+  // Real ZIP/byte-cache corruption is independently exercised in collector/cache suites.
+  archiveByteCacheFactory:({download})=>async({repository,artifact,token})=>download(repository,artifact,token)})};
 }
 test('collector ingests authenticated finalizer readback and explicitly supersedes only historic debt',async()=>{
  const f=fixture(),proof=await f.run(),check=proof.operating_checks.find(c=>c.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL');

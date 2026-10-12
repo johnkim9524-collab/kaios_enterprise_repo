@@ -2,6 +2,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import {readSealedCanonicalAnchor} from './sealed-canonical-anchor-v1.mjs';
 
 const manifestPath = process.env.KIDULTS_ANCHOR_MANIFEST ||
   'coordination/kidults/product/representative-anchor-input-manifest-v1.json';
@@ -33,6 +34,32 @@ if (manifest.governance?.artifact_may_self_qualify_collectible !== false ||
     manifest.governance?.artifact_may_authorize_source_acquisition !== false ||
     manifest.governance?.artifact_may_authorize_index_or_publication !== false) {
   fail('AUTHORITY_BOUNDARY');
+}
+
+// A selected capsule is a transport migration, never a failed-API fallback.
+// Authentication, source preservation and byte equality are local Git checks.
+if (manifest.archive_source !== undefined) {
+  let sealed;
+  try { sealed=readSealedCanonicalAnchor({manifest,repository:process.env.GITHUB_REPOSITORY||'johnkim9524-collab/kaios_enterprise_repo'}); }
+  catch(error) { fail(error.message); }
+  const receipt={id:'kidults-canonical-anchor-restore-receipt-v1',state:'VERIFIED_PASS',
+    repository:'johnkim9524-collab/kaios_enterprise_repo',manifest_path:manifestPath,manifest_digest:sha256(manifestBytes),
+    workflow_run_id:manifest.source.workflow_run_id,artifact_id:manifest.source.artifact_id,artifact_name:manifest.source.artifact_name,
+    artifact_digest:sha256(sealed.bytes),source_sha:manifest.source.validated_head,source_branch:manifest.source.source_branch,
+    current_source_transport:'SEALED_GIT_BLOB',archive_source_sha:sealed.sourceCommit,archive_blob_sha:sealed.archiveBlob,
+    runtime_checkout_sha:sealed.head,github_live_metadata_verified:false,original_artifact_current_availability:'NOT_OBSERVED',
+    historical_run_binding_verified:true,historical_artifact_binding_verified:true,exact_run_bound:false,exact_artifact_bound:false,
+    exact_git_source_bound:true,exact_digest_bound:true,artifact_cardinality:1,authority:'STRUCTURAL_PREFLIGHT_ONLY',
+    named_anchor_products:160,representative_qualified_products:0,acquisition_authorized:false,promotion_eligible:false,
+    autonomous_effect:'BOUNDED_OFFLINE_STRUCTURAL_RESTORE',global_effect:'SAME_160_PLANNING_ANCHORS_NO_COVERAGE_EXPANSION',
+    irreplaceable_value_effect:'BYTE_EXACT_ORIGINAL_INPUT_PRESERVED',transparency_effect:'HISTORICAL_CAPTURE_DISTINCT_FROM_LIVE_EVIDENCE',
+    public_release:'HOLD',production:'HOLD',g5:'HOLD'};
+  if(!validateOnly){
+    if(!outputPath)fail('OUTPUT_PATH_REQUIRED');
+    fs.mkdirSync(path.dirname(outputPath),{recursive:true});fs.writeFileSync(outputPath,sealed.bytes,{mode:0o600});
+    fs.mkdirSync(path.dirname(receiptPath),{recursive:true});fs.writeFileSync(receiptPath,JSON.stringify(receipt,null,2)+'\n');
+  }
+  console.log(JSON.stringify(receipt,null,2));process.exit(0);
 }
 
 if (validateOnly) {
