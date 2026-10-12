@@ -27,16 +27,19 @@ const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
   [path.resolve(ROOT, 'kidults-autonomous-track-authorization-v1.yml'), {
     event: 'kidults.authorization.generation.v1',
     environment: 'KIDULTS-AUTONOMOUS-TRACK',
+    recoveryAdmissionRole: 'kidults-autonomous-track-staging-role',
     recoveryWorkflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1'],
   }],
   [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), {
     event: 'kidults.authorization.generation.v1',
     environment: 'KIDULTS-AUTONOMOUS-KPMO',
+    recoveryAdmissionRole: 'kidults-autonomous-kpmo-staging-role',
     recoveryWorkflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1'],
   }],
   [path.resolve(ROOT, 'kidults-autonomous-independent-verification-authorization-v1.yml'), {
     event: 'kidults.authorization.generation.v1',
     environment: 'KIDULTS-AUTONOMOUS-VERIFIER',
+    recoveryAdmissionRole: 'kidults-autonomous-verifier-staging-role',
     recoveryWorkflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1'],
   }],
 ]);
@@ -284,15 +287,26 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected) {
     require(recoveryJobs.some(value => value[1] === 'terminal-recovery-approval'), 'recovery-approval-required');
     require(recoveryJobs.some(value => value[1] === 'interrupted-recovery-finalizer') === Boolean(expected.interruptedFinalizer), 'interrupted-recovery-finalizer-boundary');
     for (const [_, name, section] of recoveryJobs) {
-      require(['terminal-recovery-approval', 'terminal-recovery-finalizer', ...(expected.interruptedFinalizer ? ['interrupted-recovery-finalizer'] : [])].includes(name), 'recovery-job-unknown');
-      require(section.includes('    permissions:\n      actions: read\n      contents: read\n      id-token: write\n      pull-requests: read\n'), 'recovery-permissions-read-only');
+      require(['terminal-recovery-admission', 'terminal-recovery-approval', 'terminal-recovery-finalizer', ...(expected.interruptedFinalizer ? ['interrupted-recovery-finalizer'] : [])].includes(name), 'recovery-job-unknown');
+      if (name === 'terminal-recovery-admission') {
+        require(section.includes('    permissions:\n      actions: read\n      contents: read\n      id-token: write\n'), 'recovery-admission-permissions-read-only');
+        require(section.includes('node scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs'), 'recovery-admission-runner-required');
+        require(section.includes('KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED')
+          && section.includes('KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}'), 'recovery-admission-shared-budget-required');
+        require(section.includes(`assumed-role/${expected.recoveryAdmissionRole}/`), 'recovery-admission-role-readback');
+        require(section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'")
+          && section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'")
+          && section.includes("github.ref == 'refs/heads/main'"), 'recovery-admission-exact-main');
+      } else {
+        require(section.includes('    permissions:\n      actions: read\n      contents: read\n      id-token: write\n      pull-requests: read\n'), 'recovery-permissions-read-only');
+      }
       require(!/^\s*(?:contents|pull-requests|checks|statuses|issues):\s*write\s*$/mi.test(section) && !section.includes('write-all'), 'recovery-github-write-forbidden');
-      if (name.startsWith('terminal-recovery-')) require(section.includes('node scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs'), 'recovery-terminal-runner-required');
+      if (name === 'terminal-recovery-approval' || name === 'terminal-recovery-finalizer') require(section.includes('node scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs'), 'recovery-terminal-runner-required');
       if (name === 'interrupted-recovery-finalizer') require(section.includes('node scripts/kidults/kpmo/run-interrupted-terminal-recovery-v1.mjs'), 'interrupted-recovery-runner-required');
       require(!section.includes('node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs'), 'recovery-live-runner-forbidden');
       if (name === 'terminal-recovery-approval') {
-        require(section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'")
-          && section.includes("github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'")
+        require(section.includes("needs.terminal-recovery-admission.result == 'success'")
+          && section.includes("needs.terminal-recovery-admission.outputs.admitted == 'true'")
           && section.includes("github.ref == 'refs/heads/main' && github.run_attempt == 1"), 'recovery-success-exact-main');
       }
       if (name === 'terminal-recovery-finalizer') require(section.includes("needs.terminal-recovery-approval.outputs.recovery_needed == 'true'"), 'recovery-finalizer-exact-candidate');
