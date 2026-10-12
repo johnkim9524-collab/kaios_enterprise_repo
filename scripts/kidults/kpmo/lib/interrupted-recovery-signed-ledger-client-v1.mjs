@@ -24,6 +24,30 @@ export function createInterruptedRecoveryAwsTransport({execute=execFileSync,env=
 }
 const defaultAws=createInterruptedRecoveryAwsTransport();
 
+// Retain bounded failure facts before deleting the private Lambda response.
+// Never retain an error message, payload, signature, environment or stack.
+const safeWriterCodes=new Set(['CONFIG','WORKLOAD_CONFIG','SIGNER_COLLISION','SIGNED_FIELDS','WORKLOAD','SIGNATURE_ENCODING','SIGNATURE','REQUEST_FIELDS','REQUEST_VERSION','REPOSITORY','QUARANTINE','SHA','ORIGINAL_RUN','ORIGINAL_KEY','HOLD','TIMESTAMP','REQUEST_EXPIRED','FAILURE_CONTEXT_ROLE','FAILURE_CONTEXT_FIELDS','FAILURE_CONTEXT_BINDING','FAILURE_TERMINAL_NULL_ONLY','FAILURE_CONTEXT_PIN','FAILURE_CONTEXT_APPROVAL','FAILURE_CONTEXT_RUN_COLLISION','FAILURE_TERMINAL_PARTIAL_WRITE','FAILURE_TERMINAL_DIGEST'].map(x=>'INTERRUPTED_RECOVERY_'+x).concat(['RECOVERY_ACTION_FORBIDDEN','EVENT_INVALID','RECOVERY_ENVELOPE_INVALID','LEDGER_CAPSULE_DIGEST']));
+const safeAwsCodes=new Set(['AccessDeniedException','ValidationException','ResourceNotFoundException','ProvisionedThroughputExceededException','ThrottlingException','InternalServerError','KMSAccessDeniedException']);
+export function recoveryTransportDiagnostic({metadata,output,envelope,sourceSha,role,runId}){
+  const diagnostic={id:'kidults-interrupted-recovery-transport-diagnostic-v1',version:'1.0.0',
+    source_sha:sourceSha,role,run_id:runId,operation:envelope.action,
+    status_code:Number.isSafeInteger(metadata?.StatusCode)&&metadata.StatusCode>=100&&metadata.StatusCode<=599?metadata.StatusCode:null,
+    function_error:['Handled','Unhandled'].includes(metadata?.FunctionError)?metadata.FunctionError:null,
+    response_state:'UNAVAILABLE',response_sha256:null,error_type:null,writer_error_code:null,aws_error_code:null,
+    retry_authorized:false,actual_authority_granted:false,promotion_eligible:false};
+  try{
+    const stat=fs.lstatSync(output);
+    if(!stat.isFile()||stat.isSymbolicLink()||stat.size>131072){diagnostic.response_state='REJECTED_FILE';return diagnostic;}
+    const bytes=fs.readFileSync(output);diagnostic.response_sha256=sha256(bytes);diagnostic.response_state='BOUNDED_BYTES';
+    const response=JSON.parse(bytes.toString('utf8'));
+    if(['ValueError','KeyError','TypeError','RuntimeError','ClientError'].includes(response?.errorType))diagnostic.error_type=response.errorType;
+    if(safeWriterCodes.has(response?.errorMessage))diagnostic.writer_error_code=response.errorMessage;
+    const awsCode=typeof response?.errorMessage==='string'?response.errorMessage.match(/^An error occurred \(([A-Za-z]+)\) when calling /)?.[1]:null;
+    if(safeAwsCodes.has(awsCode))diagnostic.aws_error_code=awsCode;
+  }catch{} // Diagnostic failure cannot replace the original no-retry rejection.
+  return diagnostic;
+}
+
 export async function createInterruptedRecoverySignedLedgerClient({role,signingKeyArn,sourceSha,env=process.env,aws=defaultAws,tempRoot=os.tmpdir(),now=()=>Date.now()}){
   env={...env}; // Preserve the authenticated context across asynchronous RPCs.
   const def=roles[role];check(def,'ROLE');
@@ -48,9 +72,16 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
       const sig=await aws(['kms','sign','--key-id',signingKeyArn,'--message',`fileb://${message}`,'--message-type','DIGEST','--signing-algorithm','ECDSA_SHA_256']);
       check(sig.KeyId===signingKeyArn&&sig.SigningAlgorithm==='ECDSA_SHA_256'&&typeof sig.Signature==='string'
         &&/^[A-Za-z0-9+/]+={0,2}$/.test(sig.Signature)&&Buffer.from(sig.Signature,'base64').length>0,'SIGNATURE');
-      const metadata=await aws(['lambda','invoke','--function-name','kidults-autonomous-ledger-writer-staging','--cli-binary-format','raw-in-base64-out',
-        '--payload',canonicalJson({envelope,signature_b64:sig.Signature}),output]);
-      check(metadata.StatusCode===200&&!metadata.FunctionError,'TRANSPORT_UNKNOWN_NO_RETRY');
+      let metadata;
+      const rejectTransport=()=>{
+        const error=new Error('INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');
+        error.recovery_transport_diagnostic=recoveryTransportDiagnostic({metadata,output,envelope,sourceSha,role,runId:env.GITHUB_RUN_ID});
+        throw error;
+      };
+      try{metadata=await aws(['lambda','invoke','--function-name','kidults-autonomous-ledger-writer-staging','--cli-binary-format','raw-in-base64-out',
+        '--payload',canonicalJson({envelope,signature_b64:sig.Signature}),output]);}
+      catch{rejectTransport();}
+      if(metadata?.StatusCode!==200||metadata.FunctionError)rejectTransport();
       const stat=fs.lstatSync(output);check(stat.isFile()&&!stat.isSymbolicLink()&&stat.size<=131072,'OUTPUT');
       const result=JSON.parse(fs.readFileSync(output,'utf8'));check(result?.ok===true,'REJECTED');return result;
     }finally{fs.rmSync(dir,{recursive:true,force:true});}

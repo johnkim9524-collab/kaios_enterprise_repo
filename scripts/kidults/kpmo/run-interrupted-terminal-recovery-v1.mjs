@@ -46,7 +46,8 @@ export async function runNativeInterruptedRecovery(){
   try{return await runNativeInterruptedRecoveryInternal();}
   catch(error){
     fs.mkdirSync('out/postmerge-terminal-recovery-v1',{recursive:true});
-    fs.writeFileSync('out/postmerge-terminal-recovery-v1/interrupted-hold.json',JSON.stringify({state:'HOLD',failure_code:error.message,promotion_eligible:false})+'\n');
+    fs.writeFileSync('out/postmerge-terminal-recovery-v1/interrupted-hold.json',JSON.stringify({state:'HOLD',failure_code:error.message,
+      ...(error.recovery_transport_diagnostic?{transport_diagnostic:error.recovery_transport_diagnostic}:{}),promotion_eligible:false})+'\n');
     throw error;
   }
 }
