@@ -230,6 +230,48 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(row['state']['S'], 'CONSUMED')
         self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
         self.assertEqual(row['failure_terminal']['S'], m.canonical(terminal))
+    def test_failure_profile_cannot_create_normal_approval_for_any_role(self):
+        self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure')
+        before = copy.deepcopy(self.ddb.rows)
+        for role in m.ROLES:
+            with self.subTest(role=role):
+                with self.assertRaisesRegex(ValueError, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN'):
+                    self.ledger.create_approval(self.approval(role))
+                self.assertEqual(self.ddb.writes, 0)
+                self.assertEqual(self.ddb.rows, before)
+    def test_persisted_failure_profile_quorum_cannot_claim_or_consume_normal_reservation(self):
+        self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure')
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]
+        row.update(ir_request={'S':m.canonical(self.request)}, ir_evidence={'S':m.canonical(self.evidence)},
+                   ir_evidence_digest={'S':m.digest(self.evidence)})
+        for role in m.ROLES:
+            key = {'pk':{'S':'AUTH#POSTMERGE#'+m.digest(self.request)}, 'sk':{'S':'ROLE#'+role}}
+            self.ddb.rows[self.ddb.key(key)] = {**key, 'signed_event':{'S':m.canonical(self.approval(role))}}
+        with self.assertRaisesRegex(ValueError, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN'):
+            self.claim()
+        # A previously stored lease does not evade persisted quorum validation.
+        row.update(ir_owner={'S':'400'}, ir_revision={'N':'1'}, ir_lease_until={'N':str(self.clock+60)})
+        before = copy.deepcopy(self.ddb.rows)
+        with self.assertRaisesRegex(ValueError, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN'):
+            self.consume()
+        self.assertEqual(self.ddb.writes, 0); self.assertEqual(self.ddb.rows, before)
+        # An already consumed contaminated row cannot be reused or archived as
+        # a normal terminal after activation of the rejection boundary.
+        terminal = self.terminal()
+        row.update(state={'S':'CONSUMED'}, merge_sha={'S':self.request['merge_sha']},
+                   ir_terminal={'S':m.canonical(terminal)}, ir_terminal_digest={'S':m.digest(terminal)})
+        before = copy.deepcopy(self.ddb.rows)
+        for event in (self.context(), self.final('READ_MERGED_RECOVERY'),
+                      self.final('CONSUME_MERGED_RECOVERY', revision=1, terminal=terminal),
+                      self.final('ACK_MERGED_RECOVERY_IMMUTABLE', object={})):
+            with self.assertRaisesRegex(ValueError, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN'):
+                {'READ_MERGED_RECOVERY_CONTEXT':self.ledger.read_context,
+                 'READ_MERGED_RECOVERY':self.ledger.read,
+                 'CONSUME_MERGED_RECOVERY':self.ledger.consume,
+                 'ACK_MERGED_RECOVERY_IMMUTABLE':self.ledger.acknowledge}[event['envelope']['action']](event)
+        self.assertEqual(self.ddb.writes, 0); self.assertEqual(self.ddb.rows, before)
     def test_failure_approval_lost_write_response_is_read_reconciled_without_retry(self):
         self.ddb.rows[self.ddb.key(self.ledger.key(self.request))].update(state={'S':'CONSUMED'}, merge_sha={'S':'d'*40})
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
