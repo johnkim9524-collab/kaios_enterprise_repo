@@ -11,7 +11,7 @@ const WORKFLOWS=new Map([
 ]);
 const check=(ok,code)=>{if(!ok)throw Error(`GITHUB_RESUME_${code}`);};
 
-function routeAllowed(route){
+function routeAllowed(route,binding){
   check(typeof route==='string'&&route.length<=512&&!route.includes('#'),'ROUTE');
   const prefix='/repos/'+REPO+'/';
   check(route.startsWith(prefix),'ROUTE_NOT_ALLOWLISTED');
@@ -28,6 +28,14 @@ function routeAllowed(route){
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
   check(allowed.some(pattern=>pattern.test(path)),'ROUTE_NOT_ALLOWLISTED');
+  const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/1\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
+  if(run){
+    const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id]
+      .filter(value=>value!==undefined).map(String);
+    check(boundRuns.includes(run[1]),'ROUTE_TARGET_RUN');
+  }
+  const artifact=path.match(/^actions\/artifacts\/([1-9][0-9]{0,15})$/);
+  if(artifact)check(String(binding.original_artifact_id||'')===artifact[1],'ROUTE_TARGET_ARTIFACT');
   return {path};
 }
 
@@ -65,7 +73,7 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
   const resumeAt=Date.parse(checkpoint.resume_at);
   check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at&&now()>=resumeAt,'RESUME_NOT_DUE');
   check(checkpoint.unfinished_operation?.method==='GET','METHOD');
-  routeAllowed(checkpoint.unfinished_operation.route);
+  routeAllowed(checkpoint.unfinished_operation.route,b);
   const value=await read(checkpoint.unfinished_operation.route);
   return {state:'READ_ONLY_CHECKPOINT_RESUMED',value,run_id:run.id,run_attempt:run.run_attempt,
     source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,

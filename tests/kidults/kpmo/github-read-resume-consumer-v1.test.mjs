@@ -6,7 +6,7 @@ import {readResumeCheckpoint} from '../../../scripts/kidults/kpmo/lib/github-rat
 const sha='a'.repeat(40),digest='sha256:'+'b'.repeat(64),runId=321;
 const route='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/987/attempts/1/jobs?per_page=100';
 const checkpoint=readResumeCheckpoint({binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:sha,
- run_id:String(runId),run_attempt:2},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:00:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});
+ run_id:String(runId),run_attempt:2,parent_run_id:'987'},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:00:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});
 const run={id:runId,run_attempt:2,head_sha:sha,head_branch:'main',event:'repository_dispatch',path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
  repository:{full_name:'johnkim9524-collab/kaios_enterprise_repo',id:1281328888}};
 const line=JSON.stringify(checkpoint),archiveBytes=Buffer.from('zip');
@@ -26,6 +26,7 @@ for(const [name,mutate,code] of [
  ['run attempt mismatch',x=>x.run={...run,run_attempt:1},'NATIVE_RUN_BINDING'],
  ['source sha mismatch',x=>x.checkpoint={...checkpoint,binding:{...checkpoint.binding,source_sha:'c'.repeat(40)}},'CHECKPOINT_EXPECTED_BINDING'],
  ['artifact digest mismatch',x=>x.artifact={...artifact,digest:'sha256:'+'c'.repeat(64)},'ARTIFACT_BINDING'],
+ ['unbound route run target',x=>x.checkpoint={...checkpoint,binding:{...checkpoint.binding,parent_run_id:'988'}},'ROUTE_TARGET_RUN'],
  ['expired artifact',x=>x.artifact={...artifact,expired:true},'ARTIFACT_BINDING'],
  ['resume too early',x=>x.now=()=>Date.parse('2026-10-12T09:59:59Z'),'RESUME_NOT_DUE'],
  ['route traversal',x=>x.checkpoint={...checkpoint,unfinished_operation:{method:'GET',route:`${route}/../../contents`}},'ROUTE_NOT_ALLOWLISTED'],
