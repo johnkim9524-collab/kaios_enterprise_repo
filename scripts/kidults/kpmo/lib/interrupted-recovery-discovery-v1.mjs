@@ -62,9 +62,10 @@ export async function discoverInterruptedRecoveryCandidates({sourceSha,upstream,
       &&failureParent.terminal_check_id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'
       &&failureParent.terminal_check_reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
       &&Array.isArray(refs)&&refs.length===3
+      &&(typeof refs[0]==='string'||Number.isSafeInteger(refs[0]))
       &&/^[1-9][0-9]{0,15}$/.test(String(refs[0]))&&Number.isSafeInteger(Number(refs[0]))
       &&Number.isSafeInteger(refs[1])&&refs[1]>0
-      &&/^sha256:[a-f0-9]{64}$/.test(refs[2]||''),'EXACT_PARENT_POINTER');
+      &&typeof refs[2]==='string'&&/^sha256:[a-f0-9]{64}$/.test(refs[2]),'EXACT_PARENT_POINTER');
     const run=await get(`actions/runs/${refs[0]}`);identity(run);
     check(run.id===Number(refs[0])&&run.run_attempt===1&&run.status==='completed'
       &&['failure','cancelled','timed_out'].includes(run.conclusion),'EXACT_RUN');

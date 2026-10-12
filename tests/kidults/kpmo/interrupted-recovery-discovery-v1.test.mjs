@@ -55,7 +55,9 @@ for(const [name,mutate] of [
  ['wrong kind',f=>f.parent.kind='UNKNOWN'],['wrong source',f=>f.parent.source_sha=sha('a')],['missing refs',f=>delete f.parent.terminal_check_evidence_refs],
  ['extra ref',f=>f.parent.terminal_check_evidence_refs.push('extra')],['unsafe run',f=>f.parent.terminal_check_evidence_refs[0]='9999999999999999'],
  ['fractional artifact',f=>f.parent.terminal_check_evidence_refs[1]=500.5],['bad digest',f=>f.parent.terminal_check_evidence_refs[2]='bad'],
- ['wrong terminal check',f=>f.parent.terminal_check_id='OTHER']
+ ['wrong terminal check',f=>f.parent.terminal_check_id='OTHER'],
+ ['array run',f=>f.parent.terminal_check_evidence_refs[0]=['100']],['object run',f=>f.parent.terminal_check_evidence_refs[0]={toString:()=> '100'}],
+ ['boolean run',f=>f.parent.terminal_check_evidence_refs[0]=true],['array digest',f=>f.parent.terminal_check_evidence_refs[2]=[f.artifact.digest]]
 ])test('exact pointer rejects '+name+' before any API read',async()=>{const f=exactFixture();mutate(f);await assert.rejects(f.call(),/EXACT_PARENT_POINTER/);assert.deepEqual(f.calls,[]);assert.deepEqual(f.reads,[]);});
 for(const [name,mutate] of [
  ['run id',f=>f.run.id=101],['foreign repository',f=>f.run.repository.full_name='other/repo'],['wrong path',f=>f.run.path='.github/workflows/other.yml'],
