@@ -6709,8 +6709,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5e0eab63ef5d22b2bc7e1c3a16161c882c60e9ed",
-      "sha256": "sha256:3e6cd57dba0faa108d4c48c0d1df839fcda5f69f3e3caf5394075d81dbbda224"
+      "git_blob": "898d1d3feb58ee27f30c9d86eacb007508456e5b",
+      "sha256": "sha256:e0bdfaf53584df062efc7bbd117d71ba3e98174512b29fb57fbcfe9d1658c1d9"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
@@ -6857,5 +6857,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:391b1b1906c6d684893326fd624d8a6b958ea844f9f73fc4233283243a6dc465"
+  "manifest_sha256": "sha256:240f28a26dcd93b8b7664e2a4adc74b6ef5ceb582100bd90939d9f80e6f6f96d"
 }

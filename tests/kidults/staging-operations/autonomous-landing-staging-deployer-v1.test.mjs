@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
+import {isDeepStrictEqual} from 'node:util';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync, spawnSync} from 'node:child_process';
@@ -25,6 +26,12 @@ const sharedBudgetStatement = {
   Condition: {'ForAllValues:StringLike': {'dynamodb:LeadingKeys': ['GITHUB_READ_BUDGET#*']}},
 };
 for (const roleId of ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole']) {
+  const statements = desired.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement;
+  // Treat the frozen fixture as a base and materialize this exact reviewed
+  // statement once. This keeps old fixtures compatible without weakening the
+  // production validator's duplicate rejection.
+  desired.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement =
+    statements.filter(statement => !isDeepStrictEqual(statement, sharedBudgetStatement));
   desired.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement.push(structuredClone(sharedBudgetStatement));
 }
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
@@ -539,6 +546,18 @@ test('template validator recognizes an already applied exact template without cr
       '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
     ], {encoding: 'utf8'});
     assert.equal(JSON.parse(output).mode, 'ALREADY_APPLIED');
+  });
+});
+
+test('template validator rejects duplicate shared budget IAM statements', () => {
+  const duplicated = structuredClone(desired);
+  duplicated.Resources.TrackApprovalRole.Properties.Policies[0].PolicyDocument.Statement.push(structuredClone(sharedBudgetStatement));
+  withFixture({current: preRecoveryTemplate(), desired: duplicated}, directory => {
+    const result = spawnSync('node', [validator,
+      '--current', path.join(directory, 'current'), '--desired', path.join(directory, 'desired'),
+    ], {encoding: 'utf8'});
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /BOUNDED_SHARED_BUDGET_STORE_STATEMENT_INVALID:TrackApprovalRole/);
   });
 });
 
