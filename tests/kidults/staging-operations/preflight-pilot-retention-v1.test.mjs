@@ -17,5 +17,7 @@ test('real Git-bound restoration rejects drift and symlinks without overwriting 
   assert.equal(restorePilot({root,output}).runtime_authority_created,false);assert.deepEqual(fs.readFileSync(output),b);
   fs.writeFileSync(p,Buffer.concat([b,Buffer.from('\n')]));assert.throws(()=>restorePilot({root,output}),/EXACT_BYTES/);assert.deepEqual(fs.readFileSync(output),b);
   fs.unlinkSync(p);fs.symlinkSync(output,p);assert.throws(()=>restorePilot({root,output}),/REGULAR_FILE/);assert.deepEqual(fs.readFileSync(output),b);
+  fs.unlinkSync(p);fs.writeFileSync(p,b);const parent=path.dirname(p),moved=parent+'-moved';fs.renameSync(parent,moved);fs.symlinkSync(moved,parent);assert.throws(()=>restorePilot({root,output}),/REGULAR_FILE/);fs.unlinkSync(parent);fs.renameSync(moved,parent);
+  git('update-index','--chmod=+x',PILOT_PATH);git('-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit','-m','bad-mode');assert.throws(()=>restorePilot({root,output}),/COMMITTED_REGULAR_FILE/);assert.deepEqual(fs.readFileSync(output),b);
  }finally{fs.rmSync(root,{recursive:true,force:true});}
 });

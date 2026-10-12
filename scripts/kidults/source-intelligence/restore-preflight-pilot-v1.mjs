@@ -13,9 +13,13 @@ export function verifyPinnedPilot(bytes){
   return {id:'kidults-preflight-historical-pilot-restore-v1',state:'VERIFIED_HISTORICAL_PLANNING_INPUT',original_artifact_id:9290027789,original_archive_sha256:'sha256:c35e091c2b1b19a4240c161a4839efd4823c4a14ecea1412a55151a9edf5f821',decoded_member_sha256:'sha256:'+DIGEST,source_transport:'COMMITTED_GIT_JSON',github_live_metadata_verified:false,original_run_binding_verified:false,runtime_authority_created:false,acquisition_authorized:false,production:'HOLD'};
 }
 export function restorePilot({root=process.cwd(),output='input/bounded-live-discovery.json'}={}){
-  const p=path.join(root,PILOT_PATH),stat=fs.lstatSync(p);if(!stat.isFile()||stat.isSymbolicLink())throw Error('PILOT_REGULAR_FILE_REQUIRED');
+  let component=root;for(const name of PILOT_PATH.split('/')){component=path.join(component,name);if(fs.lstatSync(component).isSymbolicLink())throw Error('PILOT_REGULAR_FILE_REQUIRED');}
+  const p=path.join(root,PILOT_PATH),stat=fs.lstatSync(p);if(!stat.isFile())throw Error('PILOT_REGULAR_FILE_REQUIRED');
   const b=fs.readFileSync(p),receipt=verifyPinnedPilot(b);
-  const committed=execFileSync('git',['-C',root,'show','HEAD:'+PILOT_PATH],{maxBuffer:65536,timeout:5000,env:{...process.env,GIT_NO_LAZY_FETCH:'1',GIT_TERMINAL_PROMPT:'0'}});
+  const gitEnv={...process.env,GIT_NO_LAZY_FETCH:'1',GIT_TERMINAL_PROMPT:'0'};
+  const entry=execFileSync('git',['-C',root,'ls-tree','HEAD','--',PILOT_PATH],{encoding:'utf8',maxBuffer:1024,timeout:5000,env:gitEnv});
+  if(!/^100644 blob [0-9a-f]{40}\t/.test(entry)||entry.trimEnd().split('\t')[1]!==PILOT_PATH)throw Error('PILOT_COMMITTED_REGULAR_FILE_REQUIRED');
+  const committed=execFileSync('git',['-C',root,'show','HEAD:'+PILOT_PATH],{maxBuffer:65536,timeout:5000,env:gitEnv});
   verifyPinnedPilot(committed);if(!b.equals(committed))throw Error('PILOT_WORKTREE_DRIFT');
   fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,b);return receipt;
 }
