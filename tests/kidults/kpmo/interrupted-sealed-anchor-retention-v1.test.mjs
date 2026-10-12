@@ -41,9 +41,11 @@ test('malformed selected capsule fails without an HTTP fallback or output overwr
 test('a real shallow checkout fails closed; full filtered history restores the same sealed input',()=>{
  const shallow=path.join(parent,'shallow'),oldHead=execFileSync('git',['-C',clone,'rev-parse','HEAD'],{encoding:'utf8'}).trim();
  try{
-  const tree=execFileSync('git',['-C',clone,'rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim();let head=oldHead;
+  const mktree=entries=>execFileSync('git',['-C',clone,'mktree'],{input:entries.join('\n')+'\n',encoding:'utf8'}).trim();
+  const capsules=mktree([`100644 blob ${manifest.archive_source.blob_sha}\t${path.basename(manifest.archive_source.path)}`,`100644 blob ${manifest.archive_source.capture_blob_sha}\t${path.basename(manifest.archive_source.capture_path)}`]);
+  const product=mktree([`040000 tree ${capsules}\tcapsules`]),kidults=mktree([`040000 tree ${product}\tproduct`]),coordination=mktree([`040000 tree ${kidults}\tkidults`]),tree=mktree([`040000 tree ${coordination}\tcoordination`]);let head=oldHead;
   for(let i=0;i<20;i++)head=execFileSync('git',['-C',clone,'-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit-tree',tree,'-p',head],{input:'bounded future history fixture\n',encoding:'utf8'}).trim();
-  execFileSync('git',['-C',clone,'update-ref','HEAD',head],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowFilter','true'],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowAnySHA1InWant','true'],{stdio:'pipe'});
+  execFileSync('git',['-C',clone,'update-ref','HEAD',head],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowFilter','true'],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowReachableSHA1InWant','true'],{stdio:'pipe'});
   execFileSync('git',['clone','--depth','16','--filter=blob:none','--no-checkout','file://'+clone,shallow],{stdio:'pipe'});
   execFileSync('git',['-C',shallow,'sparse-checkout','init','--cone'],{stdio:'pipe'});execFileSync('git',['-C',shallow,'sparse-checkout','set','coordination/kidults/product/capsules'],{stdio:'pipe'});execFileSync('git',['-C',shallow,'checkout','--detach',head],{stdio:'pipe'});
   assert.throws(()=>readSealedCanonicalAnchor({manifest,repositoryRoot:shallow}),/ANCESTRY/);
