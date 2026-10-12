@@ -43,7 +43,7 @@ test('a real shallow checkout fails closed; full filtered history restores the s
  try{
   const tree=execFileSync('git',['-C',clone,'rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim();let head=oldHead;
   for(let i=0;i<20;i++)head=execFileSync('git',['-C',clone,'-c','user.name=fixture','-c','user.email=fixture@example.invalid','commit-tree',tree,'-p',head],{input:'bounded future history fixture\n',encoding:'utf8'}).trim();
-  execFileSync('git',['-C',clone,'update-ref','HEAD',head],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowFilter','true'],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowReachableSHA1InWant','true'],{stdio:'pipe'});
+  execFileSync('git',['-C',clone,'update-ref','HEAD',head],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowFilter','true'],{stdio:'pipe'});execFileSync('git',['-C',clone,'config','uploadpack.allowAnySHA1InWant','true'],{stdio:'pipe'});
   execFileSync('git',['clone','--depth','16','--filter=blob:none','--no-checkout','file://'+clone,shallow],{stdio:'pipe'});
   execFileSync('git',['-C',shallow,'sparse-checkout','init','--cone'],{stdio:'pipe'});execFileSync('git',['-C',shallow,'sparse-checkout','set','coordination/kidults/product/capsules'],{stdio:'pipe'});execFileSync('git',['-C',shallow,'checkout','--detach',head],{stdio:'pipe'});
   assert.throws(()=>readSealedCanonicalAnchor({manifest,repositoryRoot:shallow}),/ANCESTRY/);
