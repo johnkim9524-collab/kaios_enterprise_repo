@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "ca87ac7e1f31b6f699051b797bdffb6369f7dc21",
+  "revision": "7fff80000ccddfb123127af67d67d05ca4861917",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -494,19 +494,6 @@
       }
     },
     {
-      "path": ".github/workflows/kidults-github-read-resume-handoff-v1.yml",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "559caddbaef788e09b7e88bf00a342913c04d731",
-      "sha256": "sha256:b9e1afbae6e7357706cb85525b89c38661733eec476ad5e8681add643f44d1e7",
-      "authorization_routing": {
-        "route": "INTERNAL_REVERSIBLE",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
-        }
-      }
-    },
-    {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "b0dad8c4ea65dbf9413d46e080944fffb47717c3",
@@ -693,6 +680,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "ef00b033868ccbdac9714295334f54b8b5d2a7e9",
       "sha256": "sha256:62a3532dedd3f2554bd27244c7dd5477a6fd31ea08e8fa55950ae0507a9bf7a3",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "d033e990cf985b4e3861bbba69ee7b32d7271621",
+      "sha256": "sha256:abf8719cec9b24ab9b03579ab6336c7cc5b3415b84f711203816256712dd9309",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3363,8 +3363,8 @@
     {
       "path": "infrastructure/aws/staging/github-read-resume-role-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ad5e49d711a34244e087c040cfc54660f2ef2a54",
-      "sha256": "sha256:f2c32449773da03bb184e32bf16e81f217dfee1247fc4be2fbac6349b5469705",
+      "git_blob": "aa901ec9c297484d59a633729a906f3c24de3345",
+      "sha256": "sha256:03bc8e51e2cad68d9d106f92da7e7f6a70c3ec6c46b5f538421720510ac17494",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -3408,8 +3408,8 @@
     {
       "path": "scripts/governance/lib/approval-policy-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ab8ae6bd88ec2655a2b2e7605c61f061a09c4a6f",
-      "sha256": "sha256:781f34546b77d51cb669ecbca209ec942f54deb83e77075fdd23b91804cb5c08",
+      "git_blob": "f7eb505d1677a2d7acb0f8f5b58221dd897cecdd",
+      "sha256": "sha256:18e2129cd692263b24f66f8bba5b0328162076107463092c3d54f530c283b9c1",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -7031,5 +7031,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9f40b7774067d7a6614b2803221868da4caa12ceeb20a5daf91c34e56fb430ff"
+  "manifest_sha256": "sha256:0aacaa832bbde1c53ed2fbc2857dea9c0a95122fa708fb165c87a9a9f632e42c"
 }
