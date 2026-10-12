@@ -243,11 +243,13 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     const p0Digest=sha256(canonicalJson({pushIdentity,p0Receipt}));
     const check=(kind,run,artifact,receiptDigest,conclusion='success')=>({kind,run_id:String(run.id),run_attempt:1,
       source_sha:sha,conclusion,artifact_id:artifact.id,archive_digest:artifact.digest,receipt_digest:receiptDigest});
-    const result={...native,evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',checks:[
+    const result={...native,evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',
+      original_archive:{artifact_id:originalArchive.artifact_id,archive_digest:originalArchive.archive_digest},checks:[
       check('REQUIRED_PUSH_SUITE',p0Run,p0Artifacts[0],p0Digest),
       check('CANONICAL_TRUTH',{id:canonicalNode.run_id},{id:canonicalNode.artifact_id,digest:canonicalNode.artifact_digest},canonicalNode.receipt_digest),
       check('SENTINEL',sentinel,healthArtifacts[0],health.receipt_digest),
-      check('TERMINAL_NULL_ASSURANCE_FAILURE',parentRun,assuranceArtifacts[0],audit.receipt_digest,'failure')]};
+      {...check('TERMINAL_NULL_ASSURANCE_FAILURE',parentRun,assuranceArtifacts[0],audit.receipt_digest,'failure'),
+        terminal_null_evidence_refs:parent.terminal_check_evidence_refs}]};
     const finalMain=await readJson('branches/main');assert(finalMain.protected===true&&finalMain.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
     assert((await liveHealth(sha)).id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
     return result;

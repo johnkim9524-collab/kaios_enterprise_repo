@@ -15,6 +15,11 @@ const QUERY_STATEMENT = {
   Resource: {'Fn::GetAtt': ['AutonomousLandingLedger', 'Arn']},
   Condition: {'ForAllValues:StringLike': {'dynamodb:LeadingKeys': ['AUTH#*']}},
 };
+const BUDGET_STORE_STATEMENT = {
+  Effect:'Allow',Action:['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],
+  Resource:{'Fn::GetAtt':['AutonomousLandingLedger','Arn']},
+  Condition:{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['GITHUB_READ_BUDGET#*']}},
+};
 const LEGACY_VERIFIER_QUERY_STATEMENT = {
   ...QUERY_STATEMENT,
   Action: ['dynamodb:DescribeTable', 'dynamodb:Query'],
@@ -47,21 +52,31 @@ const CONSUMPTION_V2_WRITER_SHA256 = '688466a27a54adc9419b3d7e414632818fff5199e8
 const CONSUMPTION_V2_PRE_RECOVERY_SHA256 = '7820ad57800393b22ec77afe30e4c2a082610ac8a2020322bf9243841fdd6bf2';
 const FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4';
+const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = '636a85b5af3af28b6d6031f9b5f1b514c922013590825246939772b8c53a2cac';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
-  // Exact previously landed capsule to failure-Assurance capsule. Keep every
-  // non-code Lambda property identical; no IAM/environment drift is admitted.
+  if(typeof source==='string'&&[DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,CURRENT_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
+      &&sha256Hex(to?.Properties?.Code?.ZipFile||'')===ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256){
+    const expected=structuredClone(from);
+    expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
+    expected.Properties.Environment.Variables.RECEIPT_KEY_ARN={'Fn::GetAtt':['AutonomousReceiptKey','Arn']};
+    expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
+    return equal(expected,to);
+  }
+  // Exact previously landed capsules may converge directly to the reviewed
+  // original-terminal-repair capsule. Keep every non-code Lambda property
+  // identical; no IAM/environment drift is admitted.
   if (typeof source === 'string' && [DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
-      && sha256Hex(to?.Properties?.Code?.ZipFile || '') === CURRENT_RECOVERY_CAPSULE_WRITER_SHA256) {
+      && sha256Hex(to?.Properties?.Code?.ZipFile || '') === ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256) {
     const expected = structuredClone(from);
     expected.Properties.Code.ZipFile = to.Properties.Code.ZipFile;
     return equal(expected, to);
   }
-  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(source)))return false;
+  if(typeof source!=='string'||![RECOVERY_BASE_WRITER_SHA256,CONSUMPTION_V1_WRITER_SHA256,CONSUMPTION_V2_PRE_RECOVERY_SHA256,CONSUMPTION_V2_WRITER_SHA256,CURRENT_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source)))return false;
   const expected=structuredClone(from);
   const targetZip=to?.Properties?.Code?.ZipFile||'';
   // The deployed stack can legitimately lag more than one reviewed writer
@@ -69,7 +84,7 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   // desired capsule contains the reviewed V2 core plus the bounded recovery
   // sources.  Admit only that exact historical/current digest pair and the
   // exact receipt-bucket binding; every other property still has to match.
-  if(sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(targetZip)===CURRENT_RECOVERY_CAPSULE_WRITER_SHA256){
+  if(sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(targetZip)===ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256){
     expected.Properties.Code.ZipFile=targetZip;
     expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
     return equal(expected,to);
@@ -133,10 +148,12 @@ function assertDesiredBoundary(desired) {
     assert.ok(Array.isArray(statements), 'ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, QUERY_STATEMENT)).length, 1,
       'BOUNDED_QUERY_STATEMENT_INVALID:' + logicalId);
+    assert.equal(statements.filter(statement => equal(statement, BUDGET_STORE_STATEMENT)).length, 1,
+      'BOUNDED_SHARED_BUDGET_STORE_STATEMENT_INVALID:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
       'BOUNDED_LEDGER_DECRYPT_STATEMENT_INVALID:' + logicalId);
     const source = JSON.stringify(role);
-    for (const forbidden of ['dynamodb:PutItem', 'dynamodb:UpdateItem', 'dynamodb:DeleteItem', 'dynamodb:BatchWriteItem']) {
+    for (const forbidden of ['dynamodb:DeleteItem', 'dynamodb:BatchWriteItem']) {
       assert.ok(!source.includes(forbidden), 'DYNAMODB_WRITE_FORBIDDEN:' + logicalId + ':' + forbidden);
     }
   }
@@ -162,7 +179,8 @@ function withoutBoundedRead(template) {
   for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement;
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
-      statements.filter(statement => !equal(statement, QUERY_STATEMENT) && !equal(statement, LEDGER_DECRYPT_STATEMENT));
+      statements.filter(statement => !equal(statement, QUERY_STATEMENT) && !equal(statement, BUDGET_STORE_STATEMENT)
+        && !equal(statement, LEDGER_DECRYPT_STATEMENT));
   }
   const finalizerStatements = copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement;
   copy.Resources[FINALIZER_ROLE_ID].Properties.Policies[0].PolicyDocument.Statement =
@@ -194,11 +212,13 @@ function normalizeAllowedRecoveryState(template, desired) {
     const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
     assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     let exactQueryCount = 0;
+    let exactBudgetCount = 0;
     let exactDecryptCount = 0;
     let legacyVerifierCount = 0;
     const normalizedStatements = [];
     for (const statement of statements) {
       if (equal(statement, QUERY_STATEMENT)) { exactQueryCount += 1; continue; }
+      if (equal(statement, BUDGET_STORE_STATEMENT)) { exactBudgetCount += 1; continue; }
       if (equal(statement, LEDGER_DECRYPT_STATEMENT)) { exactDecryptCount += 1; continue; }
       if (logicalId === 'VerifierApprovalRole' && equal(statement, LEGACY_VERIFIER_QUERY_STATEMENT)) {
         legacyVerifierCount += 1; continue;
@@ -206,6 +226,7 @@ function normalizeAllowedRecoveryState(template, desired) {
       normalizedStatements.push(statement);
     }
     assert.ok(exactQueryCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_QUERY:' + logicalId);
+    assert.ok(exactBudgetCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_SHARED_BUDGET_STORE:' + logicalId);
     assert.ok(exactDecryptCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_LEDGER_DECRYPT:' + logicalId);
     assert.ok(legacyVerifierCount <= 1, 'CURRENT_TEMPLATE_DUPLICATE_LEGACY_VERIFIER_QUERY');
     assert.ok(!(exactQueryCount && legacyVerifierCount), 'CURRENT_TEMPLATE_CONFLICTING_VERIFIER_QUERY');
@@ -323,12 +344,13 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   mode,
   allowed_logical_ids: ROLE_IDS,
-  allowed_actions: ['dynamodb:Query', 'dynamodb:GetItem', 'kms:Decrypt'],
+  allowed_actions: ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
   writer_allowed_kms_action: 'kms:Decrypt',
   finalizer_allowed_kms_action: 'kms:Decrypt',
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
+  shared_budget_leading_key: 'GITHUB_READ_BUDGET#*',
   production: 'HOLD',
   public: 'HOLD',
   g5: 'HOLD',

@@ -1,0 +1,70 @@
+{
+  "id": "kidults-github-read-rate-recovery-policy-v1",
+  "version": "1.0.0",
+  "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "source_status": "IMPLEMENTED_NOT_DEPLOYED",
+  "operations": [
+    "GET"
+  ],
+  "mutation_retries": "FORBIDDEN",
+  "actual_authority_granted": false,
+  "admission": "ACTUAL_SUCCESS_AUTHORITY_JOB_OR_EXISTING_STRICT_FAILURE_PARENT_WITH_FULL_REVERIFICATION",
+  "invocation_budget": {
+    "maximum_calls": 240,
+    "maximum_concurrent_reads": 2,
+    "minimum_interval_ms": 100
+  },
+  "rate_wait": {
+    "maximum_retries": 2,
+    "maximum_inline_wait_ms": 55000,
+    "maximum_invocation_lifetime_ms": 900000,
+    "header_fields": [
+      "Retry-After",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Reset"
+    ],
+    "generic_permission_403_retry": false
+  },
+  "resume_checkpoint": {
+    "classification": "NON_AUTHORIZING_COST_AND_FAILURE_HINT_ONLY",
+    "secret_or_nonce_storage": false,
+    "original_reservation_write": false,
+    "artifact_retention_days": 90,
+    "fresh_native_metadata_jobs_main_semantics_and_signed_ledger_required": true
+  },
+  "shared_cross_runner_budget": {
+    "state": "SOURCE_IMPLEMENTED_DEPLOYMENT_PENDING",
+    "protocol": "scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs",
+    "storage_adapter": "scripts/kidults/kpmo/lib/shared-github-read-budget-dynamodb-v1.mjs",
+    "store": "kidults-autonomous-landing-staging-ledger",
+    "storage_adapter_registered": true,
+    "deployment_active": false,
+    "quota_owner_binding": "GITHUB_TOKEN_PER_REPOSITORY_ID",
+    "quota_owner_basis": "github.repository_id shared by the three protected autonomous admission workflows",
+    "participants": [
+      "kidults-autonomous-track-authorization-v1.yml:terminal-recovery-admission",
+      "kidults-autonomous-kpmo-authorization-v1.yml:terminal-recovery-admission",
+      "kidults-autonomous-independent-verification-authorization-v1.yml:terminal-recovery-admission"
+    ],
+    "coverage": "THREE_AUTONOMOUS_ADMISSION_JOBS_ONLY",
+    "other_direct_github_api_callers": "OUTSIDE_REGISTERED_PARTICIPANTS",
+    "workflow_configuration": "SHARED_REQUIRED",
+    "new_permissions": "DYNAMODB_GET_PUT_UPDATE_ONLY_ON_GITHUB_READ_BUDGET_PARTITION",
+    "local_files_or_actions_artifacts_as_atomic_store": false,
+    "natural_cross_runner_run_verified": false
+  },
+  "history": {
+    "exact_event_run_attempt_source_first": true,
+    "unbound_discovery_is_not_absence_proof": true,
+    "original_recovery_history_bootstrap_retained_until_authenticated_terminal_pointer_exists": true
+  },
+  "closure": {
+    "natural_runtime_verified": false,
+    "original_immutable_terminal_verified": false,
+    "source_tests_are_operating_completion": false
+  },
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "provider_activation": "HOLD"
+}

@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {runInterruptedRecoveryWorkload} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-workload-v1.mjs';
-import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest,supersedeExpiredInterruptedPostmerge,failureAssuranceRecoveryObjectKey} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
+import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,validateInterruptedRecoveryRequest,supersedeExpiredInterruptedPostmerge,failureAssuranceRecoveryObjectKey,
+  validateOriginalTerminalRepairEvidence,validateOriginalTerminalRepairTerminal,originalTerminalRepairObjectKey} from '../../../scripts/kidults/kpmo/lib/interrupted-reservation-recovery-v1.mjs';
 const HOLD={production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40),time=Date.parse('2026-10-11T00:00:00Z');
 function setup(){
@@ -68,6 +69,45 @@ test('original archive lost ACK reply uses readback and never retries ACK',async
 });
 test('non-finalizer cannot write original archive and acknowledged archive is reused',async()=>{
  for(const role of ['KPMO','FINALIZER']){const s=workloadSetup(role);s.input.ledger.readContext=async()=>({state:'ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',immutable_ack:role==='FINALIZER'?{version_id:'existing'}:null});await s.call();assert.equal(s.extra().approvals,0);assert.equal(s.extra().drains,0);assert.equal(s.counts().seals,0);assert.equal(s.counts().consumes,0);}
+});
+
+test('recorded original terminal repair ACK is observation-only outside FINALIZER',async()=>{
+ const request={...workloadSetup('KPMO').input.candidates[0].request,pull_request:2655,
+   merge_sha:'d1b801ebf75dfc2b582c6381771f8194016328ca',original_run_id:'38132692877',original_run_attempt:1,
+   original_generation:'pr-2655-original-generation'};
+ const archive={artifact_id:11700046124,archive_digest:'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'};
+ const evidence={repository,source_sha:request.source_sha,pull_request:2655,merge_sha:request.merge_sha,head_sha:request.head_sha,
+   head_tree_sha:request.head_tree_sha,merge_parents:[request.base_sha,request.head_sha],merged_at:'2026-10-10T23:59:00Z',
+   original_run:{run_id:request.original_run_id,run_attempt:1,source_sha:request.base_sha,status:'completed',conclusion:'cancelled'},
+   production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',
+   original_archive:archive,checks:['REQUIRED_PUSH_SUITE','CANONICAL_TRUTH','SENTINEL','TERMINAL_NULL_ASSURANCE_FAILURE'].map((kind,i)=>({kind,
+     run_id:String(900+i),run_attempt:1,source_sha:request.source_sha,conclusion:i===3?'failure':'success',artifact_id:9100+i,
+     archive_digest:'sha256:'+'1'.repeat(64),receipt_digest:'sha256:'+'2'.repeat(64),
+     ...(i===3?{terminal_null_evidence_refs:[38132692877,11700046124,archive.archive_digest]}:{})}))};
+ const evidence_digest=validateOriginalTerminalRepairEvidence(evidence,request),request_digest=sha256(canonicalJson(request));
+ const unsigned={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',request_digest,
+   evidence_digest,original_run_id:request.original_run_id,original_head_sha:request.head_sha,original_merge_sha:request.merge_sha,
+   original_state:'RESERVED',original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
+   production:'HOLD',public:'HOLD',g5:'HOLD',created_at:'2026-10-11T00:01:00.000Z'};
+ const terminal={...unsigned,repair_digest:sha256(canonicalJson(unsigned))};validateOriginalTerminalRepairTerminal(terminal,request);
+ const retention=new Date(terminal.created_at);retention.setUTCFullYear(retention.getUTCFullYear()+10);
+ const ack={bucket:'immutable',key:originalTerminalRepairObjectKey(request),version_id:'v1',sha256:sha256(canonicalJson(terminal)),
+   retention_mode:'COMPLIANCE',retain_until:retention.toISOString(),encryption_key_arn:'arn:aws:kms:ap-northeast-2:528314240275:key/receipt-key'};
+ const s=workloadSetup('KPMO');s.input.candidates[0]={request,failure_parent:{kind:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',source_sha:request.source_sha,
+   actual_authority_granted:false,platform_closure:false,promotion_eligible:false},original_artifact_id:archive.artifact_id,original_archive_digest:archive.archive_digest};
+ s.input.get=async route=>route==='branches/main'?{name:'main',protected:true,commit:{sha:request.source_sha}}:
+   route==='pulls/2655'?{number:2655,state:'closed',merged:true,merge_commit_sha:request.merge_sha,merged_at:'2026-10-10T23:59:00Z',
+     head:{sha:request.head_sha,repo:{full_name:repository}},base:{ref:'main',repo:{full_name:repository}}}:
+   route==='actions/runs/38132692877'?{id:38132692877,run_attempt:1,head_sha:request.base_sha,head_branch:'main',
+     repository:{full_name:repository,id:1281328888},path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',event:'repository_dispatch',status:'completed',conclusion:'cancelled'}:
+   route.startsWith('compare/')?{base_commit:{sha:request.merge_sha},merge_base_commit:{sha:request.merge_sha},behind_by:0,status:'ahead'}:
+   {sha:request.merge_sha,tree:{sha:request.head_tree_sha},parents:[{sha:request.base_sha},{sha:request.head_sha}]};
+ s.input.evidence.verifyEvidence=async()=>evidence;s.input.immutable=undefined;
+ s.input.ledger.readOriginalTerminalRepairContext=async()=>({state:'ORIGINAL_TERMINAL_DEBT_ONLY',request,evidence,evidence_digest,
+   terminal,immutable_ack:ack});
+ const result=await s.call();assert.equal(result.results[0].state,'ORIGINAL_TERMINAL_REPAIR_ACK_RECORDED_NOT_IMMUTABLE_REVERIFIED');
+ assert.equal(result.results[0].write_performed,false);assert.equal(result.results[0].physical_immutable_object_verified,false);
+ assert.equal(result.results[0].actual_authority_granted,false);assert.equal(result.results[0].platform_closure,false);
 });
 
 function failureProfile(sourceSha){return {evidence_profile:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',source_sha:sourceSha,

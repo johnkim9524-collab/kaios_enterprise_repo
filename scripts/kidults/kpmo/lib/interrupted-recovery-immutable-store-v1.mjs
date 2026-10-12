@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {terminalObjectKey} from './autonomous-terminal-immutable-v1.mjs';
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
-import {interruptedRecoveryObjectKey,validateInterruptedRecoveryTerminal,failureAssuranceRecoveryObjectKey,validateFailureAssuranceTerminal} from './interrupted-reservation-recovery-v1.mjs';
+import {interruptedRecoveryObjectKey,validateInterruptedRecoveryTerminal,failureAssuranceRecoveryObjectKey,validateFailureAssuranceTerminal,originalTerminalRepairObjectKey,validateOriginalTerminalRepairTerminal} from './interrupted-reservation-recovery-v1.mjs';
 import {createInterruptedRecoveryAwsTransport} from './interrupted-recovery-signed-ledger-client-v1.mjs';
 const check=(ok,code)=>{if(!ok)throw new Error('INTERRUPTED_IMMUTABLE_'+code);};
 const repo='johnkim9524-collab/kaios_enterprise_repo';
@@ -33,12 +33,12 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
     const dir=fs.mkdtempSync(path.join(tempRoot,'kpmo-interrupted-immutable-'));fs.chmodSync(dir,0o700);
     try{return await fn(dir);}finally{fs.rmSync(dir,{recursive:true,force:true});}
   };
-  const prepare=({request,terminal,key,failure_assurance=false})=>{
-    check(key===(failure_assurance?failureAssuranceRecoveryObjectKey(request):interruptedRecoveryObjectKey(request)),'OBJECT_KEY');
-    const digest=failure_assurance?validateFailureAssuranceTerminal(terminal,request):validateInterruptedRecoveryTerminal(terminal,request);
+  const prepare=({request,terminal,key,failure_assurance=false,original_repair=false})=>{
+    check(key===(original_repair?originalTerminalRepairObjectKey(request):failure_assurance?failureAssuranceRecoveryObjectKey(request):interruptedRecoveryObjectKey(request)),'OBJECT_KEY');
+    const digest=original_repair?validateOriginalTerminalRepairTerminal(terminal,request):failure_assurance?validateFailureAssuranceTerminal(terminal,request):validateInterruptedRecoveryTerminal(terminal,request);
     check(request.original_run_id!==env.GITHUB_RUN_ID,'SOURCE_OWNER');
     const bytes=Buffer.from(canonicalJson(terminal));check(bytes.length<=49152,'PAYLOAD');
-    const date=new Date(request.issued_at),month=date.getUTCMonth();date.setUTCFullYear(date.getUTCFullYear()+10);
+    const date=new Date(original_repair?terminal.created_at:request.issued_at),month=date.getUTCMonth();date.setUTCFullYear(date.getUTCFullYear()+10);
     if(date.getUTCMonth()!==month)date.setUTCDate(0);
     date.setTime(Math.ceil(date.getTime()/1000)*1000);
     return {bytes,digest,checksum:Buffer.from(digest.slice(7),'hex').toString('base64'),minimum:date};
@@ -58,9 +58,11 @@ export async function createInterruptedRecoveryImmutableStore({bucket,keyArn,sou
     const p=input.original?prepareOriginal(input):prepare(input);
     // The protected signed writer, not caller flags, authenticates consumed
     // history even when the current native source has advanced.
-    const consumed=input.original?await ledger.readContext({request:input.request}):input.failure_assurance
+    const consumed=input.original?await ledger.readContext({request:input.request}):input.original_repair
+      ?await ledger.readOriginalTerminalRepairContext({request:input.request}):input.failure_assurance
       ?await ledger.readFailureContext({request:input.request}):await ledger.read({request:input.request,run_id:env.GITHUB_RUN_ID});
-    check((input.original?consumed?.state==='ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING':input.failure_assurance
+    check((input.original?consumed?.state==='ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING':input.original_repair
+      ?consumed?.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(consumed.terminal)===canonicalJson(input.terminal):input.failure_assurance
       ?['FAILURE_ASSURANCE_TERMINAL_PENDING','FAILURE_ASSURANCE_TERMINAL_ALREADY_RECORDED'].includes(consumed?.state)&&canonicalJson(consumed.terminal||input.terminal)===canonicalJson(input.terminal)
       :consumed?.state==='CONSUMED'&&consumed.request_digest===sha256(canonicalJson(input.request)))
       &&(input.failure_assurance||canonicalJson(consumed.terminal)===canonicalJson(input.terminal)),'CONSUMED_LEDGER_BINDING');

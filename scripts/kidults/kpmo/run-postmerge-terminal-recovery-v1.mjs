@@ -1,3 +1,4 @@
+import {recoveryNativeGet} from './lib/interrupted-recovery-native-trigger-v1.mjs';
 import {runNativeInterruptedRecovery} from './run-interrupted-terminal-recovery-v1.mjs';
 import {consumedRecoveryObservation} from './lib/consumed-recovery-observation-v1.mjs';
 // Protected workflow entry point for one historic terminal-only incident.
@@ -24,7 +25,7 @@ if(env.GITHUB_EVENT_NAME==='workflow_run'){
   const inputs=event.inputs;
   assert(/^[1-9][0-9]{0,19}$/.test(inputs?.gate_run_id||'')
     &&inputs.gate_run_attempt==='1'&&inputs.head_sha===env.GITHUB_SHA,'RECOVERY_RUNTIME_DISPATCH');
-  upstream=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${inputs.gate_run_id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
+  upstream=await recoveryNativeGet(`actions/runs/${inputs.gate_run_id}`);
 }
 if(env.GITHUB_EVENT_NAME==='workflow_run'&&upstream?.name==='KIDULTS Platform Continuous Assurance V1'
   &&upstream?.conclusion==='failure'){
@@ -36,7 +37,7 @@ if(env.GITHUB_EVENT_NAME==='workflow_run'&&upstream?.name==='KIDULTS Platform Co
   &&upstream.head_branch==='main'&&upstream.head_sha===env.GITHUB_SHA
   &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id
   &&upstream.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_UPSTREAM');
-const live=JSON.parse(execFileSync('gh',['api',`repos/${I.repository}/actions/runs/${upstream.id}`],{encoding:'utf8',timeout:30000,maxBuffer:1048576}));
+const live=await recoveryNativeGet(`actions/runs/${upstream.id}`);
 if(isFailureAssuranceParent){
   assert(['id','path','head_sha','head_branch','run_attempt','status','conclusion','name','event'].every(key=>live[key]===upstream[key])
     &&live.repository?.full_name===I.repository&&String(live.repository?.id)===I.repository_id,'RECOVERY_RUNTIME_FAILURE_READBACK');

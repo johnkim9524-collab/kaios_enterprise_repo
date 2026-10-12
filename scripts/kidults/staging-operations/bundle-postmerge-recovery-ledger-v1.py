@@ -1,10 +1,11 @@
 """Deterministically bundle the reviewed component; never deploy to AWS."""
 import argparse
+import ast
 import base64
 import json
 import hashlib
 import sys
-import zlib
+import bz2
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -15,16 +16,20 @@ CORE = ROOT / 'scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py'
 INTERRUPTED = ROOT / 'scripts/kidults/kpmo/lib/interrupted-reservation-recovery-ledger-v1.py'
 PACKED_MARKER = '# KIDULTS_FIXED_LEDGER_SOURCE_CAPSULE_V1'
 
+def compact_python(source):
+    return ast.unparse(ast.parse(source)) + '\n'
+
 
 def bundled(source):
     # Fixed source inventory; namespaces preserve the original digest contract.
     core = CORE.read_text() if source.startswith(PACKED_MARKER) else source.split(MARKER)[0]
-    inventory = {'core': core, 'historical': COMPONENT.read_text(), 'interrupted': INTERRUPTED.read_text()}
+    inventory = {'core': compact_python(core), 'historical': compact_python(COMPONENT.read_text()),
+                 'interrupted': compact_python(INTERRUPTED.read_text())}
     hashes = {key: hashlib.sha256(value.encode()).hexdigest() for key, value in inventory.items()}
-    packed = base64.b64encode(zlib.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), 9)).decode('ascii')
-    loader = PACKED_MARKER + "\nimport base64, zlib, hashlib, json\n"
+    packed = base64.b64encode(bz2.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), compresslevel=9)).decode('ascii')
+    loader = PACKED_MARKER + "\nimport base64, bz2, hashlib, json\n"
     loader += "_ledger_source_hashes = " + repr(hashes) + "\n"
-    loader += "_ledger_sources = json.loads(zlib.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
+    loader += "_ledger_sources = json.loads(bz2.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
     loader += "if set(_ledger_sources) != set(_ledger_source_hashes) or any(hashlib.sha256(v.encode()).hexdigest() != _ledger_source_hashes[k] for k,v in _ledger_sources.items()): raise ValueError('LEDGER_CAPSULE_DIGEST')\n"
     loader += "exec(compile(_ledger_sources['core'], '<ledger-core>', 'exec'), globals())\n"
     loader += "_recovery_namespace = {'__name__': 'bounded_postmerge_recovery'}\nexec(compile(_ledger_sources['historical'], '<historical-recovery>', 'exec'), _recovery_namespace)\n"
@@ -56,6 +61,10 @@ def handler(event, context):
     }
     interrupted_methods = {
         'APPROVE_MERGED_RESERVATION_RECOVERY': 'create_approval',
+        'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'create_original_terminal_repair_approval',
+        'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'finalize_original_terminal_repair',
+        'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE': 'acknowledge_original_terminal_repair',
+        'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT': 'read_original_terminal_repair_context',
         'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY': 'create_failure_approval',
         'READ_MERGED_RECOVERY': 'read',
         'READ_MERGED_RECOVERY_CONTEXT': 'read_context',

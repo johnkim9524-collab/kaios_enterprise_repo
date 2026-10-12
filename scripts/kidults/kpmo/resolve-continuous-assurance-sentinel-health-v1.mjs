@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import {runtimeGithubRead} from './lib/runtime-github-read-v1.mjs';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -238,12 +239,7 @@ export function evaluateHealth(input){
 }
 
 async function api(url,token){
-  const u=new URL(url);
-  if(u.origin!=='https://api.github.com'||u.username||u.password)fail('GITHUB_API_ORIGIN_INVALID');
-  let response;
-  try{response=await fetch(u,{method:'GET',redirect:'error',headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${token}`,'X-GitHub-Api-Version':'2022-11-28'},signal:AbortSignal.timeout(20000)});}catch{fail('GITHUB_READ_TRANSPORT_FAILED');}
-  if(!response.ok)fail(`GITHUB_HTTP_${response.status}`);
-  return response.json();
+  return runtimeGithubRead(token)(url);
 }
 
 export function allowedArtifactRedirect(value){

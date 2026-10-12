@@ -93,6 +93,19 @@ class RecoveryTest(unittest.TestCase):
         self.evidence.update(merge_parents=['a'*40, 'b'*40], merged_at='2026-10-10T23:59:00Z', original_run=dict(run_id='100', run_attempt=1, source_sha='a'*40, status='completed', conclusion='cancelled'), checks=[dict(kind=kind, run_id=str(300+i), run_attempt=1, source_sha='e'*40, conclusion='success', artifact_id=500+i, archive_digest='sha256:'+'1'*64, receipt_digest='sha256:'+'2'*64) for i, kind in enumerate(('REQUIRED_PUSH_SUITE', 'CANONICAL_TRUTH', 'SENTINEL', 'SUCCESS_AUTHORITY_GATE'))], **m.HOLD)
         key = self.ledger.key(self.request)
         self.ddb.rows[self.ddb.key(key)] = {**key, 'run_id': {'S': '100'}, 'head_sha': {'S': 'b'*40}, 'state': {'S': 'RESERVED'}}
+    def use_original_repair_case(self):
+        self.ddb.rows.pop(self.ddb.key(self.ledger.key(self.request)), None)
+        self.request.update(pull_request=2655, merge_sha='d1b801ebf75dfc2b582c6381771f8194016328ca',
+            original_run_id='38132692877', original_run_attempt=1, original_generation='pr-2655-original-generation')
+        self.evidence.update(pull_request=2655, merge_sha=self.request['merge_sha'], original_run=dict(run_id='38132692877',
+            run_attempt=1, source_sha=self.request['base_sha'], status='completed', conclusion='cancelled'),
+            evidence_profile='TERMINAL_NULL_ASSURANCE_FAILURE_V1',
+            original_archive=copy.deepcopy(m.ORIGINAL_TERMINAL_REPAIR_ARCHIVE))
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', conclusion='failure',
+            terminal_null_evidence_refs=copy.deepcopy(m.ORIGINAL_TERMINAL_NULL_REFS))
+        key = self.ledger.key(self.request)
+        self.ddb.rows[self.ddb.key(key)] = {**key, 'run_id': {'S': self.request['original_run_id']},
+            'head_sha': {'S': self.request['head_sha']}, 'merge_sha': {'S': self.request['merge_sha']}, 'state': {'S': 'RESERVED'}}
     def approval(self, role, run=None):
         return signed(dict(action='APPROVE_MERGED_RESERVATION_RECOVERY', request=copy.deepcopy(self.request), request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence), role=role, approval_run_id=run or str(200+m.ROLES.index(role)), approval_run_attempt=1, workload=self.roles[role]))
     def approve(self):
@@ -150,6 +163,16 @@ class RecoveryTest(unittest.TestCase):
         ns = {}
         with mock.patch.dict(sys.modules, {'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': errors}), mock.patch.dict(os.environ, env), mock.patch('time.time', return_value=self.clock):
             exec(compile(code, '<actual-writer-capsule>', 'exec'), ns)
+            repair_request=copy.deepcopy(self.request);repair_request.update(pull_request=2655,merge_sha='d1b801ebf75dfc2b582c6381771f8194016328ca',
+                original_run_id='38132692877',original_run_attempt=1,original_generation='pr-2655-original-generation')
+            repair_key=self.ledger.key(repair_request)
+            self.ddb.rows[self.ddb.key(repair_key)]={**repair_key,'run_id':{'S':repair_request['original_run_id']},
+                'head_sha':{'S':repair_request['head_sha']},'merge_sha':{'S':repair_request['merge_sha']},'state':{'S':'RESERVED'}}
+            read_event = signed(dict(action='READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT', request=repair_request,
+                request_digest=m.digest(repair_request), role='FINALIZER', run_id='900', run_attempt=1, workload=self.finalizer))
+            before = self.ddb.writes
+            self.assertEqual(ns['handler'](read_event, None)['state'], 'ORIGINAL_TERMINAL_REPAIR_PENDING')
+            self.assertEqual(self.ddb.writes, before)
             for role in m.ROLES: self.assertTrue(ns['handler'](self.approval(role), None)['ok'])
             self.assertEqual(ns['handler'](self.final('CLAIM_MERGED_RECOVERY', expected_revision=0, lease_seconds=60), None)['revision'], 1)
             self.assertEqual(ns['handler'](self.final('CONSUME_MERGED_RECOVERY', revision=1, terminal=self.terminal()), None)['state'], 'CONSUMED')
@@ -198,7 +221,8 @@ class RecoveryTest(unittest.TestCase):
     def test_failure_assurance_profile_is_discriminated_and_never_aliases_success_authority(self):
         evidence = copy.deepcopy(self.evidence)
         evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
-        evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        evidence['original_archive'] = {'artifact_id': 9010, 'archive_digest': 'sha256:'+'3'*64}
+        evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9011, conclusion='failure', terminal_null_evidence_refs=[100,9010,'sha256:'+'3'*64])
         self.assertEqual(m.validate_evidence(evidence, self.request), m.digest(evidence))
         mixed = copy.deepcopy(evidence)
         mixed['checks'][-1]['kind'] = 'SUCCESS_AUTHORITY_GATE'
@@ -209,7 +233,8 @@ class RecoveryTest(unittest.TestCase):
     def test_failure_assurance_terminal_uses_distinct_quorum_and_never_reconsumes_original_row(self):
         self.ddb.rows[self.ddb.key(self.ledger.key(self.request))].update(state={'S':'CONSUMED'}, merge_sha={'S':'d'*40})
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
-        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        self.evidence['original_archive'] = {'artifact_id': 9010, 'archive_digest': 'sha256:'+'3'*64}
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9011, conclusion='failure', terminal_null_evidence_refs=[100,9010,'sha256:'+'3'*64])
         for role in m.ROLES:
             event = signed(dict(action='APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY', request=copy.deepcopy(self.request),
                 request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence),
@@ -230,9 +255,72 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(row['state']['S'], 'CONSUMED')
         self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
         self.assertEqual(row['failure_terminal']['S'], m.canonical(terminal))
+    def test_reserved_original_terminal_repair_has_separate_signed_quorum_and_non_authority_terminal(self):
+        self.use_original_repair_case()
+        evidence = copy.deepcopy(self.evidence)
+        for i, role in enumerate(m.ROLES):
+            packet = signed(dict(action='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), evidence=copy.deepcopy(evidence), evidence_digest=m.digest(evidence),
+                role=role, approval_run_id=str(200+i), approval_run_attempt=1, workload=self.roles[role]))
+            self.assertEqual(self.ledger.create_original_terminal_repair_approval(packet)['state'], 'ORIGINAL_TERMINAL_REPAIR_APPROVAL_STORED')
+        terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id=self.request['original_run_id'], original_head_sha='b'*40,
+            original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
+            actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
+        terminal['repair_digest'] = m.digest(terminal)
+        final = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
+        result = self.ledger.finalize_original_terminal_repair(final)
+        self.assertEqual(result['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
+        self.assertFalse(result['actual_authority_granted']); self.assertFalse(result['promotion_eligible'])
+        self.assertFalse(self.ledger.finalize_original_terminal_repair(final)['write_performed'])
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]
+        self.assertEqual(row['state']['S'], 'CONSUMED')
+        self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
+        self.assertEqual(row['repair_terminal_digest']['S'], terminal['repair_digest'])
+        observed = self.ledger.read_context(self.context())
+        self.assertEqual(observed['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
+        obj = dict(bucket='immutable', key='receipts/'+self.request['original_generation']+'/original-reservation-terminal-repair/'+self.request['merge_sha']+'.json',
+            version_id='repair-object-v1', sha256=m.digest(terminal), retention_mode='COMPLIANCE',
+            retain_until='2036-10-11T00:01:00Z', encryption_key_arn=self.ledger.receipt_key)
+        ack_event = self.final('ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE', run='400', object=obj, evidence_digest=m.digest(evidence))
+        self.assertTrue(self.ledger.acknowledge_original_terminal_repair(ack_event)['write_performed'])
+        self.assertFalse(self.ledger.acknowledge_original_terminal_repair(ack_event)['write_performed'])
+        corrupted = copy.deepcopy(terminal); corrupted['original_run_id'] = '999'
+        row['repair_terminal_json'] = {'S': m.canonical(corrupted)}  # Keep the former body digest to model persisted corruption.
+        repair_context = signed(dict(action='READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT', request=copy.deepcopy(self.request),
+            request_digest=m.digest(self.request), role='FINALIZER', run_id='401', run_attempt=1, workload=self.finalizer))
+        before = self.ddb.writes
+        for operation in (lambda: self.ledger.read_original_terminal_repair_context(repair_context),
+                          lambda: self.ledger.read_context(self.context()),
+                          lambda: self.ledger.finalize_original_terminal_repair(final),
+                          lambda: self.ledger.acknowledge_original_terminal_repair(ack_event)):
+            with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_TERMINAL'):
+                operation()
+        self.assertEqual(self.ddb.writes, before)
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_TERMINAL_FIELDS'):
+            m.validate_original_terminal(terminal, self.request)
+        self.assertNotIn('original_terminal_json', row)
+    def test_original_terminal_repair_rejects_quorum_collision_and_terminal_tamper(self):
+        self.use_original_repair_case()
+        evidence = copy.deepcopy(self.evidence)
+        for role in m.ROLES:
+            packet = signed(dict(action='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), evidence=copy.deepcopy(evidence), evidence_digest=m.digest(evidence),
+                role=role, approval_run_id='200', approval_run_attempt=1, workload=self.roles[role]))
+            self.ledger.create_original_terminal_repair_approval(packet)
+        terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id=self.request['original_run_id'], original_head_sha='b'*40,
+            original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
+            actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
+        terminal['repair_digest'] = m.digest(terminal)
+        packet = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_QUORUM_RUN_COLLISION'):
+            self.ledger.finalize_original_terminal_repair(packet)
+        self.assertEqual(self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]['state']['S'], 'RESERVED')
     def test_failure_profile_cannot_create_normal_approval_for_any_role(self):
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
-        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure')
+        self.evidence['original_archive'] = {'artifact_id': 9010, 'archive_digest': 'sha256:'+'3'*64}
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure', terminal_null_evidence_refs=[100,9010,'sha256:'+'3'*64])
         before = copy.deepcopy(self.ddb.rows)
         for role in m.ROLES:
             with self.subTest(role=role):
@@ -242,7 +330,8 @@ class RecoveryTest(unittest.TestCase):
                 self.assertEqual(self.ddb.rows, before)
     def test_persisted_failure_profile_quorum_cannot_claim_or_consume_normal_reservation(self):
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
-        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure')
+        self.evidence['original_archive'] = {'artifact_id': 9010, 'archive_digest': 'sha256:'+'3'*64}
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure', terminal_null_evidence_refs=[100,9010,'sha256:'+'3'*64])
         row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]
         row.update(ir_request={'S':m.canonical(self.request)}, ir_evidence={'S':m.canonical(self.evidence)},
                    ir_evidence_digest={'S':m.digest(self.evidence)})
@@ -275,7 +364,8 @@ class RecoveryTest(unittest.TestCase):
     def test_failure_approval_lost_write_response_is_read_reconciled_without_retry(self):
         self.ddb.rows[self.ddb.key(self.ledger.key(self.request))].update(state={'S':'CONSUMED'}, merge_sha={'S':'d'*40})
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
-        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        self.evidence['original_archive'] = {'artifact_id': 9010, 'archive_digest': 'sha256:'+'3'*64}
+        self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9011, conclusion='failure', terminal_null_evidence_refs=[100,9010,'sha256:'+'3'*64])
         event = signed(dict(action='APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY', request=copy.deepcopy(self.request),
             request_digest=m.digest(self.request), evidence=copy.deepcopy(self.evidence), evidence_digest=m.digest(self.evidence),
             role=m.ROLES[0], approval_run_id='200', approval_run_attempt=1, workload=self.roles[m.ROLES[0]]))
