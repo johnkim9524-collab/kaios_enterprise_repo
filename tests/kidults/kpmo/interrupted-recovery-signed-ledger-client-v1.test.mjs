@@ -45,7 +45,9 @@ test('failed writer read preserves safe cause and hash before private response d
  assert.equal(d.retry_authorized,false);assert.equal(d.actual_authority_granted,false);
  assert.equal(JSON.stringify(d).includes('private'),false);assert.equal(JSON.stringify(d).includes('signature'),false);
  const invocation=f.calls.find(x=>x[0]==='lambda');assert.equal(fs.existsSync(invocation.at(-1)),false);
- assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
+ assert.equal(f.calls.filter(x=>x[0]==='lambda').length,2);
+ assert.equal(caught.recovery_reconciliation.state,'READBACK_FAILED');
+ assert.equal(caught.recovery_reconciliation.transport_diagnostic.operation,'READ_MERGED_RECOVERY_CONTEXT');
 });
 test('AWS failure classification never retains resource, account or error message',async()=>{
  const f=fixture(),c=await f.client();f.metadata.FunctionError='Handled';f.response={errorType:'ClientError',errorMessage:'An error occurred (AccessDeniedException) when calling the GetItem operation: private resource secret'};
@@ -71,7 +73,8 @@ test('actual recovery CLI catch retains diagnostic artifact and remains nonzero'
   const expected=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim();
   const gitDir=execFileSync('git',['rev-parse','--absolute-git-dir'],{encoding:'utf8'}).trim();
   const diagnostic={id:'kidults-interrupted-recovery-transport-diagnostic-v1',status_code:200,function_error:'Unhandled',writer_error_code:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY',retry_authorized:false,actual_authority_granted:false,promotion_eligible:false};
-  const stub=`export const recoveryNativeGet=()=>{throw Error('UNEXPECTED_GET')}; export const verifyFailureAssuranceParent=()=>{throw Error('UNEXPECTED_PARENT')}; export async function verifyInterruptedRecoveryNativeTrigger(){const e=new Error('INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');e.recovery_transport_diagnostic=${JSON.stringify(diagnostic)};throw e;}`;
+  const reconciliation={id:'kidults-original-reservation-read-only-reconciliation-v1',state:'READ_ONLY_CONTEXT_OBSERVED_NOT_TERMINAL_VERIFIED',writer_context_state:'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED',write_performed:false,write_authorized:false,original_consumption_reissued:false,actual_authority_granted:false,promotion_eligible:false};
+  const stub=`export const recoveryNativeGet=()=>{throw Error('UNEXPECTED_GET')}; export const verifyFailureAssuranceParent=()=>{throw Error('UNEXPECTED_PARENT')}; export async function verifyInterruptedRecoveryNativeTrigger(){const e=new Error('INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');e.recovery_transport_diagnostic=${JSON.stringify(diagnostic)};e.recovery_reconciliation=${JSON.stringify(reconciliation)};throw e;}`;
   const stubUrl='data:text/javascript,'+encodeURIComponent(stub);
   const loader=path.join(dir,'trusted-test-loader.mjs');
   fs.writeFileSync(loader,`export async function resolve(specifier,context,nextResolve){if(specifier.endsWith('/interrupted-recovery-native-trigger-v1.mjs'))return {url:${JSON.stringify(stubUrl)},shortCircuit:true};return nextResolve(specifier,context);}`);
@@ -80,6 +83,7 @@ test('actual recovery CLI catch retains diagnostic artifact and remains nonzero'
   assert.equal(result.status,1);assert.match(result.stderr,/INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY/);
   const receipt=JSON.parse(fs.readFileSync(path.join(dir,'out/postmerge-terminal-recovery-v1/interrupted-hold.json')));
   assert.equal(receipt.state,'HOLD');assert.equal(receipt.promotion_eligible,false);assert.deepEqual(receipt.transport_diagnostic,diagnostic);
+  assert.deepEqual(receipt.read_only_reconciliation,reconciliation);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
 test('malformed, oversized and symlink responses never escape bounded diagnostic',()=>{
@@ -103,3 +107,53 @@ test('actual subprocess contract overrides ambient CLI retries and bounds networ
  }});
  assert.throws(()=>transport(['lambda','invoke']),/ambiguous HTTP outcome/);assert.equal(calls,1);
 });
+
+function reconciliationFixture({firstMetadata={StatusCode:200,FunctionError:'Unhandled'},firstResponse={errorType:'ValueError',errorMessage:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY'},context={ok:true,state:'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED',write_performed:false}}={}){
+ const f=fixture('KPMO'),originalAws=f.aws;f.actions=[];
+ f.aws=async args=>{
+  if(args[0]==='lambda'){
+   const action=JSON.parse(args[args.indexOf('--payload')+1]).envelope.action;f.actions.push(action);
+   f.metadata=action==='READ_FAILED_ASSURANCE_TERMINAL_CONTEXT'?firstMetadata:{StatusCode:200};
+   f.response=action==='READ_FAILED_ASSURANCE_TERMINAL_CONTEXT'?firstResponse:context;
+  }
+  return originalAws(args);
+ };
+ return f;
+}
+test('exact failed row guard performs one distinct read and still throws original failure without approval or consume',async()=>{
+ const f=reconciliationFixture({context:{ok:true,state:'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED',write_performed:false,
+   approval:{signature_b64:'private signature'},terminal:{payload:'private terminal'},merge_sha:'private field'}}),c=await f.client();
+ let caught;try{await c.readFailureContext({request:f.request});}catch(e){caught=e;}
+ assert.equal(caught.message,'INTERRUPTED_CLIENT_TRANSPORT_UNKNOWN_NO_RETRY');
+ assert.equal(caught.recovery_transport_diagnostic.operation,'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT');
+ assert.deepEqual(f.actions,['READ_FAILED_ASSURANCE_TERMINAL_CONTEXT','READ_MERGED_RECOVERY_CONTEXT']);
+ const r=caught.recovery_reconciliation;
+ assert.equal(r.state,'READ_ONLY_CONTEXT_OBSERVED_NOT_TERMINAL_VERIFIED');
+ assert.equal(r.writer_context_state,'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED');
+ assert.equal(r.write_performed,false);assert.equal(r.write_authorized,false);assert.equal(r.actual_authority_granted,false);
+ assert.equal(r.original_consumption_reissued,false);assert.equal(r.promotion_eligible,false);assert.equal(r.retry_authorized,false);
+ assert.equal(JSON.stringify(r).includes('private'),false);assert.equal(JSON.stringify(r).includes('signature'),false);
+ assert.equal(r.original_run_id,f.request.original_run_id);
+});
+for(const [name,mutate] of [
+ ['different status',x=>x.firstMetadata.StatusCode=202],['handled error',x=>x.firstMetadata.FunctionError='Handled'],
+ ['different error type',x=>x.firstResponse.errorType='KeyError'],['different writer code',x=>x.firstResponse.errorMessage='INTERRUPTED_RECOVERY_CONFIG'],
+])test('no reconciliation read for '+name,async()=>{
+ const input={firstMetadata:{StatusCode:200,FunctionError:'Unhandled'},firstResponse:{errorType:'ValueError',errorMessage:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY'}};
+ mutate(input);const f=reconciliationFixture(input),c=await f.client();let caught;
+ try{await c.readFailureContext({request:f.request});}catch(e){caught=e;}
+ assert.equal(caught.recovery_reconciliation,undefined);assert.deepEqual(f.actions,['READ_FAILED_ASSURANCE_TERMINAL_CONTEXT']);
+});
+test('same error on another operation never performs follow-up read',async()=>{
+ const f=fixture('KPMO');f.metadata={StatusCode:200,FunctionError:'Unhandled'};
+ f.response={errorType:'ValueError',errorMessage:'INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY'};
+ let caught;try{await(await f.client()).readContext({request:f.request});}catch(e){caught=e;}
+ assert.equal(caught.recovery_reconciliation,undefined);assert.equal(f.calls.filter(x=>x[0]==='lambda').length,1);
+});
+for(const context of [{ok:true,state:'COMPLETE_VERIFIED',write_performed:false},{ok:true,state:'CONSUMED',write_performed:true},{ok:true,state:'RESERVED'}])
+ test('reject unverified readback '+JSON.stringify(context),async()=>{
+  const f=reconciliationFixture({context}),c=await f.client();let caught;try{await c.readFailureContext({request:f.request});}catch(e){caught=e;}
+  assert.equal(caught.recovery_reconciliation.state,'READBACK_UNVERIFIED');assert.equal(caught.recovery_reconciliation.writer_context_state,null);
+  assert.equal(caught.recovery_reconciliation.write_performed,null);assert.equal(caught.recovery_reconciliation.actual_authority_granted,false);
+  assert.deepEqual(f.actions,['READ_FAILED_ASSURANCE_TERMINAL_CONTEXT','READ_MERGED_RECOVERY_CONTEXT']);
+ });

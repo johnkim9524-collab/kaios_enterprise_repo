@@ -105,7 +105,39 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
       return invoke({action:'APPROVE_MERGED_RESERVATION_RECOVERY',...binding(request,true),evidence,evidence_digest:sha256(canonicalJson(evidence)),
         role,approval_run_id:env.GITHUB_RUN_ID,approval_run_attempt:1,workload});
     },
-    readFailureContext:async({request})=>invoke({action:'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT',...binding(request,false),role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload}),
+    readFailureContext:async({request})=>{
+      const bound=binding(request,false);
+      try{return await invoke({action:'READ_FAILED_ASSURANCE_TERMINAL_CONTEXT',...bound,role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload});}
+      catch(error){
+        const first=error.recovery_transport_diagnostic;
+        // This is one distinct existing read, never a retry of the rejected
+        // failure-context operation or a route to approval/consume authority.
+        if(first?.operation==='READ_FAILED_ASSURANCE_TERMINAL_CONTEXT'&&first.status_code===200
+          &&first.function_error==='Unhandled'&&first.error_type==='ValueError'
+          &&first.writer_error_code==='INTERRUPTED_RECOVERY_FAILURE_TERMINAL_NULL_ONLY'){
+          const observation={id:'kidults-original-reservation-read-only-reconciliation-v1',
+            source_sha:sourceSha,role,run_id:env.GITHUB_RUN_ID,original_run_id:bound.request.original_run_id,
+            action:'READ_MERGED_RECOVERY_CONTEXT',state:'READBACK_UNVERIFIED',writer_context_state:null,
+            write_performed:null,write_authorized:false,original_consumption_reissued:false,retry_authorized:false,
+            actual_authority_granted:false,promotion_eligible:false};
+          try{
+            const context=await invoke({action:'READ_MERGED_RECOVERY_CONTEXT',...bound,role,run_id:env.GITHUB_RUN_ID,run_attempt:1,workload});
+            const states=['ORIGINAL_RESERVATION_MISSING','ORIGINAL_CONSUMED_TERMINAL_ARCHIVE_PENDING',
+              'ORIGINAL_CORE_CONSUMED_ARCHIVE_RECONCILIATION_REQUIRED','RESERVED','CONSUMED'];
+            if(states.includes(context?.state)&&context.write_performed===false){
+              observation.state='READ_ONLY_CONTEXT_OBSERVED_NOT_TERMINAL_VERIFIED';
+              observation.writer_context_state=context.state;
+              observation.write_performed=false;
+            }
+          }catch(readError){
+            observation.state='READBACK_FAILED';
+            if(readError.recovery_transport_diagnostic)observation.transport_diagnostic=readError.recovery_transport_diagnostic;
+          }
+          error.recovery_reconciliation=observation;
+        }
+        throw error; // Preserve the first failure even when readback succeeds.
+      }
+    },
     createFailureApproval:async({request,evidence})=>{
       check(role!=='FINALIZER','APPROVAL_ROLE');check(evidence?.source_sha===sourceSha
         &&evidence?.evidence_profile==='TERMINAL_NULL_ASSURANCE_FAILURE_V1','FAILURE_EVIDENCE');
