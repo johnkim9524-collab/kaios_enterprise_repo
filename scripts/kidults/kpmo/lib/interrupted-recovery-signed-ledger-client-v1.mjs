@@ -1,4 +1,4 @@
-import {verifyInterruptedRecoveryNativeTrigger} from './interrupted-recovery-native-trigger-v1.mjs';
+import {verifyInterruptedRecoveryNativeTrigger,consumeInterruptedRecoveryNativeTriggerToken} from './interrupted-recovery-native-trigger-v1.mjs';
 // Protected workload transport only; no executable entry point or AWS retries.
 // Registration in the existing writer is a separate, unactivated source step.
 import fs from 'node:fs';
@@ -49,7 +49,7 @@ export function recoveryTransportDiagnostic({metadata,output,envelope,sourceSha,
   return diagnostic;
 }
 
-export async function createInterruptedRecoverySignedLedgerClient({role,signingKeyArn,sourceSha,env=process.env,aws=defaultAws,tempRoot=os.tmpdir(),now=()=>Date.now()}){
+export async function createInterruptedRecoverySignedLedgerClient({role,signingKeyArn,sourceSha,env=process.env,aws=defaultAws,tempRoot=os.tmpdir(),now=()=>Date.now(),nativeVerificationToken}){
   env={...env}; // Preserve the authenticated context across asynchronous RPCs.
   const def=roles[role];check(def,'ROLE');
   check(/^[a-f0-9]{40}$/.test(sourceSha||''),'SOURCE');
@@ -60,7 +60,10 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
     &&env.GITHUB_RUN_ATTEMPT==='1'&&/^[1-9][0-9]{0,15}$/.test(env.GITHUB_RUN_ID||'')&&['repository_dispatch','workflow_run'].includes(env.GITHUB_EVENT_NAME),'CONTEXT');
   const index={ACCOUNTABLE_TRACK_AGENT:0,KPMO:1,INDEPENDENT_VERIFIER:2}[role];
   check(role==='FINALIZER'?workflows.includes(env.GITHUB_WORKFLOW_REF):env.GITHUB_WORKFLOW_REF===workflows[index],'WORKFLOW');
-  if(env.GITHUB_EVENT_NAME==='workflow_run')await verifyInterruptedRecoveryNativeTrigger({env});
+  if(nativeVerificationToken!==undefined){
+    check(env.GITHUB_EVENT_NAME==='workflow_run','TOKEN_EVENT');
+    await consumeInterruptedRecoveryNativeTriggerToken({token:nativeVerificationToken,env});
+  }else if(env.GITHUB_EVENT_NAME==='workflow_run')await verifyInterruptedRecoveryNativeTrigger({env});
   const identity=await aws(['sts','get-caller-identity']);
   check(identity.Account==='528314240275'&&new RegExp(`^arn:aws:sts::528314240275:assumed-role/kidults-autonomous-${def[0]}-staging-role/[^/]+$`).test(identity.Arn||''),'IDENTITY');
   const workload={workload_id:def[2],environment:'KIDULTS-AUTONOMOUS-'+def[1],signing_key_arn:signingKeyArn};

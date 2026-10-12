@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {execFileSync} from 'node:child_process';
-import {verifyInterruptedRecoveryNativeTrigger,recoveryNativeGet} from './lib/interrupted-recovery-native-trigger-v1.mjs';
+import {verifyInterruptedRecoveryNativeTriggerOnce,recoveryNativeGet} from './lib/interrupted-recovery-native-trigger-v1.mjs';
 import {discoverInterruptedRecoveryCandidates} from './lib/interrupted-recovery-discovery-v1.mjs';
 import {runInterruptedRecoveryWorkload} from './lib/interrupted-recovery-workload-v1.mjs';
 import {createInterruptedRecoverySignedLedgerClient} from './lib/interrupted-recovery-signed-ledger-client-v1.mjs';
@@ -12,7 +12,7 @@ import {createInterruptedRecoveryBrokerDrain} from './lib/interrupted-recovery-b
 async function runNativeInterruptedRecoveryInternal(){
   const env=process.env;
   if(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()!==env.GITHUB_SHA)throw Error('INTERRUPTED_RUNTIME_CHECKOUT');
-  const upstream=await verifyInterruptedRecoveryNativeTrigger({env});
+  const {upstream,token:nativeVerificationToken}=await verifyInterruptedRecoveryNativeTriggerOnce({env});
   const readBytes=route=>execFileSync('gh',['api',`repos/${env.GITHUB_REPOSITORY}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
   const discovery=await discoverInterruptedRecoveryCandidates({sourceSha:env.GITHUB_SHA,upstream,get:recoveryNativeGet,readBytes});
   const role=env.KIDULTS_RECOVERY_ROLE;
@@ -24,7 +24,7 @@ async function runNativeInterruptedRecoveryInternal(){
     if(env.GITHUB_OUTPUT)fs.appendFileSync(env.GITHUB_OUTPUT,`generic_recovery_needed=false\n${failureParent?'recovery_needed=false\n':''}`);
     return result;
   }
-  const ledger=await createInterruptedRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA});
+  const ledger=await createInterruptedRecoverySignedLedgerClient({role,signingKeyArn:env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,sourceSha:env.GITHUB_SHA,nativeVerificationToken});
   const policy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/direct-owner-postmerge-push-suite-policy-v1.json','utf8'));
   const evidence=createInterruptedRecoveryNativeEvidence({policy,readJson:recoveryNativeGet,readBytes});
   const immutable=role==='FINALIZER'?await createInterruptedRecoveryImmutableStore({bucket:env.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET,
