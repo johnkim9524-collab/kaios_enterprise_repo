@@ -22,6 +22,9 @@ const approvals = [
   ['Kpmo','KpmoEnvironment','KpmoWorkflowRef','kidults-autonomous-kpmo-staging-role','KpmoApprovalSigningKey','kidults-autonomous-kpmo-authorization-v1.yml','kidults.authorization.generation.v1'],
   ['Verifier','VerifierEnvironment','VerifierWorkflowRef','kidults-autonomous-verifier-staging-role','VerifierApprovalSigningKey','kidults-autonomous-independent-verification-authorization-v1.yml','kidults.authorization.generation.v1'],
 ];
+const budgetStoreStatement={Effect:'Allow',Action:['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],
+  Resource:{'Fn::GetAtt':['AutonomousLandingLedger','Arn']},
+  Condition:{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['GITHUB_READ_BUDGET#*']}}};
 
 assert.equal(table.TableName, 'kidults-autonomous-landing-staging-ledger');
 assert.equal(table.BillingMode, 'PAY_PER_REQUEST');
@@ -91,11 +94,13 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${' + workflowParameter + '}'}`});
   const statements = role.Policies[0].PolicyDocument.Statement;
   const actions = statements.flatMap(value => value.Action || []);
-  assert.deepEqual(actions.filter(action => action.startsWith('dynamodb:')), ['dynamodb:Query']);
+  assert.deepEqual(actions.filter(action => action.startsWith('dynamodb:')).sort(),
+    ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:Query','dynamodb:UpdateItem'].sort());
   const ledgerRead = statements.find(value => (value.Action || []).includes('dynamodb:Query'));
   assert.deepEqual(ledgerRead.Resource, {'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
   assert.deepEqual(ledgerRead.Condition, {'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
-  assert.equal(actions.some(action => ['dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:DeleteItem'].includes(action)), false);
+  assert.equal(statements.filter(value=>JSON.stringify(value)===JSON.stringify(budgetStoreStatement)).length,1);
+  assert.equal(actions.some(action => ['dynamodb:DeleteItem','dynamodb:BatchWriteItem'].includes(action)), false);
   assert.ok(actions.includes('lambda:InvokeFunction'));
   assert.ok(actions.includes('kms:Sign'));
   const sign = role.Policies[0].PolicyDocument.Statement.find(value => (value.Action || []).includes('kms:Sign'));

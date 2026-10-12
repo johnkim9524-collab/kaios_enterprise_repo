@@ -68,6 +68,71 @@ export function failureAssuranceRecoveryObjectKey(request){
   return `receipts/${request.original_generation}/interrupted-postmerge-failure-assurance-v1/${request.merge_sha}.json`;
 }
 
+export function originalTerminalRepairObjectKey(request){
+  validateInterruptedRecoveryRequest(request,{fresh:false});
+  return `receipts/${request.original_generation}/original-reservation-terminal-repair/${request.merge_sha}.json`;
+}
+
+export function validateOriginalTerminalRepairTerminal(terminal,request){
+  const requestDigest=validateInterruptedRecoveryRequest(request,{fresh:false});
+  const keys='id version state request_digest evidence_digest original_run_id original_head_sha original_merge_sha original_state original_terminal_present actual_authority_granted platform_closure production public g5 created_at repair_digest'.split(' ').sort();
+  const unsigned={...terminal};delete unsigned.repair_digest;
+  requireProof(eq(Object.keys(terminal||{}).sort(),keys)&&terminal.id==='kidults-original-reservation-terminal-repair-v1'
+    &&terminal.version==='1.0.0'&&terminal.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&terminal.request_digest===requestDigest
+    &&/^sha256:[a-f0-9]{64}$/.test(terminal.evidence_digest||'')&&terminal.original_run_id===request.original_run_id
+    &&terminal.original_head_sha===request.head_sha&&terminal.original_merge_sha===request.merge_sha
+    &&terminal.original_state==='RESERVED'&&terminal.original_terminal_present===false
+    &&terminal.actual_authority_granted===false&&terminal.platform_closure===false
+    &&Object.entries({production:'HOLD',public:'HOLD',g5:'HOLD'}).every(([k,v])=>terminal[k]===v)
+    &&Number.isFinite(Date.parse(terminal.created_at))&&new Date(terminal.created_at).toISOString()===terminal.created_at
+    &&terminal.repair_digest===sha256(canonicalJson(unsigned)),'ORIGINAL_REPAIR_TERMINAL');
+  return sha256(canonicalJson(terminal));
+}
+
+export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledger,evidence,immutable,verifyDrain,now=()=>Date.now()}){
+  requireProof(run(recoveryRunId)&&recoveryRunId!==request?.original_run_id
+    &&typeof ledger?.readOriginalTerminalRepairContext==='function'&&typeof ledger?.finalizeOriginalTerminalRepair==='function'
+    &&typeof ledger?.acknowledgeOriginalTerminalRepair==='function'&&typeof evidence==='function'
+    &&typeof immutable?.seal==='function'&&typeof immutable?.read==='function'&&typeof verifyDrain==='function','ORIGINAL_REPAIR_ADAPTER');
+  const proof=await evidence({request});
+  requireProof(proof?.evidence_profile==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'&&Array.isArray(proof.checks)
+    &&proof.checks.length===4&&proof.checks.filter(c=>c.kind==='TERMINAL_NULL_ASSURANCE_FAILURE'&&c.conclusion==='failure').length===1
+    &&proof.checks.filter(c=>c.kind==='SUCCESS_AUTHORITY_GATE').length===0,'ORIGINAL_REPAIR_EVIDENCE_PROFILE');
+  const evidenceDigest=sha256(canonicalJson(proof));
+  let context=await ledger.readOriginalTerminalRepairContext({request});
+  requireProof(['ORIGINAL_TERMINAL_REPAIR_PENDING','ORIGINAL_TERMINAL_DEBT_ONLY'].includes(context.state)
+    &&context.evidence_digest===evidenceDigest&&canonicalJson(context.evidence)===canonicalJson(proof),'ORIGINAL_REPAIR_CONTEXT');
+  let terminal=context.terminal;
+  if(context.state==='ORIGINAL_TERMINAL_REPAIR_PENDING'){
+    requireProof(context.approvals?.length===3&&new Set(context.approvals.map(a=>a.role)).size===3
+      &&new Set(context.approvals.map(a=>a.approval_run_id)).size===3,'ORIGINAL_REPAIR_QUORUM');
+    await verifyDrain(request);
+    terminal={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',
+      request_digest:sha256(canonicalJson(request)),evidence_digest:evidenceDigest,original_run_id:request.original_run_id,
+      original_head_sha:request.head_sha,original_merge_sha:request.merge_sha,original_state:'RESERVED',
+      original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
+      production:'HOLD',public:'HOLD',g5:'HOLD',created_at:new Date(now()).toISOString()};
+    terminal.repair_digest=sha256(canonicalJson(terminal));validateOriginalTerminalRepairTerminal(terminal,request);
+    try{await ledger.finalizeOriginalTerminalRepair({request,terminal,evidence_digest:evidenceDigest,run_id:recoveryRunId});}
+    catch(error){context=await ledger.readOriginalTerminalRepairContext({request});
+      requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.terminal)===canonicalJson(terminal),'ORIGINAL_REPAIR_CAS_UNKNOWN_NO_RETRY');}
+  }else validateOriginalTerminalRepairTerminal(terminal,request);
+  const key=originalTerminalRepairObjectKey(request),object=await immutable.seal({request,terminal,key,if_none_match:'*',original_repair:true});
+  requireProof(object.key===key&&object.sha256===sha256(canonicalJson(terminal)),'ORIGINAL_REPAIR_IMMUTABLE_BINDING');
+  try{await ledger.acknowledgeOriginalTerminalRepair({request,run_id:recoveryRunId,object});}
+  catch(error){context=await ledger.readOriginalTerminalRepairContext({request});
+    requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.immutable_ack)===canonicalJson(object),'ORIGINAL_REPAIR_ACK_UNKNOWN_NO_RETRY');}
+  context=await ledger.readOriginalTerminalRepairContext({request});
+  requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.terminal)===canonicalJson(terminal)
+    &&context.evidence_digest===evidenceDigest&&canonicalJson(context.evidence)===canonicalJson(proof)
+    &&canonicalJson(context.immutable_ack)===canonicalJson(object),'ORIGINAL_REPAIR_FINAL_READBACK');
+  const immutableReadback=await immutable.read({request,terminal,key,original_repair:true,version_id:object.version_id});
+  requireProof(canonicalJson(immutableReadback)===canonicalJson(object),'ORIGINAL_REPAIR_IMMUTABLE_FINAL_READBACK');
+  return {state:'ORIGINAL_TERMINAL_DEBT_ONLY',request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
+    immutable_readback:immutableReadback,original_reservation_reconsumed:false,original_terminal_created:false,
+    actual_authority_granted:false,platform_closure:false,promotion_eligible:false,...HOLD};
+}
+
 export function validateFailureAssuranceTerminal(terminal,request){
   const requestDigest=validateInterruptedRecoveryRequest(request,{fresh:false});
   const fields='id state request_digest evidence_digest recovery_run_id source_sha merge_sha original_state original_terminal_present actual_authority_granted platform_closure production public g5 provider_activation'.split(' ').sort();

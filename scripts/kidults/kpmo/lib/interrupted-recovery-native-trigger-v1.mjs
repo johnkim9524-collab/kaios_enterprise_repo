@@ -1,3 +1,4 @@
+import {runtimeGithubRead} from './runtime-github-read-v1.mjs';
 import {createInvocationArchiveByteCache} from './invocation-archive-byte-cache-v1.mjs';
 import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
 import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
@@ -12,8 +13,7 @@ const repository='johnkim9524-collab/kaios_enterprise_repo';
 const assuranceName='KIDULTS Platform Continuous Assurance V1';
 const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const check=(ok,code)=>{if(!ok)throw new Error('INTERRUPTED_TRIGGER_'+code);};
-export const recoveryNativeGet=route=>JSON.parse(execFileSync('gh',['api',`repos/${repository}/${route}`],
-  {encoding:'utf8',timeout:30000,maxBuffer:2*1024*1024,stdio:['ignore','pipe','pipe']}));
+export const recoveryNativeGet=route=>runtimeGithubRead(process.env.GITHUB_TOKEN||process.env.GH_TOKEN)(`https://api.github.com/repos/${repository}/${route}`);
 const nativeBytes=route=>execFileSync('gh',['api',`repos/${repository}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
 export async function verifyFailureAssuranceParent({run,eventAction='completed',sourceSha,get,readBytes,archiveReader=readArchive}){
   check(eventAction==='completed'&&run?.name===assuranceName&&run.path===assurancePath

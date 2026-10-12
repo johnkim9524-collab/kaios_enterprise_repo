@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import test from 'node:test';
 import {inflateSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
 // Inspect the authenticated original code, rather than searching compressed bytes.
@@ -19,7 +20,8 @@ for (const [name, source] of Object.entries(writerSources)) {
   const digest = createHash('sha256').update(source).digest('hex');
   assert.equal(sourceHashes[name], digest, `${name} capsule digest mismatch`);
   const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py'}[name];
-  assert.equal(source, fs.readFileSync(`scripts/kidults/kpmo/lib/${file}`, 'utf8'), `${name} original source mismatch`);
+  const normalized=execFileSync('python3',['-c',"import ast,pathlib,sys;sys.stdout.write(ast.unparse(ast.parse(pathlib.Path(sys.argv[1]).read_text()))+'\\n')",`scripts/kidults/kpmo/lib/${file}`],{encoding:'utf8'});
+  assert.equal(source, normalized, `${name} normalized source mismatch`);
 }
 const writerCode = writerSources.core;
 const oidc = JSON.parse(fs.readFileSync('coordination/kidults/governance/github-oidc-subject-customization-v1.json','utf8'));
@@ -47,11 +49,13 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     refs.add(template.Parameters[wfParam].Default);
     const statements=template.Resources[`${prefix}ApprovalRole`].Properties.Policies[0].PolicyDocument.Statement;
     const actions=statements.flatMap(v=>v.Action||[]);
-    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')),['dynamodb:Query']);
+    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')).sort(),['dynamodb:GetItem','dynamodb:PutItem','dynamodb:Query','dynamodb:UpdateItem'].sort());
     const ledgerRead=statements.find(statement=>(statement.Action||[]).includes('dynamodb:Query'));
     assert.deepEqual(ledgerRead.Resource,{'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
     assert.deepEqual(ledgerRead.Condition,{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
-    assert.equal(actions.some(a=>['dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:DeleteItem'].includes(a)),false);
+    const budget=statements.filter(s=>JSON.stringify(s)===JSON.stringify({Effect:'Allow',Action:['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],Resource:{'Fn::GetAtt':['AutonomousLandingLedger','Arn']},Condition:{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['GITHUB_READ_BUDGET#*']}}}));
+    assert.equal(budget.length,1);
+    assert.equal(actions.some(a=>['dynamodb:DeleteItem','dynamodb:BatchWriteItem'].includes(a)),false);
     assert.ok(actions.includes('kms:Sign'));
   }
   assert.equal(refs.size,3);

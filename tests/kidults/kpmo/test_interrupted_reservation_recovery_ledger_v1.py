@@ -150,6 +150,11 @@ class RecoveryTest(unittest.TestCase):
         ns = {}
         with mock.patch.dict(sys.modules, {'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': errors}), mock.patch.dict(os.environ, env), mock.patch('time.time', return_value=self.clock):
             exec(compile(code, '<actual-writer-capsule>', 'exec'), ns)
+            read_event = signed(dict(action='READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), role='FINALIZER', run_id='900', run_attempt=1, workload=self.finalizer))
+            before = self.ddb.writes
+            self.assertEqual(ns['handler'](read_event, None)['state'], 'ORIGINAL_TERMINAL_REPAIR_PENDING')
+            self.assertEqual(self.ddb.writes, before)
             for role in m.ROLES: self.assertTrue(ns['handler'](self.approval(role), None)['ok'])
             self.assertEqual(ns['handler'](self.final('CLAIM_MERGED_RECOVERY', expected_revision=0, lease_seconds=60), None)['revision'], 1)
             self.assertEqual(ns['handler'](self.final('CONSUME_MERGED_RECOVERY', revision=1, terminal=self.terminal()), None)['state'], 'CONSUMED')
@@ -230,6 +235,57 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(row['state']['S'], 'CONSUMED')
         self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
         self.assertEqual(row['failure_terminal']['S'], m.canonical(terminal))
+    def test_reserved_original_terminal_repair_has_separate_signed_quorum_and_non_authority_terminal(self):
+        evidence = copy.deepcopy(self.evidence)
+        evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        for i, role in enumerate(m.ROLES):
+            packet = signed(dict(action='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), evidence=copy.deepcopy(evidence), evidence_digest=m.digest(evidence),
+                role=role, approval_run_id=str(200+i), approval_run_attempt=1, workload=self.roles[role]))
+            self.assertEqual(self.ledger.create_original_terminal_repair_approval(packet)['state'], 'ORIGINAL_TERMINAL_REPAIR_APPROVAL_STORED')
+        terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id='100', original_head_sha='b'*40,
+            original_merge_sha='d'*40, original_state='RESERVED', original_terminal_present=False,
+            actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
+        terminal['repair_digest'] = m.digest(terminal)
+        final = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
+        result = self.ledger.finalize_original_terminal_repair(final)
+        self.assertEqual(result['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
+        self.assertFalse(result['actual_authority_granted']); self.assertFalse(result['promotion_eligible'])
+        self.assertFalse(self.ledger.finalize_original_terminal_repair(final)['write_performed'])
+        row = self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]
+        self.assertEqual(row['state']['S'], 'CONSUMED')
+        self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
+        self.assertEqual(row['repair_terminal_digest']['S'], terminal['repair_digest'])
+        observed = self.ledger.read_context(self.context())
+        self.assertEqual(observed['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
+        obj = dict(bucket='immutable', key='receipts/'+self.request['original_generation']+'/original-reservation-terminal-repair/'+'d'*40+'.json',
+            version_id='repair-object-v1', sha256=m.digest(terminal), retention_mode='COMPLIANCE',
+            retain_until='2036-10-11T00:01:00Z', encryption_key_arn=self.ledger.receipt_key)
+        ack_event = self.final('ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE', run='400', object=obj)
+        self.assertTrue(self.ledger.acknowledge_original_terminal_repair(ack_event)['write_performed'])
+        self.assertFalse(self.ledger.acknowledge_original_terminal_repair(ack_event)['write_performed'])
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_TERMINAL_FIELDS'):
+            m.validate_original_terminal(terminal, self.request)
+        self.assertNotIn('original_terminal_json', row)
+    def test_original_terminal_repair_rejects_quorum_collision_and_terminal_tamper(self):
+        evidence = copy.deepcopy(self.evidence); evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+        evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', run_id='901', artifact_id=9010, conclusion='failure')
+        for role in m.ROLES:
+            packet = signed(dict(action='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR', request=copy.deepcopy(self.request),
+                request_digest=m.digest(self.request), evidence=copy.deepcopy(evidence), evidence_digest=m.digest(evidence),
+                role=role, approval_run_id='200', approval_run_attempt=1, workload=self.roles[role]))
+            self.ledger.create_original_terminal_repair_approval(packet)
+        terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id='100', original_head_sha='b'*40,
+            original_merge_sha='d'*40, original_state='RESERVED', original_terminal_present=False,
+            actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
+        terminal['repair_digest'] = m.digest(terminal)
+        packet = self.final('FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', run='400', terminal=terminal, evidence_digest=m.digest(evidence))
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_QUORUM_RUN_COLLISION'):
+            self.ledger.finalize_original_terminal_repair(packet)
+        self.assertEqual(self.ddb.rows[self.ddb.key(self.ledger.key(self.request))]['state']['S'], 'RESERVED')
     def test_failure_profile_cannot_create_normal_approval_for_any_role(self):
         self.evidence['evidence_profile'] = 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
         self.evidence['checks'][-1].update(kind='TERMINAL_NULL_ASSURANCE_FAILURE', conclusion='failure')

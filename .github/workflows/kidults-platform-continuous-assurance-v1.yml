@@ -1281,6 +1281,15 @@ jobs:
           "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/internal-operating-recovery-observation-v1.json"
           --observe
 
+      - name: Preserve read-only rate wait checkpoint
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-github-read-resume-assurance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/github-read-resume-v1/
+          if-no-files-found: ignore
+          retention-days: 90
+
       - name: Upload exact-run assurance packet
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

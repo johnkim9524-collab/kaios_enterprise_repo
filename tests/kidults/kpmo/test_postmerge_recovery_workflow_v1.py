@@ -27,11 +27,22 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertNotIn('interrupted-recovery-finalizer', self.workflow('track')['jobs'])
         for name in FILES:
             workflow = self.workflow(name)
-            job_if = workflow['jobs']['terminal-recovery-approval']['if']
+            job_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertIn("workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'", job_if)
             self.assertIn("workflow_run.conclusion == 'failure'", job_if)
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
             self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
+
+    def test_execution_admission_precedes_all_credentialled_role_jobs(self):
+        for name in FILES:
+            workflow = self.workflow(name)
+            admission = workflow['jobs']['terminal-recovery-admission']
+            recovery = workflow['jobs']['terminal-recovery-approval']
+            self.assertEqual(recovery['needs'], 'terminal-recovery-admission')
+            self.assertIn("outputs.admitted == 'true'", recovery['if'])
+            self.assertNotIn('id-token', admission['permissions'])
+            self.assertNotIn('environment', admission)
+            self.assertIn('run-postmerge-terminal-recovery-v1.mjs', '\n'.join(step.get('run', '') for step in recovery['steps']))
 
     def test_original_live_candidate_path_remains_dispatch_only(self):
         for name in FILES:
@@ -40,7 +51,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
             self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
             self.assertNotIn('workflow_dispatch', workflow['on'])
-            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertNotIn("github.event_name == 'workflow_dispatch'", recovery_if)
 
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
@@ -61,6 +72,10 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
             for key, job in self.workflow(name)['jobs'].items():
+                if key == 'terminal-recovery-admission':
+                    self.assertEqual(job['permissions'], {'actions': 'read', 'contents': 'read'})
+                    self.assertNotIn('environment', job)
+                    continue
                 if not key.startswith(('terminal-recovery-', 'interrupted-recovery-')):
                     continue
                 self.assertEqual(job['permissions'], {'actions': 'read', 'contents': 'read', 'id-token': 'write', 'pull-requests': 'read'})
@@ -76,7 +91,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             workflow = self.workflow(name)
             names = workflow['on']['workflow_run']['workflows']
             self.assertIn('KIDULTS Platform Continuous Assurance V1', names)
-            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertIn("workflow_run.conclusion == 'failure'", recovery_if)
             self.assertNotIn("github.event_name == 'workflow_run'", workflow['jobs']['record-role-approval']['if'])
         self.assertIn('result.recovery_parent=failureParent', runner)
