@@ -80,6 +80,7 @@ function failureWorkloadSetup(role='KPMO'){
  s.input.candidates[0].failure_parent=parent;
  const proof=failureProfile(request.source_sha);let failureApprovals=0,failureFinalizations=0,failureAcks=0,storedTerminal=null,storedObject=null;
  s.input.evidence.verifyEvidence=async()=>proof;
+ s.input.ledger.readOriginalTerminalRepairContext=async()=>({state:'ORIGINAL_RESERVATION_NOT_RESERVED',write_performed:false});
  s.input.ledger.readFailureContext=async()=>({state:'FAILURE_ASSURANCE_TERMINAL_PENDING',request,evidence:null,evidence_digest:null,approvals:[]});
  s.input.ledger.createFailureApproval=async()=>{failureApprovals++;return {state:'FAILURE_ASSURANCE_APPROVAL_STORED'};};
  s.input.ledger.finalizeFailureTerminal=async({terminal})=>{failureFinalizations++;storedTerminal=terminal;return {state:'FAILURE_ASSURANCE_TERMINAL_RECORDED',terminal};};
