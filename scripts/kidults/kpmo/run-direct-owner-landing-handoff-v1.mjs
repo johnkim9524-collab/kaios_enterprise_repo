@@ -86,6 +86,19 @@ const checkRuns = async sha => {
   }
   fail('DIRECT_OWNER_HANDOFF_CHECK_RUNS_PAGINATION_BOUND_EXCEEDED');
 };
+const currentWorkflowRun = async currentRunId => {
+  for (let page = 1; page <= 10; page += 1) {
+    const payload = await request(
+      `/actions/runs?event=workflow_dispatch&branch=main&per_page=100&page=${page}`,
+    );
+    if (!Array.isArray(payload?.workflow_runs)) fail('DIRECT_OWNER_HANDOFF_REPOSITORY_RUNS_SHAPE_INVALID');
+    const matches = payload.workflow_runs.filter(run => Number(run?.id) === Number(currentRunId));
+    if (matches.length > 1) fail('DIRECT_OWNER_HANDOFF_CURRENT_RUN_CARDINALITY_INVALID');
+    if (matches.length === 1) return matches[0];
+    if (payload.workflow_runs.length < 100) fail('DIRECT_OWNER_HANDOFF_CURRENT_RUN_NOT_INDEXED');
+  }
+  fail('DIRECT_OWNER_HANDOFF_REPOSITORY_RUNS_PAGINATION_BOUND_EXCEEDED');
+};
 const workflowRuns = async workflowId => {
   const output = [];
   for (let page = 1; page <= 10; page += 1) {
@@ -288,7 +301,7 @@ try {
     request(`/commits/${expectedHeadSha}/status`),
     checkRuns(expectedHeadSha),
     request('/rulesets'),
-    request(`/actions/runs/${runId}`),
+    currentWorkflowRun(runId),
   ]);
   assertPromotablePullRequest(pr, {repository, expectedHeadSha, expectedBase: 'main', noMergePolicy: policy.no_merge_policy});
   if (headCommit?.sha !== expectedHeadSha || headCommit?.commit?.tree?.sha !== expectedHeadTreeSha) {
