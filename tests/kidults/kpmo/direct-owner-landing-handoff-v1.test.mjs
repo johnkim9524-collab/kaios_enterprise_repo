@@ -187,6 +187,16 @@ test('dispatch actor is verified before any governed status mutation', () => {
   assert.ok(actorGuard >= 0 && actorGuard < firstPublish);
 });
 
+test('current handoff run is resolved fail-closed from the authorized repository run index', () => {
+  assert.doesNotMatch(runner, /request\(`\/actions\/runs\/\$\{runId\}`\)/);
+  assert.match(runner, /\/actions\/runs\?event=workflow_dispatch&branch=main&per_page=100&page=\$\{page\}/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_REPOSITORY_RUNS_SHAPE_INVALID/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_CURRENT_RUN_CARDINALITY_INVALID/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_CURRENT_RUN_NOT_INDEXED/);
+  assert.match(runner, /DIRECT_OWNER_HANDOFF_REPOSITORY_RUNS_PAGINATION_BOUND_EXCEEDED/);
+  assert.match(runner, /currentWorkflowRun\(runId\)/);
+});
+
 test('post-window trusted-base classification preserves transport facts and landed main revalidates lifecycle semantics', () => {
   const sleepIndex = runner.indexOf('await sleep(handoffWindowSeconds * 1000)');
   const approvalRecheck = runner.indexOf('assertApprovalCommentUnchanged(afterComments, owner, approval)');
