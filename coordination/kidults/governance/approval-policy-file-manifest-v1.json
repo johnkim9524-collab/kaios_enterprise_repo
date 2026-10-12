@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "38d5f4e9480f5664311066c880eaec0a645f50bc",
+  "revision": "a5158c673d5e6f639c1b38274ed1ac4e16c8ec00",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2053,8 +2053,8 @@
     {
       "path": "coordination/kidults/kpmo/github-read-rate-recovery-draft-proposal-payload-20261012.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7f8502ab116b48eb4e9739627536b386b36af4d6",
-      "sha256": "sha256:a438c89f38f35b8081a85223871585265013926221c11775f51bececa6cf3238",
+      "git_blob": "7ed3af738ce5994d13f578a0d2600381604e9bc4",
+      "sha256": "sha256:686f74a3984a07f80e0929c587a756662a9f5a011119e4e1a93fa97b80c62180",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6895,5 +6895,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:0abadaff93bf996fd27f6dc52bfb90e7b752f1a92fa9bfbe97ce95b795573cc8"
+  "manifest_sha256": "sha256:b40c8eb496c6869ad1bc714af2da37504f72c064677c36090e23b29deec577ad"
 }
