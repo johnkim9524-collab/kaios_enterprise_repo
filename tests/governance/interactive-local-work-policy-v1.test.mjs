@@ -9,6 +9,10 @@ const roles=JSON.parse(fs.readFileSync('coordination/kidults/registry/roles-and-
 const ai020=JSON.parse(fs.readFileSync('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json','utf8'));
 test('interactive local sandbox work retains resume reconciliation and needs no external launcher receipt',()=>{
   assert.equal(local.eligible_session,'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION');
+  assert.equal(local.session_provenance_source,'TRUSTED_PLATFORM_EXECUTION_CONTEXT');
+  assert.equal(local.repository_self_assertion_is_session_provenance,false);
+  assert.equal(local.repository_policy_validator_attests_runtime_session,false);
+  assert.equal(local.missing_or_ambiguous_platform_session_context,'LOCAL_EXCEPTION_UNAVAILABLE');
   assert.equal(local.scope,'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS');
   assert.equal(local.resume_reconciliation_still_required,true);
   assert.equal(local.bootstrap_receipt_required,false);

@@ -39,6 +39,10 @@ const exactJson = (actual, expected) => JSON.stringify(actual) === JSON.stringif
 
 const INTERACTIVE_PLATFORM_SESSION_POLICY = {
   eligible_session: 'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION',
+  session_provenance_source: 'TRUSTED_PLATFORM_EXECUTION_CONTEXT',
+  repository_self_assertion_is_session_provenance: false,
+  repository_policy_validator_attests_runtime_session: false,
+  missing_or_ambiguous_platform_session_context: 'LOCAL_EXCEPTION_UNAVAILABLE',
   scope: 'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS',
   explicit_user_task_required: true,
   platform_workspace_sandbox_required: true,
@@ -174,6 +178,10 @@ assert(exactJson(githubBootstrapContract.interactive_platform_session_policy, IN
 
 const INTERACTIVE_LOCAL_WORK_RESUME_POLICY = {
   eligible_session: 'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION',
+  session_provenance_source: 'TRUSTED_PLATFORM_EXECUTION_CONTEXT',
+  repository_self_assertion_is_session_provenance: false,
+  repository_policy_validator_attests_runtime_session: false,
+  missing_or_ambiguous_platform_session_context: 'LOCAL_EXCEPTION_UNAVAILABLE',
   scope: 'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS',
   resume_reconciliation_still_required: true,
   fresh_exact_head_bootstrap_required: false,

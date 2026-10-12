@@ -28,7 +28,7 @@ npm run agent:bootstrap -- \
 
 Do not start track work after receipt creation alone. The orchestrator must independently run `npm run verify:agent-bootstrap -- ... --consume` and obtain `BOOTSTRAP_VERIFIED` for the same bindings.
 
-Local sandbox edits and tests in an explicitly user-initiated platform-managed interactive session do not require a launcher receipt and grant no dispatch or GitHub mutation permission. The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
+Local sandbox edits and tests in an explicitly user-initiated platform-managed interactive session do not require a launcher receipt when trusted platform execution context establishes the session and sandbox. Repository assertions and validators do not attest session provenance; absent or ambiguous platform context disables this exception. It grants no dispatch or GitHub mutation permission. The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
 
 1. `coordination/kidults/README.md`
 2. `coordination/kidults/registry/README.md`
