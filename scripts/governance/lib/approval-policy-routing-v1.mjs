@@ -12,7 +12,7 @@ export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
   "scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs",
 ]);
 export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
-  ".github/workflows/kidults-github-read-resume-handoff-v1.yml",
+  ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
   "infrastructure/aws/staging/github-read-resume-role-v1.json",
   "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
   "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
