@@ -2060,7 +2060,8 @@
           "mode": "EXEMPTION",
           "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
         }
-      }
+      },
+      "git_blob": "fb1638a7ecffda30fb1cb84e6f5dfbf1d8076c22"
     },
     {
       "path": "coordination/kidults/kpmo/github-read-rate-recovery-policy-v1.json",
@@ -6856,5 +6857,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f50f8926c3202feea9bc51c1b7946ac537b84823f7d317e5f2c22e18a4260b79"
+  "manifest_sha256": "sha256:391b1b1906c6d684893326fd624d8a6b958ea844f9f73fc4233283243a6dc465"
 }
