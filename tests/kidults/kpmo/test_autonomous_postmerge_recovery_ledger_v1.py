@@ -495,6 +495,20 @@ class RecoveryLedgerTests(unittest.TestCase):
         props = actual['Resources']['AutonomousLedgerWriterFunction']['Properties']
         old = original['Resources']['AutonomousLedgerWriterFunction']['Properties']
         props['Code'] = old['Code']
+        expected_budget_statement = {
+            'Effect': 'Allow',
+            'Action': ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+            'Resource': {'Fn::GetAtt': ['AutonomousLandingLedger', 'Arn']},
+            'Condition': {'ForAllValues:StringLike': {
+                'dynamodb:LeadingKeys': ['GITHUB_READ_BUDGET#*']
+            }},
+        }
+        for role in ('TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'):
+            policies = actual['Resources'][role]['Properties']['Policies']
+            self.assertEqual(len(policies), 1)
+            statements = policies[0]['PolicyDocument']['Statement']
+            self.assertEqual(statements.count(expected_budget_statement), 1)
+            statements.remove(expected_budget_statement)
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
         if used_fallback:
