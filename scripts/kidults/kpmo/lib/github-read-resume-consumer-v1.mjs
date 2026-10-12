@@ -18,7 +18,7 @@ function routeAllowed(route,binding){
   const path=route.slice(prefix.length);
   const allowed=[
     /^actions\/runs\/[1-9][0-9]{0,15}$/,
-    /^actions\/runs\/[1-9][0-9]{0,15}\/attempts\/1\/jobs\?per_page=100$/,
+    /^actions\/runs\/[1-9][0-9]{0,15}\/attempts\/(?:[1-9]|[1-9][0-9]|100)\/jobs\?per_page=100$/,
     /^actions\/runs\/[1-9][0-9]{0,15}\/artifacts\?per_page=100$/,
     /^actions\/artifacts\/[1-9][0-9]{0,15}$/,
     /^pulls\/[1-9][0-9]{0,5}$/,
@@ -28,11 +28,15 @@ function routeAllowed(route,binding){
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
   check(allowed.some(pattern=>pattern.test(path)),'ROUTE_NOT_ALLOWLISTED');
-  const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/1\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
+  const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/((?:[1-9]|[1-9][0-9]|100))\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
   if(run){
     const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id]
       .filter(value=>value!==undefined).map(String);
     check(boundRuns.includes(run[1]),'ROUTE_TARGET_RUN');
+    if(run[2]&&run[1]===binding.run_id)check(Number(run[2])===binding.run_attempt,'ROUTE_TARGET_ATTEMPT');
+    if(run[2]&&run[1]===binding.original_run_id)check(Number(run[2])===binding.original_run_attempt,'ROUTE_TARGET_ATTEMPT');
+    if(run[2]&&run[1]===binding.parent_run_id&&run[1]!==binding.run_id&&run[1]!==binding.original_run_id)
+      check(Number(run[2])===binding.parent_run_attempt,'ROUTE_TARGET_ATTEMPT');
   }
   const artifact=path.match(/^actions\/artifacts\/([1-9][0-9]{0,15})$/);
   if(artifact)check(String(binding.original_artifact_id||'')===artifact[1],'ROUTE_TARGET_ARTIFACT');
@@ -43,10 +47,15 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
   check(typeof read==='function'&&checkpoint?.id==='kidults-github-read-resume-checkpoint-v1'
     &&checkpoint.version==='1.0.0'&&checkpoint.state==='READ_DEFERRED_NOT_AUTHORITY','CHECKPOINT');
   const b=checkpoint.binding;
+  check(b?.original_run_id===undefined||(Number.isSafeInteger(b.original_run_attempt)&&b.original_run_attempt>=1&&b.original_run_attempt<=100),'CHECKPOINT_ORIGINAL_ATTEMPT');
+  check(b?.parent_run_id===undefined||(Number.isSafeInteger(b.parent_run_attempt)&&b.parent_run_attempt>=1&&b.parent_run_attempt<=100),'CHECKPOINT_PARENT_ATTEMPT');
   check(b?.root_mission==='AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION'
     &&b.source_sha===expected.source_sha&&b.run_id===String(expected.run_id)
     &&b.run_attempt===expected.run_attempt&&Number.isSafeInteger(b.run_attempt)
     &&b.run_attempt>=1&&b.run_attempt<=100,'CHECKPOINT_EXPECTED_BINDING');
+  check(checkpoint.original_reservation_preserved===true&&checkpoint.reservation_write_performed===false
+    &&checkpoint.producer_failure_claimed===false&&checkpoint.actual_authority_granted===false
+    &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'CHECKPOINT_SCOPE');
   check(run?.id===Number(b.run_id)&&run.run_attempt===b.run_attempt&&run.head_sha===b.source_sha
     &&run.repository?.full_name===REPO&&String(run.repository?.id)===REPO_ID
     &&run.path===expected.workflow_path&&run.event==='repository_dispatch'

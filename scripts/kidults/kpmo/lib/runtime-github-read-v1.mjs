@@ -15,7 +15,7 @@ export function runtimeGithubRead(token,{sharedBudget}={}){
   const cacheKey=`${token}:${sharedBudget?'cross-runner':'process-local'}`;
   if(clients.has(cacheKey))return clients.get(cacheKey);
   const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:env.GITHUB_SHA,
-    run_id:env.GITHUB_RUN_ID,run_attempt:Number(env.GITHUB_RUN_ATTEMPT),original_run_id:38132692877,
+    run_id:env.GITHUB_RUN_ID,run_attempt:Number(env.GITHUB_RUN_ATTEMPT),original_run_id:38132692877,original_run_attempt:1,
     original_artifact_id:11700046124,original_artifact_digest:'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'};
   const read=createGithubRateAwareRead({token,binding,deadlineMs:900000,budget:sharedBudget,onCheckpoint:checkpoint=>{
     const directory='out/github-read-resume-v1';fs.mkdirSync(directory,{recursive:true,mode:0o700});

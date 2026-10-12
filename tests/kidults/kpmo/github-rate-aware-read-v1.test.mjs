@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGithubRateAwareRead,createReadBudget,readResumeCheckpoint} from '../../../scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs';
 const url='https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10';
-const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:20,run_attempt:1,original_run_id:38132692877};
+const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:20,run_attempt:1,original_run_id:38132692877,original_run_attempt:1};
 function fixture(responses){let time=100000,calls=0;const waits=[],checkpoints=[];
  const now=()=>time,wait=async ms=>{waits.push(ms);time+=ms;},budget=createReadBudget({now,wait,minIntervalMs:0});
  const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),fetchImpl:async(_url,options)=>{assert.equal(options.method,'GET');calls++;const r=responses.shift();if(r instanceof Error)throw r;return r;}});

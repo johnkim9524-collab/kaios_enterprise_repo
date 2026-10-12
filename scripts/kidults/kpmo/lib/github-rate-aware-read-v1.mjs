@@ -28,10 +28,12 @@ export function createReadBudget({maxCalls=240,maxConcurrent=2,minIntervalMs=100
 export function readResumeCheckpoint({binding,route,diagnostic,resumeAt,attempts,reason}){
   check(binding&&/^[a-f0-9]{40}$/.test(binding.source_sha||'')&&/^[1-9][0-9]*$/.test(String(binding.run_id||''))
     &&Number.isSafeInteger(binding.run_attempt)&&binding.run_attempt>=1&&binding.run_attempt<=100
+    &&(binding.original_run_id===undefined||(Number.isSafeInteger(binding.original_run_attempt)&&binding.original_run_attempt>=1&&binding.original_run_attempt<=100))
+    &&(binding.parent_run_id===undefined||(Number.isSafeInteger(binding.parent_run_attempt)&&binding.parent_run_attempt>=1&&binding.parent_run_attempt<=100))
     &&typeof binding.root_mission==='string'&&binding.root_mission.length<=128,'RESUME_BINDING');
   check(typeof route==='string'&&route.startsWith('/repos/')&&Number.isSafeInteger(resumeAt),'RESUME_ROUTE');
   return {id:'kidults-github-read-resume-checkpoint-v1',version:'1.0.0',state:'READ_DEFERRED_NOT_AUTHORITY',
-    binding:Object.fromEntries(['root_mission','source_sha','run_id','run_attempt','original_run_id','original_artifact_id','original_artifact_digest','parent_run_id'].filter(k=>binding[k]!==undefined).map(k=>[k,binding[k]])),unfinished_operation:{method:'GET',route},reason,resume_at:new Date(resumeAt).toISOString(),
+    binding:Object.fromEntries(['root_mission','source_sha','run_id','run_attempt','original_run_id','original_run_attempt','original_artifact_id','original_artifact_digest','parent_run_id','parent_run_attempt'].filter(k=>binding[k]!==undefined).map(k=>[k,binding[k]])),unfinished_operation:{method:'GET',route},reason,resume_at:new Date(resumeAt).toISOString(),
     attempts_used:attempts,http_diagnostic:diagnostic??null,original_reservation_preserved:true,
     reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
     promotion_eligible:false,mutation_retry_authorized:false};
