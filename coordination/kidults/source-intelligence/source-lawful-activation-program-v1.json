@@ -1,0 +1,154 @@
+{
+  "id": "kidults-source-lawful-activation-program-v1",
+  "version": "1.0.0",
+  "status": "CONTROL_ONLY_FAIL_CLOSED",
+  "purpose": "Convert source discovery into lawful collector-current-market activation by prioritizing rights-clear Source x Purpose packets and measuring the funnel through Evidence admission rather than source-count growth.",
+  "operating_allocation": {
+    "discovery_percent": 20,
+    "activation_percent": 80,
+    "rule": "Discovery breadth is supporting work; the primary P0 objective is first lawful collector-market Current-SOLD Evidence and independent-source redundancy."
+  },
+  "activation_queue": {
+    "max_source_purpose_packets": 12,
+    "sort_order": [
+      "NO_CONTRACT_FAST_LANE",
+      "WRITTEN_CLARIFICATION_LANE",
+      "CONTRACT_CREDENTIAL_LANE",
+      "DROP_OR_WRONG_PURPOSE"
+    ],
+    "never_count_candidate_metadata_as_empirical_evidence": true
+  },
+  "lanes": {
+    "NO_CONTRACT_FAST_LANE": {
+      "description": "Exact collector Current-SOLD semantics plus explicit collect/store/derive rights, commercial reuse where required, technically accessible without account, credential, EULA, contract, paid plan, spend or written permission.",
+      "automatic_external_action": false,
+      "next_state": "ELIGIBLE_FOR_BOUNDED_CANARY_REVIEW"
+    },
+    "WRITTEN_CLARIFICATION_LANE": {
+      "description": "Collector Current-SOLD semantic/domain fit is plausible but purpose-specific collect/store/derive or commercial-use rights require written clarification/permission.",
+      "automatic_external_action": false,
+      "next_state": "HOLD_ROUTE_TRACK_Z_WRITTEN_CLARIFICATION"
+    },
+    "CONTRACT_CREDENTIAL_LANE": {
+      "description": "Account, login, credential, EULA, contract, subscription, paid plan, private feed or spend is required.",
+      "automatic_external_action": false,
+      "next_state": "HOLD_EXPLICIT_OWNER_GATE"
+    },
+    "DROP_OR_WRONG_PURPOSE": {
+      "description": "Not an individual dated collector-market sold transaction, wrong domain, rights explicitly prohibit the intended collection/reuse, or semantics cannot support the Current-SOLD claim.",
+      "automatic_external_action": false,
+      "next_state": "DROP_FROM_CURRENT_SOLD_ACTIVATION_QUEUE"
+    }
+  },
+  "claim_first_current_sold_contract": {
+    "purpose": "PRIVATE_INTERNAL_CURRENT_SOLD_MARKET_ANALYSIS",
+    "minimum_fields": [
+      "object_identity",
+      "sold_date",
+      "sold_price",
+      "currency",
+      "venue_or_source_identity",
+      "source_event_id_or_url",
+      "observed_at_or_provenance_timestamp"
+    ],
+    "excluded_by_default": [
+      "images",
+      "long_description",
+      "seller_personal_data",
+      "buyer_personal_data"
+    ],
+    "required_rights": [
+      "collect",
+      "store",
+      "derive"
+    ],
+    "additional_rights_before_publication": [
+      "public_display_or_derived_publication_as_applicable"
+    ],
+    "retention_must_be_terminalized": true
+  },
+  "activation_score": {
+    "formula": "100 * market_value * rights_clarity * technical_accessibility * freshness * independence / activation_cost",
+    "factor_range": "0_to_1_except_activation_cost",
+    "rights_clarity_is_dominant_fail_closed_factor": true,
+    "lane_factors": {
+      "NO_CONTRACT_FAST_LANE": {"rights_clarity": 1.0, "activation_cost": 1.0},
+      "WRITTEN_CLARIFICATION_LANE": {"rights_clarity": 0.45, "activation_cost": 2.0},
+      "CONTRACT_CREDENTIAL_LANE": {"rights_clarity": 0.25, "activation_cost": 4.0},
+      "DROP_OR_WRONG_PURPOSE": {"rights_clarity": 0.0, "activation_cost": 100.0}
+    }
+  },
+  "parallel_fanout": [
+    "RIGHTS_FIELD_PURPOSE_REVIEW",
+    "READ_ONLY_SCHEMA_TECHNICAL_ASSESSMENT",
+    "MARKET_VALUE_AND_INDEPENDENCE_ASSESSMENT"
+  ],
+  "stop_rule": {
+    "bounded_internal_review_minutes": 60,
+    "on_unresolved_rights_or_semantics": "HOLD_AND_ADVANCE_TO_NEXT_SOURCE",
+    "no_endless_engineering_on_blocked_source": true,
+    "provider_contact_is_not_automatic": true,
+    "terms_acceptance_is_not_automatic": true,
+    "credential_use_is_not_automatic": true,
+    "spend_is_not_automatic": true
+  },
+  "funnel_kpis": [
+    "discovered",
+    "rights_reviewed",
+    "rights_pass",
+    "technical_pass",
+    "acquired",
+    "evidence_admitted",
+    "independent_redundancy"
+  ],
+  "conversion_kpis": [
+    "discovery_to_rights_decision_rate",
+    "rights_decision_to_pass_rate",
+    "rights_pass_to_first_record_rate",
+    "first_record_to_evidence_admission_rate",
+    "evidence_to_second_owner_redundancy_rate",
+    "time_to_first_lawful_record"
+  ],
+  "empirical_ladder": [
+    {"stage": "FIRST_EVENT", "minimum_records": 1, "required_defects": 0, "claim": "CONTROLLED_EMPIRICAL_PROOF_ONLY"},
+    {"stage": "CANARY", "minimum_records": 5, "required_defects": 0, "claim": "LIMITED_LIVE_EVIDENCE_ONLY"},
+    {"stage": "FUNCTIONAL_PILOT", "minimum_records": 30, "required_defects": 0, "claim": "NO_STATISTICAL_REPRESENTATIVENESS_CLAIM"},
+    {"stage": "BOUNDED_PILOT", "minimum_records": 120, "required_defects": 0, "claim": "BOUNDED_EMPIRICAL_INPUT_PENDING_INDEPENDENT_VALIDATION"}
+  ],
+  "redundancy_rule": {
+    "minimum_independent_current_market_source_owners_before_redundancy_claim": 2,
+    "reference_or_identity_redundancy_does_not_satisfy_current_market_redundancy": true
+  },
+  "current_empirical_truth": {
+    "rights_clear_collector_current_sold_sources": 0,
+    "lawful_current_sold_records_acquired": 0,
+    "current_sold_evidence_admitted": 0,
+    "independent_current_market_source_owners": 0,
+    "candidate_evidence_pair": "NONE/NONE",
+    "official_track_b": "NOT_STARTED",
+    "approved_projection": "NONE"
+  },
+  "authority_boundary": {
+    "official_public_metadata_and_terms_read_only_review": "AUTHORIZED",
+    "internal_code_scoring_packet_generation_and_ci": "AUTHORIZED",
+    "live_provider_or_site_acquisition": "HOLD_UNLESS_SEPARATELY_AUTHORIZED_AND_RIGHTS_CLEAR",
+    "provider_contact_or_written_permission_request": "HOLD_UNLESS_SEPARATELY_AUTHORIZED",
+    "account_creation": "HOLD",
+    "eula_or_contract_acceptance": "HOLD",
+    "credential_activation_or_new_secret_use": "HOLD",
+    "paid_subscription_or_spend": "HOLD",
+    "postgresql_empirical_write": "SEPARATELY_GATED",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "routing": {
+    "source_pool_owner": "ISSUE_488",
+    "asi_owner": "ISSUE_480",
+    "current_sold_wave": "ISSUE_558",
+    "redundancy_wave": "ISSUE_559",
+    "bounded_e2e_wave": "ISSUE_560",
+    "external_provider_lane": "ISSUE_1166",
+    "integrated_kpmo": "ISSUE_344"
+  }
+}
