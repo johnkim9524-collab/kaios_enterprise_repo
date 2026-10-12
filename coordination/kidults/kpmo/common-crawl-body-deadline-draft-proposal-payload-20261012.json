@@ -1,0 +1,8 @@
+{
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "base": "main",
+  "head": "codex/common-crawl-body-deadline-20261012",
+  "draft": true,
+  "title": "fix: Common Crawl 본문 읽기와 정리 단계의 대기 제한",
+  "body": "공개 인덱스 클라이언트가 헤더를 받자마자 15초 타이머를 해제해 JSON/텍스트 본문 읽기가 무기한 정지할 수 있었습니다. 헤더와 본문 전체에 동일한 15초 제한과 해제된 바이트 기준 1 MiB 상한을 적용하고, 정리 작업 자체도 기다리지 않도록 교정합니다. 기존 429/5xx만 최대 3회 요청하고 시간·크기·파싱 실패는 재시도하지 않습니다. 단일 인덱스 읽기는 기존 3×15초+2.1초 backoff 이내로 제한됩니다.\n\n실제 로컬 HTTP 서버로 헤더 뒤/부분 본문 정지, chunked/Content-Length 초과, 429/503 정지 본문, 404, 무기한 cleanup, abort 무시·시간 초과 후 늦은 응답 거절, JSON/NDJSON 및 바이트 경계를 검증했습니다. 실제 CLI의 catalog/host 메타데이터 소비와 UNASSESSED/NOT_ADMITTED/HOLD 보존도 검증했습니다. 기존 native CI interrupted-*.test.mjs 범위에서 새 회귀가 실행되며 workflow를 변경하지 않습니다.\n\n검증: interrupted/postmerge 관련 280개, Common Crawl downstream/frontier 관련 34개, 레드팀 추가 적대 반례 14개 성공. 최종 head의 native CI는 대기 상태입니다. 로컬 시험은 운영 종결 증거가 아닙니다.\n\n동일 AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION의 제한된 내부 가역 교정입니다. PR #2666은 native Owner 병합·실제 postmerge 검증을 완료했고 main9dd9fff7da7464d9c15c3e02dcf630cb4539270b가 유지됩니다. 실제 자연 Pooling38198170968은 성공했으므로 이 결함을 그 실행의 실제 지연 원인으로 단정하지 않습니다. 실제 복구38198695582는 writer 읽기 전 설치 앱 API quota403으로 차단됐습니다. 이 변경은 API quota 복원이나 원래 예약/불변 terminal 완료를 주장하지 않습니다.\n\n권한·IAM·endpoint·workflow trigger·writer 배포·예약 소비를 변경하지 않습니다. rollback은 이 변경의 revert입니다. Draft만 준비하며 Ready·승인·dispatch·병합 권한은 부여하지 않습니다. Production/Public/G5/provider HOLD. autonomous_effect=정지된 읽기를 bounded 실패로 전환; global_effect=기존 후보 범위와 실패 격리 유지; irreplaceable_value_effect=기존 세대와 원본 예약 증거 보존; transparency_effect=본문 결함과 실제 quota403 및 미검증 종결 구분."
+}
