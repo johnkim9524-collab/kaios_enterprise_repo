@@ -86,6 +86,19 @@ test('absence cannot hide an unregistered source or reset a poisoned reader',asy
 test('invalid UTF-8 cannot silently replace source bytes',async()=>{
   const f=fixture('100644',Buffer.from([0xff]));await assert.rejects(f.reader().file(f.source,'file.mjs'),/TEXT_INVALID/);
 });
+test('binary preparation verifies exact bytes without text decoding or authority',async()=>{
+  const f=fixture('100644',Buffer.from([0x50,0x4b,0xff,0x00])),r=f.reader();
+  const first=await r.blobOrNull(f.source,'file.mjs');assert.equal(first.sha,f.blob);
+  assert.deepEqual(first.body,Buffer.from([0x50,0x4b,0xff,0x00]));first.body.fill(0);
+  r.seal();assert.deepEqual((await r.blobOrNull(f.source,'file.mjs')).body,Buffer.from([0x50,0x4b,0xff,0x00]));
+  assert.equal(r.receipt().state,'SOURCE_READER_OPEN');assert.equal(r.receipt().authorization_created,false);
+  assert.equal(f.reads(),3);await assert.rejects(r.file(f.source,'file.mjs'),/TEXT_INVALID/);
+});
+test('binary digest substitution still aborts the whole source reader',async()=>{
+  const f=fixture('100644',Buffer.from([0xff])),r=f.reader();f.objects.get(f.blob).bytes[0]=0;
+  await assert.rejects(r.blobOrNull(f.source,'file.mjs'),/DIGEST_MISMATCH/);
+  await assert.rejects(r.commit(f.source),/DIGEST_MISMATCH/);
+});
 
 import fs from 'node:fs';
 import os from 'node:os';
@@ -109,8 +122,21 @@ function scanFixture() {
     else throw Error('unexpected request');
     return {ok:true,status:200,headers:{get:()=>null},json:async()=>body};
   };
-  return {f,main,trace,args:{repository:repo,token:'offline',policy:dispatchPolicy,generationSeed:'1',fetchImpl},reader:()=>f.reader({sourceShas:[main,f.source]})};
+  return {f,main,pr,trace,args:{repository:repo,token:'offline',policy:dispatchPolicy,generationSeed:'1',fetchImpl},reader:()=>f.reader({sourceShas:[main,f.source]})};
 }
+test('ASCII ZIP is a candidate denial with exact binding, never whole-scan text corruption',async()=>{
+  const s=scanFixture();s.pr.base.sha=s.main;s.pr.state='open';
+  const original=s.args.fetchImpl;
+  s.args.fetchImpl=async url=>{
+    const p=new URL(url).pathname;
+    if(p.endsWith('/files'))return {ok:true,status:200,headers:{get:()=>null},json:async()=>[{filename:'capsule.zip',status:'added'}]};
+    if(p.endsWith('/status'))return {ok:true,status:200,headers:{get:()=>null},json:async()=>({statuses:[]})};
+    if(p.endsWith('/check-runs'))return {ok:true,status:200,headers:{get:()=>null},json:async()=>({check_runs:[]})};
+    return original(url);
+  };
+  const results=await discover(s.args);assert.equal(results.length,2);
+  for(const row of results){assert.equal(row.state,'OWNER_REVIEW_REQUIRED');assert.equal(row.reason,'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED');assert.equal(row.merge_authorized,false);assert.equal(row.autonomous_eligible,false);assert.equal(row.binding.head_sha,s.f.source);}
+});
 test('full discovery produces identical stale redundancy binding from verified objects and REST',async()=>{
   const a=scanFixture(),b=scanFixture(),reader=b.reader();await reader.file(b.f.source,'file.mjs');await reader.file(b.main,'file.mjs');reader.seal();
   const expected=await discover(a.args),actual=await discover({...b.args,sourceReader:reader});
