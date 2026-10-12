@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "136d0489933e6354e19cc2c2abf0ddaadc997b9c",
+  "revision": "ded91b763731a6227e90eccac87075924cec6447",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 817
+    "file_count": 818
   },
   "files": [
     {
@@ -3436,8 +3436,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "45372c002ad811e5e7233ffa9464c4ff862a9df9",
-      "sha256": "sha256:b03c3482b7b2a1f458ccf2e608b3412d10a2a07cc614cd7f5a5fa6804e6f0d7b",
+      "git_blob": "390644a8f38e4c1439fa5f2819299f76723be5d1",
+      "sha256": "sha256:00bd34440cdb8455911d94b238349dbd414b9902f9feb35eab7ad4e4f8ce8416",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6658,8 +6658,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b6dfafb49fd06959c28e90ba5dd4236d579ea8e7",
-      "sha256": "sha256:9740e8d524a5df26c33e71ab76543d348fc0c16bb94f1b3b5b59e047c299c6ad"
+      "git_blob": "8cdbedd390ee55e10926caae2fcf7332c90931a2",
+      "sha256": "sha256:8b233d850cb6d30fa6c7b04524e83da84f08ae68a5e412d344d84e9148abb068"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
@@ -6740,6 +6740,12 @@
       "sha256": "sha256:38db6e22f00749100a21ad15d6f234f65c949627194a1492e0d25b09474eb322"
     },
     {
+      "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-failure-assurance-capsule.json",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "4e7f4e5e0846106a9ca2ed72f0ef1048c6faccfc",
+      "sha256": "sha256:f55cc62d6ae2b7b941ced16ecd78b51ada1100957ec279f29a697a501a8ebc2b"
+    },
+    {
       "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "00e2062fa8a3f8852c4461e59f0d728576e7fff1",
@@ -6800,5 +6806,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b7308fff19992a357e69c95a9583a746c0ae39e0fe565f88258384596339d07f"
+  "manifest_sha256": "sha256:1d83512af67a433f69a16045faa39f828f821a1de1461611a69aad51b6a39f64"
 }

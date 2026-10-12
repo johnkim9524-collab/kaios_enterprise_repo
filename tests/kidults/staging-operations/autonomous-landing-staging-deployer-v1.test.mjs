@@ -23,6 +23,39 @@ const deployedCapsuleTemplate = () => {
   current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile = zip;
   return current;
 };
+const failureAssuranceCapsuleTemplate = () => {
+  const current=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  const zip=JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-failure-assurance-capsule.json','utf8'));
+  assert.equal(createHash('sha256').update(zip).digest('hex'),'d160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d');
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=zip;
+  return current;
+};
+test('exact failure-Assurance capsule upgrades to reviewed guard with Code-only non-replacing change set',()=>{
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
+    '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4');
+  const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
+    ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
+  withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{
+    assert.equal(JSON.parse(execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),
+      '--changeset',path.join(directory,'changeset')],{encoding:'utf8'})).mode,'CHANGE_REQUIRED');
+  });
+});
+for(const [name,mutate] of [
+  ['unregistered source', (c,d)=>{c.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
+  ['unregistered target', (c,d)=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
+  ['environment', (c,d)=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Environment.Variables.EXTRA='drift';}],
+  ['IAM', (c,d)=>{d.Resources.AutonomousLedgerWriterRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:'dynamodb:DeleteItem',Resource:'*'});}],
+  ['downgrade', (c,d)=>{const old=c.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
+    c.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
+    d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=old;}]
+])test(`guard capsule upgrade rejects ${name}`,()=>{
+  const current=failureAssuranceCapsuleTemplate(),latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  mutate(current,latest);
+  withFixture({current,desired:latest},directory=>{
+    assert.notEqual(spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'}).status,0);
+  });
+});
 test('previously landed packed capsule upgrades to exact failure-Assurance capsule', () => {
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   withFixture({current:deployedCapsuleTemplate(),desired:latest},directory=>{
