@@ -17,7 +17,7 @@ This directory is the startup package for five KIDULTS workstreams.
 
 ## Required reading order
 
-Before using this reading order, every agent instance must execute the canonical GitHub bootstrap contract at `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`:
+Before dispatch, every governed agent instance must execute the canonical GitHub bootstrap contract at `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`:
 
 ```bash
 export KIDULTS_BOOTSTRAP_NONCE='<unique-orchestrator-nonce-at-least-32-bytes>'
@@ -28,7 +28,7 @@ npm run agent:bootstrap -- \
 
 Do not start track work after receipt creation alone. The orchestrator must independently run `npm run verify:agent-bootstrap -- ... --consume` and obtain `BOOTSTRAP_VERIFIED` for the same bindings.
 
-The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
+Local sandbox edits and tests in an explicitly user-initiated platform-managed interactive session do not require a launcher receipt and grant no dispatch or GitHub mutation permission. The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
 
 1. `coordination/kidults/README.md`
 2. `coordination/kidults/registry/README.md`

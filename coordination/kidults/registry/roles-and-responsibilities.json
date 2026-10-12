@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.3.0",
+  "registry_version": "1.4.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
   "updated_at": "2026-10-08T19:34:00+09:00",
   "change_rationale": "Register independent Track R and RED_TEAM_LEAD under the Program Owner instruction; bind RED_TEAM bootstrap separately from PoC Integration incident management.",
@@ -11,7 +11,23 @@
     "missing_or_invalid_behavior": "DENY_DISPATCH_AND_REJECT_OUTPUT",
     "material_or_repeated_violation_behavior": "REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE",
     "kpmo_self_exemption_allowed": false,
-    "removed_agent_self_adjudication_or_replacement_approval_allowed": false
+    "removed_agent_self_adjudication_or_replacement_approval_allowed": false,
+    "required_before_agent_dispatch": true,
+    "interactive_platform_session_policy": {
+      "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
+      "scope": "LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS",
+      "explicit_user_task_required": true,
+      "platform_workspace_sandbox_required": true,
+      "bootstrap_receipt_required": false,
+      "allows_local_edits_and_tests": true,
+      "allows_external_agent_dispatch": false,
+      "allows_agent_dispatch": false,
+      "allows_github_mutation": false,
+      "allows_main_write_merge_approval_deploy": false,
+      "bootstrap_verified_claim_without_consumed_receipt_allowed": false,
+      "full_root_of_trust_claimed": false,
+      "external_dispatchers_still_require_protected_launcher_and_verified_bootstrap": true
+    }
   },
   "role_assignment_rule": "A named person, AI agent or service may perform a role only after exact-HEAD constitutional readiness and explicit acceptance of its mission, authority limits, required outputs, prohibitions, success measures and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
   "ai_agent_accountability_enforcement": {

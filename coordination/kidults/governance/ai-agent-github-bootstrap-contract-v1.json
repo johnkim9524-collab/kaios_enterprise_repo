@@ -500,5 +500,20 @@
     "path": "coordination/kidults/governance/resume-contract-v1.json",
     "before_any_task_side_effect": true,
     "external_enforcement_proven_by_policy_alone": false
+  },
+  "interactive_platform_session_policy": {
+    "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
+    "scope": "LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS",
+    "explicit_user_task_required": true,
+    "platform_workspace_sandbox_required": true,
+    "bootstrap_receipt_required": false,
+    "allows_local_edits_and_tests": true,
+    "allows_external_agent_dispatch": false,
+    "allows_agent_dispatch": false,
+    "allows_github_mutation": false,
+    "allows_main_write_merge_approval_deploy": false,
+    "bootstrap_verified_claim_without_consumed_receipt_allowed": false,
+    "full_root_of_trust_claimed": false,
+    "external_dispatchers_still_require_protected_launcher_and_verified_bootstrap": true
   }
 }

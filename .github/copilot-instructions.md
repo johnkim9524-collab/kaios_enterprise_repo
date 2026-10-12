@@ -16,7 +16,7 @@ All Copilot-generated analysis, code, reviews, commits, PR descriptions, and sta
 - `coordination/kidults/governance/ai-agent-report-after-remediation-gate-v1.json`
 - `coordination/kidults/registry/roles-and-responsibilities.json`
 
-Before task analysis or execution, every Copilot or other AI/model agent instance and every automation or workflow that dispatches one must pass this gate. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents.
+Before agent dispatch, every Copilot or other AI/model agent instance and every automation or workflow that dispatches one must pass this gate. A user-initiated platform-managed interactive session may perform only sandbox-local edits and tests without a launcher receipt; it cannot dispatch agents or mutate GitHub. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents.
 
 The current repository inventory contains zero actual in-repository AI/model dispatch jobs. The nine registered workflow jobs are deterministic defense-in-depth bootstrap integrations only; external Copilot, Codex, ChatGPT, model, child-agent, and scheduled-agent dispatchers must enforce the equivalent gate through a protected launcher before activation.
 
