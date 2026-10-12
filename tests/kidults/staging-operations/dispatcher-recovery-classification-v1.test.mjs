@@ -19,7 +19,7 @@ test('stale review/repair disposition preserves original base and current main w
   }
 });
 test('mixed stale candidate preserves exact already-present and residual file evidence without eligibility',async()=>{
-  const token={sourceReader:{fileOrNull:async(ref,path)=>({sha:path==='scripts/already.mjs'?sha('e'):ref===sha('c')?sha('f'):sha('d')})}};
+  const token={sourceReader:{blobOrNull:async(ref,path)=>({sha:path==='scripts/already.mjs'?sha('e'):ref===sha('c')?sha('f'):sha('d')})}};
   const r=await compareStaleCandidateAgainstMain({repository:input.repository,baseSha:sha('b'),mainSha:sha('a'),headSha:sha('c'),files:[{filename:'scripts/already.mjs',status:'modified'},{filename:'scripts/residual.mjs',status:'modified'}],token});
   assert.deepEqual(r.members.map(x=>x.state),['ALREADY_PRESENT_EXACT_BLOB','RESIDUAL_CHANGE_REQUIRES_VALIDATION']);assert.equal(r.all_changed_files_equal_current_main,false);assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);
 });

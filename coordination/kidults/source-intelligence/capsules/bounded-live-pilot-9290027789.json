@@ -1,0 +1,1076 @@
+{
+  "id": "kidults-product-linked-bounded-live-discovery-pilot-v2",
+  "version": "2.2.0",
+  "status": "BOUNDED_LIVE_DISCOVERY_COMPLETE_NOT_QUALIFIED",
+  "pilot_products": 16,
+  "pilot_demand_lanes": 48,
+  "generic_github_repository_discovery": false,
+  "product_lexical_relevance_filter": true,
+  "underlying_work_dedup": true,
+  "provider_counts": {
+    "WIKIDATA_ACTION_API": 1,
+    "DATACITE_DOI_METADATA": 1
+  },
+  "candidate_count": 2,
+  "filtered_irrelevant_candidate_count": 10,
+  "lanes_with_candidates": 4,
+  "lanes_with_no_candidates": 44,
+  "request_errors": [],
+  "filtered_candidates": [
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "provider_record_id": "10.6084/m9.figshare.33028712.v1",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "provider_record_id": "10.6084/m9.figshare.33028712",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "provider_record_id": "10.5281/zenodo.19161331",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "provider_record_id": "10.5281/zenodo.19163565",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "provider_record_id": "10.5281/zenodo.19862414",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "provider_record_id": "10.5281/zenodo.19161331",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "provider_record_id": "10.5281/zenodo.19163565",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "provider_record_id": "10.5281/zenodo.19597296",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "provider_record_id": "10.5281/zenodo.21126405",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    },
+    {
+      "provider": "DATACITE",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "provider_record_id": "10.5281/zenodo.18207112",
+      "reason": "PRODUCT_LEXICAL_RELEVANCE_FAIL"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "cand-wd-cf787ab613bc37e9d4c13ed9",
+      "discovery_provider": "WIKIDATA_ACTION_API",
+      "observed_at": "2026-08-17T13:16:17.269Z",
+      "query": "BMW R90S",
+      "provider_record_id": "Q380874",
+      "endpoint_url": "https://www.wikidata.org/wiki/Q380874",
+      "source_name": "BMW R 90 S",
+      "owner": "Wikidata",
+      "source_family_hint": "WIKIDATA_KNOWLEDGE_GRAPH",
+      "channel_type_hint": "WIKIDATA_ENTITY_RECORD",
+      "candidate_source_roles": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "metadata": {
+        "description": "motorcycle"
+      },
+      "demand_instance_ids": [
+        "demand:rp-automobiles-mobility-bmw-r90s:authenticity",
+        "demand:rp-automobiles-mobility-bmw-r90s:identity"
+      ],
+      "representative_product_id": "rp-automobiles-mobility-bmw-r90s",
+      "market_cell_id": "pmc:rp-automobiles-mobility-bmw-r90s:global-planning-v1",
+      "target_regions": [
+        "EUROPE_UK",
+        "JAPAN",
+        "NORTH_AMERICA",
+        "OCEANIA"
+      ],
+      "target_languages": [
+        "en",
+        "de",
+        "fr",
+        "it",
+        "ja"
+      ],
+      "decision_traceability": [
+        {
+          "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:authenticity",
+          "state": "BOUND",
+          "decisions": [
+            "VERIFY_OBJECT",
+            "ASSESS_PROVENANCE_AND_CONDITION"
+          ]
+        },
+        {
+          "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:identity",
+          "state": "BOUND",
+          "decisions": [
+            "VERIFY_OBJECT",
+            "UNDERSTAND_EDITION_VARIANT"
+          ]
+        }
+      ],
+      "irreplaceable_value_traceability": [
+        {
+          "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:authenticity",
+          "state": "BOUND",
+          "value_products": [
+            "OBJECT_INTELLIGENCE_PASSPORT"
+          ],
+          "source_contract": "irreplaceable-value-to-data-scope-contract-v2"
+        },
+        {
+          "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:identity",
+          "state": "BOUND",
+          "value_products": [
+            "OBJECT_INTELLIGENCE_PASSPORT"
+          ],
+          "source_contract": "irreplaceable-value-to-data-scope-contract-v2"
+        }
+      ],
+      "acquisition_authorized": false,
+      "production": "HOLD",
+      "underlying_work_key": "URL:https://www.wikidata.org/wiki/Q380874",
+      "provider_record_ids": [
+        "Q380874"
+      ]
+    },
+    {
+      "candidate_id": "cand-dc-fe6637a20469c57fe953b19e",
+      "discovery_provider": "DATACITE_DOI_METADATA",
+      "observed_at": "2026-08-17T13:16:23.607Z",
+      "query": "Bandai Stadium Events for NES",
+      "provider_record_id": "10.5281/zenodo.18453154",
+      "endpoint_url": "https://zenodo.org/doi/10.5281/zenodo.18453154",
+      "source_name": "The Economics of Rarity in Collectible Video Games: A Case Study of Stadium Events and Market Valuation Dynamics",
+      "owner": "Zenodo",
+      "source_family_hint": "DATACITE_CLIENT:Zenodo",
+      "channel_type_hint": "DATACITE_RESEARCH_OR_DATASET",
+      "candidate_source_roles": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "metadata": {
+        "publisher": "Zenodo",
+        "rights_list": [
+          {
+            "rightsIdentifierScheme": "SPDX",
+            "rightsUri": "https://creativecommons.org/licenses/by/4.0/legalcode",
+            "schemeUri": "https://spdx.org/licenses/",
+            "rights": "Creative Commons Attribution 4.0 International",
+            "rightsIdentifier": "cc-by-4.0"
+          },
+          {
+            "rightsUri": "http://rightsstatements.org/vocab/InC/1.0/",
+            "rights": "Paulo Sérgio de Andrade"
+          }
+        ],
+        "publication_year": 2026
+      },
+      "demand_instance_ids": [
+        "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:authenticity",
+        "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:identity"
+      ],
+      "representative_product_id": "rp-gaming-music-screen-bandai-stadium-events-for-nes",
+      "market_cell_id": "pmc:rp-gaming-music-screen-bandai-stadium-events-for-nes:global-planning-v1",
+      "target_regions": [
+        "JAPAN",
+        "NORTH_AMERICA",
+        "EUROPE_UK",
+        "KOREA",
+        "GREATER_CHINA_HK"
+      ],
+      "target_languages": [
+        "ja",
+        "en",
+        "ko",
+        "zh-Hant"
+      ],
+      "decision_traceability": [
+        {
+          "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:authenticity",
+          "state": "BOUND",
+          "decisions": [
+            "VERIFY_OBJECT",
+            "ASSESS_PROVENANCE_AND_CONDITION"
+          ]
+        },
+        {
+          "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:identity",
+          "state": "BOUND",
+          "decisions": [
+            "VERIFY_OBJECT",
+            "UNDERSTAND_EDITION_VARIANT"
+          ]
+        }
+      ],
+      "irreplaceable_value_traceability": [
+        {
+          "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:authenticity",
+          "state": "BOUND",
+          "value_products": [
+            "OBJECT_INTELLIGENCE_PASSPORT"
+          ],
+          "source_contract": "irreplaceable-value-to-data-scope-contract-v2"
+        },
+        {
+          "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:identity",
+          "state": "BOUND",
+          "value_products": [
+            "OBJECT_INTELLIGENCE_PASSPORT"
+          ],
+          "source_contract": "irreplaceable-value-to-data-scope-contract-v2"
+        }
+      ],
+      "acquisition_authorized": false,
+      "production": "HOLD",
+      "underlying_work_key": "DATACITE_WORK:the economics of rarity in collectible video games a case study of stadium events and market valuation dynamics",
+      "provider_record_ids": [
+        "10.5281/zenodo.18453154",
+        "10.5281/zenodo.18453153"
+      ]
+    }
+  ],
+  "coverage": [
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-m3-sport-evolution-e30:authenticity",
+      "representative_product_id": "rp-automobiles-mobility-bmw-m3-sport-evolution-e30",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-m3-sport-evolution-e30:identity",
+      "representative_product_id": "rp-automobiles-mobility-bmw-m3-sport-evolution-e30",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-m3-sport-evolution-e30:sold_transaction",
+      "representative_product_id": "rp-automobiles-mobility-bmw-m3-sport-evolution-e30",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:authenticity",
+      "representative_product_id": "rp-automobiles-mobility-bmw-r90s",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 1,
+      "candidate_roles_observed": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY"
+      ],
+      "state": "CANDIDATES_OBSERVED_NOT_QUALIFIED"
+    },
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:identity",
+      "representative_product_id": "rp-automobiles-mobility-bmw-r90s",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 1,
+      "candidate_roles_observed": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY"
+      ],
+      "state": "CANDIDATES_OBSERVED_NOT_QUALIFIED"
+    },
+    {
+      "demand_instance_id": "demand:rp-automobiles-mobility-bmw-r90s:sold_transaction",
+      "representative_product_id": "rp-automobiles-mobility-bmw-r90s",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner:authenticity",
+      "representative_product_id": "rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner:identity",
+      "representative_product_id": "rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner:sold_transaction",
+      "representative_product_id": "rp-cards-comics-memorabilia-american-tobacco-company-t206-honus-wagner",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat:authenticity",
+      "representative_product_id": "rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat:identity",
+      "representative_product_id": "rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat:sold_transaction",
+      "representative_product_id": "rp-cards-comics-memorabilia-babe-ruth-game-used-baseball-bat",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-alessi-juicy-salif-citrus-squeezer:authenticity",
+      "representative_product_id": "rp-design-furniture-alessi-juicy-salif-citrus-squeezer",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-alessi-juicy-salif-citrus-squeezer:identity",
+      "representative_product_id": "rp-design-furniture-alessi-juicy-salif-citrus-squeezer",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-alessi-juicy-salif-citrus-squeezer:sold_transaction",
+      "representative_product_id": "rp-design-furniture-alessi-juicy-salif-citrus-squeezer",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-anglepoise-original-1227-lamp:authenticity",
+      "representative_product_id": "rp-design-furniture-anglepoise-original-1227-lamp",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-anglepoise-original-1227-lamp:identity",
+      "representative_product_id": "rp-design-furniture-anglepoise-original-1227-lamp",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-design-furniture-anglepoise-original-1227-lamp:sold_transaction",
+      "representative_product_id": "rp-design-furniture-anglepoise-original-1227-lamp",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove:authenticity",
+      "representative_product_id": "rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove:identity",
+      "representative_product_id": "rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove:sold_transaction",
+      "representative_product_id": "rp-fashion-accessories-adidas-yeezy-boost-350-turtle-dove",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-burberry-heritage-trench-coat:authenticity",
+      "representative_product_id": "rp-fashion-accessories-burberry-heritage-trench-coat",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-burberry-heritage-trench-coat:identity",
+      "representative_product_id": "rp-fashion-accessories-burberry-heritage-trench-coat",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-fashion-accessories-burberry-heritage-trench-coat:sold_transaction",
+      "representative_product_id": "rp-fashion-accessories-burberry-heritage-trench-coat",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster:authenticity",
+      "representative_product_id": "rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster:identity",
+      "representative_product_id": "rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster:sold_transaction",
+      "representative_product_id": "rp-gaming-music-screen-20th-century-fox-star-wars-1977-style-a-one-sheet-poster",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:authenticity",
+      "representative_product_id": "rp-gaming-music-screen-bandai-stadium-events-for-nes",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 1,
+      "candidate_roles_observed": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY"
+      ],
+      "state": "CANDIDATES_OBSERVED_NOT_QUALIFIED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:identity",
+      "representative_product_id": "rp-gaming-music-screen-bandai-stadium-events-for-nes",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 1,
+      "candidate_roles_observed": [
+        "CATALOG_REFERENCE",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY"
+      ],
+      "state": "CANDIDATES_OBSERVED_NOT_QUALIFIED"
+    },
+    {
+      "demand_instance_id": "demand:rp-gaming-music-screen-bandai-stadium-events-for-nes:sold_transaction",
+      "representative_product_id": "rp-gaming-music-screen-bandai-stadium-events-for-nes",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-i:authenticity",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-i:identity",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-i:sold_transaction",
+      "representative_product_id": "rp-technology-cameras-apple-apple-i",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-ii:authenticity",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-ii:identity",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-technology-cameras-apple-apple-ii:sold_transaction",
+      "representative_product_id": "rp-technology-cameras-apple-apple-ii",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34:authenticity",
+      "representative_product_id": "rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34:identity",
+      "representative_product_id": "rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34:sold_transaction",
+      "representative_product_id": "rp-toys-models-autoart-1-18-nissan-skyline-gt-r-r34",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam:authenticity",
+      "representative_product_id": "rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam:identity",
+      "representative_product_id": "rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam:sold_transaction",
+      "representative_product_id": "rp-toys-models-bandai-master-grade-ex-strike-freedom-gundam",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st:authenticity",
+      "representative_product_id": "rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st:identity",
+      "representative_product_id": "rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st:sold_transaction",
+      "representative_product_id": "rp-watches-jewelry-audemars-piguet-royal-oak-jumbo-15202st",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-bulgari-serpenti-viper-bracelet:authenticity",
+      "representative_product_id": "rp-watches-jewelry-bulgari-serpenti-viper-bracelet",
+      "evidence_gap_class": "AUTHENTICITY",
+      "required_source_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "AUTHENTICATION_CONDITION",
+        "PRIMARY_AUTHORITY",
+        "INDEPENDENT_VERIFICATION"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-bulgari-serpenti-viper-bracelet:identity",
+      "representative_product_id": "rp-watches-jewelry-bulgari-serpenti-viper-bracelet",
+      "evidence_gap_class": "IDENTITY",
+      "required_source_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "PRIMARY_AUTHORITY",
+        "CATALOG_REFERENCE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    },
+    {
+      "demand_instance_id": "demand:rp-watches-jewelry-bulgari-serpenti-viper-bracelet:sold_transaction",
+      "representative_product_id": "rp-watches-jewelry-bulgari-serpenti-viper-bracelet",
+      "evidence_gap_class": "SOLD_TRANSACTION",
+      "required_source_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "candidate_count": 0,
+      "candidate_roles_observed": [],
+      "missing_required_roles": [
+        "SOLD_TRANSACTION",
+        "AUCTION_PRIVATE_SALE"
+      ],
+      "state": "GAP_NO_CANDIDATE_OBSERVED"
+    }
+  ],
+  "north_star": {
+    "autonomous": "PASS",
+    "global_empirical": "PENDING_CANDIDATE_COVERAGE_AND_QUALIFICATION",
+    "irreplaceable_value": "PASS"
+  },
+  "content_acquired": false,
+  "acquisition_authorized": false,
+  "production": "HOLD"
+}

@@ -39,5 +39,17 @@
     "artifact_may_authorize_source_acquisition": false,
     "artifact_may_authorize_index_or_publication": false
   },
-  "production": "HOLD"
+  "production": "HOLD",
+  "archive_source": {
+    "kind": "SEALED_GIT_BLOB_V1",
+    "source_commit_sha": "52c025f07658809956e311dd7e4ff943a4bb116d",
+    "path": "coordination/kidults/product/capsules/representative-anchor-foundation-10460765552.zip",
+    "blob_sha": "792a41055e6db055ef0e222268e0a9a7c12a11cb",
+    "digest": "sha256:7565f7ed7cfa37ef0cb1f4b00f7f599bc398d93ab44a9101449a314c4150ddee",
+    "size_in_bytes": 56075,
+    "capture_path": "coordination/kidults/product/capsules/representative-anchor-foundation-github-capture-v1.json",
+    "capture_blob_sha": "2ae2e10596440372db0b26e050c5917d41a3fe67",
+    "authority": "STRUCTURAL_PREFLIGHT_ONLY",
+    "github_live_metadata_verified": false
+  }
 }

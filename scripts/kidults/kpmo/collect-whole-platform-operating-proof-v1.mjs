@@ -1,3 +1,4 @@
+import {createInvocationArchiveByteCache} from './lib/invocation-archive-byte-cache-v1.mjs';
 import {verifyFailureTerminalReconciliation} from './lib/failure-terminal-reconciliation-proof-v1.mjs';
 import {observeInterruptedRecoveryNative} from './lib/interrupted-reservation-recovery-v1.mjs';
 import fs from 'node:fs';
@@ -37,10 +38,11 @@ export function originalRecoveryHistoryQuery(originalRun,observedAt,page){
 }
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
   demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
-  listRuns=null,archiveReader=readArchive,observedAt=new Date().toISOString()}){
+  listRuns=null,archiveReader=readArchive,archiveByteCacheFactory=createInvocationArchiveByteCache,observedAt=new Date().toISOString()}){
   const out=inventoryWholePlatform(contract,scorecard,sourceSha);
   out.observed_at=observedAt;out.repository=REPOSITORY;out.protected_evidence=[];
   const get=p=>read(`${rootUrl}/${p}`,token);
+  const readBytes=archiveByteCacheFactory({download});
   const main=await get('branches/main');requireEvidence(main.commit?.sha===sourceSha,'EXACT_MAIN');
   const commit=await get(`git/commits/${sourceSha}`);
   requireEvidence(commit.sha===sourceSha,'COMMIT');
@@ -75,7 +77,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     if(!values.length)return null;
     requireEvidence(values.length===1,'ARTIFACT_CARDINALITY');const artifact=values[0];
     requireEvidence(artifact.expired===false&&artifact.workflow_run?.id===run.id&&artifact.workflow_run.head_sha===run.head_sha&&Date.parse(artifact.expires_at)>Date.parse(observedAt),'ARTIFACT_BINDING');
-    const bytes=await download(REPOSITORY,artifact,token);
+    const bytes=await readBytes({repository:REPOSITORY,artifact,sourceSha:run.head_sha,runAttempt:run.run_attempt,token});
     const parsed=archiveReader(bytes,artifact.digest,readerOptions);
     const fresh=await get(`actions/runs/${run.id}`);
     requireEvidence(fresh.status===run.status&&fresh.conclusion===run.conclusion&&fresh.run_attempt===run.run_attempt&&fresh.head_sha===run.head_sha&&fresh.path===run.path,'RUN_CHANGED');

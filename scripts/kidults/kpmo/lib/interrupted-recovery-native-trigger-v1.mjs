@@ -1,3 +1,4 @@
+import {createInvocationArchiveByteCache} from './invocation-archive-byte-cache-v1.mjs';
 import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
 import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
@@ -171,4 +172,53 @@ export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,ev
     &&authority[0].status==='completed'&&authority[0].conclusion==='success','ACTUAL_AUTHORITY');
   const branch=await get('branches/main');check(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===env.GITHUB_SHA,'MAIN');
   return live;
+}
+
+// This private capability reuses only immutable bytes, never metadata/authority.
+// The constructor still runs the complete native verifier immediately before AWS.
+const invocationTokens=new WeakMap();
+const boundEnvKeys=['GITHUB_ACTIONS','GITHUB_REPOSITORY','GITHUB_REPOSITORY_ID','GITHUB_REF','GITHUB_SHA',
+  'GITHUB_WORKFLOW_SHA','GITHUB_WORKFLOW_REF','GITHUB_RUN_ID','GITHUB_RUN_ATTEMPT','GITHUB_EVENT_NAME',
+  'GITHUB_EVENT_PATH','GITHUB_ACTOR','KIDULTS_RECOVERY_ROLE','KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN',
+  'KIDULTS_PRODUCTION_STATE','KIDULTS_PUBLIC_STATE','KIDULTS_G5_STATE'];
+const envBinding=env=>canonicalJson(Object.fromEntries(boundEnvKeys.map(k=>[k,env[k]??null])));
+const readEvent=env=>JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
+const freeze=v=>{if(v&&typeof v==='object'){for(const value of Object.values(v))freeze(value);Object.freeze(v);}return v;};
+export async function verifyInterruptedRecoveryNativeTriggerOnce(options={}){
+  const env={...(options.env||process.env)},event=structuredClone(options.event??readEvent(env));
+  check(['KIDULTS_PRODUCTION_STATE','KIDULTS_PUBLIC_STATE','KIDULTS_G5_STATE'].every(k=>env[k]==='HOLD'),'TOKEN_HOLD');
+  const envDigest=envBinding(env),eventDigest=sha256(canonicalJson(event)),descriptors=new Map();
+  const getBase=options.get||recoveryNativeGet,bytesBase=options.readBytes||nativeBytes;
+  const get=async route=>{
+    const value=await getBase(route);
+    if(/^actions\/runs\/[1-9][0-9]*\/artifacts\?per_page=100$/.test(route)&&Array.isArray(value?.artifacts)){
+      for(const a of value.artifacts)descriptors.set(a.id,structuredClone(a));
+    }
+    return value;
+  };
+  const cachedBytes=createInvocationArchiveByteCache({download:async(_,artifact)=>bytesBase(`actions/artifacts/${artifact.id}/zip`)});
+  const readBytes=route=>{
+    const match=route.match(/^actions\/artifacts\/([1-9][0-9]*)\/zip$/),artifact=match&&descriptors.get(Number(match[1]));
+    check(artifact,'TOKEN_ARCHIVE_BINDING');
+    return cachedBytes({repository,artifact,sourceSha:env.GITHUB_SHA,runAttempt:1});
+  };
+  const issuedAt=Date.now();
+  const upstream=await verifyInterruptedRecoveryNativeTrigger({...options,env,event,get,readBytes});
+  const proof=freeze(structuredClone(upstream)),token=Object.freeze(Object.create(null));
+  const boundary=Date.parse(upstream.recovery_parent?upstream.updated_at:upstream.created_at);
+  invocationTokens.set(token,{envDigest,eventDigest,proof,get,readBytes,archiveReader:options.archiveReader,
+    issuedAt,expiresAt:Math.min(issuedAt+900000,Number.isFinite(boundary)?boundary+1800000:issuedAt+900000)});
+  return Object.freeze({upstream:proof,token});
+}
+export async function consumeInterruptedRecoveryNativeTriggerToken({token,env=process.env,eventReader=readEvent,now=()=>Date.now()}){
+  const record=token&&typeof token==='object'?invocationTokens.get(token):null;
+  check(record,'TOKEN_UNKNOWN_OR_CONSUMED');invocationTokens.delete(token);
+  env={...env};check(envBinding(env)===record.envDigest,'TOKEN_CONTEXT');
+  const time=now();check(Number.isSafeInteger(time)&&time>=record.issuedAt&&time<record.expiresAt,'TOKEN_EXPIRED');
+  const event=eventReader(env);check(sha256(canonicalJson(event))===record.eventDigest,'TOKEN_EVENT');
+  // Run/index/jobs/main are live, and archive parsing/semantic checks repeat.
+  // Only an exactly bound, digest-verified private byte copy is reused.
+  const fresh=await verifyInterruptedRecoveryNativeTrigger({env,event,get:record.get,readBytes:record.readBytes,archiveReader:record.archiveReader});
+  check(canonicalJson(fresh)===canonicalJson(record.proof),'TOKEN_PROOF_DRIFT');
+  return freeze(structuredClone(fresh));
 }

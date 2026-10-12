@@ -19,6 +19,7 @@ const OWNER_REVIEW_CODES=new Set([
   'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
   'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
+  'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
 const POLICY_REPAIR_CODES=new Set([
@@ -313,13 +314,20 @@ async function pages(path,token){const out=[];for(let page=1;page<=30;page++){co
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
 async function immutableContent(repository,path,ref,token){
-  if(token.sourceReader)return (await token.sourceReader.file(ref,path)).content;
+  if(/\.(zip|gz|png|jpg|jpeg|webp|pdf|woff2?|ttf|ico)$/i.test(path))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);
+  if(token.sourceReader){
+    const value=await token.sourceReader.blobOrNull(ref,path);
+    if(value===null)fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
+    try{const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(value.body);if(text.includes('\0'))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);return text;}
+    catch{fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);}
+  }
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
-  return Buffer.from(payload.content.replace(/\n/g,''),'base64').toString('utf8');
+  try{return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(payload.content.replace(/\n/g,''),'base64'));}
+  catch{fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);}
 }
 async function contentBlobShaOrNull(repository,path,ref,token){
-  if(token.sourceReader)return (await token.sourceReader.fileOrNull(ref,path))?.sha??null;
+  if(token.sourceReader)return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
@@ -418,7 +426,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(remaining<1)throw Object.assign(new Error('SOURCE_BATCH_TIME_EXHAUSTED'),{code:'SOURCE_BATCH_TIME_EXHAUSTED',global:true});
     sourceReader=createBoundedGitSourceReader({sourceShas:[...sources],readObject:producer.readObject,limits:{milliseconds:remaining}});
     for(const ref of sources)await sourceReader.commit(ref);
-    for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha]))await sourceReader.fileOrNull(ref,file.filename);
+    for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha]))await sourceReader.blobOrNull(ref,file.filename);
     sourceReader.seal();token.sourceReader=sourceReader;
     const freshMain=await api(`/repos/${repository}/branches/main`,token);
     if(freshMain.commit?.sha!==mainSha)throw Object.assign(new Error('SOURCE_BATCH_MAIN_BINDING_CHANGED'),{code:'SOURCE_BATCH_MAIN_BINDING_CHANGED',global:true});
@@ -459,6 +467,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         results.push({state:'STALE_REDUNDANT',pull_request:pr.number,stale_current_main_comparison:residualComparison,binding:{pull_request:Number(pr.number),old_base_sha:pr.base.sha,current_main_sha:mainSha,expected_head_sha:pr.head.sha,changed_paths:fileRecords.map(x=>x.filename).sort()}});
         continue;
       }
+      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,residualComparison,classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
       const files=await attachImmutableContents({repository,baseSha:pr.base.sha,headSha:pr.head.sha,files:fileRecords,token});
       candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,residualComparison,classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
       const binding=classifyStaleBaseCandidate({pr,mainSha,files,policy});
@@ -473,6 +482,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     const fileRecords=completeFileRecords;
     assertDelegatedPathScope(fileRecords,policy);
     const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
