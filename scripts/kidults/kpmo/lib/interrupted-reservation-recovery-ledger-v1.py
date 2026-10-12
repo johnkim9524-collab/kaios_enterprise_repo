@@ -106,9 +106,14 @@ def validate_evidence(e, r):
 
 def validate_original_terminal_repair_terminal(t, r, evidence_digest):
     request_digest = validate_original_terminal_repair_request(r, 0, False)
-    fields = {'id','version','state','request_digest','evidence_digest','original_run_id','original_head_sha','original_merge_sha','original_state','original_terminal_present','actual_authority_granted','platform_closure','production','public','g5','created_at','repair_digest'}
+    fields = {'id','version','state','lifecycle_state','authority_scope','original_reservation_transition','request_digest','evidence_digest','original_run_id','original_head_sha','original_merge_sha','original_state','original_terminal_present','actual_authority_granted','platform_closure','production','public','g5','created_at','repair_digest'}
+    transition = {'id':'kidults-original-reservation-transition-v1','from_state':'RESERVED','to_state':'CONSUMED',
+        'ledger_key':{'pk':'RESERVE#' + r['original_generation'],'sk':'NONCE#' + r['nonce_digest']},
+        'conditional_cas':True,'merge_sha':r['merge_sha']}
     require(isinstance(t, dict) and set(t) == fields and t['id'] == 'kidults-original-reservation-terminal-repair-v1'
         and t['version'] == '1.0.0' and t['state'] == 'ORIGINAL_TERMINAL_DEBT_ONLY'
+        and t['lifecycle_state'] == 'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY'
+        and t['authority_scope'] == 'ORIGINAL_TERMINAL_DEBT_ONLY' and t['original_reservation_transition'] == transition
         and t['request_digest'] == request_digest and t['evidence_digest'] == evidence_digest
         and t['original_run_id'] == r['original_run_id'] and t['original_head_sha'] == r['head_sha']
         and t['original_merge_sha'] == r['merge_sha'] and t['original_state'] == 'RESERVED'

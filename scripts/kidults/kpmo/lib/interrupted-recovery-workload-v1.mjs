@@ -33,10 +33,14 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
               check(typeof immutable?.read==='function','ORIGINAL_REPAIR_IMMUTABLE_READER');
               const stored=await immutable.read({request,terminal:repairContext.terminal,key:ack.key,original_repair:true,version_id:ack.version_id});
               check(canonicalJson(stored)===canonicalJson(ack),'ORIGINAL_REPAIR_ACK_IMMUTABLE_READBACK');
-              results.push({state:'ORIGINAL_TERMINAL_REPAIR_ALREADY_ACKNOWLEDGED',write_performed:false,
-                immutable_readback_performed:true,physical_immutable_object_verified:true});continue;
+              results.push({state:repairContext.terminal.lifecycle_state,authority_scope:repairContext.terminal.authority_scope,
+                original_reservation_transition_verified:true,normal_original_terminal_created:false,write_performed:false,
+                immutable_readback_performed:true,physical_immutable_object_verified:true,
+                actual_authority_granted:false,platform_closure:false,promotion_eligible:false});continue;
             }
-            results.push({state:'ORIGINAL_TERMINAL_REPAIR_ACK_RECORDED_NOT_IMMUTABLE_REVERIFIED',write_performed:false,
+            results.push({state:'ORIGINAL_TERMINAL_REPAIR_ACK_RECORDED_NOT_IMMUTABLE_REVERIFIED',
+              lifecycle_state:repairContext.terminal.lifecycle_state,authority_scope:repairContext.terminal.authority_scope,
+              original_reservation_transition_verified:true,normal_original_terminal_created:false,write_performed:false,
               actual_authority_granted:false,platform_closure:false,immutable_readback_performed:false,
               physical_immutable_object_verified:false});continue;
           }

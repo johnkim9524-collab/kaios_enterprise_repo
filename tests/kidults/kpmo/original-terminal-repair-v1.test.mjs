@@ -32,16 +32,37 @@ function fixture({ambiguousFinalize=false,ambiguousAck=false}={}){
     drain:async()=>{drains++;}};
 }
 
-test('reserved repair is terminal debt only and reconciles ambiguous CAS and ACK without reissue',async()=>{
+test('reserved repair records an explicit recovery-only terminal and reconciles ambiguous CAS and ACK without reissue',async()=>{
   const f=fixture({ambiguousFinalize:true,ambiguousAck:true});
   const result=await recoverOriginalTerminalRepair({request,recoveryRunId:'400',ledger:f.ledger,evidence:async()=>evidence,immutable:f.immutable,
     verifyDrain:f.drain,now:()=>Date.parse('2026-10-11T00:01:00.000Z')});
-  assert.equal(result.state,'ORIGINAL_TERMINAL_DEBT_ONLY');assert.equal(result.terminal.original_state,'RESERVED');
+  assert.equal(result.state,'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY');
+  assert.equal(result.authority_scope,'ORIGINAL_TERMINAL_DEBT_ONLY');assert.equal(result.original_reservation_transition_verified,true);
+  assert.equal(result.normal_original_terminal_created,false);assert.equal(result.terminal.original_state,'RESERVED');
+  assert.equal(result.terminal.original_reservation_transition.from_state,'RESERVED');
+  assert.equal(result.terminal.original_reservation_transition.to_state,'CONSUMED');
+  assert.equal(result.terminal.original_reservation_transition.conditional_cas,true);
+  assert.equal(result.physical_immutable_object_verified,true);
   assert.equal(result.terminal.original_terminal_present,false);assert.equal(result.actual_authority_granted,false);
   assert.equal(result.promotion_eligible,false);assert.equal(f.counts().finalizeCalls,1);assert.equal(f.counts().ackCalls,1);
   assert.equal(f.counts().drains,1);assert.equal(f.counts().seals,1);assert.equal(f.counts().reads,1);
   assert.equal(f.context.state,'ORIGINAL_TERMINAL_DEBT_ONLY');assert.equal(validateOriginalTerminalRepairTerminal(f.context.terminal,request),sha256(canonicalJson(f.context.terminal)));
   assert.equal(originalTerminalRepairObjectKey(request),`receipts/${request.original_generation}/original-reservation-terminal-repair/${request.merge_sha}.json`);
+});
+
+test('terminal repair validator rejects transition-key, state, and CAS drift',async()=>{
+  const f=fixture();
+  await recoverOriginalTerminalRepair({request,recoveryRunId:'400',ledger:f.ledger,evidence:async()=>evidence,immutable:f.immutable,
+    verifyDrain:f.drain,now:()=>Date.parse('2026-10-11T00:01:00.000Z')});
+  for(const mutate of [
+    t=>{t.lifecycle_state='VERIFIED_PASS';},
+    t=>{t.original_reservation_transition.to_state='RESERVED';},
+    t=>{t.original_reservation_transition.conditional_cas=false;},
+    t=>{t.original_reservation_transition.ledger_key.sk='NONCE#sha256:wrong';},
+  ]){
+    const terminal=structuredClone(f.context.terminal);mutate(terminal);
+    await assert.rejects(Promise.resolve().then(()=>validateOriginalTerminalRepairTerminal(terminal,request)),/ORIGINAL_REPAIR_TERMINAL/);
+  }
 });
 
 test('repair rejects missing quorum, identity drift, and nonfailure evidence before any write',async()=>{
@@ -63,5 +84,5 @@ test('repair request is pinned to the incident and stored terminal is rechecked 
   f.context.immutable_ack={...f.context.immutable_ack,sha256:'sha256:'+'0'.repeat(64)};
   await assert.rejects(recoverOriginalTerminalRepair({request,recoveryRunId:'401',ledger:f.ledger,evidence:async()=>evidence,
     immutable:f.immutable,verifyDrain:f.drain,now:()=>Date.parse('2026-10-11T00:02:00.000Z')}),/ORIGINAL_REPAIR_ACK/);
-  assert.equal(result.state,'ORIGINAL_TERMINAL_DEBT_ONLY');
+  assert.equal(result.state,'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY');
 });

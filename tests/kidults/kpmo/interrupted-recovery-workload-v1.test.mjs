@@ -85,7 +85,10 @@ test('recorded original terminal repair ACK is observation-only outside FINALIZE
      archive_digest:'sha256:'+'1'.repeat(64),receipt_digest:'sha256:'+'2'.repeat(64),
      ...(i===3?{terminal_null_evidence_refs:[38132692877,11700046124,archive.archive_digest]}:{})}))};
  const evidence_digest=validateOriginalTerminalRepairEvidence(evidence,request),request_digest=sha256(canonicalJson(request));
- const unsigned={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',request_digest,
+ const unsigned={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',
+   lifecycle_state:'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY',authority_scope:'ORIGINAL_TERMINAL_DEBT_ONLY',
+   original_reservation_transition:{id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
+     ledger_key:{pk:`RESERVE#${request.original_generation}`,sk:`NONCE#${request.nonce_digest}`},conditional_cas:true,merge_sha:request.merge_sha},request_digest,
    evidence_digest,original_run_id:request.original_run_id,original_head_sha:request.head_sha,original_merge_sha:request.merge_sha,
    original_state:'RESERVED',original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
    production:'HOLD',public:'HOLD',g5:'HOLD',created_at:'2026-10-11T00:01:00.000Z'};
@@ -107,6 +110,10 @@ test('recorded original terminal repair ACK is observation-only outside FINALIZE
    terminal,immutable_ack:ack});
  const result=await s.call();assert.equal(result.results[0].state,'ORIGINAL_TERMINAL_REPAIR_ACK_RECORDED_NOT_IMMUTABLE_REVERIFIED');
  assert.equal(result.results[0].write_performed,false);assert.equal(result.results[0].physical_immutable_object_verified,false);
+ assert.equal(result.results[0].lifecycle_state,'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY');
+ assert.equal(result.results[0].authority_scope,'ORIGINAL_TERMINAL_DEBT_ONLY');
+ assert.equal(result.results[0].original_reservation_transition_verified,true);
+ assert.equal(result.results[0].normal_original_terminal_created,false);
  assert.equal(result.results[0].actual_authority_granted,false);assert.equal(result.results[0].platform_closure,false);
 });
 

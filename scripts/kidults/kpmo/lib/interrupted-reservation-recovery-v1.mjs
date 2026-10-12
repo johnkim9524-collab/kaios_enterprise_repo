@@ -109,10 +109,15 @@ export function validateOriginalTerminalRepairEvidence(evidence,request){
 
 export function validateOriginalTerminalRepairTerminal(terminal,request){
   const requestDigest=validateOriginalTerminalRepairRequest(request);
-  const keys='id version state request_digest evidence_digest original_run_id original_head_sha original_merge_sha original_state original_terminal_present actual_authority_granted platform_closure production public g5 created_at repair_digest'.split(' ').sort();
+  const keys='id version state lifecycle_state authority_scope original_reservation_transition request_digest evidence_digest original_run_id original_head_sha original_merge_sha original_state original_terminal_present actual_authority_granted platform_closure production public g5 created_at repair_digest'.split(' ').sort();
   const unsigned={...terminal};delete unsigned.repair_digest;
+  const transition={id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
+    ledger_key:{pk:`RESERVE#${request.original_generation}`,sk:`NONCE#${request.nonce_digest}`},
+    conditional_cas:true,merge_sha:request.merge_sha};
   requireProof(eq(Object.keys(terminal||{}).sort(),keys)&&terminal.id==='kidults-original-reservation-terminal-repair-v1'
     &&terminal.version==='1.0.0'&&terminal.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&terminal.request_digest===requestDigest
+    &&terminal.lifecycle_state==='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY'
+    &&terminal.authority_scope==='ORIGINAL_TERMINAL_DEBT_ONLY'&&eq(terminal.original_reservation_transition,transition)
     &&/^sha256:[a-f0-9]{64}$/.test(terminal.evidence_digest||'')&&terminal.original_run_id===request.original_run_id
     &&terminal.original_head_sha===request.head_sha&&terminal.original_merge_sha===request.merge_sha
     &&terminal.original_state==='RESERVED'&&terminal.original_terminal_present===false
@@ -154,6 +159,9 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
       &&new Set(context.approvals.map(a=>a.approval_run_id)).size===3,'ORIGINAL_REPAIR_QUORUM');
     await verifyDrain(request);
     terminal={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',
+      lifecycle_state:'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY',authority_scope:'ORIGINAL_TERMINAL_DEBT_ONLY',
+      original_reservation_transition:{id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
+        ledger_key:{pk:`RESERVE#${request.original_generation}`,sk:`NONCE#${request.nonce_digest}`},conditional_cas:true,merge_sha:request.merge_sha},
       request_digest:sha256(canonicalJson(request)),evidence_digest:evidenceDigest,original_run_id:request.original_run_id,
       original_head_sha:request.head_sha,original_merge_sha:request.merge_sha,original_state:'RESERVED',
       original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
@@ -167,8 +175,10 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
     validateOriginalTerminalRepairAck(context.immutable_ack,request,terminal);
     const immutableReadback=await immutable.read({request,terminal,key:context.immutable_ack.key,original_repair:true,version_id:context.immutable_ack.version_id});
     requireProof(canonicalJson(immutableReadback)===canonicalJson(context.immutable_ack),'ORIGINAL_REPAIR_ACK_IMMUTABLE_READBACK');
-    return {state:'ORIGINAL_TERMINAL_DEBT_ONLY',request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
-      immutable_readback:immutableReadback,original_reservation_reconsumed:false,original_terminal_created:false,
+    return {state:terminal.lifecycle_state,authority_scope:terminal.authority_scope,request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
+      immutable_readback:immutableReadback,original_reservation_transition_verified:true,
+      physical_immutable_object_verified:true,
+      original_reservation_reconsumed:false,original_terminal_created:false,normal_original_terminal_created:false,
       actual_authority_granted:false,platform_closure:false,promotion_eligible:false,...HOLD};
   }
   const key=originalTerminalRepairObjectKey(request),object=await immutable.seal({request,terminal,key,if_none_match:'*',original_repair:true});
@@ -182,8 +192,10 @@ export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledge
     &&canonicalJson(context.immutable_ack)===canonicalJson(object),'ORIGINAL_REPAIR_FINAL_READBACK');
   const immutableReadback=await immutable.read({request,terminal,key,original_repair:true,version_id:object.version_id});
   requireProof(canonicalJson(immutableReadback)===canonicalJson(object),'ORIGINAL_REPAIR_IMMUTABLE_FINAL_READBACK');
-  return {state:'ORIGINAL_TERMINAL_DEBT_ONLY',request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
-    immutable_readback:immutableReadback,original_reservation_reconsumed:false,original_terminal_created:false,
+  return {state:terminal.lifecycle_state,authority_scope:terminal.authority_scope,request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
+    immutable_readback:immutableReadback,original_reservation_transition_verified:true,
+    physical_immutable_object_verified:true,
+    original_reservation_reconsumed:false,original_terminal_created:false,normal_original_terminal_created:false,
     actual_authority_granted:false,platform_closure:false,promotion_eligible:false,...HOLD};
 }
 

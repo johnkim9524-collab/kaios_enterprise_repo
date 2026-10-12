@@ -1,5 +1,6 @@
 import {createInvocationArchiveByteCache} from './lib/invocation-archive-byte-cache-v1.mjs';
 import {verifyFailureTerminalReconciliation} from './lib/failure-terminal-reconciliation-proof-v1.mjs';
+import {verifyOriginalTerminalRepairReconciliation} from './lib/original-terminal-repair-reconciliation-proof-v1.mjs';
 import {observeInterruptedRecoveryNative} from './lib/interrupted-reservation-recovery-v1.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -308,6 +309,19 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       const result=member(recoveryPacket,'interrupted-FINALIZER.json');
       requireEvidence(result.source_sha===recovery.head_sha&&result.role_run_id===String(recovery.id)
         &&Array.isArray(result.results),'RECOVERY_RESULT_BINDING');
+      const repaired=result.results.filter(r=>r.state==='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY'
+        &&r.request?.original_run_id===String(run.id));
+      if(repaired.length){
+        requireEvidence(repaired.length===1,'ORIGINAL_REPAIR_RESULT_CARDINALITY');
+        const verifiedRepair=verifyOriginalTerminalRepairReconciliation(repaired[0],
+          {sourceSha:recovery.head_sha,runId:recovery.id,original,observedAt});
+        out.original_terminal_reconciliation={...verifiedRepair,recovery_run_id:recovery.id,
+          supersedes:[run.id,artifact.artifact_id,artifact.artifact_digest],normal_landing_terminal_proven:false};
+        mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_PASS',
+          'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY_NOT_NORMAL_LANDING_TERMINAL',
+          [recovery.id,verifiedRepair.terminal_digest,verifiedRepair.immutable.version_id]);
+        break;
+      }
       const recovered=result.results.filter(r=>r.state==='RECOVERED_FAILURE_ASSURANCE_TERMINAL_ONLY'
         &&r.request?.original_run_id===String(run.id));
       if(!recovered.length)continue;

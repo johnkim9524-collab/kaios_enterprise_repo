@@ -264,6 +264,10 @@ class RecoveryTest(unittest.TestCase):
                 role=role, approval_run_id=str(200+i), approval_run_attempt=1, workload=self.roles[role]))
             self.assertEqual(self.ledger.create_original_terminal_repair_approval(packet)['state'], 'ORIGINAL_TERMINAL_REPAIR_APPROVAL_STORED')
         terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            lifecycle_state='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY', authority_scope='ORIGINAL_TERMINAL_DEBT_ONLY',
+            original_reservation_transition={'id':'kidults-original-reservation-transition-v1','from_state':'RESERVED','to_state':'CONSUMED',
+                'ledger_key':{'pk':'RESERVE#'+self.request['original_generation'],'sk':'NONCE#'+self.request['nonce_digest']},
+                'conditional_cas':True,'merge_sha':self.request['merge_sha']},
             request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id=self.request['original_run_id'], original_head_sha='b'*40,
             original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
             actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
@@ -277,6 +281,16 @@ class RecoveryTest(unittest.TestCase):
         self.assertEqual(row['state']['S'], 'CONSUMED')
         self.assertNotIn('original_terminal_json', row); self.assertNotIn('ir_terminal', row)
         self.assertEqual(row['repair_terminal_digest']['S'], terminal['repair_digest'])
+        self.assertEqual(terminal['lifecycle_state'], 'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY')
+        self.assertEqual(terminal['original_reservation_transition']['from_state'], 'RESERVED')
+        self.assertEqual(terminal['original_reservation_transition']['to_state'], 'CONSUMED')
+        self.assertTrue(terminal['original_reservation_transition']['conditional_cas'])
+        for field, value in [('lifecycle_state','VERIFIED_PASS'), ('to_state','RESERVED'), ('conditional_cas',False)]:
+            tampered = copy.deepcopy(terminal)
+            if field == 'lifecycle_state': tampered[field] = value
+            else: tampered['original_reservation_transition'][field] = value
+            with self.assertRaisesRegex(ValueError, 'ORIGINAL_REPAIR_TERMINAL'):
+                m.validate_original_terminal_repair_terminal(tampered, self.request, m.digest(evidence))
         observed = self.ledger.read_context(self.context())
         self.assertEqual(observed['state'], 'ORIGINAL_TERMINAL_DEBT_ONLY')
         obj = dict(bucket='immutable', key='receipts/'+self.request['original_generation']+'/original-reservation-terminal-repair/'+self.request['merge_sha']+'.json',
@@ -309,6 +323,10 @@ class RecoveryTest(unittest.TestCase):
                 role=role, approval_run_id='200', approval_run_attempt=1, workload=self.roles[role]))
             self.ledger.create_original_terminal_repair_approval(packet)
         terminal = dict(id='kidults-original-reservation-terminal-repair-v1', version='1.0.0', state='ORIGINAL_TERMINAL_DEBT_ONLY',
+            lifecycle_state='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY', authority_scope='ORIGINAL_TERMINAL_DEBT_ONLY',
+            original_reservation_transition={'id':'kidults-original-reservation-transition-v1','from_state':'RESERVED','to_state':'CONSUMED',
+                'ledger_key':{'pk':'RESERVE#'+self.request['original_generation'],'sk':'NONCE#'+self.request['nonce_digest']},
+                'conditional_cas':True,'merge_sha':self.request['merge_sha']},
             request_digest=m.digest(self.request), evidence_digest=m.digest(evidence), original_run_id=self.request['original_run_id'], original_head_sha='b'*40,
             original_merge_sha=self.request['merge_sha'], original_state='RESERVED', original_terminal_present=False,
             actual_authority_granted=False, platform_closure=False, created_at='2026-10-11T00:01:00Z', **{k:'HOLD' for k in ('production','public','g5')})
