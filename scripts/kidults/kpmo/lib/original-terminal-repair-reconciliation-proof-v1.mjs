@@ -36,7 +36,8 @@ export function verifyOriginalTerminalRepairReconciliation(result,{sourceSha,run
     &&['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].every(role=>approvals.some(a=>a.role===role))
     &&new Set(approvals.map(a=>a.approval_run_id)).size===3
     &&approvals.every(a=>/^[1-9][0-9]{0,15}$/.test(String(a.approval_run_id))
-      &&String(a.approval_run_id)!==String(runId)&&String(a.approval_run_id)!==request.original_run_id)
+      &&String(a.approval_run_id)!==request.original_run_id)
+    &&approvals.filter(a=>String(a.approval_run_id)===String(runId)).length<=1
     &&approvals.every(a=>a.request_digest===terminal.request_digest&&a.evidence_digest===terminal.evidence_digest),'QUORUM');
   const object=result.immutable_readback;
   validateOriginalTerminalRepairAck(object,request,terminal);

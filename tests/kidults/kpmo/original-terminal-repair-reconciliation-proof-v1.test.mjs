@@ -47,6 +47,11 @@ test('collector verifies the recovery-only RESERVED to CONSUMED transition and i
   assert.equal(proof.normal_original_terminal_created,false);assert.equal(proof.actual_authority_granted,false);
 });
 
+test('collector accepts the real Track approval and FINALIZER jobs sharing one workflow run ID',()=>{
+  const f=fixture();f.context.approvals[0].approval_run_id='400';
+  assert.equal(verifyOriginalTerminalRepairReconciliation(f.result,{...options,runId:400}).transition.to_state,'CONSUMED');
+});
+
 test('collector rejects missing CAS/readback evidence and authority promotion',()=>{
   for(const mutate of [
     r=>{r.terminal.original_reservation_transition.conditional_cas=false;},
