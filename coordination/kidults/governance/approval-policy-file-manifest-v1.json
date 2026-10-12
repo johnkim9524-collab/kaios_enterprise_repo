@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "572143a8c8144b6066fa593b4af612cb50d682b7",
+  "revision": "136d0489933e6354e19cc2c2abf0ddaadc997b9c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3266,8 +3266,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "30d3080389da38d77f41ad50146b27562ffc1a95",
-      "sha256": "sha256:31a58d98fce640d65f9b3ae6811cfc4bdca7b8d3432843cd6dd6c728ec5f5e33"
+      "git_blob": "7c6769231512096b1aedfd9c5aa3eb54366f2ea6",
+      "sha256": "sha256:dfa2863761cc0261b10c3a319315a9beac4a192be2c12233d03d26756b7994a4"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -4193,8 +4193,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-reservation-recovery-ledger-v1.py",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4781053a285bbb41fb4f2f0c13bed18c9effc5ca",
-      "sha256": "sha256:26f79d794604943617dd6b1f9a0b8e7d9477f8e0e67c979c08089241ac1315b5",
+      "git_blob": "84bbc5c00a9c1e1e6022dd48a5fb2cd27f4d52e3",
+      "sha256": "sha256:032268496b1aba3bf553b6f64b4bc67657a00fdbb22e3c1d9022458dab4c4586",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6604,8 +6604,8 @@
     {
       "path": "tests/kidults/kpmo/test_interrupted_reservation_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "82f80420f85b573ad65ebed3049f569faae9fb93",
-      "sha256": "sha256:e0190b527e28d906f820a28b89d8f48fb80da785d905eb8561b8c1ce30c8dd45"
+      "git_blob": "af6bcd8f2fa7c15176500b3d22addc0bd5c939e8",
+      "sha256": "sha256:8ae8abc0ade441eb4c04594641309f8a5cb10fee977235aaa97ea03ae04577f8"
     },
     {
       "path": "tests/kidults/kpmo/test_postgres_pitr_contract.py",
@@ -6800,5 +6800,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:40b10f4360c0e1b2d57feb96a10bf20ca4ce0041ab4ffc290a86c5716992be06"
+  "manifest_sha256": "sha256:b7308fff19992a357e69c95a9583a746c0ae39e0fe565f88258384596339d07f"
 }

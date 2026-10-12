@@ -167,6 +167,10 @@ class InterruptedReservationRecoveryLedger:
         row = self.get(self.key(r))
         require(row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('state', {}).get('S') in ('RESERVED', 'CONSUMED'), 'RESERVATION')
         require(row.get('ir_request', {}).get('S') in (None, canonical(r)), 'PINNED_REQUEST')
+        if 'ir_request' in row:
+            evidence = json.loads(row.get('ir_evidence', {}).get('S', '{}'))
+            require(validate_evidence(evidence, r) == row.get('ir_evidence_digest', {}).get('S'), 'STORED_EVIDENCE_DIGEST')
+            require('evidence_profile' not in evidence, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN')
         if row['state']['S'] == 'CONSUMED':
             require(row.get('ir_request', {}).get('S') == canonical(r) and 'ir_terminal' in row, 'UNBOUND_CONSUMED')
             require(row.get('ir_terminal_digest', {}).get('S') == digest(json.loads(row['ir_terminal']['S'])), 'STORED_TERMINAL_DIGEST')
@@ -178,6 +182,10 @@ class InterruptedReservationRecoveryLedger:
         e = self.verify(event, self.roles[role])
         require(set(e) == {'action', 'request', 'request_digest', 'evidence', 'evidence_digest', 'role', 'approval_run_id', 'approval_run_attempt', 'workload'} and e['action'] == 'APPROVE_MERGED_RESERVATION_RECOVERY', 'APPROVAL_FIELDS')
         require(validate_request(e['request'], self.now(), fresh) == e['request_digest'] and validate_evidence(e['evidence'], e['request']) == e['evidence_digest'], 'APPROVAL_DIGEST')
+        # The shared schema also validates the distinct failure-only terminal
+        # profile. It must never authorize ordinary reservation consumption,
+        # including when persisted approvals are revalidated for a quorum.
+        require('evidence_profile' not in e['evidence'], 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN')
         require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id']) and e['approval_run_id'] != e['request']['original_run_id'] and type(e['approval_run_attempt']) is int and e['approval_run_attempt'] == 1, 'APPROVAL_RUN')
         return e
 
@@ -400,6 +408,7 @@ class InterruptedReservationRecoveryLedger:
         evidence = json.loads(row['ir_evidence']['S']) if 'ir_evidence' in row else None
         if evidence:
             require(pinned is not None and validate_evidence(evidence, pinned) == row.get('ir_evidence_digest', {}).get('S'), 'CONTEXT_EVIDENCE')
+            require('evidence_profile' not in evidence, 'NORMAL_RECOVERY_FAILURE_EVIDENCE_FORBIDDEN')
         candidate_approvals = []
         candidate_evidence = None
         for candidate_role in ROLES:
