@@ -56,6 +56,7 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
     check();if(!allowed.has(ref))fail('SOURCE_BATCH_SOURCE_NOT_REGISTERED');
     let text;try{text=utf8(await object(ref,'commit'));}catch(error){if(terminal)throw terminal;fail('SOURCE_BATCH_COMMIT_INVALID');}
     const match=/^tree ([0-9a-f]{40})\n/.exec(text);if(!match)fail('SOURCE_BATCH_COMMIT_INVALID');
+    check();
     return {sha:ref,tree:{sha:match[1]}};
   };
   const tree=async sha=>{
@@ -71,7 +72,7 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
       if(++entries>bound.treeEntries)fail('SOURCE_BATCH_TREE_BUDGET_EXHAUSTED');
       rows.set(name,{mode,sha:body.subarray(zero+1,zero+21).toString('hex')});offset=zero+21;
     }
-    trees.set(sha,rows);return rows;
+    check();trees.set(sha,rows);return rows;
   };
   const blobOrNull=async(ref,path)=>{
     check();if(typeof path!=='string'||!path||path.startsWith('/')||/[\\\x00-\x1f\x7f]/.test(path)
@@ -86,12 +87,14 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
       if(index<parts.length-1) {if(row.mode!=='40000')fail('SOURCE_BATCH_PATH_INVALID');sha=row.sha;continue;}
       if(!['100644','100755'].includes(row.mode))fail('SOURCE_BATCH_PATH_INVALID');
       const body=await object(row.sha,'blob');
-      check();return {sha:row.sha,body:Buffer.from(body),bytes:body.length};
+      const value={sha:row.sha,body:Buffer.from(body),bytes:body.length};
+      check();return value;
     }
   };
   const fileOrNull=async(ref,path)=>{
     const value=await blobOrNull(ref,path);if(value===null)return null;
     let text;try{text=utf8(value.body);}catch{fail('SOURCE_BATCH_TEXT_INVALID');}
+    check();
     return {sha:value.sha,content:text,bytes:value.bytes};
   };
   const file=async(ref,path)=>{const value=await fileOrNull(ref,path);if(value===null)fail('SOURCE_BATCH_FILE_MISSING');return value;};

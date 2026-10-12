@@ -52,6 +52,34 @@ test('time budget is checked after the producer returns',async()=>{
   const f=fixture();let now=0;const r=f.reader({limits:{milliseconds:1},clock:()=>now,readObject:async sha=>{now=2;return f.objects.get(sha);}});
   await assert.rejects(r.commit(f.source),/TIME_EXHAUSTED/);
 });
+for(const boundary of ['commit decode','tree decode proving absence','blob copy','file decode'])test(`postprocessing deadline aborts before returning ${boundary}`,async()=>{
+  const f=fixture();let now=0;
+  const r=f.reader({limits:{milliseconds:1},clock:()=>now});
+  const decode=TextDecoder.prototype.decode,from=Buffer.from;
+  TextDecoder.prototype.decode=function(...args){
+    const value=decode.apply(this,args);
+    if((boundary==='commit decode'&&value.startsWith('tree '))
+      ||(boundary==='tree decode proving absence'&&value==='file.mjs')
+      ||(boundary==='file decode'&&value==='same immutable bytes\n'))now=2;
+    return value;
+  };
+  let blobCopies=0;
+  Buffer.from=function(...args){
+    const value=from.apply(this,args);
+    if(boundary==='blob copy'&&Buffer.isBuffer(args[0])&&args[0].equals(f.objects.get(f.blob).bytes)
+      &&++blobCopies===2)now=2;
+    return value;
+  };
+  try{
+    const operation=boundary==='commit decode'?r.commit(f.source)
+      :boundary==='tree decode proving absence'?r.fileOrNull(f.source,'absent.mjs')
+      :boundary==='blob copy'?r.blobOrNull(f.source,'file.mjs'):r.file(f.source,'file.mjs');
+    await assert.rejects(operation,/SOURCE_BATCH_TIME_EXHAUSTED/);
+  }finally{TextDecoder.prototype.decode=decode;Buffer.from=from;}
+  assert.equal(r.receipt().state,'GLOBAL_ABORT');
+  await assert.rejects(r.commit(f.source),/SOURCE_BATCH_TIME_EXHAUSTED/);
+  assert.throws(()=>r.seal(),/SOURCE_BATCH_TIME_EXHAUSTED/);
+});
 test('limit expansion, extra fields, duplicate sources, and arbitrary refs are denied',()=>{
   const f=fixture();for(const options of [{limits:{bytes:128*1024*1024+1}},{limits:{retry:1}},
     {sourceShas:[f.source,f.source]},{sourceShas:['main']}])assert.throws(()=>f.reader(options),/CONFIGURATION_INVALID|LIMIT_INVALID/);
