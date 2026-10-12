@@ -52,14 +52,14 @@ const CONSUMPTION_V2_WRITER_SHA256 = '688466a27a54adc9419b3d7e414632818fff5199e8
 const CONSUMPTION_V2_PRE_RECOVERY_SHA256 = '7820ad57800393b22ec77afe30e4c2a082610ac8a2020322bf9243841fdd6bf2';
 const FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582529f5b2ef62a34e7b08cd00bbe715191d';
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4';
-const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = '09c9c6e734650be66460cc2a65ce4a26071a0f0b1efb5a8672ca0093270fb912';
+const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = '636a85b5af3af28b6d6031f9b5f1b514c922013590825246939772b8c53a2cac';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
-  if(typeof source==='string'&&sha256Hex(source)===CURRENT_RECOVERY_CAPSULE_WRITER_SHA256
+  if(typeof source==='string'&&[DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,CURRENT_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
       &&sha256Hex(to?.Properties?.Code?.ZipFile||'')===ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256){
     const expected=structuredClone(from);
     expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;

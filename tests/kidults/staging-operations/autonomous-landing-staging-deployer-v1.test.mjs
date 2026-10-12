@@ -15,6 +15,18 @@ const workflow = fs.readFileSync('.github/workflows/kidults-autonomous-landing-s
 // legacy V1/V2 adversarial transition coverage.
 const desired = JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json', 'utf8'));
 assert.equal(createHash('sha256').update(desired.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),'688466a27a54adc9419b3d7e414632818fff5199e89ba8e40d0157ce465ffc8d');
+// The frozen fixture captures the historical Lambda capsule. Model today's
+// desired IAM policy separately so transition tests cover the reviewed
+// cross-runner budget permission while retaining the historical code digest.
+const sharedBudgetStatement = {
+  Effect: 'Allow',
+  Action: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+  Resource: {'Fn::GetAtt': ['AutonomousLandingLedger', 'Arn']},
+  Condition: {'ForAllValues:StringLike': {'dynamodb:LeadingKeys': ['GITHUB_READ_BUDGET#*']}},
+};
+for (const roleId of ['TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole']) {
+  desired.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement.push(structuredClone(sharedBudgetStatement));
+}
 const validator = 'scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs';
 const deployedCapsuleTemplate = () => {
   const current = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
@@ -33,13 +45,44 @@ const failureAssuranceCapsuleTemplate = () => {
 test('exact failure-Assurance capsule upgrades to original terminal repair with Code-only non-replacing change set',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
-    '09c9c6e734650be66460cc2a65ce4a26071a0f0b1efb5a8672ca0093270fb912');
+    '636a85b5af3af28b6d6031f9b5f1b514c922013590825246939772b8c53a2cac');
   const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
     ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
   withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{
     assert.equal(JSON.parse(execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),
       '--changeset',path.join(directory,'changeset')],{encoding:'utf8'})).mode,'CHANGE_REQUIRED');
   });
+});
+test('deployed admission roles gain the shared budget policy together with the verified recovery writer',()=>{
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  const current=structuredClone(latest);
+  for(const roleId of ['TrackApprovalRole','KpmoApprovalRole','VerifierApprovalRole']){
+    current.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement=
+      current.Resources[roleId].Properties.Policies[0].PolicyDocument.Statement.filter(s=>JSON.stringify(s)!==JSON.stringify(sharedBudgetStatement));
+  }
+  const deployedCode=JSON.parse(fs.readFileSync('tests/kidults/staging-operations/fixtures/autonomous-landing-deployed-recovery-capsule.json','utf8'));
+  current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=deployedCode;
+  const changes=[...['TrackApprovalRole','KpmoApprovalRole','VerifierApprovalRole'].map(LogicalResourceId=>({ResourceChange:{
+    Action:'Modify',LogicalResourceId,ResourceType:'AWS::IAM::Role',Replacement:'False',
+    Details:[{Target:{Attribute:'Properties',Name:'Policies'},Evaluation:'Static',ChangeSource:'DirectModification'}]}})),
+    {ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',ResourceType:'AWS::Lambda::Function',Replacement:'False',
+      Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}];
+  const changeset={Status:'CREATE_COMPLETE',Changes:changes};
+  withFixture({current,desired:latest,changeset},directory=>{
+    const result=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),
+      '--changeset',path.join(directory,'changeset')],{encoding:'utf8'});
+    assert.equal(JSON.parse(result).mode,'CHANGE_REQUIRED');
+  });
+  for(const mutate of [
+    t=>{t.Resources.TrackApprovalRole.Properties.Policies[0].PolicyDocument.Statement.push({Effect:'Allow',Action:'dynamodb:DeleteItem',Resource:'*'});},
+    t=>{t.Resources.KpmoApprovalRole.Properties.Policies[0].PolicyDocument.Statement.find(s=>JSON.stringify(s)===JSON.stringify(sharedBudgetStatement)).Resource='*';},
+  ]){
+    const widened=structuredClone(latest);mutate(widened);
+    withFixture({current,desired:widened,changeset},directory=>{
+      assert.notEqual(spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired'),
+        '--changeset',path.join(directory,'changeset')],{encoding:'utf8'}).status,0);
+    });
+  }
 });
 for(const [name,mutate] of [
   ['unregistered source', (c,d)=>{c.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],

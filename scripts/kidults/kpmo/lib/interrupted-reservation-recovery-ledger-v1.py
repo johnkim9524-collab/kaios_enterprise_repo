@@ -16,6 +16,9 @@ SHA = re.compile(r'^[a-f0-9]{40}$')
 DIGEST = re.compile(r'^sha256:[a-f0-9]{64}$')
 RUN = re.compile(r'^[1-9][0-9]{0,15}$')
 REQUEST_FIELDS = set(('id version repository repository_id pull_request base_sha head_sha head_tree_sha merge_sha source_sha original_run_id original_run_attempt original_generation nonce_digest issued_at expires_at').split()) | set(HOLD)
+ORIGINAL_TERMINAL_REPAIR_CASE = {'pull_request': 2655, 'merge_sha': 'd1b801ebf75dfc2b582c6381771f8194016328ca', 'original_run_id': '38132692877', 'original_run_attempt': 1}
+ORIGINAL_TERMINAL_REPAIR_ARCHIVE = {'artifact_id': 11700046124, 'archive_digest': 'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'}
+ORIGINAL_TERMINAL_NULL_REFS = [38132692877, 11700046124, ORIGINAL_TERMINAL_REPAIR_ARCHIVE['archive_digest']]
 
 
 def require(value, code):
@@ -59,11 +62,17 @@ def validate_request(r, now, fresh=True):
     return digest(r)
 
 
+def validate_original_terminal_repair_request(r, now, fresh=True):
+    request_digest = validate_request(r, now, fresh)
+    require(all(r.get(k) == v for k, v in ORIGINAL_TERMINAL_REPAIR_CASE.items()), 'ORIGINAL_REPAIR_INCIDENT')
+    return request_digest
+
+
 def validate_evidence(e, r):
     # Facts, not authorization booleans. Three protected signers authenticate
     # these native references independently; schema alone proves no runtime.
     legacy_fields = {'repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha', 'merge_parents', 'merged_at', 'original_run', 'checks'} | set(HOLD)
-    failure_fields = legacy_fields | {'evidence_profile'}
+    failure_fields = legacy_fields | {'evidence_profile', 'original_archive'}
     require(isinstance(e, dict) and set(e) in (legacy_fields, failure_fields), 'EVIDENCE_FIELDS')
     require(all(e[k] == r[k] for k in ('repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha')) and all(e[k] == v for k, v in HOLD.items()), 'EVIDENCE_BINDING')
     require(e['merge_parents'] == [r['base_sha'], r['head_sha']], 'MERGE_GRAPH')
@@ -77,10 +86,37 @@ def validate_evidence(e, r):
     require(not ('evidence_profile' in e and not failure_profile), 'EVIDENCE_PROFILE')
     allowed_kinds = failed_assurance_kinds if failure_profile else normal_kinds
     require(isinstance(checks, list) and len(checks) == 4 and {x.get('kind') for x in checks if isinstance(x, dict)} == allowed_kinds, 'CHECKS')
+    if failure_profile:
+        archive = e.get('original_archive')
+        require(isinstance(archive, dict) and set(archive) == {'artifact_id','archive_digest'}
+            and type(archive['artifact_id']) is int and archive['artifact_id'] > 0
+            and isinstance(archive['archive_digest'], str) and DIGEST.fullmatch(archive['archive_digest']), 'ORIGINAL_REPAIR_ARCHIVE')
     for c in checks:
         expected_conclusion = 'failure' if failure_profile and c.get('kind') == 'TERMINAL_NULL_ASSURANCE_FAILURE' else 'success'
-        require(set(c) == {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'} and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1 and c['source_sha'] == r['source_sha'] and c['conclusion'] == expected_conclusion and type(c['artifact_id']) is int and c['artifact_id'] > 0 and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest')), 'CHECK_BINDING')
+        base = {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'}
+        terminal_null = failure_profile and c.get('kind') == 'TERMINAL_NULL_ASSURANCE_FAILURE'
+        require(set(c) == (base | {'terminal_null_evidence_refs'} if terminal_null else base)
+            and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1
+            and c['source_sha'] == r['source_sha'] and c['conclusion'] == expected_conclusion and type(c['artifact_id']) is int and c['artifact_id'] > 0
+            and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest'))
+            and (not terminal_null or c['terminal_null_evidence_refs'] == [int(r['original_run_id']), e['original_archive']['artifact_id'], e['original_archive']['archive_digest']]), 'CHECK_BINDING')
+    require(len({c['run_id'] for c in checks}) == 4 and len({c['artifact_id'] for c in checks}) == 4, 'CHECK_COLLISION')
     return digest(e)
+
+
+def validate_original_terminal_repair_terminal(t, r, evidence_digest):
+    request_digest = validate_original_terminal_repair_request(r, 0, False)
+    fields = {'id','version','state','request_digest','evidence_digest','original_run_id','original_head_sha','original_merge_sha','original_state','original_terminal_present','actual_authority_granted','platform_closure','production','public','g5','created_at','repair_digest'}
+    require(isinstance(t, dict) and set(t) == fields and t['id'] == 'kidults-original-reservation-terminal-repair-v1'
+        and t['version'] == '1.0.0' and t['state'] == 'ORIGINAL_TERMINAL_DEBT_ONLY'
+        and t['request_digest'] == request_digest and t['evidence_digest'] == evidence_digest
+        and t['original_run_id'] == r['original_run_id'] and t['original_head_sha'] == r['head_sha']
+        and t['original_merge_sha'] == r['merge_sha'] and t['original_state'] == 'RESERVED'
+        and t['original_terminal_present'] is False and t['actual_authority_granted'] is False and t['platform_closure'] is False
+        and all(t[k] == 'HOLD' for k in ('production','public','g5')), 'ORIGINAL_REPAIR_TERMINAL')
+    epoch(t['created_at'])
+    require(t['repair_digest'] == digest({k:v for k,v in t.items() if k != 'repair_digest'}), 'ORIGINAL_REPAIR_TERMINAL_DIGEST')
+    return t['repair_digest']
 
 
 def validate_original_terminal(t, r=None):
@@ -113,6 +149,31 @@ class InterruptedReservationRecoveryLedger:
     @staticmethod
     def key(r):
         return {'pk': {'S': 'RESERVE#' + r['original_generation']}, 'sk': {'S': 'NONCE#' + r['nonce_digest']}}
+
+    def validate_repair_ack(self, o, r, terminal):
+        require(isinstance(o, dict) and set(o) == {'bucket','key','version_id','sha256','retention_mode','retain_until','encryption_key_arn'}
+            and o['bucket'] == self.bucket and o['key'] == 'receipts/' + r['original_generation'] + '/original-reservation-terminal-repair/' + r['merge_sha'] + '.json'
+            and isinstance(o['version_id'], str) and 0 < len(o['version_id']) <= 1024 and o['sha256'] == digest(terminal)
+            and o['retention_mode'] == 'COMPLIANCE' and o['encryption_key_arn'] == self.receipt_key
+            and epoch(o['retain_until']) >= retention_horizon(terminal['created_at']), 'ORIGINAL_REPAIR_ACK_OBJECT')
+        return o
+
+    def validate_repair_row(self, row, r):
+        validate_original_terminal_repair_request(r, self.now(), False)
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
+            and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha']
+            and row.get('repair_request', {}).get('S') == canonical(r), 'ORIGINAL_REPAIR_STORED_REQUEST')
+        evidence = json.loads(row.get('repair_evidence', {}).get('S', '{}'))
+        ed = row.get('repair_evidence_digest', {}).get('S')
+        require(validate_evidence(evidence, r) == ed and evidence.get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1',
+            'ORIGINAL_REPAIR_STORED_EVIDENCE')
+        terminal = json.loads(row.get('repair_terminal_json', {}).get('S', '{}'))
+        td = validate_original_terminal_repair_terminal(terminal, r, ed)
+        require(row.get('repair_terminal_digest', {}).get('S') == td, 'ORIGINAL_REPAIR_STORED_TERMINAL_DIGEST')
+        ack = json.loads(row['repair_immutable_ack']['S']) if 'repair_immutable_ack' in row else None
+        if ack is not None:
+            self.validate_repair_ack(ack, r, terminal)
+        return evidence, ed, terminal, td, ack
 
     def get(self, key):
         return self.ddb.get_item(TableName=self.table, Key=key, ConsistentRead=True).get('Item', {})
@@ -225,8 +286,9 @@ class InterruptedReservationRecoveryLedger:
                   'approval_run_id', 'approval_run_attempt', 'workload'}
         require(set(e) == fields and e['action'] == 'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR', 'ORIGINAL_REPAIR_APPROVAL_FIELDS')
         r, evidence = e['request'], e['evidence']
-        require(validate_request(r, self.now(), True) == e['request_digest']
+        require(validate_original_terminal_repair_request(r, self.now(), True) == e['request_digest']
                 and evidence.get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+                and evidence.get('original_archive') == ORIGINAL_TERMINAL_REPAIR_ARCHIVE
                 and validate_evidence(evidence, r) == e['evidence_digest'], 'ORIGINAL_REPAIR_EVIDENCE')
         require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id'])
                 and e['approval_run_id'] != r['original_run_id'] and type(e['approval_run_attempt']) is int
@@ -270,7 +332,7 @@ class InterruptedReservationRecoveryLedger:
         self.verify(event, self.finalizer if role == 'FINALIZER' else self.roles[role])
         require(set(e) == {'action','request','request_digest','role','run_id','run_attempt','workload'}
                 and e['action'] == 'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT', 'ORIGINAL_REPAIR_CONTEXT_FIELDS')
-        r = e['request']; rd = validate_request(r, self.now(), False)
+        r = e['request']; rd = validate_original_terminal_repair_request(r, self.now(), False)
         require(rd == e['request_digest'] and isinstance(e['run_id'], str) and RUN.fullmatch(e['run_id'])
                 and e['run_id'] != r['original_run_id'] and type(e['run_attempt']) is int and e['run_attempt'] == 1, 'ORIGINAL_REPAIR_CONTEXT_BINDING')
         row = self.get(self.key(r))
@@ -279,13 +341,10 @@ class InterruptedReservationRecoveryLedger:
         if row.get('state',{}).get('S') == 'CONSUMED' and 'repair_terminal_json' not in row:
             return {'state':'ORIGINAL_RESERVATION_NOT_RESERVED','write_performed':False}
         if 'repair_terminal_json' in row:
-            terminal = json.loads(row['repair_terminal_json']['S'])
-            require(row.get('state',{}).get('S') == 'CONSUMED' and terminal.get('state') == 'ORIGINAL_TERMINAL_DEBT_ONLY'
-                    and terminal.get('actual_authority_granted') is False
-                    and row.get('repair_terminal_digest',{}).get('S') == terminal.get('repair_digest'), 'ORIGINAL_REPAIR_CONTEXT_TERMINAL')
+            evidence, ed, terminal, _, ack = self.validate_repair_row(row, r)
             return {'state':'ORIGINAL_TERMINAL_DEBT_ONLY','request':r,'terminal':terminal,
-                    'evidence':json.loads(row['repair_evidence']['S']),'evidence_digest':row['repair_evidence_digest']['S'],
-                    'approvals':[],'immutable_ack':json.loads(row['repair_immutable_ack']['S']) if 'repair_immutable_ack' in row else None,
+                    'evidence':evidence,'evidence_digest':ed,
+                    'approvals':[],'immutable_ack':ack,
                     'write_performed':False}
         require(row.get('state',{}).get('S') == 'RESERVED' and row.get('merge_sha',{}).get('S') in (None,r['merge_sha'])
                 and not any(k in row for k in ('original_terminal_json','original_terminal_digest','original_immutable_ack','ir_request','ir_terminal')),
@@ -300,7 +359,8 @@ class InterruptedReservationRecoveryLedger:
             if prior:
                 packet=json.loads(prior['signed_event']['S']); a=self.verify(packet,self.roles[candidate_role])
                 require(a.get('action') == 'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('request') == r
-                        and a.get('evidence_digest') == ed and a.get('role') == candidate_role, 'ORIGINAL_REPAIR_CONTEXT_APPROVAL')
+                        and a.get('request_digest') == rd and a.get('evidence_digest') == ed and a.get('evidence') == evidence
+                        and a.get('role') == candidate_role, 'ORIGINAL_REPAIR_CONTEXT_APPROVAL')
                 approvals.append(a)
         require(len({a['approval_run_id'] for a in approvals}) == len(approvals), 'ORIGINAL_REPAIR_CONTEXT_RUN_COLLISION')
         return {'state':'ORIGINAL_TERMINAL_REPAIR_PENDING','request':pinned,'evidence':evidence,'evidence_digest':ed,
@@ -308,7 +368,7 @@ class InterruptedReservationRecoveryLedger:
 
     def finalize_original_terminal_repair(self, event):
         e = self.authenticate(event, 'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', ('terminal', 'evidence_digest'), fresh=False)
-        r, terminal = e['request'], e['terminal']; row = self.get(self.key(r))
+        r, terminal = e['request'], e['terminal']; validate_original_terminal_repair_request(r, self.now(), False); row = self.get(self.key(r))
         evidence = json.loads(row.get('repair_evidence', {}).get('S', '{}'))
         ed = row.get('repair_evidence_digest', {}).get('S')
         require(row.get('repair_request', {}).get('S') == canonical(r) and ed == e['evidence_digest']
@@ -323,22 +383,10 @@ class InterruptedReservationRecoveryLedger:
                     and a.get('evidence_digest') == ed and a.get('evidence') == evidence, 'ORIGINAL_REPAIR_APPROVAL_BINDING')
             approvals.append(a)
         require(len({a['approval_run_id'] for a in approvals}) == 3, 'ORIGINAL_REPAIR_QUORUM_RUN_COLLISION')
-        require(isinstance(terminal, dict) and set(terminal) == {'id','version','state','request_digest','evidence_digest',
-            'original_run_id','original_head_sha','original_merge_sha','original_state','original_terminal_present',
-            'actual_authority_granted','platform_closure','production','public','g5','created_at','repair_digest'}
-            and terminal['id'] == 'kidults-original-reservation-terminal-repair-v1' and terminal['version'] == '1.0.0'
-            and terminal['state'] == 'ORIGINAL_TERMINAL_DEBT_ONLY' and terminal['request_digest'] == e['request_digest']
-            and terminal['evidence_digest'] == ed and terminal['original_run_id'] == r['original_run_id']
-            and terminal['original_head_sha'] == r['head_sha'] and terminal['original_merge_sha'] == r['merge_sha']
-            and terminal['original_state'] == 'RESERVED' and terminal['original_terminal_present'] is False
-            and terminal['actual_authority_granted'] is False and terminal['platform_closure'] is False
-            and all(terminal[k] == 'HOLD' for k in ('production','public','g5')), 'ORIGINAL_REPAIR_TERMINAL')
-        epoch(terminal['created_at'])
-        unsigned = {k:v for k,v in terminal.items() if k != 'repair_digest'}
-        require(terminal['repair_digest'] == digest(unsigned), 'ORIGINAL_REPAIR_TERMINAL_DIGEST')
+        validate_original_terminal_repair_terminal(terminal, r, ed)
         if 'repair_terminal_json' in row:
-            require(row.get('repair_terminal_json', {}).get('S') == canonical(terminal)
-                    and row.get('repair_terminal_digest', {}).get('S') == terminal['repair_digest'],
+            _, _, stored_terminal, _, _ = self.validate_repair_row(row, r)
+            require(canonical(stored_terminal) == canonical(terminal),
                     'ORIGINAL_REPAIR_TERMINAL_CONFLICT')
             return {'state':'ORIGINAL_TERMINAL_DEBT_ONLY','terminal':terminal,'terminal_digest':terminal['repair_digest'],
                     'write_performed':False,'actual_authority_granted':False,'promotion_eligible':False}
@@ -359,21 +407,12 @@ class InterruptedReservationRecoveryLedger:
                 'write_performed':True,'actual_authority_granted':False,'promotion_eligible':False}
 
     def acknowledge_original_terminal_repair(self, event):
-        e = self.authenticate(event, 'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE', ('object',), fresh=False)
-        r = e['request']; row = self.get(self.key(r))
-        terminal = json.loads(row.get('repair_terminal_json', {}).get('S', '{}'))
-        td = terminal.get('repair_digest')
-        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
-                and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha']
-                and terminal.get('state') == 'ORIGINAL_TERMINAL_DEBT_ONLY' and terminal.get('actual_authority_granted') is False
-                and row.get('repair_terminal_digest', {}).get('S') == td == digest({k:v for k,v in terminal.items() if k != 'repair_digest'}),
-                'ORIGINAL_REPAIR_ACK_TERMINAL')
+        e = self.authenticate(event, 'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE', ('object','evidence_digest'), fresh=False)
+        r = e['request']; validate_original_terminal_repair_request(r, self.now(), False); row = self.get(self.key(r))
+        evidence, ed, terminal, td, _ = self.validate_repair_row(row, r)
+        require(e['evidence_digest'] == ed, 'ORIGINAL_REPAIR_ACK_EVIDENCE_BINDING')
         o = e['object']
-        require(isinstance(o, dict) and set(o) == {'bucket','key','version_id','sha256','retention_mode','retain_until','encryption_key_arn'}
-                and o['bucket'] == self.bucket and o['key'] == 'receipts/' + r['original_generation'] + '/original-reservation-terminal-repair/' + r['merge_sha'] + '.json'
-                and isinstance(o['version_id'], str) and 0 < len(o['version_id']) <= 1024 and o['sha256'] == digest(terminal)
-                and o['retention_mode'] == 'COMPLIANCE' and o['encryption_key_arn'] == self.receipt_key
-                and epoch(o['retain_until']) >= retention_horizon(terminal['created_at']), 'ORIGINAL_REPAIR_ACK_OBJECT')
+        self.validate_repair_ack(o, r, terminal)
         if 'repair_immutable_ack' in row:
             require(row['repair_immutable_ack']['S'] == canonical(o), 'ORIGINAL_REPAIR_ACK_CONFLICT')
             return {'state':'ORIGINAL_TERMINAL_REPAIR_IMMUTABLE_ACKNOWLEDGED','write_performed':False}
@@ -568,13 +607,9 @@ class InterruptedReservationRecoveryLedger:
         require(row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('state', {}).get('S') in ('RESERVED', 'CONSUMED'), 'CONTEXT_RESERVATION')
         if row['state']['S'] == 'CONSUMED' and 'ir_request' not in row:
             if 'repair_terminal_json' in row:
-                terminal = json.loads(row['repair_terminal_json']['S'])
-                require(terminal.get('state') == 'ORIGINAL_TERMINAL_DEBT_ONLY'
-                        and terminal.get('actual_authority_granted') is False
-                        and row.get('repair_terminal_digest', {}).get('S') == terminal.get('repair_digest'),
-                        'ORIGINAL_REPAIR_STORED_TERMINAL')
+                evidence, ed, terminal, _, ack = self.validate_repair_row(row, r)
                 return {'state': 'ORIGINAL_TERMINAL_DEBT_ONLY', 'terminal': terminal,
-                        'immutable_ack': json.loads(row['repair_immutable_ack']['S']) if 'repair_immutable_ack' in row else None,
+                        'request': r, 'evidence': evidence, 'evidence_digest': ed, 'immutable_ack': ack,
                         'write_performed': False}
             if 'original_terminal_json' in row:
                 terminal = json.loads(row['original_terminal_json']['S'])

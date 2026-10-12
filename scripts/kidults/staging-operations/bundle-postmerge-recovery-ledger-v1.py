@@ -5,7 +5,7 @@ import base64
 import json
 import hashlib
 import sys
-import zlib
+import bz2
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -26,10 +26,10 @@ def bundled(source):
     inventory = {'core': compact_python(core), 'historical': compact_python(COMPONENT.read_text()),
                  'interrupted': compact_python(INTERRUPTED.read_text())}
     hashes = {key: hashlib.sha256(value.encode()).hexdigest() for key, value in inventory.items()}
-    packed = base64.b64encode(zlib.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), 9)).decode('ascii')
-    loader = PACKED_MARKER + "\nimport base64, zlib, hashlib, json\n"
+    packed = base64.b64encode(bz2.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), compresslevel=9)).decode('ascii')
+    loader = PACKED_MARKER + "\nimport base64, bz2, hashlib, json\n"
     loader += "_ledger_source_hashes = " + repr(hashes) + "\n"
-    loader += "_ledger_sources = json.loads(zlib.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
+    loader += "_ledger_sources = json.loads(bz2.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
     loader += "if set(_ledger_sources) != set(_ledger_source_hashes) or any(hashlib.sha256(v.encode()).hexdigest() != _ledger_source_hashes[k] for k,v in _ledger_sources.items()): raise ValueError('LEDGER_CAPSULE_DIGEST')\n"
     loader += "exec(compile(_ledger_sources['core'], '<ledger-core>', 'exec'), globals())\n"
     loader += "_recovery_namespace = {'__name__': 'bounded_postmerge_recovery'}\nexec(compile(_ledger_sources['historical'], '<historical-recovery>', 'exec'), _recovery_namespace)\n"

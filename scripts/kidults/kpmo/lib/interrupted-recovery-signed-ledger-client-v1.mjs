@@ -161,7 +161,7 @@ export async function createInterruptedRecoverySignedLedgerClient({role,signingK
       return invoke({action:'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR',...binding(request,false),run_id,run_attempt:1,
         terminal,evidence_digest,workload});
     },
-    acknowledgeOriginalTerminalRepair:input=>final('ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE',input,{object:input.object},false),
+    acknowledgeOriginalTerminalRepair:input=>final('ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE',input,{object:input.object,evidence_digest:input.evidence_digest},false),
     finalizeFailureTerminal:async({request,terminal,evidence_digest,run_id=env.GITHUB_RUN_ID})=>{
       check(role==='FINALIZER'&&run_id===env.GITHUB_RUN_ID,'FINALIZER_REQUIRED');
       return invoke({action:'FINALIZE_FAILED_ASSURANCE_TERMINAL_RECOVERY',...binding(request,false),run_id,run_attempt:1,terminal,evidence_digest,workload});

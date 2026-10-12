@@ -1,5 +1,6 @@
 import {canonicalJson,sha256} from './canonical-json-v1.mjs';
-import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,supersedeExpiredInterruptedPostmerge,recoverFailureAssuranceTerminal,recoverOriginalTerminalRepair} from './interrupted-reservation-recovery-v1.mjs';
+import {observeInterruptedRecoveryNative,resumeInterruptedPostmerge,supersedeExpiredInterruptedPostmerge,recoverFailureAssuranceTerminal,recoverOriginalTerminalRepair,
+  validateOriginalTerminalRepairRequest,validateOriginalTerminalRepairEvidence,validateOriginalTerminalRepairTerminal,validateOriginalTerminalRepairAck} from './interrupted-reservation-recovery-v1.mjs';
 const check=(ok,code)=>{if(!ok)throw Error('INTERRUPTED_WORKLOAD_'+code);};
 export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get,evidence,immutable,verifyDrain,runId,now=()=>Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))}){
   const results=[];
@@ -8,19 +9,39 @@ export async function runInterruptedRecoveryWorkload({role,candidates,ledger,get
       const request=candidate.request,parent=candidate.failure_parent;
       check(parent.kind==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'&&parent.source_sha===request.source_sha
         &&parent.actual_authority_granted===false&&parent.platform_closure===false&&parent.promotion_eligible===false,'FAILURE_PARENT');
-      let repairContext=await ledger.readOriginalTerminalRepairContext({request});
+      const repairCandidate=request.pull_request===2655&&request.merge_sha==='d1b801ebf75dfc2b582c6381771f8194016328ca'
+        &&request.original_run_id==='38132692877'&&request.original_run_attempt===1;
+      let repairContext=repairCandidate?await ledger.readOriginalTerminalRepairContext({request}):{state:'ORIGINAL_TERMINAL_NOT_RESERVED'};
       if(repairContext.state==='ORIGINAL_RESERVATION_MISSING'){
         results.push({state:repairContext.state,write_performed:false});continue;
       }
       if(['ORIGINAL_TERMINAL_REPAIR_PENDING','ORIGINAL_TERMINAL_DEBT_ONLY'].includes(repairContext.state)){
+        validateOriginalTerminalRepairRequest(request);
         const native=await observeInterruptedRecoveryNative({request,get,now:now()});
         const originalArchive={artifact_id:candidate.original_artifact_id,archive_digest:candidate.original_archive_digest};
         const proof=await evidence.verifyEvidence({request,native:{...native,recovery_parent:parent},originalArchive});
-        const proofDigest=sha256(canonicalJson(proof));
-        if(repairContext.evidence_digest)check(repairContext.evidence_digest===proofDigest,'ORIGINAL_REPAIR_EVIDENCE_PIN');
+        const proofDigest=validateOriginalTerminalRepairEvidence(proof,request);
+        if(repairContext.state==='ORIGINAL_TERMINAL_DEBT_ONLY'||repairContext.request!==null){
+          check(canonicalJson(repairContext.request)===canonicalJson(request)
+            &&repairContext.evidence_digest===proofDigest&&canonicalJson(repairContext.evidence)===canonicalJson(proof),'ORIGINAL_REPAIR_CONTEXT_PIN');
+        }else check(repairContext.evidence===null&&repairContext.evidence_digest===null,'ORIGINAL_REPAIR_EMPTY_CONTEXT');
         if(repairContext.state==='ORIGINAL_TERMINAL_DEBT_ONLY'){
-          if(repairContext.immutable_ack||role!=='FINALIZER'){
-            results.push({state:repairContext.immutable_ack?'ORIGINAL_TERMINAL_REPAIR_ALREADY_ACKNOWLEDGED':'ORIGINAL_TERMINAL_REPAIR_SEAL_PENDING',write_performed:false});continue;
+          validateOriginalTerminalRepairTerminal(repairContext.terminal,request);
+          if(repairContext.immutable_ack){
+            const ack=validateOriginalTerminalRepairAck(repairContext.immutable_ack,request,repairContext.terminal);
+            if(role==='FINALIZER'){
+              check(typeof immutable?.read==='function','ORIGINAL_REPAIR_IMMUTABLE_READER');
+              const stored=await immutable.read({request,terminal:repairContext.terminal,key:ack.key,original_repair:true,version_id:ack.version_id});
+              check(canonicalJson(stored)===canonicalJson(ack),'ORIGINAL_REPAIR_ACK_IMMUTABLE_READBACK');
+              results.push({state:'ORIGINAL_TERMINAL_REPAIR_ALREADY_ACKNOWLEDGED',write_performed:false,
+                immutable_readback_performed:true,physical_immutable_object_verified:true});continue;
+            }
+            results.push({state:'ORIGINAL_TERMINAL_REPAIR_ACK_RECORDED_NOT_IMMUTABLE_REVERIFIED',write_performed:false,
+              actual_authority_granted:false,platform_closure:false,immutable_readback_performed:false,
+              physical_immutable_object_verified:false});continue;
+          }
+          if(role!=='FINALIZER'){
+            results.push({state:'ORIGINAL_TERMINAL_REPAIR_SEAL_PENDING',write_performed:false});continue;
           }
         }else{
           check(repairContext.evidence===null||canonicalJson(repairContext.evidence)===canonicalJson(proof),'ORIGINAL_REPAIR_EVIDENCE_PIN');

@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import {inflateSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
 // Inspect the authenticated original code, rather than searching compressed bytes.
 const writerCapsule = template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
-const capsulePayload = writerCapsule.match(/_ledger_sources = json\.loads\(zlib\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
+const capsulePayload = writerCapsule.match(/_ledger_sources = json\.loads\(bz2\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
 assert.ok(capsulePayload, 'fixed ledger source capsule required');
-const writerSources = JSON.parse(inflateSync(Buffer.from(capsulePayload[1], 'base64')).toString('utf8'));
+const writerSources = JSON.parse(execFileSync('python3',['-c','import bz2,sys;sys.stdout.write(bz2.decompress(sys.stdin.buffer.read()).decode())'],
+  {input:Buffer.from(capsulePayload[1],'base64'),encoding:'utf8'}));
 assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted']);
 const hashLiteral = writerCapsule.match(/^_ledger_source_hashes = (\{[^\n]+\})$/m);
 assert.ok(hashLiteral, 'fixed capsule hash mapping required');
