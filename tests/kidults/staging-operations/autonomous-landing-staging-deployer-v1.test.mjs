@@ -30,10 +30,10 @@ const failureAssuranceCapsuleTemplate = () => {
   current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=zip;
   return current;
 };
-test('exact failure-Assurance capsule upgrades to reviewed guard with Code-only non-replacing change set',()=>{
+test('exact failure-Assurance capsule upgrades to original terminal repair with Code-only non-replacing change set',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
-    '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4');
+    '09c9c6e734650be66460cc2a65ce4a26071a0f0b1efb5a8672ca0093270fb912');
   const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
     ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
   withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{
@@ -56,7 +56,7 @@ for(const [name,mutate] of [
     assert.notEqual(spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'}).status,0);
   });
 });
-test('previously landed packed capsule upgrades to exact failure-Assurance capsule', () => {
+test('previously landed packed capsule upgrades to exact original terminal repair capsule', () => {
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   withFixture({current:deployedCapsuleTemplate(),desired:latest},directory=>{
     const output=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
@@ -526,7 +526,7 @@ const consumptionV1Template = () => {
   assert.equal(createHash("sha256").update(current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest("hex"),"3d2042663c64ce97360bb53ecb6758fea25303e0c2edd9966badee8717cd85ad");
   return current;
 };
-test('last successful deployed consumption V1 converges directly to the current recovery capsule',()=>{
+test('last successful deployed consumption V1 converges directly to the original terminal repair capsule',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   withFixture({current:consumptionV1Template(),desired:latest},directory=>{
     const output=execFileSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
