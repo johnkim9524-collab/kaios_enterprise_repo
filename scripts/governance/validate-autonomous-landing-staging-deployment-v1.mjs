@@ -54,8 +54,13 @@ const FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4';
 const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = 'bfedf411f22495145d4fab1d9889b9a1059993d59458b2173955795a4181b104';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
+const SHARED_BUDGET_WRITER_SHA256 = '9e70f04dd085a109216969bab92f53fc9501e36aca412f83832c74e4a86e6902';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
+const isExactSharedBudgetWriterUpgrade=(before,after)=>
+  [DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256, FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,
+    CURRENT_RECOVERY_CAPSULE_WRITER_SHA256, ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256].includes(sha256Hex(before))
+  &&sha256Hex(after)===SHARED_BUDGET_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
@@ -121,6 +126,7 @@ const isAllowedLegacyWriterCodeRecovery = (current, desired) => {
   delete desiredWithoutCode.Properties.Code.ZipFile;
   if (!equal(currentWithoutCode, desiredWithoutCode)) return false;
   return isExactConsumptionTupleCodeUpgrade(currentZip,desiredZip)
+    ||isExactSharedBudgetWriterUpgrade(currentZip,desiredZip)
     ||currentZip === expectedLegacyWriterZipFromDesired(desiredZip)||isBoundedCanonicalWriterUpgrade(currentZip, desiredZip);
 };
 
@@ -148,8 +154,8 @@ function assertDesiredBoundary(desired) {
     assert.ok(Array.isArray(statements), 'ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, QUERY_STATEMENT)).length, 1,
       'BOUNDED_QUERY_STATEMENT_INVALID:' + logicalId);
-    assert.equal(statements.filter(statement => equal(statement, BUDGET_STORE_STATEMENT)).length, 1,
-      'BOUNDED_SHARED_BUDGET_STORE_STATEMENT_INVALID:' + logicalId);
+    assert.equal(statements.filter(statement => equal(statement, BUDGET_STORE_STATEMENT)).length, 0,
+      'RUNNER_DIRECT_SHARED_BUDGET_ACCESS_FORBIDDEN:' + logicalId);
     assert.equal(statements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
       'BOUNDED_LEDGER_DECRYPT_STATEMENT_INVALID:' + logicalId);
     const source = JSON.stringify(role);
@@ -346,13 +352,13 @@ console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   mode,
   allowed_logical_ids: ROLE_IDS,
-  allowed_actions: ['dynamodb:Query', 'dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem', 'kms:Decrypt'],
+  allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
   writer_allowed_kms_action: 'kms:Decrypt',
   finalizer_allowed_kms_action: 'kms:Decrypt',
   allowed_legacy_recovery: 'VerifierApprovalRole:dynamodb:DescribeTable+dynamodb:Query',
   allowed_leading_key: 'AUTH#*',
-  shared_budget_leading_key: 'GITHUB_READ_BUDGET#*',
+  shared_budget_authority: 'SIGNED_EXISTING_LEDGER_WRITER_LAMBDA',
   production: 'HOLD',
   public: 'HOLD',
   g5: 'HOLD',

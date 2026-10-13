@@ -7,19 +7,19 @@ import {execFileSync} from 'node:child_process';
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
 // Inspect the authenticated original code, rather than searching compressed bytes.
 const writerCapsule = template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
-const capsulePayload = writerCapsule.match(/_ledger_sources = json\.loads\(bz2\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
+const capsulePayload = writerCapsule.match(/_s = json\.loads\(bz2\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
 assert.ok(capsulePayload, 'fixed ledger source capsule required');
 const writerSources = JSON.parse(execFileSync('python3',['-c','import bz2,sys;sys.stdout.write(bz2.decompress(sys.stdin.buffer.read()).decode())'],
   {input:Buffer.from(capsulePayload[1],'base64'),encoding:'utf8'}));
-assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted']);
-const hashLiteral = writerCapsule.match(/^_ledger_source_hashes = (\{[^\n]+\})$/m);
+assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted','shared_budget']);
+const hashLiteral = writerCapsule.match(/^_h = (\{[^\n]+\})$/m);
 assert.ok(hashLiteral, 'fixed capsule hash mapping required');
 const sourceHashes = JSON.parse(hashLiteral[1].replaceAll("'", '"'));
 assert.deepEqual(Object.keys(sourceHashes).sort(), Object.keys(writerSources).sort());
 for (const [name, source] of Object.entries(writerSources)) {
   const digest = createHash('sha256').update(source).digest('hex');
   assert.equal(sourceHashes[name], digest, `${name} capsule digest mismatch`);
-  const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py'}[name];
+  const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py',shared_budget:'shared_github_read_budget_ledger_v1.py'}[name];
   const normalized=execFileSync('python3',['-c',"import ast,pathlib,sys;sys.stdout.write(ast.unparse(ast.parse(pathlib.Path(sys.argv[1]).read_text()))+'\\n')",`scripts/kidults/kpmo/lib/${file}`],{encoding:'utf8'});
   assert.equal(source, normalized, `${name} normalized source mismatch`);
 }
@@ -49,12 +49,12 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     refs.add(template.Parameters[wfParam].Default);
     const statements=template.Resources[`${prefix}ApprovalRole`].Properties.Policies[0].PolicyDocument.Statement;
     const actions=statements.flatMap(v=>v.Action||[]);
-    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')).sort(),['dynamodb:GetItem','dynamodb:PutItem','dynamodb:Query','dynamodb:UpdateItem'].sort());
+    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')).sort(),['dynamodb:Query']);
     const ledgerRead=statements.find(statement=>(statement.Action||[]).includes('dynamodb:Query'));
     assert.deepEqual(ledgerRead.Resource,{'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
     assert.deepEqual(ledgerRead.Condition,{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
     const budget=statements.filter(s=>JSON.stringify(s)===JSON.stringify({Effect:'Allow',Action:['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],Resource:{'Fn::GetAtt':['AutonomousLandingLedger','Arn']},Condition:{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['GITHUB_READ_BUDGET#*']}}}));
-    assert.equal(budget.length,1);
+    assert.equal(budget.length,0);
     assert.equal(actions.some(a=>['dynamodb:DeleteItem','dynamodb:BatchWriteItem'].includes(a)),false);
     assert.ok(actions.includes('kms:Sign'));
   }

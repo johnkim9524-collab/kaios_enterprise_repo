@@ -451,7 +451,7 @@ class RecoveryLedgerTests(unittest.TestCase):
                 return datetime.fromtimestamp(NOW + 1, tz or timezone.utc)
         with mock.patch.dict(sys.modules, {'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': exceptions}), mock.patch.dict(os.environ, env):
             exec(compile(code, '<actual-cloudformation-writer>', 'exec'), namespace)
-            namespace['_recovery_namespace']['datetime'] = Clock
+            namespace['_r']['datetime'] = Clock
         return namespace, env
 
     def test_actual_embedded_handler_runs_recovery_with_real_signatures(self):
@@ -492,6 +492,7 @@ class RecoveryLedgerTests(unittest.TestCase):
             original_text = subprocess.check_output(['git', 'show', 'HEAD:' + path], cwd=ROOT, text=True)
             used_fallback = True
         original = json.loads(original_text)
+        original['Description'] = actual['Description']
         props = actual['Resources']['AutonomousLedgerWriterFunction']['Properties']
         old = original['Resources']['AutonomousLedgerWriterFunction']['Properties']
         props['Code'] = old['Code']
@@ -507,8 +508,7 @@ class RecoveryLedgerTests(unittest.TestCase):
             policies = actual['Resources'][role]['Properties']['Policies']
             self.assertEqual(len(policies), 1)
             statements = policies[0]['PolicyDocument']['Statement']
-            self.assertEqual(statements.count(expected_budget_statement), 1)
-            statements.remove(expected_budget_statement)
+            self.assertEqual(statements.count(expected_budget_statement), 0)
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
         if used_fallback:

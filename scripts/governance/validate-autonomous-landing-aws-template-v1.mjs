@@ -94,12 +94,11 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   finalizerSubs.push({'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${FinalizerEnvironment}'}:workflow_ref:${'${' + workflowParameter + '}'}`});
   const statements = role.Policies[0].PolicyDocument.Statement;
   const actions = statements.flatMap(value => value.Action || []);
-  assert.deepEqual(actions.filter(action => action.startsWith('dynamodb:')).sort(),
-    ['dynamodb:GetItem','dynamodb:PutItem','dynamodb:Query','dynamodb:UpdateItem'].sort());
+  assert.deepEqual(actions.filter(action => action.startsWith('dynamodb:')).sort(), ['dynamodb:Query']);
   const ledgerRead = statements.find(value => (value.Action || []).includes('dynamodb:Query'));
   assert.deepEqual(ledgerRead.Resource, {'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
   assert.deepEqual(ledgerRead.Condition, {'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
-  assert.equal(statements.filter(value=>JSON.stringify(value)===JSON.stringify(budgetStoreStatement)).length,1);
+  assert.equal(statements.filter(value=>JSON.stringify(value)===JSON.stringify(budgetStoreStatement)).length,0);
   assert.equal(actions.some(action => ['dynamodb:DeleteItem','dynamodb:BatchWriteItem'].includes(action)), false);
   assert.ok(actions.includes('lambda:InvokeFunction'));
   assert.ok(actions.includes('kms:Sign'));
