@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "071955771102a7f50b139db3b29c1e28f91f4dbf",
+  "revision": "df3ed51279fea77bdd6e1cd488f4eb90b49e729c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6880,8 +6880,8 @@
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b1b7209058ea6c10958678d19913621927e5b180",
-      "sha256": "sha256:4d1f3aee86d534d2a80eb4714d0a5e86cf16a1860cf2675e0c896d3a64cbc7ae"
+      "git_blob": "39dd8f422a28dc7cf664b6f504b483c4ca41283f",
+      "sha256": "sha256:49a957db2008943127fb4f1cbce9d209b5ff9e690fef52bd9499f5d808a42822"
     },
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
@@ -7094,5 +7094,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5a76d79b858f09eebb28b0cff6e98e43a7249dca28baad1850e78d9c417e829e"
+  "manifest_sha256": "sha256:244570689562576c2b3b05c2a870437585bbc0fcb47feebc437573e3bd3e8799"
 }

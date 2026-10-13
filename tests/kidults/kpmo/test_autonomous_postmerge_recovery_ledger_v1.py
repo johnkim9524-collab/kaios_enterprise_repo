@@ -477,7 +477,7 @@ class RecoveryLedgerTests(unittest.TestCase):
             self.assertTrue(namespace['handler'](event, None)['ok'])
         self.assertIn(('AUTH#legacy-generation', 'ROLE#' + M.ROLES[0]), self.ddb.rows)
 
-    def test_cloudformation_change_does_not_expand_iam_or_oidc(self):
+    def test_cloudformation_change_is_limited_to_budget_and_owner_reserved_receipt_kms(self):
         path = 'infrastructure/aws/staging/autonomous-internal-landing-v1.json'
         actual = json.loads((ROOT / path).read_text())
         # Hosted CI may use a filtered checkout where the historical fixture
@@ -511,6 +511,18 @@ class RecoveryLedgerTests(unittest.TestCase):
             statements.remove(expected_budget_statement)
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
+        self.assertIn('OWNER_RESERVED_STAGING_INFRA_CHANGE', actual['Description'])
+        receipt_statements = actual['Resources']['AutonomousReceiptKey']['Properties']['KeyPolicy']['Statement']
+        grant = next(value for value in receipt_statements if value.get('Sid') == 'AllowReadResumeObjectLockReceiptsThroughS3')
+        self.assertEqual(grant['Effect'], 'Allow')
+        self.assertEqual(grant['Principal']['AWS'], 'arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role')
+        self.assertEqual(grant['Action'], ['kms:GenerateDataKey', 'kms:Decrypt'])
+        self.assertEqual(grant['Resource'], '*')
+        self.assertEqual(grant['Condition']['StringEquals']['kms:ViaService'], 's3.ap-northeast-2.amazonaws.com')
+        self.assertEqual(grant['Condition']['ArnEquals']['kms:EncryptionContext:aws:s3:arn'],
+                         {'Fn::Sub': '${AutonomousReceiptBucket.Arn}'})
+        receipt_statements.remove(grant)
+        actual['Description'] = original['Description']
         if used_fallback:
             original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_KEY_ARN', None)
             original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_BUCKET', None)
