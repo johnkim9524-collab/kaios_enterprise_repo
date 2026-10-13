@@ -349,3 +349,13 @@ test('Gate cutoff remains strict when an unbounded API response includes a natur
  const result=selectLatestNaturalSentinelRun([prior],{sourceSha,repository:REPOSITORY,observedAt:cutoff});
  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,prior.id);
 });
+
+test('terminal Sentinel selector excludes read-resume repository dispatch observers',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(35),
+  sentinelRun(36,{event:'repository_dispatch',createdAt:'2026-09-05T11:00:00Z',
+   display_title:'KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/36'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,35);
+ assert.equal(result.candidate_count,1);assert.equal(result.eligible_terminal_count,1);
+});

@@ -77,10 +77,10 @@ test('duplicate resume delivery reuses an exact ledger receipt and dispatches id
   const firstPayload=JSON.parse(x.calls.find(c=>c.url.endsWith('/dispatches')).options.body).client_payload;
   overrides.mainSha='f'.repeat(40);nowValue+=60000;
   const second=await x.handler(event);
-  assert.equal(second.state,'VERIFIED_READ_RESUME_DISPATCHED');
-  assert.equal(x.calls.filter(c=>c.url.endsWith('/dispatches')).length,2);
+  assert.equal(second.state,'VERIFIED_HOLD_DUPLICATE_NOT_REDISPATCHED');
+  assert.equal(x.calls.filter(c=>c.url.endsWith('/dispatches')).length,1);
   const payloads=x.calls.filter(c=>c.url.endsWith('/dispatches')).map(c=>JSON.parse(c.options.body).client_payload);
-  assert.deepEqual(payloads[1],firstPayload);
+  assert.deepEqual(payloads[0],firstPayload);
 });
 
 test('read-resume schedule name is cryptographically bound to its exact payload',async()=>{

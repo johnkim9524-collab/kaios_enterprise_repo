@@ -29,7 +29,7 @@ export function selectLatestNaturalSentinelRun(runs,{sourceSha,repository,observ
     // to resume deferred reads. Those observer runs share the workflow path
     // but cannot stand in for a natural Sentinel health terminal, even when
     // their skipped jobs make GitHub report the workflow run as successful.
-    if(run?.event==='workflow_run'&&run?.display_title?.startsWith('KIDULTS_AUTH_OBSERVER/'))continue;
+    if(run?.display_title?.startsWith('KIDULTS_AUTH_OBSERVER/'))continue;
     if(causalParent!==null&&Number(run?.id)!==Number(causalParent.run_id))continue;
     if(causalParent!==null&&(run.event!==causalParent.workflow_event||run.head_sha!==sourceSha||run.head_branch!=='main'||
       run.status!=='completed'||run.conclusion!==causalParent.conclusion))throw new Error('SENTINEL_SELECTION_CAUSAL_PARENT_DRIFT');

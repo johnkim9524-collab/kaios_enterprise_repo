@@ -1,8 +1,10 @@
 name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
 run-name: >-
-  ${{ github.event_name == 'workflow_run' &&
+  ${{ github.event_name == 'repository_dispatch' && github.event.action == 'kidults.github.read.resume.v1' &&
+      format('KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/{0}', github.run_id) ||
+      (github.event_name == 'workflow_run' &&
       contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1"]'), github.event.workflow_run.name) &&
-      format('KIDULTS_AUTH_OBSERVER/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) ||
+      format('KIDULTS_AUTH_OBSERVER/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id)) ||
       format('KIDULTS_SENTINEL/{0}', github.run_id) }}
 
 on:

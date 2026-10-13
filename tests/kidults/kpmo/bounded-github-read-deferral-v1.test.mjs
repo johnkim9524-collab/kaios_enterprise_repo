@@ -43,3 +43,16 @@ test('wrong runner binding, route, authority flags and out-of-deadline wait fail
     });
   }
 });
+
+test('bounded resume admits the complete validated recovery checkpoint route set',async()=>{
+  const routes=['actions/runs/4321','actions/runs/4321/artifacts?per_page=100',
+    'actions/runs/4321/attempts/2/jobs?per_page=100','actions/artifacts/500/zip','pulls/2655','branches/main',
+    `git/commits/${'c'.repeat(40)}`,`compare/${'a'.repeat(40)}...${'b'.repeat(40)}`,
+    `compare/${'a'.repeat(40)}...${'b'.repeat(40)}?per_page=1&page=2`,
+    'actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&event=repository_dispatch&status=failure&per_page=100&page=1'];
+  for(const route of routes){
+    const cp=checkpoint(1000);cp.unfinished_operation.route=`/repos/johnkim9524-collab/kaios_enterprise_repo/${route}`;
+    await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>1000,
+      read:async()=>{throw deferred(cp);}}),/GITHUB_READ_DEFERRED/);
+  }
+});

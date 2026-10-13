@@ -83,6 +83,9 @@ function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=
         digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
         if(existing.receipt_digest!==digest)deny('REPLAY_BINDING');
       }
+      // The first POST may have succeeded even if its response was lost.
+      // A recorded schedule id is therefore never dispatched again.
+      return {ok:false,state:'VERIFIED_HOLD_DUPLICATE_NOT_REDISPATCHED',exact_main_sha:exactMainSha,slot};
     }
     await call(`https://api.github.com/repos/${config.repository}/dispatches`,{bearer:installation.token,method:'POST',
       headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:resume?'kidults.github.read.resume.v1':`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});

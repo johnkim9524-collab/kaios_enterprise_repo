@@ -26,7 +26,18 @@ function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
 
 export async function readWithBoundedGithubDeferrals({route,read,expectedBinding,deadline,
   maxDeferrals=2,now=()=>Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),onDeferral=()=>{}}={}){
-  check(typeof route==='string'&&/^(?:actions\/runs\/[1-9][0-9]{0,15}(?:\/artifacts\?per_page=100|\/attempts\/[1-9][0-9]{0,2}\/jobs\?per_page=100)?|actions\/artifacts\/[1-9][0-9]{0,15}(?:\/zip)?)$/.test(route),'ROUTE');
+  const routes=[
+    /^actions\/runs\/[1-9][0-9]{0,15}$/,
+    /^actions\/runs\/[1-9][0-9]{0,15}\/attempts\/(?:[1-9]|[1-9][0-9]|100)\/jobs\?per_page=100$/,
+    /^actions\/runs\/[1-9][0-9]{0,15}\/artifacts\?per_page=100$/,
+    /^actions\/artifacts\/[1-9][0-9]{0,15}(?:\/zip)?$/,
+    /^pulls\/[1-9][0-9]{0,5}$/,
+    /^branches\/main$/,
+    /^git\/commits\/[a-f0-9]{40}$/,
+    /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
+    /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
+  ];
+  check(typeof route==='string'&&route.length<=512&&!route.includes('#')&&routes.some(pattern=>pattern.test(route)),'ROUTE');
   check(typeof read==='function'&&typeof expectedBinding==='object'&&expectedBinding
     &&/^[1-9][0-9]{0,15}$/.test(String(expectedBinding.run_id))&&Number.isSafeInteger(expectedBinding.run_attempt)
     &&expectedBinding.run_attempt>=1&&expectedBinding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(expectedBinding.source_sha)
