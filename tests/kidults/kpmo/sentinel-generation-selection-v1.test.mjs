@@ -67,6 +67,14 @@ test('terminal sentinel selector treats the successful Reserve completion edge a
  ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,32);
 });
+test('terminal sentinel selector excludes bounded auth-resume observer runs from natural health',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(33,{createdAt:'2026-09-05T10:00:00Z'}),
+  sentinelRun(34,{event:'workflow_run',createdAt:'2026-09-05T11:00:00Z',display_title:'KIDULTS_AUTH_OBSERVER/KIDULTS Autonomous KPMO Authorization V1/900'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,33);
+ assert.equal(result.candidate_count,1);assert.equal(result.eligible_terminal_count,1);
+});
 test('terminal sentinel selector rejects an exact-SHA run from a substituted workflow path',()=>{
  assert.throws(()=>selectLatestNaturalSentinelRun([sentinelRun(50,{path:'.github/workflows/other.yml'})],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'}),/WORKFLOW_PATH_INVALID/);
 });

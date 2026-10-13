@@ -161,6 +161,8 @@ function assertDesiredBoundary(desired) {
   assert.equal(finalizer?.Type, 'AWS::IAM::Role', 'FINALIZER_ROLE_TYPE_INVALID');
   const finalizerStatements = finalizer?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   assert.ok(Array.isArray(finalizerStatements), 'FINALIZER_ROLE_POLICY_STATEMENTS_INVALID');
+  assert.equal(finalizerStatements.filter(statement => equal(statement, BUDGET_STORE_STATEMENT)).length, 0,
+    'FINALIZER_SHARED_BUDGET_STORE_REQUIRES_OWNER_ACTIVATION');
   assert.equal(finalizerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length, 1,
     'BOUNDED_FINALIZER_LEDGER_DECRYPT_STATEMENT_INVALID');
   const writer = desired?.Resources?.[WRITER_ROLE_ID];

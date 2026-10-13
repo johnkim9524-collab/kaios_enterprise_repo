@@ -53,7 +53,9 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertEqual(admission_step['env']['KIDULTS_GITHUB_READ_BUDGET_MODE'], 'SHARED_REQUIRED')
             self.assertIn('assume-role-with-web-identity', admission_script)
             self.assertIn(f'assumed-role/{role}/', admission_script)
-            self.assertIn('run-postmerge-terminal-recovery-v1.mjs', '\n'.join(step.get('run', '') for step in recovery['steps']))
+            recovery_step = next(step for step in recovery['steps'] if 'run-postmerge-terminal-recovery-v1.mjs' in step.get('run', ''))
+            self.assertEqual(recovery_step['env']['KIDULTS_GITHUB_READ_BUDGET_MODE'], 'SHARED_REQUIRED')
+            self.assertEqual(recovery_step['env']['KIDULTS_GITHUB_READ_QUOTA_OWNER_ID'], 'gha-repo-${{ github.repository_id }}')
 
     def test_original_live_candidate_path_remains_dispatch_only(self):
         for name in FILES:
@@ -118,6 +120,8 @@ class RecoveryWorkflowTests(unittest.TestCase):
         job = self.workflow('track')['jobs']['terminal-recovery-finalizer']
         self.assertEqual(job['needs'], 'terminal-recovery-approval')
         self.assertIn("outputs.recovery_needed == 'true'", job['if'])
+        recovery_step = next(step for step in job['steps'] if 'run-postmerge-terminal-recovery-v1.mjs' in step.get('run', ''))
+        self.assertNotIn('KIDULTS_GITHUB_READ_BUDGET_MODE', recovery_step.get('env', {}))
         for name in FILES[1:]:
             self.assertNotIn('terminal-recovery-finalizer', self.workflow(name)['jobs'])
 

@@ -31,6 +31,11 @@ test("protected mutation libraries cannot be exempted as non-mutating based on t
     assert.equal(routeAuthorizationControl('scripts/example/lib/direct-owner-write.mjs',source).route,'OWNER_RESERVED');
   }
 });
+test('natural Sentinel terminal selector is explicitly inventoried without gaining execution authority',()=>{
+  const file='scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs';
+  assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(file));
+  assert.equal(routeAuthorizationControl(file,fs.readFileSync(file,'utf8')).route,'INTERNAL_REVERSIBLE');
+});
 test("repository-wide approval envelope is internally consistent", () => {
   const result = spawnSync(process.execPath, ["scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs"], {cwd:root,encoding:"utf8"});
   assert.equal(result.status, 0, result.stderr);

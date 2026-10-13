@@ -91,6 +91,16 @@ test('deployed admission roles gain the shared budget policy together with the v
     });
   }
 });
+test('finalizer shared-budget permission expansion remains Owner-gated',()=>{
+  const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
+  const widened=structuredClone(latest);
+  widened.Resources.FinalizerRole.Properties.Policies[0].PolicyDocument.Statement.push(structuredClone(sharedBudgetStatement));
+  withFixture({current:latest,desired:widened},directory=>{
+    const result=spawnSync('node',[validator,'--current',path.join(directory,'current'),'--desired',path.join(directory,'desired')],{encoding:'utf8'});
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/FINALIZER_SHARED_BUDGET_STORE_REQUIRES_OWNER_ACTIVATION/);
+  });
+});
 for(const [name,mutate] of [
   ['unregistered source', (c,d)=>{c.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],
   ['unregistered target', (c,d)=>{d.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile+='\n# drift';}],

@@ -16,6 +16,7 @@ export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   "infrastructure/aws/staging/github-read-resume-role-v1.json",
   "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
   "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
+  "scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs",
   "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
   "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",

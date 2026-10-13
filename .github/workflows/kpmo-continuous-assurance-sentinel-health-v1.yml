@@ -1,12 +1,16 @@
 name: KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1
+run-name: >-
+  ${{ github.event_name == 'workflow_run' &&
+      contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1"]'), github.event.workflow_run.name) &&
+      format('KIDULTS_AUTH_OBSERVER/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) ||
+      format('KIDULTS_SENTINEL/{0}', github.run_id) }}
 
 on:
   repository_dispatch:
     types: [kidults.natural.clock.sentinel.v1]
-  # Only the causal final producer edge starts an authoritative Sentinel run.
-  # The resolver still reads the complete four-producer cohort; non-final
-  # completions must not create skipped Sentinel runs that poison exact-window
-  # selection for Assurance/Gate.
+  # Coverage success is the only authoritative Sentinel health event.
+  # Authorization workflow_run events use the bounded read-resume observer and
+  # receive an explicit non-authoritative run name for downstream selection.
   workflow_run:
     workflows:
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
@@ -167,6 +171,7 @@ jobs:
   exact-main-health:
     if: >-
       (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1' &&
        github.event.workflow_run.repository.full_name == github.repository &&
        github.event.workflow_run.head_repository.full_name == github.repository &&
        github.event.workflow_run.status == 'completed' &&

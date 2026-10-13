@@ -113,12 +113,26 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
  assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
 });
 
-test('Sentinel triggers only on the final Requirement edge and waits for the exact producer cohort',()=>{
+test('Sentinel observes the final Requirement edge and authorization failures for bounded resume',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
- assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),['KIDULTS ASI Requirement-to-Adapter Coverage v1']);
- assert.doesNotMatch(s,/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
+ assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
+  'KIDULTS ASI Requirement-to-Adapter Coverage v1',
+  'KIDULTS Autonomous Track Authorization V1',
+  'KIDULTS Autonomous KPMO Authorization V1',
+  'KIDULTS Autonomous Independent Verification V1',
+ ]);
+ assert.match(s,/run-name:[\s\S]*KIDULTS_AUTH_OBSERVER\//);
+ assert.match(s,/format\('KIDULTS_AUTH_OBSERVER\/\{0\}\/\{1\}', github\.event\.workflow_run\.name, github\.event\.workflow_run\.id\)/);
+ const health=s.match(/^  exact-main-health:\n    if: >-\n([\s\S]*?)^    runs-on:/m);
+ assert.ok(health,'missing authoritative Sentinel health gate');
+ assert.match(health[1],/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
+ assert.match(health[1],/github\.event\.workflow_run\.conclusion == 'success'/);
+ const resume=s.match(/^  read-resume-checkpoint:\n    if: >-\n([\s\S]*?)^    runs-on:/m);
+ assert.ok(resume,'missing bounded read-resume gate');
+ assert.match(resume[1],/github\.event\.workflow_run\.conclusion == 'failure'/);
+ for(const name of ['KIDULTS Autonomous Track Authorization V1','KIDULTS Autonomous KPMO Authorization V1','KIDULTS Autonomous Independent Verification V1'])assert.ok(resume[1].includes(name));
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
@@ -195,14 +209,18 @@ test('event reader rejects symlink, array, corrupt JSON and oversize input',t=>{
   for(const raw of ['[]','null','{broken', 'x'.repeat(4194305)]){fs.writeFileSync(p,raw);assert.throws(()=>readSentinelEvent(p));}
  }finally{fs.rmSync(d,{recursive:true,force:true});}
 });
-test('Sentinel trigger is scoped to Coverage while Assurance still sees the producer cohort',()=>{
+test('Sentinel subscribes to bounded-resume failures while Assurance still sees the producer cohort',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
  const c=fs.readFileSync('.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml','utf8');
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
- assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),['KIDULTS ASI Requirement-to-Adapter Coverage v1']);
- assert.doesNotMatch(s,/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
+ assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
+  'KIDULTS ASI Requirement-to-Adapter Coverage v1',
+  'KIDULTS Autonomous Track Authorization V1',
+  'KIDULTS Autonomous KPMO Authorization V1',
+  'KIDULTS Autonomous Independent Verification V1',
+ ]);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);
  assert.match(a,/^  workflow_run:\n    workflows:/m);
