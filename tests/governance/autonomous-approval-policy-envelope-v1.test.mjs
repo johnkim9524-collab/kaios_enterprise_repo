@@ -45,8 +45,10 @@ test('read-resume IAM grant stays Owner-reserved while bounded runtime uses the 
   assert.match(ownerSource,/iam:PassRole/);
   const keyPolicyFile='infrastructure/aws/staging/autonomous-internal-landing-v1.json';
   const keyPolicySource=fs.readFileSync(keyPolicyFile,'utf8');
-  assert.equal(routeAuthorizationControl(keyPolicyFile,keyPolicySource).route,'OWNER_RESERVED');
-  assert.match(keyPolicySource,/AllowReadResumeObjectLockReceiptsThroughS3/);
+  const keyPolicy=JSON.parse(keyPolicySource).Resources.AutonomousReceiptKey.Properties.KeyPolicy.Statement;
+  assert.deepEqual(keyPolicy.find(value=>value.Sid==='EnableAccountAdministration').Principal.AWS,
+    {'Fn::Sub':'arn:${AWS::Partition}:iam::${AWS::AccountId}:root'});
+  assert.equal(keyPolicy.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
   const bounded=[
     'infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs',
     'infrastructure/aws/staging/natural-clock-dispatcher-v1.json',

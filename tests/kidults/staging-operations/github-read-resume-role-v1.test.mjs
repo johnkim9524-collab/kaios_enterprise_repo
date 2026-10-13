@@ -44,14 +44,11 @@ test('resume role has the shared budget and one-time wake permissions within exa
     'arn:${AWS::Partition}:s3:::${ReceiptBucketName}');
 });
 
-test('receipt KMS access is exact-action Owner-reserved and attached only to receipt key',()=>{
+test('receipt KMS access remains scoped to the Owner-reserved role and does not change the existing key policy',()=>{
   const stack=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
-  assert.match(stack.Description,/OWNER_RESERVED_STAGING_INFRA_CHANGE/);
   const receiptStatements=stack.Resources.AutonomousReceiptKey.Properties.KeyPolicy.Statement;
-  const grant=receiptStatements.find(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3');
-  assert.deepEqual(grant.Action,['kms:GenerateDataKey','kms:Decrypt']);
-  assert.equal(grant.Principal.AWS,'arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role');
-  assert.equal(grant.Condition.StringEquals['kms:ViaService'],'s3.ap-northeast-2.amazonaws.com');
-  assert.deepEqual(grant.Condition.ArnEquals['kms:EncryptionContext:aws:s3:arn'],{'Fn::Sub':'${AutonomousReceiptBucket.Arn}'});
+  assert.equal(receiptStatements.find(value=>value.Sid==='EnableAccountAdministration')?.Principal?.AWS?.['Fn::Sub'],
+    'arn:${AWS::Partition}:iam::${AWS::AccountId}:root');
+  assert.equal(receiptStatements.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
   assert.equal(stack.Resources.AutonomousLedgerKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
 });

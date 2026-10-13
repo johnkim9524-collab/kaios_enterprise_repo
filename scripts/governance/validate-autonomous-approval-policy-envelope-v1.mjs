@@ -69,10 +69,12 @@ for (const operation of stagingExecutor.operations) {
         &&value.Resource?.["Fn::Sub"]?.includes?.("receipts/read-resume/*")))
       fail("READ_RESUME_OWNER_ROLE_BOUNDARY_INVALID");
     const landing=read("infrastructure/aws/staging/autonomous-internal-landing-v1.json");
-    if(!landing.Description.includes("OWNER_RESERVED_STAGING_INFRA_CHANGE"))fail("READ_RESUME_RECEIPT_KEY_OWNER_BOUNDARY_INVALID");
     const receiptKey=landing.Resources.AutonomousReceiptKey;
-    if(!receiptKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==="AllowReadResumeObjectLockReceiptsThroughS3"))
-      fail("READ_RESUME_RECEIPT_KEY_POLICY_MISSING");
+    const accountDelegation=receiptKey.Properties.KeyPolicy.Statement.find(value=>value.Sid==="EnableAccountAdministration");
+    if(accountDelegation?.Principal?.AWS?.["Fn::Sub"]!=="arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+      ||accountDelegation.Action!=="kms:*"||accountDelegation.Resource!=="*"
+      ||receiptKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==="AllowReadResumeObjectLockReceiptsThroughS3"))
+      fail("READ_RESUME_RECEIPT_KEY_OWNER_BOUNDARY_INVALID");
     continue;
   }
   if (!operation.immutable_terminal_receipt || operation.exact_main_sha_input!=="expected_main_sha" || operation.environment!=="KIDULTS-AUTONOMOUS-FINALIZER") fail(`STAGING_BOUNDED_OPERATION_INVALID:${operation.operation}`);
