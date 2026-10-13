@@ -59,7 +59,8 @@ const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactSharedBudgetWriterUpgrade=(before,after)=>
   [DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256, FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,
-    CURRENT_RECOVERY_CAPSULE_WRITER_SHA256, ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256].includes(sha256Hex(before))
+    CURRENT_RECOVERY_CAPSULE_WRITER_SHA256, ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256,
+    CONSUMPTION_V1_WRITER_SHA256].includes(sha256Hex(before))
   &&sha256Hex(after)===SHARED_BUDGET_WRITER_SHA256;
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];

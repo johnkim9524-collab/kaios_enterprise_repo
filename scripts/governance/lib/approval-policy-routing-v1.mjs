@@ -5,6 +5,8 @@ export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
   "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
   "scripts/kidults/kpmo/lib/resume-dispatch-fanout-v1.mjs",
   "scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs",
+  "scripts/kidults/kpmo/lib/shared-github-read-budget-dynamodb-v1.mjs",
+  "scripts/kidults/kpmo/lib/shared_github_read_budget_ledger_v1.py",
   "scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs",
