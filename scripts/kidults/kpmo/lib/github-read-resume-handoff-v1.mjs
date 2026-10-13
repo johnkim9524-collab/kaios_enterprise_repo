@@ -1,3 +1,4 @@
+// Long deferrals request an exact one-time AWS wake-up under the bounded executor.
 // Consumes one naturally-triggered producer artifact as bounded, read-only work.
 // It never dispatches another run and never treats a checkpoint as authority.
 import {consumeGithubReadResumeCheckpoint,validateGithubReadResumeCheckpoint} from './github-read-resume-consumer-v1.mjs';
@@ -22,13 +23,26 @@ function canonicalProducerWorkflowPath(path){
 }
 
 export async function consumeGithubReadResumeHandoff({event,readJson,readArchiveBytes,archiveReader=readArchive,now=()=>Date.now(),
-  wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),deadline=Number.MAX_SAFE_INTEGER}){
+  wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),deadline=Number.MAX_SAFE_INTEGER,scheduleResume}){
   check(event?.action==='completed'&&typeof readJson==='function'&&typeof readArchiveBytes==='function','INPUT');
   const triggered=event.workflow_run;
   check(triggered&&Number.isSafeInteger(triggered.id)&&triggered.id>0&&Number.isSafeInteger(triggered.run_attempt)
     &&triggered.run_attempt>=1&&triggered.run_attempt<=100&&/^[a-f0-9]{40}$/.test(triggered.head_sha||'')
     &&triggered.head_branch==='main'&&triggered.repository?.full_name===REPO&&Number(triggered.repository?.id)===REPO_ID
     &&['repository_dispatch','workflow_run'].includes(triggered.event),'TRIGGER_BINDING');
+  const resumeSchedule=event.resume_schedule;
+  if(resumeSchedule){
+    const binding=resumeSchedule.resume_binding;
+    check(resumeSchedule.source==='AWS_EVENTBRIDGE_SCHEDULER'&&resumeSchedule.slot==='READ_RESUME'
+      &&resumeSchedule.schedule_id===resumeSchedule.dispatch_id&&/^kidults-read-resume-[a-f0-9]{40}$/.test(resumeSchedule.schedule_id||'')
+      &&binding?.run_id===String(triggered.id)&&binding?.run_attempt===triggered.run_attempt
+      &&binding?.source_sha===triggered.head_sha&&binding?.producer_event===triggered.event
+      &&binding?.producer_conclusion===triggered.conclusion&&Number.isSafeInteger(binding?.artifact_id)
+      &&/^sha256:[a-f0-9]{64}$/.test(binding?.artifact_digest||'')
+      &&Array.isArray(resumeSchedule.checkpoint_digests)&&resumeSchedule.checkpoint_digests.length>=1
+      &&resumeSchedule.checkpoint_digests.length<=8&&resumeSchedule.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))
+      &&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.000Z$/.test(resumeSchedule.resume_at||''),'SCHEDULE_BINDING');
+  }
   const runRoute=`actions/runs/${triggered.id}`;
   const run=await readJson(runRoute);
   const producerWorkflowPath=canonicalProducerWorkflowPath(run?.path);
@@ -50,6 +64,8 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
   check(artifact?.id===matches[0].id&&artifact.name===artifactName&&artifact.expired===false
     &&artifact.workflow_run?.id===run.id&&artifact.workflow_run?.head_sha===run.head_sha
     &&artifact.workflow_run?.repository_id===REPO_ID,'ARTIFACT_READBACK');
+  if(resumeSchedule)check(resumeSchedule.resume_binding.artifact_id===artifact.id
+    &&resumeSchedule.resume_binding.artifact_digest===artifact.digest,'SCHEDULE_ARTIFACT_BINDING');
   const archiveBytes=await readArchiveBytes(`actions/artifacts/${artifact.id}/zip`);
   check(Buffer.isBuffer(archiveBytes)&&archiveBytes.length===artifact.size_in_bytes,'ARCHIVE_BYTES');
   const packet=archiveReader(archiveBytes,artifact.digest);
@@ -81,16 +97,31 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
     else current.coalesced_count++;
   }
   const resumed=Array.from(grouped.values());
-  const maxResumeAt=Math.max(...resumed.map(value=>value.resumeAt)),delta=maxResumeAt-now();
+  const checkpointResumeAt=Math.max(...resumed.map(value=>value.resumeAt));
+  const maxResumeAt=Math.max(checkpointResumeAt,resumeSchedule?Date.parse(resumeSchedule.resume_at):0),delta=maxResumeAt-now();
   check(Number.isSafeInteger(deadline)&&now()<deadline,'RUNNER_DEADLINE');
   const checkpointDigests=validated.map(value=>sha256(canonicalJson(value.checkpoint))).sort();
-  if(delta>Math.min(MAX_RESUME_WAIT_MS,deadline-now()))return {state:'RESUME_DEFERRED_WINDOW',run_id:run.id,run_attempt:run.run_attempt,
-    source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,resume_at:new Date(maxResumeAt).toISOString(),
-    checkpoint_digests:checkpointDigests,read_only:true,actual_authority_granted:false};
+  if(resumeSchedule){
+    const expectedDigests=[...new Set(checkpointDigests.map(value=>value.replace(/^sha256:/,'')))].sort();
+    check(resumeSchedule.checkpoint_digests.join(',')===[...resumeSchedule.checkpoint_digests].sort().join(',')
+      &&canonicalJson(expectedDigests)===canonicalJson(resumeSchedule.checkpoint_digests),'SCHEDULE_CHECKPOINT_BINDING');
+  }
+  const defer=async reason=>{
+    if(typeof scheduleResume!=='function')return {state:'RESUME_DEFERRED_WINDOW',reason,run_id:run.id,run_attempt:run.run_attempt,
+      source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,resume_at:new Date(checkpointResumeAt).toISOString(),
+      checkpoint_digests:checkpointDigests,read_only:true,actual_authority_granted:false};
+    const scheduledResumeAt=Math.max(checkpointResumeAt,now()+60_000);
+    const scheduled=await scheduleResume({binding:{run_id:String(run.id),run_attempt:run.run_attempt,source_sha:run.head_sha,
+      artifact_id:artifact.id,artifact_digest:artifact.digest,producer_event:run.event,producer_conclusion:run.conclusion},
+      resumeAt:scheduledResumeAt,originalResumeAt:checkpointResumeAt,checkpointDigests});
+    check(scheduled?.state==='RESUME_SCHEDULED','SCHEDULE_READBACK');
+    return {...scheduled,reason,run_id:run.id,run_attempt:run.run_attempt,source_sha:run.head_sha,
+      artifact_id:artifact.id,artifact_digest:artifact.digest,checkpoint_digests:checkpointDigests,
+      original_resume_at:new Date(checkpointResumeAt).toISOString(),read_only:true,actual_authority_granted:false};
+  };
+  if(delta>Math.min(MAX_RESUME_WAIT_MS,deadline-now()))return defer('RUNNER_WINDOW');
   if(delta>0)await wait(delta);
-  if(now()>=deadline)return {state:'RESUME_DEFERRED_WINDOW',run_id:run.id,run_attempt:run.run_attempt,
-    source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,resume_at:new Date(maxResumeAt).toISOString(),
-    checkpoint_digests:checkpointDigests,read_only:true,actual_authority_granted:false};
+  if(now()>=deadline)return defer('RUNNER_DEADLINE');
   const results=[];
   for(const item of resumed){
     const result=await consumeGithubReadResumeCheckpoint({checkpoint:item.checkpoint,run:producerRun,artifact,archiveBytes,expected,packet,

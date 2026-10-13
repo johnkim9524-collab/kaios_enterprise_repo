@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.",
+  "Description": "OWNER_RESERVED_STAGING_INFRA_CHANGE: KIDULTS STAGING ledger, immutable receipt sink and GitHub OIDC roles; read-resume receipt KMS access is an exact Owner-authorized permission change.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -1293,6 +1293,28 @@
               },
               "Action": "kms:*",
               "Resource": "*"
+            },
+            {
+              "Sid": "AllowReadResumeObjectLockReceiptsThroughS3",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": "arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role"
+              },
+              "Action": [
+                "kms:GenerateDataKey",
+                "kms:Decrypt"
+              ],
+              "Resource": "*",
+              "Condition": {
+                "StringEquals": {
+                  "kms:ViaService": "s3.ap-northeast-2.amazonaws.com"
+                },
+                "ArnEquals": {
+                  "kms:EncryptionContext:aws:s3:arn": {
+                    "Fn::Sub": "${AutonomousReceiptBucket.Arn}"
+                  }
+                }
+              }
             }
           ]
         },

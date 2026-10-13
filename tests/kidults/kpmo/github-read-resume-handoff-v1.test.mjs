@@ -57,6 +57,36 @@ test('a future checkpoint outside the single bounded runner window is left defer
   assert.equal(f.calls.some(value=>value===routeForCheckpoint(future)),false);
 });
 
+test('a future checkpoint outside the runner window creates a bound wake-up and still performs no early GET',async()=>{
+  const future=readResumeCheckpoint({binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:sourceSha,
+    run_id:String(runId),run_attempt:attempt},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:20:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});
+  const f=fixture({checkpointValue:future,now:()=>Date.parse('2026-10-12T10:01:00.000Z')});let scheduled;
+  const result=await consumeGithubReadResumeHandoff({event,readJson:f.readJson,readArchiveBytes:async()=>archiveBytes,
+    archiveReader:(bytes,digest)=>{assert.equal(digest,artifactDigest);return packetFor(future);},now:f.now,
+    scheduleResume:async value=>{scheduled=value;return {state:'RESUME_SCHEDULED',schedule_name:'kidults-read-resume-'+ 'f'.repeat(40)};}});
+  assert.equal(result.state,'RESUME_SCHEDULED');
+  assert.equal(scheduled.binding.run_id,String(runId));assert.equal(scheduled.binding.artifact_id,artifact.id);
+  assert.equal(scheduled.originalResumeAt,Date.parse(future.resume_at));
+  assert.equal(scheduled.checkpointDigests.length,1);assert.match(scheduled.checkpointDigests[0],/^sha256:[a-f0-9]{64}$/);
+  assert.equal(f.calls.some(value=>value===routeForCheckpoint(future)),false);
+});
+
+test('scheduled duplicate delivery revalidates original run and schedule binding before the resumed GET',async()=>{
+  let current=Date.parse('2026-10-12T10:01:00.000Z');const f=fixture({now:()=>current});let reads=0;
+  const digest=sha256(canonicalJson(checkpoint)).replace(/^sha256:/,'');
+  const scheduleId=`kidults-read-resume-${'e'.repeat(40)}`;
+  const scheduledEvent={action:'completed',workflow_run:{...run},resume_schedule:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot:'READ_RESUME',
+    dispatch_id:scheduleId,schedule_id:scheduleId,resume_binding:{run_id:String(runId),run_attempt:attempt,source_sha:sourceSha,
+      artifact_id:artifact.id,artifact_digest:artifactDigest,producer_event:'workflow_run',producer_conclusion:'success'},
+    checkpoint_digests:[digest],resume_at:'2026-10-12T10:01:30.000Z'}};
+  const result=await consumeGithubReadResumeHandoff({event:scheduledEvent,readJson:async value=>{
+    if(value===routeForCheckpoint(checkpoint))assert.equal(current,Date.parse('2026-10-12T10:01:30.000Z'));
+    const output=await f.readJson(value);if(value===routeForCheckpoint(checkpoint))reads++;return output;
+  },readArchiveBytes:async()=>archiveBytes,archiveReader:()=>packetFor(checkpoint),now:()=>current,
+  wait:async ms=>{current+=ms;}});
+  assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');assert.equal(reads,1);
+});
+
 test('a checkpoint inside the nominal wait window stays deferred when the workflow deadline is sooner',async()=>{
   const future=readResumeCheckpoint({binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:sourceSha,
     run_id:String(runId),run_attempt:attempt},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:08:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});

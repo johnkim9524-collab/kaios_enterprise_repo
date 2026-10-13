@@ -132,6 +132,8 @@ test('Sentinel observes the final Requirement edge and authorization failures fo
  const resume=s.match(/^  read-resume-checkpoint:\n    if: >-\n([\s\S]*?)^    runs-on:/m);
  assert.ok(resume,'missing bounded read-resume gate');
  assert.match(resume[1],/github\.event\.workflow_run\.conclusion == 'failure'/);
+ assert.match(resume[1],/github\.event\.action == 'kidults\.github\.read\.resume\.v1'/);
+ assert.match(s,/kidults\.github\.read\.resume\.v1/);
  for(const name of ['KIDULTS Autonomous Track Authorization V1','KIDULTS Autonomous KPMO Authorization V1','KIDULTS Autonomous Independent Verification V1'])assert.ok(resume[1].includes(name));
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);

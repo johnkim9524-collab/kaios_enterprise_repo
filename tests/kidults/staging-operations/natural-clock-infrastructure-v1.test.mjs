@@ -63,7 +63,7 @@ test('each natural-clock slot has a unique repository dispatch route',()=>{
   };
   for(const [slot,[file,route]] of Object.entries(routes)){
     const workflow=fs.readFileSync(file,'utf8');
-    assert.match(workflow,new RegExp(`types: \\[kidults\\.natural\\.clock\\.${route}\\.v1\\]`),slot);
+    assert.match(workflow,new RegExp(`types: \\[[^\\]]*kidults\\.natural\\.clock\\.${route}\\.v1[^\\]]*\\]`),slot);
     assert.doesNotMatch(workflow,/types: \[kidults\.natural\.clock\.v1\]/,slot);
   }
 });

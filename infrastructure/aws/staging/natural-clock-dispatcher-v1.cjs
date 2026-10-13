@@ -1,16 +1,46 @@
 'use strict';
+// Read-resume delivery is allowlisted only with exact-main and immutable-receipt checks.
 
 const {createHash, createSign, randomBytes} = require('node:crypto');
 
 const deny = code => { throw new Error(`NATURAL_CLOCK_${code}`); };
 const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url');
-const validSlot = value => ['POOLING','P0B','RESERVE','SENTINEL','ASSURANCE'].includes(value);
+const canonical = value => Array.isArray(value)?`[${value.map(canonical).join(',')}]`
+  :value&&typeof value==='object'?`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`:JSON.stringify(value);
+const validSlot = value => ['POOLING','P0B','RESERVE','SENTINEL','ASSURANCE','READ_RESUME'].includes(value);
+const validResume = event => {
+  const binding=event?.resume_binding;
+  const exactBinding=binding&&Object.keys(binding).sort().join(',')==='artifact_digest,artifact_id,producer_conclusion,producer_event,run_attempt,run_id,source_sha';
+  const checkpointList=Array.isArray(event.checkpoint_digests)&&event.checkpoint_digests.length>=1&&event.checkpoint_digests.length<=8
+    &&event.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))
+    &&new Set(event.checkpoint_digests).size===event.checkpoint_digests.length
+    &&event.checkpoint_digests.join(',')===[...event.checkpoint_digests].sort().join(',');
+  const resumeAt=Date.parse(event.resume_at);
+  const scheduleDigest=binding&&checkpointList&&Number.isFinite(resumeAt)
+    ?createHash('sha256').update(canonical({repo:'johnkim9524-collab/kaios_enterprise_repo',binding,
+      checkpoint_digests:event.checkpoint_digests,scheduled_at:resumeAt})).digest('hex'):'';
+  return event?.slot==='READ_RESUME'&&Object.keys(event).sort().join(',')==='checkpoint_digests,resume_at,resume_binding,schedule_id,slot,source'
+    &&exactBinding
+    &&binding&&/^[1-9][0-9]{0,19}$/.test(String(binding.run_id))&&Number.isSafeInteger(binding.run_attempt)
+    &&binding.run_attempt>=1&&binding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(binding.source_sha||'')
+    &&Number.isSafeInteger(binding.artifact_id)&&binding.artifact_id>0&&/^sha256:[a-f0-9]{64}$/.test(binding.artifact_digest||'')
+    &&['workflow_run','repository_dispatch'].includes(binding.producer_event)
+    &&['failure','success'].includes(binding.producer_conclusion)&&Array.isArray(event.checkpoint_digests)
+    &&event.checkpoint_digests.length>=1&&event.checkpoint_digests.length<=8
+    &&event.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))
+    &&new Set(event.checkpoint_digests).size===event.checkpoint_digests.length
+    &&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.000Z$/.test(event.resume_at||'')
+    &&Number.isFinite(resumeAt)&&/^kidults-read-resume-[a-f0-9]{40}$/.test(event.schedule_id)
+    &&event.schedule_id===`kidults-read-resume-${scheduleDigest.slice(0,40)}`;
+};
 
-function createHandler({getPrivateKey, request, putOnce, config, now=()=>Date.now(), nonce=()=>randomBytes(24).toString('base64url')}) {
+function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=()=>Date.now(), nonce=()=>randomBytes(24).toString('base64url')}) {
   return async event => {
     const slot=event?.slot;
-    if (event?.source!=='aws.scheduler' || !validSlot(slot) || Object.keys(event).sort().join(',')!=='slot,source') deny('EVENT_DENIED');
-    const issuedAt=new Date(now()).toISOString();
+    const resume=slot==='READ_RESUME';
+    if (event?.source!=='aws.scheduler' || !validSlot(slot)
+      || (resume?!validResume(event):Object.keys(event).sort().join(',')!=='slot,source')) deny('EVENT_DENIED');
+    let issuedAt=new Date(now()).toISOString();
     const key=await getPrivateKey();
     if(typeof key!=='string'||!/-----BEGIN (?:RSA )?PRIVATE KEY-----/.test(key)) deny('KEY_INVALID');
     const issued=Math.floor(now()/1000);
@@ -32,24 +62,39 @@ function createHandler({getPrivateKey, request, putOnce, config, now=()=>Date.no
     const repository=await call(`https://api.github.com/repos/${config.repository}`,{bearer:installation.token});
     if(String(repository?.id)!==String(config.repositoryId)||repository?.full_name!==config.repository||repository?.default_branch!=='main') deny('REPOSITORY_INVALID');
     const branch=await call(`https://api.github.com/repos/${config.repository}/branches/main`,{bearer:installation.token});
-    const exactMainSha=branch?.commit?.sha;
+    let exactMainSha=branch?.commit?.sha;
     if(typeof exactMainSha!=='string'||!/^[0-9a-f]{40}$/.test(exactMainSha)||branch?.protected!==true) deny('MAIN_INVALID');
-    const nonceValue=nonce();
-    if(typeof nonceValue!=='string'||!/^[A-Za-z0-9_-]{32,128}$/.test(nonceValue)) deny('NONCE_INVALID');
-    const dispatchId=`kidults-natural-clock-v1:${slot}:${exactMainSha}:${nonceValue}`;
-    const payload={dispatch_id:dispatchId,exact_main_sha:exactMainSha,issued_at:issuedAt,nonce:nonceValue,slot,source:'AWS_EVENTBRIDGE_SCHEDULER'};
-    const digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
-    await putOnce({dispatchId,slot,exactMainSha,issuedAt,digest,expiresAt:Math.floor(now()/1000)+86400});
+    const nonceValue=resume?null:nonce();
+    if(!resume&&(typeof nonceValue!=='string'||!/^[A-Za-z0-9_-]{32,128}$/.test(nonceValue))) deny('NONCE_INVALID');
+    const dispatchId=resume?event.schedule_id:`kidults-natural-clock-v1:${slot}:${exactMainSha}:${nonceValue}`;
+    const makePayload=()=>resume?{dispatch_id:dispatchId,exact_main_sha:exactMainSha,issued_at:issuedAt,slot,
+      source:'AWS_EVENTBRIDGE_SCHEDULER',resume_binding:event.resume_binding,checkpoint_digests:event.checkpoint_digests,
+      resume_at:event.resume_at,schedule_id:event.schedule_id}
+      :{dispatch_id:dispatchId,exact_main_sha:exactMainSha,issued_at:issuedAt,nonce:nonceValue,slot,source:'AWS_EVENTBRIDGE_SCHEDULER'};
+    let payload=makePayload();
+    let digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
+    try{await putOnce({dispatchId,slot,exactMainSha,issuedAt,digest,expiresAt:Math.floor(now()/1000)+86400});}
+    catch(error){
+      if(!resume||error?.name!=='ConditionalCheckFailedException'||typeof getLedger!=='function')throw error;
+      const existing=await getLedger(dispatchId);
+      if(existing?.receipt_digest!==digest){
+        if(!existing?.exact_main_sha||!/^[a-f0-9]{40}$/.test(existing.exact_main_sha)||!existing?.issued_at)deny('REPLAY_BINDING');
+        exactMainSha=existing.exact_main_sha;issuedAt=existing.issued_at;payload=makePayload();
+        digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
+        if(existing.receipt_digest!==digest)deny('REPLAY_BINDING');
+      }
+    }
     await call(`https://api.github.com/repos/${config.repository}/dispatches`,{bearer:installation.token,method:'POST',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});
-    return {ok:true,state:'VERIFIED_DISPATCHED',dispatch_id:dispatchId,exact_main_sha:exactMainSha,slot,receipt_digest:digest};
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:resume?'kidults.github.read.resume.v1':`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});
+    return {ok:true,state:resume?'VERIFIED_READ_RESUME_DISPATCHED':'VERIFIED_DISPATCHED',dispatch_id:dispatchId,
+      exact_main_sha:exactMainSha,slot,receipt_digest:digest};
   };
 }
 
 exports.createHandler=createHandler;
 exports.handler=async event => {
   const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');
-  const {DynamoDBClient,PutItemCommand}=require('@aws-sdk/client-dynamodb');
+  const {DynamoDBClient,PutItemCommand,GetItemCommand}=require('@aws-sdk/client-dynamodb');
   const secrets=new SecretsManagerClient({});
   const dynamo=new DynamoDBClient({});
   return createHandler({
@@ -58,6 +103,9 @@ exports.handler=async event => {
     putOnce:async item=>dynamo.send(new PutItemCommand({TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,
       Item:{dispatch_id:{S:item.dispatchId},slot:{S:item.slot},exact_main_sha:{S:item.exactMainSha},issued_at:{S:item.issuedAt},receipt_digest:{S:item.digest},expires_at:{N:String(item.expiresAt)}},
       ConditionExpression:'attribute_not_exists(dispatch_id)'})),
+    getLedger:async dispatchId=>{const out=await dynamo.send(new GetItemCommand({TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,
+      Key:{dispatch_id:{S:dispatchId}},ConsistentRead:true}));return out.Item?{receipt_digest:out.Item.receipt_digest?.S,
+        exact_main_sha:out.Item.exact_main_sha?.S,issued_at:out.Item.issued_at?.S}:null;},
     config:{repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
       appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID},
   })(event);

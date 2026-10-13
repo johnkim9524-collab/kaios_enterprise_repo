@@ -4,6 +4,8 @@ export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
   "scripts/kidults/kpmo/lib/autonomous-terminal-immutable-v1.mjs",
   "scripts/kidults/kpmo/lib/postmerge-recovery-signed-ledger-client-v1.mjs",
   "scripts/kidults/kpmo/lib/resume-dispatch-fanout-v1.mjs",
+  "scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs",
+  "scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs",
   "scripts/kidults/staging-operations/lib/broker-caller-identity-v1.mjs",
@@ -19,12 +21,23 @@ export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   "scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs",
   "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs",
   "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
   "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-resume-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-readback-v1.mjs",
   "scripts/kidults/staging-operations/lib/github-lifecycle-executor-v1.mjs",
   ...MUTATING_EXECUTION_LIBRARIES,
+]);
+const STAGING_BOUNDED_READ_RESUME_CONTROLS=Object.freeze([
+  ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+  "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
+  "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
+  "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs",
 ]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
@@ -52,6 +65,10 @@ export const routeAuthorizationControl = (file, source) => {
   if (referencesEnvelope) return {
     route:"CANONICAL_ENVELOPE",
     coverage:{mode:"CONSUMER",consumer:file,source_reference:source.includes(CANONICAL_ENVELOPE_PATH)?CANONICAL_ENVELOPE_PATH:CANONICAL_ENVELOPE_ID},
+  };
+  if (STAGING_BOUNDED_READ_RESUME_CONTROLS.includes(file)) return {
+    route:"STAGING_BOUNDED",
+    coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"},
   };
   if (/^infrastructure\/aws\/staging\//.test(file)) return {route:"STAGING_BOUNDED",coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"}};
   if (/^(tests\/|docs\/)|\.(md|json)$/.test(file)) return {route:"NON_EXECUTING_REFERENCE",coverage:{mode:"EXEMPTION",reason_code:"NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"}};

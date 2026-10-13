@@ -48,7 +48,10 @@ export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=
   const bound=b=>{check(b&&typeof b.operation_id==='string'&&/^[a-f0-9]{64}$/.test(b.operation_id)
     &&/^[1-9][0-9]{0,15}$/.test(String(b.run_id))&&Number.isSafeInteger(b.run_attempt)&&b.run_attempt>=1&&b.run_attempt<=100
     &&/^[a-f0-9]{40}$/.test(b.source_sha)
-    &&typeof b.route==='string'&&b.route.startsWith('/repos/'+scope.repository+'/')&&b.method==='GET'&&Number.isSafeInteger(b.issued_at)&&b.issued_at>=0,'BINDING');return digest(b);};
+    &&typeof b.route==='string'&&b.route.startsWith('/repos/'+scope.repository+'/')&&b.method==='GET'&&Number.isSafeInteger(b.issued_at)&&b.issued_at>=0,'BINDING');
+    const {issued_at,...stableBinding}=b;
+    return digest(stableBinding);
+  };
   const api={
     scope:{...scope,coverage:'REGISTERED_PARTICIPANTS_ONLY'},
     acquire:async b=>{const binding=bound(b);return transition((row,time)=>{

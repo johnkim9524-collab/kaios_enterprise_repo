@@ -36,6 +36,33 @@ test('natural Sentinel terminal selector is explicitly inventoried without gaini
   assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(file));
   assert.equal(routeAuthorizationControl(file,fs.readFileSync(file,'utf8')).route,'INTERNAL_REVERSIBLE');
 });
+test('read-resume IAM grant stays Owner-reserved while bounded runtime uses the staging envelope',()=>{
+  const ownerFile='infrastructure/aws/staging/github-read-resume-role-v1.json';
+  const ownerSource=fs.readFileSync(ownerFile,'utf8');
+  assert.equal(routeAuthorizationControl(ownerFile,ownerSource).route,'OWNER_RESERVED');
+  assert.equal(routeAuthorizationControl(ownerFile,ownerSource).coverage.reason_code,'EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY');
+  assert.match(ownerSource,/scheduler:CreateSchedule/);
+  assert.match(ownerSource,/iam:PassRole/);
+  const keyPolicyFile='infrastructure/aws/staging/autonomous-internal-landing-v1.json';
+  const keyPolicySource=fs.readFileSync(keyPolicyFile,'utf8');
+  assert.equal(routeAuthorizationControl(keyPolicyFile,keyPolicySource).route,'OWNER_RESERVED');
+  assert.match(keyPolicySource,/AllowReadResumeObjectLockReceiptsThroughS3/);
+  const bounded=[
+    'infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs',
+    'infrastructure/aws/staging/natural-clock-dispatcher-v1.json',
+    '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+    'scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs',
+    'scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs',
+    'scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs',
+    'scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs',
+  ];
+  for(const file of bounded){
+    const source=fs.readFileSync(file,'utf8');
+    assert.equal(routeAuthorizationControl(file,source).route,'STAGING_BOUNDED',file);
+    assert.equal(routeAuthorizationControl(file,source).coverage.reason_code,'LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER',file);
+    assert.doesNotMatch(source,/OWNER_RESERVED_STAGING_INFRA_CHANGE/);
+  }
+});
 test("repository-wide approval envelope is internally consistent", () => {
   const result = spawnSync(process.execPath, ["scripts/governance/validate-autonomous-approval-policy-envelope-v1.mjs"], {cwd:root,encoding:"utf8"});
   assert.equal(result.status, 0, result.stderr);
@@ -144,7 +171,12 @@ test("staging bounded execution is allowlisted and immutable", () => {
   const executor=JSON.parse(fs.readFileSync("coordination/kidults/governance/autonomous-staging-bounded-executor-v1.json","utf8"));
   assert.equal(envelope.classes.STAGING_BOUNDED.executor,executor.id);
   assert.equal(executor.arbitrary_command_execution,false);
-  assert.deepEqual(executor.operations.map(value=>value.operation).sort(),["CLOUDTRAIL_CONTINUOUS_ASSURANCE","OBJECT_LOCK_CONTINUOUS_ASSURANCE"]);
-  assert.ok(executor.operations.every(value=>value.immutable_terminal_receipt&&value.exact_main_sha_input==="expected_main_sha"));
+  assert.deepEqual(executor.operations.map(value=>value.operation).sort(),["CLOUDTRAIL_CONTINUOUS_ASSURANCE","GITHUB_READ_RESUME_ONE_TIME_SCHEDULE","OBJECT_LOCK_CONTINUOUS_ASSURANCE"]);
+  assert.ok(executor.operations.every(value=>value.immutable_terminal_receipt));
+  assert.ok(executor.operations.filter(value=>value.operation!=="GITHUB_READ_RESUME_ONE_TIME_SCHEDULE")
+    .every(value=>value.exact_main_sha_input==="expected_main_sha"));
+  const readResume=executor.operations.find(value=>value.operation==="GITHUB_READ_RESUME_ONE_TIME_SCHEDULE");
+  assert.equal(readResume.exact_main_sha_input,"KIDULTS_EXPECTED_MAIN_SHA");
+  assert.equal(readResume.iam_permission_expansion,"OWNER_RESERVED_EXACT_ACTION_ONLY");
   assert.ok(executor.forbidden_operations.includes("CLOUDFORMATION_IAM_PERMISSION_EXPANSION"));
 });

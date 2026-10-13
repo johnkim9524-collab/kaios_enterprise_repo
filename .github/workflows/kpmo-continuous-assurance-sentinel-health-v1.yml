@@ -7,7 +7,7 @@ run-name: >-
 
 on:
   repository_dispatch:
-    types: [kidults.natural.clock.sentinel.v1]
+    types: [kidults.natural.clock.sentinel.v1, kidults.github.read.resume.v1]
   # Coverage success is the only authoritative Sentinel health event.
   # Authorization workflow_run events use the bounded read-resume observer and
   # receive an explicit non-authoritative run name for downstream selection.
@@ -19,6 +19,8 @@ on:
       - 'KIDULTS Autonomous Independent Verification V1'
     branches: [main]
     types: [completed]
+
+# The read-resume observer uses the bounded executor and its exact-main, Object Lock receipt contract.
   pull_request:
     branches: [main]
     paths:
@@ -371,18 +373,19 @@ jobs:
 
   read-resume-checkpoint:
     if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.repository.full_name == github.repository &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.status == 'completed' &&
-      github.event.workflow_run.conclusion == 'failure' &&
-      contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1"]'), github.event.workflow_run.name)
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.repository.full_name == github.repository &&
+       github.event.workflow_run.head_repository.full_name == github.repository &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.status == 'completed' &&
+       github.event.workflow_run.conclusion == 'failure' &&
+       contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1"]'), github.event.workflow_run.name)) ||
+      (github.event_name == 'repository_dispatch' && github.event.action == 'kidults.github.read.resume.v1')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: KIDULTS-AUTONOMOUS-READ-RESUME
     concurrency:
-      group: kidults-read-resume-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+      group: kidults-read-resume-${{ github.event.workflow_run.id || github.event.client_payload.resume_binding.run_id }}-${{ github.event.workflow_run.run_attempt || github.event.client_payload.resume_binding.run_attempt }}
       cancel-in-progress: false
     permissions:
       actions: read
@@ -392,17 +395,24 @@ jobs:
       - name: Checkout exact protected main consumer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
           persist-credentials: false
       - name: Verify exact consumer checkout
+        env:
+          EXPECTED_MAIN_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
       - name: Consume exact deferred read through the shared cross-runner budget
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
           KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
           KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
+          KIDULTS_EXPECTED_MAIN_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
+          KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
+          KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
           AWS_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role
         run: |
           set -euo pipefail
@@ -418,6 +428,8 @@ jobs:
           export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
           unset CREDS OIDC_JSON OIDC_TOKEN
           aws sts get-caller-identity --output json | jq -e '.Account == "528314240275" and (.Arn | contains("assumed-role/kidults-github-read-resume-staging-role/"))' >/dev/null
+          test -n "$KIDULTS_AUTONOMOUS_RECEIPT_BUCKET"
+          test -n "$KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN"
           node scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs
       - name: Preserve bounded read-only handoff receipt
         if: always()
