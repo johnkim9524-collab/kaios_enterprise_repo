@@ -65,6 +65,13 @@ const isExactSharedBudgetWriterUpgrade=(before,after)=>
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
+  if(typeof source==='string'&&sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256
+      &&sha256Hex(to?.Properties?.Code?.ZipFile||'')===SHARED_BUDGET_WRITER_SHA256){
+    const expected=structuredClone(from);
+    expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
+    expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
+    return equal(expected,to);
+  }
   if(typeof source==='string'&&[DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,CURRENT_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
       &&sha256Hex(to?.Properties?.Code?.ZipFile||'')===ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256){
     const expected=structuredClone(from);
