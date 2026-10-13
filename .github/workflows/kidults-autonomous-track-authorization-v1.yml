@@ -422,4 +422,5 @@ jobs:
           name: kidults-github-read-resume-track-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/github-read-resume-v1/
           if-no-files-found: ignore
+          overwrite: true
           retention-days: 90
