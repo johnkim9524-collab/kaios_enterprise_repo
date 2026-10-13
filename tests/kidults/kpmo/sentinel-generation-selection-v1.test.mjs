@@ -28,8 +28,8 @@ const good=run();
 const artifact={id:110,name:spec.artifacts[0],expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-09-05T10:01:00Z',expires_at:'2026-12-01T00:00:00Z',workflow_run:{id:10,head_sha:sourceSha}};
 function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},sourceSha,observed,{110:bytes});}
 
-function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'}={}){
- return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt};
+function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',display_title}={}){
+ return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt,display_title};
 }
 test('Assurance selects its exact causal Sentinel despite a newer successful or pending generation',()=>{
  const parent=sentinelRun(38032507316);
