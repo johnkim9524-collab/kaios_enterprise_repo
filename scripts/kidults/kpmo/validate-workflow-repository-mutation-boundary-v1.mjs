@@ -296,7 +296,7 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
         require(section.includes('    permissions:\n      actions: read\n      contents: read\n      id-token: write\n'), 'recovery-admission-permissions-read-only');
         require(section.includes('    name: Read-only recovery execution admission\n'), 'recovery-admission-name-exact');
         require(section.includes(`    environment: ${expected.environment}\n`), 'recovery-admission-environment-exact');
-        require(section.includes("    if: >-\n      github.ref == 'refs/heads/main' &&\n      ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success') ||\n      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'))"), 'recovery-admission-trigger-exact');
+        require(section.includes("    if: >-\n      github.ref == 'refs/heads/main' &&\n      ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run') ||\n      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure' && (github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'repository_dispatch')))"), 'recovery-admission-trigger-exact');
         require(section.includes('KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED')
           && section.includes('KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}'), 'recovery-admission-shared-budget-required');
         require(section.includes('AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}')
@@ -456,6 +456,7 @@ for (const [file, spec] of AUTONOMOUS_LANDING_WORKFLOWS) {
     [source.replace('KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}', 'KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-run-${{ github.run_id }}'), 'recovery-admission-shared-budget-required'],
     [source.replace(`assumed-role/kidults-autonomous-${spec.budgetRole}-staging-role/`, 'assumed-role/unapproved-role/'), 'recovery-admission-role-exact'],
     [source.replace("github.event.workflow_run.conclusion == 'failure'", "github.event.workflow_run.conclusion == 'success'"), 'recovery-admission-trigger-exact'],
+    [source.replace("github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'repository_dispatch'", "github.event.workflow_run.event == 'schedule'"), 'recovery-admission-trigger-exact'],
     [source.replace('  terminal-recovery-admission:', '  terminal-recovery-admission:\n    if: github.run_attempt == 1 &&'), 'recovery-admission-rerun-forbidden'],
     [source.replace('run-recovery-execution-admission-v1.mjs', 'run-autonomous-internal-landing-v1.mjs'), 'recovery-admission-runner-required'],
   ];

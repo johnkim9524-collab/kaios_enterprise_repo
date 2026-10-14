@@ -81,6 +81,11 @@ class RecoveryWorkflowTests(unittest.TestCase):
                           role_workflow['on']['workflow_run']['workflows'])
             self.assertIn('KIDULTS Platform Continuous Assurance V1',
                           role_workflow['on']['workflow_run']['workflows'])
+            admission_if = role_workflow['jobs']['terminal-recovery-admission']['if']
+            self.assertIn("github.event.workflow_run.event == 'workflow_run'", admission_if)
+            self.assertIn("github.event.workflow_run.event == 'repository_dispatch'", admission_if)
+            self.assertNotIn("github.event.workflow_run.event == 'schedule'", admission_if)
+            self.assertNotIn("github.event.workflow_run.event == 'workflow_dispatch'", admission_if)
 
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
