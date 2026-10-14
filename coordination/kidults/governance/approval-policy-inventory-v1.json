@@ -1,1 +1,59 @@
-}«Z––­…Ê(­Ø§jØ¨Ÿù"vém³ø(½êçjwýªi®‹Ú–š%‰Ì¢ž÷§¶Šò¿Xì¢whzÉèµìb²Ø§@
+{
+  "id": "kidults-approval-policy-inventory-v1",
+  "version": "1.0.0",
+  "status": "REPOSITORY_WIDE_ROUTING_COVERAGE_ENFORCED",
+  "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+  "audit": {
+    "baseline_sha": "58098149b8f66d6e2b66be43e989404f0661e64f",
+    "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
+    "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
+    "approval_related_files_reviewed": 848,
+    "manifest_sha256": "sha256:19ced5631110bc0112cdfc0dfd3367e09a64a0c4bd0bc86ec6b8d236527dd11f",
+    "canonical_execution_authorization_policies": 3,
+    "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
+    "routing_coverage": {
+      "execution_authorization_controls": 290,
+      "consumers": 7,
+      "exemptions": 283,
+      "route_counts": {
+        "CANONICAL_ENVELOPE": 7,
+        "INTERNAL_REVERSIBLE": 123,
+        "NON_EXECUTING_REFERENCE": 94,
+        "OWNER_RESERVED": 22,
+        "STAGING_BOUNDED": 44
+      }
+    }
+  },
+  "policies": [
+    {
+      "policy": "AI-020",
+      "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
+      "route": "INTERNAL_REVERSIBLE_OR_STAGING_BOUNDED",
+      "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"
+    },
+    {
+      "policy": "AUTONOMOUS_INTERNAL_LANDING",
+      "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
+      "route": "INTERNAL_REVERSIBLE",
+      "human_reapproval": "FORBIDDEN_WHILE_ENVELOPE_VALID"
+    },
+    {
+      "policy": "GOVERNED_LANDING_AUTHORIZATION",
+      "path": "coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json",
+      "route": "OWNER_RESERVED_OR_RECOVERY_ONLY",
+      "human_reapproval": "REQUIRED_PER_EXACT_ACTION"
+    }
+  ],
+  "domain_human_reviews": {
+    "affected": false,
+    "reason": "Entity resolution, legal, rights, financial, safety and external-publication reviews are domain decisions, not repeated landing authorization."
+  },
+  "unknown_policy": "FAIL_CLOSED_OWNER_REQUIRED",
+  "holds": {
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD",
+    "psa_external_call": "HOLD"
+  },
+  "manifest_sha256": "sha256:19ced5631110bc0112cdfc0dfd3367e09a64a0c4bd0bc86ec6b8d236527dd11f"
+}
