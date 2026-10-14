@@ -7,18 +7,18 @@
     "baseline_sha": "d2441938c5981910a76214c2f063e31f2e455e27",
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
-    "approval_related_files_reviewed": 855,
-    "manifest_sha256": "sha256:ee673c1d9b1ef21f6e0ab024ffea7f00ec36c74e717dcc7b52ad66300b331ce2",
+    "approval_related_files_reviewed": 849,
+    "manifest_sha256": "sha256:2cdda61682fdef87aa1a5b6ea6334b4631008c6e2c660f67ff772140166e9aac",
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
-      "execution_authorization_controls": 293,
+      "execution_authorization_controls": 291,
       "consumers": 7,
-      "exemptions": 286,
+      "exemptions": 284,
       "route_counts": {
         "CANONICAL_ENVELOPE": 7,
-        "INTERNAL_REVERSIBLE": 124,
-        "NON_EXECUTING_REFERENCE": 95,
+        "INTERNAL_REVERSIBLE": 123,
+        "NON_EXECUTING_REFERENCE": 94,
         "OWNER_RESERVED": 22,
         "STAGING_BOUNDED": 45
       }
@@ -55,5 +55,5 @@
     "g5": "HOLD",
     "psa_external_call": "HOLD"
   },
-  "manifest_sha256": "sha256:ee673c1d9b1ef21f6e0ab024ffea7f00ec36c74e717dcc7b52ad66300b331ce2"
+  "manifest_sha256": "sha256:2cdda61682fdef87aa1a5b6ea6334b4631008c6e2c660f67ff772140166e9aac"
 }

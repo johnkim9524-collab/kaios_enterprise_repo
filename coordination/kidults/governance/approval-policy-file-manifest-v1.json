@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 855
+    "file_count": 849
   },
   "files": [
     {
@@ -1459,19 +1459,6 @@
           "mode": "CONSUMER",
           "consumer": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
           "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
-        }
-      }
-    },
-    {
-      "path": "coordination/kidults/governance/autonomous-staging-bounded-executor-v1.json",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c6124fa371e8a4354dd4a26581df435a00169b54",
-      "sha256": "sha256:34f0490063619c857a0a5677c060164a3596ecbf73562eef33706aa785cc1b4b",
-      "authorization_routing": {
-        "route": "NON_EXECUTING_REFERENCE",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
         }
       }
     },
@@ -3400,18 +3387,6 @@
       }
     },
     {
-      "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "17c0e89da5e12462a2f82d78cd68e911a37813c4",
-      "sha256": "sha256:931259e8d22a531abbb3809a0930accfbbe59c8c3bf0ae6ab72339a80a76be41"
-    },
-    {
-      "path": "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6f9d555fee6fbcd6f6e13d4d86df60f05af11fb3",
-      "sha256": "sha256:e4ceb238654b805908bbf7cb9eba28b89d07a3cf999165afa6f13fbe21f2d0aa"
-    },
-    {
       "path": "package.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "4cc6589f88378807716db6f143c6fa2bc255b784",
@@ -4622,19 +4597,6 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "95cb201c561a0d08078920a7824a0e4d1f5d75e5",
       "sha256": "sha256:3881f83ec3c7bacabcbad7136b7c1a21dfbc10f59014df62e6ef5c4533062f0b",
-      "authorization_routing": {
-        "route": "INTERNAL_REVERSIBLE",
-        "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
-        }
-      }
-    },
-    {
-      "path": "scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "6fe4fc598dcc30f16c2e5ac02e1b95447f270fb0",
-      "sha256": "sha256:9052e0d5b7b20d8e6102cf1e5ee6f0dbd2062f68b25722f854fbc4536347702e",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6937,12 +6899,6 @@
       "sha256": "sha256:e19995bb9f3d89f003cbf2e1fb7b6dac8c0183c8b4e0b4936a127cecd74870a7"
     },
     {
-      "path": "tests/kidults/kpmo/sentinel-generation-selection-v1.test.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "5c0d22e5a0f32dca3e31471ba7b87e1b1a497317",
-      "sha256": "sha256:9e0654ff04554721cb611d45d4d1fd3e133183f5e17f31b6d140e8a43ff5effb"
-    },
-    {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "b314fa1dd7f2fa7e86172a25484bc0b36608e2ac",
@@ -7141,12 +7097,6 @@
       "sha256": "sha256:76df807960f40ba04e4d287b44a852e0b649bd33d4edcaafb067e93ac17c4b92"
     },
     {
-      "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "37609cea7de9710cc4cb382782724536abbfdb63",
-      "sha256": "sha256:b0860dd2c88567084d1f929efbfc59e3f410404717806c39fc4db5254dea2392"
-    },
-    {
       "path": "tests/kidults/staging-operations/independent-handoff-run-name-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "2b6abd62538488c65798e2f700514d92d1b37f77",
@@ -7201,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ee673c1d9b1ef21f6e0ab024ffea7f00ec36c74e717dcc7b52ad66300b331ce2"
+  "manifest_sha256": "sha256:2cdda61682fdef87aa1a5b6ea6334b4631008c6e2c660f67ff772140166e9aac"
 }
