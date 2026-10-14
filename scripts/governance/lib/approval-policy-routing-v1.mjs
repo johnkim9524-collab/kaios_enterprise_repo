@@ -16,6 +16,7 @@ export const MUTATING_EXECUTION_LIBRARIES=Object.freeze([
   "scripts/kidults/staging-operations/lib/postgres-transition-ledger-v1.mjs",
 ]);
 export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
+  ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
   ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
   "infrastructure/aws/staging/github-read-resume-role-v1.json",
   "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
@@ -40,6 +41,9 @@ const STAGING_BOUNDED_READ_RESUME_CONTROLS=Object.freeze([
   "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs",
+]);
+const STAGING_BOUNDED_CONTINUATION_CONTROLS=Object.freeze([
+  ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
 ]);
 
 export const ALLOWED_ROUTES=new Set(["CANONICAL_ENVELOPE","INTERNAL_REVERSIBLE","STAGING_BOUNDED","OWNER_RESERVED","DOMAIN_ADJUDICATION","NON_EXECUTING_REFERENCE"]);
@@ -68,7 +72,7 @@ export const routeAuthorizationControl = (file, source) => {
     route:"CANONICAL_ENVELOPE",
     coverage:{mode:"CONSUMER",consumer:file,source_reference:source.includes(CANONICAL_ENVELOPE_PATH)?CANONICAL_ENVELOPE_PATH:CANONICAL_ENVELOPE_ID},
   };
-  if (STAGING_BOUNDED_READ_RESUME_CONTROLS.includes(file)) return {
+  if (STAGING_BOUNDED_READ_RESUME_CONTROLS.includes(file)||STAGING_BOUNDED_CONTINUATION_CONTROLS.includes(file)) return {
     route:"STAGING_BOUNDED",
     coverage:{mode:"EXEMPTION",reason_code:"LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"},
   };

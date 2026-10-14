@@ -36,6 +36,11 @@ test('natural Sentinel terminal selector is explicitly inventoried without gaini
   assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(file));
   assert.equal(routeAuthorizationControl(file,fs.readFileSync(file,'utf8')).route,'INTERNAL_REVERSIBLE');
 });
+test('Coverage continuation dispatcher is inventoried as a bounded internal execution control',()=>{
+  const file='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
+  assert.ok(EXPLICIT_EXECUTION_CONTROLS.includes(file));
+  assert.equal(routeAuthorizationControl(file,fs.readFileSync(file,'utf8')).route,'STAGING_BOUNDED');
+});
 test('read-resume IAM grant stays Owner-reserved while bounded runtime uses the staging envelope',()=>{
   const ownerFile='infrastructure/aws/staging/github-read-resume-role-v1.json';
   const ownerSource=fs.readFileSync(ownerFile,'utf8');

@@ -28,6 +28,11 @@ const member=(packet,basename)=>{
   const values=packet.members.filter(m=>path.posix.basename(m.name)===basename);
   requireEvidence(values.length===1,'MEMBER_CARDINALITY');return JSON.parse(values[0].text);
 };
+export function operatingProofFailureDisposition(error){
+  if(error?.read_resume_checkpoint?.state==='READ_DEFERRED_NOT_AUTHORITY')
+    return {state:'VERIFIED_HOLD',reason:'GITHUB_READ_DEFERRED_NOT_AUTHORITY'};
+  return {state:'VERIFIED_FAIL',reason:String(error?.message||error).split(':')[0]};
+}
 export function originalRecoveryHistoryQuery(originalRun,observedAt,page){
   const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
   requireEvidence(originalRun?.id===38132692877&&Number.isFinite(start)&&Number.isFinite(end)&&start<=end
@@ -47,19 +52,20 @@ export async function listOriginalRecoveryHistory({originalRun,observedAt,get,wo
     requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
       &&Number.isSafeInteger(index.total_count)&&index.total_count>=0
       &&index.incomplete_results!==true,'RECOVERY_HISTORY_INDEX');
-    // A bounded prefix cannot establish that an older reconciliation is absent.
-    requireEvidence(index.total_count<=1000,'RECOVERY_HISTORY_TRUNCATED');
     if(total===undefined)total=index.total_count;
     requireEvidence(index.total_count===total,'RECOVERY_HISTORY_CHANGED');
     history.push(...index.workflow_runs);
-    requireEvidence(history.length<=total,'RECOVERY_HISTORY_CARDINALITY');
-    if(history.length===total){
+    requireEvidence(history.length<=total&&history.length<=1000,'RECOVERY_HISTORY_CARDINALITY');
+    // GitHub caps a workflow-run search at 1,000 results. A complete result
+    // can establish absence; a bounded prefix can establish a positive match
+    // but must never be interpreted as proof that no older recovery exists.
+    if(history.length===total||history.length===1000){
       requireEvidence(new Set(history.map(r=>r.id)).size===history.length,'RECOVERY_HISTORY_DUPLICATE');
       const start=Date.parse(originalRun.created_at),end=Date.parse(observedAt);
       requireEvidence(history.every(r=>Number.isSafeInteger(r?.id)&&r.id>0
         &&Number.isFinite(Date.parse(r.created_at))&&Date.parse(r.created_at)>=start
         &&Date.parse(r.created_at)<=end),'RECOVERY_HISTORY_INCIDENT_WINDOW');
-      return history;
+      return {workflow_runs:history,total_count:total,complete:history.length===total};
     }
     requireEvidence(index.workflow_runs.length===100&&page<10,'RECOVERY_HISTORY_TRUNCATED');
   }
@@ -77,7 +83,8 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   requireEvidence(commit.sha===sourceSha,'COMMIT');
   const check=id=>out.operating_checks.find(c=>c.id===id);
   const mark=(id,state,reason,refs=[])=>Object.assign(check(id),{state,reason,evidence_refs:refs});
-  const attempt=async(ids,work)=>{try{await work();}catch(error){for(const id of ids)mark(id,'VERIFIED_FAIL',String(error.message).split(':')[0]);}};
+  const attempt=async(ids,work)=>{try{await work();}catch(error){const disposition=operatingProofFailureDisposition(error);
+    for(const id of ids)mark(id,disposition.state,disposition.reason);}};
   const runs=async(s,sha=sourceSha)=>{
     let values;
     if(listRuns)values=await listRuns(REPOSITORY,s,sha,token);
@@ -285,9 +292,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     const recoverySpec=finalizers.find(s=>s.id==='FINALIZER_track');
     // A recovered debt survives later main commits and observation windows.
     // Search the native archive history, never mint a replacement generation.
-    let recoveryHistory=[];
-    if(listRuns)recoveryHistory=await listRuns(REPOSITORY,recoverySpec,null,token);
-    else recoveryHistory=await listOriginalRecoveryHistory({originalRun:run,observedAt,get,workflow:recoverySpec.workflow});
+    let recoveryIndex;
+    if(listRuns)recoveryIndex={workflow_runs:await listRuns(REPOSITORY,recoverySpec,null,token),complete:true};
+    else recoveryIndex=await listOriginalRecoveryHistory({originalRun:run,observedAt,get,workflow:recoverySpec.workflow});
+    const recoveryHistory=recoveryIndex.workflow_runs;
     requireEvidence(new Set(recoveryHistory.map(r=>r.id)).size===recoveryHistory.length,'RECOVERY_HISTORY_DUPLICATE');
     for(const recovery of recoveryHistory){
       if(recovery.run_attempt!==1||!recoverySpec.events.includes(recovery.event))continue;
@@ -334,6 +342,10 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
         'ORIGINAL_FAILURE_TERMINAL_RECONCILED_NOT_OPERATING_AUTHORITY',
         [recovery.id,verified.terminal_digest,verified.immutable.version_id]);
       break;
+    }
+    if(!out.original_terminal_reconciliation&&!recoveryIndex.complete){
+      mark('FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL','VERIFIED_HOLD',
+        'RECOVERY_HISTORY_PREFIX_CANNOT_PROVE_TERMINAL_ABSENCE',[run.id,recoveryIndex.total_count]);
     }
 
   });

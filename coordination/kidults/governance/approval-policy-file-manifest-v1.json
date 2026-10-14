@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "58098149b8f66d6e2b66be43e989404f0661e64f",
+  "revision": "037ae3794d8884381da54736b0f166d1fadb2090",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 848
+    "file_count": 849
   },
   "files": [
     {
@@ -74,6 +74,19 @@
         "coverage": {
           "mode": "EXEMPTION",
           "reason_code": "EXACT_ACTION_OWNER_OR_EXTERNAL_BOUNDARY"
+        }
+      }
+    },
+    {
+      "path": ".github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "345427d2ee2f5a9cdf02613460cf8fa857c786ed",
+      "sha256": "sha256:e48770e9ba54f13e34f519496926c93323628f47b2d44c2d3df5d1bca2d05f6a",
+      "authorization_routing": {
+        "route": "STAGING_BOUNDED",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_STAGING_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
         }
       }
     },
@@ -561,8 +574,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "759b72cb58b1afd8ac4275e397ec99eb00d53d8a",
-      "sha256": "sha256:7ac18e1e6dc29fddc304ec03c6b02b8f87fad5640d61d52332d0a104d7f8b7e1",
+      "git_blob": "26b109ea74cad10927088511d00d377f032d0b65",
+      "sha256": "sha256:cce0ceb84030a883978347bdac09912bee64b2338661da2b77c85780762864f8",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -691,8 +704,8 @@
     {
       "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c3a3ca0e3a7745897f75ab73894965dcb2c59b1e",
-      "sha256": "sha256:803fccb8de6871da9782aab9321588f18b826321f75c70da82bf5b5af34d9247",
+      "git_blob": "535eb3a05d08bd4fc1cc3fee2809a611ba04f488",
+      "sha256": "sha256:3def4723ee0fad46ba9051dd30229166e3a2b234cd11a478b1aefd7badacfc5a",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -3408,8 +3421,8 @@
     {
       "path": "scripts/governance/lib/approval-policy-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f50be4620c81bd0597f0ced70c360267c5eaf2e5",
-      "sha256": "sha256:7fb468385061dc883f2d0c87f5bd6968a5d5a688e2c4197c2437674319898f84",
+      "git_blob": "60043cc364f2774a2c2b24c45a7d9581e2e70db2",
+      "sha256": "sha256:963381b31c5c0c99126ee4b980e283166e4cdd16aad7ad5d77a78b22d6b81994",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -6413,8 +6426,8 @@
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "975d5cc7416a78f563991c573f2df25f97212f40",
-      "sha256": "sha256:9ac487026895916ff74bdabbcd1a2dbe9c9cae269fe2f4ae5c36401d0dcacae6",
+      "git_blob": "52308701d32ce4fd72b7b27001b33059c7f4e14b",
+      "sha256": "sha256:50ee1cfcda0f272ce226993a70e6f4ee2b345893cc753878f414530b2c3d8cf2",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -6894,8 +6907,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "02176895e79a2acbc7b1e4e6aba7617fc78e5990",
-      "sha256": "sha256:885e798e70daafa8c23eec65f0dd40118c3c84cdc66f46e423f0d069b26de19c"
+      "git_blob": "c6b9f7c636b05f50fc6267b9f0d5009b92505dd3",
+      "sha256": "sha256:5c97dd0800f8abcde47102d44406cd53516e8043f16dee58dd46370471b8a338"
     },
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
@@ -7138,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:19ced5631110bc0112cdfc0dfd3367e09a64a0c4bd0bc86ec6b8d236527dd11f"
+  "manifest_sha256": "sha256:b8b1e3655bd2a93b8d6fa75cb28378aef2f04fa373d7bb437e93b81d5818f01e"
 }

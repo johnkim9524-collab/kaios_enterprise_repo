@@ -233,6 +233,13 @@ test('Sentinel subscribes to bounded-resume failures while Assurance still sees 
  assert.ok(s.includes("continuation_event_type"));
  assert.ok(c.includes("kidults.assurance.continuation.v1"));
  assert.match(c,/\/repos\/\$\{GITHUB_REPOSITORY\}\/actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/dispatches/);
+ assert.match(c,/\/actions\/workflows\/kidults-platform-continuous-assurance-v1\.yml\/dispatches/);
+ assert.doesNotMatch(s,/dispatch-assurance-after-sentinel:/);
+ assert.doesNotMatch(s,/actions: write/);
+ const audit=a.match(/^  audit:\n[\s\S]*?^    if: >-\n([\s\S]*?)^    concurrency:/m);
+ assert.ok(audit,'missing Assurance audit event gate');
+ assert.match(audit[1],/github\.event\.workflow_run\.event == 'repository_dispatch'/);
+ assert.match(a,/Bind exact upstream Sentinel receipt digest[\s\S]*?github\.event\.workflow_run\.event == 'repository_dispatch'/);
  assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: read[\s\S]*?actions: write|dispatch-kir-coverage-assurance:[\s\S]*?actions: write[\s\S]*?contents: read/);
  assert.doesNotMatch(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: write/);
  assert.match(s,/Verify exact Coverage chain continuation[\s\S]*?github\.event_name == 'workflow_dispatch'/);
