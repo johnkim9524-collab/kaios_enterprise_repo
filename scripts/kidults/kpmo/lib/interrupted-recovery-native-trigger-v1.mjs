@@ -4,6 +4,8 @@ import {assuranceSentinelObservationRoute} from './assurance-sentinel-observatio
 import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-run-v1.mjs';
 import {bindAssuranceUpstreamSentinelReceipt} from '../bind-assurance-upstream-sentinel-receipt-v1.mjs';
+import {verifyAuthenticatedSentinelContinuation} from './authenticated-sentinel-continuation-v1.mjs';
+import {consumeKirCoverageAssuranceContinuation} from '../validate-kir-coverage-assurance-continuation-v1.mjs';
 // Read-only authentication of the existing Gate workflow_run trigger.
 import fs from 'node:fs';
 import {readArchive,checkTransport} from '../validate-sentinel-producer-content-v1.mjs';
@@ -12,13 +14,17 @@ import {canonicalJson,sha256} from './canonical-json-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const assuranceName='KIDULTS Platform Continuous Assurance V1';
 const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+const coverageName='KIDULTS Coverage';
+const coveragePath='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
+const sentinelName='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1';
+const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
 const check=(ok,code)=>{if(!ok)throw new Error('INTERRUPTED_TRIGGER_'+code);};
 export const recoveryNativeGet=route=>runtimeGithubRead(process.env.GITHUB_TOKEN||process.env.GH_TOKEN)(`https://api.github.com/repos/${repository}/${route}`);
 const nativeBytes=route=>execFileSync('gh',['api',`repos/${repository}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
 export async function verifyFailureAssuranceParent({run,eventAction='completed',sourceSha,get,readBytes,archiveReader=readArchive}){
   check(eventAction==='completed'&&run?.name===assuranceName&&run.path===assurancePath
     &&run.status==='completed'&&run.conclusion==='failure'&&run.run_attempt===1&&run.head_sha===sourceSha
-    &&run.head_branch==='main'&&['workflow_run','repository_dispatch'].includes(run.event)
+    &&run.head_branch==='main'&&['workflow_run','repository_dispatch','workflow_dispatch'].includes(run.event)
     &&run.repository?.full_name===repository&&String(run.repository?.id)==='1281328888'
     &&run.head_repository?.full_name===repository,'FAILURE_ASSURANCE_TRIGGER');
   const live=await get(`actions/runs/${run.id}`);
@@ -31,6 +37,15 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const failed=jobs.jobs.filter(j=>j.status==='completed'&&j.conclusion==='failure');
   check(failed.length===1&&failed[0].name==='audit'&&failed[0].run_id===live.id
     &&(failed[0].run_attempt===undefined||failed[0].run_attempt===1),'FAILURE_ASSURANCE_DISPOSITION');
+    if(run.event==='workflow_dispatch'){
+      const classifiers=jobs.jobs.filter(j=>j.name==='classify-canonical-identity');
+      const classifierSteps=classifiers[0]?.steps||[];
+      const exactStep=name=>classifierSteps.filter(step=>step.name===name&&step.status==='completed'&&step.conclusion==='success').length===1;
+      check(classifiers.length===1&&classifiers[0].run_id===live.id&&classifiers[0].status==='completed'
+        &&classifiers[0].conclusion==='success'&&exactStep('Reject partial forwarded Coverage continuation inputs')
+        &&exactStep('Validate and consume forwarded exact Coverage continuation')
+        &&exactStep('Retain one-time Coverage continuation consumption receipt'),'FAILURE_ASSURANCE_COVERAGE_STEPS');
+    }
   const listing=await get(`actions/runs/${live.id}/artifacts?per_page=100`);
   check(Array.isArray(listing.artifacts)&&listing.total_count===listing.artifacts.length&&listing.total_count<=100,'FAILURE_ASSURANCE_ARTIFACT_LIST');
   const name=`kidults-continuous-assurance-${sourceSha}-${live.id}-1`,artifacts=listing.artifacts.filter(a=>a.name===name);
@@ -47,6 +62,8 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const failedChecks=(proof.operating_checks||[]).filter(c=>c.state==='VERIFIED_FAIL');
   const terminalCheck=failedChecks[0];
   let upstream=audit.execution?.upstream;
+  let authenticatedCoverageContinuation=false;
+  let coverageContinuation=null;
   if(live.event==='repository_dispatch'){
     const observedAt=assuranceClockObservationBoundary({proof,assuranceRun:live,sourceSha,profile:'failed-terminal-recovery'});
     // Authenticate the archive snapshot, never a newer run observed later.
@@ -70,6 +87,121 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
     check(binding.artifact_id===Number(route.sentinelBinding.artifact_id)&&binding.artifact_digest===route.sentinelBinding.artifact_digest,'FAILURE_CLOCK_SENTINEL_ARCHIVE');
     upstream={run_id:String(binding.run_id),run_attempt:'1',workflow_name:selected.latest.name,workflow_path:selected.latest.path,workflow_event:selected.latest.event,conclusion:'success',repository,head_branch:'main',source_receipt_digest:binding.receipt_digest};
   }
+  if(live.event==='workflow_dispatch'){
+    // The only dispatch failure eligible for recovery is the bot-created
+    // continuation whose one-time Coverage consumption and exact Sentinel
+    // archive are both independently re-read and bound to this Assurance run.
+    check(live.actor?.login==='github-actions[bot]','COVERAGE_CONTINUATION_ACTOR');
+    const consumedArtifacts=listing.artifacts.filter(a=>/^kidults-kir-coverage-assurance-consumption-v1-[1-9][0-9]*-1$/.test(a.name||'')
+      &&a.workflow_run?.id===live.id&&a.workflow_run?.head_sha===sourceSha);
+    check(consumedArtifacts.length===1,'COVERAGE_CONTINUATION_ARTIFACT');
+    const consumedArtifact=consumedArtifacts[0];
+    checkTransport(live,consumedArtifact,sourceSha,new Date().toISOString(),{allowFailedConclusion:true});
+    check(Date.parse(consumedArtifact.created_at)<=Date.parse(live.updated_at),'COVERAGE_CONSUMPTION_ARTIFACT_TIME');
+    const consumedBytes=await readBytes(`actions/artifacts/${consumedArtifact.id}/zip`);
+    check(Buffer.isBuffer(consumedBytes)&&consumedBytes.length===consumedArtifact.size_in_bytes,'COVERAGE_CONTINUATION_ARCHIVE_SIZE');
+    const consumedPacket=archiveReader(consumedBytes,consumedArtifact.digest);
+    check(consumedPacket.archive_digest===consumedArtifact.digest&&consumedPacket.members.length===3,'COVERAGE_CONSUMPTION_ARCHIVE_BINDING');
+    const findMember=(packet,basename,code)=>{
+      const matches=packet.members.filter(m=>m.encoding==='utf-8'&&m.name.split('/').at(-1)===basename);
+      check(matches.length===1&&matches[0].sha256===sha256(matches[0].text),code);return JSON.parse(matches[0].text);
+    };
+    const consumed=findMember(consumedPacket,'kir-coverage-assurance-consumption-v1.json','COVERAGE_CONSUMPTION_RECEIPT');
+    const copiedDispatchReceipt=findMember(consumedPacket,'kir-coverage-assurance-continuation-v1.json','COVERAGE_DISPATCH_RECEIPT');
+    const coverageRunId=Number(consumed.coverage_run_id),coverageAttempt=Number(consumed.coverage_run_attempt);
+    check(Number.isSafeInteger(coverageRunId)&&coverageRunId>0&&coverageAttempt===1
+      &&consumedArtifact.name===`kidults-kir-coverage-assurance-consumption-v1-${coverageRunId}-${coverageAttempt}`
+      &&consumed.id==='kidults-kir-coverage-assurance-consumption-v1'&&consumed.version==='1.3.0'
+      &&consumed.state==='CONSUMED_VERIFIED'&&consumed.consumer_workflow_run_id===live.id
+      &&consumed.consumer_workflow_run_attempt===1&&consumed.source_sha===sourceSha
+      &&consumed.input_validated===true&&consumed.receipt_verified===true&&consumed.one_time_consumed===true
+      &&consumed.authoritative_coverage_verified===true&&consumed.promotion_eligible===false
+      &&consumed.production==='HOLD'&&consumed.public==='HOLD'&&consumed.g5==='HOLD','COVERAGE_CONSUMPTION_BINDING');
+    const coverageRun=await get(`actions/runs/${coverageRunId}`);
+    check(coverageRun.id===coverageRunId&&coverageRun.run_attempt===coverageAttempt&&coverageRun.name===`${coverageName} / source-${sourceSha}`
+      &&coverageRun.path===coveragePath&&coverageRun.event==='workflow_run'&&coverageRun.event===consumed.coverage_event&&coverageRun.status==='completed'
+      &&coverageRun.conclusion==='success'&&coverageRun.head_sha===sourceSha&&coverageRun.head_branch==='main'
+      &&coverageRun.repository?.full_name===repository&&coverageRun.head_repository?.full_name===repository
+      &&Number.isFinite(Date.parse(coverageRun.created_at))&&Date.parse(coverageRun.created_at)<=Date.parse(live.created_at),
+    'COVERAGE_NATIVE_RUN');
+    const coverageArtifacts=await get(`actions/runs/${coverageRunId}/artifacts?per_page=100`);
+    check(Array.isArray(coverageArtifacts.artifacts)&&coverageArtifacts.total_count===coverageArtifacts.artifacts.length
+      &&coverageArtifacts.total_count<=100,'COVERAGE_NATIVE_ARTIFACTS');
+    const dispatchArtifacts=coverageArtifacts.artifacts.filter(a=>a.id===consumed.coverage_artifact_id
+      &&a.name===`kidults-kir-coverage-assurance-dispatch-v1-${coverageRunId}-${coverageAttempt}`
+      &&a.expired===false&&a.workflow_run?.id===coverageRunId&&a.workflow_run?.head_sha===sourceSha
+      &&a.digest===consumed.coverage_artifact_digest);
+    check(dispatchArtifacts.length===1,'COVERAGE_DISPATCH_ARTIFACT');
+    const dispatchArtifact=dispatchArtifacts[0];
+    checkTransport(coverageRun,dispatchArtifact,sourceSha,new Date().toISOString());
+    check(Date.parse(dispatchArtifact.created_at)<=Date.parse(coverageRun.updated_at),'COVERAGE_DISPATCH_ARTIFACT_TIME');
+    const dispatchBytes=await readBytes(`actions/artifacts/${dispatchArtifact.id}/zip`);
+    check(Buffer.isBuffer(dispatchBytes)&&dispatchBytes.length===dispatchArtifact.size_in_bytes,'COVERAGE_DISPATCH_ARCHIVE_SIZE');
+    const dispatchPacket=archiveReader(dispatchBytes,dispatchArtifact.digest);
+    check(dispatchPacket.archive_digest===dispatchArtifact.digest&&dispatchPacket.members.length===1,'COVERAGE_DISPATCH_ARCHIVE_BINDING');
+    const dispatchReceipt=findMember(dispatchPacket,'kir-coverage-assurance-continuation-v1.json','COVERAGE_DISPATCH_ARCHIVE_RECEIPT');
+    check(canonicalJson(dispatchReceipt)===canonicalJson(copiedDispatchReceipt),'COVERAGE_DISPATCH_COPY_DRIFT');
+    const commit=await get(`git/commits/${sourceSha}`);
+    check(commit.sha===sourceSha&&commit.tree?.sha===consumed.source_tree,'COVERAGE_SOURCE_TREE');
+    const request={repository:dispatchReceipt.repository,source_sha:dispatchReceipt.source_sha,source_tree:dispatchReceipt.source_tree,
+      coverage_event:dispatchReceipt.coverage_event,coverage_run_id:dispatchReceipt.coverage_run_id,
+      coverage_run_attempt:dispatchReceipt.coverage_run_attempt,coverage_created_at:dispatchReceipt.coverage_created_at,
+      generation_id:dispatchReceipt.generation_id,dispatch_artifact_id:dispatchArtifact.id,
+      dispatch_artifact_digest:dispatchArtifact.digest,continuation_key:dispatchReceipt.continuation_key};
+    const recomputed=consumeKirCoverageAssuranceContinuation({request,current:{repository,source_sha:sourceSha,source_tree:commit.tree.sha},
+      dispatch_artifact:dispatchArtifact,dispatch_receipt:dispatchReceipt,run:coverageRun,prior_consumption_count:0,
+      consumer:{run_id:live.id,run_attempt:1}});
+    check(canonicalJson(recomputed)===canonicalJson(consumed),'COVERAGE_CONSUMPTION_RECOMPUTE');
+    check(String(upstream?.run_id)===String(coverageRun.id)&&String(upstream?.run_attempt)==='1'
+      &&upstream?.workflow_name===coverageRun.name&&upstream?.workflow_path===coveragePath
+      &&upstream?.workflow_event===coverageRun.event&&upstream?.conclusion==='success'
+      &&upstream?.repository===repository&&upstream?.head_branch==='main','COVERAGE_AUDIT_UPSTREAM');
+    // The exact Sentinel identity comes from the proof's single protected row;
+    // its authenticated continuation must point back to the consumed Coverage artifact.
+    const boundRows=(proof.protected_evidence||[]).filter(row=>row.workflow_path===sentinelPath);
+    check(boundRows.length===1,'COVERAGE_SENTINEL_PROOF_CARDINALITY');
+    const sentinelRow=boundRows[0],sentinelRun=await get(`actions/runs/${sentinelRow.run_id}`);
+    check(sentinelRun.actor?.login==='github-actions[bot]'&&sentinelRun.name===sentinelName&&sentinelRun.path===sentinelPath
+      &&sentinelRun.event==='workflow_dispatch'&&sentinelRun.status==='completed'&&sentinelRun.conclusion==='success'
+      &&sentinelRun.run_attempt===1&&sentinelRun.head_sha===sourceSha&&sentinelRun.head_branch==='main'
+      &&sentinelRun.repository?.full_name===repository&&sentinelRun.head_repository?.full_name===repository
+      &&Number.isFinite(Date.parse(sentinelRun.created_at))&&Date.parse(coverageRun.created_at)<=Date.parse(sentinelRun.created_at)
+      &&Date.parse(sentinelRun.created_at)<=Date.parse(live.created_at),'COVERAGE_SENTINEL_RUN');
+    check(Date.parse(dispatchArtifact.created_at)<=Date.parse(sentinelRun.created_at),'COVERAGE_SENTINEL_DISPATCH_ORDER');
+    const sentinelArtifacts=await get(`actions/runs/${sentinelRun.id}/artifacts?per_page=100`);
+    check(Array.isArray(sentinelArtifacts.artifacts)&&sentinelArtifacts.total_count===sentinelArtifacts.artifacts.length
+      &&sentinelArtifacts.total_count<=100,'COVERAGE_SENTINEL_ARTIFACTS');
+    const sentinelMatches=sentinelArtifacts.artifacts.filter(a=>a.id===sentinelRow.artifact_id
+      &&a.name===`kpmo-continuous-assurance-sentinel-health-v1-${sourceSha}-${sentinelRun.id}-1`
+      &&a.expired===false&&a.digest===sentinelRow.artifact_digest&&a.workflow_run?.id===sentinelRun.id
+      &&a.workflow_run?.head_sha===sourceSha);
+    check(sentinelMatches.length===1,'COVERAGE_SENTINEL_ARTIFACT');
+    checkTransport(sentinelRun,sentinelMatches[0],sourceSha,new Date().toISOString());
+    const sentinelBytes=await readBytes(`actions/artifacts/${sentinelMatches[0].id}/zip`);
+    check(Buffer.isBuffer(sentinelBytes)&&sentinelBytes.length===sentinelMatches[0].size_in_bytes,'COVERAGE_SENTINEL_ARCHIVE_SIZE');
+    const sentinelPacket=archiveReader(sentinelBytes,sentinelMatches[0].digest);
+    const authenticatedSentinel=verifyAuthenticatedSentinelContinuation({run:sentinelRun,artifact:sentinelMatches[0],
+      archivePacket:sentinelPacket,sourceSha,repository});
+    const binding=authenticatedSentinel?.continuation_binding;
+    check(authenticatedSentinel?.state==='VERIFIED_PASS'&&binding?.upstream_run_id===coverageRunId
+      &&binding.upstream_run_attempt===coverageAttempt&&binding.upstream_event==='workflow_run'
+      &&binding.continuation_artifact_id===dispatchArtifact.id
+      &&binding.continuation_artifact_digest===dispatchArtifact.digest&&binding.generation_id===consumed.generation_id,
+    'COVERAGE_SENTINEL_CONTINUATION_BINDING');
+    const route=assuranceSentinelObservationRoute({audit,proof,sourceSha,assuranceRun:live,jobs, sentinelRun,
+      profile:'failed-terminal-recovery',authenticatedContinuation:true});
+    check(route.mode==='AUTHENTICATED_COVERAGE_CONTINUATION'&&route.sentinelBinding.run_id===sentinelRun.id
+      &&route.sentinelBinding.artifact_id===sentinelMatches[0].id,'COVERAGE_SENTINEL_ROUTE');
+    upstream={run_id:String(sentinelRun.id),run_attempt:'1',workflow_name:sentinelName,workflow_path:sentinelPath,
+      workflow_event:'workflow_dispatch',conclusion:'success',repository,head_branch:'main',
+      source_receipt_digest:authenticatedSentinel.sentinel_receipt_digest};
+    authenticatedCoverageContinuation=true;
+    coverageContinuation={state:'VERIFIED_PASS',coverage_run_id:coverageRunId,coverage_run_attempt:coverageAttempt,
+      coverage_event:coverageRun.event,coverage_artifact_id:dispatchArtifact.id,coverage_artifact_digest:dispatchArtifact.digest,
+      consumption_artifact_id:consumedArtifact.id,consumption_artifact_digest:consumedArtifact.digest,
+      sentinel_run_id:sentinelRun.id,sentinel_artifact_id:sentinelMatches[0].id,
+      sentinel_artifact_digest:sentinelMatches[0].digest,sentinel_receipt_digest:authenticatedSentinel.sentinel_receipt_digest};
+  }
   check(audit.receipt_type==='KIDULTS_PLATFORM_CONTINUOUS_ASSURANCE'&&audit.source?.sha===sourceSha
     &&audit.source?.actual_sha===sourceSha&&audit.source?.expected_sha===sourceSha&&audit.source?.match===true
     &&String(audit.execution?.workflow_run_id)===String(live.id)&&String(audit.execution?.workflow_run_attempt)==='1'
@@ -88,7 +220,8 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
     &&/^sha256:[a-f0-9]{64}$/.test(terminalCheck.evidence_refs[2]||'')
     &&upstream?.workflow_name==='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
     &&upstream.workflow_path==='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
-    &&['workflow_run','repository_dispatch'].includes(upstream.workflow_event)&&upstream.conclusion==='success'
+    &&(['workflow_run','repository_dispatch'].includes(upstream.workflow_event)
+      ||(authenticatedCoverageContinuation&&upstream.workflow_event==='workflow_dispatch'))&&upstream.conclusion==='success'
     &&upstream.repository===repository&&upstream.head_branch==='main'
     &&/^\d+$/.test(upstream.run_id||'')&&upstream.run_attempt==='1'
     &&/^sha256:[a-f0-9]{64}$/.test(upstream.source_receipt_digest||'')
@@ -101,6 +234,7 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
     terminal_check_id:terminalCheck.id,terminal_check_reason:terminalCheck.reason,
     terminal_check_evidence_refs:terminalCheck.evidence_refs,
     upstream_run_id:upstream.run_id,upstream_receipt_digest:upstream.source_receipt_digest,
+    ...(coverageContinuation?{coverage_continuation:coverageContinuation}:{}),
     audit_job_id:failed[0].id,conclusion:'failure',actual_authority_granted:false,
     platform_closure:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
   return {...live,recovery_parent:parent};

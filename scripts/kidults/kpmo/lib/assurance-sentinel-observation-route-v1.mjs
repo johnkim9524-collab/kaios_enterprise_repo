@@ -7,13 +7,25 @@ const workflowPath='.github/workflows/kidults-platform-continuous-assurance-v1.y
 const fail=()=>{throw new Error('ASSURANCE_SENTINEL_OBSERVATION_ROUTE_INVALID');};
 
 // Clock authentication is native classify-job evidence, never a receipt label alone.
-export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,jobs,proof,sentinelRun,profile='success'}){
+export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,jobs,proof,sentinelRun,profile='success',authenticatedContinuation=false}){
   if(!['success','failed-terminal-recovery'].includes(profile))fail();
   const failedProfile=profile==='failed-terminal-recovery';
   if(audit?.source?.sha!==sourceSha)fail();
   if(audit?.execution?.trigger==='workflow_run'){
     if(!audit.execution.upstream)fail();
     return {mode:'CAUSAL_SENTINEL',causalParent:audit.execution.upstream,sentinelRunId:Number(audit.execution.upstream.run_id)};
+  }
+  if(failedProfile&&authenticatedContinuation===true&&assuranceRun?.event==='workflow_dispatch'
+    &&audit?.execution?.trigger==='workflow_dispatch'&&audit.execution.upstream){
+    const proofBody=Object.fromEntries(Object.entries(proof||{}).filter(([key])=>key!=='receipt_digest'));
+    const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
+    if(proof?.source_sha!==sourceSha||proof.repository!==repository
+      ||proof.receipt_digest!==sha256(canonicalJson(proofBody))||!Array.isArray(proof.protected_evidence))fail();
+    const rows=proof.protected_evidence.filter(row=>row.workflow_path===sentinelPath
+      &&String(row.run_id)===String(sentinelRun?.id));
+    if(rows.length!==1||sentinelRun?.event!=='workflow_dispatch'||sentinelRun.conclusion!=='success'
+      ||sentinelRun.head_sha!==sourceSha||sentinelRun.head_branch!=='main'||sentinelRun.repository?.full_name!==repository)fail();
+    return {mode:'AUTHENTICATED_COVERAGE_CONTINUATION',causalParent:null,sentinelRunId:Number(sentinelRun.id),sentinelBinding:rows[0]};
   }
   const identity=audit?.execution?.canonical_identity;
   const body=Object.fromEntries(Object.entries(audit||{}).filter(([key])=>!['receipt_digest','observed_at'].includes(key)));
@@ -59,7 +71,10 @@ export function assuranceSentinelObservationRoute({audit,sourceSha,assuranceRun,
     if(Number(sentinelRun.id)!==Number(binding.run_id)||sentinelRun.run_attempt!==1
       ||sentinelRun.path!==sentinelPath||sentinelRun.head_sha!==sourceSha||sentinelRun.head_branch!=='main'
       ||sentinelRun.repository?.full_name!==repository
-      ||!(failedProfile?['workflow_run','repository_dispatch','schedule']:['workflow_run','repository_dispatch','schedule','workflow_dispatch']).includes(sentinelRun.event)
+      ||!(failedProfile
+        ?(['workflow_run','repository_dispatch','schedule'].includes(sentinelRun.event)
+          ||(sentinelRun.event==='workflow_dispatch'&&authenticatedContinuation===true))
+        :['workflow_run','repository_dispatch','schedule','workflow_dispatch'].includes(sentinelRun.event))
       ||sentinelRun.status!=='completed'||sentinelRun.conclusion!=='success')fail();
 
   }

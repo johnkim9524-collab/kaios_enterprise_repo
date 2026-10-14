@@ -81,3 +81,12 @@ test('causal parent must match all native Sentinel fields and digest',()=>{
  const f={run:{event:'workflow_run'},audit:{execution:{trigger:'workflow_run',upstream}},parent:{upstream_run_id:'991',upstream_receipt_digest:'sha256:abc'},sentinel,health:{receipt_digest:'sha256:abc'}};
  validateFailureRecoverySentinelBinding(f);upstream.workflow_event='workflow_dispatch';assert.throws(()=>validateFailureRecoverySentinelBinding(f));
 });
+test('bot Coverage continuation failure binds Coverage audit and authenticated Sentinel without treating dispatch as natural',()=>{
+ const sentinel={id:991},health={receipt_digest:'sha256:abc'},parent={upstream_run_id:'991',upstream_receipt_digest:health.receipt_digest,
+  coverage_continuation:{state:'VERIFIED_PASS',coverage_run_id:980,coverage_run_attempt:1,coverage_event:'workflow_run',sentinel_run_id:991,sentinel_receipt_digest:health.receipt_digest}};
+ const audit={execution:{trigger:'workflow_dispatch',upstream:{run_id:'980',run_attempt:'1',workflow_event:'workflow_run',
+  workflow_path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',conclusion:'success',repository:repo,head_branch:'main'}}};
+ const f={run:{event:'workflow_dispatch'},audit,parent,sentinel,health};validateFailureRecoverySentinelBinding(f);
+ parent.coverage_continuation.coverage_event='workflow_dispatch';assert.throws(()=>validateFailureRecoverySentinelBinding(f));
+ parent.coverage_continuation.coverage_event='workflow_run';audit.execution.upstream.run_id='979';assert.throws(()=>validateFailureRecoverySentinelBinding(f));
+});

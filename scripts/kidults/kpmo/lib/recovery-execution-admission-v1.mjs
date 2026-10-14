@@ -19,7 +19,11 @@ export async function recoveryExecutionAdmission({env,event,get}){
   // Push audits cannot satisfy the existing failure-parent proof contract.
   if(run.name===assurance){
     check(run.conclusion==='failure','FAILURE_CONCLUSION');
-    if(!['workflow_run','repository_dispatch'].includes(run.event))return result(false,'UNSUPPORTED_FAILURE_PARENT_EVENT');
+    if(!['workflow_run','repository_dispatch'].includes(run.event)){
+      if(run.event!=='workflow_dispatch'||run.actor?.login!=='github-actions[bot]')
+        return result(false,'UNSUPPORTED_FAILURE_PARENT_EVENT');
+      return result(true,'BOT_COVERAGE_CONTINUATION_REQUIRES_FULL_NATIVE_VERIFICATION');
+    }
     return result(true,'FAILURE_PARENT_REQUIRES_FULL_NATIVE_VERIFICATION');
   }
   check(run.event==='workflow_run'&&run.conclusion==='success','GATE');

@@ -26,13 +26,23 @@ export function validateFailureRecoveryPushSuite(suite){
     &&suite.failure_count<=1,'RECOVERY_EVIDENCE_PUSH_SUITE');
 }
 export function validateFailureRecoverySentinelBinding({audit,parent,run,sentinel,health}){
-  assert(['workflow_run','repository_dispatch'].includes(run.event)&&audit.execution?.trigger===run.event
+  assert(['workflow_run','repository_dispatch','workflow_dispatch'].includes(run.event)&&audit.execution?.trigger===run.event
     &&String(parent.upstream_run_id)===String(sentinel.id)&&parent.upstream_receipt_digest===health.receipt_digest,
     'RECOVERY_FAILURE_SENTINEL_BINDING');
   if(run.event==='repository_dispatch'){
     // verifyFailureAssuranceParent has already authenticated the clock intake,
     // snapshot, selected Sentinel and ZIP. Preserve the original null upstream.
     assert(audit.execution.upstream===null,'RECOVERY_FAILURE_CLOCK_PROVENANCE');
+  }else if(run.event==='workflow_dispatch'){
+    const continuation=parent.coverage_continuation,upstream=audit.execution.upstream;
+    assert(continuation?.state==='VERIFIED_PASS'&&continuation.coverage_event==='workflow_run'
+      &&String(continuation.sentinel_run_id)===String(sentinel.id)
+      &&continuation.sentinel_receipt_digest===health.receipt_digest
+      &&String(upstream?.run_id)===String(continuation.coverage_run_id)
+      &&String(upstream?.run_attempt)==='1'&&upstream?.workflow_event==='workflow_run'
+      &&upstream?.workflow_path==='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'
+      &&upstream?.conclusion==='success'&&upstream?.repository===I.repository&&upstream?.head_branch==='main',
+    'RECOVERY_FAILURE_COVERAGE_CONTINUATION');
   }else{
     const upstream=audit.execution.upstream;
     assert(String(upstream?.run_id)===String(sentinel.id)&&upstream?.workflow_name===sentinel.name
@@ -127,7 +137,8 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     validateFailureRecoveryPushSuite(suite);
     assert(pushRuns.every(r=>r.run_attempt===1&&r.repository?.full_name===I.repository&&String(r.repository?.id)===I.repository_id),
       'RECOVERY_EVIDENCE_PUSH_IDENTITY');
-    const sentinel=await liveHealth(sha),healthArtifacts=(await artifactList(sentinel))
+    const sentinel=parent.coverage_continuation
+      ?await readRun(parent.coverage_continuation.sentinel_run_id):await liveHealth(sha),healthArtifacts=(await artifactList(sentinel))
       .filter(a=>a.name===`kpmo-continuous-assurance-sentinel-health-v1-${sha}-${sentinel.id}-1`);
     assert(healthArtifacts.length===1,'RECOVERY_FAILURE_SENTINEL_ARTIFACT');
     const healthPacket=await archive(sentinel,healthArtifacts[0],sha,observedAt);
@@ -251,7 +262,9 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
       {...check('TERMINAL_NULL_ASSURANCE_FAILURE',parentRun,assuranceArtifacts[0],audit.receipt_digest,'failure'),
         terminal_null_evidence_refs:parent.terminal_check_evidence_refs}]};
     const finalMain=await readJson('branches/main');assert(finalMain.protected===true&&finalMain.commit?.sha===sha,'RECOVERY_EVIDENCE_MAIN_CHANGED');
-    assert((await liveHealth(sha)).id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
+    const latestSentinel=parent.coverage_continuation
+      ?await readRun(parent.coverage_continuation.sentinel_run_id):await liveHealth(sha);
+    assert(latestSentinel.id===sentinel.id,'RECOVERY_EVIDENCE_SNAPSHOT_MOVED');
     return result;
   };
 

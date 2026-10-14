@@ -3,8 +3,21 @@ import assert from 'node:assert/strict';
 import {zip,text} from './recovery-native-archive-fixture-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
+import {issueKirCoverageAssuranceContinuation,consumeKirCoverageAssuranceContinuation} from '../../../scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs';
 import {verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
+import {assuranceSentinelObservationRoute} from '../../../scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40);
+test('failed Assurance admits only explicitly authenticated Coverage Sentinel continuation',()=>{
+ const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
+ const assuranceRun={id:990,event:'workflow_dispatch',path:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',head_sha:sha,head_branch:'main',repository:{full_name:repo}};
+ const sentinelRun={id:991,event:'workflow_dispatch',path:sentinelPath,conclusion:'success',head_sha:sha,head_branch:'main',repository:{full_name:repo}};
+ const audit={source:{sha},execution:{trigger:'workflow_dispatch',upstream:{run_id:'980',workflow_path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml'}}};
+ const core={source_sha:sha,repository:repo,protected_evidence:[{workflow_path:sentinelPath,run_id:991,run_attempt:1,source_sha:sha,artifact_id:992,artifact_digest:'sha256:'+'d'.repeat(64)}]};
+ const proof={...core,receipt_digest:sha256(canonicalJson(core))};
+ assert.throws(()=>assuranceSentinelObservationRoute({audit,sourceSha:sha,assuranceRun,jobs:{jobs:[]},proof,sentinelRun,profile:'failed-terminal-recovery'}));
+ const result=assuranceSentinelObservationRoute({audit,sourceSha:sha,assuranceRun,jobs:{jobs:[]},proof,sentinelRun,profile:'failed-terminal-recovery',authenticatedContinuation:true});
+ assert.equal(result.mode,'AUTHENTICATED_COVERAGE_CONTINUATION');assert.equal(result.sentinelRunId,991);
+});
 function fixture(){
  const upstream={id:100,name:'KPMO Continuous Assurance Success Authority Gate V1',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repo,id:1281328888}};
  const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/main',GITHUB_REPOSITORY:repo,GITHUB_REPOSITORY_ID:'1281328888',GITHUB_SHA:sha,GITHUB_WORKFLOW_SHA:sha};
@@ -58,6 +71,91 @@ test('failure Assurance parent is admitted only for isolated terminal-null proof
   x=>{x.audit.execution.upstream.source_receipt_digest=null;const u=structuredClone(x.audit);delete u.observed_at;delete u.receipt_digest;x.audit.receipt_digest=sha256(canonicalJson(u));x.bytes=zip([['audit-receipt.json',text(x.audit)],['whole-platform-operating-proof-v1.json',text(x.proof)]]);x.artifact.digest=digest(x.bytes);x.artifact.size_in_bytes=x.bytes.length;},
   x=>{x.proof.operating_checks.push({id:'OTHER_FAILURE',state:'VERIFIED_FAIL'});delete x.proof.receipt_digest;x.proof.receipt_digest=sha256(canonicalJson(x.proof));x.bytes=zip([['audit-receipt.json',text(x.assurance)],['whole-platform-operating-proof-v1.json',text(x.proof)]]);x.artifact.digest=digest(x.bytes);x.artifact.size_in_bytes=x.bytes.length;}
  ]){const x=failedAssuranceFixture();mutate(x);await assert.rejects(verifyInterruptedRecoveryNativeTrigger(x));}
+});
+
+test('bot failure Assurance dispatch verifies one-time natural Coverage and exact Sentinel continuation',async()=>{
+ const now=Date.now(),iso=t=>new Date(t).toISOString(),tree='b'.repeat(40),coverageId=980,assuranceId=990,sentinelId=991;
+ const coverageName=`KIDULTS Coverage / source-${sha}`,coveragePath='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
+ const coverageRun={id:coverageId,name:coverageName,display_title:coverageName,path:coveragePath,event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,
+  head_sha:sha,head_branch:'main',created_at:iso(now-120000),run_started_at:iso(now-119500),updated_at:iso(now-90000),repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
+ const issued=issueKirCoverageAssuranceContinuation({repository:repo,source_sha:sha,source_tree:tree,coverage_event:'workflow_run',coverage_run_id:coverageId,
+  coverage_run_attempt:1,run:coverageRun});
+ const dispatchBytes=zip([['kir-coverage-assurance-continuation-v1.json',text(issued)]]);
+ const dispatchArtifact={id:981,name:`kidults-kir-coverage-assurance-dispatch-v1-${coverageId}-1`,expired:false,digest:digest(dispatchBytes),size_in_bytes:dispatchBytes.length,
+  created_at:iso(now-119000),expires_at:iso(now+86400000),workflow_run:{id:coverageId,head_sha:sha}};
+ const request={repository:repo,source_sha:sha,source_tree:tree,coverage_event:'workflow_run',coverage_run_id:coverageId,coverage_run_attempt:1,
+  coverage_created_at:coverageRun.created_at,generation_id:issued.generation_id,dispatch_artifact_id:dispatchArtifact.id,dispatch_artifact_digest:dispatchArtifact.digest,
+  continuation_key:issued.continuation_key};
+ const consumed=consumeKirCoverageAssuranceContinuation({request,current:{repository:repo,source_sha:sha,source_tree:tree},dispatch_artifact:dispatchArtifact,
+  dispatch_receipt:issued,run:coverageRun,prior_consumption_count:0,consumer:{run_id:assuranceId,run_attempt:1}});
+ const consumedBytes=zip([['kir-coverage-assurance-continuation-v1.json',text(issued)],['kir-forwarded-dispatch-archive-receipt.json',text({archive_digest:dispatchArtifact.digest})],
+  ['kir-coverage-assurance-consumption-v1.json',text(consumed)]]);
+ const assuranceName='KIDULTS Platform Continuous Assurance V1',assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+ const assurance={id:assuranceId,name:assuranceName,path:assurancePath,event:'workflow_dispatch',status:'completed',conclusion:'failure',run_attempt:1,
+  head_sha:sha,head_branch:'main',created_at:iso(now-30000),run_started_at:iso(now-25000),updated_at:iso(now),actor:{login:'github-actions[bot]'},
+  repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
+ const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
+ const continuationBinding={slot:'SENTINEL_CHAIN',exact_main_sha:sha,path:coveragePath,coverage_workflow_path:coveragePath,upstream_run_id:coverageId,
+  upstream_run_attempt:1,run_id:coverageId,run_attempt:1,upstream_event:'workflow_run',continuation_artifact_id:dispatchArtifact.id,
+  continuation_artifact_digest:dispatchArtifact.digest,continuation_key:issued.continuation_key,generation_id:issued.generation_id};
+ const healthCore={receipt_id:'kpmo-continuous-assurance-sentinel-health-v1',repository:repo,source_sha:sha,observer_run_id:sentinelId,observer_run_attempt:1,
+  whole_platform_authority:false,promotion_eligible:false,public:'HOLD',production:'HOLD',g5:'HOLD',continuation_binding:continuationBinding};
+ const health={...healthCore,receipt_digest:sha256(canonicalJson(healthCore))};
+ const sentinelBytes=zip([['kpmo-continuous-assurance-sentinel-health-v1.json',text(health)]]);
+ const sentinelArtifact={id:996,name:`kpmo-continuous-assurance-sentinel-health-v1-${sha}-${sentinelId}-1`,expired:false,digest:digest(sentinelBytes),size_in_bytes:sentinelBytes.length,
+  created_at:iso(now-39000),expires_at:iso(now+86400000),workflow_run:{id:sentinelId,head_sha:sha}};
+ const sentinel={id:sentinelId,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',path:sentinelPath,event:'workflow_dispatch',status:'completed',conclusion:'success',run_attempt:1,
+  head_sha:sha,head_branch:'main',created_at:iso(now-40000),run_started_at:iso(now-39500),actor:{login:'github-actions[bot]'},repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
+ const f=failedAssuranceFixture();
+ f.assurance=assurance;f.event.workflow_run=assurance;f.audit.execution.trigger='workflow_dispatch';
+ f.audit.execution.upstream={run_id:String(coverageId),run_attempt:'1',workflow_name:coverageName,workflow_path:coveragePath,workflow_event:'workflow_run',
+  conclusion:'success',repository:repo,head_branch:'main'};
+ f.proof.protected_evidence=[{workflow_path:sentinelPath,run_id:sentinelId,run_attempt:1,source_sha:sha,artifact_id:sentinelArtifact.id,artifact_digest:sentinelArtifact.digest}];
+ delete f.proof.receipt_digest;f.proof.receipt_digest=sha256(canonicalJson(f.proof));
+ const assuranceBytes=zip([['audit-receipt.json',text(f.audit)],['whole-platform-operating-proof-v1.json',text(f.proof)]]);
+ f.bytes=assuranceBytes;f.artifact.digest=digest(assuranceBytes);f.artifact.size_in_bytes=assuranceBytes.length;f.artifact.created_at=iso(now-10000);f.artifact.expires_at=iso(now+86400000);
+ const consumptionArtifact={id:993,name:`kidults-kir-coverage-assurance-consumption-v1-${coverageId}-1`,expired:false,digest:digest(consumedBytes),size_in_bytes:consumedBytes.length,
+  created_at:iso(now-9000),expires_at:iso(now+86400000),workflow_run:{id:assuranceId,head_sha:sha}};
+ f.jobs={total_count:2,jobs:[{id:994,run_id:assuranceId,run_attempt:1,name:'audit',status:'completed',conclusion:'failure'},
+  {id:995,run_id:assuranceId,run_attempt:1,name:'classify-canonical-identity',status:'completed',conclusion:'success',steps:[
+   {name:'Reject partial forwarded Coverage continuation inputs',status:'completed',conclusion:'success'},
+   {name:'Validate and consume forwarded exact Coverage continuation',status:'completed',conclusion:'success'},
+   {name:'Retain one-time Coverage continuation consumption receipt',status:'completed',conclusion:'success'}]}]};
+ f.audit.execution.workflow_run_id=String(assuranceId);f.audit.execution.workflow_run_attempt='1';
+ const auditUnsigned=structuredClone(f.audit);delete auditUnsigned.observed_at;delete auditUnsigned.receipt_digest;f.audit.receipt_digest=sha256(canonicalJson(auditUnsigned));
+ const proofUnsigned=structuredClone(f.proof);delete proofUnsigned.receipt_digest;f.proof.receipt_digest=sha256(canonicalJson(proofUnsigned));
+ f.bytes=zip([['audit-receipt.json',text(f.audit)],['whole-platform-operating-proof-v1.json',text(f.proof)]]);f.artifact.digest=digest(f.bytes);f.artifact.size_in_bytes=f.bytes.length;
+ const artifactMap=new Map([[f.artifact.id,f.bytes],[consumptionArtifact.id,consumedBytes],[dispatchArtifact.id,dispatchBytes],[sentinelArtifact.id,sentinelBytes]]);
+ const packetEntries=[
+  [f.artifact.digest,[{name:'audit-receipt.json',encoding:'utf-8',text:text(f.audit),sha256:digest(text(f.audit))},
+   {name:'whole-platform-operating-proof-v1.json',encoding:'utf-8',text:text(f.proof),sha256:digest(text(f.proof))}]],
+  [consumptionArtifact.digest,[{name:'kir-coverage-assurance-continuation-v1.json',encoding:'utf-8',text:text(issued),sha256:digest(text(issued))},
+   {name:'kir-forwarded-dispatch-archive-receipt.json',encoding:'utf-8',text:text({archive_digest:dispatchArtifact.digest}),sha256:digest(text({archive_digest:dispatchArtifact.digest}))},
+   {name:'kir-coverage-assurance-consumption-v1.json',encoding:'utf-8',text:text(consumed),sha256:digest(text(consumed))}]],
+  [dispatchArtifact.digest,[{name:'kir-coverage-assurance-continuation-v1.json',encoding:'utf-8',text:text(issued),sha256:digest(text(issued))}]],
+  [sentinelArtifact.digest,[{name:'kpmo-continuous-assurance-sentinel-health-v1.json',encoding:'utf-8',text:text(health),sha256:digest(text(health))}]],
+ ];
+ const packetMap=new Map(packetEntries);
+ assert.equal(f.artifact.size_in_bytes,artifactMap.get(f.artifact.id).length);
+ const baseGet=f.get;
+ f.get=async route=>{
+  if(route==='actions/runs/990')return assurance;
+  if(route==='actions/runs/990/attempts/1/jobs?per_page=100')return f.jobs;
+  if(route==='actions/runs/990/artifacts?per_page=100')return {total_count:2,artifacts:[f.artifact,consumptionArtifact]};
+  if(route==='actions/runs/980')return coverageRun;
+  if(route==='actions/runs/980/artifacts?per_page=100')return {total_count:1,artifacts:[dispatchArtifact]};
+  if(route==='actions/runs/991')return sentinel;
+  if(route==='actions/runs/991/artifacts?per_page=100')return {total_count:1,artifacts:[sentinelArtifact]};
+  if(route===`git/commits/${sha}`)return {sha,tree:{sha:tree}};
+  return baseGet(route);
+ };
+ f.readBytes=async route=>{const match=route.match(/actions\/artifacts\/(\d+)\/zip/);if(!match)throw Error('TEST_ARTIFACT_ROUTE');const bytes=artifactMap.get(Number(match[1]));if(!Buffer.isBuffer(bytes))throw Error('TEST_ARTIFACT_BYTES_MISSING');return bytes;};
+ f.archiveReader=(input,expected)=>{assert.equal(digest(input),expected);const members=packetMap.get(expected);assert.ok(members);return {archive_digest:expected,members};};
+ const result=await verifyInterruptedRecoveryNativeTrigger(f);
+ assert.equal(result.recovery_parent.coverage_continuation.state,'VERIFIED_PASS');
+ assert.equal(result.recovery_parent.coverage_continuation.coverage_run_id,coverageId);
+ assert.equal(result.recovery_parent.upstream_run_id,String(sentinelId));
+ assert.equal(Object.hasOwn(result.recovery_parent.coverage_continuation,'continuation_key'),false);
 });
 
 function failedClockFixture(){
