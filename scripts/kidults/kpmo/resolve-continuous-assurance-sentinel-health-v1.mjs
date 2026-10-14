@@ -266,28 +266,38 @@ async function downloadArtifact(repo,artifact,token){
   }catch(error){if(/^(ARTIFACT_|GITHUB_)/.test(error.message))throw error;fail('ARTIFACT_DOWNLOAD_TRANSPORT_FAILED');}
 }
 const latestApplicable=(runs,spec,sha)=>selectProducerGeneration(runs,spec,sha,new Date().toISOString()).latest;
+const RUN_INDEX_SNAPSHOT_ATTEMPTS=2;
+const RUN_INDEX_SNAPSHOT_RETRY_MS=1000;
 
-async function workflowRuns(repo,spec,sha,token,{createdAfter=null,createdBefore=null}={}){
-  const out=[];let expectedCount;
+async function workflowRuns(repo,spec,sha,token,{createdAfter=null,createdBefore=null,readPage=(url)=>api(url,token),sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}={}){
   const createdRange = createdAfter && createdBefore
     ? `${new Date(createdAfter).toISOString()}..${new Date(createdBefore).toISOString()}`
     : null;
-  for(let page=1;page<=10;page+=1){
-    const params = new URLSearchParams({branch:'main',head_sha:sha,per_page:'100',page:String(page)});
-    if(createdRange) params.set('created',createdRange);
-    const url=`https://api.github.com/repos/${repo}/actions/workflows/${spec.workflow}/runs?${params}`;
-    const value=await api(url,token);
-    if(!Array.isArray(value?.workflow_runs)||value.workflow_runs.length>100||
-       !Number.isSafeInteger(value.total_count)||value.total_count<0||value.total_count>1000||
-       value.incomplete_results===true)throw new Error(`${spec.id}_RUN_INDEX_INVALID`);
-    if(expectedCount===undefined)expectedCount=value.total_count;
-    if(value.total_count!==expectedCount)throw new Error(`${spec.id}_RUN_INDEX_COUNT_CHANGED`);
-    out.push(...value.workflow_runs);
-    if(out.length>expectedCount)throw new Error(`${spec.id}_RUN_INDEX_CARDINALITY_INVALID`);
-    if(out.length===expectedCount)return out;
-    if(value.workflow_runs.length<100)throw new Error(`${spec.id}_RUN_INDEX_TRUNCATED`);
+  for(let attempt=1;attempt<=RUN_INDEX_SNAPSHOT_ATTEMPTS;attempt+=1){
+    const out=[];let expectedCount;
+    try{
+      for(let page=1;page<=10;page+=1){
+        const params = new URLSearchParams({branch:'main',head_sha:sha,per_page:'100',page:String(page)});
+        if(createdRange) params.set('created',createdRange);
+        const url=`https://api.github.com/repos/${repo}/actions/workflows/${spec.workflow}/runs?${params}`;
+        const value=await readPage(url);
+        if(!Array.isArray(value?.workflow_runs)||value.workflow_runs.length>100||
+           !Number.isSafeInteger(value.total_count)||value.total_count<0||value.total_count>1000||
+           value.incomplete_results===true)throw new Error(`${spec.id}_RUN_INDEX_INVALID`);
+        if(expectedCount===undefined)expectedCount=value.total_count;
+        if(value.total_count!==expectedCount)throw new Error(`${spec.id}_RUN_INDEX_COUNT_CHANGED`);
+        out.push(...value.workflow_runs);
+        if(out.length>expectedCount)throw new Error(`${spec.id}_RUN_INDEX_CARDINALITY_INVALID`);
+        if(out.length===expectedCount)return out;
+        if(value.workflow_runs.length<100)throw new Error(`${spec.id}_RUN_INDEX_TRUNCATED`);
+      }
+      throw new Error(`${spec.id}_RUN_INDEX_PAGINATION_BOUND`);
+    }catch(error){
+      if(!String(error?.message||'').endsWith('_RUN_INDEX_COUNT_CHANGED')||attempt>=RUN_INDEX_SNAPSHOT_ATTEMPTS)throw error;
+      await sleep(RUN_INDEX_SNAPSHOT_RETRY_MS);
+    }
   }
-  throw new Error(`${spec.id}_RUN_INDEX_PAGINATION_BOUND`);
+  throw new Error(`${spec.id}_RUN_INDEX_SNAPSHOT_RETRY_BOUND`);
 }
 
 async function liveInput(){
