@@ -6781,7 +6781,7 @@
     {
       "path": "tests/kidults/kpmo/github-read-resume-consumer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "986f96546737df1dbfda7eb2098640ef3f5eb1e4",
+      "git_blob": "9649d1937c5d7d9183e9da59c2d588d6615a652a",
       "sha256": "sha256:d3cde7286ab6daa785fd9635ad54827da936eedc05ca97558a44a360ed4aba09"
     },
     {
@@ -7151,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ca9d9f83c819480544650e43e5395631749739b6d4e681e20e8e2f3dd419ae53"
+  "manifest_sha256": "sha256:1cab6a0a9e336479d8ac048ab056c4986b5000d7642363225472c9dcbb4d8821"
 }
