@@ -463,8 +463,28 @@ const assertWorkflowDelta=(before,after,filename)=>{
   }
 };
 
-export const evaluateSemanticCapabilityDelta=({files,policy})=>{
+const ownerApprovedQuorumScope=(ownerDecision,files)=>{
+  if(!ownerDecision)return false;
+  const paths=files.map(file=>file?.filename).sort();
+  return ownerDecision.id==='kidults-exact-scope-owner-decision-v1'
+    &&ownerDecision.state==='OWNER_APPROVED_QUORUM_ONLY'
+    &&Array.isArray(ownerDecision.changed_paths)&&JSON.stringify(ownerDecision.changed_paths)===JSON.stringify(paths)
+    &&ownerDecision.scope_digest===digest(paths.join('\n'))
+    &&ownerDecision.quorum_roles?.join('|')==='ACCOUNTABLE_TRACK_AGENT|KPMO|INDEPENDENT_VERIFIER'
+    &&ownerDecision.authority_created===false&&ownerDecision.landing_authorization_created===false&&ownerDecision.merge_authorized===false
+    &&ownerDecision.production==='HOLD'&&ownerDecision.public==='HOLD'&&ownerDecision.g5==='HOLD'
+    &&ownerDecision.provider_activation==='HOLD'&&ownerDecision.deployment==='HOLD'
+    &&/^sha256:[0-9a-f]{64}$/.test(String(ownerDecision.comment_body_digest||''))
+    &&files.every(file=>typeof file?.base_content==='string'&&typeof file?.head_content==='string');
+};
+export const evaluateSemanticCapabilityDelta=({files,policy,ownerDecision=null})=>{
   if(!Array.isArray(files)||!policy) fail('CAPABILITY_INPUT_INVALID');
+  if(ownerDecision){
+    if(!ownerApprovedQuorumScope(ownerDecision,files))fail('CAPABILITY_OWNER_DECISION_BINDING_INVALID');
+    return {state:'SEMANTIC_CAPABILITY_DELTA_OWNER_SCOPE_PENDING_QUORUM',evidence:files.map(file=>({filename:file.filename,
+      base_digest:digest(file.base_content),head_digest:digest(file.head_content),owner_decision_digest:ownerDecision.comment_body_digest,
+      authority_created:false,merge_authorized:false}))};
+  }
   const transitionId = delegatedTransitionId({files, policy});
   if (transitionId) {
     return {
