@@ -36,7 +36,7 @@ test('resumes validated read routes including paginated compare continuation',as
   const candidateCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:candidate}};
   const candidateLine=JSON.stringify(candidateCheckpoint);let calls=0;
   await consumeGithubReadResumeCheckpoint({...common,checkpoint:candidateCheckpoint,
-   archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:candidateLine+'\\n'}]}),
+   archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:candidateLine+'\n'}]}),
    read:async value=>{calls++;assert.equal(value,candidate);return {ok:true};}});
   assert.equal(calls,1,candidate);
  }
