@@ -16,15 +16,19 @@ export const isCandidateRejection=error=>error instanceof DispatcherError || err
   || /^INDEPENDENT_/.test(String(error?.code||''));
 const OWNER_REVIEW_CODES=new Set([
   'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
-  'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
-  'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
-  'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
-  'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
+  'CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
+  'INDEPENDENT_SECURITY_CAPABILITY_CHANGED',
 ]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
 const POLICY_REPAIR_CODES=new Set([
   'CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
   'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED',
+  'CAPABILITY_AUTHORITY_POLICY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+  'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED','DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
+  'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN','CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',
+  'CAPABILITY_JSON_PARSE_FAILED','CAPABILITY_SCRIPT_PARSE_FAILED','CAPABILITY_SOURCE_MISSING',
+  'CAPABILITY_YAML_INDENT_UNKNOWN','CAPABILITY_YAML_UNCLASSIFIED','CAPABILITY_YAML_UNSUPPORTED_SYNTAX',
+  'INDEPENDENT_SCRIPT_PARSE_FAILED','INDEPENDENT_JSON_PARSE_FAILED','INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',
 ]);
 export function buildPolicyRepairRequired({pr,mainSha,treeSha,files,error}) {
   if(!POLICY_REPAIR_CODES.has(String(error?.code||'')))return null;
@@ -458,9 +462,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         ?await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)
         :await immutableCommit(repository,pr.head.sha,token);
       if(fileRecords.length>128){
-        const review=buildOwnerReviewRequired({pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,error:new DispatcherError('DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED')});
-        review.bounded_comparison={changed_file_count:fileRecords.length,max_comparison_files:128,comparison_performed:false,authority_created:false};
-        results.push(review);continue;
+        const repair=buildPolicyRepairRequired({pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,error:new DispatcherError('DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED')});
+        repair.bounded_comparison={changed_file_count:fileRecords.length,max_comparison_files:128,comparison_performed:false,authority_created:false};
+        results.push(repair);continue;
       }
       const residualComparison=await compareStaleCandidateAgainstMain({repository,baseSha:pr.base.sha,mainSha,headSha:pr.head.sha,files:fileRecords,token});
       if(residualComparison.all_changed_files_equal_current_main) {
@@ -500,9 +504,11 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       if(recovered.candidate) {results.push(candidateContext.classificationMode==='STALE_BASE'
         ?{state:'STALE_RECOVERABLE',pull_request:pr.number,binding:recovered.candidate,reclassification:recovered.receipt}
         :{state:'ELIGIBLE',envelope:recovered.candidate,reclassification:recovered.receipt});continue;}
-      if(recovered.unresolved) {results.push({state:'OWNER_REVIEW_REQUIRED',pull_request:pr.number,
-        reason:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',reclassification:recovered.receipt,
-        autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
+      if(recovered.unresolved) {results.push({state:'POLICY_REPAIR_REQUIRED',pull_request:pr.number,
+        reason:'UNKNOWN_RECLASSIFICATION_UNRESOLVED',classification_failure:{code:error.code,
+          stage:'BOUNDED_AUTOMATIC_RECLASSIFICATION_EXHAUSTED',authority_created:false},
+        binding:recovered.receipt.binding,recovery_action:'QUARANTINE_REPAIR_CLASSIFIER_AND_RESCAN',
+        reclassification:recovered.receipt,autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
         production:'HOLD',public:'HOLD',g5:'HOLD'});continue;}
       if(!isOwnerReviewRequired(recovered.error)) {
         const repair=recovered.context?buildPolicyRepairRequired({...recovered.context,error:recovered.error}):null;

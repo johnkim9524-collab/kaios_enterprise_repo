@@ -152,7 +152,7 @@ test('internal reversible PR lifecycle is autonomous end-to-end, not only approv
   assert.equal(lifecycle.stale_base,'BROKERED_BOUNDED_UPDATE_BRANCH');
   assert.equal(lifecycle.redundant_pr_cleanup,'BROKERED_EXACT_BLOB_EQUALITY_ONLY');
   assert.equal(lifecycle.bounded_retry,'AUTOMATIC_FRESH_GENERATION');
-  assert.equal(lifecycle.owner_escalation,'ONLY_OWNER_RESERVED_OR_UNRESOLVED_FAIL_CLOSED');
+  assert.equal(lifecycle.owner_escalation,'ONLY_VERIFIED_OWNER_RESERVED_EFFECTS');
   assert.equal(landing.merge.autonomous_stale_base_convergence.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
   assert.equal(landing.merge.autonomous_redundant_pr_hygiene.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
   assert.equal(landing.merge.autonomous_redundant_pr_hygiene.close_only_when_all_changed_file_blobs_equal_current_main,true);
@@ -174,6 +174,15 @@ test('internal workflow strengthening is autonomous while added authority is Own
   for(const trigger of ['repository_dispatch','pull_request_target']){
     assert.throws(()=>assertAutonomousFileScope({files:[{...safe,patch:`@@ -1 +1,2 @@\n name: recovery\n+${trigger}:`}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
   }
+});
+
+test('classifier and transport recovery errors enter bounded policy repair without Owner approval',()=>{
+  const codes=landing.capability_guard_owner_review_handoff.internal_repair_codes;
+  for(const code of ['CAPABILITY_AUTHORITY_POLICY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+    'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED','DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
+    'UNKNOWN_RECLASSIFICATION_UNRESOLVED']) assert.ok(codes.includes(code),code);
+  assert.equal(landing.scope_classification.unknown_or_unavailable_patch,
+    'QUARANTINE_RECLASSIFY_THEN_POLICY_REPAIR_NO_OWNER_ESCALATION');
 });
 
 test('authority-bearing self-governance fields remain Owner-bound after bootstrap',()=>{

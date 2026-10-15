@@ -8,21 +8,71 @@ export class CapabilityDeltaError extends Error {
 }
 const fail=(code,detail='')=>{throw new CapabilityDeltaError(code,detail)};
 const digest=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
-const matchesProtectedDiagnosticRepair=(file,policy)=>{
-  if(file.filename!=='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs')return false;
-  const r=policy.protected_code_repair;
-  if(!r)return false;
-  const expected=['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions'];
-  if(Object.keys(r).sort().join(',')!==expected.sort().join(',')||r.enabled!==true
-    ||r.executor!=='EXACT_PROTECTED_MAIN'||r.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
-    ||r.primary_and_independent_required!==true||r.track_kpmo_quorum_required!==true
-    ||r.candidate_policy_authority!==false||!Array.isArray(r.transitions)||r.transitions.length!==1)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
-  const t=r.transitions[0];
-  if(Object.keys(t).sort().join(',')!=='base_digest,head_digest,id,path'
-    ||t.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||t.path!==file.filename
-    ||!/^sha256:[0-9a-f]{64}$/.test(t.base_digest)||!/^sha256:[0-9a-f]{64}$/.test(t.head_digest)
-    ||t.base_digest===t.head_digest)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
-  return file.status==='modified'&&digest(file.base_content)===t.base_digest&&digest(file.head_content)===t.head_digest;
+// One-time, non-authorizing bootstrap for the Owner-reserved diagnostic
+// handoff. The transition is pinned in both verifiers; candidate policy data
+// cannot register or widen it. It changes only the exact PR-scoped skip into
+// an OWNER_REVIEW_REQUIRED record and never creates quorum or merge authority.
+const ownerReviewRoutingRepair=Object.freeze({
+  paths:Object.freeze([
+    'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs',
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs',
+  ]),
+  digests:Object.freeze({
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs':Object.freeze([
+      'sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73',
+      'sha256:73af3b08d778756acbb6aba65f961c5bb0d253265e3be608687cea98f3c4f768',
+    ]),
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs':Object.freeze([
+      'sha256:3d4888562344b21dfc7028c456e91ac0e32c66c38d23286bf58620e3d3bb6679',
+      'sha256:fd3a7f93b6e6bd752ccc84af7f7b276baae1f6af12f9b1e4de46eb2670eb7bbf',
+    ]),
+  }),
+});
+export const isRegisteredOwnerReviewRoutingRepairDigest=(filename,baseDigest,headDigest)=>{
+  const expected=ownerReviewRoutingRepair.digests[filename];
+  return Array.isArray(expected)&&expected[0]===baseDigest&&expected[1]===headDigest;
+};
+export const matchesRegisteredOwnerReviewRoutingPolicyDelta=(baseContent,headContent,dispatcherBaseDigest,dispatcherHeadDigest,protectedPolicy)=>{
+  let before,after;try{before=JSON.parse(baseContent);after=JSON.parse(headContent);}catch{return false;}
+  if(JSON.stringify(before)!==JSON.stringify(protectedPolicy))return false;
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(before.version||'');
+  if(!version||after.version!==`${Number(version[1])}.${Number(version[2])+1}.0`)return false;
+  const oldCodes=before.capability_guard_owner_review_handoff?.trigger_codes;
+  const newCodes=after.capability_guard_owner_review_handoff?.trigger_codes;
+  if(!Array.isArray(oldCodes)||!Array.isArray(newCodes))return false;
+  const expectedCodes=[...oldCodes,'DISPATCH_OWNER_RESERVED_ACTION'].sort();
+  if(JSON.stringify([...newCodes].sort())!==JSON.stringify(expectedCodes))return false;
+  const sourcePath='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(before.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherBaseDigest
+    ||after.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherHeadDigest)return false;
+  const normalized=structuredClone(after);
+  const expected=structuredClone(before);
+  normalized.version=before.version;
+  normalized.capability_guard_owner_review_handoff.trigger_codes=[...oldCodes].sort();
+  expected.capability_guard_owner_review_handoff.trigger_codes=[...oldCodes].sort();
+  normalized.immutable_source_read_profile.source_sha256[sourcePath]=dispatcherBaseDigest;
+  return JSON.stringify(normalized)===JSON.stringify(expected);
+};
+const matchesOwnerReviewRoutingRepair=(file,files,protectedPolicy)=>{
+  if(!ownerReviewRoutingRepair.paths.includes(file?.filename))return false;
+  const changed=files.filter(entry=>ownerReviewRoutingRepair.paths.includes(entry?.filename));
+  if(changed.length!==ownerReviewRoutingRepair.paths.length
+    ||ownerReviewRoutingRepair.paths.some(name=>files.filter(entry=>entry?.filename===name).length!==1)
+    ||files.some(entry=>!ownerReviewRoutingRepair.paths.includes(entry?.filename)
+      && !['coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+        'coordination/kidults/governance/approval-policy-inventory-v1.json'].includes(entry?.filename)))return false;
+  for(const name of ownerReviewRoutingRepair.paths){
+    const entry=files.find(value=>value.filename===name);
+    if(entry.status!=='modified')return false;
+    if(name!==ownerReviewRoutingRepair.paths[0]
+      &&!isRegisteredOwnerReviewRoutingRepairDigest(name,digest(entry.base_content),digest(entry.head_content)))return false;
+  }
+  const policyFile=files.find(entry=>entry.filename===ownerReviewRoutingRepair.paths[0]);
+  const source=files.find(entry=>entry.filename===ownerReviewRoutingRepair.paths[1]);
+  if(!matchesRegisteredOwnerReviewRoutingPolicyDelta(policyFile.base_content,policyFile.head_content,
+    digest(source.base_content),digest(source.head_content),protectedPolicy))return false;
+  return file.status==='modified';
 };
 // Rebinding a dispatcher implementation already accepted by this protected
 // verifier is derived metadata. Only appended ASCII comments or an existing
@@ -50,7 +100,7 @@ const matchesRegisteredDiagnosticProfileRebind=(file,files,policy)=>{
   const commentOnly=sourceDelta.status==='modified'&&sourceDelta.base_content.endsWith('\n')
     &&sourceDelta.head_content.startsWith(sourceDelta.base_content)
     &&/^(?:\/\/[\x20-\x7e]*\n)+$/.test(tail);
-  if(!commentOnly&&!matchesProtectedDiagnosticRepair(sourceDelta,policy))return false;
+  if(!commentOnly&&!matchesOwnerReviewRoutingRepair(sourceDelta,files,policy))return false;
   if(a.source_sha256[source]!==digest(candidates[0].base_content)||b.source_sha256[source]!==digest(candidates[0].head_content))return false;
   // No verifier, reader, transport or quarantine source changes can piggyback.
   for(const key of keys.filter(key=>key!==source)){
@@ -481,8 +531,10 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(typeof filename!=='string'||!filename) fail('CAPABILITY_PATH_INVALID');
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
+    if(matchesOwnerReviewRoutingRepair(file,files,policy)){
+      evidence.push({filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
+    }
     if(matchesRegisteredDiagnosticProfileRebind(file,files,policy)){evidence.push({filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
-    if(matchesProtectedDiagnosticRepair(file,policy)){evidence.push({filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){evidence.push({filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content)});continue;}
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
     else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename,files);
