@@ -8,12 +8,9 @@ const policyPath='coordination/kidults/governance/autonomous-internal-landing-po
 const dispatcher='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 const hash=s=>'sha256:'+crypto.createHash('sha256').update(s).digest('hex');
 const live=JSON.parse(fs.readFileSync(policyPath));
-const before='export function read(){if(!bound)throw new Error("DENIED");return readOnly();}';
-const after=before+'\nexport const diagnostic="BOUNDED_READ_COUNTS_ONLY";';
-// This synthetic protected-main fixture pre-registers one exact reviewed pair.
-// Candidate files never install or modify that registration.
+const before='export function read(){if(!bound)throw new Error("DENIED");return readOnly();}\n';
+const after=before+'// Bounded read diagnostics only.\n';
 const protectedPolicy=structuredClone(live);
-Object.assign(protectedPolicy.protected_code_repair.transitions[0],{base_digest:hash(before),head_digest:hash(after)});
 protectedPolicy.immutable_source_read_profile.source_sha256[dispatcher]=hash(before);
 const candidate=structuredClone(protectedPolicy);
 candidate.immutable_source_read_profile.source_sha256[dispatcher]=hash(after);
@@ -34,7 +31,7 @@ for(const [name,verify]of engines){
   ['limit expansion',x=>{const p=JSON.parse(x.files[1].head_content);p.immutable_source_read_profile.limits.maximum_requests++;x.files[1].head_content=JSON.stringify(p);}],
   ['owner activation flag removed',x=>{const p=JSON.parse(x.files[1].head_content);p.immutable_source_read_profile.policy_activation_requires_exact_head_owner_decision=false;x.files[1].head_content=JSON.stringify(p);}],
   ['HOLD changed',x=>{const p=JSON.parse(x.files[1].head_content);p.immutable_source_read_profile.production='READY';x.files[1].head_content=JSON.stringify(p);}],
-  ['candidate self-registration',x=>{const p=JSON.parse(x.files[1].head_content);p.protected_code_repair.transitions[0].head_digest=hash('new');x.files[1].head_content=JSON.stringify(p);}],
+  ['legacy repair self-registration',x=>{const p=JSON.parse(x.files[1].head_content);p.protected_code_repair={enabled:true,transitions:[{head_digest:hash('new')}]};x.files[1].head_content=JSON.stringify(p);}],
   ['unreviewed authority source',x=>{x.files[0].head_content=x.files[0].head_content.replace('if(!bound)','if(false)');const p=JSON.parse(x.files[1].head_content);p.immutable_source_read_profile.source_sha256[dispatcher]=hash(x.files[0].head_content);x.files[1].head_content=JSON.stringify(p);}],
   ['protected verifier update',x=>{x.files.push({filename:'scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs',status:'modified',base_content:'const x=1;',head_content:'const x=2;'});} ],
   ['duplicate policy candidate',x=>x.files.push({...x.files[1]})],
@@ -42,10 +39,8 @@ for(const [name,verify]of engines){
   ['secret access',x=>x.files.push({filename:'.github/workflows/example.yml',status:'modified',base_content:'jobs:\n  a:\n    steps:\n      - run: echo safe\n',head_content:'jobs:\n  a:\n    steps:\n      - run: echo ${{ secrets.TOKEN }}\n'})],
  ])test(name+' rejects '+label,()=>{const x=input();mutate(x);assert.throws(()=>verify(x));});
 }
-test('historic registered pair remains inapplicable to current main',()=>{
- const current=fs.readFileSync(dispatcher,'utf8');
- assert.notEqual(hash(current),live.protected_code_repair.transitions[0].base_digest);
- assert.notEqual(hash(current),live.protected_code_repair.transitions[0].head_digest);
+test('legacy single-transition repair contract is removed',()=>{
+ assert.equal(Object.hasOwn(live,'protected_code_repair'),false);
 });
 
 for(const [name,verify]of engines)for(const path of [

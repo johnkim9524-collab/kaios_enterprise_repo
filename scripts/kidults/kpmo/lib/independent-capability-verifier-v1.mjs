@@ -4,23 +4,71 @@ import crypto from 'node:crypto';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 const hash=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
-const independentlyMatchesProtectedRepair=(file,policy)=>{
-  const path='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
-  if(file.filename!==path||!policy.protected_code_repair)return false;
-  const rule=policy.protected_code_repair;
-  const keys=new Set(['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions']);
-  if(Object.keys(rule).length!==keys.size||Object.keys(rule).some(k=>!keys.has(k))
-    ||rule.enabled!==true||rule.executor!=='EXACT_PROTECTED_MAIN'||rule.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
-    ||rule.primary_and_independent_required!==true||rule.track_kpmo_quorum_required!==true||rule.candidate_policy_authority!==false
-    ||!Array.isArray(rule.transitions)||rule.transitions.length!==1)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
-  const entry=rule.transitions[0],names=Object.keys(entry).sort();
-  if(names.length!==4||names.some((name,i)=>name!==['base_digest','head_digest','id','path'][i])
-    ||entry.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||entry.path!==path
-    ||typeof entry.base_digest!=='string'||typeof entry.head_digest!=='string'
-    ||![entry.base_digest,entry.head_digest].every(d=>/^sha256:[a-f0-9]{64}$/.test(d))||entry.base_digest===entry.head_digest)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
-  if(file.status!=='modified')return false;
-  return crypto.createHash('sha256').update(file.base_content,'utf8').digest('hex')===entry.base_digest.substring(7)
-    &&crypto.createHash('sha256').update(file.head_content,'utf8').digest('hex')===entry.head_digest.substring(7);
+// Independent copy of the exact, non-authorizing Owner-review routing
+// bootstrap. Keep this matcher separate from the primary verifier so a
+// candidate cannot register its own repair or make both checks share logic.
+const ownerReviewRoutingRepair=Object.freeze({
+  paths:Object.freeze([
+    'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs',
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs',
+  ]),
+  digests:Object.freeze({
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs':Object.freeze([
+      'sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73',
+      'sha256:73af3b08d778756acbb6aba65f961c5bb0d253265e3be608687cea98f3c4f768',
+    ]),
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs':Object.freeze([
+      'sha256:3d4888562344b21dfc7028c456e91ac0e32c66c38d23286bf58620e3d3bb6679',
+      'sha256:fd3a7f93b6e6bd752ccc84af7f7b276baae1f6af12f9b1e4de46eb2670eb7bbf',
+    ]),
+  }),
+});
+export const independentlyMatchesOwnerReviewRoutingRepairDigest=(filename,baseDigest,headDigest)=>{
+  const pair=ownerReviewRoutingRepair.digests[filename];
+  return Array.isArray(pair)&&pair[0]===baseDigest&&pair[1]===headDigest;
+};
+export const independentlyMatchesOwnerReviewRoutingPolicyDelta=(baseContent,headContent,dispatcherBaseDigest,dispatcherHeadDigest,protectedPolicy)=>{
+  let base,next;try{base=JSON.parse(baseContent);next=JSON.parse(headContent);}catch{return false;}
+  if(JSON.stringify(base)!==JSON.stringify(protectedPolicy))return false;
+  const v=/^(\d+)\.(\d+)\.(\d+)$/.exec(base.version||'');
+  if(!v||next.version!==`${Number(v[1])}.${Number(v[2])+1}.0`)return false;
+  const previous=base.capability_guard_owner_review_handoff?.trigger_codes;
+  const proposed=next.capability_guard_owner_review_handoff?.trigger_codes;
+  if(!Array.isArray(previous)||!Array.isArray(proposed))return false;
+  const expected=[...previous,'DISPATCH_OWNER_RESERVED_ACTION'].sort();
+  if(JSON.stringify([...proposed].sort())!==JSON.stringify(expected))return false;
+  const sourcePath='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(base.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherBaseDigest
+    ||next.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherHeadDigest)return false;
+  const comparable=structuredClone(next);
+  const normalizedBase=structuredClone(base);
+  comparable.version=base.version;
+  comparable.capability_guard_owner_review_handoff.trigger_codes=[...previous].sort();
+  normalizedBase.capability_guard_owner_review_handoff.trigger_codes=[...previous].sort();
+  comparable.immutable_source_read_profile.source_sha256[sourcePath]=dispatcherBaseDigest;
+  return JSON.stringify(comparable)===JSON.stringify(normalizedBase);
+};
+const independentlyMatchesOwnerReviewRoutingRepair=(file,files,protectedPolicy)=>{
+  if(!ownerReviewRoutingRepair.paths.includes(file?.filename))return false;
+  const core=files.filter(item=>ownerReviewRoutingRepair.paths.includes(item?.filename));
+  if(core.length!==3||ownerReviewRoutingRepair.paths.some(name=>files.filter(item=>item?.filename===name).length!==1))return false;
+  for(const item of files){
+    if(!ownerReviewRoutingRepair.paths.includes(item?.filename)
+      &&item?.filename!=='coordination/kidults/governance/approval-policy-file-manifest-v1.json'
+      &&item?.filename!=='coordination/kidults/governance/approval-policy-inventory-v1.json')return false;
+  }
+  for(const name of ownerReviewRoutingRepair.paths){
+    const item=files.find(value=>value.filename===name);
+    if(item.status!=='modified')return false;
+    if(name!==ownerReviewRoutingRepair.paths[0]
+      &&!independentlyMatchesOwnerReviewRoutingRepairDigest(name,hash(item.base_content),hash(item.head_content)))return false;
+  }
+  const policyFile=files.find(item=>item.filename===ownerReviewRoutingRepair.paths[0]);
+  const source=files.find(item=>item.filename===ownerReviewRoutingRepair.paths[1]);
+  return file.status==='modified'&&independentlyMatchesOwnerReviewRoutingPolicyDelta(
+    policyFile.base_content,policyFile.head_content,hash(source.base_content),hash(source.head_content),protectedPolicy,
+  );
 };
 // Independent verification of derived dispatcher hashes. The source delta
 // is evaluated separately under the protected policy; it cannot refresh this
@@ -50,7 +98,7 @@ const independentlyMatchesDiagnosticProfileRebind=(entry,files,protectedPolicy)=
       if(!line.startsWith('//')||[...line].some(char=>char.charCodeAt(0)<32||char.charCodeAt(0)>126)){safeComments=false;break;}
     }
     safeComments=safeComments&&remaining.endsWith('\n');
-    if(!safeComments&&!independentlyMatchesProtectedRepair(sourcePair,protectedPolicy))return false;
+    if(!safeComments&&!independentlyMatchesOwnerReviewRoutingRepair(sourcePair,files,protectedPolicy))return false;
     const source=sources[0];
     if(hash(source.base_content)!==oldRegistry[name]||hash(source.head_content)!==newRegistry[name])return false;
   }
@@ -424,9 +472,11 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    if(independentlyMatchesOwnerReviewRoutingRepair(file,files,policy)){
+      receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
+    }
     if(independentlyMatchesDiagnosticProfileRebind(file,files,policy)){receipts.push({filename:file.filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
     if(handoffDisplayDelta(file)){receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_HANDOFF_RUN_NAME_DISPLAY_ONLY',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
-    if(independentlyMatchesProtectedRepair(file,policy)){receipts.push({filename:file.filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){receipts.push({filename:file.filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;}
     if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)){
       verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename,files);
