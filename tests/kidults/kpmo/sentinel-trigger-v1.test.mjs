@@ -238,8 +238,8 @@ test('Sentinel subscribes to bounded-resume failures while Assurance still sees 
  assert.doesNotMatch(s,/actions: write/);
  const audit=a.match(/^  audit:\n[\s\S]*?^    if: >-\n([\s\S]*?)^    concurrency:/m);
  assert.ok(audit,'missing Assurance audit event gate');
- assert.match(audit[1],/github\.event\.workflow_run\.event == 'repository_dispatch'/);
- assert.match(a,/Bind exact upstream Sentinel receipt digest[\s\S]*?github\.event\.workflow_run\.event == 'repository_dispatch'/);
+ assert.match(audit[1],/github\.event\.workflow_run\.event == 'repository_dispatch' \|\| github\.event\.workflow_run\.event == 'workflow_run'/);
+ assert.match(a,/Bind exact upstream Sentinel receipt digest[\s\S]*?github\.event\.workflow_run\.event == 'repository_dispatch' \|\| github\.event\.workflow_run\.event == 'workflow_run'/);
  assert.match(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: read[\s\S]*?actions: write|dispatch-kir-coverage-assurance:[\s\S]*?actions: write[\s\S]*?contents: read/);
  assert.doesNotMatch(c,/dispatch-kir-coverage-assurance:[\s\S]*?contents: write/);
  assert.match(s,/Verify exact Coverage chain continuation[\s\S]*?github\.event_name == 'workflow_dispatch'/);
