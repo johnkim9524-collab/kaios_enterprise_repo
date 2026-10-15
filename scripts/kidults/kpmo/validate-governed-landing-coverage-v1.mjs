@@ -28,6 +28,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
   require(policy.version === '1.10.0', 'POLICY_VERSION');
+  require(workflow.includes(`name: ${policy.required_status_context}`), 'REQUIRED_STATUS_JOB_NAME_MISMATCH');
   require(policy.readiness_status_context === 'KIDULTS Landing Readiness V1'
     && policy.status_ownership?.readiness_may_write_required_landing === false
     && workflow.includes('context=policy.readiness_status_context')

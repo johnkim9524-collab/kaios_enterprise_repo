@@ -160,7 +160,7 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
-  if(!pr||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||pr.state!=='open'||pr.merged===true||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
   const scopeDigest=sha256(changedPaths.join('\n'));
   return {
@@ -496,6 +496,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     // commit tree needed by the existing Owner-review binding. This records
     // the denial for Owner review; it never admits the PR to quorum or grants
     // landing authority.
+    if(prNumber===Number(pr.number)&&(pr.state!=='open'||pr.merged===true)){
+      results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_PR_NOT_OPEN'});continue;
+    }
     if(!candidateContext&&prNumber===Number(pr.number)&&error?.code==='DISPATCH_OWNER_RESERVED_ACTION'
       &&Array.isArray(candidateFilesForReview)&&candidateFilesForReview.length){
       const headCommit=await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token);
