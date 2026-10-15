@@ -6907,8 +6907,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3067fc791840f7639084c303747437b1d2ecba39",
-      "sha256": "sha256:751e153dd0307096c3c05dc6d7da09ad3e7cae09cde4f43d50771a72c280c17c"
+      "git_blob": "d413e301f7ea891eb8747ba6fec28f5a58e6d7dd",
+      "sha256": "sha256:a7ad2e12ddac888d7af0b7a37579a78b2779826880aa4a78436f3f998c79e904"
     },
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
@@ -7151,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c6c06cc2c57eda4e4cef5625da324b381c2448acf6d29f64d24f30c1bca7189a"
+  "manifest_sha256": "sha256:b44919be90d7306994a04141a5f8586a034539fc7abb8ebfb3964271c2213277"
 }
