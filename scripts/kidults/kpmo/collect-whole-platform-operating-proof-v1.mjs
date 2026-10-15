@@ -24,6 +24,9 @@ const canary=spec('IMMUTABILITY','kidults-autonomous-object-lock-canary-v1.yml',
 const dispatcher=spec('DISPATCHER','kidults-autonomous-dispatcher-v1.yml',['workflow_run','schedule','workflow_dispatch']);
 const finalizers=['track','kpmo','independent-verification'].map(role=>spec(`FINALIZER_${role}`,`kidults-autonomous-${role}-authorization-v1.yml`,['repository_dispatch','workflow_run']));
 const rootUrl=`https://api.github.com/repos/${REPOSITORY}`;
+const RECOVERY_HISTORY_PAGE_SIZE=100;
+const RECOVERY_HISTORY_SEARCH_RESULT_CAP=1000;
+const RECOVERY_HISTORY_MAX_READS=240;
 const member=(packet,basename)=>{
   const values=packet.members.filter(m=>path.posix.basename(m.name)===basename);
   requireEvidence(values.length===1,'MEMBER_CARDINALITY');return JSON.parse(values[0].text);
@@ -33,43 +36,74 @@ export function operatingProofFailureDisposition(error){
     return {state:'VERIFIED_HOLD',reason:'GITHUB_READ_DEFERRED_NOT_AUTHORITY'};
   return {state:'VERIFIED_FAIL',reason:String(error?.message||error).split(':')[0]};
 }
-export function originalRecoveryHistoryQuery(originalRun,observedAt,page){
+export function originalRecoveryHistoryQuery(originalRun,observedAt,page,windowStart,windowEnd){
   const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
+  const queryStart=Math.floor(start/1000)*1000,queryEnd=Math.floor(end/1000)*1000;
+  const from=windowStart===undefined?queryStart:windowStart,to=windowEnd===undefined?queryEnd:windowEnd;
   requireEvidence(originalRun?.id===38132692877&&Number.isFinite(start)&&Number.isFinite(end)&&start<=end
+    &&Number.isInteger(from)&&Number.isInteger(to)&&from>=queryStart&&to<=queryEnd&&from<=to
     &&Number.isInteger(page)&&page>=1&&page<=10,'RECOVERY_HISTORY_INCIDENT_WINDOW');
   // A terminal recovering this reservation cannot predate its original run.
   // Keep all source SHAs: reconciliation survives later protected-main merges.
   // Status is mutable even for runs created before the fixed cutoff. Filtering
   // success here changes page membership as in-flight runs finish.
-  return new URLSearchParams({branch:'main',created:`${new Date(start).toISOString()}..${observedAt}`,
+  return new URLSearchParams({branch:'main',created:`${new Date(from).toISOString()}..${new Date(to).toISOString()}`,
     per_page:'100',page:String(page)});
 }
 export async function listOriginalRecoveryHistory({originalRun,observedAt,get,workflow}){
-  const history=[];let total;
-  for(let page=1;page<=10;page++){
-    const query=originalRecoveryHistoryQuery(originalRun,observedAt,page);
+  const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
+  requireEvidence(Number.isFinite(start)&&Number.isFinite(end)&&start<=end,'RECOVERY_HISTORY_INCIDENT_WINDOW');
+  const queryStart=Math.floor(start/1000)*1000,queryEnd=Math.floor(end/1000)*1000;
+  let reads=0;
+  const queryPage=async(range,page)=>{
+    requireEvidence(reads<RECOVERY_HISTORY_MAX_READS,'RECOVERY_HISTORY_READ_BUDGET');
+    reads++;
+    const query=originalRecoveryHistoryQuery(originalRun,observedAt,page,range.start,range.end);
     const index=await get(`actions/workflows/${workflow}/runs?${query}`);
-    requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100
+    requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=RECOVERY_HISTORY_PAGE_SIZE
       &&Number.isSafeInteger(index.total_count)&&index.total_count>=0
       &&index.incomplete_results!==true,'RECOVERY_HISTORY_INDEX');
-    if(total===undefined)total=index.total_count;
-    requireEvidence(index.total_count===total,'RECOVERY_HISTORY_CHANGED');
-    history.push(...index.workflow_runs);
-    requireEvidence(history.length<=total&&history.length<=1000,'RECOVERY_HISTORY_CARDINALITY');
-    // GitHub caps a workflow-run search at 1,000 results. A complete result
-    // can establish absence; a bounded prefix can establish a positive match
-    // but must never be interpreted as proof that no older recovery exists.
-    if(history.length===total||history.length===1000){
-      requireEvidence(new Set(history.map(r=>r.id)).size===history.length,'RECOVERY_HISTORY_DUPLICATE');
-      const start=Date.parse(originalRun.created_at),end=Date.parse(observedAt);
-      requireEvidence(history.every(r=>Number.isSafeInteger(r?.id)&&r.id>0
-        &&Number.isFinite(Date.parse(r.created_at))&&Date.parse(r.created_at)>=start
-        &&Date.parse(r.created_at)<=end),'RECOVERY_HISTORY_INCIDENT_WINDOW');
-      return {workflow_runs:history,total_count:total,complete:history.length===total};
+    return index;
+  };
+  const history=[],pending=[{start:queryStart,end:queryEnd}];let initialTotal;
+  while(pending.length){
+    const range=pending.shift();
+    const first=await queryPage(range,1);
+    if(initialTotal===undefined)initialTotal=first.total_count;
+    if(first.total_count>=RECOVERY_HISTORY_SEARCH_RESULT_CAP){
+      // GitHub caps each created-range search at 1,000 rows. A result count
+      // exactly at the cap is ambiguous too, so split until every query is
+      // strictly below it. Use disjoint UTC-second ranges, matching GitHub's
+      // created timestamp precision.
+      // This keeps every search complete while preserving a hard read ceiling.
+      requireEvidence(range.end-range.start>=1000,'RECOVERY_HISTORY_TIMESTAMP_DENSITY');
+      const middle=range.start+Math.floor((range.end-range.start)/2000)*1000;
+      requireEvidence(middle>=range.start&&middle+1000<=range.end,'RECOVERY_HISTORY_TIMESTAMP_DENSITY');
+      pending.push({start:middle+1000,end:range.end},{start:range.start,end:middle});
+      continue;
     }
-    requireEvidence(index.workflow_runs.length===100&&page<10,'RECOVERY_HISTORY_TRUNCATED');
+    let count=first.total_count;
+    const pages=Math.max(1,Math.ceil(count/RECOVERY_HISTORY_PAGE_SIZE));
+    for(let page=1;page<=pages;page++){
+      const index=page===1?first:await queryPage(range,page);
+      requireEvidence(index.total_count===count,'RECOVERY_HISTORY_CHANGED');
+      const expected=Math.min(RECOVERY_HISTORY_PAGE_SIZE,count-(page-1)*RECOVERY_HISTORY_PAGE_SIZE);
+      requireEvidence(index.workflow_runs.length===expected,'RECOVERY_HISTORY_PAGE_CARDINALITY');
+      history.push(...index.workflow_runs);
+      requireEvidence(history.length<=initialTotal,'RECOVERY_HISTORY_CARDINALITY');
+    }
   }
-  throw new Error('WHOLE_RUNTIME_RECOVERY_HISTORY_TRUNCATED');
+  const unique=new Map();
+  for(const run of history){
+    const created=Date.parse(run?.created_at);
+    requireEvidence(Number.isSafeInteger(run?.id)&&run.id>0&&Number.isFinite(created)
+      &&created>=queryStart&&created<=queryEnd,'RECOVERY_HISTORY_INCIDENT_WINDOW');
+    requireEvidence(!unique.has(run.id),'RECOVERY_HISTORY_DUPLICATE');
+    unique.set(run.id,run);
+  }
+  requireEvidence(unique.size===initialTotal,'RECOVERY_HISTORY_SNAPSHOT_CARDINALITY');
+  const exact= [...unique.values()].filter(run=>Date.parse(run.created_at)>=start&&Date.parse(run.created_at)<=end);
+  return {workflow_runs:exact,total_count:exact.length,complete:true,read_count:reads};
 }
 export async function collectWholePlatform({sourceSha,contract,scorecard,token,read=authenticatedGithubRead,download=downloadArtifact,
   demandDefinition=JSON.parse(fs.readFileSync(contract.runtime_evidence_demand_definition,'utf8')),
