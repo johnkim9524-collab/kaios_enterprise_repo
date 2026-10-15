@@ -140,7 +140,7 @@ assert.equal(changedRisk.candidate,undefined);
 await assert.rejects(()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy:{classes:{UNKNOWN:{}}},
   readCandidate:async()=>input}),/DISPATCH_RECLASSIFICATION_POLICY_INVALID/);
 const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
-assert.equal(policy.capability_guard_owner_review_handoff.disposition,'OWNER_REVIEW_REQUIRED');
+assert.equal(policy.capability_guard_owner_review_handoff.disposition,'OWNER_REVIEW_REQUIRED_ONLY_FOR_VERIFIED_RESERVED_EFFECTS');
 assert.equal(policy.capability_guard_owner_review_handoff.autonomous_quorum_before_owner_decision,false);
 assert.equal(policy.capability_guard_owner_review_handoff.merge_authorization_created_by_handoff,false);
 const ownerReview=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,
@@ -745,7 +745,7 @@ for(const sourceTransport of [false,true])test(`129-file stale candidate retains
     throw Error('large candidate must not read blobs/status/checks');
   }});
   assert.equal(filePages,2);assert.equal(blobReads,0);assert.equal(results.length,1);
-  const r=results[0];assert.equal(r.state,'OWNER_REVIEW_REQUIRED');assert.equal(r.reason,'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED');
+  const r=results[0];assert.equal(r.state,'POLICY_REPAIR_REQUIRED');assert.equal(r.reason,'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED');
   assert.equal(r.binding.base_sha,sha('d'));assert.equal(r.binding.current_main_sha,sha('a'));assert.equal(r.binding.head_sha,sha('b'));assert.equal(r.binding.changed_paths.length,129);
-  assert.equal(r.bounded_comparison.comparison_performed,false);assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);
+  assert.equal(r.bounded_comparison.comparison_performed,false);assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);assert.equal(r.landing_authorization_created,false);
 });

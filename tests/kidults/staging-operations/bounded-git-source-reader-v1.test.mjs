@@ -163,7 +163,7 @@ test('ASCII ZIP is a candidate denial with exact binding, never whole-scan text 
     return original(url);
   };
   const results=await discover(s.args);assert.equal(results.length,2);
-  for(const row of results){assert.equal(row.state,'OWNER_REVIEW_REQUIRED');assert.equal(row.reason,'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED');assert.equal(row.merge_authorized,false);assert.equal(row.autonomous_eligible,false);assert.equal(row.binding.head_sha,s.f.source);}
+  for(const row of results){assert.equal(row.state,'POLICY_REPAIR_REQUIRED');assert.equal(row.reason,'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED');assert.equal(row.merge_authorized,false);assert.equal(row.autonomous_eligible,false);assert.equal(row.landing_authorization_created,false);assert.equal(row.binding.head_sha,s.f.source);}
 });
 test('full discovery produces identical stale redundancy binding from verified objects and REST',async()=>{
   const a=scanFixture(),b=scanFixture(),reader=b.reader();await reader.file(b.f.source,'file.mjs');await reader.file(b.main,'file.mjs');reader.seal();
