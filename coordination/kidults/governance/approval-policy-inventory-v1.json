@@ -4,11 +4,11 @@
   "status": "REPOSITORY_WIDE_ROUTING_COVERAGE_ENFORCED",
   "canonical_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
   "audit": {
-    "baseline_sha": "06b0e650d29fba139034e65ffaa3ef9946bef46c",
+    "baseline_sha": "652210037ba3339b5aa496202458f912b78f7069",
     "method": "REPRODUCIBLE_GIT_OBJECT_CONTENT_SCAN",
     "manifest": "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
     "approval_related_files_reviewed": 848,
-    "manifest_sha256": "sha256:fe5c25957ae5d8d4e8c116698c72b8c5fae190c0898c4f11667d5d4dafecfe61",
+    "manifest_sha256": "sha256:6a922e466c3493a5645eedc8b3c440d5cebee9da0e3cad64c87a161d35e0c00d",
     "canonical_execution_authorization_policies": 3,
     "classification": "Every execution authorization control is either a source-verified canonical-envelope consumer or an explicit fail-closed route exemption; domain adjudication remains local.",
     "routing_coverage": {
@@ -55,5 +55,5 @@
     "g5": "HOLD",
     "psa_external_call": "HOLD"
   },
-  "manifest_sha256": "sha256:fe5c25957ae5d8d4e8c116698c72b8c5fae190c0898c4f11667d5d4dafecfe61"
+  "manifest_sha256": "sha256:6a922e466c3493a5645eedc8b3c440d5cebee9da0e3cad64c87a161d35e0c00d"
 }
