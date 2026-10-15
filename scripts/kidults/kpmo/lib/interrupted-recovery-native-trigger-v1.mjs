@@ -161,12 +161,22 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
     const boundRows=(proof.protected_evidence||[]).filter(row=>row.workflow_path===sentinelPath);
     check(boundRows.length===1,'COVERAGE_SENTINEL_PROOF_CARDINALITY');
     const sentinelRow=boundRows[0],sentinelRun=await get(`actions/runs/${sentinelRow.run_id}`);
+    const auditJobs=jobs.jobs.filter(j=>j.name==='audit'&&j.run_id===live.id
+      &&(j.run_attempt===undefined||j.run_attempt===1)&&j.status==='completed');
+    const auditSteps=auditJobs[0]?.steps||[];
+    const sentinelBarrier=auditSteps.map((step,index)=>({step,index})).filter(({step})=>
+      step.name==='Enforce Sentinel terminal before Assurance'&&step.status==='completed'&&step.conclusion==='success');
+    const auditExecution=auditSteps.map((step,index)=>({step,index})).filter(({step})=>
+      step.name==='Run audit and always retain receipt'&&step.status==='completed'&&step.conclusion==='success');
+    check(auditJobs.length===1&&sentinelBarrier.length===1&&auditExecution.length===1
+      &&sentinelBarrier[0].index<auditExecution[0].index,'COVERAGE_SENTINEL_TERMINAL_BARRIER');
     check(sentinelRun.actor?.login==='github-actions[bot]'&&sentinelRun.name===sentinelName&&sentinelRun.path===sentinelPath
       &&sentinelRun.event==='workflow_dispatch'&&sentinelRun.status==='completed'&&sentinelRun.conclusion==='success'
       &&sentinelRun.run_attempt===1&&sentinelRun.head_sha===sourceSha&&sentinelRun.head_branch==='main'
       &&sentinelRun.repository?.full_name===repository&&sentinelRun.head_repository?.full_name===repository
       &&Number.isFinite(Date.parse(sentinelRun.created_at))&&Date.parse(coverageRun.created_at)<=Date.parse(sentinelRun.created_at)
-      &&Date.parse(sentinelRun.created_at)<=Date.parse(live.created_at),'COVERAGE_SENTINEL_RUN');
+      &&Number.isFinite(Date.parse(sentinelRun.updated_at))&&Date.parse(sentinelRun.updated_at)<=Date.parse(live.updated_at),
+    'COVERAGE_SENTINEL_RUN');
     check(Date.parse(dispatchArtifact.created_at)<=Date.parse(sentinelRun.created_at),'COVERAGE_SENTINEL_DISPATCH_ORDER');
     const sentinelArtifacts=await get(`actions/runs/${sentinelRun.id}/artifacts?per_page=100`);
     check(Array.isArray(sentinelArtifacts.artifacts)&&sentinelArtifacts.total_count===sentinelArtifacts.artifacts.length

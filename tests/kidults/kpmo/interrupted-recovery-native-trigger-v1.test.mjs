@@ -103,9 +103,9 @@ test('bot failure Assurance dispatch verifies one-time natural Coverage and exac
  const health={...healthCore,receipt_digest:sha256(canonicalJson(healthCore))};
  const sentinelBytes=zip([['kpmo-continuous-assurance-sentinel-health-v1.json',text(health)]]);
  const sentinelArtifact={id:996,name:`kpmo-continuous-assurance-sentinel-health-v1-${sha}-${sentinelId}-1`,expired:false,digest:digest(sentinelBytes),size_in_bytes:sentinelBytes.length,
-  created_at:iso(now-39000),expires_at:iso(now+86400000),workflow_run:{id:sentinelId,head_sha:sha}};
+  created_at:iso(now-19000),expires_at:iso(now+86400000),workflow_run:{id:sentinelId,head_sha:sha}};
  const sentinel={id:sentinelId,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',path:sentinelPath,event:'workflow_dispatch',status:'completed',conclusion:'success',run_attempt:1,
-  head_sha:sha,head_branch:'main',created_at:iso(now-40000),run_started_at:iso(now-39500),actor:{login:'github-actions[bot]'},repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
+  head_sha:sha,head_branch:'main',created_at:iso(now-28000),run_started_at:iso(now-27500),updated_at:iso(now-18000),actor:{login:'github-actions[bot]'},repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
  const f=failedAssuranceFixture();
  f.assurance=assurance;f.event.workflow_run=assurance;f.audit.execution.trigger='workflow_dispatch';
  f.audit.execution.upstream={run_id:String(coverageId),run_attempt:'1',workflow_name:coverageName,workflow_path:coveragePath,workflow_event:'workflow_run',
@@ -116,7 +116,9 @@ test('bot failure Assurance dispatch verifies one-time natural Coverage and exac
  f.bytes=assuranceBytes;f.artifact.digest=digest(assuranceBytes);f.artifact.size_in_bytes=assuranceBytes.length;f.artifact.created_at=iso(now-10000);f.artifact.expires_at=iso(now+86400000);
  const consumptionArtifact={id:993,name:`kidults-kir-coverage-assurance-consumption-v1-${coverageId}-1`,expired:false,digest:digest(consumedBytes),size_in_bytes:consumedBytes.length,
   created_at:iso(now-9000),expires_at:iso(now+86400000),workflow_run:{id:assuranceId,head_sha:sha}};
- f.jobs={total_count:2,jobs:[{id:994,run_id:assuranceId,run_attempt:1,name:'audit',status:'completed',conclusion:'failure'},
+ f.jobs={total_count:2,jobs:[{id:994,run_id:assuranceId,run_attempt:1,name:'audit',status:'completed',conclusion:'failure',steps:[
+   {name:'Enforce Sentinel terminal before Assurance',status:'completed',conclusion:'success'},
+   {name:'Run audit and always retain receipt',status:'completed',conclusion:'success'}]},
   {id:995,run_id:assuranceId,run_attempt:1,name:'classify-canonical-identity',status:'completed',conclusion:'success',steps:[
    {name:'Reject partial forwarded Coverage continuation inputs',status:'completed',conclusion:'success'},
    {name:'Validate and consume forwarded exact Coverage continuation',status:'completed',conclusion:'success'},
@@ -156,6 +158,8 @@ test('bot failure Assurance dispatch verifies one-time natural Coverage and exac
  assert.equal(result.recovery_parent.coverage_continuation.coverage_run_id,coverageId);
  assert.equal(result.recovery_parent.upstream_run_id,String(sentinelId));
  assert.equal(Object.hasOwn(result.recovery_parent.coverage_continuation,'continuation_key'),false);
+ f.jobs.jobs.find(j=>j.name==='audit').steps[0].conclusion='failure';
+ await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f),/COVERAGE_SENTINEL_TERMINAL_BARRIER/);
 });
 
 function failedClockFixture(){
