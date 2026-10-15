@@ -18,6 +18,9 @@ const OWNER_REVIEW_CODES=new Set([
   'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
   'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+  // Reserved operations require a head-bound Owner disposition. Treating this
+  // as a generic skip hides the actionable review record from the dispatcher.
+  'DISPATCH_OWNER_RESERVED_ACTION',
   'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
   'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
 ]);
@@ -451,12 +454,14 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
       const fileRecords=completeFileRecords;
-      // Path-only denials need no blob reads. This is the same mandatory
-      // scope gate used by classification, never a grant based on metadata.
-      assertDelegatedPathScope(fileRecords,policy);
       const commit=fileRecords.length>128
         ?await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)
         :await immutableCommit(repository,pr.head.sha,token);
+      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,
+        classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
+      // Preserve the cheap path-only rejection while retaining the immutable
+      // head/tree/path binding required for an Owner review record.
+      assertDelegatedPathScope(fileRecords,policy);
       if(fileRecords.length>128){
         const review=buildOwnerReviewRequired({pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,error:new DispatcherError('DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED')});
         review.bounded_comparison={changed_file_count:fileRecords.length,max_comparison_files:128,comparison_performed:false,authority_created:false};
@@ -480,9 +485,13 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         : x)
       : baseRequiredChecks;
     const fileRecords=completeFileRecords;
-    assertDelegatedPathScope(fileRecords,policy);
-    const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    // Read only the immutable head first. If scope classification reserves the
+    // change, the dispatcher can emit a correctly bound Owner review without
+    // reading status/checks or authorizing approval fanout.
+    const commit=await immutableCommit(repository,pr.head.sha,token);
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
+    assertDelegatedPathScope(fileRecords,policy);
+    const [status,checks]=await Promise.all([api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});

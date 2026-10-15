@@ -562,7 +562,7 @@ test('a later status 503 invalidates an earlier eligible candidate and publishes
     assert.equal(receipt.failure_class,'DISPATCH_READ_SERVICE_UNAVAILABLE');assert.equal(receipt.fanout_authorized,false);
   }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
 });
-test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
+test('many stale reserved candidates get bound Owner review without blob reads',async()=>{
   let calls=0,blobReads=0;
   const candidates=Array.from({length:20},(_,i)=>({...pr,number:100+i,base:{...pr.base,sha:sha('d')}}));
   const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:64,
@@ -577,13 +577,15 @@ test('many stale reserved candidates are denied before expensive immutable reads
       if(p.includes('/contents/'))blobReads++;
       throw new Error('unexpected immutable read');
     }});
-  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,24);
-  assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
+  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,44);
+  assert.ok(results.every(r=>r.state==='OWNER_REVIEW_REQUIRED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'
+    &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
+    &&r.autonomous_eligible===false&&r.merge_authorized===false));
 });
-test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
+test('current reserved backlog gets bound Owner review without status, checks, or blob reads',async()=>{
   let calls=0;
   const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:128,
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:256,
     fetchImpl:async url=>{
       calls++;const u=new URL(url),p=u.pathname;
       if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
@@ -591,10 +593,13 @@ test('current reserved backlog stays bounded without reading commit status or ch
       if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
       if(p.endsWith('/pulls'))return fakeResponse(200,candidates.slice((Number(u.searchParams.get('page')||1)-1)*100,Number(u.searchParams.get('page')||1)*100));
       if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
       throw new Error('reserved candidate must not read commit status checks or contents');
     }});
-  assert.equal(results.length,104);assert.equal(calls,109);
-  assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
+  assert.equal(results.length,104);assert.equal(calls,213);
+  assert.ok(results.every(r=>r.state==='OWNER_REVIEW_REQUIRED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'
+    &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
+    &&r.autonomous_eligible===false&&r.merge_authorized===false));
 });
 test('global read failure cannot be swallowed by uncertainty reclassification',async()=>{
   const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
