@@ -574,8 +574,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "26b109ea74cad10927088511d00d377f032d0b65",
-      "sha256": "sha256:cce0ceb84030a883978347bdac09912bee64b2338661da2b77c85780762864f8",
+      "git_blob": "a6411e3042da6dac3a6c776bf9674cb82fe0c1ad",
+      "sha256": "sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7151,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:1cab6a0a9e336479d8ac048ab056c4986b5000d7642363225472c9dcbb4d8821"
+  "manifest_sha256": "sha256:c6c06cc2c57eda4e4cef5625da324b381c2448acf6d29f64d24f30c1bca7189a"
 }
