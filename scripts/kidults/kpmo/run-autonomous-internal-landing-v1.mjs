@@ -14,6 +14,7 @@ import {
   validateDraftReadyRebind,
   collectPaginatedApiValues,
   validateLiveChangedPaths,
+  selectExactScopeOwnerDecision,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {LANDING_READINESS_CONTEXT,isLandingReadinessCurrent} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
@@ -427,7 +428,18 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
   const fileRecords=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
   const files=await attachImmutableContents(fileRecords);
-  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,policy,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
+  let liveOwnerDecision=null;
+  if(envelope.owner_decision){
+    const comments=await collectPaginatedApiValues({request:api,endpoint:`/issues/${envelope.pull_request}/comments`});
+    liveOwnerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base?.repo?.id,
+      repositoryOwner:pr.base?.repo?.owner?.login,repositoryOwnerId:pr.base?.repo?.owner?.id,
+      pullRequest:envelope.pull_request,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+      changedPaths:files.map(file=>file.filename)});
+    if(!liveOwnerDecision||canonicalJson(liveOwnerDecision)!==canonicalJson(envelope.owner_decision))
+      throw new AutonomousLandingError('AUTONOMOUS_OWNER_DECISION_LIVE_BINDING_DRIFT');
+  }
+  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,
+    policy,ownerDecision:liveOwnerDecision,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const envelopeRequiredSource=envelope.test_evidence?.required_contexts||envelope.test_evidence?.required_evidence||[];
   const envelopeRequiresDraftDevelopment=envelopeRequiredSource.some(value=>(typeof value==='string'?value:String(value?.context||''))==='KIDULTS Draft Development Validation V1');
   const [status,checks,requiredChecks]=await Promise.all([
