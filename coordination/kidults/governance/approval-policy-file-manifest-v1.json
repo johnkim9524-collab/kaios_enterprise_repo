@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "290d5dfca5220c2b3afe23dfc6e680748cd9435c",
+  "revision": "4784223b9e3168584d0330ab2b5fbe0d13c0af58",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4348,8 +4348,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "336b45edaa52cc4e16cd7a29bcca29a91868aa6f",
-      "sha256": "sha256:67ac92a26248d70516bf8711409e777ed179500a8acdd184f34de45805e1b362",
+      "git_blob": "86ecf3a685341afbce6126bcb71fb303d2771da3",
+      "sha256": "sha256:81c1e118a7d7fc675994b4b442368e45985228e0792fe71557156ba98f488bc9",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6841,8 +6841,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-native-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "50309770a0afd7f6bb156cca479600baf83a0fc7",
-      "sha256": "sha256:bf9e4fdab10513132cf01d36ac3adca1d4ed0d8065574962114cb96e5dcc55cf"
+      "git_blob": "9586edb661ab4f91d592d52b344c20e165bc403b",
+      "sha256": "sha256:5da95c818edeec63fd334e38bb23e4856421a533923dc593315d80c94924fa40"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-signed-ledger-client-v1.test.mjs",
@@ -7151,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:223eb6d4ead7efb9c16d12a4b7a664c981c4c8165d08403c5481371291f58db7"
+  "manifest_sha256": "sha256:8c3ea9a65d7495615d20bd4e78f0c68d3de44a95bcb26423bfa4ef3a9ed4c000"
 }
