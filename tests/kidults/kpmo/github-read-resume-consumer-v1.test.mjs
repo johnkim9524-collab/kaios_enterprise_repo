@@ -22,6 +22,26 @@ test('verifies the exact run, artifact bytes, resume time and GET route before o
  assert.equal(result.actual_authority_granted,false);assert.equal(result.reservation_write_performed,false);
 });
 
+test('resumes validated read routes including paginated compare continuation',async()=>{
+ const sha2='c'.repeat(40);
+ const routes=[
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/branches/main',
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/pulls/42',
+  `/repos/johnkim9524-collab/kaios_enterprise_repo/git/commits/${sha2}`,
+  `/repos/johnkim9524-collab/kaios_enterprise_repo/compare/${sha}...${sha2}`,
+  `/repos/johnkim9524-collab/kaios_enterprise_repo/compare/${sha}...${sha2}?per_page=1&page=2`,
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&event=repository_dispatch&status=failure&per_page=100&page=2',
+ ];
+ for(const candidate of routes){
+  const candidateCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:candidate}};
+  const candidateLine=JSON.stringify(candidateCheckpoint);let calls=0;
+  await consumeGithubReadResumeCheckpoint({...common,checkpoint:candidateCheckpoint,
+   archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:candidateLine+'\\n'}]}),
+   read:async value=>{calls++;assert.equal(value,candidate);return {ok:true};}});
+  assert.equal(calls,1,candidate);
+ }
+});
+
 test('binds a distinct parent route to its recorded attempt',async()=>{
  const parentRoute='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/987/attempts/2/jobs?per_page=100';
  const parentCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:parentRoute}};

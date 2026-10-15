@@ -25,7 +25,7 @@ function routeAllowed(route,binding){
     /^pulls\/[1-9][0-9]{0,5}$/,
     /^branches\/main$/,
     /^git\/commits\/[a-f0-9]{40}$/,
-    /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}$/,
+    /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
   check(allowed.some(pattern=>pattern.test(path)),'ROUTE_NOT_ALLOWLISTED');
