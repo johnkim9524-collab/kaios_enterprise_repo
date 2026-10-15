@@ -6782,7 +6782,7 @@
       "path": "tests/kidults/kpmo/github-read-resume-consumer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "986f96546737df1dbfda7eb2098640ef3f5eb1e4",
-      "sha256": "sha256:2b06398828ae9668fb868c342b2eeaee2068ba77100cebe3d24607a4ca6f67db"
+      "sha256": "sha256:d3cde7286ab6daa785fd9635ad54827da936eedc05ca97558a44a360ed4aba09"
     },
     {
       "path": "tests/kidults/kpmo/github-read-resume-handoff-v1.test.mjs",
@@ -7151,5 +7151,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:697577e8cb48c57105e3a6796c8a7da56765ffb9ba245a43ec69b3794ed14b83"
+  "manifest_sha256": "sha256:ca9d9f83c819480544650e43e5395631749739b6d4e681e20e8e2f3dd419ae53"
 }
