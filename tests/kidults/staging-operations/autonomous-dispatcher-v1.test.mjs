@@ -580,6 +580,35 @@ test('many stale reserved candidates are denied before expensive immutable reads
   assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,24);
   assert.ok(results.every(r=>r.state==='SKIPPED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'));
 });
+test('an exact targeted owner-reserved PR produces a bound Owner-review record only',async()=>{
+  let calls=0;
+  const reservedPr={...pr,number:2670};
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2670,policy,generationSeed:'1',maxRequests:16,
+    fetchImpl:async url=>{
+      calls++;const p=new URL(url).pathname;
+      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+      if(p.endsWith('/pulls/2670'))return fakeResponse(200,reservedPr);
+      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(p.endsWith(`/git/commits/${reservedPr.head.sha}`))return fakeResponse(200,{sha:reservedPr.head.sha,tree:{sha:sha('c')}});
+      throw new Error('owner-reserved targeted review must not read checks, contents, or unrelated candidates');
+    }});
+  assert.equal(calls,6);
+  assert.equal(results.length,1);
+  const review=results[0];
+  assert.equal(review.state,'OWNER_REVIEW_REQUIRED');
+  assert.equal(review.reason,'DISPATCH_OWNER_RESERVED_ACTION');
+  assert.equal(review.binding.pull_request,2670);
+  assert.equal(review.binding.head_sha,reservedPr.head.sha);
+  assert.equal(review.binding.head_tree_sha,sha('c'));
+  assert.deepEqual(review.binding.changed_paths,['secrets/private.json']);
+  assert.equal(review.autonomous_eligible,false);
+  assert.equal(review.landing_authorization_created,false);
+  assert.equal(review.merge_authorized,false);
+  assert.equal(review.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
+  assert.equal(review.classification_failure.authority_created,false);
+});
 test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
   let calls=0;
   const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));

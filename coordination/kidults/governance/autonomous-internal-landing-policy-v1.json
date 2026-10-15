@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -24,14 +24,15 @@
   },
   "capability_guard_owner_review_handoff": {
     "trigger_codes": [
-      "CAPABILITY_GUARD_DEPENDENCY_CHANGED",
-      "CAPABILITY_GUARD_WEAKENED",
-      "CAPABILITY_GUARD_REMOVED",
       "CAPABILITY_AUTHORITY_POLICY_CHANGED",
       "CAPABILITY_EXPANSION",
+      "CAPABILITY_GUARD_DEPENDENCY_CHANGED",
+      "CAPABILITY_GUARD_REMOVED",
+      "CAPABILITY_GUARD_WEAKENED",
       "CAPABILITY_PERMISSION_EXPANSION",
-      "INDEPENDENT_SECURITY_CAPABILITY_CHANGED",
-      "INDEPENDENT_AUTHORITY_POLICY_CHANGED"
+      "DISPATCH_OWNER_RESERVED_ACTION",
+      "INDEPENDENT_AUTHORITY_POLICY_CHANGED",
+      "INDEPENDENT_SECURITY_CAPABILITY_CHANGED"
     ],
     "disposition": "OWNER_REVIEW_REQUIRED",
     "autonomous_quorum_before_owner_decision": false,
@@ -607,7 +608,7 @@
       "job_timeout_minutes": 10
     },
     "source_sha256": {
-      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73",
+      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:73af3b08d778756acbb6aba65f961c5bb0d253265e3be608687cea98f3c4f768",
       "scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs": "sha256:4e066ff50e5106c3f554be81db5e65a082ff0fa52d30abc92e5cccecff4d290f",
       "coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json": "sha256:e28a2210b5651f92d46cc54259474b6892f512c26f16b3ec194a6436cc236701",
       "scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs": "sha256:8a3a9d656d420897f2175c5e5d0cb115fb03ebf8c9df7bf60a072139852891ad",
