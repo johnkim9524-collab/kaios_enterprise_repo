@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "d993dc33aae1a440b1693b5b9894834321abfb78",
+  "revision": "9386af0334e518ebe210461aa96b7035d6e2a5ab",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3357,8 +3357,8 @@
     {
       "path": "scripts/governance/lib/owner-recovery-bootstrap-resume-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c95f870f5bf21f53a363db2f1571e9f9a831dad3",
-      "sha256": "sha256:094b93b7d7103ebeadeb69183371c87e074d137a49435f4fc770355b55cdd331",
+      "git_blob": "dafc647bf076e740caf87e02f314e2d4291218e3",
+      "sha256": "sha256:d638ea6248025d211cfc3718b67d66596dc5102fe4e9e880d5ab5a99d3572def",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4428,8 +4428,8 @@
     {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ff4b90c7b5ee034a3afe7230e7e4568a50bbaab3",
-      "sha256": "sha256:ab929d8ee5ab0b9f4f2067694957f58ab5bdd01a83741ec6494f0f1892d2a170",
+      "git_blob": "dc94eb0bf6f15fb80b70a178007dcc27ce8a7a16",
+      "sha256": "sha256:7fed5729c0932fa698e69692ba9e170ae8678c638969ae5a2947a3f418579cc4",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -6259,8 +6259,8 @@
     {
       "path": "tests/governance/owner-recovery-bootstrap-resume-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "ea4c51489607d09efc607e92a93b7c6a6bdb8526",
-      "sha256": "sha256:3c9758ff01f2945f11b67e1c517c7124af609a6fec7be9b318fd833cc0b45a83",
+      "git_blob": "5310fda2ec19d4601fdf8020dec37f477190437e",
+      "sha256": "sha256:2c81a78b8461ea8a1a7b0c05d2066ce87b3959087db7ee3de20fddb9a1e0fa1f",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6812,5 +6812,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c912a72f47c4b56dbfb55e41a6c017f785e3053809da99d7269a5f28fe7b3600"
+  "manifest_sha256": "sha256:58feb6083e0d87d953176e19659487e48f579dea26af33b451772d3143b3bc1c"
 }
