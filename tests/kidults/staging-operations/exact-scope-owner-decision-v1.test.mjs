@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {assertAutonomousFileScope,assertExactScopeOwnerDecision,selectExactScopeOwnerDecision} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
@@ -79,4 +80,23 @@ test('exact Owner scope enters both independent role classifiers while retaining
   assert.ok(independent.receipts.every(value=>value.authority_created===false&&value.merge_authorized===false));
   assert.throws(()=>evaluateSemanticCapabilityDelta({files,policy,ownerDecision:{...proof,changed_paths:[paths[0]]}}),/OWNER_DECISION_BINDING_INVALID/);
   assert.throws(()=>independentlyVerifyCapabilityDelta({files,policy,ownerDecision:{...proof,deployment:'ON'}}),/OWNER_DECISION_BINDING_INVALID/);
+});
+
+test('APPROVAL-mode Independent Verifier receives the live-bound Owner proof',()=>{
+  const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
+  assert.match(source,/return \{pr,commit,files,owner_decision:liveOwnerDecision,/);
+  assert.match(source,/independentlyVerifyCapabilityDelta\(\{files:candidate\.files,policy,ownerDecision:candidate\.owner_decision\}\)/);
+  const files=paths.map(filename=>({filename,base_content:'name: workflow\npermissions:\n  contents: read\n',
+    head_content:'name: workflow\npermissions:\n  contents: read\n  id-token: write\n',patch:'+  id-token: write\n'}));
+  const candidate={files,owner_decision:selectExactScopeOwnerDecision(input)};
+  const receipt=independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision});
+  assert.equal(receipt.state,'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM');
+  assert.ok(receipt.receipts.every(value=>value.authority_created===false&&value.merge_authorized===false));
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:candidate.files,policy}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
+  for(const comments of [[],[{...comment,body:body.replace('Head SHA:','Old Head SHA:')}],
+    [{...comment,updated_at:'2026-10-15T10:01:00Z'}]]) {
+    const ownerDecision=selectExactScopeOwnerDecision({...input,comments});
+    assert.equal(ownerDecision,null);
+    assert.throws(()=>independentlyVerifyCapabilityDelta({files,policy,ownerDecision}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
+  }
 });
