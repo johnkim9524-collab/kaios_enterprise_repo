@@ -44,8 +44,18 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
   }
   return requiredContexts.every(context => {
     const matches = statuses.filter(status => status?.context === context);
-    if (matches.length !== 1) return false;
-    const status = matches[0];
+    if (!matches.length) return false;
+    let status = matches[0];
+    if (matches.length > 1) {
+      const ordered = matches.map(candidate => ({
+        candidate,
+        time: Date.parse(String(candidate?.updated_at || candidate?.created_at || '')),
+        id: Number(candidate?.id),
+      }));
+      if (ordered.some(item => !Number.isFinite(item.time) || !Number.isSafeInteger(item.id))) return false;
+      ordered.sort((left, right) => left.time - right.time || left.id - right.id);
+      status = ordered[ordered.length - 1].candidate;
+    }
     if (minimumStatusTime != null) {
       const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
       if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
@@ -172,6 +182,45 @@ async function runSelfTest() {
   ], required, eventTime), 'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_GENERATION_ACCEPTED');
   assert(!nativeGovernanceConverged([scope, freshReady], required, eventTime),
     'LIFECYCLE_CONVERGENCE_SELFTEST_UNTIMED_GENERATION_ACCEPTED');
+  const draftRequired = [DRAFT_DEVELOPMENT_CONTEXT, LANDING_READINESS_CONTEXT];
+  const priorDraftPending = {
+    id: 10,
+    context: DRAFT_DEVELOPMENT_CONTEXT,
+    state: 'pending',
+    description: 'Draft development validation in progress; landing remains blocked',
+    creator: {login: 'github-actions[bot]'},
+    updated_at: '2026-10-08T03:04:01Z',
+  };
+  const currentDraftSuccess = {
+    id: 11,
+    context: DRAFT_DEVELOPMENT_CONTEXT,
+    state: 'success',
+    description: DRAFT_DEVELOPMENT_DESCRIPTION,
+    creator: {login: 'github-actions[bot]'},
+    updated_at: '2026-10-08T03:04:02Z',
+  };
+  const draftLandingPending = {
+    id: 12,
+    context: LANDING_READINESS_CONTEXT,
+    state: 'pending',
+    description: DRAFT_LANDING_PENDING_DESCRIPTION,
+    creator: {login: 'github-actions[bot]'},
+    updated_at: '2026-10-08T03:04:03Z',
+  };
+  assert(nativeGovernanceConverged(
+    [priorDraftPending, currentDraftSuccess, draftLandingPending],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_LATEST_DRAFT_STATUS_NOT_SELECTED');
+  assert(!nativeGovernanceConverged(
+    [currentDraftSuccess, {...currentDraftSuccess, id: 13, state: 'pending',
+      description: 'Draft development validation in progress; landing remains blocked',
+      updated_at: '2026-10-08T03:04:03Z'}, draftLandingPending],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_NEWER_PENDING_STATUS_IGNORED');
 
   let reads = 0;
   let waits = 0;
