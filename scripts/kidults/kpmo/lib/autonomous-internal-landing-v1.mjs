@@ -122,6 +122,20 @@ export function assertExactScopeOwnerDecision(proof,{repository,repositoryId,pul
   return proof;
 }
 
+export function bindLiveOwnerDecision({expectedProof,comments,repository,repositoryId,repositoryOwner,
+  repositoryOwnerId,pullRequest,baseSha,headSha,treeSha,changedPaths}={}){
+  if(!expectedProof)return null;
+  const liveProof=selectExactScopeOwnerDecision({comments,repository,repositoryId,repositoryOwner,
+    repositoryOwnerId,pullRequest,baseSha,headSha,treeSha,changedPaths});
+  if(!liveProof||canonicalJson(liveProof)!==canonicalJson(expectedProof)) fail('AUTONOMOUS_OWNER_DECISION_LIVE_BINDING_DRIFT');
+  return liveProof;
+}
+
+export function independentlyVerifyLiveCandidate({candidate,policy}={}){
+  if(!candidate||!Array.isArray(candidate.files)||!policy)fail('AUTONOMOUS_LIVE_CANDIDATE_INVALID');
+  return independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision||null});
+}
+
 export const assertAutonomousFileScope = ({files, policy, ownerDecision=null, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   if(ownerDecision) assertExactScopeOwnerDecision(ownerDecision,{repository:ownerDecision.repository,

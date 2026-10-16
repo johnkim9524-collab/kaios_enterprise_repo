@@ -15,6 +15,8 @@ import {
   collectPaginatedApiValues,
   validateLiveChangedPaths,
   selectExactScopeOwnerDecision,
+  bindLiveOwnerDecision,
+  independentlyVerifyLiveCandidate,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {LANDING_READINESS_CONTEXT,isLandingReadinessCurrent} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
@@ -431,12 +433,10 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   let liveOwnerDecision=null;
   if(envelope.owner_decision){
     const comments=await collectPaginatedApiValues({request:api,endpoint:`/issues/${envelope.pull_request}/comments`});
-    liveOwnerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base?.repo?.id,
+    liveOwnerDecision=bindLiveOwnerDecision({expectedProof:envelope.owner_decision,comments,repository,repositoryId:pr.base?.repo?.id,
       repositoryOwner:pr.base?.repo?.owner?.login,repositoryOwnerId:pr.base?.repo?.owner?.id,
       pullRequest:envelope.pull_request,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
       changedPaths:files.map(file=>file.filename)});
-    if(!liveOwnerDecision||canonicalJson(liveOwnerDecision)!==canonicalJson(envelope.owner_decision))
-      throw new AutonomousLandingError('AUTONOMOUS_OWNER_DECISION_LIVE_BINDING_DRIFT');
   }
   validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,
     policy,ownerDecision:liveOwnerDecision,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
@@ -531,7 +531,7 @@ const rebindDraftReady = async (before, mutationToken) => {
 try {
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision});
+    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyLiveCandidate({candidate,policy});
     envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks,requiredContexts:candidate.required_bindings,headSha:envelope.head_sha});
     if (envelope.recovery) {
       const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);

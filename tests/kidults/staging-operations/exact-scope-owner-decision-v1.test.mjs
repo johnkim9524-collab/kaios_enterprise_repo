@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {assertAutonomousFileScope,assertExactScopeOwnerDecision,selectExactScopeOwnerDecision} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,assertExactScopeOwnerDecision,bindLiveOwnerDecision,independentlyVerifyLiveCandidate,selectExactScopeOwnerDecision} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import policy from '../../../coordination/kidults/governance/autonomous-internal-landing-policy-v1.json' with {type:'json'};
@@ -84,19 +84,19 @@ test('exact Owner scope enters both independent role classifiers while retaining
 
 test('APPROVAL-mode Independent Verifier receives the live-bound Owner proof',()=>{
   const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
-  assert.match(source,/return \{pr,commit,files,owner_decision:liveOwnerDecision,/);
-  assert.match(source,/independentlyVerifyCapabilityDelta\(\{files:candidate\.files,policy,ownerDecision:candidate\.owner_decision\}\)/);
+  assert.match(source,/owner_decision:liveOwnerDecision/);
+  assert.match(source,/bindLiveOwnerDecision\(\{expectedProof:envelope\.owner_decision/);
+  assert.match(source,/independentlyVerifyLiveCandidate\(\{candidate,policy\}\)/);
   const files=paths.map(filename=>({filename,base_content:'name: workflow\npermissions:\n  contents: read\n',
     head_content:'name: workflow\npermissions:\n  contents: read\n  id-token: write\n',patch:'+  id-token: write\n'}));
-  const candidate={files,owner_decision:selectExactScopeOwnerDecision(input)};
-  const receipt=independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision});
+  const expectedProof=selectExactScopeOwnerDecision(input);
+  const candidate={files,owner_decision:bindLiveOwnerDecision({...input,expectedProof})};
+  const receipt=independentlyVerifyLiveCandidate({candidate,policy});
   assert.equal(receipt.state,'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM');
   assert.ok(receipt.receipts.every(value=>value.authority_created===false&&value.merge_authorized===false));
-  assert.throws(()=>independentlyVerifyCapabilityDelta({files:candidate.files,policy}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
+  assert.throws(()=>independentlyVerifyLiveCandidate({candidate:{files},policy}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
   for(const comments of [[],[{...comment,body:body.replace('Head SHA:','Old Head SHA:')}],
     [{...comment,updated_at:'2026-10-15T10:01:00Z'}]]) {
-    const ownerDecision=selectExactScopeOwnerDecision({...input,comments});
-    assert.equal(ownerDecision,null);
-    assert.throws(()=>independentlyVerifyCapabilityDelta({files,policy,ownerDecision}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
+    assert.throws(()=>bindLiveOwnerDecision({...input,comments,expectedProof}),/AUTONOMOUS_OWNER_DECISION_LIVE_BINDING_DRIFT/);
   }
 });
