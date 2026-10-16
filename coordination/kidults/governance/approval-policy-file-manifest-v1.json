@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e45e74d2c664a4944590a4c64941d9725ff19c60",
+  "revision": "f4ee25ee3b3fbc0e85aa7e175dc1d73b30dc700d",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4415,8 +4415,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "14c6db885dcdec4f4ee7f2e7966183e1a7d9a462",
-      "sha256": "sha256:45b0a98ec11796c5caeaa2957fa393a4b3a89adbfd1456aaf099fd4f5fe4c9c9",
+      "git_blob": "021396a6b85e6eb4f96cb7bcc8b87dfd6ea8136a",
+      "sha256": "sha256:fb0ebc698a985527c336ba771c80a4ea02c061a780c1279d6419766adf4ff412",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6736,8 +6736,8 @@
     {
       "path": "tests/kidults/staging-operations/exact-scope-owner-decision-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "bc25b0d074f118809fc753417956d13a1c1ba16e",
-      "sha256": "sha256:f672df2b4ec4ce28af098b41da79b9fb85c5eaeca0c47530fdfef0a5bf91988d"
+      "git_blob": "b3bde60caa20e1409df9a32b502f2509c9b875f2",
+      "sha256": "sha256:252376984eb1ab3453eafe59d8d0c151326f5270da49f6818a5449ad28cc98e0"
     },
     {
       "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-deployed-recovery-capsule.json",
@@ -6812,5 +6812,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:84334f100c68266ad071a3d4210f6d778e7c32ad177c2aabe6466f80fa51ba07"
+  "manifest_sha256": "sha256:c57565eda552039e8a44e1334995704632ecd4952246b677cd71582b137b1121"
 }
