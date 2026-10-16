@@ -11,6 +11,11 @@ const DEFAULT_MAX_ATTEMPTS = 60;
 const DEFAULT_DELAY_MS = 3000;
 const VALIDATOR = 'scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs';
 const POLICY = 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.json';
+const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
+const DRAFT_DEVELOPMENT_CONTEXT = 'KIDULTS Draft Development Validation V1';
+const DRAFT_DEVELOPMENT_DESCRIPTION = '3 exact-head contexts verified; Draft non-promotable';
+const DRAFT_LANDING_PENDING_DESCRIPTION = 'Draft is non-promotable; automated Ready transition pending';
+const GITHUB_ACTIONS_AVATAR = /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/;
 
 const assert = (condition, code) => {
   if (!condition) throw new Error(code);
@@ -22,7 +27,18 @@ const boundedInteger = (value, fallback, minimum, maximum, code) => {
   return parsed;
 };
 
-export function nativeGovernanceConverged(statuses, requiredContexts, minimumStatusTime = null) {
+export function nativeReadinessContexts(policy, {draft = false} = {}) {
+  const contexts = Array.from(new Set(policy?.native_readiness_status_contexts || policy?.native_required_status_contexts || []));
+  if (draft && contexts.includes(SCOPE_AWARE_CONTEXT)) {
+    if (typeof policy?.draft_development_status_context !== 'string' || !policy.draft_development_status_context) {
+      throw new Error('LIFECYCLE_CONVERGENCE_DRAFT_CONTEXT_MISSING');
+    }
+    return contexts.map(context => context === SCOPE_AWARE_CONTEXT ? policy.draft_development_status_context : context);
+  }
+  return contexts;
+}
+
+export function nativeGovernanceConverged(statuses, requiredContexts, minimumStatusTime = null, {draft = false} = {}) {
   if (!Array.isArray(statuses) || !Array.isArray(requiredContexts) || !requiredContexts.length) {
     return false;
   }
@@ -45,8 +61,22 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
       && status.state === 'success'
       && status.description === 'Ready lifecycle verified; non-governed scope uses protected-main status path'
       && githubActionsIdentity;
-    return normalReadyControl || nonGovernedProtectedMainControl
-      || isAtomicLandingNativeStatusReady(status);
+    const draftDevelopmentControl = draft
+      && context === DRAFT_DEVELOPMENT_CONTEXT
+      && status.state === 'success'
+      && status.description === DRAFT_DEVELOPMENT_DESCRIPTION
+      && githubActionsIdentity;
+    const draftLandingControl = draft
+      && context === LANDING_READINESS_CONTEXT
+      && status.state === 'pending'
+      && status.description === DRAFT_LANDING_PENDING_DESCRIPTION
+      && githubActionsIdentity;
+    const nativeReadyControl = context === DRAFT_DEVELOPMENT_CONTEXT
+      ? draftDevelopmentControl
+      : context === LANDING_READINESS_CONTEXT && status.state === 'pending'
+        ? draftLandingControl
+        : isAtomicLandingNativeStatusReady(status);
+    return normalReadyControl || nonGovernedProtectedMainControl || nativeReadyControl;
   });
 }
 
@@ -201,14 +231,27 @@ async function main() {
     DEFAULT_DELAY_MS, 0, DEFAULT_DELAY_MS,
     'LIFECYCLE_CONVERGENCE_DELAY_INVALID');
   const policy = JSON.parse(fs.readFileSync(POLICY, 'utf8'));
-  const requiredContexts = Array.from(new Set(policy?.native_readiness_status_contexts || policy?.native_required_status_contexts || []));
-  assert(requiredContexts.length > 0, 'LIFECYCLE_CONVERGENCE_REQUIRED_CONTEXTS_EMPTY');
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
     'User-Agent': 'kpmo-pr-lifecycle-native-convergence-v1',
   };
+  const prEndpoint = `/pulls/${prNumber}`;
+  const prResponse = await fetch(`https://api.github.com/repos/${repository}${prEndpoint}`, {
+    headers,
+    redirect: 'error',
+  });
+  if (!prResponse.ok) throw new Error(`LIFECYCLE_CONVERGENCE_GITHUB_API_${prResponse.status}:${prEndpoint}`);
+  const livePr = await prResponse.json();
+  assert(Number(livePr?.number) === Number(prNumber)
+    && livePr?.state === 'open' && livePr?.merged !== true
+    && livePr?.base?.ref === 'main'
+    && livePr?.head?.sha === expectedHeadSha
+    && livePr?.base?.sha === expectedBaseSha
+    && typeof livePr?.draft === 'boolean', 'LIFECYCLE_CONVERGENCE_PULL_REQUEST_BINDING_INVALID');
+  const requiredContexts = nativeReadinessContexts(policy, {draft: livePr.draft});
+  assert(requiredContexts.length > 0, 'LIFECYCLE_CONVERGENCE_REQUIRED_CONTEXTS_EMPTY');
   const readStatuses = async () => {
     const endpoint = `/commits/${expectedHeadSha}/status?per_page=100`;
     const response = await fetch(`https://api.github.com/repos/${repository}${endpoint}`, {
@@ -226,6 +269,7 @@ async function main() {
     maxAttempts,
     delayMs,
     minimumStatusTime,
+    draft: livePr.draft,
   });
   console.log(JSON.stringify({
     id: 'kpmo-pr-lifecycle-native-convergence-receipt-v1',
@@ -233,6 +277,7 @@ async function main() {
     attempts: convergence.attempts,
     minimum_status_time: new Date(minimumStatusTime).toISOString(),
     required_contexts: requiredContexts,
+    draft_non_promotable: livePr.draft,
     observed_contexts: convergence.statuses.map(status => ({
       context: status.context || null,
       state: status.state || null,
