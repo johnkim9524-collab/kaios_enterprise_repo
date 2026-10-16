@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "b6e337da2ac2c0315a47de4980fffdd026228a0c",
+  "revision": "e45e74d2c664a4944590a4c64941d9725ff19c60",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6478,8 +6478,8 @@
     {
       "path": "tests/kidults/kpmo/governed-landing-authorization-policy-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "8906eb857911e058edaf1a682b8ad2412ed0643a",
-      "sha256": "sha256:4aa662a8f0d90d7b9f7e656085e86ffb2d98da564133563cd9b947e57341f150"
+      "git_blob": "6509f99701716837ed9310407a1bf574c1c7317e",
+      "sha256": "sha256:164761636e3c02b32bbbb823cb67d14b20cb938f3dd05caf3942e0532c4a4ab0"
     },
     {
       "path": "tests/kidults/kpmo/governed-landing-native-gates-v1.test.mjs",
@@ -6812,5 +6812,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b74728446e61d13da1c29b618ff1f808a89ddac961462412c88e50eb0dc533ab"
+  "manifest_sha256": "sha256:84334f100c68266ad071a3d4210f6d778e7c32ad177c2aabe6466f80fa51ba07"
 }
