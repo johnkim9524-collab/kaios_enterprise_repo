@@ -86,6 +86,7 @@ export async function waitForNativeGovernance({
   maxAttempts,
   delayMs,
   minimumStatusTime = null,
+  draft = false,
   wait = sleep,
 }) {
   assert(typeof readStatuses === 'function', 'LIFECYCLE_CONVERGENCE_READER_INVALID');
@@ -98,7 +99,7 @@ export async function waitForNativeGovernance({
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     statuses = await readStatuses();
     assert(Array.isArray(statuses), 'LIFECYCLE_CONVERGENCE_STATUSES_INVALID');
-    if (nativeGovernanceConverged(statuses, requiredContexts, minimumStatusTime)) {
+    if (nativeGovernanceConverged(statuses, requiredContexts, minimumStatusTime, {draft})) {
       return {state: 'NATIVE_GOVERNANCE_CONVERGED', attempts: attempt, statuses};
     }
     if (attempt < maxAttempts) await wait(delayMs);

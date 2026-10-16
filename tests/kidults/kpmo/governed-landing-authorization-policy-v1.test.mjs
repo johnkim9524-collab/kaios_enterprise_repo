@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {classifyLifecycle} from '../../../scripts/kidults/kpmo/validate-pr-lifecycle-integrity-v1.mjs';
-import {nativeGovernanceConverged,nativeReadinessContexts} from '../../../scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs';
+import {nativeGovernanceConverged,nativeReadinessContexts,waitForNativeGovernance} from '../../../scripts/kidults/kpmo/run-pr-lifecycle-with-native-convergence-v1.mjs';
 import {isAtomicLandingNativeStatusReady,isLandingReadinessCurrent} from '../../../scripts/kidults/kpmo/lib/atomic-landing-lifecycle-authority-v1.mjs';
 
 import {
@@ -75,6 +75,24 @@ test('Draft lifecycle converges on exact-head non-promotable Draft controls',()=
     {...draftLanding,updated_at:'2026-10-16T00:08:59Z'},draftDevelopment,
   ],contexts,minimum,{draft:true}),false);
   assert.deepEqual(nativeReadinessContexts(policy,{draft:false}),readinessPolicy.native_readiness_status_contexts);
+});
+
+test('Draft polling carries Draft mode into native governance evaluation',async()=>{
+  const draftContext='KIDULTS Draft Development Validation V1';
+  const contexts=[draftContext,readinessContext];
+  const minimum=Date.parse('2026-10-16T00:08:59Z');
+  const statuses=[
+    {context:draftContext,state:'success',description:'3 exact-head contexts verified; Draft non-promotable',
+      avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:12:04Z'},
+    {context:readinessContext,state:'pending',description:'Draft is non-promotable; automated Ready transition pending',
+      avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:09:15Z'},
+  ];
+  const result=await waitForNativeGovernance({
+    readStatuses:async()=>statuses,requiredContexts:contexts,maxAttempts:1,delayMs:0,
+    minimumStatusTime:minimum,draft:true,
+  });
+  assert.equal(result.state,'NATIVE_GOVERNANCE_CONVERGED');
+  assert.equal(result.attempts,1);
 });
 
 // Execute the actual trusted-base workflow publisher with a seeded finalizer
