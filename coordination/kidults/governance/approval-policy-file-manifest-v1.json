@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "652eddcf99f3f03736a7d0b3a84c14b106c903f7",
+  "revision": "8f5f51365c2e7e204e0ccb381a698b212f8b6a8c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3339,8 +3339,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "aa7d9f0d417028029d92a403e98e449d72a70c0a",
-      "sha256": "sha256:5d4b34f5227c01c579fa233d432ca6584be6389002aa9b6d716f55754cc7c1e2"
+      "git_blob": "97e1a4344898a7b29560258a35cdc96df2be437b",
+      "sha256": "sha256:ec9009ddc1f037d60f02abcf3f7ff6d77cfaff2479507d8d67c8a43c8f0c8361"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
@@ -3351,8 +3351,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "30e3fffdfffe6f1b1a7eef5eaef33dcf0cdfbdf2",
-      "sha256": "sha256:74a50ef416a0d6b6ca483a29ae3188d954f2e28e33a501809bb0d08ed2c50b5e"
+      "git_blob": "f2c3d15f5570614f43cba7a6dc66c262bdf046ab",
+      "sha256": "sha256:d09294b2d3a849ee9d4ae52adab72dedfa76f573bef28f470c3569248fe0b5ef"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -7184,5 +7184,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:bc32de85484fd49a5136761b1eb65b9bb4b9a21339604fd605567393e92ad3ab"
+  "manifest_sha256": "sha256:7719f92f20e31904f2bd5f198fe11ddd370ce0223bca67c175d31e1262179797"
 }
