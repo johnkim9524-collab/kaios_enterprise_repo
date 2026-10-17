@@ -142,7 +142,21 @@
         "gmail:thread:1a148e1530a809a9"
       ],
       "completion_claimed": false,
-      "next_action": "VERIFY_RESTORED_DATA_AT_PROVIDER_REPORTED_2026_10_08T07_56_50Z_RECONCILE_ONE_SECOND_REQUEST_DELTA_NO_OUTREACH_OR_RESOURCE_CHANGE"
+      "next_action": "VERIFY_RESTORED_DATA_AT_PROVIDER_REPORTED_2026_10_08T07_56_50Z_RECONCILE_ONE_SECOND_REQUEST_DELTA_NO_OUTREACH_OR_RESOURCE_CHANGE",
+      "latest_provider_response": {
+        "provider": "DigitalOcean",
+        "sender_role": "Cloud Support Engineer",
+        "received_at": "2026-10-17T08:01:28Z",
+        "subject": "Re: A follow up from DigitalOcean regarding your ticket 12887418",
+        "message_id": "1a148e1530a809a9",
+        "thread_id": "1a148e1530a809a9",
+        "key_terms": [
+          "provider-reported PITR recovery target: 2026-10-08T07:56:50Z",
+          "one-second difference from requested target 2026-10-08T07:56:49Z",
+          "ticket #12887418 moved to pending"
+        ],
+        "evidence_ref": "gmail:message:1a148e1530a809a9"
+      }
     },
     {
       "id": "F11",
