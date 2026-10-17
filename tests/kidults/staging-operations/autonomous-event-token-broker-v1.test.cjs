@@ -1,7 +1,8 @@
 'use strict';
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {generateKeyPairSync}=require('node:crypto');
+const {generateKeyPairSync,createHash}=require('node:crypto');
+const {gunzipSync}=require('node:zlib');
 const fs=require('node:fs');
 const {createHandler}=require('../../../infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs');
 const privateKey=generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -11,8 +12,15 @@ const event={action:'MINT_INSTALLATION_TOKEN',repository:repo,repository_id:'123
 const config={repository:repo,repositoryId:'123',appId:'55',installationId:'66'};
 test('template embeds reviewed source and limits secret and invoke scopes',async()=>{
   const template=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-event-token-broker-v1.json'));
-  const {buildBrokerCode}=await import('../../../scripts/governance/build-resume-broker-template-v1.mjs');
-  assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
+  const {buildBrokerSource}=await import('../../../scripts/governance/build-resume-broker-template-v1.mjs');
+  const code=template.Resources.BrokerFunction.Properties.Code.ZipFile;
+  const match=code.match(/gunzipSync\(Buffer\.from\('([^']+)'/);
+  assert.ok(match);
+  const source=gunzipSync(Buffer.from(match[1],'base64'));
+  const expected=Buffer.from(buildBrokerSource(),'utf8');
+  assert.equal(source.toString('utf8'),expected.toString('utf8'));
+  const digest=createHash('sha256').update(source).digest('hex');
+  assert.ok(code.includes(`!=='${digest}'`));
   const secret=template.Resources.BrokerRole.Properties.Policies[0].PolicyDocument.Statement;
   assert.deepEqual(secret,[{Effect:'Allow',Action:['secretsmanager:GetSecretValue'],Resource:{Ref:'GitHubPrivateKeySecretArn'}}]);
   const invoker=template.Resources.EventBrokerInvokerRole.Properties;
@@ -188,3 +196,4 @@ for (const mainTree of ['e'.repeat(40),null,'not-a-sha']) test('current-base hyg
   await assert.rejects(handler({...event,current_main_sha:base,permission_profile:permissionProfile}),/HYGIENE_TREE/);
   assert.equal(calls.filter(x=>x.url.endsWith('/access_tokens')).length,1);
 });
+
