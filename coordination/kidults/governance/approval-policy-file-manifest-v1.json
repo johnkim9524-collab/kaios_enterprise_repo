@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "567fcf2cbd96ed2839c452d6d2d7b0e123c58877",
+  "revision": "628162793cf5f51a6b744368d891a81b814e8218",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -15,8 +15,8 @@
     {
       "path": ".github/AI_AGENT_OPERATING_RULES.md",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f763251dba99adc1f1d1f4841a6209400335e677",
-      "sha256": "sha256:7c53cfc204b2f478b38c332ed1b2a0f9d0c1a120b1607f2eb3ea19b483711298"
+      "git_blob": "0b558f16d2ae19da4b865265a62e61b945bdb9ee",
+      "sha256": "sha256:76a76b276a65badb2a376e3ba96af909ff494957aacd59ccfc06894be4957f47"
     },
     {
       "path": ".github/copilot-instructions.md",
@@ -1621,8 +1621,8 @@
     {
       "path": "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e80342c1c792e110959d55cdd6f3b50e1f55a672",
-      "sha256": "sha256:145ddce8813aa19dde9fdf7e38e9cf2c94975f527570cbc264620d983cd66cdc",
+      "git_blob": "fe3b9d707187b29ce4875350495fdc6f1583186c",
+      "sha256": "sha256:ddb124a202595c008f041da84227fb173490d51a120c9bdf3be46a1d51e1a2f8",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -3565,13 +3565,14 @@
     {
       "path": "scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c05e193263b4ab1b523562d61b92a6737cd21058",
-      "sha256": "sha256:844ab8a396ae924d9c8dc2e2fad13873f8749c5eb8512ddca5aa5a9d130606c9",
+      "git_blob": "2f8ba6e7cf6cbf3d4653372bd73a22cf869d481b",
+      "sha256": "sha256:3f268fa76b7b08f0a6e1dd74b30677e69f3bcbabeb4b2acd0fcce0b475058223",
       "authorization_routing": {
-        "route": "INTERNAL_REVERSIBLE",
+        "route": "CANONICAL_ENVELOPE",
         "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+          "mode": "CONSUMER",
+          "consumer": "scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs",
+          "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
         }
       }
     },
@@ -6478,13 +6479,14 @@
     {
       "path": "tests/governance/delegated-autonomous-internal-authority-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "879cee594b69e4225410176e83571d3083ceb55e",
-      "sha256": "sha256:6495624dd45d3aae7665030012d6e84f1348eccac74e40821315a9f7d0850511",
+      "git_blob": "a44bbbefc5539ae369f834ec7b620fcfba51fe5c",
+      "sha256": "sha256:94e5f93ac31dbf5dea4f01a2d3c399d484d486069640b45df92f1cab5bc57aaf",
       "authorization_routing": {
-        "route": "NON_EXECUTING_REFERENCE",
+        "route": "CANONICAL_ENVELOPE",
         "coverage": {
-          "mode": "EXEMPTION",
-          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+          "mode": "CONSUMER",
+          "consumer": "tests/governance/delegated-autonomous-internal-authority-v1.test.mjs",
+          "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
         }
       }
     },
@@ -7151,5 +7153,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6ff6a5e8141b52d290cde556e9d2f6dbab2325932031f6e9fb7f3ec6a11dbab8"
+  "manifest_sha256": "sha256:3af187c6723d661b994ae32f5e27c859911fa45b201f79b960ed5155f91e6cda"
 }

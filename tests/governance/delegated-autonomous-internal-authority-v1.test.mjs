@@ -6,12 +6,25 @@ import os from "node:os";
 import path from "node:path";
 import {spawnSync} from "node:child_process";
 const root=process.cwd(), validator=path.join(root,"scripts/governance/validate-delegated-autonomous-internal-authority-v1.mjs");
+const policy=JSON.parse(fs.readFileSync(path.join(root,"coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json"),"utf8"));
+const approvalPolicy=JSON.parse(fs.readFileSync(path.join(root,"coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"),"utf8"));
 function fixture(){
  const issued=new Date(Date.now()-1000).toISOString(), approved=new Date().toISOString(), expires=new Date(Date.now()+600000).toISOString();
  return {id:"kidults-delegated-autonomous-authority-receipt-v1",version:"1.0.0",state:"AUTHORIZED",authorization_id:"DAIA-2283-"+"b".repeat(12),repository:"johnkim9524-collab/kaios_enterprise_repo",base_sha:"a".repeat(40),head_sha:"b".repeat(40),head_tree_sha:"c".repeat(40),scope_digest:"sha256:"+"d".repeat(64),action:"BUG_FIX",track_approval:{agent_id:"TRACK-A-01",role:"ACCOUNTABLE_TRACK_AGENT",decision:"APPROVE",approved_at:approved},kpmo_approval:{agent_id:"KPMO-01",role:"KPMO",decision:"APPROVE",approved_at:approved},tests:["regression","negative"],rollback:{strategy:"revert exact head",verified:true},issued_at:issued,expires_at:expires,nonce_digest:"sha256:"+"e".repeat(64),production:"HOLD",public:"HOLD",g5:"HOLD"};
 }
 function run(mutator,env={}){const dir=fs.mkdtempSync(path.join(os.tmpdir(),"ai020-")),r=fixture();if(mutator)mutator(r);const file=path.join(dir,"receipt.json");fs.writeFileSync(file,JSON.stringify(r));return spawnSync(process.execPath,[validator,"--receipt="+file],{cwd:root,encoding:"utf8",env:{...process.env,...env}})}
 test("valid distinct Track and KPMO approval passes",()=>assert.equal(run().status,0));
+test("unknown classification is reclassified before Owner escalation and agrees with dispatcher policy",()=>{
+ const rule=policy.classification_recovery,unknown=approvalPolicy.classes.UNKNOWN;
+ assert.equal(policy.unknown_or_conflict,undefined);
+ assert.equal(rule.unknown_classification,"BOUNDED_READ_ONLY_RECLASSIFICATION_THEN_OWNER_IF_UNRESOLVED");
+ assert.equal(rule.maximum_reclassification_attempts,2);
+ assert.equal(rule.repository_mutation_during_reclassification,false);
+ assert.equal(rule.owner_escalation_for_unknown_only_after_unresolved_reclassification,true);
+ assert.equal(unknown.decision,"QUARANTINE_RECLASSIFY_THEN_OWNER_IF_UNRESOLVED");
+ assert.equal(unknown.automatic_reclassification_max_attempts,rule.maximum_reclassification_attempts);
+ assert.equal(unknown.owner_escalation_only_after_unresolved_reclassification,rule.owner_escalation_for_unknown_only_after_unresolved_reclassification);
+});
 for(const [name,mutate] of [
  ["same identity",r=>r.kpmo_approval.agent_id=r.track_approval.agent_id],
  ["owner reserved",r=>r.action="PRODUCTION"],

@@ -386,7 +386,7 @@ Legitimate blockers remain protected and must be reported precisely: missing too
 
 `AI-020 / DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY` authorizes necessary repository-internal, reversible, rollback-bound work without routine Program Owner approval only when a distinct accountable Track agent and KPMO independently approve an exact-bound, expiring, single-use receipt and all required checks are GREEN. Eligible work includes implementation, fixes, refactoring, tests, documentation, registry truth-sync, staging/shadow/canary, reversible recovery, PR Ready, and internal reversible governed landing.
 
-Production, Public, G5, external communications, spend, contracts, legal exceptions, irreversible security changes, secrets, credential or permission expansion, trust-root or ruleset weakening, destructive data actions, and protected promotion or release remain Program Owner reserved. Unknown, conflicting, stale, replayed, or scope-drifted authority fails closed. Decision authority is delegated; accountability is not.
+Production, Public, G5, external communications, spend, contracts, legal exceptions, irreversible security changes, secrets, credential or permission expansion, trust-root or ruleset weakening, destructive data actions, and protected promotion or release remain Program Owner reserved. An unknown classification receives at most two read-only reclassification attempts; only an unresolved result is escalated to the Owner. Conflicting authority is held for fresh machine classification, while stale, replayed, or scope-drifted authority requires a fresh exact binding. Decision authority is delegated; accountability is not.
 
 ## 17. Global leading platform scale stewardship
 
