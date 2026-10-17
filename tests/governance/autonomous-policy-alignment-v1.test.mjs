@@ -189,12 +189,33 @@ test('authority-bearing self-governance fields remain Owner-bound after bootstra
 test('trust roots and external-effect surfaces remain Owner-reserved',()=>{
   for(const filename of [
     'CONSTITUTION.md',
-    'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',
     'secrets/rotation.json',
     'production/release.yml',
     'public/publish.json',
     'g5/promotion.json',
   ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1 @@'}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
+});
+
+test('AI-020 bounded unknown-classification recovery uses Track/KPMO and independent verification',()=>{
+  const filename='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+  const base=structuredClone(delegated);
+  base.version='1.4.0';
+  delete base.classification_recovery;
+  base.unknown_or_conflict='FAIL_CLOSED_OWNER_REQUIRED';
+  const file={filename,status:'modified',patch:'@@ bounded read-only classification recovery @@',base_content:JSON.stringify(base),head_content:JSON.stringify(delegated)};
+  assert.deepEqual(assertAutonomousFileScope({files:[file],policy:landing}),[filename]);
+  assert.deepEqual(validateLiveChangedPaths({files:[file],expectedPaths:[filename],expectedScopeDigest:sha256(filename),policy:landing}),[filename]);
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+
+  for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta]){
+    const expanded=structuredClone(delegated);
+    expanded.owner_reserved_actions=expanded.owner_reserved_actions.filter(action=>action!=='PRODUCTION');
+    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(expanded)}],policy:landing}),/BOUNDED_READ_ONLY_RECOVERY/);
+    const widened=structuredClone(delegated);
+    widened.classification_recovery.maximum_reclassification_attempts=3;
+    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(widened)}],policy:landing}),/BOUNDED_READ_ONLY_RECOVERY/);
+  }
 });
 
 test('missing patch for governed workflow or governance code fails closed',()=>{
@@ -538,7 +559,6 @@ test('landing policy path is semantically classified instead of permanently Owne
   assert.equal(landing.semantic_self_governance.path_name_alone_is_owner_gate,false);
   for(const root of [
     'CONSTITUTION.md',
-    'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',
     'coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',
     'coordination/kidults/governance/github-oidc-subject-customization-v1.json',
     'coordination/kidults/governance/autonomous-workload-identity-registry-v1.json',

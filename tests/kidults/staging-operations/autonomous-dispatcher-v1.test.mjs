@@ -225,7 +225,8 @@ const canonicalFiles=[
   governedFile('coordination/kidults/governance/approval-policy-inventory-v1.json','{}\n','{}\n','@@ +1 @@\n+# immutable fixture'),
 ];
 assert.equal(classifyCandidate({...input,files:canonicalFiles}).changed_paths.length,5);
-deny({files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',patch:'@@ -1 +1 @@'}]},'DISPATCH_OWNER_RESERVED_ACTION');
+assert.throws(()=>classifyCandidate({...input,files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',patch:'@@ -1 +1 @@'}]}),
+  error=>error instanceof CapabilityDeltaError&&error.code==='CAPABILITY_IMMUTABLE_BLOBS_REQUIRED');
 deny({checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
 const unrelatedPending=classifyCandidate({...input,checks:[...input.checks,{id:102,name:'KIDULTS Autonomous Dispatcher V1',head_sha:sha('b'),app:{id:7},status:'in_progress',conclusion:''}]});
 assert.equal(unrelatedPending.test_evidence.required_check_runs[0].id,101);

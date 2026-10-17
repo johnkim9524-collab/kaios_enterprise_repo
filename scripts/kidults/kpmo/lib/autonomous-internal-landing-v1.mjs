@@ -164,7 +164,12 @@ export const assertAutonomousFileScope = ({files, policy, ownerDecision=null, er
     const filename=typeof file==='string'?file:file?.filename;
     if (typeof filename!=='string'||!filename||filename.startsWith('/')||filename.includes('..')) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
     if (transitionExceptionPaths.has(filename)) continue;
-    if ((exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix)))
+    // AI-020 may use the normal Track/KPMO plus independent-verifier path for
+    // one bounded, read-only unknown-classification recovery correction.
+    // The semantic and independent verifiers pin the complete allowed delta;
+    // path classification alone grants no authority.
+    const boundedAi020RecoveryPath=filename==='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+    if (((exactReserved.has(filename)&&!boundedAi020RecoveryPath)||prefixes.some(prefix=>filename.startsWith(prefix)))
       &&!ownerDecision?.changed_paths?.includes(filename)) fail(errorCode,filename);
     const delegated=delegatedPrefixes.some(prefix=>filename.startsWith(prefix));
     if (!delegated && !exceptions.has(filename)) continue;
@@ -333,12 +338,13 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   }
   const exceptions = new Set(policy.delegated_internal_exact_path_exceptions || []);
   const exactReserved = new Set(policy.owner_reserved_exact_paths || []);
+  const boundedAi020RecoveryPath='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
   if(envelope.owner_decision) assertExactScopeOwnerDecision(envelope.owner_decision,{repository:envelope.repository,
     repositoryId:envelope.repository_id,pullRequest:envelope.pull_request,baseSha:envelope.base_sha,
     headSha:envelope.head_sha,treeSha:envelope.head_tree_sha,changedPaths:paths});
   for (const path of paths) {
     if (exceptions.has(path)) continue;
-    if (exactReserved.has(path) || (policy.owner_reserved_path_prefixes || []).some(prefix=>path.startsWith(prefix))) {
+    if ((exactReserved.has(path)&&path!==boundedAi020RecoveryPath) || (policy.owner_reserved_path_prefixes || []).some(prefix=>path.startsWith(prefix))) {
       if(!envelope.owner_decision?.changed_paths?.includes(path)) fail('AUTONOMOUS_OWNER_RESERVED_ACTION', path);
     }
   }

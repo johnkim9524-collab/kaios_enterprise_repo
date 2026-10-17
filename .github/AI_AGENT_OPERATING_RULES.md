@@ -388,6 +388,8 @@ Legitimate blockers remain protected and must be reported precisely: missing too
 
 Production, Public, G5, external communications, spend, contracts, legal exceptions, irreversible security changes, secrets, credential or permission expansion, trust-root or ruleset weakening, destructive data actions, and protected promotion or release remain Program Owner reserved. An unknown classification receives at most two read-only reclassification attempts; only an unresolved result is escalated to the Owner. Conflicting authority is held for fresh machine classification, while stale, replayed, or scope-drifted authority requires a fresh exact binding. Decision authority is delegated; accountability is not.
 
+The AI-020 policy file itself may use the Track/KPMO quorum without a routine Owner decision only for the machine-pinned transition from immediate unknown-classification Owner escalation to the bounded read-only recovery rule above. Primary and independent verifiers must both validate the complete policy delta; this exception cannot change quorum, eligibility, reserved actions, trust roots, credentials, permissions, or any other AI-020 field. Every other AI-020 policy change remains Owner-reserved until an exact machine-verified transition is separately established.
+
 ## 17. Global leading platform scale stewardship
 
 KIDULTS must be designed and operated as a global leading platform across the entire value chain. Boutique, single-market, local-only, manually sustained, or single-provider assumptions are prohibited as an unstated production model.
@@ -418,7 +420,7 @@ The platform constitution, machine contract, registry entry, status schema, and 
 
 Policy changes require:
 
-- KPMO governance review;
+- KPMO governance review through the normal delegated quorum for bounded internal policy corrections; Owner review only for authority expansion, trust-root or ruleset weakening, and other reserved actions;
 - synchronized update to human and machine-readable rules;
 - passing governance validation;
 - explicit change rationale and version increment.

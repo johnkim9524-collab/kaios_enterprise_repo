@@ -279,10 +279,65 @@ const verifyDerivedApprovalMetadata=(before,after,filename,files)=>{
 };
 
 const autonomousPolicyAuthorityFields=['immutable_source_read_profile','protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
-const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
+const ai020PolicyPath='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+const boundedAi020Recovery=Object.freeze({
+  unknown_classification:'BOUNDED_READ_ONLY_RECLASSIFICATION_THEN_OWNER_IF_UNRESOLVED',
+  maximum_reclassification_attempts:2,
+  repository_mutation_during_reclassification:false,
+  conflicting_authority:'HOLD_UNTIL_FRESH_MACHINE_CLASSIFICATION',
+  stale_replayed_or_scope_drifted_authority:'HOLD_REQUIRE_FRESH_EXACT_BINDING',
+  owner_escalation_for_unknown_only_after_unresolved_reclassification:true,
+});
+const matchesBoundedAi020Recovery=(before,after)=>{
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
+  if(left.id!=='AI-020'||left.accountability_transfer!==false
+    ||left.unknown_or_conflict!=='FAIL_CLOSED_OWNER_REQUIRED'||left.classification_recovery!==undefined
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
+    ||JSON.stringify(right.classification_recovery)!==JSON.stringify(boundedAi020Recovery)
+    ||Object.hasOwn(right,'unknown_or_conflict'))return false;
+  const normalizedLeft=structuredClone(left),normalizedRight=structuredClone(right);
+  delete normalizedLeft.version;delete normalizedLeft.unknown_or_conflict;
+  delete normalizedRight.version;delete normalizedRight.classification_recovery;
+  return JSON.stringify(normalizedLeft)===JSON.stringify(normalizedRight);
+};
+const verifyBoundedAi020Recovery=(before,after,filename,files)=>{
+  if(filename!==ai020PolicyPath)return false;
+  const entries=files.filter(file=>file.filename===filename);
+  if(entries.length!==1||entries[0].status!=='modified'||!matchesBoundedAi020Recovery(before,after))deny('INDEPENDENT_AI020_POLICY_DELTA_OUTSIDE_BOUNDED_READ_ONLY_RECOVERY',filename);
+  return true;
+};
+const independentlyMatchesExactAi020VerifierProfileRefresh=(before,after,files)=>{
+  const paths=['scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs','scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs'];
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const a=left.immutable_source_read_profile,b=right.immutable_source_read_profile;
+  if(!a?.source_sha256||!b?.source_sha256||JSON.stringify(Object.keys(a.source_sha256).sort())!==JSON.stringify(Object.keys(b.source_sha256).sort()))return false;
+  const metadata=profile=>{const value=structuredClone(profile);delete value.source_sha256;return value;};
+  if(JSON.stringify(metadata(a))!==JSON.stringify(metadata(b)))return false;
+  const ai020Path='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+  const ownerPaths=left.owner_reserved_exact_paths;
+  const ai020Files=files.filter(file=>file.filename===ai020Path);
+  if(!Array.isArray(ownerPaths)||ownerPaths.filter(path=>path===ai020Path).length!==1
+    ||right.owner_reserved_exact_paths?.includes(ai020Path)||ai020Files.length!==1||ai020Files[0].status!=='modified'
+    ||!matchesBoundedAi020Recovery(ai020Files[0].base_content,ai020Files[0].head_content))return false;
+  const oldPolicy=structuredClone(left),newPolicy=structuredClone(right);delete oldPolicy.immutable_source_read_profile;delete newPolicy.immutable_source_read_profile;
+  oldPolicy.owner_reserved_exact_paths=oldPolicy.owner_reserved_exact_paths.filter(path=>path!==ai020Path);
+  if(JSON.stringify(oldPolicy)!==JSON.stringify(newPolicy))return false;
+  const changed=Object.keys(a.source_sha256).filter(path=>a.source_sha256[path]!==b.source_sha256[path]).sort();
+  if(JSON.stringify(changed)!==JSON.stringify(paths.slice().sort()))return false;
+  return paths.every(path=>{
+    const pair=files.filter(file=>file.filename===path);
+    return pair.length===1&&pair[0].status==='modified'
+      &&a.source_sha256[path]===hash(pair[0].base_content)&&b.source_sha256[path]===hash(pair[0].head_content);
+  });
+};
+const verifyAutonomousPolicyAuthorityFields=(before,after,filename,files)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',filename)}
-  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])) deny('INDEPENDENT_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])){
+    if(key==='immutable_source_read_profile'&&independentlyMatchesExactAi020VerifierProfileRefresh(before,after,files))continue;
+    deny('INDEPENDENT_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  }
 };
 
 // Independent structural recomputation. Unlike the primary token graph, this
@@ -502,15 +557,18 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
       verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename,files);
       receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;
     }
-    verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename);
+    verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename,files);
+    const boundedAi020Delta=verifyBoundedAi020Recovery(file.base_content,file.head_content,file.filename,files);
     if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
-    for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
-    for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+    if(!boundedAi020Delta){
+      for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
+      for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+    }
     if(file.filename.endsWith('.json')) {
       let a,b; try {a=JSON.parse(file.base_content||'{}');b=JSON.parse(file.head_content||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',file.filename)}
       const walk=(left,right,path='')=>{if(left&&typeof left==='object'){for(const key of Object.keys(left)){if(!(key in (right||{})))deny('INDEPENDENT_POLICY_KEY_REMOVED',`${file.filename}:${path}${key}`);walk(left[key],right[key],`${path}${key}.`)}}else if(JSON.stringify(left)!==JSON.stringify(right))deny('INDEPENDENT_POLICY_VALUE_CHANGED',`${file.filename}:${path}`)};
-      walk(a,b);
+      if(!boundedAi020Delta&&!independentlyMatchesExactAi020VerifierProfileRefresh(file.base_content,file.head_content,files))walk(a,b);
     }
     receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});
   }
