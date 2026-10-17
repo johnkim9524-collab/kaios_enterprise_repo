@@ -17,7 +17,7 @@ This directory is the startup package for five KIDULTS workstreams.
 
 ## Required reading order
 
-Before using this reading order, every agent instance must execute the canonical GitHub bootstrap contract at `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`:
+Before dispatch, every governed agent instance must execute the canonical GitHub bootstrap contract at `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`:
 
 ```bash
 export KIDULTS_BOOTSTRAP_NONCE='<unique-orchestrator-nonce-at-least-32-bytes>'
@@ -28,7 +28,7 @@ npm run agent:bootstrap -- \
 
 Do not start track work after receipt creation alone. The orchestrator must independently run `npm run verify:agent-bootstrap -- ... --consume` and obtain `BOOTSTRAP_VERIFIED` for the same bindings.
 
-The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
+The platform host may permit local sandbox edits and tests in an explicitly user-initiated interactive session without a launcher receipt. Repository assertions and validators do not attest session provenance or grant this permission. Any automated repository evaluator requires a platform-signed attestation bound to issuer/audience, task/session, repository/worktree/sandbox, exact local-only capabilities, and issue/expiry; no repository runtime consumer currently implements that attestation, so repository-side authorization from this exception is unavailable. Missing or ambiguous platform context disables the exception. It grants no dispatch or GitHub mutation permission. The global GitHub bootstrap reads its own ten contract-defined trust documents in a fixed order from committed Git blobs. After independent verification, continue with the track-specific reading order:
 
 1. `coordination/kidults/README.md`
 2. `coordination/kidults/registry/README.md`

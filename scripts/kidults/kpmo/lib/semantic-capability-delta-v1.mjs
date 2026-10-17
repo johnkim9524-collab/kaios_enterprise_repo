@@ -8,21 +8,71 @@ export class CapabilityDeltaError extends Error {
 }
 const fail=(code,detail='')=>{throw new CapabilityDeltaError(code,detail)};
 const digest=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
-const matchesProtectedDiagnosticRepair=(file,policy)=>{
-  if(file.filename!=='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs')return false;
-  const r=policy.protected_code_repair;
-  if(!r)return false;
-  const expected=['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions'];
-  if(Object.keys(r).sort().join(',')!==expected.sort().join(',')||r.enabled!==true
-    ||r.executor!=='EXACT_PROTECTED_MAIN'||r.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
-    ||r.primary_and_independent_required!==true||r.track_kpmo_quorum_required!==true
-    ||r.candidate_policy_authority!==false||!Array.isArray(r.transitions)||r.transitions.length!==1)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
-  const t=r.transitions[0];
-  if(Object.keys(t).sort().join(',')!=='base_digest,head_digest,id,path'
-    ||t.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||t.path!==file.filename
-    ||!/^sha256:[0-9a-f]{64}$/.test(t.base_digest)||!/^sha256:[0-9a-f]{64}$/.test(t.head_digest)
-    ||t.base_digest===t.head_digest)fail('CAPABILITY_PROTECTED_REPAIR_POLICY_INVALID');
-  return file.status==='modified'&&digest(file.base_content)===t.base_digest&&digest(file.head_content)===t.head_digest;
+// One-time, non-authorizing bootstrap for the Owner-reserved diagnostic
+// handoff. The transition is pinned in both verifiers; candidate policy data
+// cannot register or widen it. It changes only the exact PR-scoped skip into
+// an OWNER_REVIEW_REQUIRED record and never creates quorum or merge authority.
+const ownerReviewRoutingRepair=Object.freeze({
+  paths:Object.freeze([
+    'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs',
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs',
+  ]),
+  digests:Object.freeze({
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs':Object.freeze([
+      'sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73',
+      'sha256:73af3b08d778756acbb6aba65f961c5bb0d253265e3be608687cea98f3c4f768',
+    ]),
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs':Object.freeze([
+      'sha256:3d4888562344b21dfc7028c456e91ac0e32c66c38d23286bf58620e3d3bb6679',
+      'sha256:fd3a7f93b6e6bd752ccc84af7f7b276baae1f6af12f9b1e4de46eb2670eb7bbf',
+    ]),
+  }),
+});
+export const isRegisteredOwnerReviewRoutingRepairDigest=(filename,baseDigest,headDigest)=>{
+  const expected=ownerReviewRoutingRepair.digests[filename];
+  return Array.isArray(expected)&&expected[0]===baseDigest&&expected[1]===headDigest;
+};
+export const matchesRegisteredOwnerReviewRoutingPolicyDelta=(baseContent,headContent,dispatcherBaseDigest,dispatcherHeadDigest,protectedPolicy)=>{
+  let before,after;try{before=JSON.parse(baseContent);after=JSON.parse(headContent);}catch{return false;}
+  if(JSON.stringify(before)!==JSON.stringify(protectedPolicy))return false;
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(before.version||'');
+  if(!version||after.version!==`${Number(version[1])}.${Number(version[2])+1}.0`)return false;
+  const oldCodes=before.capability_guard_owner_review_handoff?.trigger_codes;
+  const newCodes=after.capability_guard_owner_review_handoff?.trigger_codes;
+  if(!Array.isArray(oldCodes)||!Array.isArray(newCodes))return false;
+  const expectedCodes=[...oldCodes,'DISPATCH_OWNER_RESERVED_ACTION'].sort();
+  if(JSON.stringify([...newCodes].sort())!==JSON.stringify(expectedCodes))return false;
+  const sourcePath='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(before.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherBaseDigest
+    ||after.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherHeadDigest)return false;
+  const normalized=structuredClone(after);
+  const expected=structuredClone(before);
+  normalized.version=before.version;
+  normalized.capability_guard_owner_review_handoff.trigger_codes=[...oldCodes].sort();
+  expected.capability_guard_owner_review_handoff.trigger_codes=[...oldCodes].sort();
+  normalized.immutable_source_read_profile.source_sha256[sourcePath]=dispatcherBaseDigest;
+  return JSON.stringify(normalized)===JSON.stringify(expected);
+};
+const matchesOwnerReviewRoutingRepair=(file,files,protectedPolicy)=>{
+  if(!ownerReviewRoutingRepair.paths.includes(file?.filename))return false;
+  const changed=files.filter(entry=>ownerReviewRoutingRepair.paths.includes(entry?.filename));
+  if(changed.length!==ownerReviewRoutingRepair.paths.length
+    ||ownerReviewRoutingRepair.paths.some(name=>files.filter(entry=>entry?.filename===name).length!==1)
+    ||files.some(entry=>!ownerReviewRoutingRepair.paths.includes(entry?.filename)
+      && !['coordination/kidults/governance/approval-policy-file-manifest-v1.json',
+        'coordination/kidults/governance/approval-policy-inventory-v1.json'].includes(entry?.filename)))return false;
+  for(const name of ownerReviewRoutingRepair.paths){
+    const entry=files.find(value=>value.filename===name);
+    if(entry.status!=='modified')return false;
+    if(name!==ownerReviewRoutingRepair.paths[0]
+      &&!isRegisteredOwnerReviewRoutingRepairDigest(name,digest(entry.base_content),digest(entry.head_content)))return false;
+  }
+  const policyFile=files.find(entry=>entry.filename===ownerReviewRoutingRepair.paths[0]);
+  const source=files.find(entry=>entry.filename===ownerReviewRoutingRepair.paths[1]);
+  if(!matchesRegisteredOwnerReviewRoutingPolicyDelta(policyFile.base_content,policyFile.head_content,
+    digest(source.base_content),digest(source.head_content),protectedPolicy))return false;
+  return file.status==='modified';
 };
 // Rebinding a dispatcher implementation already accepted by this protected
 // verifier is derived metadata. Only appended ASCII comments or an existing
@@ -50,7 +100,7 @@ const matchesRegisteredDiagnosticProfileRebind=(file,files,policy)=>{
   const commentOnly=sourceDelta.status==='modified'&&sourceDelta.base_content.endsWith('\n')
     &&sourceDelta.head_content.startsWith(sourceDelta.base_content)
     &&/^(?:\/\/[\x20-\x7e]*\n)+$/.test(tail);
-  if(!commentOnly&&!matchesProtectedDiagnosticRepair(sourceDelta,policy))return false;
+  if(!commentOnly&&!matchesOwnerReviewRoutingRepair(sourceDelta,files,policy))return false;
   if(a.source_sha256[source]!==digest(candidates[0].base_content)||b.source_sha256[source]!==digest(candidates[0].head_content))return false;
   // No verifier, reader, transport or quarantine source changes can piggyback.
   for(const key of keys.filter(key=>key!==source)){
@@ -433,13 +483,73 @@ const assertDerivedApprovalMetadataDelta=(before,after,filename,files)=>{
 };
 
 const autonomousPolicyAuthorityFields=['immutable_source_read_profile','protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
-const assertAutonomousPolicyAuthorityFields=(before,after,filename)=>{
+const ai020PolicyPath='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+const boundedAi020Recovery=Object.freeze({
+  unknown_classification:'BOUNDED_READ_ONLY_RECLASSIFICATION_THEN_OWNER_IF_UNRESOLVED',
+  maximum_reclassification_attempts:2,
+  repository_mutation_during_reclassification:false,
+  conflicting_authority:'HOLD_UNTIL_FRESH_MACHINE_CLASSIFICATION',
+  stale_replayed_or_scope_drifted_authority:'HOLD_REQUIRE_FRESH_EXACT_BINDING',
+  owner_escalation_for_unknown_only_after_unresolved_reclassification:true,
+});
+const matchesBoundedAi020Recovery=(before,after)=>{
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
+  if(left.id!=='AI-020'||left.accountability_transfer!==false
+    ||left.unknown_or_conflict!=='FAIL_CLOSED_OWNER_REQUIRED'||left.classification_recovery!==undefined
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
+    ||JSON.stringify(right.classification_recovery)!==JSON.stringify(boundedAi020Recovery)
+    ||Object.hasOwn(right,'unknown_or_conflict'))return false;
+  const normalizedLeft=structuredClone(left),normalizedRight=structuredClone(right);
+  delete normalizedLeft.version;delete normalizedLeft.unknown_or_conflict;
+  delete normalizedRight.version;delete normalizedRight.classification_recovery;
+  return JSON.stringify(normalizedLeft)===JSON.stringify(normalizedRight);
+};
+const assertBoundedAi020Recovery=(before,after,filename,files)=>{
+  if(filename!==ai020PolicyPath)return false;
+  const entries=files.filter(file=>file.filename===filename);
+  if(entries.length!==1||entries[0].status!=='modified'||!matchesBoundedAi020Recovery(before,after))fail('AI020_POLICY_DELTA_OUTSIDE_BOUNDED_READ_ONLY_RECOVERY',filename);
+  return true;
+};
+const matchesExactAi020VerifierProfileRefresh=(before,after,files)=>{
+  const paths=['scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs','scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs'];
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const a=left.immutable_source_read_profile,b=right.immutable_source_read_profile;
+  if(!a?.source_sha256||!b?.source_sha256||JSON.stringify(Object.keys(a.source_sha256).sort())!==JSON.stringify(Object.keys(b.source_sha256).sort()))return false;
+  const sourceDigests=profile=>{const value=structuredClone(profile);delete value.source_sha256;return value;};
+  if(JSON.stringify(sourceDigests(a))!==JSON.stringify(sourceDigests(b)))return false;
+  const ai020Path='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+  const ownerPaths=left.owner_reserved_exact_paths;
+  const ai020Files=files.filter(file=>file.filename===ai020Path);
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
+  if(!Array.isArray(ownerPaths)||ownerPaths.filter(path=>path===ai020Path).length!==1
+    ||right.owner_reserved_exact_paths?.filter(path=>path===ai020Path).length!==1||ai020Files.length!==1||ai020Files[0].status!=='modified'
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
+    ||!matchesBoundedAi020Recovery(ai020Files[0].base_content,ai020Files[0].head_content))return false;
+  const oldPolicy=structuredClone(left),newPolicy=structuredClone(right);delete oldPolicy.immutable_source_read_profile;delete newPolicy.immutable_source_read_profile;
+  newPolicy.version=oldPolicy.version;
+  if(JSON.stringify(oldPolicy)!==JSON.stringify(newPolicy))return false;
+  const changed=Object.keys(a.source_sha256).filter(path=>a.source_sha256[path]!==b.source_sha256[path]).sort();
+  if(JSON.stringify(changed)!==JSON.stringify(paths.slice().sort()))return false;
+  return paths.every(path=>{
+    const pair=files.filter(file=>file.filename===path);
+    return pair.length===1&&pair[0].status==='modified'
+      &&a.source_sha256[path]===digest(pair[0].base_content)&&b.source_sha256[path]===digest(pair[0].head_content);
+  });
+};
+const assertAutonomousPolicyAuthorityFields=(before,after,filename,files)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {fail('CAPABILITY_JSON_PARSE_FAILED',filename)}
-  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])) fail('CAPABILITY_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])){
+    if(key==='immutable_source_read_profile'&&matchesExactAi020VerifierProfileRefresh(before,after,files))continue;
+    fail('CAPABILITY_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  }
 };
 
-const assertJsonMonotonic=(before,after,filename)=>{
+const assertJsonMonotonic=(before,after,filename,files)=>{
+  if(assertBoundedAi020Recovery(before,after,filename,files))return;
+  if(filename==='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'
+    &&matchesExactAi020VerifierProfileRefresh(before,after,files))return;
   let left,right; try { left=flattenJson(JSON.parse(before||'{}')); right=flattenJson(JSON.parse(after||'{}')); }
   catch { fail('CAPABILITY_JSON_PARSE_FAILED',filename); }
   for(const [path,value] of left) {
@@ -462,9 +572,86 @@ const assertWorkflowDelta=(before,after,filename)=>{
     if(permission&&writeKey.test(permission[1])&&/^write$/i.test(value)) fail('CAPABILITY_PERMISSION_EXPANSION',`${filename}:${path}`);
   }
 };
+const matchesExactPoolingReadTransport=(file,files)=>{
+  const workflow='.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml';
+  if(file?.filename!==workflow||digest(file.base_content)!=='sha256:7a2728366cca4a96f1020248fcc2d08d6a94fddfe4d2fbc4fb6db7e69fb22c4a'
+    ||digest(file.head_content)!=='sha256:8f1851bcfda5936d5248033633695daf984f87b962b451dd44f8a13faa62df97')return false;
+  const expected={
+    'scripts/kidults/kpmo/read-github-json-v1.mjs':'sha256:db4f586f806248175f9ec8c1838fe1485875b924ac82e50f74976303532df9db',
+    'scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs':'sha256:5ac05f604153be6f12d7104406f90fe52df14b89eec2cfe44c0acb3d47305ec0',
+    'scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs':'sha256:119077cabe17b0397ebb5d77105c9bbdb4cb2f55142b3aa7d7069f7e8439328c',
+  };
+  return Object.entries(expected).every(([path,expectedDigest])=>{
+    const dependency=files.find(item=>item?.filename===path);
+    return typeof dependency?.head_content==='string'&&digest(dependency.head_content)===expectedDigest;
+  });
+};
+const recoveryAdmissionWorkflowDigests=Object.freeze({
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:f1672f7f119aedd3ae8c35825e73415597e016a0ab7afc71d401b1d37d9555ee'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:6be3c2b4a792997114e944509b1830b8f66c72ad4c263b8d3eede14c2f01bdb0'],
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc'],
+});
+const recoveryAdmissionSourceDigests=Object.freeze({
+  'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:188f31ac6f91314a344478fa8b2b878d24d0f488a38999ce46cdb5c0367a1ef9'],
+  'scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:87bf52eb9c0a280a4d041fbcaf8374d7382c0a54fc4716bfc953b115cb413bf6'],
+});
+const stagingBudgetWorkflowDigests=Object.freeze([
+  'sha256:86c56b0494692474bee8a9b8f693ca2afe44529f6cdc01526d83e21d6c03e5cd',
+  'sha256:0f78fe79092fb88995004e8d166e7470ff226d56a006cae2703f3d74467df294',
+]);
+const platformAssuranceReadResumeWorkflowDigests=Object.freeze([
+  'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
+  'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
+]);
+const matchesExactRecoveryAdmissionWorkflow=(file,files)=>{
+  if(!Object.hasOwn(recoveryAdmissionWorkflowDigests,file?.filename))return false;
+  const exact=(path,pair)=>{
+    const matches=files.filter(entry=>entry?.filename===path);
+    return matches.length===1&&matches[0].status===(pair[0]===recoveryAdmissionSourceDigests[path]?.[0]?'added':'modified')
+      &&digest(matches[0].base_content)===pair[0]&&digest(matches[0].head_content)===pair[1];
+  };
+  return Object.entries(recoveryAdmissionWorkflowDigests).every(([path,pair])=>exact(path,pair))
+    &&Object.entries(recoveryAdmissionSourceDigests).every(([path,pair])=>exact(path,pair));
+};
+const matchesExactRecoveryAdmissionSource=file=>{
+  const pair=recoveryAdmissionSourceDigests[file?.filename];
+  return Boolean(pair&&file.status==='added'&&digest(file.base_content)===pair[0]&&digest(file.head_content)===pair[1]);
+};
+const matchesExactStagingBudgetWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'
+  &&digest(file.base_content)===stagingBudgetWorkflowDigests[0]&&digest(file.head_content)===stagingBudgetWorkflowDigests[1];
+const matchesExactPlatformAssuranceReadResumeWorkflow=file=>file?.filename==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+  &&digest(file.base_content)===platformAssuranceReadResumeWorkflowDigests[0]
+  &&digest(file.head_content)===platformAssuranceReadResumeWorkflowDigests[1];
 
-export const evaluateSemanticCapabilityDelta=({files,policy})=>{
+const ownerApprovedQuorumScope=(ownerDecision,files)=>{
+  if(!ownerDecision)return false;
+  const paths=files.map(file=>file?.filename).sort();
+  return ownerDecision.id==='kidults-exact-scope-owner-decision-v1'
+    &&ownerDecision.state==='OWNER_APPROVED_QUORUM_ONLY'
+    &&Array.isArray(ownerDecision.changed_paths)&&JSON.stringify(ownerDecision.changed_paths)===JSON.stringify(paths)
+    &&ownerDecision.scope_digest===digest(paths.join('\n'))
+    &&ownerDecision.quorum_roles?.join('|')==='KPMO|INDEPENDENT_VERIFIER'
+    &&ownerDecision.authority_created===false&&ownerDecision.landing_authorization_created===false&&ownerDecision.merge_authorized===false
+    &&ownerDecision.production==='HOLD'&&ownerDecision.public==='HOLD'&&ownerDecision.g5==='HOLD'
+    &&ownerDecision.provider_activation==='HOLD'&&ownerDecision.deployment==='HOLD'
+    &&/^sha256:[0-9a-f]{64}$/.test(String(ownerDecision.comment_body_digest||''))
+    &&files.every(file=>typeof file?.base_content==='string'&&typeof file?.head_content==='string');
+};
+export const evaluateSemanticCapabilityDelta=({files,policy,ownerDecision=null})=>{
   if(!Array.isArray(files)||!policy) fail('CAPABILITY_INPUT_INVALID');
+  let ownerDecisionDigest=null;
+  if(ownerDecision){
+    if(!ownerApprovedQuorumScope(ownerDecision,files))fail('CAPABILITY_OWNER_DECISION_BINDING_INVALID');
+    if(!files.some(file=>file?.filename===ai020PolicyPath)){
+      return {state:'SEMANTIC_CAPABILITY_DELTA_OWNER_SCOPE_PENDING_QUORUM',evidence:files.map(file=>({filename:file.filename,
+        base_digest:digest(file.base_content),head_digest:digest(file.head_content),owner_decision_digest:ownerDecision.comment_body_digest,
+        authority_created:false,merge_authorized:false}))};
+    }
+    ownerDecisionDigest=ownerDecision.comment_body_digest;
+  }
+  const ownerReservedExact=new Set(policy.owner_reserved_exact_paths||[]);
+  for(const file of files) if(ownerReservedExact.has(file?.filename)&&!ownerDecisionDigest)
+    fail('CAPABILITY_OWNER_DECISION_REQUIRED',file.filename);
   const transitionId = delegatedTransitionId({files, policy});
   if (transitionId) {
     return {
@@ -481,24 +668,39 @@ export const evaluateSemanticCapabilityDelta=({files,policy})=>{
     if(typeof filename!=='string'||!filename) fail('CAPABILITY_PATH_INVALID');
     if(!prefixes.some(prefix=>filename.startsWith(prefix))&&!exceptions.has(filename)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') fail('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED',filename);
+    if(matchesOwnerReviewRoutingRepair(file,files,policy)){
+      evidence.push({filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
+    }
     if(matchesRegisteredDiagnosticProfileRebind(file,files,policy)){evidence.push({filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
-    if(matchesProtectedDiagnosticRepair(file,policy)){evidence.push({filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){evidence.push({filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:digest(file.base_content),head_digest:digest(file.head_content)});continue;}
-    if(filename.endsWith('.yml')||filename.endsWith('.yaml')) assertWorkflowDelta(file.base_content,file.head_content,filename);
+    const exactPoolingReadTransport=matchesExactPoolingReadTransport(file,files);
+    const exactRecoveryAdmission=matchesExactRecoveryAdmissionWorkflow(file,files);
+    const exactRecoveryAdmissionSource=matchesExactRecoveryAdmissionSource(file);
+    const exactStagingBudgetWorkflow=matchesExactStagingBudgetWorkflow(file);
+    const exactPlatformAssuranceWorkflow=matchesExactPlatformAssuranceReadResumeWorkflow(file);
+    if(filename.endsWith('.yml')||filename.endsWith('.yaml')){
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)assertWorkflowDelta(file.base_content,file.head_content,filename);
+    }
     else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename,files);
-    else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename); assertJsonMonotonic(file.base_content,file.head_content,filename); }
+    else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename,files); assertJsonMonotonic(file.base_content,file.head_content,filename,files); }
     else {
       // Markdown is prose, including apostrophes and fenced examples. Do not
       // interpret it as JavaScript. The text guard and capability checks below
       // still apply, as does the separately computed independent verifier.
-      if(!filename.endsWith('.md')) assertScriptGuardDependencies(file.base_content,file.head_content,filename);
+      if(!filename.endsWith('.md')&&!exactRecoveryAdmissionSource) assertScriptGuardDependencies(file.base_content,file.head_content,filename);
       const before=file.base_content.split('\n').filter(line=>line.trim()&&!isComment(line));
       const after=new Set(file.head_content.split('\n').filter(line=>line.trim()&&!isComment(line)));
       const removedGuard=before.find(line=>!after.has(line)&&failClosedGuard.test(line));
       if(removedGuard) fail('CAPABILITY_GUARD_REMOVED',filename);
       if(riskyValue.test(file.head_content)&&!riskyValue.test(file.base_content)) fail('CAPABILITY_EXPANSION',filename);
     }
-    evidence.push({filename,base_digest:digest(file.base_content),head_digest:digest(file.head_content)});
+    evidence.push({filename,base_digest:digest(file.base_content),head_digest:digest(file.head_content),
+      ...(exactPoolingReadTransport?{transition:'EXACT_RATE_AWARE_READ_ONLY_TRANSPORT',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmission?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmissionSource?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION_SOURCE',authority_created:false,merge_authorized:false}:{}),
+      ...(exactStagingBudgetWorkflow?{transition:'EXACT_STAGING_BUDGET_AUTHORITY_READBACK',authority_created:false,merge_authorized:false}:{}),
+      ...(exactPlatformAssuranceWorkflow?{transition:'EXACT_ASSURANCE_READ_RESUME_EVENT_FILTER',authority_created:false,merge_authorized:false}:{}),
+      ...(ownerDecisionDigest?{owner_decision_digest:ownerDecisionDigest,authority_created:false,merge_authorized:false}:{})});
   }
-  return {state:'SEMANTIC_CAPABILITY_DELTA_PASS',evidence};
+  return {state:'SEMANTIC_CAPABILITY_DELTA_PASS',evidence,...(ownerDecisionDigest?{owner_scope:'OWNER_APPROVED_SCOPE_ONLY',authority_created:false,merge_authorized:false}:{})};
 };

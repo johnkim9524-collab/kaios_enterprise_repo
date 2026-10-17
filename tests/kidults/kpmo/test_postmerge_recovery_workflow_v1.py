@@ -9,7 +9,6 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 FILES = ['track', 'kpmo', 'independent-verification']
-
 class RecoveryWorkflowTests(unittest.TestCase):
     def workflow(self, name):
         return yaml.load((ROOT / f'.github/workflows/kidults-autonomous-{name}-authorization-v1.yml').read_text(), Loader=yaml.BaseLoader)
@@ -27,21 +26,46 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertNotIn('interrupted-recovery-finalizer', self.workflow('track')['jobs'])
         for name in FILES:
             workflow = self.workflow(name)
-            job_if = workflow['jobs']['terminal-recovery-approval']['if']
+            job_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertIn("workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'", job_if)
             self.assertIn("workflow_run.conclusion == 'failure'", job_if)
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
             self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
 
-    def test_original_live_candidate_path_remains_dispatch_only(self):
+    def test_cheap_admission_precedes_all_credentialled_role_jobs(self):
         for name in FILES:
+            workflow = self.workflow(name)
+            admission = workflow['jobs']['terminal-recovery-admission']
+            recovery = workflow['jobs']['terminal-recovery-approval']
+            self.assertEqual(recovery['needs'], 'terminal-recovery-admission')
+            self.assertIn("github.ref == 'refs/heads/main' && github.run_attempt == 1", recovery['if'])
+            self.assertIn("workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1'", recovery['if'])
+            self.assertIn("workflow_run.name == 'KIDULTS Platform Continuous Assurance V1'", recovery['if'])
+            self.assertEqual(admission['permissions'], {'contents': 'read'})
+            self.assertNotIn('outputs', admission)
+            self.assertNotIn('environment', admission)
+            self.assertEqual(admission['timeout-minutes'], '1')
+            admission_step = next(step for step in admission['steps'] if step.get('name') == 'Admit only an eligible actual recovery workload')
+            admission_script = '\n'.join(step.get('run', '') for step in admission['steps'])
+            self.assertEqual(admission_step['run'].strip(), 'set -euo pipefail\nnode scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs')
+            self.assertNotIn('AWS_ROLE_ARN', admission_script)
+            self.assertNotIn('assume-role-with-web-identity', admission_script)
+            self.assertNotIn('KIDULTS_GITHUB_READ_BUDGET_MODE', admission_script)
+            recovery_step = next(step for step in recovery['steps'] if 'run-postmerge-terminal-recovery-v1.mjs' in step.get('run', ''))
+            self.assertEqual(recovery_step['env']['KIDULTS_GITHUB_READ_BUDGET_MODE'], 'SHARED_REQUIRED')
+            self.assertEqual(recovery_step['env']['KIDULTS_GITHUB_READ_QUOTA_OWNER_ID'], 'gha-repo-${{ github.repository_id }}')
+
+    def test_original_live_candidate_path_remains_dispatch_only(self):
+        for name in ('kpmo', 'independent-verification'):
             workflow = self.workflow(name)
             self.assertEqual(workflow['on']['repository_dispatch']['types'], ['kidults.authorization.generation.v1'])
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
             self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", workflow['jobs']['record-role-approval']['if'])
             self.assertNotIn('workflow_dispatch', workflow['on'])
-            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertNotIn("github.event_name == 'workflow_dispatch'", recovery_if)
+        track = self.workflow('track')
+        self.assertNotIn('repository_dispatch', track['on'])
 
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_workflow()
@@ -57,10 +81,23 @@ class RecoveryWorkflowTests(unittest.TestCase):
                           role_workflow['on']['workflow_run']['workflows'])
             self.assertIn('KIDULTS Platform Continuous Assurance V1',
                           role_workflow['on']['workflow_run']['workflows'])
+            admission_if = role_workflow['jobs']['terminal-recovery-admission']['if']
+            self.assertIn("github.event.workflow_run.event == 'workflow_run'", admission_if)
+            self.assertIn("github.event.workflow_run.event == 'repository_dispatch'", admission_if)
+            self.assertIn("github.event.workflow_run.event == 'workflow_dispatch'", admission_if)
+            self.assertIn("github.event.workflow_run.actor.login == 'github-actions[bot]'", admission_if)
+            self.assertNotIn("github.event.workflow_run.event == 'schedule'", admission_if)
 
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
             for key, job in self.workflow(name)['jobs'].items():
+                if key == 'terminal-recovery-admission':
+                    self.assertEqual(job['permissions'], {'contents': 'read'})
+                    self.assertNotIn('environment', job)
+                    script = '\n'.join(step.get('run', '') for step in job['steps'])
+                    for forbidden in ['gh pr merge', 'gh workflow run', 'repository_dispatch', 'update-function-code', 'cloudformation deploy']:
+                        self.assertNotIn(forbidden, script)
+                    continue
                 if not key.startswith(('terminal-recovery-', 'interrupted-recovery-')):
                     continue
                 self.assertEqual(job['permissions'], {'actions': 'read', 'contents': 'read', 'id-token': 'write', 'pull-requests': 'read'})
@@ -76,7 +113,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             workflow = self.workflow(name)
             names = workflow['on']['workflow_run']['workflows']
             self.assertIn('KIDULTS Platform Continuous Assurance V1', names)
-            recovery_if = workflow['jobs']['terminal-recovery-approval']['if']
+            recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertIn("workflow_run.conclusion == 'failure'", recovery_if)
             self.assertNotIn("github.event_name == 'workflow_run'", workflow['jobs']['record-role-approval']['if'])
         self.assertIn('result.recovery_parent=failureParent', runner)
@@ -89,6 +126,8 @@ class RecoveryWorkflowTests(unittest.TestCase):
         job = self.workflow('track')['jobs']['terminal-recovery-finalizer']
         self.assertEqual(job['needs'], 'terminal-recovery-approval')
         self.assertIn("outputs.recovery_needed == 'true'", job['if'])
+        recovery_step = next(step for step in job['steps'] if 'run-postmerge-terminal-recovery-v1.mjs' in step.get('run', ''))
+        self.assertNotIn('KIDULTS_GITHUB_READ_BUDGET_MODE', recovery_step.get('env', {}))
         for name in FILES[1:]:
             self.assertNotIn('terminal-recovery-finalizer', self.workflow(name)['jobs'])
 

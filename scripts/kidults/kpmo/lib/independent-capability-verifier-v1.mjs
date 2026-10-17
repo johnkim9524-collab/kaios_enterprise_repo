@@ -4,23 +4,71 @@ import crypto from 'node:crypto';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from './natural-reserve-transition-exception-v1.mjs';
 
 const hash=value=>`sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
-const independentlyMatchesProtectedRepair=(file,policy)=>{
-  const path='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
-  if(file.filename!==path||!policy.protected_code_repair)return false;
-  const rule=policy.protected_code_repair;
-  const keys=new Set(['enabled','executor','scope','primary_and_independent_required','track_kpmo_quorum_required','candidate_policy_authority','transitions']);
-  if(Object.keys(rule).length!==keys.size||Object.keys(rule).some(k=>!keys.has(k))
-    ||rule.enabled!==true||rule.executor!=='EXACT_PROTECTED_MAIN'||rule.scope!=='REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS'
-    ||rule.primary_and_independent_required!==true||rule.track_kpmo_quorum_required!==true||rule.candidate_policy_authority!==false
-    ||!Array.isArray(rule.transitions)||rule.transitions.length!==1)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
-  const entry=rule.transitions[0],names=Object.keys(entry).sort();
-  if(names.length!==4||names.some((name,i)=>name!==['base_digest','head_digest','id','path'][i])
-    ||entry.id!=='DISPATCH_READ_DIAGNOSTICS_V1'||entry.path!==path
-    ||typeof entry.base_digest!=='string'||typeof entry.head_digest!=='string'
-    ||![entry.base_digest,entry.head_digest].every(d=>/^sha256:[a-f0-9]{64}$/.test(d))||entry.base_digest===entry.head_digest)deny('INDEPENDENT_PROTECTED_REPAIR_POLICY_INVALID');
-  if(file.status!=='modified')return false;
-  return crypto.createHash('sha256').update(file.base_content,'utf8').digest('hex')===entry.base_digest.substring(7)
-    &&crypto.createHash('sha256').update(file.head_content,'utf8').digest('hex')===entry.head_digest.substring(7);
+// Independent copy of the exact, non-authorizing Owner-review routing
+// bootstrap. Keep this matcher separate from the primary verifier so a
+// candidate cannot register its own repair or make both checks share logic.
+const ownerReviewRoutingRepair=Object.freeze({
+  paths:Object.freeze([
+    'coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs',
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs',
+  ]),
+  digests:Object.freeze({
+    'scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs':Object.freeze([
+      'sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73',
+      'sha256:73af3b08d778756acbb6aba65f961c5bb0d253265e3be608687cea98f3c4f768',
+    ]),
+    'tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs':Object.freeze([
+      'sha256:3d4888562344b21dfc7028c456e91ac0e32c66c38d23286bf58620e3d3bb6679',
+      'sha256:fd3a7f93b6e6bd752ccc84af7f7b276baae1f6af12f9b1e4de46eb2670eb7bbf',
+    ]),
+  }),
+});
+export const independentlyMatchesOwnerReviewRoutingRepairDigest=(filename,baseDigest,headDigest)=>{
+  const pair=ownerReviewRoutingRepair.digests[filename];
+  return Array.isArray(pair)&&pair[0]===baseDigest&&pair[1]===headDigest;
+};
+export const independentlyMatchesOwnerReviewRoutingPolicyDelta=(baseContent,headContent,dispatcherBaseDigest,dispatcherHeadDigest,protectedPolicy)=>{
+  let base,next;try{base=JSON.parse(baseContent);next=JSON.parse(headContent);}catch{return false;}
+  if(JSON.stringify(base)!==JSON.stringify(protectedPolicy))return false;
+  const v=/^(\d+)\.(\d+)\.(\d+)$/.exec(base.version||'');
+  if(!v||next.version!==`${Number(v[1])}.${Number(v[2])+1}.0`)return false;
+  const previous=base.capability_guard_owner_review_handoff?.trigger_codes;
+  const proposed=next.capability_guard_owner_review_handoff?.trigger_codes;
+  if(!Array.isArray(previous)||!Array.isArray(proposed))return false;
+  const expected=[...previous,'DISPATCH_OWNER_RESERVED_ACTION'].sort();
+  if(JSON.stringify([...proposed].sort())!==JSON.stringify(expected))return false;
+  const sourcePath='scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+  if(base.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherBaseDigest
+    ||next.immutable_source_read_profile?.source_sha256?.[sourcePath]!==dispatcherHeadDigest)return false;
+  const comparable=structuredClone(next);
+  const normalizedBase=structuredClone(base);
+  comparable.version=base.version;
+  comparable.capability_guard_owner_review_handoff.trigger_codes=[...previous].sort();
+  normalizedBase.capability_guard_owner_review_handoff.trigger_codes=[...previous].sort();
+  comparable.immutable_source_read_profile.source_sha256[sourcePath]=dispatcherBaseDigest;
+  return JSON.stringify(comparable)===JSON.stringify(normalizedBase);
+};
+const independentlyMatchesOwnerReviewRoutingRepair=(file,files,protectedPolicy)=>{
+  if(!ownerReviewRoutingRepair.paths.includes(file?.filename))return false;
+  const core=files.filter(item=>ownerReviewRoutingRepair.paths.includes(item?.filename));
+  if(core.length!==3||ownerReviewRoutingRepair.paths.some(name=>files.filter(item=>item?.filename===name).length!==1))return false;
+  for(const item of files){
+    if(!ownerReviewRoutingRepair.paths.includes(item?.filename)
+      &&item?.filename!=='coordination/kidults/governance/approval-policy-file-manifest-v1.json'
+      &&item?.filename!=='coordination/kidults/governance/approval-policy-inventory-v1.json')return false;
+  }
+  for(const name of ownerReviewRoutingRepair.paths){
+    const item=files.find(value=>value.filename===name);
+    if(item.status!=='modified')return false;
+    if(name!==ownerReviewRoutingRepair.paths[0]
+      &&!independentlyMatchesOwnerReviewRoutingRepairDigest(name,hash(item.base_content),hash(item.head_content)))return false;
+  }
+  const policyFile=files.find(item=>item.filename===ownerReviewRoutingRepair.paths[0]);
+  const source=files.find(item=>item.filename===ownerReviewRoutingRepair.paths[1]);
+  return file.status==='modified'&&independentlyMatchesOwnerReviewRoutingPolicyDelta(
+    policyFile.base_content,policyFile.head_content,hash(source.base_content),hash(source.head_content),protectedPolicy,
+  );
 };
 // Independent verification of derived dispatcher hashes. The source delta
 // is evaluated separately under the protected policy; it cannot refresh this
@@ -50,7 +98,7 @@ const independentlyMatchesDiagnosticProfileRebind=(entry,files,protectedPolicy)=
       if(!line.startsWith('//')||[...line].some(char=>char.charCodeAt(0)<32||char.charCodeAt(0)>126)){safeComments=false;break;}
     }
     safeComments=safeComments&&remaining.endsWith('\n');
-    if(!safeComments&&!independentlyMatchesProtectedRepair(sourcePair,protectedPolicy))return false;
+    if(!safeComments&&!independentlyMatchesOwnerReviewRoutingRepair(sourcePair,files,protectedPolicy))return false;
     const source=sources[0];
     if(hash(source.base_content)!==oldRegistry[name]||hash(source.head_content)!==newRegistry[name])return false;
   }
@@ -93,6 +141,7 @@ const handoffDisplayDelta=file=>{
   return a.scalar===old&&b.scalar===next;
 };
 const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pull_request_target|permissions|environment|if|secrets|vars|id-token|contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events|curl|wget|gh api|aws |gcloud |terraform|kubectl|https?:\/\/|force:|fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|authorization|credential|production|public|g5)\b/i;
+const markdownAuthorityExpansion=/(?:\bauthori[sz]\w*\s+(?:is\s+)?required\b|\b(?:allow|authorize|grant|enable)\w*\s+(?!no\b|not\b)(?:(?:the|an?)\s+)?(?:agent|workflow|operator|track|kpmo|owner|user|session|pr|pull request)?\s*(?:to\s+)?(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:may|can)\s+(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:without|no|not required|not needed|not necessary)\b.{0,100}\b(?:owner|approval|review|quorum)\b.{0,60}\b(?:ready|merge|deploy|promot\w*|production|public|g5|write|secrets?|credentials?|external effects)\b)/i;
 const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').trim()).filter(Boolean);
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
@@ -231,10 +280,67 @@ const verifyDerivedApprovalMetadata=(before,after,filename,files)=>{
 };
 
 const autonomousPolicyAuthorityFields=['immutable_source_read_profile','protected_code_repair','owner_reserved_actions','owner_reserved_path_prefixes','owner_reserved_exact_paths','delegated_internal_path_prefixes','owner_reserved_added_patch_patterns','delegated_internal_exact_path_exceptions','delegated_internal_transition_exceptions','scope_classification','semantic_self_governance','approval_quorum','eligible_all_required'];
-const verifyAutonomousPolicyAuthorityFields=(before,after,filename)=>{
+const ai020PolicyPath='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+const boundedAi020Recovery=Object.freeze({
+  unknown_classification:'BOUNDED_READ_ONLY_RECLASSIFICATION_THEN_OWNER_IF_UNRESOLVED',
+  maximum_reclassification_attempts:2,
+  repository_mutation_during_reclassification:false,
+  conflicting_authority:'HOLD_UNTIL_FRESH_MACHINE_CLASSIFICATION',
+  stale_replayed_or_scope_drifted_authority:'HOLD_REQUIRE_FRESH_EXACT_BINDING',
+  owner_escalation_for_unknown_only_after_unresolved_reclassification:true,
+});
+const matchesBoundedAi020Recovery=(before,after)=>{
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
+  if(left.id!=='AI-020'||left.accountability_transfer!==false
+    ||left.unknown_or_conflict!=='FAIL_CLOSED_OWNER_REQUIRED'||left.classification_recovery!==undefined
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
+    ||JSON.stringify(right.classification_recovery)!==JSON.stringify(boundedAi020Recovery)
+    ||Object.hasOwn(right,'unknown_or_conflict'))return false;
+  const normalizedLeft=structuredClone(left),normalizedRight=structuredClone(right);
+  delete normalizedLeft.version;delete normalizedLeft.unknown_or_conflict;
+  delete normalizedRight.version;delete normalizedRight.classification_recovery;
+  return JSON.stringify(normalizedLeft)===JSON.stringify(normalizedRight);
+};
+const verifyBoundedAi020Recovery=(before,after,filename,files)=>{
+  if(filename!==ai020PolicyPath)return false;
+  const entries=files.filter(file=>file.filename===filename);
+  if(entries.length!==1||entries[0].status!=='modified'||!matchesBoundedAi020Recovery(before,after))deny('INDEPENDENT_AI020_POLICY_DELTA_OUTSIDE_BOUNDED_READ_ONLY_RECOVERY',filename);
+  return true;
+};
+const independentlyMatchesExactAi020VerifierProfileRefresh=(before,after,files)=>{
+  const paths=['scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs','scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs'];
+  let left,right;try{left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')}catch{return false;}
+  const a=left.immutable_source_read_profile,b=right.immutable_source_read_profile;
+  if(!a?.source_sha256||!b?.source_sha256||JSON.stringify(Object.keys(a.source_sha256).sort())!==JSON.stringify(Object.keys(b.source_sha256).sort()))return false;
+  const metadata=profile=>{const value=structuredClone(profile);delete value.source_sha256;return value;};
+  if(JSON.stringify(metadata(a))!==JSON.stringify(metadata(b)))return false;
+  const ai020Path='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
+  const ownerPaths=left.owner_reserved_exact_paths;
+  const ai020Files=files.filter(file=>file.filename===ai020Path);
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
+  if(!Array.isArray(ownerPaths)||ownerPaths.filter(path=>path===ai020Path).length!==1
+    ||right.owner_reserved_exact_paths?.filter(path=>path===ai020Path).length!==1||ai020Files.length!==1||ai020Files[0].status!=='modified'
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
+    ||!matchesBoundedAi020Recovery(ai020Files[0].base_content,ai020Files[0].head_content))return false;
+  const oldPolicy=structuredClone(left),newPolicy=structuredClone(right);delete oldPolicy.immutable_source_read_profile;delete newPolicy.immutable_source_read_profile;
+  newPolicy.version=oldPolicy.version;
+  if(JSON.stringify(oldPolicy)!==JSON.stringify(newPolicy))return false;
+  const changed=Object.keys(a.source_sha256).filter(path=>a.source_sha256[path]!==b.source_sha256[path]).sort();
+  if(JSON.stringify(changed)!==JSON.stringify(paths.slice().sort()))return false;
+  return paths.every(path=>{
+    const pair=files.filter(file=>file.filename===path);
+    return pair.length===1&&pair[0].status==='modified'
+      &&a.source_sha256[path]===hash(pair[0].base_content)&&b.source_sha256[path]===hash(pair[0].head_content);
+  });
+};
+const verifyAutonomousPolicyAuthorityFields=(before,after,filename,files)=>{
   if(filename!=='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json') return;
   let left,right; try {left=JSON.parse(before||'{}');right=JSON.parse(after||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',filename)}
-  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])) deny('INDEPENDENT_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  for(const key of autonomousPolicyAuthorityFields) if(JSON.stringify(left[key])!==JSON.stringify(right[key])){
+    if(key==='immutable_source_read_profile'&&independentlyMatchesExactAi020VerifierProfileRefresh(before,after,files))continue;
+    deny('INDEPENDENT_AUTHORITY_POLICY_CHANGED',filename+':'+key);
+  }
 };
 
 // Independent structural recomputation. Unlike the primary token graph, this
@@ -409,8 +515,86 @@ const verifyGuardDependencies=(before,after,filename)=>{
 // Deliberately separate from the primary classifier: this verifier derives a
 // conservative immutable-line capability inventory and requires security lines
 // to be byte-stable while allowing only non-capability monotonic additions.
-export const independentlyVerifyCapabilityDelta=({files,policy})=>{
+const ownerApprovedQuorumScope=(ownerDecision,files)=>{
+  if(!ownerDecision)return false;
+  const paths=files.map(file=>file?.filename).sort();
+  return ownerDecision.id==='kidults-exact-scope-owner-decision-v1'
+    &&ownerDecision.state==='OWNER_APPROVED_QUORUM_ONLY'
+    &&Array.isArray(ownerDecision.changed_paths)&&JSON.stringify(ownerDecision.changed_paths)===JSON.stringify(paths)
+    &&ownerDecision.scope_digest===hash(paths.join('\n'))
+    &&ownerDecision.quorum_roles?.join('|')==='KPMO|INDEPENDENT_VERIFIER'
+    &&ownerDecision.authority_created===false&&ownerDecision.landing_authorization_created===false&&ownerDecision.merge_authorized===false
+    &&ownerDecision.production==='HOLD'&&ownerDecision.public==='HOLD'&&ownerDecision.g5==='HOLD'
+    &&ownerDecision.provider_activation==='HOLD'&&ownerDecision.deployment==='HOLD'
+    &&/^sha256:[0-9a-f]{64}$/.test(String(ownerDecision.comment_body_digest||''))
+    &&files.every(file=>typeof file?.base_content==='string'&&typeof file?.head_content==='string');
+};
+const independentlyMatchesExactPoolingReadTransport=(file,files)=>{
+  const workflow='.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml';
+  if(file?.filename!==workflow||hash(file.base_content)!=='sha256:7a2728366cca4a96f1020248fcc2d08d6a94fddfe4d2fbc4fb6db7e69fb22c4a'
+    ||hash(file.head_content)!=='sha256:8f1851bcfda5936d5248033633695daf984f87b962b451dd44f8a13faa62df97')return false;
+  const expected={
+    'scripts/kidults/kpmo/read-github-json-v1.mjs':'sha256:db4f586f806248175f9ec8c1838fe1485875b924ac82e50f74976303532df9db',
+    'scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs':'sha256:5ac05f604153be6f12d7104406f90fe52df14b89eec2cfe44c0acb3d47305ec0',
+    'scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs':'sha256:119077cabe17b0397ebb5d77105c9bbdb4cb2f55142b3aa7d7069f7e8439328c',
+  };
+  return Object.entries(expected).every(([path,expectedDigest])=>{
+    const dependency=files.find(item=>item?.filename===path);
+    return typeof dependency?.head_content==='string'&&hash(dependency.head_content)===expectedDigest;
+  });
+};
+const independentlyPinnedRecoveryAdmissionWorkflowDigests=Object.freeze({
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:f1672f7f119aedd3ae8c35825e73415597e016a0ab7afc71d401b1d37d9555ee'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:6be3c2b4a792997114e944509b1830b8f66c72ad4c263b8d3eede14c2f01bdb0'],
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc'],
+});
+const independentlyPinnedRecoveryAdmissionSources=Object.freeze({
+  'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:188f31ac6f91314a344478fa8b2b878d24d0f488a38999ce46cdb5c0367a1ef9'],
+  'scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:87bf52eb9c0a280a4d041fbcaf8374d7382c0a54fc4716bfc953b115cb413bf6'],
+});
+const independentlyMatchesExactRecoveryAdmissionWorkflow=(file,files)=>{
+  if(!Object.hasOwn(independentlyPinnedRecoveryAdmissionWorkflowDigests,file?.filename))return false;
+  const exact=(path,pair,isAdded=false)=>{
+    const matches=files.filter(entry=>entry?.filename===path);
+    return matches.length===1&&matches[0].status===(isAdded?'added':'modified')
+      &&hash(matches[0].base_content)===pair[0]&&hash(matches[0].head_content)===pair[1];
+  };
+  return Object.entries(independentlyPinnedRecoveryAdmissionWorkflowDigests).every(([path,pair])=>exact(path,pair))
+    &&Object.entries(independentlyPinnedRecoveryAdmissionSources).every(([path,pair])=>exact(path,pair,true));
+};
+const independentlyMatchesExactRecoveryAdmissionSource=file=>{
+  const pair=independentlyPinnedRecoveryAdmissionSources[file?.filename];
+  return Boolean(pair&&file.status==='added'&&hash(file.base_content)===pair[0]&&hash(file.head_content)===pair[1]);
+};
+const independentlyPinnedStagingBudgetWorkflowDigests=Object.freeze([
+  'sha256:86c56b0494692474bee8a9b8f693ca2afe44529f6cdc01526d83e21d6c03e5cd',
+  'sha256:0f78fe79092fb88995004e8d166e7470ff226d56a006cae2703f3d74467df294',
+]);
+const independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests=Object.freeze([
+  'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
+  'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
+]);
+const independentlyMatchesExactStagingBudgetWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'
+  &&hash(file.base_content)===independentlyPinnedStagingBudgetWorkflowDigests[0]
+  &&hash(file.head_content)===independentlyPinnedStagingBudgetWorkflowDigests[1];
+const independentlyMatchesExactPlatformAssuranceReadResumeWorkflow=file=>file?.filename==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+  &&hash(file.base_content)===independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests[0]
+  &&hash(file.head_content)===independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests[1];
+export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=null})=>{
   if(!Array.isArray(files)||!policy) deny('INDEPENDENT_CAPABILITY_INPUT_INVALID');
+  let ownerDecisionDigest=null;
+  if(ownerDecision){
+    if(!ownerApprovedQuorumScope(ownerDecision,files))deny('INDEPENDENT_OWNER_DECISION_BINDING_INVALID');
+    if(!files.some(file=>file?.filename===ai020PolicyPath)){
+      const receipts=files.map(file=>({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
+        owner_decision_digest:ownerDecision.comment_body_digest,authority_created:false,merge_authorized:false}));
+      return {state:'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM',receipts,digest:hash(JSON.stringify(receipts)),authority_created:false};
+    }
+    ownerDecisionDigest=ownerDecision.comment_body_digest;
+  }
+  const ownerReservedExact=new Set(policy.owner_reserved_exact_paths||[]);
+  for(const file of files) if(ownerReservedExact.has(file?.filename)&&!ownerDecisionDigest)
+    deny('INDEPENDENT_OWNER_DECISION_REQUIRED',file.filename);
   const transitionId = delegatedTransitionId({files, policy});
   if (transitionId) {
     return {
@@ -424,25 +608,49 @@ export const independentlyVerifyCapabilityDelta=({files,policy})=>{
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    const exactPoolingReadTransport=independentlyMatchesExactPoolingReadTransport(file,files);
+    const exactRecoveryAdmission=independentlyMatchesExactRecoveryAdmissionWorkflow(file,files);
+    const exactRecoveryAdmissionSource=independentlyMatchesExactRecoveryAdmissionSource(file);
+    const exactStagingBudgetWorkflow=independentlyMatchesExactStagingBudgetWorkflow(file);
+    const exactPlatformAssuranceWorkflow=independentlyMatchesExactPlatformAssuranceReadResumeWorkflow(file);
+    if(independentlyMatchesOwnerReviewRoutingRepair(file,files,policy)){
+      receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
+    }
     if(independentlyMatchesDiagnosticProfileRebind(file,files,policy)){receipts.push({filename:file.filename,transition:'PROTECTED_IMPLEMENTATION_PROFILE_REBIND',authority_created:false});continue;}
     if(handoffDisplayDelta(file)){receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_HANDOFF_RUN_NAME_DISPLAY_ONLY',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
-    if(independentlyMatchesProtectedRepair(file,policy)){receipts.push({filename:file.filename,transition:'REGISTERED_PROTECTED_DIAGNOSTIC_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content),authority_created:false});continue;}
     if(matchesReviewedImmutableTransportRepair(file)){receipts.push({filename:file.filename,transition:'EXACT_REVIEWED_IMMUTABLE_TRANSPORT_REPAIR',base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;}
     if(derivedApprovalMetadataPaths.has(file.filename)&&isDerivedApprovalMetadataShape(file.base_content,file.filename)&&isDerivedApprovalMetadataShape(file.head_content,file.filename)){
       verifyDerivedApprovalMetadata(file.base_content,file.head_content,file.filename,files);
       receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});continue;
     }
-    verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename);
-    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
+    verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename,files);
+    const boundedAi020Delta=verifyBoundedAi020Recovery(file.base_content,file.head_content,file.filename,files);
+    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')&&!file.filename.endsWith('.md')&&!exactRecoveryAdmissionSource)
+      verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
-    for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
-    for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+    if(!boundedAi020Delta){
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of after) if(!before.includes(line)){
+        const candidates=file.filename.endsWith('.md')?line.split(/(?<=[.!?])\s+(?=[A-Z`])/):[line];
+        if(candidates.some(candidate=>file.filename.endsWith('.md')
+          ?!(/\b(?:grant\w*\s+no|does not grant|do not grant|doesn't grant)\b/i.test(candidate))&&markdownAuthorityExpansion.test(candidate)
+          :securityLine.test(candidate)))
+          deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+      }
+    }
     if(file.filename.endsWith('.json')) {
       let a,b; try {a=JSON.parse(file.base_content||'{}');b=JSON.parse(file.head_content||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',file.filename)}
       const walk=(left,right,path='')=>{if(left&&typeof left==='object'){for(const key of Object.keys(left)){if(!(key in (right||{})))deny('INDEPENDENT_POLICY_KEY_REMOVED',`${file.filename}:${path}${key}`);walk(left[key],right[key],`${path}${key}.`)}}else if(JSON.stringify(left)!==JSON.stringify(right))deny('INDEPENDENT_POLICY_VALUE_CHANGED',`${file.filename}:${path}`)};
-      walk(a,b);
+      if(!boundedAi020Delta&&!independentlyMatchesExactAi020VerifierProfileRefresh(file.base_content,file.head_content,files))walk(a,b);
     }
-    receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});
+    receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
+      ...(exactPoolingReadTransport?{transition:'EXACT_RATE_AWARE_READ_ONLY_TRANSPORT',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmission?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmissionSource?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION_SOURCE',authority_created:false,merge_authorized:false}:{}),
+      ...(exactStagingBudgetWorkflow?{transition:'EXACT_STAGING_BUDGET_AUTHORITY_READBACK',authority_created:false,merge_authorized:false}:{}),
+      ...(exactPlatformAssuranceWorkflow?{transition:'EXACT_ASSURANCE_READ_RESUME_EVENT_FILTER',authority_created:false,merge_authorized:false}:{}),
+      ...(ownerDecisionDigest?{owner_decision_digest:ownerDecisionDigest,authority_created:false,merge_authorized:false}:{})});
   }
-  return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts))};
+  return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts)),
+    ...(ownerDecisionDigest?{owner_scope:'OWNER_APPROVED_SCOPE_ONLY',authority_created:false,merge_authorized:false}:{})};
 };

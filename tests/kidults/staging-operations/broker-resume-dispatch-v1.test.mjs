@@ -5,6 +5,15 @@ import vm from 'node:vm';
 import {createRequire} from 'node:module';
 import {brokerResumeDispatch,brokerResumeDispatchWithCutover} from '../../../scripts/kidults/staging-operations/lib/broker-resume-dispatch-v1.mjs';
 import {assertCloudFormationInlineTemplateBodyLimit,buildBrokerSource,buildBrokerCode,buildTemplates} from '../../../scripts/governance/build-resume-broker-template-v1.mjs';
+function assertEmbeddedSource(template){
+  const code=template.Resources.BrokerFunction.Properties.Code.ZipFile;
+  const match=code.match(/gunzipSync\(Buffer\.from\('([^']+)'/);
+  assert.ok(match);
+  const source=createRequire(import.meta.url)('node:zlib').gunzipSync(Buffer.from(match[1],'base64'));
+  const expected=Buffer.from(buildBrokerSource(),'utf8');
+  assert.equal(source.toString('utf8'),expected.toString('utf8'));
+  assert.ok(code.includes(`!=='${crypto.createHash('sha256').update(source).digest('hex')}'`));
+}
 import {verifyNativeResumeReuse} from '../../../scripts/kidults/kpmo/lib/native-resume-reuse-proof-v1.mjs';
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -49,7 +58,7 @@ test('both deployable templates stay below the CloudFormation inline body limit'
   const {original,desired}=buildTemplates();
   for(const template of [original,desired]) {
     assert.ok(Buffer.byteLength(JSON.stringify(template,null,2)+'\n')<=51200);
-    assert.equal(template.Resources.BrokerFunction.Properties.Code.ZipFile,buildBrokerCode());
+    assertEmbeddedSource(template);
   }
 });
 test('oversized deployable template fails closed before CloudFormation submission',()=>{
@@ -159,3 +168,4 @@ test('protected dispatch drains legacy tokens before consuming the candidate; la
   assert.equal((await brokerResumeDispatchWithCutover({...s.dependencies,event:fresh,owner:'next-clock'})).state,'REUSED_SUCCESS');
   assert.deepEqual(s.counts(),{sends:1,mints:1});
 });
+

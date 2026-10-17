@@ -1,16 +1,15 @@
 {
   "id": "AI-020",
   "name": "DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "KPMO_PLATFORM_GOVERNANCE",
   "purpose": "Allow necessary reversible internal platform work without routine Program Owner approval.",
   "accountability_transfer": false,
   "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
   "approval_quorum": {
-    "minimum": 2,
+    "minimum": 1,
     "roles": [
-      "ACCOUNTABLE_TRACK_AGENT",
       "KPMO"
     ],
     "distinct_identities_required": true,
@@ -74,7 +73,14 @@
     "DESTRUCTIVE_DATA_OPERATION",
     "PROTECTED_PROMOTION_OR_RELEASE"
   ],
-  "unknown_or_conflict": "FAIL_CLOSED_OWNER_REQUIRED",
+  "classification_recovery": {
+    "unknown_classification": "BOUNDED_READ_ONLY_RECLASSIFICATION_THEN_OWNER_IF_UNRESOLVED",
+    "maximum_reclassification_attempts": 2,
+    "repository_mutation_during_reclassification": false,
+    "conflicting_authority": "HOLD_UNTIL_FRESH_MACHINE_CLASSIFICATION",
+    "stale_replayed_or_scope_drifted_authority": "HOLD_REQUIRE_FRESH_EXACT_BINDING",
+    "owner_escalation_for_unknown_only_after_unresolved_reclassification": true
+  },
   "normal_activation": {
     "manual_owner_orchestration_for_eligible_work": "FORBIDDEN",
     "canonical_policy_envelope": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",

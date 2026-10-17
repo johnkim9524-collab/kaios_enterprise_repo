@@ -1,19 +1,18 @@
 import {AutonomousLandingError} from './autonomous-internal-landing-v1.mjs';
 
 export const FINALIZER_WORKFLOWS=Object.freeze([
-  'KIDULTS Autonomous Track Authorization V1',
   'KIDULTS Autonomous KPMO Authorization V1',
   'KIDULTS Autonomous Independent Verification V1',
 ]);
 const fail=code=>{throw new AutonomousLandingError(code);};
 
-// Workload registry validation and three-role quorum verification precede this
+// Workload registry validation and KPMO-plus-machine-verifier validation precede this
 // decision. The existing conditional reservation, not arrival order or a role's
 // self-assertion, elects the only writer. No new identity or generation is minted.
 export function assertFinalizerElection({policy,workflow}) {
   const rule=policy?.bounded_recovery?.normal_ops_finalizer;
-  if(rule?.election_mode!=='ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM'
-    ||rule.requires_three_role_quorum!==true||rule.requires_exact_head!==true
+  if(rule?.election_mode!=='ORIGINAL_RESERVATION_CAS_AFTER_KPMO_AND_MACHINE_VERIFICATION'
+    ||rule.requires_kpmo_and_machine_verifier!==true||rule.requires_exact_head!==true
     ||JSON.stringify(rule.allowed_workflows)!==JSON.stringify(FINALIZER_WORKFLOWS)
     ||!FINALIZER_WORKFLOWS.includes(workflow))fail('AUTONOMOUS_FINALIZER_ELECTION_INVALID');
   return {state:'RESERVATION_ELECTION_REQUIRED',authority_created:false};

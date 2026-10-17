@@ -9,6 +9,11 @@ const canonicalIdentityPath = 'coordination/kidults/kpmo/continuous-assurance-ca
 const contract = JSON.parse(fs.readFileSync(path.join(root, contractPath), 'utf8'));
 const canonicalIdentity = JSON.parse(fs.readFileSync(path.join(root, canonicalIdentityPath), 'utf8'));
 
+const inlineProducerProbe = parseWorkflow('.github/workflows/inline-producer-probe.yml', `name: Inline Producer Probe\non:\n  workflow_run:\n    workflows: ['Producer A', 'Producer B']\n    branches: [main]\n    types: [completed]\npermissions: {}\n`);
+if (JSON.stringify(inlineProducerProbe.producers) !== JSON.stringify(['Producer A', 'Producer B'])) {
+  fail('inline workflow_run producer parsing regression');
+}
+
 function fail(message) {
   throw new Error(message);
 }
@@ -18,8 +23,11 @@ function parseWorkflow(filePath, overrideText) {
   const name = text.match(/^name:\s*(.+)$/m)?.[1]?.trim();
   if (!name) fail(`${filePath}: workflow name missing`);
   const workflowRun = text.match(/\n  workflow_run:\n([\s\S]*?)(?=\n  [A-Za-z_]+:|\npermissions:)/)?.[1] || '';
+  const inlineWorkflows = workflowRun.match(/^    workflows:\s*\[([^\]]*)\]\s*$/m)?.[1];
   const workflowsBlock = workflowRun.match(/    workflows:\n([\s\S]*?)(?=\n    [A-Za-z_]+:|$)/)?.[1] || '';
-  const producers = [...workflowsBlock.matchAll(/^      - ['"]?(.+?)['"]?\s*$/gm)].map((match) => match[1]);
+  const producers = inlineWorkflows !== undefined
+    ? [...inlineWorkflows.matchAll(/['"]([^'"]+)['"]/g)].map((match) => match[1])
+    : [...workflowsBlock.matchAll(/^      - ['"]?(.+?)['"]?\s*$/gm)].map((match) => match[1]);
   return { filePath, name, text, workflowRun, producers };
 }
 
@@ -117,8 +125,11 @@ function validate(overrides = new Map()) {
       }
     }
     if (/^  [A-Za-z-]+: write$/m.test(permissionsBlock)) findings.push('control observer repository mutation permission detected');
-    if (observer.producers.length > 0 && graph.edges.some(({ producer }) => producer === observerContract.consumer)) {
-      findings.push('control observer must be terminal');
+    const actualDownstream = graph.edges.filter(({ producer }) => producer === observerContract.consumer)
+      .map(({ consumer }) => consumer).sort();
+    const expectedDownstream = [...(observerContract.allowed_downstream_consumers || [])].sort();
+    if (observerContract.terminal_observer_only !== false || JSON.stringify(actualDownstream) !== JSON.stringify(expectedDownstream)) {
+      findings.push('control observer downstream allowlist mismatch');
     }
     const guard = observerContract.canonical_success_guard;
     if (guard?.identity_contract !== canonicalIdentityPath || guard?.durable_runtime_state !== 'REMOTE_LEDGER_ACTIVATION_HOLD' ||
@@ -188,7 +199,10 @@ function validate(overrides = new Map()) {
   for (const item of metrics.direct_consumer_counts_over_one) {
     if (item.count <= budgets.direct_consumers_per_producer_max) continue;
     const override = contract.direct_consumer_overrides?.[item.producer];
-    if (!override || item.count > override.max || !item.consumers.includes(override.required_consumer)) {
+    const actual = [...item.consumers].sort();
+    const allowed = [...(override?.allowed_consumers || [])].sort();
+    if (!override || item.count > override.max || !item.consumers.includes(override.required_consumer)
+      || JSON.stringify(actual) !== JSON.stringify(allowed)) {
       findings.push(`direct consumer fan-out budget exceeded: ${item.producer}`);
     }
   }
@@ -232,6 +246,15 @@ const unapprovedEdgeMutation = assuranceOriginal.replace(
 );
 if (validate(new Map([[assurancePath, unapprovedEdgeMutation]])).findings.length === 0) {
   fail('unapproved control observer edge mutation escaped');
+}
+const downstreamTarget = contract.static_validators[0];
+const downstreamOriginal = fs.readFileSync(path.join(root, downstreamTarget.path), 'utf8');
+const unapprovedDownstreamMutation = downstreamOriginal.replace(
+  '\npermissions:',
+  `\n  workflow_run:\n    workflows: ['${observerContract.consumer}']\n    branches: [main]\n    types: [completed]\n\npermissions:`,
+);
+if (validate(new Map([[downstreamTarget.path, unapprovedDownstreamMutation]])).findings.length === 0) {
+  fail('unapproved control observer downstream mutation escaped');
 }
 const cancelMutation = assuranceOriginal.replace(
   'group: ${{ needs.classify-canonical-identity.outputs.concurrency_group }}\n      cancel-in-progress: false',

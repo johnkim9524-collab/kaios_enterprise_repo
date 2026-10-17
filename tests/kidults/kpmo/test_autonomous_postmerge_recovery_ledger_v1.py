@@ -451,7 +451,7 @@ class RecoveryLedgerTests(unittest.TestCase):
                 return datetime.fromtimestamp(NOW + 1, tz or timezone.utc)
         with mock.patch.dict(sys.modules, {'boto3': boto, 'botocore': types.ModuleType('botocore'), 'botocore.exceptions': exceptions}), mock.patch.dict(os.environ, env):
             exec(compile(code, '<actual-cloudformation-writer>', 'exec'), namespace)
-            namespace['_recovery_namespace']['datetime'] = Clock
+            namespace['_r']['datetime'] = Clock
         return namespace, env
 
     def test_actual_embedded_handler_runs_recovery_with_real_signatures(self):
@@ -492,9 +492,32 @@ class RecoveryLedgerTests(unittest.TestCase):
             original_text = subprocess.check_output(['git', 'show', 'HEAD:' + path], cwd=ROOT, text=True)
             used_fallback = True
         original = json.loads(original_text)
+        original['Description'] = actual['Description']
         props = actual['Resources']['AutonomousLedgerWriterFunction']['Properties']
         old = original['Resources']['AutonomousLedgerWriterFunction']['Properties']
         props['Code'] = old['Code']
+        expected_budget_statement = {
+            'Effect': 'Allow',
+            'Action': ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+            'Resource': {'Fn::GetAtt': ['AutonomousLandingLedger', 'Arn']},
+            'Condition': {'ForAllValues:StringLike': {
+                'dynamodb:LeadingKeys': ['GITHUB_READ_BUDGET#*']
+            }},
+        }
+        for role in ('TrackApprovalRole', 'KpmoApprovalRole', 'VerifierApprovalRole'):
+            policies = actual['Resources'][role]['Properties']['Policies']
+            self.assertEqual(len(policies), 1)
+            statements = policies[0]['PolicyDocument']['Statement']
+            self.assertEqual(statements.count(expected_budget_statement), 0)
+        resume_key_import = {'Fn::ImportValue': 'kidults-read-resume-shared-budget-signing-key-arn-v1'}
+        writer_statements = actual['Resources']['AutonomousLedgerWriterRole']['Properties']['Policies'][0]['PolicyDocument']['Statement']
+        self.assertEqual(writer_statements[2]['Action'], ['kms:Verify'])
+        self.assertEqual(writer_statements[2]['Resource'].count(resume_key_import), 1)
+        original_writer_statements = original['Resources']['AutonomousLedgerWriterRole']['Properties']['Policies'][0]['PolicyDocument']['Statement']
+        original_writer_statements[2]['Resource'].append(resume_key_import)
+        read_resume_key = props['Environment']['Variables']['READ_RESUME_SIGNING_KEY_ARN']
+        self.assertEqual(read_resume_key, resume_key_import)
+        old['Environment']['Variables']['READ_RESUME_SIGNING_KEY_ARN'] = read_resume_key
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
         if used_fallback:

@@ -6,7 +6,7 @@ import path from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {deflateRawSync} from 'node:zlib';
-import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
+import {SPECS,CANONICAL_GENERATION_SPEC,CANONICAL_CONVERGENCE_MAX_WAIT_MS,CANONICAL_CONVERGENCE_POLL_MS,classifyCanonicalConvergence,evaluateProducer,evaluateHealth,selectProducerGeneration,validateCanonicalGenerationLineage,waitForCanonicalConvergence,workflowRuns} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
 import {selectLatestNaturalSentinelRun} from '../../../scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs';
 import {REPOSITORY,digest,stable} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 
@@ -28,8 +28,40 @@ const good=run();
 const artifact={id:110,name:spec.artifacts[0],expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-09-05T10:01:00Z',expires_at:'2026-12-01T00:00:00Z',workflow_run:{id:10,head_sha:sourceSha}};
 function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},sourceSha,observed,{110:bytes});}
 
-function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'}={}){
- return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt};
+test('a moving paginated producer index is re-read once as a whole bounded snapshot',async()=>{
+ const pages=[],waits=[];let reads=0;
+ const result=await workflowRuns(REPOSITORY,SPECS.find(s=>s.id==='RESERVE'),sourceSha,'unused',{
+  readPage:async raw=>{
+   const url=new URL(raw),page=Number(url.searchParams.get('page'));pages.push(page);reads++;
+   if(reads===1)return {total_count:101,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))};
+   if(reads===2)return {total_count:102,workflow_runs:[{id:101},{id:102}]};
+   if(page===1)return {total_count:102,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))};
+   return {total_count:102,workflow_runs:[{id:101},{id:102}]};
+  },
+  sleep:async ms=>waits.push(ms),
+ });
+ assert.equal(result.length,102);
+ assert.deepEqual(pages,[1,2,1,2]);
+ assert.deepEqual(waits,[1000]);
+});
+
+test('a persistently moving producer index stops at the retry bound',async()=>{
+ const pages=[],waits=[];let reads=0;
+ await assert.rejects(workflowRuns(REPOSITORY,SPECS.find(s=>s.id==='RESERVE'),sourceSha,'unused',{
+  readPage:async raw=>{
+   const page=Number(new URL(raw).searchParams.get('page'));pages.push(page);reads++;
+   return page===1
+    ? {total_count:101,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))}
+    : {total_count:102,workflow_runs:[{id:101},{id:102}]};
+  },
+  sleep:async ms=>waits.push(ms),
+ }),/RESERVE_RUN_INDEX_COUNT_CHANGED/);
+ assert.deepEqual(pages,[1,2,1,2]);
+ assert.deepEqual(waits,[1000]);
+});
+
+function sentinelRun(id,{event='repository_dispatch',status='completed',conclusion='success',createdAt='2026-09-05T10:00:00Z',path='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',display_title}={}){
+ return {id,run_attempt:1,repository:{full_name:REPOSITORY},path,head_branch:'main',head_sha:sourceSha,event,status,conclusion,created_at:createdAt,display_title};
 }
 test('Assurance selects its exact causal Sentinel despite a newer successful or pending generation',()=>{
  const parent=sentinelRun(38032507316);
@@ -66,6 +98,14 @@ test('terminal sentinel selector treats the successful Reserve completion edge a
   sentinelRun(32,{event:'workflow_run',createdAt:'2026-09-05T11:00:00Z'})
  ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,32);
+});
+test('terminal sentinel selector excludes bounded auth-resume observer runs from natural health',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(33,{createdAt:'2026-09-05T10:00:00Z'}),
+  sentinelRun(34,{event:'workflow_run',createdAt:'2026-09-05T11:00:00Z',display_title:'KIDULTS_AUTH_OBSERVER/KIDULTS Autonomous KPMO Authorization V1/900'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,33);
+ assert.equal(result.candidate_count,1);assert.equal(result.eligible_terminal_count,1);
 });
 test('terminal sentinel selector rejects an exact-SHA run from a substituted workflow path',()=>{
  assert.throws(()=>selectLatestNaturalSentinelRun([sentinelRun(50,{path:'.github/workflows/other.yml'})],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'}),/WORKFLOW_PATH_INVALID/);
@@ -340,4 +380,14 @@ test('Gate cutoff remains strict when an unbounded API response includes a natur
  assert.throws(()=>selectLatestNaturalSentinelRun([prior,later],{sourceSha,repository:REPOSITORY,observedAt:cutoff}),/SENTINEL_SELECTION_TIME_INVALID/);
  const result=selectLatestNaturalSentinelRun([prior],{sourceSha,repository:REPOSITORY,observedAt:cutoff});
  assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,prior.id);
+});
+
+test('terminal Sentinel selector excludes read-resume repository dispatch observers',()=>{
+ const result=selectLatestNaturalSentinelRun([
+  sentinelRun(35),
+  sentinelRun(36,{event:'repository_dispatch',createdAt:'2026-09-05T11:00:00Z',
+   display_title:'KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/36'})
+ ],{sourceSha,repository:REPOSITORY,observedAt:'2026-09-05T12:00:00Z'});
+ assert.equal(result.state,'VERIFIED_PASS');assert.equal(result.latest.id,35);
+ assert.equal(result.candidate_count,1);assert.equal(result.eligible_terminal_count,1);
 });

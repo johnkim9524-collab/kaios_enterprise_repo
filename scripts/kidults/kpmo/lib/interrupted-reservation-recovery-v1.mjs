@@ -10,6 +10,9 @@ const sha=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x);
 const run=x=>typeof x==='string'&&/^[1-9][0-9]{0,15}$/.test(x);
 const requireProof=(ok,code)=>{if(!ok)throw new Error(`INTERRUPTED_RECOVERY_${code}`);};
 const eq=(a,b)=>canonicalJson(a)===canonicalJson(b);
+const ORIGINAL_TERMINAL_REPAIR_CASE=Object.freeze({pull_request:2655,merge_sha:'d1b801ebf75dfc2b582c6381771f8194016328ca',original_run_id:'38132692877',original_run_attempt:1});
+const ORIGINAL_TERMINAL_REPAIR_ARCHIVE=Object.freeze({artifact_id:11700046124,archive_digest:'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'});
+const ORIGINAL_TERMINAL_NULL_REFS=Object.freeze([38132692877,11700046124,ORIGINAL_TERMINAL_REPAIR_ARCHIVE.archive_digest]);
 const fields='id version repository repository_id pull_request base_sha head_sha head_tree_sha merge_sha source_sha original_run_id original_run_attempt original_generation nonce_digest issued_at expires_at production public g5 provider_activation'.split(' ');
 export function validateInterruptedRecoveryRequest(request,{now=Date.now(),fresh=true}={}){
   requireProof(request&&eq(Object.keys(request).sort(),fields.sort()),'REQUEST_FIELDS');
@@ -66,6 +69,155 @@ export function interruptedRecoveryObjectKey(request){
 export function failureAssuranceRecoveryObjectKey(request){
   validateInterruptedRecoveryRequest(request,{fresh:false});
   return `receipts/${request.original_generation}/interrupted-postmerge-failure-assurance-v1/${request.merge_sha}.json`;
+}
+
+export function originalTerminalRepairObjectKey(request){
+  validateOriginalTerminalRepairRequest(request);
+  return `receipts/${request.original_generation}/original-reservation-terminal-repair/${request.merge_sha}.json`;
+}
+
+export function validateOriginalTerminalRepairRequest(request){
+  const requestDigest=validateInterruptedRecoveryRequest(request,{fresh:false});
+  requireProof(Object.entries(ORIGINAL_TERMINAL_REPAIR_CASE).every(([key,value])=>request[key]===value), 'ORIGINAL_REPAIR_INCIDENT');
+  return requestDigest;
+}
+
+export function validateOriginalTerminalRepairSuccessor(oldRequest,newRequest,{now=Date.now()}={}){
+  const oldDigest=validateOriginalTerminalRepairRequest(oldRequest);
+  validateInterruptedRecoveryRequest(newRequest,{now,fresh:true});
+  const mutable=new Set(['issued_at','expires_at']);
+  requireProof(fields.filter(key=>!mutable.has(key)).every(key=>oldRequest[key]===newRequest[key]),'ORIGINAL_REPAIR_SUCCESSOR_IDENTITY');
+  requireProof(Object.entries(ORIGINAL_TERMINAL_REPAIR_CASE).every(([key,value])=>newRequest[key]===value),'ORIGINAL_REPAIR_INCIDENT');
+  requireProof(Date.parse(oldRequest.expires_at)<=now&&Date.parse(newRequest.issued_at)>=Date.parse(oldRequest.expires_at),'ORIGINAL_REPAIR_SUCCESSOR_WINDOW');
+  return oldDigest;
+}
+
+export function validateOriginalTerminalRepairEvidence(evidence,request){
+  validateOriginalTerminalRepairRequest(request);
+  const kinds=['REQUIRED_PUSH_SUITE','CANONICAL_TRUTH','SENTINEL','TERMINAL_NULL_ASSURANCE_FAILURE'];
+  const baseCheckKeys='kind run_id run_attempt source_sha conclusion artifact_id archive_digest receipt_digest'.split(' ').sort();
+  requireProof(evidence?.repository===repository&&evidence.source_sha===request.source_sha&&evidence.pull_request===request.pull_request
+    &&evidence.merge_sha===request.merge_sha&&evidence.head_sha===request.head_sha&&evidence.head_tree_sha===request.head_tree_sha
+    &&eq(evidence.merge_parents,[request.base_sha,request.head_sha])&&evidence.original_run?.run_id===request.original_run_id
+    &&evidence.original_run?.run_attempt===1&&evidence.original_run?.source_sha===request.base_sha
+    &&evidence.original_run?.status==='completed'&&['cancelled','failure','timed_out'].includes(evidence.original_run?.conclusion)
+    &&Object.entries({production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'}).every(([k,v])=>evidence[k]===v)
+    &&evidence.evidence_profile==='TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+    &&eq(evidence.original_archive,ORIGINAL_TERMINAL_REPAIR_ARCHIVE)
+    &&Array.isArray(evidence.checks)&&evidence.checks.length===4&&eq(evidence.checks.map(c=>c.kind).sort(),kinds.slice().sort())
+    &&evidence.checks.every(c=>eq(Object.keys(c).sort(),c.kind==='TERMINAL_NULL_ASSURANCE_FAILURE'
+      ?baseCheckKeys.concat('terminal_null_evidence_refs').sort():baseCheckKeys)
+      &&run(c.run_id)&&c.run_attempt===1&&c.source_sha===request.source_sha
+      &&c.conclusion===(c.kind==='TERMINAL_NULL_ASSURANCE_FAILURE'?'failure':'success')
+      &&Number.isSafeInteger(c.artifact_id)&&c.artifact_id>0
+      &&['archive_digest','receipt_digest'].every(k=>/^sha256:[a-f0-9]{64}$/.test(c[k]||'')))
+    &&new Set(evidence.checks.map(c=>c.run_id)).size===4&&new Set(evidence.checks.map(c=>c.artifact_id)).size===4
+    &&eq(evidence.checks.find(c=>c.kind==='TERMINAL_NULL_ASSURANCE_FAILURE')?.terminal_null_evidence_refs,ORIGINAL_TERMINAL_NULL_REFS),
+    'ORIGINAL_REPAIR_EVIDENCE_PROFILE');
+  return sha256(canonicalJson(evidence));
+}
+
+export function validateOriginalTerminalRepairTerminal(terminal,request){
+  const requestDigest=validateOriginalTerminalRepairRequest(request);
+  const keys='id version state lifecycle_state authority_scope original_reservation_transition request_digest evidence_digest original_run_id original_head_sha original_merge_sha original_state original_terminal_present actual_authority_granted platform_closure production public g5 created_at repair_digest'.split(' ').sort();
+  const unsigned={...terminal};delete unsigned.repair_digest;
+  const transition={id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
+    ledger_key:{pk:`RESERVE#${request.original_generation}`,sk:`NONCE#${request.nonce_digest}`},
+    conditional_cas:true,merge_sha:request.merge_sha};
+  requireProof(eq(Object.keys(terminal||{}).sort(),keys)&&terminal.id==='kidults-original-reservation-terminal-repair-v1'
+    &&terminal.version==='1.0.0'&&terminal.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&terminal.request_digest===requestDigest
+    &&terminal.lifecycle_state==='ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY'
+    &&terminal.authority_scope==='ORIGINAL_TERMINAL_DEBT_ONLY'&&eq(terminal.original_reservation_transition,transition)
+    &&/^sha256:[a-f0-9]{64}$/.test(terminal.evidence_digest||'')&&terminal.original_run_id===request.original_run_id
+    &&terminal.original_head_sha===request.head_sha&&terminal.original_merge_sha===request.merge_sha
+    &&terminal.original_state==='RESERVED'&&terminal.original_terminal_present===false
+    &&terminal.actual_authority_granted===false&&terminal.platform_closure===false
+    &&Object.entries({production:'HOLD',public:'HOLD',g5:'HOLD'}).every(([k,v])=>terminal[k]===v)
+    &&Number.isFinite(Date.parse(terminal.created_at))&&new Date(terminal.created_at).toISOString()===terminal.created_at
+    &&terminal.repair_digest===sha256(canonicalJson(unsigned)),'ORIGINAL_REPAIR_TERMINAL');
+  return sha256(canonicalJson(terminal));
+}
+
+export function validateOriginalTerminalRepairAck(object,request,terminal){
+  validateOriginalTerminalRepairTerminal(terminal,request);
+  const keys='bucket key version_id sha256 retention_mode retain_until encryption_key_arn'.split(' ').sort();
+  const retention=new Date(terminal.created_at);retention.setUTCFullYear(retention.getUTCFullYear()+10);
+  requireProof(eq(Object.keys(object||{}).sort(),keys)&&typeof object.bucket==='string'&&object.bucket.length>0
+    &&object.key===originalTerminalRepairObjectKey(request)&&typeof object.version_id==='string'&&object.version_id.length>0
+    &&object.version_id.length<=1024&&object.sha256===sha256(canonicalJson(terminal))&&object.retention_mode==='COMPLIANCE'
+    &&/^arn:aws:kms:[a-z0-9-]+:[0-9]{12}:key\/[A-Za-z0-9-]+$/.test(object.encryption_key_arn||'')
+    &&Number.isFinite(Date.parse(object.retain_until))&&new Date(object.retain_until).toISOString()===object.retain_until
+    &&Date.parse(object.retain_until)>=retention.getTime(),'ORIGINAL_REPAIR_ACK');
+  return object;
+}
+
+export async function recoverOriginalTerminalRepair({request,recoveryRunId,ledger,evidence,immutable,verifyDrain,now=()=>Date.now()}){
+  validateOriginalTerminalRepairRequest(request);
+  requireProof(run(recoveryRunId)&&recoveryRunId!==request?.original_run_id
+    &&typeof ledger?.readOriginalTerminalRepairContext==='function'&&typeof ledger?.finalizeOriginalTerminalRepair==='function'
+    &&typeof ledger?.claimOriginalTerminalRepair==='function'&&typeof ledger?.acknowledgeOriginalTerminalRepair==='function'&&typeof evidence==='function'
+    &&typeof immutable?.seal==='function'&&typeof immutable?.read==='function'&&typeof verifyDrain==='function','ORIGINAL_REPAIR_ADAPTER');
+  const proof=await evidence({request});
+  const evidenceDigest=validateOriginalTerminalRepairEvidence(proof,request);
+  let context=await ledger.readOriginalTerminalRepairContext({request});
+  requireProof(['ORIGINAL_TERMINAL_REPAIR_PENDING','ORIGINAL_TERMINAL_DEBT_ONLY'].includes(context.state)
+    &&canonicalJson(context.request)===canonicalJson(request)
+    &&context.evidence_digest===evidenceDigest&&canonicalJson(context.evidence)===canonicalJson(proof),'ORIGINAL_REPAIR_CONTEXT');
+  let terminal=context.terminal;
+  if(context.state==='ORIGINAL_TERMINAL_REPAIR_PENDING'){
+    requireProof(context.approvals?.length===3&&new Set(context.approvals.map(a=>a.role)).size===3
+      &&new Set(context.approvals.map(a=>a.approval_run_id)).size===3,'ORIGINAL_REPAIR_QUORUM');
+    await verifyDrain(request);
+    let revision;
+    if(context.repair_execution_run===recoveryRunId&&context.repair_lease_until*1000>now()){
+      revision=context.repair_revision;
+    }else{
+      const lease=await ledger.claimOriginalTerminalRepair({request,expected_revision:context.repair_revision,lease_seconds:120});
+      requireProof(lease.state==='ORIGINAL_TERMINAL_REPAIR_LEASE_ONLY'&&lease.owner_run_id===recoveryRunId
+        &&lease.request_digest===sha256(canonicalJson(request))&&lease.evidence_digest===evidenceDigest
+        &&Number.isSafeInteger(lease.revision)&&lease.revision===context.repair_revision+1,'ORIGINAL_REPAIR_LEASE_BINDING');
+      revision=lease.revision;
+    }
+    terminal={id:'kidults-original-reservation-terminal-repair-v1',version:'1.0.0',state:'ORIGINAL_TERMINAL_DEBT_ONLY',
+      lifecycle_state:'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY',authority_scope:'ORIGINAL_TERMINAL_DEBT_ONLY',
+      original_reservation_transition:{id:'kidults-original-reservation-transition-v1',from_state:'RESERVED',to_state:'CONSUMED',
+        ledger_key:{pk:`RESERVE#${request.original_generation}`,sk:`NONCE#${request.nonce_digest}`},conditional_cas:true,merge_sha:request.merge_sha},
+      request_digest:sha256(canonicalJson(request)),evidence_digest:evidenceDigest,original_run_id:request.original_run_id,
+      original_head_sha:request.head_sha,original_merge_sha:request.merge_sha,original_state:'RESERVED',
+      original_terminal_present:false,actual_authority_granted:false,platform_closure:false,
+      production:'HOLD',public:'HOLD',g5:'HOLD',created_at:new Date(now()).toISOString()};
+    terminal.repair_digest=sha256(canonicalJson(terminal));validateOriginalTerminalRepairTerminal(terminal,request);
+    try{await ledger.finalizeOriginalTerminalRepair({request,terminal,evidence_digest:evidenceDigest,
+      expected_revision:revision,run_id:recoveryRunId});}
+    catch(error){context=await ledger.readOriginalTerminalRepairContext({request});
+      requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.terminal)===canonicalJson(terminal),'ORIGINAL_REPAIR_CAS_UNKNOWN_NO_RETRY');}
+  }else validateOriginalTerminalRepairTerminal(terminal,request);
+  if(context.immutable_ack){
+    validateOriginalTerminalRepairAck(context.immutable_ack,request,terminal);
+    const immutableReadback=await immutable.read({request,terminal,key:context.immutable_ack.key,original_repair:true,version_id:context.immutable_ack.version_id});
+    requireProof(canonicalJson(immutableReadback)===canonicalJson(context.immutable_ack),'ORIGINAL_REPAIR_ACK_IMMUTABLE_READBACK');
+    return {state:terminal.lifecycle_state,authority_scope:terminal.authority_scope,request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
+      immutable_readback:immutableReadback,original_reservation_transition_verified:true,
+      physical_immutable_object_verified:true,
+      original_reservation_reconsumed:false,original_terminal_created:false,normal_original_terminal_created:false,
+      actual_authority_granted:false,platform_closure:false,promotion_eligible:false,...HOLD};
+  }
+  const key=originalTerminalRepairObjectKey(request),object=await immutable.seal({request,terminal,key,if_none_match:'*',original_repair:true});
+  validateOriginalTerminalRepairAck(object,request,terminal);
+  try{await ledger.acknowledgeOriginalTerminalRepair({request,run_id:recoveryRunId,object,evidence_digest:evidenceDigest});}
+  catch(error){context=await ledger.readOriginalTerminalRepairContext({request});
+    requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.immutable_ack)===canonicalJson(object),'ORIGINAL_REPAIR_ACK_UNKNOWN_NO_RETRY');}
+  context=await ledger.readOriginalTerminalRepairContext({request});
+  requireProof(context.state==='ORIGINAL_TERMINAL_DEBT_ONLY'&&canonicalJson(context.terminal)===canonicalJson(terminal)
+    &&context.evidence_digest===evidenceDigest&&canonicalJson(context.evidence)===canonicalJson(proof)
+    &&canonicalJson(context.immutable_ack)===canonicalJson(object),'ORIGINAL_REPAIR_FINAL_READBACK');
+  const immutableReadback=await immutable.read({request,terminal,key,original_repair:true,version_id:object.version_id});
+  requireProof(canonicalJson(immutableReadback)===canonicalJson(object),'ORIGINAL_REPAIR_IMMUTABLE_FINAL_READBACK');
+  return {state:terminal.lifecycle_state,authority_scope:terminal.authority_scope,request,terminal,terminal_digest:terminal.repair_digest,consistent_read:context,
+    immutable_readback:immutableReadback,original_reservation_transition_verified:true,
+    physical_immutable_object_verified:true,
+    original_reservation_reconsumed:false,original_terminal_created:false,normal_original_terminal_created:false,
+    actual_authority_granted:false,platform_closure:false,promotion_eligible:false,...HOLD};
 }
 
 export function validateFailureAssuranceTerminal(terminal,request){

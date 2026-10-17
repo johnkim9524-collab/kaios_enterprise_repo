@@ -1,25 +1,27 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import test from 'node:test';
-import {inflateSync} from 'node:zlib';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 
 const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
 // Inspect the authenticated original code, rather than searching compressed bytes.
 const writerCapsule = template.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile;
-const capsulePayload = writerCapsule.match(/_ledger_sources = json\.loads\(zlib\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
+const capsulePayload = writerCapsule.match(/_s = json\.loads\(bz2\.decompress\(base64\.b64decode\('([A-Za-z0-9+/=]+)'\)\)\.decode\('utf-8'\)\)/);
 assert.ok(capsulePayload, 'fixed ledger source capsule required');
-const writerSources = JSON.parse(inflateSync(Buffer.from(capsulePayload[1], 'base64')).toString('utf8'));
-assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted']);
-const hashLiteral = writerCapsule.match(/^_ledger_source_hashes = (\{[^\n]+\})$/m);
+const writerSources = JSON.parse(execFileSync('python3',['-c','import bz2,sys;sys.stdout.write(bz2.decompress(sys.stdin.buffer.read()).decode())'],
+  {input:Buffer.from(capsulePayload[1],'base64'),encoding:'utf8'}));
+assert.deepEqual(Object.keys(writerSources).sort(), ['core','historical','interrupted','shared_budget']);
+const hashLiteral = writerCapsule.match(/^_h = (\{[^\n]+\})$/m);
 assert.ok(hashLiteral, 'fixed capsule hash mapping required');
 const sourceHashes = JSON.parse(hashLiteral[1].replaceAll("'", '"'));
 assert.deepEqual(Object.keys(sourceHashes).sort(), Object.keys(writerSources).sort());
 for (const [name, source] of Object.entries(writerSources)) {
   const digest = createHash('sha256').update(source).digest('hex');
   assert.equal(sourceHashes[name], digest, `${name} capsule digest mismatch`);
-  const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py'}[name];
-  assert.equal(source, fs.readFileSync(`scripts/kidults/kpmo/lib/${file}`, 'utf8'), `${name} original source mismatch`);
+  const file = {core:'autonomous-landing-ledger-core-v2.py',historical:'autonomous_postmerge_recovery_ledger_v1.py',interrupted:'interrupted-reservation-recovery-ledger-v1.py',shared_budget:'shared_github_read_budget_ledger_v1.py'}[name];
+  const normalized=execFileSync('python3',['-c',"import ast,pathlib,sys;sys.stdout.write(ast.unparse(ast.parse(pathlib.Path(sys.argv[1]).read_text()))+'\\n')",`scripts/kidults/kpmo/lib/${file}`],{encoding:'utf8'});
+  assert.equal(source, normalized, `${name} normalized source mismatch`);
 }
 const writerCode = writerSources.core;
 const oidc = JSON.parse(fs.readFileSync('coordination/kidults/governance/github-oidc-subject-customization-v1.json','utf8'));
@@ -41,23 +43,26 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     assert.equal(condition['token.actions.githubusercontent.com:aud'],'sts.amazonaws.com');
     assert.equal(condition['token.actions.githubusercontent.com:sub']['Fn::Sub'],`repo:${'${GitHubRepository}'}:environment:${'${' + envParam + '}'}:workflow_ref:${'${' + wfParam + '}'}`);
     const workflow=fs.readFileSync(`.github/workflows/${workflowFile}`,'utf8');
-    assert.ok(workflow.includes(`      - ${eventName}`));
+    if(prefix==='Track')assert.doesNotMatch(workflow,/^  repository_dispatch:/m);
+    else assert.ok(workflow.includes(`      - ${eventName}`));
     for(const other of roles.map(v=>v[5]).filter(v=>v!==eventName)) assert.equal(workflow.includes(`      - ${other}`),false);
     assert.ok(workflow.includes(`environment: ${template.Parameters[envParam].Default}`));
     refs.add(template.Parameters[wfParam].Default);
     const statements=template.Resources[`${prefix}ApprovalRole`].Properties.Policies[0].PolicyDocument.Statement;
     const actions=statements.flatMap(v=>v.Action||[]);
-    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')),['dynamodb:Query']);
+    assert.deepEqual(actions.filter(a=>a.startsWith('dynamodb:')).sort(),['dynamodb:Query']);
     const ledgerRead=statements.find(statement=>(statement.Action||[]).includes('dynamodb:Query'));
     assert.deepEqual(ledgerRead.Resource,{'Fn::GetAtt':['AutonomousLandingLedger','Arn']});
     assert.deepEqual(ledgerRead.Condition,{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['AUTH#*']}});
-    assert.equal(actions.some(a=>['dynamodb:PutItem','dynamodb:UpdateItem','dynamodb:DeleteItem'].includes(a)),false);
+    const budget=statements.filter(s=>JSON.stringify(s)===JSON.stringify({Effect:'Allow',Action:['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem'],Resource:{'Fn::GetAtt':['AutonomousLandingLedger','Arn']},Condition:{'ForAllValues:StringLike':{'dynamodb:LeadingKeys':['GITHUB_READ_BUDGET#*']}}}));
+    assert.equal(budget.length,0);
+    assert.equal(actions.some(a=>['dynamodb:DeleteItem','dynamodb:BatchWriteItem'].includes(a)),false);
     assert.ok(actions.includes('kms:Sign'));
   }
   assert.equal(refs.size,3);
 });
 
-test('finalizer trusts the three role workflows and the isolated canary, with no direct ledger writes', () => {
+test('finalizer trusts KPMO and machine-verifier workflows plus isolated canary, with no direct ledger writes', () => {
   const role=template.Resources.FinalizerRole.Properties;
   const condition=role.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
   assert.deepEqual(Object.keys(condition).sort(),['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
@@ -85,6 +90,8 @@ test('writer verifies KMS signatures and runner rejects caller-supplied workload
   assert.match(runner,/AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN/);
   assert.match(runner,/KIDULTS_AUTONOMOUS_WORKFLOW_REF/);
   assert.equal(runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'),false);
+  assert.match(runner,/AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED/);
+  assert.match(runner,/verification\?\.state!=='INDEPENDENT_CAPABILITY_VERIFIED'/);
 });
 
 test('finalizer reservation is a single-winner lease and followers exit without merge authority', () => {
@@ -99,8 +106,8 @@ test('finalizer reservation is a single-winner lease and followers exit without 
 
 test('normal-ops finalization is quorum-and-reservation elected, writer-bound, and bounded', () => {
   const recovery=landingPolicy.bounded_recovery.normal_ops_finalizer;
-  assert.equal(recovery.election_mode,'ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM');
-  assert.equal(recovery.allowed_workflows.length,3);
+  assert.equal(recovery.election_mode,'ORIGINAL_RESERVATION_CAS_AFTER_KPMO_AND_MACHINE_VERIFICATION');
+  assert.equal(recovery.allowed_workflows.length,2);
   assert.equal(recovery.losing_finalizer_behavior,'SUCCESSFUL_NON_MERGING_RESERVATION_FOLLOWER');
   assert.equal(recovery.writer_policy_rejection_retry,false);
   assert.equal(recovery.persistent_writer_failure,'FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL');

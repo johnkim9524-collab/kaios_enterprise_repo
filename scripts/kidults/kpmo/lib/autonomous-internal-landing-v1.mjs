@@ -27,8 +27,123 @@ const canonicalize = value => {
 export const canonicalJson = value => JSON.stringify(canonicalize(value));
 export const sha256 = value => `sha256:${crypto.createHash('sha256').update(String(value)).digest('hex')}`;
 
-export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
+const ownerDecisionLabels={
+  repository_id:['Repository ID','저장소 ID'],
+  pull_request:['PR','Pull request'],
+  base_sha:['Base SHA'],
+  head_sha:['Head SHA'],
+  head_tree_sha:['Head tree SHA'],
+  changed_path_count:['Changed paths','변경 경로 수'],
+  scope_digest:['Changed paths SHA-256','변경 경로 SHA-256'],
+  decision:['Decision','결정'],
+};
+const ownerDecisionField=(body,labels)=>{
+  const matches=[];
+  for(const line of String(body||'').split(/\r?\n/)){
+    for(const label of labels){
+      const prefix=`${label}:`;
+      if(line.trimStart().toLowerCase().startsWith(prefix.toLowerCase())) matches.push(line.trimStart().slice(prefix.length).trim());
+    }
+  }
+  return matches.length===1?matches[0]:null;
+};
+const ownerDecisionBinding=({repositoryId,pullRequest,baseSha,headSha,treeSha,changedPaths})=>{
+  if(!/^\d+$/.test(String(repositoryId||''))||!Number.isSafeInteger(Number(pullRequest))||Number(pullRequest)<1
+    ||![baseSha,headSha,treeSha].every(value=>SHA.test(String(value||'')))||!Array.isArray(changedPaths)||!changedPaths.length
+    ||changedPaths.some(value=>typeof value!=='string'||!value||value.startsWith('/')||value.includes('..'))
+    ||new Set(changedPaths).size!==changedPaths.length) fail('AUTONOMOUS_OWNER_DECISION_BINDING_INVALID');
+  const paths=[...changedPaths].sort();
+  return {repository_id:String(repositoryId),pull_request:Number(pullRequest),base_sha:baseSha,head_sha:headSha,
+    head_tree_sha:treeSha,changed_paths:paths,changed_path_count:paths.length,scope_digest:sha256(paths.join('\n'))};
+};
+
+// Owner approval routes a reserved change into role review only. It cannot
+// satisfy any role, create a merge authorization, or release a production hold.
+export function selectExactScopeOwnerDecision({comments,repository,repositoryId,repositoryOwner,
+  repositoryOwnerId,pullRequest,baseSha,headSha,treeSha,changedPaths}={}){
+  if(!Array.isArray(comments)||!/^[-a-zA-Z0-9_.]+\/[-a-zA-Z0-9_.]+$/.test(String(repository||''))) fail('AUTONOMOUS_OWNER_DECISION_INPUT_INVALID');
+  if(!repositoryOwner||!/^\d+$/.test(String(repositoryOwnerId||'')))return null;
+  const binding=ownerDecisionBinding({repositoryId,pullRequest,baseSha,headSha,treeSha,changedPaths});
+  const candidates=[];
+  for(const comment of comments){
+    const body=String(comment?.body||'');
+    if(!/^AI-020 Program Owner 결정 — PR #\d+$/.test(body.trim().split(/\r?\n/)[0]||'')
+      &&!/^AI-020 Program Owner decision — PR #\d+$/.test(body.trim().split(/\r?\n/)[0]||'')) continue;
+    const fields=Object.fromEntries(Object.entries(ownerDecisionLabels).map(([key,labels])=>[key,ownerDecisionField(body,labels)]));
+    if(fields.decision!=='APPROVE_EXACT_SCOPE'||fields.repository_id!==binding.repository_id
+      ||fields.pull_request!==String(binding.pull_request)||fields.base_sha!==binding.base_sha||fields.head_sha!==binding.head_sha
+      ||fields.head_tree_sha!==binding.head_tree_sha||fields.changed_path_count!==String(binding.changed_path_count)
+      ||fields.scope_digest!==binding.scope_digest) continue;
+    const scopeLine=body.split(/\r?\n/).find(line=>/^(결정 범위|Decision scope):/i.test(line.trim()))||'';
+    const lines=body.split(/\r?\n/).map(line=>line.trim());
+    const quorumBound=/KPMO.*(?:automated|machine).*verifi/i.test(scopeLine)
+      &&/(quorum|quorum|승인)/i.test(scopeLine)&&/(Ready|병합|merge)/i.test(scopeLine);
+    const holds=[['Production','Production'],['Public','Public'],['G5','G5']].every(([en,ko])=>
+      lines.some(line=>new RegExp(`^(?:${en}|${ko}):\\s*HOLD$`,'i').test(line)))
+      &&lines.some(line=>/^(?:Provider activation|Provider 활성화):\s*HOLD$/i.test(line))
+      &&lines.some(line=>/^(?:STAGING deployment|배포):\s*HOLD$/i.test(line));
+    if(!quorumBound||!holds) continue;
+    const created=Date.parse(String(comment?.created_at||''));
+    const updated=Date.parse(String(comment?.updated_at||''));
+    if(comment?.user?.login!==repositoryOwner||String(comment?.user?.id)!==String(repositoryOwnerId)
+      ||comment?.author_association!=='OWNER'
+      ||!Number.isSafeInteger(Number(comment?.id))||Number(comment.id)<1||!Number.isFinite(created)||updated!==created) continue;
+    candidates.push({comment,created,body});
+  }
+  candidates.sort((a,b)=>b.created-a.created||Number(b.comment.id)-Number(a.comment.id));
+  const selected=candidates[0];
+  if(!selected) return null;
+  const proof={id:'kidults-exact-scope-owner-decision-v1',version:'1.0.0',state:'OWNER_APPROVED_QUORUM_ONLY',
+    repository,pull_request:binding.pull_request,repository_id:binding.repository_id,base_sha:binding.base_sha,
+    head_sha:binding.head_sha,head_tree_sha:binding.head_tree_sha,changed_paths:binding.changed_paths,
+    changed_path_count:binding.changed_path_count,scope_digest:binding.scope_digest,
+    comment_id:Number(selected.comment.id),comment_body_digest:sha256(selected.body),comment_created_at:selected.comment.created_at,
+    actor_login:repositoryOwner,actor_id:String(repositoryOwnerId),ready_merge_only_after_all_role_quorum:true,
+    quorum_roles:['KPMO','INDEPENDENT_VERIFIER'],
+    production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',deployment:'HOLD',
+    authority_created:false,landing_authorization_created:false,merge_authorized:false};
+  return proof;
+}
+
+export function assertExactScopeOwnerDecision(proof,{repository,repositoryId,pullRequest,baseSha,headSha,treeSha,changedPaths}={}){
+  const binding=ownerDecisionBinding({repositoryId,pullRequest,baseSha,headSha,treeSha,changedPaths});
+  const expected={id:'kidults-exact-scope-owner-decision-v1',version:'1.0.0',state:'OWNER_APPROVED_QUORUM_ONLY',
+    repository,pull_request:binding.pull_request,repository_id:binding.repository_id,base_sha:binding.base_sha,
+    head_sha:binding.head_sha,head_tree_sha:binding.head_tree_sha,changed_paths:binding.changed_paths,
+    changed_path_count:binding.changed_path_count,scope_digest:binding.scope_digest,
+    ready_merge_only_after_all_role_quorum:true,quorum_roles:['KPMO','INDEPENDENT_VERIFIER'],
+    authority_created:false,landing_authorization_created:false,merge_authorized:false};
+  if(!proof||Object.entries(expected).some(([key,value])=>canonicalJson(proof[key])!==canonicalJson(value))
+    ||!Number.isSafeInteger(proof.comment_id)||proof.comment_id<1||!/^sha256:[0-9a-f]{64}$/.test(String(proof.comment_body_digest||''))
+    ||!/^[-a-zA-Z0-9_.]+$/.test(String(proof.actor_login||''))||!/^\d+$/.test(String(proof.actor_id||''))
+    ||!Number.isFinite(Date.parse(String(proof.comment_created_at||'')))
+    ||proof.production!=='HOLD'||proof.public!=='HOLD'||proof.g5!=='HOLD'
+    ||proof.provider_activation!=='HOLD'||proof.deployment!=='HOLD') fail('AUTONOMOUS_OWNER_DECISION_PROOF_INVALID');
+  return proof;
+}
+
+export function bindLiveOwnerDecision({expectedProof,comments,repository,repositoryId,repositoryOwner,
+  repositoryOwnerId,pullRequest,baseSha,headSha,treeSha,changedPaths}={}){
+  if(!expectedProof)return null;
+  const liveProof=selectExactScopeOwnerDecision({comments,repository,repositoryId,repositoryOwner,
+    repositoryOwnerId,pullRequest,baseSha,headSha,treeSha,changedPaths});
+  if(!liveProof||canonicalJson(liveProof)!==canonicalJson(expectedProof)) fail('AUTONOMOUS_OWNER_DECISION_LIVE_BINDING_DRIFT');
+  return liveProof;
+}
+
+export function independentlyVerifyLiveCandidate({candidate,policy}={}){
+  if(!candidate||!Array.isArray(candidate.files)||!policy)fail('AUTONOMOUS_LIVE_CANDIDATE_INVALID');
+  return independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision||null});
+}
+
+export const assertAutonomousFileScope = ({files, policy, ownerDecision=null, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const filenames=files.map(file=>typeof file==='string'?file:file?.filename);
+  if (filenames.some(filename=>typeof filename!=='string'||!filename)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+  if (new Set(filenames).size!==filenames.length) fail('AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE');
+  if(ownerDecision) assertExactScopeOwnerDecision(ownerDecision,{repository:ownerDecision.repository,
+    repositoryId:ownerDecision.repository_id,pullRequest:ownerDecision.pull_request,baseSha:ownerDecision.base_sha,
+    headSha:ownerDecision.head_sha,treeSha:ownerDecision.head_tree_sha,changedPaths:filenames});
   const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
     .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
   const transitionId = delegatedTransitionId({files, policy});
@@ -49,7 +164,8 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
     const filename=typeof file==='string'?file:file?.filename;
     if (typeof filename!=='string'||!filename||filename.startsWith('/')||filename.includes('..')) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
     if (transitionExceptionPaths.has(filename)) continue;
-    if (exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix))) fail(errorCode,filename);
+    if ((exactReserved.has(filename)||prefixes.some(prefix=>filename.startsWith(prefix)))
+      &&!ownerDecision?.changed_paths?.includes(filename)) fail(errorCode,filename);
     const delegated=delegatedPrefixes.some(prefix=>filename.startsWith(prefix));
     if (!delegated && !exceptions.has(filename)) continue;
     const patch=typeof file==='object'?file.patch:null;
@@ -57,7 +173,7 @@ export const assertAutonomousFileScope = ({files, policy, errorCode='AUTONOMOUS_
     const lines=patch.split('\n');
     const additions=lines.filter(line=>line.startsWith('+')&&!line.startsWith('+++')).map(line=>line.slice(1)).join('\n');
     const matched=addedPatterns.find(pattern=>pattern.test(additions));
-    if (matched) fail(errorCode,`${filename}:${matched.source}`);
+    if (matched&&!ownerDecision?.changed_paths?.includes(filename)) fail(errorCode,`${filename}:${matched.source}`);
   }
   return files.map(value=>typeof value==='string'?value:value.filename).sort();
 };
@@ -77,18 +193,20 @@ export const collectPaginatedApiValues = async ({request,endpoint,pageSize=100,m
   fail('AUTONOMOUS_PAGINATION_LIMIT_EXCEEDED');
 };
 
-export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,policy,ownerReservedPathPrefixes,delegatedInternalExactPathExceptions,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
+export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDigest,policy,ownerDecision=null,ownerReservedPathPrefixes,delegatedInternalExactPathExceptions,scopeDriftCode='AUTONOMOUS_LIVE_SCOPE_DRIFT'}) => {
   if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const livePaths=files.map(value=>value?.filename);
   if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+  if (new Set(livePaths).size!==livePaths.length) fail('AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE');
+  if (expectedPaths.some(value=>typeof value!=='string'||!value)||new Set(expectedPaths).size!==expectedPaths.length) fail('AUTONOMOUS_EXPECTED_FILE_SET_INVALID');
   const ordered=[...livePaths].sort();
   const expected=[...expectedPaths].sort();
   if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');
   if (sha256(ordered.join('\n'))!==expectedScopeDigest) fail(scopeDriftCode);
   if (policy) {
-    assertAutonomousFileScope({files,policy});
-    evaluateSemanticCapabilityDelta({files,policy});
-    independentlyVerifyCapabilityDelta({files,policy});
+    assertAutonomousFileScope({files,policy,ownerDecision});
+    evaluateSemanticCapabilityDelta({files,policy,ownerDecision});
+    independentlyVerifyCapabilityDelta({files,policy,ownerDecision});
   }
   else {
     const exceptions=new Set(delegatedInternalExactPathExceptions||[]);
@@ -121,7 +239,7 @@ export function validateWorkload(workload, registry, expectedRole) {
 }
 
 export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = [], headSha = envelope?.head_sha}) {
-  if (!ROLE.has(role) || role === 'FINALIZER') fail('AUTONOMOUS_DECISION_ROLE_INVALID');
+  if (!new Set(['KPMO','INDEPENDENT_VERIFIER']).has(role)) fail('AUTONOMOUS_DECISION_ROLE_INVALID');
   if (!SHA.test(String(headSha || ''))) fail('AUTONOMOUS_DECISION_HEAD_SHA_INVALID');
   if (!Array.isArray(statuses) || !Array.isArray(checks) || (!statuses.length && !checks.length)) fail('AUTONOMOUS_DECISION_EVIDENCE_MISSING');
   if (!Array.isArray(requiredContexts) || !requiredContexts.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_SET_EMPTY');
@@ -163,6 +281,7 @@ export function deriveApprovalDecision({envelope, role, statuses = [], checks = 
     role,state:role==='INDEPENDENT_VERIFIER'?'VERIFIED_PASS':'AUTHORIZED',
     repository:envelope.repository,pull_request:Number(envelope.pull_request),base_sha:envelope.base_sha,
     head_sha:envelope.head_sha,head_tree_sha:envelope.head_tree_sha,scope_digest:envelope.scope_digest,
+    owner_decision_digest:envelope.owner_decision?.comment_body_digest||null,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_digest:sha256(canonicalJson(rollbackPlan)),
   };
   return {
@@ -214,10 +333,13 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   }
   const exceptions = new Set(policy.delegated_internal_exact_path_exceptions || []);
   const exactReserved = new Set(policy.owner_reserved_exact_paths || []);
+  if(envelope.owner_decision) assertExactScopeOwnerDecision(envelope.owner_decision,{repository:envelope.repository,
+    repositoryId:envelope.repository_id,pullRequest:envelope.pull_request,baseSha:envelope.base_sha,
+    headSha:envelope.head_sha,treeSha:envelope.head_tree_sha,changedPaths:paths});
   for (const path of paths) {
     if (exceptions.has(path)) continue;
     if (exactReserved.has(path) || (policy.owner_reserved_path_prefixes || []).some(prefix=>path.startsWith(prefix))) {
-      fail('AUTONOMOUS_OWNER_RESERVED_ACTION', path);
+      if(!envelope.owner_decision?.changed_paths?.includes(path)) fail('AUTONOMOUS_OWNER_RESERVED_ACTION', path);
     }
   }
   const expectedScope = sha256([...paths].sort().join('\n'));
@@ -225,8 +347,8 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   return {...envelope, changed_paths:[...paths].sort()};
 }
 
-export function validateQuorum({track, kpmo, verifier, registry, policy, now = Date.now()}) {
-  const envelopes = [track, kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
+export function validateQuorum({kpmo, verifier, registry, policy, now = Date.now()}) {
+  const envelopes = [kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
   for (const field of ['dispatch_id','dispatch_idempotency_key']) {
     if (!envelopes.every(value=>DIGEST.test(String(value[field])))) fail('AUTONOMOUS_DISPATCH_BINDING_REQUIRED',field);
   }
@@ -236,9 +358,10 @@ export function validateQuorum({track, kpmo, verifier, registry, policy, now = D
   for (const field of tuple) if (!envelopes.every(value => String(value[field]) === String(envelopes[0][field]))) {
     fail('AUTONOMOUS_QUORUM_BINDING_MISMATCH', field);
   }
+  if(!envelopes.every(value=>canonicalJson(value.owner_decision||null)===canonicalJson(envelopes[0].owner_decision||null)))
+    fail('AUTONOMOUS_QUORUM_BINDING_MISMATCH','owner_decision');
   if (new Set(envelopes.map(value => value.workload?.workflow_sha)).size !== 1) fail('AUTONOMOUS_WORKLOAD_SHA_QUORUM_MISMATCH');
   const identities = [
-    validateWorkload(track.workload, registry, 'ACCOUNTABLE_TRACK_AGENT'),
     validateWorkload(kpmo.workload, registry, 'KPMO'),
     validateWorkload(verifier.workload, registry, 'INDEPENDENT_VERIFIER'),
   ];
@@ -247,7 +370,7 @@ export function validateQuorum({track, kpmo, verifier, registry, policy, now = D
   if (new Set(envelopes.map(value => value.workload?.workflow_ref)).size !== identities.length) fail('AUTONOMOUS_WORKFLOW_REF_SEPARATION_FAILED');
   if (new Set(envelopes.map(value => value.workload?.environment)).size !== identities.length) fail('AUTONOMOUS_ENVIRONMENT_SEPARATION_FAILED');
   if (verifier.verification_state !== 'VERIFIED_PASS') fail('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASS');
-  for (const [role,value] of [['ACCOUNTABLE_TRACK_AGENT',track],['KPMO',kpmo],['INDEPENDENT_VERIFIER',verifier]]) {
+  for (const [role,value] of [['KPMO',kpmo],['INDEPENDENT_VERIFIER',verifier]]) {
     const core=value.decision && Object.fromEntries(Object.entries(value.decision).filter(([key])=>key!=='decision_digest'));
     if (!core || value.decision.role!==role || value.decision.decision_digest!==sha256(canonicalJson(core))) fail('AUTONOMOUS_DERIVED_DECISION_INVALID',role);
     if (value.test_evidence?.source!=='GITHUB_LIVE_REQUIRED_CHECKS' || value.rollback_plan?.source!=='GITHUB_LIVE_EXACT_BINDING') fail('AUTONOMOUS_CALLER_ASSERTION_NOT_REPLACED',role);

@@ -35,6 +35,16 @@ test('eligible Draft is evaluated without a pre-Ready mutation and finalizer own
   assert.match(landingWorkflow, /ready_state_grants_authorization:false/);
 });
 
+test('Draft readiness remains pending when its separate development evaluation has not passed', () => {
+  const draftBranch=landingWorkflow.slice(landingWorkflow.indexOf("if(final.draft===true)"),landingWorkflow.indexOf('assertStableFinalReread(final,final'));
+  assert.match(draftBranch,/const draftDevelopmentValidated=process\.env\.AUTHORIZATION_OUTCOME==='success'/);
+  assert.match(draftBranch,/await status\('pending'/);
+  assert.match(draftBranch,/failure_code:'DRAFT_DEVELOPMENT_EVALUATION_FAILED'/);
+  assert.match(draftBranch,/state:draftDevelopmentValidated\?'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE':'VERIFIED_FAIL'/);
+  assert.doesNotMatch(draftBranch,/throw new GateFailure\('DRAFT_DEVELOPMENT_EVALUATION_FAILED'\)/);
+  assert.match(draftBranch,/process\.exit\(0\)/);
+});
+
 test('Atomic landing continues to reject Draft PRs', () => {
   assert.match(atomicPreflight, /snapshot\.pr\?\.draft === false/);
   assert.match(atomicPreflight, /ATOMIC_EVENT_TRANSPORT_PR_NOT_OPEN_READY/);

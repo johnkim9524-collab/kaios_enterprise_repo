@@ -14,6 +14,7 @@ function validate(prep, assurance) {
   const auditGate=assurance.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1]||'';
   const auditJob=assurance.match(/^  audit:\n([\s\S]*)$/m)?.[1]||'';
   need(assurance,"- 'KIDULTS ASI Intelligence Preparation Wave v1'",'Continuous Assurance producer watch');
+  need(assurance,"- 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'",'Exact-SHA Sentinel producer watch');
   need(auditGate,"(github.event_name != 'workflow_run' ||\n       (github.event.workflow_run.repository.full_name == github.repository",'cancellation-aware workflow_run audit gate');
   const successOnlyGate="github.event.workflow_run.conclusion == 'success'";
   const exactSentinelGate="github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'";
@@ -36,7 +37,7 @@ if(failures.length){console.error('Intelligence Preparation assurance coverage: 
 const mutations=[
   [prep.replace("group: kidults-asi-intelligence-preparation-wave-v1-${{ github.event_name }}-${{ github.event_name == 'workflow_run' && github.event.workflow_run.id || github.ref }}","group: kidults-asi-intelligence-preparation-wave-v1-${{ github.ref }}"),assurance],
   [prep,assurance.replace("      - 'KIDULTS ASI Intelligence Preparation Wave v1'\n",'')],
-  [prep,assurance.replace("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&\n        github.event.workflow_run.status == 'completed' &&","github.event.workflow_run.name == 'UNTRUSTED SUCCESS-ONLY WORKFLOW' &&\n        github.event.workflow_run.status == 'completed' &&")]
+  [prep,assurance.replace("github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'","github.event.workflow_run.name == 'UNTRUSTED SUCCESS-ONLY WORKFLOW'")]
 ];
 for(const [mp,ma] of mutations){if(validate(mp,ma).length===0){console.error('mutation not rejected');process.exit(1)}}
 console.log(JSON.stringify({status:'VERIFIED_PASS',control:'INTELLIGENCE_PREPARATION_CANCELLATION_AWARE_ASSURANCE',mutation_cases_rejected:mutations.length,production:'HOLD',public_release:'HOLD'},null,2));

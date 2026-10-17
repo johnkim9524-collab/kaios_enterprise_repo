@@ -28,6 +28,7 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
 
   require(policy.id === 'kidults-governed-landing-authorization-policy-v1', 'POLICY_ID');
   require(policy.version === '1.10.0', 'POLICY_VERSION');
+  require(workflow.includes(`name: ${policy.required_status_context}`), 'REQUIRED_STATUS_JOB_NAME_MISMATCH');
   require(policy.readiness_status_context === 'KIDULTS Landing Readiness V1'
     && policy.status_ownership?.readiness_may_write_required_landing === false
     && workflow.includes('context=policy.readiness_status_context')
@@ -143,7 +144,8 @@ function findingsFor(policy, workflow, preflight, atomicWorkflow, aggregateWorkf
   ]) require(workflow.includes(marker), `WORKFLOW_SOLO_GUARD_MISSING:${marker}`);
   require(!workflow.includes(['id-token', 'write'].join(': ')), 'GOVERNED_READINESS_OIDC_WRITE_FORBIDDEN');
   require(!workflow.includes('markPullRequestReadyForReview'), 'GOVERNED_READINESS_MUTATION_FORBIDDEN');
-  require(workflow.includes("state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'")
+  require(workflow.includes("'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE':'VERIFIED_FAIL'")
+    && workflow.includes("failure_code:'DRAFT_DEVELOPMENT_EVALUATION_FAILED'")
     && workflow.includes('exact_base_sha:base') && workflow.includes('promotion_eligible:false'), 'DRAFT_READINESS_RECEIPT_BINDING_INVALID');
   for (const marker of [
     'environment: KIDULTS-AUTONOMOUS-DISPATCHER',

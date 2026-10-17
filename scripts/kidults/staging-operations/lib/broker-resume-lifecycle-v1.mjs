@@ -412,6 +412,136 @@ export async function brokerResumeLifecycle({event,config,request,ledgerRequest,
   return {ok:['EXECUTED_VERIFIED','REUSED_SUCCESS'].includes(result.state),...result};
 }
 
+// Reconcile a lost stale-base update response without exposing a write token or
+// issuing another GitHub mutation. Only an exact ordered-parent readback can
+// settle UNKNOWN as SUCCESS; an unchanged/ambiguous PR remains UNKNOWN.
+export async function brokerReconcileLifecycleOperation({event,config,request,ledgerRequest,getPrivateKey,mint,callerIdentity,now=()=>Date.now()}) {
+  const held=reason=>({ok:false,state:'HOLD_RECONCILE',reason,reconciliation_mutation_attempted:false,
+    production:'HOLD',public:'HOLD',g5:'HOLD'});
+  if(event?.action!=='RECONCILE_LIFECYCLE_OPERATION'||Object.keys(event).sort().join(',')!=='action,binding,operation,repository,repository_id,run_attempt,run_id'
+    ||event.repository!==config.repository||String(event.repository_id)!==String(config.repositoryId)
+    ||!['STALE_BASE_CONVERGENCE','REDUNDANT_PR_HYGIENE'].includes(event.operation)||event.run_attempt!==1
+    ||! /^[1-9][0-9]{0,19}$/.test(String(event.run_id))||!config.operationTable
+    ||callerIdentity?.caller_class!=='DISPATCHER'||callerIdentity.run_id!==String(event.run_id)
+    ||callerIdentity.source_sha!==event.binding?.current_main_sha)fail('RECONCILIATION_INPUT');
+  const b=event.binding;
+  if(!b||!Number.isSafeInteger(b.pull_request)||b.pull_request<1||!sha(b.old_base_sha)||!sha(b.expected_head_sha)
+    ||!sha(b.current_main_sha)||b.old_base_sha===b.current_main_sha||!Array.isArray(b.changed_paths)
+    ||(event.operation==='STALE_BASE_CONVERGENCE'&&b.changed_paths.length<1)||b.changed_paths.length>100||new Set(b.changed_paths).size!==b.changed_paths.length
+    ||b.changed_paths.some(p=>typeof p!=='string'||!p||p.length>512||p.startsWith('/')||p.split('/').some(x=>!x||x==='.'||x==='..')))fail('RECONCILIATION_BINDING');
+  if(event.operation==='REDUNDANT_PR_HYGIENE')return {ok:true,state:'NOT_APPLICABLE',
+    reconciliation_mutation_attempted:false};
+  const family=sha256(canonicalJson({repository:config.repository,pull_request:b.pull_request,expected_head_sha:b.expected_head_sha}));
+  const familyKey={pk:`RESUME_TUPLE_V1#${family}`,sk:'OPERATION'};
+  const familyRow=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
+  if(!familyRow)return {ok:true,state:'NO_PRIOR_UNKNOWN',reconciliation_mutation_attempted:false};
+  if(!/^sha256:[a-f0-9]{64}$/.test(familyRow.operation_key||''))return held('ORIGINAL_FAMILY_KEY_INVALID');
+  const ledger=new DynamoDBOperationLedger({request:ledgerRequest,table:config.operationTable,repository:config.repository});
+  const original=await ledger.read(familyRow.operation_key);
+  if(!original)return held('ORIGINAL_OPERATION_ROW_MISSING');
+  const originalBinding=original.binding;
+  let bindingVerified=false,originalTarget;
+  try {
+    originalTarget=originalBinding.exact_target.split(':');
+    bindingVerified=operationKey(originalBinding)===familyRow.operation_key
+      &&originalBinding.repository===config.repository
+      &&originalBinding.root_mission_id==='KIDULTS-AUTONOMOUS-LIFECYCLE'
+      &&originalBinding.stage_id===`lifecycle:${b.pull_request}`
+      &&originalBinding.operation_kind==='STALE_BASE_CONVERGENCE'
+      &&originalBinding.payload_sha256===sha256(canonicalJson({method:'PUT',body:{expected_head_sha:b.expected_head_sha}}))
+      &&originalTarget.length===4&&originalTarget[0]===String(b.pull_request)
+      &&originalTarget[1]===b.old_base_sha&&originalTarget[2]===b.expected_head_sha&&sha(originalTarget[3]);
+  } catch {}
+  if(!bindingVerified||original.owner!==familyRow.owner||familyRow.schema!=='LIFECYCLE_PHASE_FENCE_V1'
+    ||canonicalJson(familyRow.binding)!==canonicalJson(originalBinding))return held('ORIGINAL_OPERATION_BINDING_MISMATCH');
+  if(original.state==='SUCCESS'){
+    const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey),receipt=original.receipt;
+    const {signature,...signed}=receipt||{};
+    if(receipt?.id!=='kidults-broker-lifecycle-receipt-v1'||receipt.key!==familyRow.operation_key||receipt.state!=='VERIFIED_PASS'
+      ||canonicalJson(receipt.binding)!==canonicalJson(originalBinding)||receipt.production!=='HOLD'||receipt.public!=='HOLD'||receipt.g5!=='HOLD'
+      ||receipt.outcome?.state!=='STALE_BASE_CONVERGED'||receipt.outcome?.ordered_parent_set_verified!==true
+      ||receipt.key_fingerprint!==sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'))
+      ||typeof signature!=='string'||!crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(signed)),publicKey,Buffer.from(signature,'base64')))
+      return held('ORIGINAL_TERMINAL_RECEIPT_INVALID');
+    if(familyRow.phase!=='WRITE_STARTED'||!['IN_FLIGHT','SUCCESS'].includes(familyRow.state))return held('ORIGINAL_TERMINAL_FAMILY_INVALID');
+    if(familyRow.state==='IN_FLIGHT')try{await ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
+      UpdateExpression:'SET #state = :success',
+      ConditionExpression:'operation_key = :key AND #owner = :owner AND #state = :flight AND phase = :started AND #schema = :schema AND binding = :binding',
+      ExpressionAttributeNames:{'#owner':'owner','#state':'state','#schema':'schema'},
+      ExpressionAttributeValues:{':key':familyRow.operation_key,':owner':familyRow.owner,':flight':'IN_FLIGHT',
+        ':started':'WRITE_STARTED',':schema':'LIFECYCLE_PHASE_FENCE_V1',':binding':originalBinding,':success':'SUCCESS'}});}
+      catch(error){if(error?.name!=='ConditionalCheckFailedException')throw error;}
+    const [operationReadback,familyReadback]=await Promise.all([ledger.read(familyRow.operation_key),
+      ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})]);
+    if(operationReadback?.state!=='SUCCESS'||canonicalJson(operationReadback.receipt)!==canonicalJson(receipt)
+      ||familyReadback.Item?.state!=='SUCCESS'||familyReadback.Item?.operation_key!==familyRow.operation_key
+      ||familyReadback.Item?.owner!==familyRow.owner||canonicalJson(familyReadback.Item?.binding)!==canonicalJson(originalBinding))
+      return held('TERMINAL_RECEIPT_READBACK_MISMATCH');
+    return {ok:true,state:'ALREADY_TERMINAL_SUCCESS',key:familyRow.operation_key,receipt,
+      reconciliation_mutation_attempted:false,physical_store_readback:'VERIFIED'};
+  }
+  if(original.state!=='UNKNOWN'||original.phase!=='WRITE_STARTED'||familyRow.state!=='IN_FLIGHT'||familyRow.phase!=='WRITE_STARTED')
+    return {ok:true,state:'NOT_APPLICABLE',key:familyRow.operation_key,reconciliation_mutation_attempted:false};
+
+  const privateKey=await getPrivateKey(),publicKey=crypto.createPublicKey(privateKey);
+  const fingerprint=sha256(publicKey.export({type:'spki',format:'der'}).toString('base64'));
+  const reader=await mint({action:'MINT_INSTALLATION_TOKEN',repository:config.repository,repository_id:String(config.repositoryId),
+    pull_request:b.pull_request,base_sha:b.old_base_sha,head_sha:b.expected_head_sha,
+    authorization_generation:`lifecycle-reconcile-${familyRow.operation_key.slice(7,39)}`});
+  if(reader?.ok!==true||typeof reader.token!=='string')fail('RECONCILIATION_READER_DENIED');
+  let reads=0;
+  const get=async route=>{
+    if(++reads>8)fail('RECONCILIATION_READ_BUDGET');
+    const response=await request(`https://api.github.com/repos/${config.repository}${route}`,{method:'GET',redirect:'error',
+      signal:AbortSignal.timeout(10000),headers:{Accept:'application/vnd.github+json',Authorization:`Bearer ${reader.token}`,
+        'X-GitHub-Api-Version':'2022-11-28','User-Agent':'kidults-protected-lifecycle-reconcile-v1'}});
+    if(!response.ok||response.redirected)fail('RECONCILIATION_NATIVE_READ');
+    return response.json();
+  };
+  const pr=await get(`/pulls/${b.pull_request}`);
+  if(pr.number!==b.pull_request||pr.head?.repo?.full_name!==config.repository||pr.base?.repo?.full_name!==config.repository
+    ||pr.base?.ref!=='main'||pr.state!=='open'||pr.merged===true)return held('RECONCILIATION_LIVE_TUPLE_INVALID');
+  if(pr.head?.sha===b.expected_head_sha&&pr.base?.sha===b.old_base_sha)
+    return held('ORIGINAL_MUTATION_NOT_OBSERVED');
+  const originalMain=originalTarget[3];
+  if(pr.base?.sha!==originalMain||!sha(pr.head?.sha))return held('RECONCILIATION_LIVE_TUPLE_AMBIGUOUS');
+  const commit=await get(`/git/commits/${pr.head.sha}`);
+  if(commit.sha!==pr.head.sha||canonicalJson(commit.parents?.map(x=>x.sha))!==canonicalJson([b.expected_head_sha,originalMain]))
+    return held('RECONCILIATION_PARENT_GRAPH_MISMATCH');
+  const outcome={state:'STALE_BASE_CONVERGED',new_head_sha:pr.head.sha,ordered_parent_set_verified:true,
+    fresh_ci_required:true,fresh_authorization_generation_required:true,reconciled_from_native_readback:true};
+  const signed={id:'kidults-broker-lifecycle-receipt-v1',state:'VERIFIED_PASS',key:familyRow.operation_key,
+    binding:originalBinding,outcome,key_fingerprint:fingerprint,observed_at:new Date(now()).toISOString(),
+    production:'HOLD',public:'HOLD',g5:'HOLD'};
+  const receipt={...signed,signature:crypto.sign('RSA-SHA256',Buffer.from(canonicalJson(signed)),privateKey).toString('base64')};
+  await ledger.reconcileSuccess(familyRow.operation_key,originalBinding,receipt);
+  try {
+    await ledgerRequest('Update',{TableName:config.operationTable,Key:familyKey,
+      UpdateExpression:'SET #state = :success',
+      ConditionExpression:'operation_key = :key AND #owner = :owner AND #state = :flight AND phase = :started AND #schema = :schema AND binding = :binding',
+      ExpressionAttributeNames:{'#owner':'owner','#state':'state','#schema':'schema'},
+      ExpressionAttributeValues:{':key':familyRow.operation_key,':owner':familyRow.owner,':flight':'IN_FLIGHT',
+        ':started':'WRITE_STARTED',':schema':'LIFECYCLE_PHASE_FENCE_V1',':binding':originalBinding,':success':'SUCCESS'}});
+  } catch(error) {if(error?.name!=='ConditionalCheckFailedException')throw error;}
+  const readback=await ledger.read(familyRow.operation_key);
+  const familyReadback=(await ledgerRequest('Get',{TableName:config.operationTable,Key:familyKey,ConsistentRead:true})).Item;
+  const terminalReceipt=readback?.receipt;
+  const {signature:terminalSignature,...terminalUnsigned}=terminalReceipt||{};
+  if(readback?.state!=='SUCCESS'||canonicalJson(readback.binding)!==canonicalJson(originalBinding)
+    ||familyReadback?.operation_key!==familyRow.operation_key||familyReadback.owner!==familyRow.owner
+    ||familyReadback.state!=='SUCCESS'||familyReadback.phase!=='WRITE_STARTED'
+    ||canonicalJson(familyReadback.binding)!==canonicalJson(originalBinding)
+    ||terminalReceipt?.id!=='kidults-broker-lifecycle-receipt-v1'||terminalReceipt.key!==familyRow.operation_key
+    ||terminalReceipt.state!=='VERIFIED_PASS'||canonicalJson(terminalReceipt.binding)!==canonicalJson(originalBinding)
+    ||terminalReceipt.outcome?.new_head_sha!==pr.head.sha||terminalReceipt.outcome?.ordered_parent_set_verified!==true
+    ||terminalReceipt.production!=='HOLD'||terminalReceipt.public!=='HOLD'||terminalReceipt.g5!=='HOLD'
+    ||terminalReceipt.key_fingerprint!==fingerprint||typeof terminalSignature!=='string'
+    ||!crypto.verify('RSA-SHA256',Buffer.from(canonicalJson(terminalUnsigned)),publicKey,Buffer.from(terminalSignature,'base64')))
+    return held('TERMINAL_RECEIPT_SIGNATURE_INVALID');
+  return {ok:true,state:'RECONCILED_SUCCESS',key:familyRow.operation_key,receipt:terminalReceipt,
+    reconciliation_mutation_attempted:false,physical_store_readback:'VERIFIED',production:'HOLD',public:'HOLD',g5:'HOLD'};
+}
+
 // Finalizer tokens retain their existing permissions, but the token handoff
 // shares the PR/head family fence with update and close. A reservation follower
 // must exit before calling this adapter. Issued tokens are not stored/replayed.

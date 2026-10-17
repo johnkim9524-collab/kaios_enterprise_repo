@@ -10,6 +10,7 @@ const good={policy,purpose:'RESUME_LEDGER_BOOTSTRAP',repository:'owner/repo',act
   approval:{actor:'owner',comment_id:20,comment_created_at:'2026-10-08T22:00:01Z',comment_body_sha256:'sha256:'+createHash('sha256').update('approval').digest('hex')},
   ready:{id:10,created_at:'2026-10-08T22:00:00Z',actor:'owner',direct_repository_owner:true,performed_via_github_app:null,synthetic_lifecycle_boundary:false},
   rawReady:{id:10,event:'ready_for_review',created_at:'2026-10-08T22:00:00Z',actor:{login:'owner',type:'User'},performed_via_github_app:null},
+  rawPullRequest:null,
   rawApproval:{id:20,body:'approval',created_at:'2026-10-08T22:00:01Z',updated_at:'2026-10-08T22:00:01Z',user:{login:'owner',type:'User'},author_association:'OWNER',performed_via_github_app:null},
   oneUse:{matching_run_count:1,matching_run_id:123,matching_run_attempt:1,bounded_attempt_ordinal:1,prior_non_success_attempt_count:0}};
 test('protected lifecycle libraries remain inventoried write controls',()=>{
@@ -21,6 +22,27 @@ test('protected lifecycle libraries remain inventoried write controls',()=>{
 });
 test('native exact Owner one-use recovery does not prove external ledger or normal operations',()=>{
   const result=validateOwnerRecoveryBootstrapResume(good);assert.equal(result.external_ledger_proven,false);assert.equal(result.normal_operations_proven,false);
+});
+test('native Owner-created ready PR uses its immutable creation record when no ready event exists',()=>{
+  const input=structuredClone(good);
+  input.ready.synthetic_lifecycle_boundary=true;
+  input.rawReady=undefined;
+  input.rawPullRequest={id:10,draft:false,created_at:input.ready.created_at,user:{login:'owner',type:'User'}};
+  const result=validateOwnerRecoveryBootstrapResume(input);
+  assert.equal(result.state,'OWNER_RECOVERY_BOOTSTRAP_ROUTE_VERIFIED');
+  assert.equal(result.production,'HOLD');assert.equal(result.public,'HOLD');assert.equal(result.g5,'HOLD');
+});
+for(const [field,value] of [
+  ['draft',true],['created_at','2026-10-08T22:00:02Z'],['id',11],
+]) test(`rejects synthetic ready when raw PR creation ${field} is not exact`,()=>{
+  const input=structuredClone(good);input.ready.synthetic_lifecycle_boundary=true;input.rawReady=undefined;
+  input.rawPullRequest={id:10,draft:false,created_at:input.ready.created_at,user:{login:'owner',type:'User'},[field]:value};
+  assert.throws(()=>validateOwnerRecoveryBootstrapResume(input),/RAW_NATIVE_OWNER_EVIDENCE/);
+});
+test('rejects synthetic ready when its PR was created by a bot or another actor',()=>{
+  const input=structuredClone(good);input.ready.synthetic_lifecycle_boundary=true;input.rawReady=undefined;
+  input.rawPullRequest={id:10,draft:false,created_at:input.ready.created_at,user:{login:'bot',type:'Bot'}};
+  assert.throws(()=>validateOwnerRecoveryBootstrapResume(input),/RAW_NATIVE_OWNER_EVIDENCE/);
 });
 for(const [name,value] of Object.entries({purpose:'NORMAL_OPERATION',actor:'bot',executionRef:'refs/heads/feature',runAttempt:2,handoffWindowSeconds:901,
   approval:null,ready:{...good.ready,performed_via_github_app:{id:1}},oneUse:{...good.oneUse,bounded_attempt_ordinal:2}})) {

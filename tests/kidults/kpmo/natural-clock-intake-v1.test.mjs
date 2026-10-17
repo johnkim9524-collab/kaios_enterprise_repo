@@ -34,7 +34,16 @@ function executeMainRead(workflow,{status=0,response=sha}={}){
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'clock-main-read-'));
   try{
     fs.writeFileSync(path.join(dir,'gh'),'#!/bin/bash\nprintf "%s\\n" "$MOCK_RESPONSE"\nexit "$MOCK_STATUS"\n',{mode:0o700});
-    fs.writeFileSync(path.join(dir,'node'),'#!/bin/bash\nprintf "INTAKE_REACHED:%s\\n" "$KIDULTS_LIVE_MAIN_SHA"\n',{mode:0o700});
+    fs.writeFileSync(path.join(dir,'node'),`#!/bin/bash
+if [[ "$1" == "scripts/kidults/kpmo/read-github-json-v1.mjs" ]]; then
+  if [[ "$MOCK_STATUS" != "0" ]]; then exit "$MOCK_STATUS"; fi
+  if [[ -n "$MOCK_RESPONSE" ]]; then
+    printf '{"commit":{"sha":"%s"}}\\n' "$MOCK_RESPONSE"
+  fi
+  exit 0
+fi
+printf "INTAKE_REACHED:%s\\n" "$KIDULTS_LIVE_MAIN_SHA"
+`,{mode:0o700});
     fs.writeFileSync(path.join(dir,'git'),'#!/bin/bash\nprintf "%s\\n" "$MOCK_CHECKOUT_SHA"\n',{mode:0o700});
     return spawnSync('/bin/bash',['-c',run],{encoding:'utf8',env:{
       PATH:`${dir}:/usr/bin:/bin`,GITHUB_REPOSITORY:'johnkim9524-collab/kaios_enterprise_repo',

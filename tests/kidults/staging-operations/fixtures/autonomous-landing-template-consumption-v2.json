@@ -503,6 +503,27 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "GITHUB_READ_BUDGET#*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:Decrypt"
                   ],
                   "Resource": {
@@ -665,6 +686,27 @@
                 {
                   "Effect": "Allow",
                   "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "GITHUB_READ_BUDGET#*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
                     "kms:Decrypt"
                   ],
                   "Resource": {
@@ -820,6 +862,27 @@
                     "ForAllValues:StringLike": {
                       "dynamodb:LeadingKeys": [
                         "AUTH#*"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:UpdateItem"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "AutonomousLandingLedger",
+                      "Arn"
+                    ]
+                  },
+                  "Condition": {
+                    "ForAllValues:StringLike": {
+                      "dynamodb:LeadingKeys": [
+                        "GITHUB_READ_BUDGET#*"
                       ]
                     }
                   }
