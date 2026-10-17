@@ -47,6 +47,22 @@ test('an artifact unrelated to the exact triggering run fails before archive acc
   assert.equal(downloads,0);
 });
 
+test('an Assurance producer checkpoint is admitted under its exact workflow identity',async()=>{
+  const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+  const assuranceRun={...run,path:`${assurancePath}@refs/heads/main`};
+  const assuranceArtifact={...artifact,name:`kidults-github-read-resume-assurance-${runId}-${attempt}`,
+    workflow_run:{...artifact.workflow_run}};
+  const assuranceEvent={action:'completed',workflow_run:{...run,path:undefined}};
+  delete assuranceEvent.workflow_run.path;
+  const readJson=async value=>value===`actions/runs/${runId}`?assuranceRun:
+    value===`actions/runs/${runId}/artifacts?per_page=100`?{total_count:1,artifacts:[assuranceArtifact]}:
+    value===`actions/artifacts/${artifact.id}`?assuranceArtifact:
+    value===routeForCheckpoint(checkpoint)?{id:runId,run_attempt:attempt}:null;
+  const result=await consumeGithubReadResumeHandoff({event:assuranceEvent,readJson,now:()=>Date.parse('2026-10-12T10:01:00.000Z'),
+    readArchiveBytes:async()=>archiveBytes,archiveReader:()=>packetFor(checkpoint)});
+  assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');
+});
+
 test('a future checkpoint outside the single bounded runner window is left deferred without route execution',async()=>{
   const future=readResumeCheckpoint({binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:sourceSha,
     run_id:String(runId),run_attempt:attempt},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:20:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});

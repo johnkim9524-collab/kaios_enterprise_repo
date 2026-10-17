@@ -31,7 +31,7 @@
         "AssumeRolePolicyDocument": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Principal": {"Service": "lambda.amazonaws.com"}, "Action": "sts:AssumeRole"}]},
         "Policies": [{"PolicyName": "exact-natural-clock-boundary", "PolicyDocument": {"Version": "2012-10-17", "Statement": [
           {"Effect": "Allow", "Action": "secretsmanager:GetSecretValue", "Resource": {"Ref": "GitHubPrivateKeySecretArn"}},
-          {"Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem"], "Resource": {"Fn::GetAtt": ["Ledger", "Arn"]}},
+          {"Effect": "Allow", "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"], "Resource": {"Fn::GetAtt": ["Ledger", "Arn"]}},
           {"Effect": "Allow", "Action": ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"], "Resource": "*"}
         ]}}]
       }

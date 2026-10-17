@@ -34,7 +34,8 @@ const validResume = event => {
     &&event.schedule_id===`kidults-read-resume-${scheduleDigest.slice(0,40)}`;
 };
 
-function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=()=>Date.now(), nonce=()=>randomBytes(24).toString('base64url')}) {
+function createHandler({getPrivateKey, request, putOnce, getLedger, markDispatchState, claimRejectedRetry,
+  config, now=()=>Date.now(), nonce=()=>randomBytes(24).toString('base64url')}) {
   return async event => {
     const slot=event?.slot;
     const resume=slot==='READ_RESUME';
@@ -48,9 +49,11 @@ function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=
     const signer=createSign('RSA-SHA256'); signer.update(unsigned); signer.end();
     const jwt=`${unsigned}.${signer.sign(key).toString('base64url')}`;
     const call=async (url, options={}) => {
-      const response=await request(url,{...options,redirect:'error',headers:{Accept:'application/vnd.github+json',
+      const {require204=false,...requestOptions}=options;
+      const response=await request(url,{...requestOptions,redirect:'error',headers:{Accept:'application/vnd.github+json',
         Authorization:`Bearer ${options.bearer||jwt}`,'X-GitHub-Api-Version':'2022-11-28',
         'User-Agent':'kidults-natural-clock-dispatcher-v1',...(options.headers||{})}});
+      if(require204&&response.status!==204)deny(`DISPATCH_HTTP_${response.status}`);
       if(!response.ok) deny(`GITHUB_${response.status}`);
       return response.status===204 ? null : response.json();
     };
@@ -83,12 +86,23 @@ function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=
         digest=`sha256:${createHash('sha256').update(JSON.stringify(payload)).digest('hex')}`;
         if(existing.receipt_digest!==digest)deny('REPLAY_BINDING');
       }
-      // The first POST may have succeeded even if its response was lost.
-      // A recorded schedule id is therefore never dispatched again.
-      return {ok:false,state:'VERIFIED_HOLD_DUPLICATE_NOT_REDISPATCHED',exact_main_sha:exactMainSha,slot};
+      // A confirmed, pending, or ambiguous delivery is never replayed. Only
+      // a recorded definitive GitHub rejection can claim one serialized retry.
+      if(existing?.dispatch_state!=='DEFINITIVELY_REJECTED'||typeof claimRejectedRetry!=='function')
+        return {ok:false,state:'VERIFIED_HOLD_DUPLICATE_NOT_REDISPATCHED',exact_main_sha:exactMainSha,slot};
+      try{await claimRejectedRetry({dispatchId,digest});}
+      catch(error){if(error?.name==='ConditionalCheckFailedException')
+        return {ok:false,state:'VERIFIED_HOLD_DUPLICATE_NOT_REDISPATCHED',exact_main_sha:exactMainSha,slot};throw error;}
     }
-    await call(`https://api.github.com/repos/${config.repository}/dispatches`,{bearer:installation.token,method:'POST',
-      headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:resume?'kidults.github.read.resume.v1':`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});
+    try{
+      await call(`https://api.github.com/repos/${config.repository}/dispatches`,{bearer:installation.token,method:'POST',require204:true,
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({event_type:resume?'kidults.github.read.resume.v1':`kidults.natural.clock.${slot.toLowerCase()}.v1`,client_payload:payload})});
+      await markDispatchState?.({dispatchId,digest,state:'ACCEPTED'});
+    }catch(error){
+      const rejected=/NATURAL_CLOCK_DISPATCH_HTTP_4\d\d$/.test(error?.message||'');
+      try{await markDispatchState?.({dispatchId,digest,state:rejected?'DEFINITIVELY_REJECTED':'OUTCOME_UNKNOWN'});}catch{}
+      throw error;
+    }
     return {ok:true,state:resume?'VERIFIED_READ_RESUME_DISPATCHED':'VERIFIED_DISPATCHED',dispatch_id:dispatchId,
       exact_main_sha:exactMainSha,slot,receipt_digest:digest};
   };
@@ -97,18 +111,28 @@ function createHandler({getPrivateKey, request, putOnce, getLedger, config, now=
 exports.createHandler=createHandler;
 exports.handler=async event => {
   const {SecretsManagerClient,GetSecretValueCommand}=require('@aws-sdk/client-secrets-manager');
-  const {DynamoDBClient,PutItemCommand,GetItemCommand}=require('@aws-sdk/client-dynamodb');
+  const {DynamoDBClient,PutItemCommand,GetItemCommand,UpdateItemCommand}=require('@aws-sdk/client-dynamodb');
   const secrets=new SecretsManagerClient({});
   const dynamo=new DynamoDBClient({});
   return createHandler({
     getPrivateKey:async()=> (await secrets.send(new GetSecretValueCommand({SecretId:process.env.GITHUB_APP_PRIVATE_KEY_SECRET_ARN}))).SecretString,
     request:(url,options)=>fetch(url,{...options,signal:AbortSignal.timeout(10000)}),
     putOnce:async item=>dynamo.send(new PutItemCommand({TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,
-      Item:{dispatch_id:{S:item.dispatchId},slot:{S:item.slot},exact_main_sha:{S:item.exactMainSha},issued_at:{S:item.issuedAt},receipt_digest:{S:item.digest},expires_at:{N:String(item.expiresAt)}},
+      Item:{dispatch_id:{S:item.dispatchId},slot:{S:item.slot},exact_main_sha:{S:item.exactMainSha},issued_at:{S:item.issuedAt},receipt_digest:{S:item.digest},dispatch_state:{S:'PENDING'},expires_at:{N:String(item.expiresAt)}},
       ConditionExpression:'attribute_not_exists(dispatch_id)'})),
     getLedger:async dispatchId=>{const out=await dynamo.send(new GetItemCommand({TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,
       Key:{dispatch_id:{S:dispatchId}},ConsistentRead:true}));return out.Item?{receipt_digest:out.Item.receipt_digest?.S,
+        dispatch_state:out.Item.dispatch_state?.S,
         exact_main_sha:out.Item.exact_main_sha?.S,issued_at:out.Item.issued_at?.S}:null;},
+    markDispatchState:async ({dispatchId,digest,state})=>dynamo.send(new UpdateItemCommand({
+      TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,Key:{dispatch_id:{S:dispatchId}},
+      UpdateExpression:'SET dispatch_state = :state',ConditionExpression:'receipt_digest = :digest AND dispatch_state = :pending',
+      ExpressionAttributeValues:{':state':{S:state},':digest':{S:digest},':pending':{S:'PENDING'}}})),
+    claimRejectedRetry:async ({dispatchId,digest})=>dynamo.send(new UpdateItemCommand({
+      TableName:process.env.NATURAL_CLOCK_LEDGER_TABLE,Key:{dispatch_id:{S:dispatchId}},
+      UpdateExpression:'SET dispatch_state = :pending ADD rejected_retry_count :one',
+      ConditionExpression:'receipt_digest = :digest AND dispatch_state = :rejected AND (attribute_not_exists(rejected_retry_count) OR rejected_retry_count < :max)',
+      ExpressionAttributeValues:{':pending':{S:'PENDING'},':rejected':{S:'DEFINITIVELY_REJECTED'},':digest':{S:digest},':one':{N:'1'},':max':{N:'2'}}})),
     config:{repository:process.env.GITHUB_REPOSITORY,repositoryId:process.env.GITHUB_REPOSITORY_ID,
       appId:process.env.GITHUB_APP_ID,installationId:process.env.GITHUB_APP_INSTALLATION_ID},
   })(event);

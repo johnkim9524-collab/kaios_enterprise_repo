@@ -14,6 +14,7 @@ const ROLES=new Map([
   ['.github/workflows/kidults-autonomous-track-authorization-v1.yml','track'],
   ['.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml','kpmo'],
   ['.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml','independent-verification'],
+  ['.github/workflows/kidults-platform-continuous-assurance-v1.yml','assurance'],
 ]);
 function canonicalProducerWorkflowPath(path){
   for(const candidate of ROLES.keys()){

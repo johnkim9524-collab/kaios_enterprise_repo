@@ -531,7 +531,11 @@ const rebindDraftReady = async (before, mutationToken) => {
 try {
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyLiveCandidate({candidate,policy});
+    if (approvalRole==='INDEPENDENT_VERIFIER') {
+      const verification=independentlyVerifyLiveCandidate({candidate,policy});
+      if(verification?.state!=='INDEPENDENT_CAPABILITY_VERIFIED')
+        throw new AutonomousLandingError('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED',verification?.state||'MISSING_RESULT');
+    }
     envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks,requiredContexts:candidate.required_bindings,headSha:envelope.head_sha});
     if (envelope.recovery) {
       const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);

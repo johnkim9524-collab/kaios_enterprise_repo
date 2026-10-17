@@ -37,7 +37,22 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
-  check(typeof route==='string'&&route.length<=512&&!route.includes('#')&&routes.some(pattern=>pattern.test(route)),'ROUTE');
+  const sentinel=/^actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs\?head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=100&page=([1-9][0-9]{0,2})$/;
+  let sentinelRange=null;
+  if(typeof route==='string'){
+    const match=sentinel.exec(route);
+    if(match){
+      let decoded='';try{decoded=decodeURIComponent(match[2]);}catch{decoded='';}
+      const range=/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)\.\.(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)$/.exec(decoded);
+      if(range){
+        const start=Date.parse(range[1]),end=Date.parse(range[2]);
+        if(match[1]===expectedBinding?.source_sha&&Number.isFinite(start)&&Number.isFinite(end)
+          &&start<=end&&end-start<=24*60*60*1000&&end<=now())sentinelRange={start,end};
+      }
+    }
+  }
+  check(typeof route==='string'&&route.length<=512&&!route.includes('#')
+    &&(routes.some(pattern=>pattern.test(route))||sentinelRange!==null),'ROUTE');
   check(typeof read==='function'&&typeof expectedBinding==='object'&&expectedBinding
     &&/^[1-9][0-9]{0,15}$/.test(String(expectedBinding.run_id))&&Number.isSafeInteger(expectedBinding.run_attempt)
     &&expectedBinding.run_attempt>=1&&expectedBinding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(expectedBinding.source_sha)

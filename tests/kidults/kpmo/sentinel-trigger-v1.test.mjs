@@ -122,6 +122,7 @@ test('Sentinel observes the final Requirement edge and authorization failures fo
   'KIDULTS Autonomous Track Authorization V1',
   'KIDULTS Autonomous KPMO Authorization V1',
   'KIDULTS Autonomous Independent Verification V1',
+  'KIDULTS Platform Continuous Assurance V1',
  ]);
  assert.match(s,/run-name:[\s\S]*KIDULTS_AUTH_OBSERVER\//);
  assert.match(s,/format\('KIDULTS_AUTH_OBSERVER\/\{0\}\/\{1\}', github\.event\.workflow_run\.name, github\.event\.workflow_run\.id\)/);
@@ -222,6 +223,7 @@ test('Sentinel subscribes to bounded-resume failures while Assurance still sees 
   'KIDULTS Autonomous Track Authorization V1',
   'KIDULTS Autonomous KPMO Authorization V1',
   'KIDULTS Autonomous Independent Verification V1',
+  'KIDULTS Platform Continuous Assurance V1',
  ]);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);

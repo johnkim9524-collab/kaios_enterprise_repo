@@ -24,6 +24,12 @@ test('ledger is encrypted, recoverable, expiring and conditionally consumed by c
   assert.equal(table.TimeToLiveSpecification.Enabled,true);
   const source=fs.readFileSync('infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs','utf8');
   assert.match(source,/ConditionExpression:'attribute_not_exists\(dispatch_id\)'/);
+  const statements=template.Resources.DispatcherRole.Properties.Policies[0].PolicyDocument.Statement;
+  const ledger=statements.find(statement=>JSON.stringify(statement.Resource)===JSON.stringify({'Fn::GetAtt':['Ledger','Arn']}));
+  assert.deepEqual(ledger.Action,['dynamodb:GetItem','dynamodb:PutItem','dynamodb:UpdateItem']);
+  assert.match(source,/dispatch_state:\{S:'PENDING'\}/);
+  assert.match(source,/dispatch_state = :rejected/);
+  assert.match(source,/dispatch_state = :pending/);
 });
 
 test('scheduler has only invoke authority and dispatcher has no production authority',()=>{

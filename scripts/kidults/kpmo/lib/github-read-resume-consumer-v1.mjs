@@ -8,10 +8,11 @@ const WORKFLOWS=new Map([
   ['track','.github/workflows/kidults-autonomous-track-authorization-v1.yml'],
   ['kpmo','.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'],
   ['independent-verification','.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml'],
+  ['assurance','.github/workflows/kidults-platform-continuous-assurance-v1.yml'],
 ]);
 const check=(ok,code)=>{if(!ok)throw Error(`GITHUB_RESUME_${code}`);};
 
-function routeAllowed(route,binding){
+function routeAllowed(route,binding,now=()=>Date.now()){
   check(typeof route==='string'&&route.length<=512&&!route.includes('#'),'ROUTE');
   const prefix='/repos/'+REPO+'/';
   check(route.startsWith(prefix),'ROUTE_NOT_ALLOWLISTED');
@@ -28,7 +29,19 @@ function routeAllowed(route,binding){
     /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
-  check(allowed.some(pattern=>pattern.test(path)),'ROUTE_NOT_ALLOWLISTED');
+  const sentinel=/^actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs\?head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=100&page=([1-9][0-9]{0,2})$/;
+  const match=sentinel.exec(path);
+  let sentinelAllowed=false;
+  if(match){
+    let decoded='';try{decoded=decodeURIComponent(match[2]);}catch{decoded='';}
+    const range=/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)\.\.(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)$/.exec(decoded);
+    if(range){
+      const start=Date.parse(range[1]),end=Date.parse(range[2]);
+      sentinelAllowed=match[1]===binding.source_sha&&Number.isFinite(start)&&Number.isFinite(end)
+        &&start<=end&&end-start<=24*60*60*1000&&end<=now();
+    }
+  }
+  check(allowed.some(pattern=>pattern.test(path))||sentinelAllowed,'ROUTE_NOT_ALLOWLISTED');
   const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/((?:[1-9]|[1-9][0-9]|100))\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
   if(run){
     const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id]
@@ -84,7 +97,7 @@ export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,arch
   const resumeAt=Date.parse(checkpoint.resume_at);
   check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at,'RESUME_TIME');
   check(checkpoint.unfinished_operation?.method==='GET','METHOD');
-  const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,b);
+  const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,b,now);
   return {packet,resumeAt,route:checkpoint.unfinished_operation.route,allowedRoute};
 }
 

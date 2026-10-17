@@ -43,7 +43,8 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     assert.equal(condition['token.actions.githubusercontent.com:aud'],'sts.amazonaws.com');
     assert.equal(condition['token.actions.githubusercontent.com:sub']['Fn::Sub'],`repo:${'${GitHubRepository}'}:environment:${'${' + envParam + '}'}:workflow_ref:${'${' + wfParam + '}'}`);
     const workflow=fs.readFileSync(`.github/workflows/${workflowFile}`,'utf8');
-    assert.ok(workflow.includes(`      - ${eventName}`));
+    if(prefix==='Track')assert.doesNotMatch(workflow,/^  repository_dispatch:/m);
+    else assert.ok(workflow.includes(`      - ${eventName}`));
     for(const other of roles.map(v=>v[5]).filter(v=>v!==eventName)) assert.equal(workflow.includes(`      - ${other}`),false);
     assert.ok(workflow.includes(`environment: ${template.Parameters[envParam].Default}`));
     refs.add(template.Parameters[wfParam].Default);
@@ -89,6 +90,8 @@ test('writer verifies KMS signatures and runner rejects caller-supplied workload
   assert.match(runner,/AUTONOMOUS_CALLER_WORKLOAD_FORBIDDEN/);
   assert.match(runner,/KIDULTS_AUTONOMOUS_WORKFLOW_REF/);
   assert.equal(runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'),false);
+  assert.match(runner,/AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED/);
+  assert.match(runner,/verification\?\.state!=='INDEPENDENT_CAPABILITY_VERIFIED'/);
 });
 
 test('finalizer reservation is a single-winner lease and followers exit without merge authority', () => {

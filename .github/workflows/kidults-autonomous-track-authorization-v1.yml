@@ -6,10 +6,6 @@ on:
     workflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1']
     types: [completed]
     branches: [main]
-  repository_dispatch:
-    types:
-      - kidults.authorization.generation.v1
-
 concurrency:
   group: kidults-autonomous-track-${{ github.event.client_payload.envelope.authorization_generation || github.run_id }}
   cancel-in-progress: false

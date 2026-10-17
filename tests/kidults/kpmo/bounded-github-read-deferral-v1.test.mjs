@@ -56,3 +56,22 @@ test('bounded resume admits the complete validated recovery checkpoint route set
       read:async()=>{throw deferred(cp);}}),/GITHUB_READ_DEFERRED/);
   }
 });
+
+test('bounded resume admits only source-SHA and time-bounded Sentinel discovery queries',async t=>{
+  const sourceSha=binding.source_sha;
+  const nowValue=Date.parse('2026-10-12T10:01:00.000Z');
+  const start='2026-10-11T10:00:00.000Z',end='2026-10-12T10:00:00.000Z';
+  const makeRoute=(sha,from,to)=>`actions/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml/runs?head_sha=${sha}&created=${encodeURIComponent(`${from}..${to}`)}&per_page=100&page=1`;
+  const valid=makeRoute(sourceSha,start,end);
+  const cp=checkpoint(nowValue);cp.unfinished_operation.route=`/repos/johnkim9524-collab/kaios_enterprise_repo/${valid}`;
+  await assert.rejects(readWithBoundedGithubDeferrals({route:valid,expectedBinding:binding,deadline:nowValue+10000,now:()=>nowValue,
+    read:async()=>{throw deferred(cp);}}),/GITHUB_READ_DEFERRED/);
+  for(const route of [makeRoute('b'.repeat(40),start,end),makeRoute(sourceSha,'2026-10-10T00:00:00.000Z',end),
+    makeRoute(sourceSha,start,'2026-10-12T10:02:00.000Z')]){
+    const invalid={...cp,unfinished_operation:{method:'GET',route:`/repos/johnkim9524-collab/kaios_enterprise_repo/${route}`}};
+    await t.test('rejects unbound or unbounded Sentinel query',async()=>{
+      await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:nowValue+10000,now:()=>nowValue,
+        read:async()=>{throw deferred(invalid);}}),/BOUNDED_GITHUB_READ_ROUTE/);
+    });
+  }
+});
