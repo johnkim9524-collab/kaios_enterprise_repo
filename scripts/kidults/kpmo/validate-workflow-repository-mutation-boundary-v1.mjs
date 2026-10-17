@@ -322,6 +322,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
           && section.includes("github.ref == 'refs/heads/main' && github.run_attempt == 1 &&")
           && section.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'")
           && section.includes("github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'"), 'recovery-success-exact-main');
+        require(section.includes('KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}')
+          && section.includes('KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}'), 'recovery-shared-budget-workload-binding');
       }
       if (name === 'terminal-recovery-finalizer') require(section.includes("needs.terminal-recovery-approval.outputs.recovery_needed == 'true'"), 'recovery-finalizer-exact-candidate');
     }

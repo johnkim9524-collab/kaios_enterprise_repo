@@ -13,8 +13,8 @@ const repoId='1281328888';
 const region='ap-northeast-2';
 const functionName='kidults-autonomous-ledger-writer-staging';
 const contract='kidults-shared-github-read-budget-v1';
-const roleByArn=/^arn:aws:sts::528314240275:assumed-role\/(kidults-autonomous-(track|kpmo|verifier)-staging-role)\/[^/]+$/;
-const roleName={track:'ACCOUNTABLE_TRACK_AGENT',kpmo:'KPMO',verifier:'INDEPENDENT_VERIFIER'};
+const roleByArn=/^arn:aws:sts::528314240275:assumed-role\/(kidults-autonomous-(track|kpmo|verifier)-staging-role|kidults-github-read-resume-staging-role)\/[^/]+$/;
+const roleName={'kidults-autonomous-track-staging-role':'ACCOUNTABLE_TRACK_AGENT','kidults-autonomous-kpmo-staging-role':'KPMO','kidults-autonomous-verifier-staging-role':'INDEPENDENT_VERIFIER','kidults-github-read-resume-staging-role':'READ_RESUME'};
 const canonical=x=>Array.isArray(x)?`[${x.map(canonical).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${canonical(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>createHash('sha256').update(canonical(x)).digest('hex');
 const defaultConfiguration=scope=>({scope,capacity:480,windowMs:3600000,maxConcurrent:2,leaseMs:30000});
@@ -29,10 +29,11 @@ export function createProtectedDynamoDbGithubReadBudgetStore({scope,configuratio
   check(caller?.Account==='528314240275','ACCOUNT');
   const match=roleByArn.exec(caller.Arn||'');
   check(match,'IDENTITY');
-  const role=roleName[match[2]];
-  const signingKeyArn=env.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN;
-  const workloadId=env.KIDULTS_AUTONOMOUS_WORKLOAD_ID;
-  const environment=`KIDULTS-AUTONOMOUS-${role==='ACCOUNTABLE_TRACK_AGENT'?'TRACK':role==='INDEPENDENT_VERIFIER'?'VERIFIER':'KPMO'}`;
+  const role=roleName[match[1]];
+  const readResume=role==='READ_RESUME';
+  const signingKeyArn=env[readResume?'KIDULTS_READ_RESUME_SIGNING_KEY_ARN':'KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN'];
+  const workloadId=env[readResume?'KIDULTS_READ_RESUME_WORKLOAD_ID':'KIDULTS_AUTONOMOUS_WORKLOAD_ID'];
+  const environment=readResume?'KIDULTS-AUTONOMOUS-READ-RESUME':`KIDULTS-AUTONOMOUS-${role==='ACCOUNTABLE_TRACK_AGENT'?'TRACK':role==='INDEPENDENT_VERIFIER'?'VERIFIER':'KPMO'}`;
   check(typeof signingKeyArn==='string'&&/^arn:aws:kms:ap-northeast-2:528314240275:key\/[A-Za-z0-9-]+$/.test(signingKeyArn),'SIGNING_KEY');
   check(typeof workloadId==='string'&&/^[A-Za-z0-9._:-]{1,160}$/.test(workloadId),'WORKLOAD_ID');
   const workflowRef=env.GITHUB_WORKFLOW_REF;
@@ -40,6 +41,7 @@ export function createProtectedDynamoDbGithubReadBudgetStore({scope,configuratio
   const runId=env.GITHUB_RUN_ID;
   const runAttempt=Number(env.GITHUB_RUN_ATTEMPT);
   check(typeof workflowRef==='string'&&workflowRef.startsWith(`${repo}/.github/workflows/`),'WORKFLOW_REF');
+  if(readResume)check(workflowRef===`${repo}/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main`,'WORKFLOW_ROLE_BINDING');
   check(typeof sourceSha==='string'&&/^[a-f0-9]{40}$/.test(sourceSha),'SOURCE_SHA');
   check(typeof runId==='string'&&/^[1-9][0-9]{0,15}$/.test(runId)&&Number.isSafeInteger(runAttempt)&&runAttempt>=1&&runAttempt<=100,'RUN_BINDING');
   const workload={workload_id:workloadId,signing_key_arn:signingKeyArn,environment};
@@ -55,7 +57,7 @@ export function createProtectedDynamoDbGithubReadBudgetStore({scope,configuratio
       fs.chmodSync(privateDir,0o700);
       const messagePath=path.join(privateDir,'message.bin');
       const outputPath=path.join(privateDir,'response.json');
-      fs.writeFileSync(messagePath,Buffer.from(digest(canonical(envelope)),'hex'),{flag:'wx',mode:0o600});
+      fs.writeFileSync(messagePath,Buffer.from(digest(envelope),'hex'),{flag:'wx',mode:0o600});
       const signature=JSON.parse(awsCall(['kms','sign','--key-id',signingKeyArn,'--message',`fileb://${messagePath}`,
         '--message-type','DIGEST','--signing-algorithm','ECDSA_SHA_256']));
       check(signature.KeyId===signingKeyArn&&signature.SigningAlgorithm==='ECDSA_SHA_256'

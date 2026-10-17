@@ -426,6 +426,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
           KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
+          KIDULTS_READ_RESUME_SIGNING_KEY_ARN: ${{ vars.KIDULTS_READ_RESUME_SIGNING_KEY_ARN }}
+          KIDULTS_READ_RESUME_WORKLOAD_ID: kidults-github-read-resume-v1
           KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
           KIDULTS_EXPECTED_MAIN_SHA: ${{ github.sha }}
           KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}

@@ -7,7 +7,7 @@ import re
 REPOSITORY = 'johnkim9524-collab/kaios_enterprise_repo'
 REPOSITORY_ID = '1281328888'
 CONTRACT = 'kidults-shared-github-read-budget-v1'
-ROLES = ('ACCOUNTABLE_TRACK_AGENT', 'KPMO', 'INDEPENDENT_VERIFIER')
+ROLES = ('ACCOUNTABLE_TRACK_AGENT', 'KPMO', 'INDEPENDENT_VERIFIER', 'READ_RESUME')
 HEX64 = re.compile(r'^[a-f0-9]{64}$')
 SHA = re.compile(r'^[a-f0-9]{40}$')
 RUN = re.compile(r'^[1-9][0-9]{0,15}$')
@@ -70,8 +70,8 @@ class Ledger:
         require(set(role_config) == set(ROLES), 'ROLE_CONFIG')
         require(all(set(role_config[role]) == {'workload_id', 'signing_key_arn', 'environment'}
                     and all(isinstance(v, str) and v for v in role_config[role].values()) for role in ROLES), 'WORKLOAD_CONFIG')
-        require(len({role_config[role]['signing_key_arn'] for role in ROLES}) == 3
-                and len({role_config[role]['workload_id'] for role in ROLES}) == 3, 'WORKLOAD_COLLISION')
+        require(len({role_config[role]['signing_key_arn'] for role in ROLES}) == len(ROLES)
+                and len({role_config[role]['workload_id'] for role in ROLES}) == len(ROLES), 'WORKLOAD_COLLISION')
         self.ddb, self.kms, self.table, self.roles = ddb, kms, table, role_config
 
     def handle(self, event):
@@ -99,7 +99,9 @@ class Ledger:
         require(isinstance(envelope.get('run_id'), str) and RUN.fullmatch(envelope['run_id'])
                 and type(envelope.get('run_attempt')) is int and 1 <= envelope['run_attempt'] <= 100
                 and isinstance(envelope.get('source_sha'), str) and SHA.fullmatch(envelope['source_sha'])
-                and isinstance(envelope.get('workflow_ref'), str) and envelope['workflow_ref'].startswith(REPOSITORY + '/.github/workflows/'), 'RUN_BINDING')
+                and isinstance(envelope.get('workflow_ref'), str)
+                and (envelope['workflow_ref'] == REPOSITORY + '/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main'
+                     if role == 'READ_RESUME' else envelope['workflow_ref'].startswith(REPOSITORY + '/.github/workflows/')), 'RUN_BINDING')
         scope = validate_scope(envelope.get('scope'))
         config_digest = validate_configuration(envelope.get('configuration'), scope)
         key = 'GITHUB_READ_BUDGET#' + digest(scope)

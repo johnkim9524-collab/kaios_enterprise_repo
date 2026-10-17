@@ -18,6 +18,7 @@ ROLES = {
     'ACCOUNTABLE_TRACK_AGENT': {'workload_id': 'track-workload', 'signing_key_arn': 'arn:aws:kms:ap-northeast-2:528314240275:key/track', 'environment': 'KIDULTS-AUTONOMOUS-TRACK'},
     'KPMO': {'workload_id': 'kpmo-workload', 'signing_key_arn': 'arn:aws:kms:ap-northeast-2:528314240275:key/kpmo', 'environment': 'KIDULTS-AUTONOMOUS-KPMO'},
     'INDEPENDENT_VERIFIER': {'workload_id': 'verifier-workload', 'signing_key_arn': 'arn:aws:kms:ap-northeast-2:528314240275:key/verifier', 'environment': 'KIDULTS-AUTONOMOUS-VERIFIER'},
+    'READ_RESUME': {'workload_id': 'read-resume-workload', 'signing_key_arn': 'arn:aws:kms:ap-northeast-2:528314240275:key/read-resume', 'environment': 'KIDULTS-AUTONOMOUS-READ-RESUME'},
 }
 
 
@@ -83,7 +84,12 @@ def event(role, action, **extra):
         'run_id': '123456',
         'run_attempt': 1,
         'source_sha': 'a' * 40,
-        'workflow_ref': REPOSITORY + '/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main',
+        'workflow_ref': REPOSITORY + '/' + {
+            'ACCOUNTABLE_TRACK_AGENT': '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+            'KPMO': '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+            'INDEPENDENT_VERIFIER': '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+            'READ_RESUME': '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+        }[role] + '@refs/heads/main',
         **extra,
     }
     return {'envelope': envelope, 'signature_b64': base64.b64encode(b'valid').decode()}
@@ -127,6 +133,13 @@ class SharedBudgetLedgerTests(unittest.TestCase):
                          ['COMMITTED', 'CONFLICT', 'COMMITTED'])
         self.assertEqual(len(self.ddb.rows), 1)
         self.assertEqual(len(self.kms.calls), 3)
+
+    def test_read_resume_has_a_dedicated_signer_and_shares_protected_budget(self):
+        result = self.ledger.handle(event('READ_RESUME', 'COMPARE_AND_SWAP',
+                                          expected_version=0, next=budget_row()))
+        self.assertEqual(result['state'], 'COMMITTED')
+        self.assertEqual(self.kms.calls[-1]['KeyId'], ROLES['READ_RESUME']['signing_key_arn'])
+        self.assertEqual(len(self.ddb.rows), 1)
 
     def test_signature_scope_and_row_corruption_fail_closed(self):
         bad_kms = FakeKms(valid=False)

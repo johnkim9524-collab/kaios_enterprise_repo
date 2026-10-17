@@ -47,7 +47,7 @@ const failureAssuranceCapsuleTemplate = () => {
 test('exact failure-Assurance capsule upgrades to original terminal repair with Code-only non-replacing change set',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
-    '9e70f04dd085a109216969bab92f53fc9501e36aca412f83832c74e4a86e6902');
+    '76624b55adabd56bfed719d5e7d250887302990560b540ae34c80c4ed9f0bdd3');
   const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
     ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
   withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{

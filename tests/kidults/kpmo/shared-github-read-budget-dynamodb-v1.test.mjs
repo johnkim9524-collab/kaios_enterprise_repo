@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import {createHash} from 'node:crypto';
 import {createProtectedDynamoDbGithubReadBudgetStore} from '../../../scripts/kidults/kpmo/lib/shared-github-read-budget-dynamodb-v1.mjs';
 import {createSharedGithubReadBudget} from '../../../scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs';
 
@@ -12,23 +13,31 @@ const configuration={scope,capacity:10,windowMs:3600000,maxConcurrent:2,leaseMs:
 const envFor=(role='kpmo')=>({
   KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN:`arn:aws:kms:ap-northeast-2:528314240275:key/${role}`,
   KIDULTS_AUTONOMOUS_WORKLOAD_ID:`${role}-workload`,
-  GITHUB_WORKFLOW_REF:`${repo}/.github/workflows/kidults-autonomous-${role==='verifier'?'independent-verification':role}-authorization-v1.yml@refs/heads/main`,
+  KIDULTS_READ_RESUME_SIGNING_KEY_ARN:'arn:aws:kms:ap-northeast-2:528314240275:key/read-resume',
+  KIDULTS_READ_RESUME_WORKLOAD_ID:'read-resume-workload',
+  GITHUB_WORKFLOW_REF:role==='read-resume'
+    ?`${repo}/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main`
+    :`${repo}/.github/workflows/kidults-autonomous-${role==='verifier'?'independent-verification':role}-authorization-v1.yml@refs/heads/main`,
   GITHUB_SHA:'b'.repeat(40),GITHUB_RUN_ID:'100',GITHUB_RUN_ATTEMPT:'1',
 });
-const identityFor=(role='kpmo')=>({Account:'528314240275',Arn:`arn:aws:sts::528314240275:assumed-role/kidults-autonomous-${role}-staging-role/run-1`});
+const identityFor=(role='kpmo')=>({Account:'528314240275',Arn:role==='read-resume'
+  ?'arn:aws:sts::528314240275:assumed-role/kidults-github-read-resume-staging-role/run-1'
+  :`arn:aws:sts::528314240275:assumed-role/kidults-autonomous-${role}-staging-role/run-1`});
 const canonical=x=>Array.isArray(x)?`[${x.map(canonical).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${canonical(x[k])}`).join(',')}}`:JSON.stringify(x);
 
 function fixture({backend,role='kpmo',caller=identityFor(role),ambiguousAfterWrite=false}={}){
   backend??={item:null,calls:[]};
   const calls=backend.calls;
+  let signedDigest;
   const tempRoot=fs.mkdtempSync(path.join(os.tmpdir(),'shared-read-budget-test-'));
   const aws=(bin,args)=>{
     assert.equal(bin,'aws');calls.push(args);
     const commandIndex=args.findIndex(value=>['kms','lambda','sts'].includes(value));
     const command=args.slice(commandIndex);
     if(command[0]==='kms'&&command[1]==='sign'){
-      assert.equal(args[args.indexOf('--key-id')+1],envFor(role).KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN);
-      assert.match(fs.readFileSync(args[args.indexOf('--message')+1].slice('fileb://'.length),'hex'),/./);
+      assert.equal(args[args.indexOf('--key-id')+1],envFor(role)[role==='read-resume'?'KIDULTS_READ_RESUME_SIGNING_KEY_ARN':'KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN']);
+      signedDigest=fs.readFileSync(args[args.indexOf('--message')+1].slice('fileb://'.length));
+      assert.equal(signedDigest.length,32);
       return JSON.stringify({KeyId:args[args.indexOf('--key-id')+1],SigningAlgorithm:'ECDSA_SHA_256',Signature:Buffer.from('signed').toString('base64')});
     }
     if(command[0]==='lambda'&&command[1]==='invoke'){
@@ -36,6 +45,7 @@ function fixture({backend,role='kpmo',caller=identityFor(role),ambiguousAfterWri
       const {envelope}=payload;
       assert.equal(envelope.contract,'kidults-shared-github-read-budget-v1');
       assert.equal(envelope.repository,repo);
+      assert.deepEqual(signedDigest,createHash('sha256').update(canonical(envelope)).digest());
       const physicalKey={pk:{S:`AUTH#${envelope.key}`},sk:{S:'V1'}};
       let response;
       if(envelope.action==='READ'){
@@ -92,12 +102,14 @@ test('adapter rejects unrelated AWS identities and quota owners; operations reje
   assert.throws(()=>f.makeStore('kpmo',{Account:'1',Arn:'arn:bad'}),/ACCOUNT/);
   assert.throws(()=>createProtectedDynamoDbGithubReadBudgetStore({scope:{...scope,quota_owner_id:'*'},identity:identityFor(),env:envFor()}),/SCOPE/);
   await assert.rejects(f.store.read('AUTH#anything'),/KEY/);
-  assert.throws(()=>f.makeStore('kpmo',{Account:'528314240275',Arn:'arn:aws:sts::528314240275:assumed-role/kidults-github-read-resume-staging-role/run-1'}),/IDENTITY/);
+  const resume=f.makeStore('read-resume');
+  assert.equal(resume.authority,'PROTECTED_ATOMIC_CAS');
+  assert.notEqual(resume.key,undefined);
 });
 
-test('Track, KPMO, and verifier runners consume one bounded shared budget row',async t=>{
+test('Track, KPMO, verifier, and read-resume runners consume one bounded shared budget row',async t=>{
   const backend={item:null,calls:[]};
-  const runners=['track','kpmo','verifier'].map((role,index)=>{
+  const runners=['track','kpmo','verifier','read-resume'].map((role,index)=>{
     const f=fixture({backend,role});
     return {f,budget:createSharedGithubReadBudget({store:f.store,scope,capacity:10,maxConcurrent:2,now:()=>100000})};
   });
@@ -106,7 +118,7 @@ test('Track, KPMO, and verifier runners consume one bounded shared budget row',a
     ...binding,operation_id:String(index+1).padStart(64,'0'),run_id:String(100+index),issued_at:100000,
   })));
   assert.equal(outcomes.filter(value=>value.fetch_allowed).length,2);
-  assert.equal(outcomes.filter(value=>value.state==='READ_BUDGET_DEFERRED').length,1);
+  assert.equal(outcomes.filter(value=>value.state==='READ_BUDGET_DEFERRED').length,2);
   assert.equal(new Set(runners.map(({f})=>f.store.key)).size,1);
   assert.equal(JSON.parse(backend.item.budget_json.S).spent,2);
   assert.equal(backend.item.pk.S,`AUTH#${runners[0].f.store.key}`);

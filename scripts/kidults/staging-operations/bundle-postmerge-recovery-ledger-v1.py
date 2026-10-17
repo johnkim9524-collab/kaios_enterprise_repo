@@ -37,6 +37,7 @@ def bundled(source):
     loader += "_r = {'__name__': 'bounded_postmerge_recovery'}\nexec(compile(_s['historical'], '<historical-recovery>', 'exec'), _r)\n"
     loader += "_i = {'__name__': 'interrupted_reservation_recovery'}\nexec(compile(_s['interrupted'], '<interrupted-recovery>', 'exec'), _i)\n"
     loader += "_b = {'__name__': 'shared_github_read_budget'}\nexec(compile(_s['shared_budget'], '<shared-budget>', 'exec'), _b)\n"
+    loader += "_role_config = {role: {'workload_id': ROLE_WORKLOAD_IDS[role], 'signing_key_arn': ROLE_KEYS[role], 'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS}\n"
     return loader + '''
 _o = handler
 
@@ -45,18 +46,17 @@ def handler(event, context):
         raise ValueError('EVENT_INVALID')
     envelope = event.get('envelope')
     if isinstance(envelope, dict) and envelope.get('contract') == 'kidults-shared-github-read-budget-v1':
+        shared_role_config = {**_role_config, 'READ_RESUME': {'workload_id': 'kidults-github-read-resume-v1',
+            'signing_key_arn': os.environ['READ_RESUME_SIGNING_KEY_ARN'], 'environment': 'KIDULTS-AUTONOMOUS-READ-RESUME'}}
         ledger = _b['Ledger'](
-            ddb=ddb, kms=kms, table=TABLE,
-            role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role],
-                                'signing_key_arn': ROLE_KEYS[role],
-                                'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+            ddb=ddb, kms=kms, table=TABLE, role_config=shared_role_config,
         )
         return {'ok': True, **ledger.handle(event)}
     if envelope is None:
         if event.get('action') == 'READ_ORIGINAL_CONSUMED_TERMINAL' or (event.get('action') == 'CONSUME_RESERVATION' and 'terminal' in event):
             ledger = _i['InterruptedReservationRecoveryLedger'](
                 ddb=ddb, kms=kms, table=TABLE,
-                role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role], 'signing_key_arn': ROLE_KEYS[role], 'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+                role_config=_role_config,
                 finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID, 'signing_key_arn': FINALIZER_SIGNING_KEY, 'environment': FINALIZER_ENVIRONMENT},
                 receipt_bucket=os.environ['RECEIPT_BUCKET'], receipt_key_arn=os.environ['RECEIPT_KEY_ARN'])
             return ledger.consume_original_terminal(event)
@@ -94,9 +94,7 @@ def handler(event, context):
     if interrupted_method is not None:
         ledger = _i['InterruptedReservationRecoveryLedger'](
             ddb=ddb, kms=kms, table=TABLE,
-            role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role],
-                              'signing_key_arn': ROLE_KEYS[role],
-                              'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+            role_config=_role_config,
             finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID,
                               'signing_key_arn': FINALIZER_SIGNING_KEY,
                               'environment': FINALIZER_ENVIRONMENT},
@@ -109,9 +107,7 @@ def handler(event, context):
         raise ValueError('RECOVERY_ACTION_FORBIDDEN')
     ledger = _r['RecoveryLedger'](
         ddb=ddb, kms=kms, table=TABLE,
-        role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role],
-                          'signing_key_arn': ROLE_KEYS[role],
-                          'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+        role_config=_role_config,
         finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID,
                           'signing_key_arn': FINALIZER_SIGNING_KEY,
                           'environment': FINALIZER_ENVIRONMENT},

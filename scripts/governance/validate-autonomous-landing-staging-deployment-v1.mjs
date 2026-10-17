@@ -29,6 +29,13 @@ const LEDGER_DECRYPT_STATEMENT = {
   Action: ['kms:Decrypt'],
   Resource: {'Fn::GetAtt': ['AutonomousLedgerKey', 'Arn']},
 };
+const READ_RESUME_SIGNER_KEY = {'Fn::ImportValue':'kidults-read-resume-shared-budget-signing-key-arn-v1'};
+const withoutReadResumeSignerGrant = template => {
+  const statements=template?.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
+  const verify=statements?.find(statement=>Array.isArray(statement.Action)&&statement.Action.length===1&&statement.Action[0]==='kms:Verify');
+  if(Array.isArray(verify?.Resource))verify.Resource=verify.Resource.filter(resource=>!equal(resource,READ_RESUME_SIGNER_KEY));
+  return template;
+};
 
 const expectedLegacyWriterZipFromDesired = desiredZip => {
   const reserveBlock = "\ndef reserve_once(item):\n    try:\n        ddb.put_item(\n            TableName=TABLE,\n            Item=item,\n            ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)',\n            ReturnValuesOnConditionCheckFailure='ALL_OLD'\n        )\n        return {'state': 'RESERVED', 'owner_run_id': item['run_id']['S']}\n    except ClientError as error:\n        if error.response.get('Error', {}).get('Code') != 'ConditionalCheckFailedException':\n            raise\n        prior = error.response.get('Item') or {}\n        owner_run_id = prior.get('run_id', {}).get('S', '')\n        prior_head_sha = prior.get('head_sha', {}).get('S', '')\n        prior_state = prior.get('state', {}).get('S', '')\n        if prior_state != 'RESERVED' or prior_head_sha != item['head_sha']['S'] or not RUN_ID.fullmatch(owner_run_id):\n            raise ValueError('RESERVATION_CONFLICT_INVALID')\n        return {'state': 'ALREADY_RESERVED', 'owner_run_id': owner_run_id}\n";
@@ -54,7 +61,7 @@ const FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256 = 'd160ab65af2967635f75b637c5d5582
 const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef0252cd33964917a0da27a88b55899aaa3f4';
 const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = 'bfedf411f22495145d4fab1d9889b9a1059993d59458b2173955795a4181b104';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
-const SHARED_BUDGET_WRITER_SHA256 = '9e70f04dd085a109216969bab92f53fc9501e36aca412f83832c74e4a86e6902';
+const SHARED_BUDGET_WRITER_SHA256 = '76624b55adabd56bfed719d5e7d250887302990560b540ae34c80c4ed9f0bdd3';
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactSharedBudgetWriterUpgrade=(before,after)=>
@@ -70,6 +77,7 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
     const expected=structuredClone(from);
     expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
     expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
+    expected.Properties.Environment.Variables.READ_RESUME_SIGNING_KEY_ARN=READ_RESUME_SIGNER_KEY;
     return equal(expected,to);
   }
   if(typeof source==='string'&&[DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,CURRENT_RECOVERY_CAPSULE_WRITER_SHA256].includes(sha256Hex(source))
@@ -114,6 +122,8 @@ const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
     {input:JSON.stringify(source),encoding:'utf8',timeout:10000,maxBuffer:262144,stdio:['pipe','pipe','pipe']}));
   expected.Properties.Environment.Variables.RECEIPT_KEY_ARN={'Fn::GetAtt':['AutonomousReceiptKey','Arn']};
   expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
+  if(sha256Hex(targetZip)===SHARED_BUDGET_WRITER_SHA256)
+    expected.Properties.Environment.Variables.READ_RESUME_SIGNING_KEY_ARN=READ_RESUME_SIGNER_KEY;
   if(isExactConsumptionTupleCodeUpgrade(expected.Properties.Code.ZipFile,to?.Properties?.Code?.ZipFile||''))
     expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
   return equal(expected,to);
@@ -188,10 +198,27 @@ function assertDesiredBoundary(desired) {
   const writerKmsActions = writerStatements.flatMap(statement =>
     (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).filter(Boolean).filter(action => String(action).startsWith('kms:')));
   assert.deepEqual(writerKmsActions.sort(), ['kms:Decrypt','kms:Verify'].sort(), 'WRITER_KMS_ACTION_BOUNDARY_INVALID');
+  const verify=writerStatements.find(statement=>Array.isArray(statement.Action)&&statement.Action.length===1&&statement.Action[0]==='kms:Verify');
+  const signerResources=verify?.Resource?.filter?.(resource=>!equal(resource,READ_RESUME_SIGNER_KEY));
+  assert.ok(equal(signerResources,[
+    {'Fn::GetAtt':['TrackApprovalSigningKey','Arn']},
+    {'Fn::GetAtt':['KpmoApprovalSigningKey','Arn']},
+    {'Fn::GetAtt':['VerifierApprovalSigningKey','Arn']},
+    {'Fn::GetAtt':['FinalizerSigningKey','Arn']},
+  ]),'WRITER_SIGNER_KEYS_INVALID');
+  assert.ok((verify?.Resource?.filter?.(resource=>equal(resource,READ_RESUME_SIGNER_KEY)).length||0)<=1,
+    'READ_RESUME_SIGNER_KEY_DUPLICATE');
+  const writerCode=desired?.Resources?.[WRITER_FUNCTION_ID]?.Properties?.Code?.ZipFile;
+  if(typeof writerCode==='string'&&sha256Hex(writerCode)===SHARED_BUDGET_WRITER_SHA256){
+    assert.equal(verify.Resource.filter(resource=>equal(resource,READ_RESUME_SIGNER_KEY)).length,1,'READ_RESUME_SIGNER_KEY_VERIFY_REQUIRED');
+    assert.ok(equal(desired.Resources[WRITER_FUNCTION_ID].Properties.Environment.Variables.READ_RESUME_SIGNING_KEY_ARN,
+      READ_RESUME_SIGNER_KEY),'READ_RESUME_SIGNER_KEY_ENVIRONMENT_BINDING_INVALID');
+  }
 }
 
 function withoutBoundedRead(template) {
   const copy = structuredClone(template);
+  withoutReadResumeSignerGrant(copy);
   for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement;
     copy.Resources[logicalId].Properties.Policies[0].PolicyDocument.Statement =
@@ -257,6 +284,7 @@ function normalizeAllowedRecoveryState(template, desired) {
   const writerStatements = copy.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   const desiredWriterStatements = desired.Resources?.[WRITER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   assert.ok(Array.isArray(writerStatements) && Array.isArray(desiredWriterStatements), 'CURRENT_WRITER_ROLE_POLICY_STATEMENTS_INVALID');
+  withoutReadResumeSignerGrant(copy);
   const currentDdb = writerStatements.find(statement => Array.isArray(statement.Action) && statement.Action.includes('dynamodb:PutItem'));
   const desiredDdb = desiredWriterStatements.find(statement => Array.isArray(statement.Action) && statement.Action.includes('dynamodb:PutItem'));
   if (isExactWriterGetItemUpgrade(currentDdb, desiredDdb)) currentDdb.Action = [...desiredDdb.Action];
