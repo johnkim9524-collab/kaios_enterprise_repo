@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e39c19985e265f3dae9b3f62b02d155e1c141639",
+  "revision": "24c1b4e93bbc0a05e768870c1f6f1ad8b20d7d54",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3383,8 +3383,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9f3d0656c8cc5dde25431598994c9fd06fec2fa7",
-      "sha256": "sha256:5e75f22b19b0d8607a43e453df3543dddeac52195f22ad5527a691c723617577"
+      "git_blob": "31d61a5ffdbd324c69d204d3fd9ce657c0c49b6c",
+      "sha256": "sha256:0160b9dbe6afbb5c04474a97031b4af8985b229b1d48a7f73e6e945f77d7176c"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -4609,8 +4609,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/shared_github_read_budget_ledger_v1.py",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "db51ee406ac604c7e2cc0ed9b5417501aa4ac216",
-      "sha256": "sha256:29b06cfe9b4a5a6e6f108b9d69f5b1771bc8eb01847db37d26133f81d178d15e",
+      "git_blob": "f9efc738dcb19a1eae447d1ec63aa9c5df836817",
+      "sha256": "sha256:f946982b980f080ac59eeb3a6eea79b7ac9e3a41099423c434789f287d505105",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:64deec6f5400dc3319aabeadb5b37c6a40a290a8b4931669dd661c30b4024c4b"
+  "manifest_sha256": "sha256:568932b0828876e21ed31626504ec6021cf470e22c31bd4f10d6a764189629a9"
 }
