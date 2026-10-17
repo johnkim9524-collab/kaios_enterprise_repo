@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "e4eaa790646053328c4d022ce44b8d4efd76de40",
+  "revision": "f731f037af7abd3de228ac1a32fcf81151987df9",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -509,8 +509,8 @@
     {
       "path": ".github/workflows/kidults-governed-landing-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c39bd4ceea78eae701d398c990b0d502b4862090",
-      "sha256": "sha256:47cb76af285f9aa3944048fc18c0f086ca80d2d88793f148e0000eaf5fd0c409",
+      "git_blob": "f7fb495896582b2aa89ba4c639c9637987f3a691",
+      "sha256": "sha256:2fe4c4ed952f0545ab2fed53d78c2509da5b93dd48701e95699bc6929548edb5",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -5053,8 +5053,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-governed-landing-coverage-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e86620a9e7b2542c8db7d99b7bbdd3127b6ad70b",
-      "sha256": "sha256:42a8cfeb1eceb5c1886d2a57b6f3fc970838b6bcaa8f67c66bb824964ef1802c",
+      "git_blob": "53fbb7cf79936f1e05a36d5f9249b8815d9f2e45",
+      "sha256": "sha256:51f576358c829c5fb177c7f260179d04e9bc382fc3844b7089636c6c827087bc",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6772,8 +6772,8 @@
     {
       "path": "tests/kidults/kpmo/draft-development-status-separation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "03e642c20fae4f26eb0c980124f936f0fe4c11a2",
-      "sha256": "sha256:4bb2b27688562ce316670773f39440ec88831f6486d8f4569ec8f6c297da2b0d"
+      "git_blob": "e86894f32f57651d42a645d12b9a99fed9cb4f56",
+      "sha256": "sha256:c389612367bf5a09b2d4bb5d7e2687ec630da6e25c15de2d5394738e686017f9"
     },
     {
       "path": "tests/kidults/kpmo/durable-canonical-ledger-canary-v1.test.mjs",
@@ -7184,5 +7184,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6f8586ddbdce837554ec04f257bddec79d0173318d277411e0b93c04a6b2cc46"
+  "manifest_sha256": "sha256:d514dee0a05b5b6be966021d0c961fd558ba26f50b1e19ab8e52337f9406a280"
 }
