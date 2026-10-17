@@ -587,9 +587,9 @@ const matchesExactPoolingReadTransport=(file,files)=>{
   });
 };
 const recoveryAdmissionWorkflowDigests=Object.freeze({
-  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:6e0efb72bfa0ccd572d4d35acc12805f09af76e10ef3028a0e525e5d2c74a80f'],
-  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:09302a7bab951fdcfeffd9e0707d63112c0be446cb83cde109f2ec1189068071'],
-  '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:3ea3160c074c7f8ae44b332d61701b80ed3b8ed799a082617996f27877354a62'],
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:f1672f7f119aedd3ae8c35825e73415597e016a0ab7afc71d401b1d37d9555ee'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:6be3c2b4a792997114e944509b1830b8f66c72ad4c263b8d3eede14c2f01bdb0'],
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc'],
 });
 const recoveryAdmissionSourceDigests=Object.freeze({
   'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:188f31ac6f91314a344478fa8b2b878d24d0f488a38999ce46cdb5c0367a1ef9'],

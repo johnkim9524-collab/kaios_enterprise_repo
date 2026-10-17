@@ -3,7 +3,7 @@ run-name: >-
   ${{ github.event_name == 'repository_dispatch' && github.event.action == 'kidults.github.read.resume.v1' &&
       format('KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/{0}', github.run_id) ||
       (github.event_name == 'workflow_run' &&
-      contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1","KIDULTS Platform Continuous Assurance V1"]'), github.event.workflow_run.name) &&
+      contains(fromJSON('["KIDULTS Platform Continuous Assurance V1"]'), github.event.workflow_run.name) &&
       format('KIDULTS_AUTH_OBSERVER/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id)) ||
       format('KIDULTS_SENTINEL/{0}', github.run_id) }}
 
@@ -11,14 +11,11 @@ on:
   repository_dispatch:
     types: [kidults.natural.clock.sentinel.v1, kidults.github.read.resume.v1]
   # Coverage success is the only authoritative Sentinel health event.
-  # Authorization workflow_run events use the bounded read-resume observer and
-  # receive an explicit non-authoritative run name for downstream selection.
+  # Assurance failure checkpoints are observed here. Failed role workflows use
+  # the separate terminal read-resume observer to avoid an auth-to-gate cycle.
   workflow_run:
     workflows:
       - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'
-      - 'KIDULTS Autonomous Track Authorization V1'
-      - 'KIDULTS Autonomous KPMO Authorization V1'
-      - 'KIDULTS Autonomous Independent Verification V1'
       - 'KIDULTS Platform Continuous Assurance V1'
     branches: [main]
     types: [completed]
@@ -382,7 +379,7 @@ jobs:
        github.event.workflow_run.head_branch == 'main' &&
        github.event.workflow_run.status == 'completed' &&
        github.event.workflow_run.conclusion == 'failure' &&
-       contains(fromJSON('["KIDULTS Autonomous Track Authorization V1","KIDULTS Autonomous KPMO Authorization V1","KIDULTS Autonomous Independent Verification V1","KIDULTS Platform Continuous Assurance V1"]'), github.event.workflow_run.name)) ||
+       github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1') ||
       (github.event_name == 'repository_dispatch' && github.event.action == 'kidults.github.read.resume.v1')
     runs-on: ubuntu-24.04
     timeout-minutes: 20

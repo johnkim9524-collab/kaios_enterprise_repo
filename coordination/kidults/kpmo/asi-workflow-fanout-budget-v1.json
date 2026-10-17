@@ -3,7 +3,7 @@
   "version": "1.5.0",
   "governing_owner": "KPMO",
   "state": "IMPLEMENTED_VERIFIED_LOCAL_REMOTE_ACTIVATION_HOLD",
-  "purpose": "Prevent repository-state validators from multiplying workflow_run executions without consuming an exact upstream artifact or receipt, while accounting for a strictly read-only terminal Assurance observer separately from execution fan-out.",
+  "purpose": "Prevent workflow_run execution from multiplying without exact upstream evidence; count inline and block YAML producers, and bound Assurance control fan-out and role read-resume observation explicitly.",
   "static_validators": [
     {
       "workflow": "KIDULTS ASI Source Adapter Wave 2 v1",
@@ -38,8 +38,8 @@
   ],
   "static_validator_concurrency": "EVENT_NAME_PLUS_EXACT_SOURCE_SHA",
   "budgets": {
-    "workflow_run_consumers_max": 16,
-    "execution_workflow_run_edges_max": 29,
+    "workflow_run_consumers_max": 26,
+    "execution_workflow_run_edges_max": 36,
     "control_observer_edges_max": 20,
     "direct_consumers_per_producer_max": 2,
     "workflow_run_chain_depth_max": 8,
@@ -74,7 +74,7 @@
       "KPMO Live Canonical Issue Truth V1",
       "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1"
     ],
-    "terminal_observer_only": true,
+    "terminal_observer_only": false,
     "repository_mutation_allowed": false,
     "canonical_success_guard": {
       "identity_contract": "coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json",
@@ -105,7 +105,15 @@
       "durable_runtime_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
       "canonical_execution_claimed": false
     },
-    "reason": "Continuous Assurance is a read-only terminal observer. SHADOW, Requirement Coverage, Sharded Reserve, and live canonical issue truth are explicitly included so failed, cancelled, waiting, missing, ambiguously-artifacted, or stale-truth producers cannot coexist with an estate-wide ASI-green interpretation."
+    "reason": "Continuous Assurance is a read-only control observer with an exact downstream allowlist. Role-failure read-resume observation is isolated in a terminal workflow so authorization runs cannot feed back through Sentinel into the authority gate. Its upstream producer set still detects failed, cancelled, waiting, missing, ambiguous, or stale evidence before estate-wide ASI-green interpretation.",
+    "allowed_downstream_consumers": [
+      "KIDULTS Autonomous Independent Verification V1",
+      "KIDULTS Autonomous KPMO Authorization V1",
+      "KIDULTS Autonomous Track Authorization V1",
+      "KPMO Continuous Assurance Scheduled Authority Gate V1",
+      "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "KPMO Continuous Assurance Success Authority Gate V1"
+    ]
   },
   "critical_static_producers_watched_by_continuous_assurance": [
     "KIDULTS ASI Source Adapter Wave 2 v1",
@@ -126,5 +134,37 @@
   "autonomous_effect": "POSITIVE: removes redundant event cascades while retaining scheduled and change-driven verification.",
   "global_effect": "POSITIVE: establishes a repository-wide bounded workflow_run topology.",
   "irreplaceable_value_effect": "POSITIVE: preserves exact upstream lineage only where a consumer actually depends on it.",
-  "transparency_effect": "POSITIVE: publishes measurable graph, fan-out, depth, cycle and observability limits."
+  "transparency_effect": "POSITIVE: publishes measurable graph, fan-out, depth, cycle and observability limits.",
+  "direct_consumer_overrides": {
+    "KIDULTS ASI Global Any-Site Hourly Pooling v2": {
+      "max": 3,
+      "required_consumer": "KIDULTS ASI Sharded Source Reserve v1",
+      "allowed_consumers": [
+        "KIDULTS ASI Hourly v2 Promotion Readiness v1",
+        "KIDULTS ASI Mission Consumption v1",
+        "KIDULTS ASI Sharded Source Reserve v1"
+      ]
+    },
+    "KPMO Continuous Assurance Success Authority Gate V1": {
+      "max": 3,
+      "required_consumer": "KIDULTS Autonomous KPMO Authorization V1",
+      "allowed_consumers": [
+        "KIDULTS Autonomous Independent Verification V1",
+        "KIDULTS Autonomous KPMO Authorization V1",
+        "KIDULTS Autonomous Track Authorization V1"
+      ]
+    },
+    "KIDULTS Platform Continuous Assurance V1": {
+      "max": 6,
+      "required_consumer": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "allowed_consumers": [
+        "KIDULTS Autonomous Independent Verification V1",
+        "KIDULTS Autonomous KPMO Authorization V1",
+        "KIDULTS Autonomous Track Authorization V1",
+        "KPMO Continuous Assurance Scheduled Authority Gate V1",
+        "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+        "KPMO Continuous Assurance Success Authority Gate V1"
+      ]
+    }
+  }
 }
