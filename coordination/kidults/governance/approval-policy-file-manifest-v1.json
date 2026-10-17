@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "f731f037af7abd3de228ac1a32fcf81151987df9",
+  "revision": "64bee0e00acf342642db0a06757f1372aa701f86",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3985,8 +3985,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "bb1038ed2cd3ba8f2cd56859ee81bbeea149ce66",
-      "sha256": "sha256:65e527691faf698d497ab690328972f7ff46fa137e95d2bc075da29faafec2fc",
+      "git_blob": "69e60e55e503119f9075176192d1aeed18cc9222",
+      "sha256": "sha256:3a633ffa3877683ec71e07f1d3f6c6112cbeaf585d2e54db2f7da95e69577585",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7018,8 +7018,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6f0c0a92682ed72da15081bacab90035b334385a",
-      "sha256": "sha256:f30f610419414d9e99e810144ffd3e7517f1886e6255050b43a8da0db8fad669"
+      "git_blob": "5e2bc1a07ec29396105dbef0d27626d7f044c2c4",
+      "sha256": "sha256:f809f5bac5db5c9f33b3bb658bbe67fd93734235fc98c89de2cca2239d11a126"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -7114,8 +7114,8 @@
     {
       "path": "tests/kidults/staging-operations/exact-scope-owner-decision-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "872bb6e3e114f7c6f1f5d0ba047dda483aa661d8",
-      "sha256": "sha256:e6ab72632f55aab5259d50eb35510437a8d5a0b45d5ee4be7c72c405c12c0c7d"
+      "git_blob": "9559f22fe0d8ffa9978346857d5d761239eeaa14",
+      "sha256": "sha256:565f88c87b68029100ff8d6a6fc9cfba070bc9ff4c838626e2c7c0fe39cb9097"
     },
     {
       "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-deployed-recovery-capsule.json",
@@ -7184,5 +7184,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d514dee0a05b5b6be966021d0c961fd558ba26f50b1e19ab8e52337f9406a280"
+  "manifest_sha256": "sha256:cf3d0f5c3600a9046760dbf67f2ba91f5d82acab9c2b51bdfeef3f3ad6fa5800"
 }
