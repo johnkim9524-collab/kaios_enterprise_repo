@@ -155,7 +155,8 @@
     "permissions:[ ]*(write-all|admin)",
     "^[ \\t]*(repository_dispatch|pull_request_target):",
     "^[ \\t]*(run|uses):.*(curl|wget|gh api|aws |gcloud |az |terraform|kubectl|http://|https://)",
-    "--admin-bypass"
+    "--admin-bypass",
+    "^[ \\t]*force:[ ]*true([ \\t]*#.*)?$"
   ],
   "scope_classification": {
     "path_alone_makes_internal_work_owner_reserved": false,
