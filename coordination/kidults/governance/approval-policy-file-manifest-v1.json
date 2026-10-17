@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "988a131ba6066d64c60633e4415bc2ceb5114f64",
+  "revision": "e39c19985e265f3dae9b3f62b02d155e1c141639",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 856
+    "file_count": 857
   },
   "files": [
     {
@@ -3402,8 +3402,8 @@
     {
       "path": "infrastructure/aws/staging/github-read-resume-role-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "294f330e17ff2439eb64abec660dfa26524104cc",
-      "sha256": "sha256:331eed0c034641e9f741dfb1ebd1efcc24fe799c9065bef4208d09f354a18d49",
+      "git_blob": "f0b12343cd3c67fdd2db7495164b50df244ea29a",
+      "sha256": "sha256:5ed26a95a84cc490ccdbbdd1e9394c45be2d3ab56fe9cdcf7fbae9bd5f4a2b90",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -4583,8 +4583,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/shared-github-read-budget-dynamodb-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f548a49b0e5b36318c67b2d73e1fa358ff42998c",
-      "sha256": "sha256:5819526e635817c02c52d36b6715ce674b937701f34406df50500afb740e6369",
+      "git_blob": "df27e1ba78d6a52db66198f7717d6793b3254822",
+      "sha256": "sha256:a9d7bd2d1e0777c0fc644e823c59a075ce3f539104aa833c1b837c2199360c89",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -4609,8 +4609,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/shared_github_read_budget_ledger_v1.py",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "efe78d9c39f6de818a12173e61ac49946602046e",
-      "sha256": "sha256:1c2e29b91ffc92169610d14cc840d519dcffaeb1846d949f6b39651f95ddb233",
+      "git_blob": "db51ee406ac604c7e2cc0ed9b5417501aa4ac216",
+      "sha256": "sha256:29b06cfe9b4a5a6e6f108b9d69f5b1771bc8eb01847db37d26133f81d178d15e",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6972,8 +6972,8 @@
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "b0d5ef3efcb982dd4ba3db0b24801d8abbc805f8",
-      "sha256": "sha256:0c7045ca2ffd1651af0d6ba29dfb3cd9337f1a401532489637372e996ca519b9"
+      "git_blob": "17a38a873f2b6395ed71789b361fabf303d47bf2",
+      "sha256": "sha256:20982cbeeb0a3cd3eaee1e1c9fd5deb0fef4023bfef4d77d56546044ee83ee8f"
     },
     {
       "path": "tests/kidults/kpmo/test_atomic_original_terminal_v1.py",
@@ -6990,8 +6990,8 @@
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "16616ffcfe40d02d6483056ca777e32273ec7a97",
-      "sha256": "sha256:ce65d0fac6a2499970b433ec25316d9b5dc417069337d6024c1964cb4c7aef8b"
+      "git_blob": "7c85c7e4b65e802fd20320c91dafd16255b27696",
+      "sha256": "sha256:ef0b189fe2c50f725edaaa1ecb2ec8cdeded3457a501fe8e3447af681a94ee6a"
     },
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
@@ -7014,14 +7014,14 @@
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "81a6c6588b0c1a574852c09b67d857fb0b3ed9c9",
-      "sha256": "sha256:20c3bc26c66bf583c8ab82e07cf788c3811ea4c0490f1741a09b563bf97b2c4c"
+      "git_blob": "9921cee894a4c6c3c0277da199118ecc5738be0f",
+      "sha256": "sha256:fe4cdfbef49ee403ac501cbae5c70ab90db4be8a59cbbe3802e7a60908206cea"
     },
     {
       "path": "tests/kidults/kpmo/test_shared_github_read_budget_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "36144a9688ada52239d68da90dd594cdc8ed047d",
-      "sha256": "sha256:1396d226cf4b4b1d11280b838ab2d670e2ca89ea595fcb0e91ab5f60982ab8ff"
+      "git_blob": "5a3098e1eb04fab1441202d443ea594c3a1f9429",
+      "sha256": "sha256:374a24bb45e1871a6bdf775ecd9e33cc103b6d59515930b6fab1f6a00c88d04c"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -7162,6 +7162,12 @@
       "sha256": "sha256:76df807960f40ba04e4d287b44a852e0b649bd33d4edcaafb067e93ac17c4b92"
     },
     {
+      "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "e7958679e87da2bcb29b4f19f0097b02fee933ce",
+      "sha256": "sha256:9922b4fbdd1d9fbfbdcb4036fb095b11800f3b9d78f7d86c415ddf3789be2841"
+    },
+    {
       "path": "tests/kidults/staging-operations/independent-handoff-run-name-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "2b6abd62538488c65798e2f700514d92d1b37f77",
@@ -7210,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:39ae425a4ad62159b5558f1bcbf579e36d8a5e29618ef877eeb39573e1e552e9"
+  "manifest_sha256": "sha256:64deec6f5400dc3319aabeadb5b37c6a40a290a8b4931669dd661c30b4024c4b"
 }
