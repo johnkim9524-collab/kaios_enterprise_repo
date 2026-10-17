@@ -166,6 +166,10 @@ assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:'invalid',treeSha:input.t
   error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
 assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
   error:new CapabilityDeltaError('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
+for (const terminalPr of [{...pr,state:'closed'},{...pr,merged:true}]) {
+  assert.throws(()=>buildOwnerReviewRequired({pr:terminalPr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
+    error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
+}
 const e=classifyCandidate(input);assert.match(e.authorization_generation,/^pr-42-b{20}-[0-9a-f]{16}$/);assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
 const sameRunEnvelope=classifyCandidate({...input,now:new Date('2026-09-24T12:00:01Z')});
 assert.equal(sameRunEnvelope.authorization_generation,e.authorization_generation);
@@ -313,6 +317,7 @@ assert.doesNotMatch(dispatcherWorkflow,/transition_draft/);
 assert.doesNotMatch(dispatcherWorkflow,/assertDraftReadyTransitionCandidate|assertDraftReadyPostMutation/);
 assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready GitHub App token|DRAFT_READY_TOKEN_STEP_OUTCOME/);
 assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
+assert.match(governedWorkflow,/jobs:\s*\n\s+governed-landing-authorization:\s*\n\s+name: KIDULTS Governed Landing Authorization V1/);
 assert.match(governedWorkflow,/state:'READY_OPERATION_AUTHORITY_PENDING'[\s\S]*exact_base_sha:base/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
@@ -582,7 +587,51 @@ test('many stale reserved candidates get bound Owner review without blob reads',
     &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
     &&r.autonomous_eligible===false&&r.merge_authorized===false));
 });
-test('current reserved backlog gets bound Owner review without status, checks, or blob reads',async()=>{
+test('an exact targeted owner-reserved PR produces a bound Owner-review record only',async()=>{
+  let calls=0;
+  const reservedPr={...pr,number:2670};
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2670,policy,generationSeed:'1',maxRequests:16,
+    fetchImpl:async url=>{
+      calls++;const p=new URL(url).pathname;
+      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+      if(p.endsWith('/pulls/2670'))return fakeResponse(200,reservedPr);
+      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(p.endsWith(`/git/commits/${reservedPr.head.sha}`))return fakeResponse(200,{sha:reservedPr.head.sha,tree:{sha:sha('c')}});
+      throw new Error('owner-reserved targeted review must not read checks, contents, or unrelated candidates');
+    }});
+  assert.equal(calls,6);
+  assert.equal(results.length,1);
+  const review=results[0];
+  assert.equal(review.state,'OWNER_REVIEW_REQUIRED');
+  assert.equal(review.reason,'DISPATCH_OWNER_RESERVED_ACTION');
+  assert.equal(review.binding.pull_request,2670);
+  assert.equal(review.binding.head_sha,reservedPr.head.sha);
+  assert.equal(review.binding.head_tree_sha,sha('c'));
+  assert.deepEqual(review.binding.changed_paths,['secrets/private.json']);
+  assert.equal(review.autonomous_eligible,false);
+  assert.equal(review.landing_authorization_created,false);
+  assert.equal(review.merge_authorized,false);
+  assert.equal(review.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
+  assert.equal(review.classification_failure.authority_created,false);
+});
+test('an exact targeted closed or merged owner-reserved PR cannot emit a handoff',async()=>{
+  for (const terminalPr of [{...pr,number:2670,state:'closed'},{...pr,number:2670,merged:true}]) {
+    const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2670,policy,generationSeed:'1',maxRequests:16,
+      fetchImpl:async url=>{
+        const p=new URL(url).pathname;
+        if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+        if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+        if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+        if(p.endsWith('/pulls/2670'))return fakeResponse(200,terminalPr);
+        if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\\n-old\\n+new'}]);
+        throw new Error('terminal PR must not produce an Owner handoff');
+      }});
+    assert.deepEqual(results,[{state:'SKIPPED',pull_request:2670,reason:'DISPATCH_PR_NOT_OPEN'}]);
+  }
+});
+test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
   let calls=0;
   const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));
   const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:256,

@@ -162,14 +162,15 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
-  if(!pr||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||pr.state!=='open'||pr.merged===true||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
   const scopeDigest=sha256(changedPaths.join('\n'));
   return {
     state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,
       changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
-      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON'
+        :error.code==='DISPATCH_OWNER_RESERVED_ACTION'?'OWNER_RESERVED_SCOPE_GATE':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
       base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
@@ -440,11 +441,12 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   }
   const fileRecordsFor=pr=>filePlans.has(pr.number)?filePlans.get(pr.number):pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
   const results=[];
-  for(const pr of prs){let candidateContext=null;try{
+  for(const pr of prs){let candidateContext=null,candidateFilesForReview=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
     const quarantine=quarantinedOperation(pr,operationQuarantine);
     if(quarantine){results.push(quarantine);continue;}
     const completeFileRecords=await fileRecordsFor(pr);
+    candidateFilesForReview=completeFileRecords;
     if (!completeFileRecords.length) {
       const [headCommit,mainCommit]=await Promise.all([
         immutableCommit(repository,pr.head.sha,token),immutableCommit(repository,mainSha,token)]);
@@ -497,6 +499,20 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
     results.push({state:'ELIGIBLE',envelope:candidate});
   }catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
+    // Keep bulk/scheduled scans path-only and bounded. For the exact PR
+    // named by a protected workflow_run or recovery input, resolve only the
+    // commit tree needed by the existing Owner-review binding. This records
+    // the denial for Owner review; it never admits the PR to quorum or grants
+    // landing authority.
+    if(prNumber===Number(pr.number)&&(pr.state!=='open'||pr.merged===true)){
+      results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_PR_NOT_OPEN'});continue;
+    }
+    if(!candidateContext&&prNumber===Number(pr.number)&&error?.code==='DISPATCH_OWNER_RESERVED_ACTION'
+      &&Array.isArray(candidateFilesForReview)&&candidateFilesForReview.length){
+      const headCommit=await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token);
+      if(headCommit.sha!==pr.head.sha||!SHA.test(String(headCommit.tree?.sha)))fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
+      candidateContext={pr,mainSha,treeSha:headCommit.tree.sha,files:candidateFilesForReview};
+    }
     if(candidateContext&&isUnknownClassification(error)) {
       const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
         readCandidate:async()=>{

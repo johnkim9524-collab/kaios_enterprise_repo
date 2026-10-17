@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   governed-landing-authorization:
-    name: Evaluate governed landing readiness
+    name: KIDULTS Governed Landing Authorization V1
     if: github.event.pull_request.base.ref == 'main'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
