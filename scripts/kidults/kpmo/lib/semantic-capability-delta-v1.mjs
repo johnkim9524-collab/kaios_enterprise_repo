@@ -521,10 +521,13 @@ const matchesExactAi020VerifierProfileRefresh=(before,after,files)=>{
   const ai020Path='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
   const ownerPaths=left.owner_reserved_exact_paths;
   const ai020Files=files.filter(file=>file.filename===ai020Path);
+  const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
   if(!Array.isArray(ownerPaths)||ownerPaths.filter(path=>path===ai020Path).length!==1
     ||right.owner_reserved_exact_paths?.includes(ai020Path)||ai020Files.length!==1||ai020Files[0].status!=='modified'
+    ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
     ||!matchesBoundedAi020Recovery(ai020Files[0].base_content,ai020Files[0].head_content))return false;
   const oldPolicy=structuredClone(left),newPolicy=structuredClone(right);delete oldPolicy.immutable_source_read_profile;delete newPolicy.immutable_source_read_profile;
+  newPolicy.version=oldPolicy.version;
   oldPolicy.owner_reserved_exact_paths=oldPolicy.owner_reserved_exact_paths.filter(path=>path!==ai020Path);
   if(JSON.stringify(oldPolicy)!==JSON.stringify(newPolicy))return false;
   const changed=Object.keys(a.source_sha256).filter(path=>a.source_sha256[path]!==b.source_sha256[path]).sort();
