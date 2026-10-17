@@ -557,11 +557,11 @@ try {
   } else {
     const quorumDeadline=Date.now()+Number(policy.bounded_recovery?.finalizer_quorum_wait_seconds||90)*1000;
     let approvals=readApprovals();
-    let missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+    let missing=['KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
     while(missing.length && Date.now()<quorumDeadline){
       await sleep(3000);
       approvals=readApprovals();
-      missing=['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
+      missing=['KPMO','INDEPENDENT_VERIFIER'].filter(value=>!approvals[value]);
     }
     if (missing.length) {
       const waiting = {
@@ -576,7 +576,7 @@ try {
       writeReceipt(waiting);
       console.log(JSON.stringify(waiting));
     } else {
-      const quorum=validateQuorum({track:approvals.ACCOUNTABLE_TRACK_AGENT,kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
+      const quorum=validateQuorum({kpmo:approvals.KPMO,verifier:approvals.INDEPENDENT_VERIFIER,registry,policy});
       envelope=approvals.KPMO;
       const finalizerRunId=required('GITHUB_RUN_ID');
       assertFinalizerElection({policy,workflow:required('GITHUB_WORKFLOW')});

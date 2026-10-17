@@ -54,7 +54,6 @@
   "state_model": [
     "SCOPE_GRANTED",
     "KPMO_AUTHORIZED",
-    "TRACK_AUTHORIZED",
     "INDEPENDENT_VERIFIED",
     "LANDING_RESERVED",
     "MERGED_EVENT_EMITTED",
@@ -70,9 +69,8 @@
     "OWNER_HOLD"
   ],
   "approval_quorum": {
-    "minimum": 2,
+    "minimum": 1,
     "required_roles": [
-      "ACCOUNTABLE_TRACK_AGENT",
       "KPMO"
     ],
     "manual_independent_review_required": false,
@@ -108,7 +106,7 @@
     "NO_OWNER_RESERVED_ACTION",
     "REQUIRED_CHECKS_GREEN",
     "HEAD_TREE_SCOPE_STABLE",
-    "TRACK_AND_KPMO_QUORUM",
+    "KPMO_AUTHORIZATION",
     "AUTOMATED_MACHINE_VERIFIER_PASS",
     "DURABLE_NONCE_RESERVATION_PASS"
   ],
@@ -367,13 +365,12 @@
       "writer_policy_rejection_retry": false,
       "persistent_writer_failure": "FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL",
       "requires_exact_head": true,
-      "requires_three_role_quorum": true,
+      "requires_kpmo_and_machine_verifier": true,
       "production": "HOLD",
       "public": "HOLD",
       "g5": "HOLD",
-      "election_mode": "ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM",
+      "election_mode": "ORIGINAL_RESERVATION_CAS_AFTER_KPMO_AND_MACHINE_VERIFICATION",
       "allowed_workflows": [
-        "KIDULTS Autonomous Track Authorization V1",
         "KIDULTS Autonomous KPMO Authorization V1",
         "KIDULTS Autonomous Independent Verification V1"
       ],

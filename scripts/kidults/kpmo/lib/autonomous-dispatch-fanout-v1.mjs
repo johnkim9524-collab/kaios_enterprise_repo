@@ -4,7 +4,6 @@ import {canonicalJson, sha256} from './canonical-json-v1.mjs';
 
 export const DISPATCH_EVENT_TYPE = 'kidults.authorization.generation.v1';
 export const DISPATCH_ROLES = Object.freeze([
-  'ACCOUNTABLE_TRACK_AGENT',
   'KPMO',
   'INDEPENDENT_VERIFIER',
 ]);

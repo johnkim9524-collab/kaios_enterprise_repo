@@ -45,8 +45,8 @@ test('local exception does not weaken global bootstrap, readiness, or AI-020 Own
   assert.equal(ai020.id,'AI-020');
   assert.equal(ai020.binding.drift_invalidates,true);
   assert.equal(ai020.binding.single_consumption_required,true);
-  assert.deepEqual(ai020.approval_quorum.roles,['ACCOUNTABLE_TRACK_AGENT','KPMO']);
-  assert.equal(ai020.approval_quorum.minimum,2);
+  assert.deepEqual(ai020.approval_quorum.roles,['KPMO']);
+  assert.equal(ai020.approval_quorum.minimum,1);
   assert.equal(ai020.approval_quorum.distinct_identities_required,true);
   assert.equal(ai020.approval_quorum.distinct_workflow_refs_required,true);
   assert.equal(ai020.approval_quorum.distinct_signing_keys_required,true);

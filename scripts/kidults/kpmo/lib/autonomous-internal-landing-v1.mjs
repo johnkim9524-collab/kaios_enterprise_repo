@@ -76,7 +76,7 @@ export function selectExactScopeOwnerDecision({comments,repository,repositoryId,
       ||fields.scope_digest!==binding.scope_digest) continue;
     const scopeLine=body.split(/\r?\n/).find(line=>/^(결정 범위|Decision scope):/i.test(line.trim()))||'';
     const lines=body.split(/\r?\n/).map(line=>line.trim());
-    const quorumBound=/Track Agent.*KPMO.*Independent Verifier/i.test(scopeLine)
+    const quorumBound=/KPMO.*(?:automated|machine).*verifi/i.test(scopeLine)
       &&/(quorum|quorum|승인)/i.test(scopeLine)&&/(Ready|병합|merge)/i.test(scopeLine);
     const holds=[['Production','Production'],['Public','Public'],['G5','G5']].every(([en,ko])=>
       lines.some(line=>new RegExp(`^(?:${en}|${ko}):\\s*HOLD$`,'i').test(line)))
@@ -99,7 +99,7 @@ export function selectExactScopeOwnerDecision({comments,repository,repositoryId,
     changed_path_count:binding.changed_path_count,scope_digest:binding.scope_digest,
     comment_id:Number(selected.comment.id),comment_body_digest:sha256(selected.body),comment_created_at:selected.comment.created_at,
     actor_login:repositoryOwner,actor_id:String(repositoryOwnerId),ready_merge_only_after_all_role_quorum:true,
-    quorum_roles:['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'],
+    quorum_roles:['KPMO','INDEPENDENT_VERIFIER'],
     production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',deployment:'HOLD',
     authority_created:false,landing_authorization_created:false,merge_authorized:false};
   return proof;
@@ -111,7 +111,7 @@ export function assertExactScopeOwnerDecision(proof,{repository,repositoryId,pul
     repository,pull_request:binding.pull_request,repository_id:binding.repository_id,base_sha:binding.base_sha,
     head_sha:binding.head_sha,head_tree_sha:binding.head_tree_sha,changed_paths:binding.changed_paths,
     changed_path_count:binding.changed_path_count,scope_digest:binding.scope_digest,
-    ready_merge_only_after_all_role_quorum:true,quorum_roles:['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER'],
+    ready_merge_only_after_all_role_quorum:true,quorum_roles:['KPMO','INDEPENDENT_VERIFIER'],
     authority_created:false,landing_authorization_created:false,merge_authorized:false};
   if(!proof||Object.entries(expected).some(([key,value])=>canonicalJson(proof[key])!==canonicalJson(value))
     ||!Number.isSafeInteger(proof.comment_id)||proof.comment_id<1||!/^sha256:[0-9a-f]{64}$/.test(String(proof.comment_body_digest||''))
@@ -239,7 +239,7 @@ export function validateWorkload(workload, registry, expectedRole) {
 }
 
 export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = [], headSha = envelope?.head_sha}) {
-  if (!ROLE.has(role) || role === 'FINALIZER') fail('AUTONOMOUS_DECISION_ROLE_INVALID');
+  if (!new Set(['KPMO','INDEPENDENT_VERIFIER']).has(role)) fail('AUTONOMOUS_DECISION_ROLE_INVALID');
   if (!SHA.test(String(headSha || ''))) fail('AUTONOMOUS_DECISION_HEAD_SHA_INVALID');
   if (!Array.isArray(statuses) || !Array.isArray(checks) || (!statuses.length && !checks.length)) fail('AUTONOMOUS_DECISION_EVIDENCE_MISSING');
   if (!Array.isArray(requiredContexts) || !requiredContexts.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_SET_EMPTY');
@@ -347,8 +347,8 @@ export function validateEnvelope(envelope, {policy, now = Date.now()} = {}) {
   return {...envelope, changed_paths:[...paths].sort()};
 }
 
-export function validateQuorum({track, kpmo, verifier, registry, policy, now = Date.now()}) {
-  const envelopes = [track, kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
+export function validateQuorum({kpmo, verifier, registry, policy, now = Date.now()}) {
+  const envelopes = [kpmo, verifier].map(value => validateEnvelope(value, {policy, now}));
   for (const field of ['dispatch_id','dispatch_idempotency_key']) {
     if (!envelopes.every(value=>DIGEST.test(String(value[field])))) fail('AUTONOMOUS_DISPATCH_BINDING_REQUIRED',field);
   }
@@ -362,7 +362,6 @@ export function validateQuorum({track, kpmo, verifier, registry, policy, now = D
     fail('AUTONOMOUS_QUORUM_BINDING_MISMATCH','owner_decision');
   if (new Set(envelopes.map(value => value.workload?.workflow_sha)).size !== 1) fail('AUTONOMOUS_WORKLOAD_SHA_QUORUM_MISMATCH');
   const identities = [
-    validateWorkload(track.workload, registry, 'ACCOUNTABLE_TRACK_AGENT'),
     validateWorkload(kpmo.workload, registry, 'KPMO'),
     validateWorkload(verifier.workload, registry, 'INDEPENDENT_VERIFIER'),
   ];
@@ -371,7 +370,7 @@ export function validateQuorum({track, kpmo, verifier, registry, policy, now = D
   if (new Set(envelopes.map(value => value.workload?.workflow_ref)).size !== identities.length) fail('AUTONOMOUS_WORKFLOW_REF_SEPARATION_FAILED');
   if (new Set(envelopes.map(value => value.workload?.environment)).size !== identities.length) fail('AUTONOMOUS_ENVIRONMENT_SEPARATION_FAILED');
   if (verifier.verification_state !== 'VERIFIED_PASS') fail('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASS');
-  for (const [role,value] of [['ACCOUNTABLE_TRACK_AGENT',track],['KPMO',kpmo],['INDEPENDENT_VERIFIER',verifier]]) {
+  for (const [role,value] of [['KPMO',kpmo],['INDEPENDENT_VERIFIER',verifier]]) {
     const core=value.decision && Object.fromEntries(Object.entries(value.decision).filter(([key])=>key!=='decision_digest'));
     if (!core || value.decision.role!==role || value.decision.decision_digest!==sha256(canonicalJson(core))) fail('AUTONOMOUS_DERIVED_DECISION_INVALID',role);
     if (value.test_evidence?.source!=='GITHUB_LIVE_REQUIRED_CHECKS' || value.rollback_plan?.source!=='GITHUB_LIVE_EXACT_BINDING') fail('AUTONOMOUS_CALLER_ASSERTION_NOT_REPLACED',role);

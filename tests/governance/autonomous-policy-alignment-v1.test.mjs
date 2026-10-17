@@ -128,6 +128,7 @@ test('AI-020 forbids routine Owner orchestration and human independent review',(
   assert.equal(governed.review_policy.manual_independent_review_required_for_ai_020_eligible_work,false);
   assert.equal(governed.approval_generation_policy.scope,'OWNER_RESERVED_OR_LEGACY_OWNER_COMMENT_GENERATION_ONLY');
   assert.equal(governed.approval_generation_policy.delegated_machine_quorum_exempt,true);
+  assert.equal(governed.approval_generation_policy.delegated_machine_quorum_authority,'KPMO_APPROVAL_PLUS_DISTINCT_AUTOMATED_MACHINE_VERIFICATION');
   assert.equal(governed.approval_generation_policy.delegated_finalizer_draft_ready_transition_invalidates_quorum,false);
   assert.equal(governed.approval_generation_policy.delegated_routine_owner_comment_required,false);
   const envelope=read('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json');
@@ -235,7 +236,7 @@ test('trust roots and external-effect surfaces remain Owner-reserved',()=>{
   ]) assert.throws(()=>assertAutonomousFileScope({files:[{filename,patch:'@@ -1 +1 @@'}],policy:landing}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
 });
 
-test('AI-020 bounded unknown-classification recovery uses Track/KPMO and independent verification',()=>{
+test('AI-020 bounded unknown-classification recovery uses KPMO authorization and independent machine verification',()=>{
   const filename='coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json';
   const base=structuredClone(delegated);
   base.version='1.4.0';
@@ -246,7 +247,7 @@ test('AI-020 bounded unknown-classification recovery uses Track/KPMO and indepen
   assert.throws(()=>assertAutonomousFileScope({files:[file],policy:landing}),/OWNER_RESERVED_ACTION/);
   assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/OWNER_DECISION_REQUIRED/);
   assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/OWNER_DECISION_REQUIRED/);
-  const scope=sha256(filename),commentBody=`AI-020 Program Owner decision — PR #2676\nRepository ID: 1281328888\nPR: 2676\nBase SHA: ${'a'.repeat(40)}\nHead SHA: ${'b'.repeat(40)}\nHead tree SHA: ${'c'.repeat(40)}\nChanged paths: 1\nChanged paths SHA-256: ${scope}\nDecision: APPROVE_EXACT_SCOPE\nDecision scope: Track Agent, KPMO, and Independent Verifier quorum required for Ready and merge\nProduction: HOLD\nPublic: HOLD\nG5: HOLD\nProvider activation: HOLD\nSTAGING deployment: HOLD`;
+  const scope=sha256(filename),commentBody=`AI-020 Program Owner decision — PR #2676\nRepository ID: 1281328888\nPR: 2676\nBase SHA: ${'a'.repeat(40)}\nHead SHA: ${'b'.repeat(40)}\nHead tree SHA: ${'c'.repeat(40)}\nChanged paths: 1\nChanged paths SHA-256: ${scope}\nDecision: APPROVE_EXACT_SCOPE\nDecision scope: KPMO approval and separate automated machine verifier quorum required for Ready and merge\nProduction: HOLD\nPublic: HOLD\nG5: HOLD\nProvider activation: HOLD\nSTAGING deployment: HOLD`;
   const ownerDecision=selectExactScopeOwnerDecision({comments:[{id:2676001,body:commentBody,created_at:'2026-10-17T00:00:00Z',updated_at:'2026-10-17T00:00:00Z',author_association:'OWNER',user:{login:'johnkim9524-collab',id:297161720}}],
     repository:'johnkim9524-collab/kaios_enterprise_repo',repositoryId:'1281328888',repositoryOwner:'johnkim9524-collab',repositoryOwnerId:'297161720',
     pullRequest:2676,baseSha:'a'.repeat(40),headSha:'b'.repeat(40),treeSha:'c'.repeat(40),changedPaths:[filename]});

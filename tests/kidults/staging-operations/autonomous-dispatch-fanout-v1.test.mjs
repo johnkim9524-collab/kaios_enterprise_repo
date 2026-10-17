@@ -25,7 +25,7 @@ const envelope = pullRequest => ({
   nonce_digest:`sha256:${'2'.repeat(64)}`,
 });
 
-test('initial receipt exists before token mint and binds one common event to all roles', () => {
+test('initial receipt exists before token mint and binds one common event only to KPMO and machine verifier', () => {
   const built=buildDispatchRequest({envelope:envelope(41),runId:'1001',runAttempt:1,now:'2026-09-30T09:00:00.000Z'});
   assert.equal(built.receipt.state,'DISPATCH_REQUESTED');
   assert.equal(built.request.event_type,'kidults.authorization.generation.v1');

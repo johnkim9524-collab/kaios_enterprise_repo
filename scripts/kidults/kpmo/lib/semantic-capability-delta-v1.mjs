@@ -630,7 +630,7 @@ const ownerApprovedQuorumScope=(ownerDecision,files)=>{
     &&ownerDecision.state==='OWNER_APPROVED_QUORUM_ONLY'
     &&Array.isArray(ownerDecision.changed_paths)&&JSON.stringify(ownerDecision.changed_paths)===JSON.stringify(paths)
     &&ownerDecision.scope_digest===digest(paths.join('\n'))
-    &&ownerDecision.quorum_roles?.join('|')==='ACCOUNTABLE_TRACK_AGENT|KPMO|INDEPENDENT_VERIFIER'
+    &&ownerDecision.quorum_roles?.join('|')==='KPMO|INDEPENDENT_VERIFIER'
     &&ownerDecision.authority_created===false&&ownerDecision.landing_authorization_created===false&&ownerDecision.merge_authorized===false
     &&ownerDecision.production==='HOLD'&&ownerDecision.public==='HOLD'&&ownerDecision.g5==='HOLD'
     &&ownerDecision.provider_activation==='HOLD'&&ownerDecision.deployment==='HOLD'

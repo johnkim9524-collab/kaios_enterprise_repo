@@ -8,9 +8,8 @@
   "accountability_transfer": false,
   "approval_policy_envelope": "kidults-autonomous-approval-policy-envelope-v1",
   "approval_quorum": {
-    "minimum": 2,
+    "minimum": 1,
     "roles": [
-      "ACCOUNTABLE_TRACK_AGENT",
       "KPMO"
     ],
     "distinct_identities_required": true,

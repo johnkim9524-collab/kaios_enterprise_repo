@@ -25,7 +25,7 @@ Head tree SHA: ${sha('c')}
 
 결정: APPROVE_EXACT_SCOPE
 
-결정 범위: 이 exact PR head의 PR 범위에 한함. 해당 head의 필수 검증과 Track Agent, KPMO, Independent Verifier의 exact-head quorum이 모두 성공하면 Ready 전환 및 병합을 허용합니다.
+Decision scope: KPMO approval and separate automated machine verifier quorum required for Ready and merge.
 
 Production: HOLD
 Public: HOLD
@@ -42,7 +42,7 @@ test('exact current Owner decision creates quorum-only proof bound to complete s
   const proof=selectExactScopeOwnerDecision(input);
   assert.equal(proof.state,'OWNER_APPROVED_QUORUM_ONLY');
   assert.deepEqual(proof.changed_paths,[...paths].sort());
-  assert.deepEqual(proof.quorum_roles,['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER']);
+  assert.deepEqual(proof.quorum_roles,['KPMO','INDEPENDENT_VERIFIER']);
   assert.equal(proof.authority_created,false);assert.equal(proof.landing_authorization_created,false);
   assert.equal(proof.merge_authorized,false);assert.equal(proof.deployment,'HOLD');
   assert.equal(assertExactScopeOwnerDecision(proof,input),proof);
@@ -55,8 +55,8 @@ test('stale head, scope, actor, edited comment, missing quorum terms, or missing
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,user:{...comment.user,login:'not-owner'}}]}),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,author_association:'CONTRIBUTOR'}]}),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,updated_at:'2026-10-15T10:01:00Z'}]}),null);
-  assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Independent Verifier','Reviewer')}]}),null);
-  assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Track Agent, KPMO, Independent Verifier','Independent Verifier')}] }),null);
+  assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('automated machine verifier','manual Reviewer')}]}),null);
+  assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('KPMO approval and separate automated machine verifier','Track approval')}]}),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Production: HOLD','Production: ENABLED')}]}),null);
 });
 

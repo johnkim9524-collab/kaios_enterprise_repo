@@ -10,10 +10,10 @@ const policy=JSON.parse(fs.readFileSync(path.join(root,"coordination/kidults/gov
 const approvalPolicy=JSON.parse(fs.readFileSync(path.join(root,"coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"),"utf8"));
 function fixture(){
  const issued=new Date(Date.now()-1000).toISOString(), approved=new Date().toISOString(), expires=new Date(Date.now()+600000).toISOString();
- return {id:"kidults-delegated-autonomous-authority-receipt-v1",version:"1.0.0",state:"AUTHORIZED",authorization_id:"DAIA-2283-"+"b".repeat(12),repository:"johnkim9524-collab/kaios_enterprise_repo",base_sha:"a".repeat(40),head_sha:"b".repeat(40),head_tree_sha:"c".repeat(40),scope_digest:"sha256:"+"d".repeat(64),action:"BUG_FIX",track_approval:{agent_id:"TRACK-A-01",role:"ACCOUNTABLE_TRACK_AGENT",decision:"APPROVE",approved_at:approved},kpmo_approval:{agent_id:"KPMO-01",role:"KPMO",decision:"APPROVE",approved_at:approved},tests:["regression","negative"],rollback:{strategy:"revert exact head",verified:true},issued_at:issued,expires_at:expires,nonce_digest:"sha256:"+"e".repeat(64),production:"HOLD",public:"HOLD",g5:"HOLD"};
+ return {id:"kidults-delegated-autonomous-authority-receipt-v1",version:"1.0.0",state:"AUTHORIZED",authorization_id:"DAIA-2283-"+"b".repeat(12),repository:"johnkim9524-collab/kaios_enterprise_repo",base_sha:"a".repeat(40),head_sha:"b".repeat(40),head_tree_sha:"c".repeat(40),scope_digest:"sha256:"+"d".repeat(64),action:"BUG_FIX",kpmo_approval:{agent_id:"KPMO-01",role:"KPMO",decision:"APPROVE",approved_at:approved},tests:["regression","negative"],rollback:{strategy:"revert exact head",verified:true},issued_at:issued,expires_at:expires,nonce_digest:"sha256:"+"e".repeat(64),production:"HOLD",public:"HOLD",g5:"HOLD"};
 }
 function run(mutator,env={}){const dir=fs.mkdtempSync(path.join(os.tmpdir(),"ai020-")),r=fixture();if(mutator)mutator(r);const file=path.join(dir,"receipt.json");fs.writeFileSync(file,JSON.stringify(r));return spawnSync(process.execPath,[validator,"--receipt="+file],{cwd:root,encoding:"utf8",env:{...process.env,...env}})}
-test("valid distinct Track and KPMO approval passes",()=>assert.equal(run().status,0));
+test("valid KPMO approval passes",()=>assert.equal(run().status,0));
 test("unknown classification is reclassified before Owner escalation and agrees with dispatcher policy",()=>{
  const rule=policy.classification_recovery,unknown=approvalPolicy.classes.UNKNOWN;
  assert.equal(policy.unknown_or_conflict,undefined);
@@ -26,7 +26,7 @@ test("unknown classification is reclassified before Owner escalation and agrees 
  assert.equal(unknown.owner_escalation_only_after_unresolved_reclassification,rule.owner_escalation_for_unknown_only_after_unresolved_reclassification);
 });
 for(const [name,mutate] of [
- ["same identity",r=>r.kpmo_approval.agent_id=r.track_approval.agent_id],
+ ["agent approval rejected",r=>r.track_approval={agent_id:"TRACK-A-01",role:"ACCOUNTABLE_TRACK_AGENT",decision:"APPROVE",approved_at:r.kpmo_approval.approved_at}],
  ["owner reserved",r=>r.action="PRODUCTION"],
  ["production hold weakened",r=>r.production="GO"],
  ["missing tests",r=>r.tests=[]],

@@ -61,7 +61,7 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
   assert.equal(refs.size,3);
 });
 
-test('finalizer trusts the three role workflows and the isolated canary, with no direct ledger writes', () => {
+test('finalizer trusts KPMO and machine-verifier workflows plus isolated canary, with no direct ledger writes', () => {
   const role=template.Resources.FinalizerRole.Properties;
   const condition=role.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
   assert.deepEqual(Object.keys(condition).sort(),['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
@@ -103,8 +103,8 @@ test('finalizer reservation is a single-winner lease and followers exit without 
 
 test('normal-ops finalization is quorum-and-reservation elected, writer-bound, and bounded', () => {
   const recovery=landingPolicy.bounded_recovery.normal_ops_finalizer;
-  assert.equal(recovery.election_mode,'ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM');
-  assert.equal(recovery.allowed_workflows.length,3);
+  assert.equal(recovery.election_mode,'ORIGINAL_RESERVATION_CAS_AFTER_KPMO_AND_MACHINE_VERIFICATION');
+  assert.equal(recovery.allowed_workflows.length,2);
   assert.equal(recovery.losing_finalizer_behavior,'SUCCESSFUL_NON_MERGING_RESERVATION_FOLLOWER');
   assert.equal(recovery.writer_policy_rejection_retry,false);
   assert.equal(recovery.persistent_writer_failure,'FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL');
