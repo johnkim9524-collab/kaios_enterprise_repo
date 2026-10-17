@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "8f5f51365c2e7e204e0ccb381a698b212f8b6a8c",
+  "revision": "3e9fd2bfdf3b08ecc3076346136cb073b0c75efe",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3339,8 +3339,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-resume-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "97e1a4344898a7b29560258a35cdc96df2be437b",
-      "sha256": "sha256:ec9009ddc1f037d60f02abcf3f7ff6d77cfaff2479507d8d67c8a43c8f0c8361"
+      "git_blob": "df08a6cec96d7ab4edd24f99821274071ef4a237",
+      "sha256": "sha256:c75a8a7eaab5a287452b6de128fb28236fda93e2bb29113e130bcc7b3b4f639d"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs",
@@ -3351,8 +3351,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-event-token-broker-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f2c3d15f5570614f43cba7a6dc66c262bdf046ab",
-      "sha256": "sha256:d09294b2d3a849ee9d4ae52adab72dedfa76f573bef28f470c3569248fe0b5ef"
+      "git_blob": "53a38650c38c29e2b7ab132e769836855e69094b",
+      "sha256": "sha256:ef1e088b7c34fa40426b72ce26c4fac183004d39a4a6a2bcecd26eeab254751a"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
@@ -7024,8 +7024,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "651d0287bd2715ea6cd3e150ca095d885a7c9449",
-      "sha256": "sha256:7744e9c89182b1342846651b850c17c293e2099d0484ddd93481a28dd944e229"
+      "git_blob": "685ff204889cdd8fe0a6d2eb5e343e336b85a514",
+      "sha256": "sha256:426948072212613c3c56bca8a8906c3d9589f715058cc97cfe283af91f39b75d"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-finalizer-election-v1.test.mjs",
@@ -7096,8 +7096,8 @@
     {
       "path": "tests/kidults/staging-operations/broker-resume-dispatch-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "700817b4f53d736e442de0df3799e91e68cc3d24",
-      "sha256": "sha256:1dc874c132cd0eac0f3ae8e82adbd4245464a3995e75481d79fab22d058a7a57"
+      "git_blob": "1f5d670f26a660ea2e2c93b064c3624c14023dd3",
+      "sha256": "sha256:b4a7960629c911e3c314053c4d420bc2b6ea60927b9bc2f709417586fbbac8f8"
     },
     {
       "path": "tests/kidults/staging-operations/broker-resume-lifecycle-v1.test.mjs",
@@ -7184,5 +7184,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7719f92f20e31904f2bd5f198fe11ddd370ce0223bca67c175d31e1262179797"
+  "manifest_sha256": "sha256:19c390c1600e4c2345174846ad39792f9d5bd6a005ad029e1ae1c91864fdb937"
 }
