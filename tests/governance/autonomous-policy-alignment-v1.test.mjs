@@ -82,7 +82,6 @@ const landing=read('coordination/kidults/governance/autonomous-internal-landing-
 const governed=read('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json');
 
 test('exact read-only recovery admission and staging-budget workflow transitions are pinned in both verifiers',()=>{
-  const base='550a8570a9820d54991cc21ec9e6152a173b361c';
   const workflowPaths=[
     '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
     '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
@@ -92,15 +91,25 @@ test('exact read-only recovery admission and staging-budget workflow transitions
     'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs',
     'scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs',
   ];
-  const files=[...workflowPaths.map(filename=>({filename,status:'modified',
-    base_content:execFileSync('git',['show',`${base}:${filename}`],{encoding:'utf8'}),
-    head_content:fs.readFileSync(filename,'utf8')})),
+  const baselineHashes={
+    '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':'sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc',
+    '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':'sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041',
+    '.github/workflows/kidults-autonomous-track-authorization-v1.yml':'sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921',
+    '.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml':'sha256:86c56b0494692474bee8a9b8f693ca2afe44529f6cdc01526d83e21d6c03e5cd',
+    '.github/workflows/kidults-platform-continuous-assurance-v1.yml':'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
+  };
+  const pinnedBaseContent=filename=>{
+    const base_content=fs.readFileSync(`tests/fixtures/governance/autonomous-policy-alignment-v1/base/${filename.split('/').at(-1)}`,'utf8');
+    assert.equal(sha256(base_content),baselineHashes[filename],`baseline fixture changed: ${filename}`);
+    return base_content;
+  };
+  const files=[...workflowPaths.map(filename=>({filename,status:'modified',base_content:pinnedBaseContent(filename),head_content:fs.readFileSync(filename,'utf8')})),
   ...addedPaths.map(filename=>({filename,status:'added',base_content:'',head_content:fs.readFileSync(filename,'utf8')})),
   {filename:'.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml',status:'modified',
-    base_content:execFileSync('git',['show',`${base}:.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml`],{encoding:'utf8'}),
+    base_content:pinnedBaseContent('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'),
     head_content:fs.readFileSync('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml','utf8')},
   {filename:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',status:'modified',
-    base_content:execFileSync('git',['show',`${base}:.github/workflows/kidults-platform-continuous-assurance-v1.yml`],{encoding:'utf8'}),
+    base_content:pinnedBaseContent('.github/workflows/kidults-platform-continuous-assurance-v1.yml'),
     head_content:fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8')}];
   assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
