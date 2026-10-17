@@ -30,6 +30,7 @@ const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
     event: 'kidults.authorization.generation.v1',
     environment: 'KIDULTS-AUTONOMOUS-TRACK',
     budgetRole: 'track',
+    retiredDispatchRole: true,
     recoveryWorkflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1'],
   }],
   [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), {
@@ -246,8 +247,7 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
   const findings = [];
   const recoveryRunner = read(POSTMERGE_RECOVERY_RUNNER);
   const require = (condition, id) => { if (!condition) findings.push(`autonomous-landing-${id}`); };
-  for (const fragment of [
-    'repository_dispatch:',
+  const workflowMarkers=[
     expected.event,
     'group: kidults-autonomous-',
     'cancel-in-progress: false',
@@ -271,14 +271,19 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_TABLE',
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
     'KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON',
-  ]) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  ];
+  if(!expected.retiredDispatchRole)workflowMarkers.push('repository_dispatch:');
+  for (const fragment of workflowMarkers) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  if(expected.retiredDispatchRole)require(!/^  repository_dispatch:/m.test(workflow),'track-dispatch-retired');
   for (const other of ['kidults.track.authorization.v1','kidults.kpmo.authorization.v1','kidults.independent.verification.v1']) {
     if (other !== expected.event) require(!workflow.includes(`      - ${other}`), `cross-role-event-forbidden:${other}`);
   }
   require(!/^\s{2}(?:push|pull_request|pull_request_target|schedule):/mi.test(workflow), 'event-boundary');
   if (/^  workflow_run:/m.test(workflow)) {
     const recoveryWorkflowList = expected.recoveryWorkflows.map(value => `'${value}'`).join(', ');
-    require(workflow.includes(`  workflow_run:\n    workflows: [${recoveryWorkflowList}]\n    types: [completed]\n    branches: [main]\n  repository_dispatch:`), 'recovery-trigger-exact-gate');
+    require(workflow.includes(`  workflow_run:\n    workflows: [${recoveryWorkflowList}]\n    types: [completed]\n    branches: [main]`), 'recovery-trigger-exact-gate');
+    if(expected.retiredDispatchRole)require(!/^  repository_dispatch:/m.test(workflow),'track-dispatch-retired');
+    else require(/^  repository_dispatch:/m.test(workflow),'recovery-trigger-exact-gate');
     require(!/^  workflow_dispatch:/m.test(workflow), 'recovery-trigger-exact-gate');
     const jobs = [...workflow.matchAll(/^  ([a-z][a-z0-9-]*):\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n|$(?![\s\S]))/gm)];
     const record = jobs.find(value => value[1] === 'record-role-approval')?.[2] || '';
@@ -445,7 +450,9 @@ for (const [file, spec] of AUTONOMOUS_LANDING_WORKFLOWS) {
   const recoveryWorkflowList = spec.recoveryWorkflows.map(value => `'${value}'`).join(', ');
   const mutations = [
     [source.replace(`workflows: [${recoveryWorkflowList}]`, "workflows: ['Untrusted Gate']"), 'recovery-trigger-exact-gate'],
-    [source.replace('  repository_dispatch:', `${RECOVERY_WORKFLOW_DISPATCH_TRIGGER}  repository_dispatch:`), 'recovery-trigger-exact-gate'],
+    ...(spec.retiredDispatchRole
+      ? [[source.replace('  workflow_run:', `  repository_dispatch:\n    types:\n      - ${spec.event}\n  workflow_run:`), 'track-dispatch-retired']]
+      : [[source.replace('  repository_dispatch:', `${RECOVERY_WORKFLOW_DISPATCH_TRIGGER}  repository_dispatch:`), 'recovery-trigger-exact-gate']]),
     [source.replace("if: github.event_name == 'repository_dispatch' &&", "if: github.ref == 'refs/heads/main' &&"), 'live-approval-dispatch-only'],
     [source.replace("github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'", "github.event.workflow_run.name == 'Untrusted Gate'"), 'recovery-admission-trigger-exact'],
     [source.replace('  terminal-recovery-approval:', '  terminal-recovery-unknown:'), 'recovery-approval-required'],
