@@ -1,8 +1,8 @@
 {
   "id": "kidults-autonomy-holistic-remediation-checkpoint-20261008-v1",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "agent_id": "atlas-autonomy-correction",
-  "as_of": "2026-10-15T03:57:24.697271Z",
+  "as_of": "2026-10-17T08:01:28Z",
   "root_mission": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
   "root_incident": 344,
   "scope": "12 holistic findings and subsequent bounded PSA validation",
@@ -132,15 +132,17 @@
       "priority": "P1",
       "state": "PROVIDER_INVESTIGATION_OPEN",
       "scope": "Provider PITR confirmation",
-      "facts": "DigitalOcean confirms ticket #12887418 remains open and is in follow-up state to prevent 48-hour auto-closure. The provider is investigating backend records for the exact PITR timeframe used to create kidults-pitr-37746452670. No specific API endpoint exposes the fork/restore operation or PITR record; Get Database Cluster does not expose it. 2026-10-08T08:41Z is the provision-complete/Online time, while a separate restore-completed timestamp is currently unavailable. The exact 2026-10-08T07:56:49Z target remains unconfirmed pending written provider follow-up and customer-side timestamp-bound data verification.",
-      "exit_criteria": "Receive DigitalOcean's written backend finding for the applied PITR timeframe or an explicit statement that it cannot be recovered; preserve customer-side timestamp-bound restored-data verification and do not treat 08:41Z as the selected PITR target.",
+      "facts": "DigitalOcean Support replied on ticket #12887418 that its team identified the PITR recovery target as 2026-10-08T07:56:50Z and moved the ticket to pending. This differs by one second from the requested 2026-10-08T07:56:49Z target. The reported PITR target is now provider-stated, but the exact restored data-state at that timestamp, a distinct restore-completed timestamp, and a restore operation identifier remain unverified. The previously reported 2026-10-08T08:41Z remains the provision-complete/Online time, not the PITR target.",
+      "exit_criteria": "Perform customer-side timestamp-bound verification of restored data against the provider-reported 2026-10-08T07:56:50Z target and reconcile the one-second difference from the requested 07:56:49Z; separately record any restore-completed timestamp or operation identifier only if independently evidenced. Do not treat 08:41Z as the selected PITR target.",
       "evidence_refs": [
         "https://github.com/johnkim9524-collab/kaios_enterprise_repo/issues/1464",
         "gmail:message:1a13db50cc9ca347",
-        "gmail:thread:1a13cc070b35e82b"
+        "gmail:thread:1a13cc070b35e82b",
+        "gmail:message:1a148e1530a809a9",
+        "gmail:thread:1a148e1530a809a9"
       ],
       "completion_claimed": false,
-      "next_action": "WAIT_FOR_WRITTEN_DIGITALOCEAN_BACKEND_FINDING_NO_ADDITIONAL_OUTREACH_OR_RESOURCE_CHANGE"
+      "next_action": "VERIFY_RESTORED_DATA_AT_PROVIDER_REPORTED_2026_10_08T07_56_50Z_RECONCILE_ONE_SECOND_REQUEST_DELTA_NO_OUTREACH_OR_RESOURCE_CHANGE"
     },
     {
       "id": "F11",
