@@ -1910,8 +1910,8 @@
     {
       "path": "coordination/kidults/kpmo/autonomy-holistic-remediation-checkpoint-20261008-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5818f4e71038000fddbba55efed664dc7e60fec4",
-      "sha256": "sha256:acfc91c0e12725e20135b080c7c0d5ef25302bafbecf4ddff2bb2416d808cf6b",
+      "git_blob": "14bd583168e747f357f5e6758b3e51344cb1f617",
+      "sha256": "sha256:034fde1ba627e19ebeb7539470a6882143c0e90652fc5360fcd6998df8af5d8a",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6806,5 +6806,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:1d83512af67a433f69a16045faa39f828f821a1de1461611a69aad51b6a39f64"
+  "manifest_sha256": "sha256:a9a4a3e25dea0bee0de47a03e6c983783805ff6e219a0deb9e80fe1bc88fcba9"
 }
