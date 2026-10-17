@@ -122,6 +122,14 @@ class SharedBudgetLedgerTests(unittest.TestCase):
         self.assertEqual(stored['row']['spent'], 1)
         self.assertEqual(self.ddb.calls[2][1]['Key'], key)
 
+    def test_read_resume_accepts_only_registered_terminal_observer_workflows(self):
+        observer = event('READ_RESUME', 'READ')
+        observer['envelope']['workflow_ref'] = REPOSITORY + '/.github/workflows/kpmo-authorization-read-resume-observer-v1.yml@refs/heads/main'
+        self.assertEqual(self.ledger.handle(observer)['row'], None)
+        observer['envelope']['workflow_ref'] = REPOSITORY + '/.github/workflows/untrusted.yml@refs/heads/main'
+        with self.assertRaisesRegex(ValueError, 'RUN_BINDING'):
+            self.ledger.handle(observer)
+
     def test_distinct_runner_signers_share_one_compare_and_swap_row(self):
         first = self.ledger.handle(event('ACCOUNTABLE_TRACK_AGENT', 'COMPARE_AND_SWAP',
                                          expected_version=0, next=budget_row()))

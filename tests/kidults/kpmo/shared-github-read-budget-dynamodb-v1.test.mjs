@@ -10,13 +10,13 @@ import {createSharedGithubReadBudget} from '../../../scripts/kidults/kpmo/lib/sh
 const repo='johnkim9524-collab/kaios_enterprise_repo';
 const scope={repository:repo,resource:'core',quota_owner_id:'gha-repo-1281328888'};
 const configuration={scope,capacity:10,windowMs:3600000,maxConcurrent:2,leaseMs:30000};
-const envFor=(role='kpmo')=>({
+const envFor=(role='kpmo',resumeWorkflow='sentinel')=>({
   KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN:`arn:aws:kms:ap-northeast-2:528314240275:key/${role}`,
   KIDULTS_AUTONOMOUS_WORKLOAD_ID:`${role}-workload`,
   KIDULTS_READ_RESUME_SIGNING_KEY_ARN:'arn:aws:kms:ap-northeast-2:528314240275:key/read-resume',
   KIDULTS_READ_RESUME_WORKLOAD_ID:'read-resume-workload',
   GITHUB_WORKFLOW_REF:role==='read-resume'
-    ?`${repo}/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main`
+    ?`${repo}/.github/workflows/${resumeWorkflow==='observer'?'kpmo-authorization-read-resume-observer-v1.yml':'kpmo-continuous-assurance-sentinel-health-v1.yml'}@refs/heads/main`
     :`${repo}/.github/workflows/kidults-autonomous-${role==='verifier'?'independent-verification':role}-authorization-v1.yml@refs/heads/main`,
   GITHUB_SHA:'b'.repeat(40),GITHUB_RUN_ID:'100',GITHUB_RUN_ATTEMPT:'1',
 });
@@ -105,6 +105,16 @@ test('adapter rejects unrelated AWS identities and quota owners; operations reje
   const resume=f.makeStore('read-resume');
   assert.equal(resume.authority,'PROTECTED_ATOMIC_CAS');
   assert.notEqual(resume.key,undefined);
+  assert.throws(()=>createProtectedDynamoDbGithubReadBudgetStore({scope,configuration,aws:()=>'',identity:identityFor('read-resume'),
+    env:{...envFor('read-resume'),GITHUB_WORKFLOW_REF:`${repo}/.github/workflows/untrusted.yml@refs/heads/main`},tempRoot:f.tempRoot}),/WORKFLOW_ROLE_BINDING/);
+});
+
+test('terminal authorization observer is admitted only as a read-resume workflow',async t=>{
+  const f=fixture({role:'read-resume'});t.after(f.cleanup);
+  const env={...envFor('read-resume','observer')};
+  const store=createProtectedDynamoDbGithubReadBudgetStore({scope,configuration,aws:()=>{throw Error('unexpected AWS call');},
+    identity:identityFor('read-resume'),env,tempRoot:f.tempRoot});
+  assert.equal(store.authority,'PROTECTED_ATOMIC_CAS');
 });
 
 test('Track, KPMO, verifier, and read-resume runners consume one bounded shared budget row',async t=>{

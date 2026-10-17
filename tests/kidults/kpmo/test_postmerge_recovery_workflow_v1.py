@@ -56,7 +56,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertEqual(recovery_step['env']['KIDULTS_GITHUB_READ_QUOTA_OWNER_ID'], 'gha-repo-${{ github.repository_id }}')
 
     def test_original_live_candidate_path_remains_dispatch_only(self):
-        for name in FILES:
+        for name in ('kpmo', 'independent-verification'):
             workflow = self.workflow(name)
             self.assertEqual(workflow['on']['repository_dispatch']['types'], ['kidults.authorization.generation.v1'])
             self.assertIn("github.event_name == 'repository_dispatch'", workflow['jobs']['record-role-approval']['if'])
@@ -64,6 +64,8 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertNotIn('workflow_dispatch', workflow['on'])
             recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertNotIn("github.event_name == 'workflow_dispatch'", recovery_if)
+        track = self.workflow('track')
+        self.assertNotIn('repository_dispatch', track['on'])
 
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_workflow()

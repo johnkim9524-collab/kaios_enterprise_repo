@@ -509,6 +509,15 @@ class RecoveryLedgerTests(unittest.TestCase):
             self.assertEqual(len(policies), 1)
             statements = policies[0]['PolicyDocument']['Statement']
             self.assertEqual(statements.count(expected_budget_statement), 0)
+        resume_key_import = {'Fn::ImportValue': 'kidults-read-resume-shared-budget-signing-key-arn-v1'}
+        writer_statements = actual['Resources']['AutonomousLedgerWriterRole']['Properties']['Policies'][0]['PolicyDocument']['Statement']
+        self.assertEqual(writer_statements[2]['Action'], ['kms:Verify'])
+        self.assertEqual(writer_statements[2]['Resource'].count(resume_key_import), 1)
+        original_writer_statements = original['Resources']['AutonomousLedgerWriterRole']['Properties']['Policies'][0]['PolicyDocument']['Statement']
+        original_writer_statements[2]['Resource'].append(resume_key_import)
+        read_resume_key = props['Environment']['Variables']['READ_RESUME_SIGNING_KEY_ARN']
+        self.assertEqual(read_resume_key, resume_key_import)
+        old['Environment']['Variables']['READ_RESUME_SIGNING_KEY_ARN'] = read_resume_key
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_KEY_ARN'), {'Fn::GetAtt': ['AutonomousReceiptKey', 'Arn']})
         self.assertEqual(props['Environment']['Variables'].pop('RECEIPT_BUCKET'), {'Ref': 'AutonomousReceiptBucket'})
         if used_fallback:

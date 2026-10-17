@@ -14,7 +14,10 @@ test('resume role trusts only the exact protected main workflow and environment'
   const condition=role.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
   assert.deepEqual(condition,{
     'token.actions.githubusercontent.com:aud':'sts.amazonaws.com',
-    'token.actions.githubusercontent.com:sub':'repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main',
+    'token.actions.githubusercontent.com:sub':[
+      'repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main',
+      'repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-authorization-read-resume-observer-v1.yml@refs/heads/main',
+    ],
   });
 });
 

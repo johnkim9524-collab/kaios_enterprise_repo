@@ -12,6 +12,10 @@ HEX64 = re.compile(r'^[a-f0-9]{64}$')
 SHA = re.compile(r'^[a-f0-9]{40}$')
 RUN = re.compile(r'^[1-9][0-9]{0,15}$')
 QUOTA_OWNER = re.compile(r'^[A-Za-z0-9_-]{1,80}$')
+READ_RESUME_WORKFLOW_REFS = {
+    REPOSITORY + '/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main',
+    REPOSITORY + '/.github/workflows/kpmo-authorization-read-resume-observer-v1.yml@refs/heads/main',
+}
 
 
 def require(value, code):
@@ -100,7 +104,7 @@ class Ledger:
                 and type(envelope.get('run_attempt')) is int and 1 <= envelope['run_attempt'] <= 100
                 and isinstance(envelope.get('source_sha'), str) and SHA.fullmatch(envelope['source_sha'])
                 and isinstance(envelope.get('workflow_ref'), str)
-                and (envelope['workflow_ref'] == REPOSITORY + '/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main'
+                and (envelope['workflow_ref'] in READ_RESUME_WORKFLOW_REFS
                      if role == 'READ_RESUME' else envelope['workflow_ref'].startswith(REPOSITORY + '/.github/workflows/')), 'RUN_BINDING')
         scope = validate_scope(envelope.get('scope'))
         config_digest = validate_configuration(envelope.get('configuration'), scope)

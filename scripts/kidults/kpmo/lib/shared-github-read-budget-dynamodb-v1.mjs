@@ -15,6 +15,10 @@ const functionName='kidults-autonomous-ledger-writer-staging';
 const contract='kidults-shared-github-read-budget-v1';
 const roleByArn=/^arn:aws:sts::528314240275:assumed-role\/(kidults-autonomous-(track|kpmo|verifier)-staging-role|kidults-github-read-resume-staging-role)\/[^/]+$/;
 const roleName={'kidults-autonomous-track-staging-role':'ACCOUNTABLE_TRACK_AGENT','kidults-autonomous-kpmo-staging-role':'KPMO','kidults-autonomous-verifier-staging-role':'INDEPENDENT_VERIFIER','kidults-github-read-resume-staging-role':'READ_RESUME'};
+const readResumeWorkflowRefs=new Set([
+  `${repo}/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main`,
+  `${repo}/.github/workflows/kpmo-authorization-read-resume-observer-v1.yml@refs/heads/main`,
+]);
 const canonical=x=>Array.isArray(x)?`[${x.map(canonical).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${canonical(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>createHash('sha256').update(canonical(x)).digest('hex');
 const defaultConfiguration=scope=>({scope,capacity:480,windowMs:3600000,maxConcurrent:2,leaseMs:30000});
@@ -41,7 +45,7 @@ export function createProtectedDynamoDbGithubReadBudgetStore({scope,configuratio
   const runId=env.GITHUB_RUN_ID;
   const runAttempt=Number(env.GITHUB_RUN_ATTEMPT);
   check(typeof workflowRef==='string'&&workflowRef.startsWith(`${repo}/.github/workflows/`),'WORKFLOW_REF');
-  if(readResume)check(workflowRef===`${repo}/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main`,'WORKFLOW_ROLE_BINDING');
+  if(readResume)check(readResumeWorkflowRefs.has(workflowRef),'WORKFLOW_ROLE_BINDING');
   check(typeof sourceSha==='string'&&/^[a-f0-9]{40}$/.test(sourceSha),'SOURCE_SHA');
   check(typeof runId==='string'&&/^[1-9][0-9]{0,15}$/.test(runId)&&Number.isSafeInteger(runAttempt)&&runAttempt>=1&&runAttempt<=100,'RUN_BINDING');
   const workload={workload_id:workloadId,signing_key_arn:signingKeyArn,environment};
