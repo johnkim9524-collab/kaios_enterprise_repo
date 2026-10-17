@@ -76,7 +76,7 @@ export function selectExactScopeOwnerDecision({comments,repository,repositoryId,
       ||fields.scope_digest!==binding.scope_digest) continue;
     const scopeLine=body.split(/\r?\n/).find(line=>/^(결정 범위|Decision scope):/i.test(line.trim()))||'';
     const lines=body.split(/\r?\n/).map(line=>line.trim());
-    const quorumBound=/(Track Agent|Track Agent).*(KPMO).*(Independent Verifier)/i.test(scopeLine)
+    const quorumBound=/Track Agent.*KPMO.*Independent Verifier/i.test(scopeLine)
       &&/(quorum|quorum|승인)/i.test(scopeLine)&&/(Ready|병합|merge)/i.test(scopeLine);
     const holds=[['Production','Production'],['Public','Public'],['G5','G5']].every(([en,ko])=>
       lines.some(line=>new RegExp(`^(?:${en}|${ko}):\\s*HOLD$`,'i').test(line)))

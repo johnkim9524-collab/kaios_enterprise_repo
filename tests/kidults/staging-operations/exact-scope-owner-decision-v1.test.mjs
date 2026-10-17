@@ -56,6 +56,7 @@ test('stale head, scope, actor, edited comment, missing quorum terms, or missing
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,author_association:'CONTRIBUTOR'}]}),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,updated_at:'2026-10-15T10:01:00Z'}]}),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Independent Verifier','Reviewer')}]}),null);
+  assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Track Agent, KPMO, Independent Verifier','Independent Verifier')}] }),null);
   assert.equal(selectExactScopeOwnerDecision({...input,comments:[{...comment,body:body.replace('Production: HOLD','Production: ENABLED')}]}),null);
 });
 
