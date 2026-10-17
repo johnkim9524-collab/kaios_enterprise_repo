@@ -138,9 +138,12 @@ export function independentlyVerifyLiveCandidate({candidate,policy}={}){
 
 export const assertAutonomousFileScope = ({files, policy, ownerDecision=null, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
+  const filenames=files.map(file=>typeof file==='string'?file:file?.filename);
+  if (filenames.some(filename=>typeof filename!=='string'||!filename)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+  if (new Set(filenames).size!==filenames.length) fail('AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE');
   if(ownerDecision) assertExactScopeOwnerDecision(ownerDecision,{repository:ownerDecision.repository,
     repositoryId:ownerDecision.repository_id,pullRequest:ownerDecision.pull_request,baseSha:ownerDecision.base_sha,
-    headSha:ownerDecision.head_sha,treeSha:ownerDecision.head_tree_sha,changedPaths:files.map(file=>typeof file==='string'?file:file?.filename)});
+    headSha:ownerDecision.head_sha,treeSha:ownerDecision.head_tree_sha,changedPaths:filenames});
   const transitionPaths = new Set((policy.delegated_internal_transition_exceptions || [])
     .flatMap(value => Array.isArray(value?.paths) ? value.paths : []));
   const transitionId = delegatedTransitionId({files, policy});
@@ -194,6 +197,8 @@ export const validateLiveChangedPaths = ({files,expectedPaths,expectedScopeDiges
   if (!Array.isArray(files) || !Array.isArray(expectedPaths)) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const livePaths=files.map(value=>value?.filename);
   if (livePaths.some(value=>typeof value!=='string'||!value)) fail('AUTONOMOUS_CHANGED_FILE_PATH_INVALID');
+  if (new Set(livePaths).size!==livePaths.length) fail('AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE');
+  if (expectedPaths.some(value=>typeof value!=='string'||!value)||new Set(expectedPaths).size!==expectedPaths.length) fail('AUTONOMOUS_EXPECTED_FILE_SET_INVALID');
   const ordered=[...livePaths].sort();
   const expected=[...expectedPaths].sort();
   if (ordered.length!==expected.length || ordered.some((value,index)=>value!==expected[index])) fail('AUTONOMOUS_CHANGED_FILE_SET_DRIFT');

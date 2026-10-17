@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {assertAutonomousFileScope,assertExactScopeOwnerDecision,bindLiveOwnerDecision,independentlyVerifyLiveCandidate,selectExactScopeOwnerDecision} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,assertExactScopeOwnerDecision,bindLiveOwnerDecision,independentlyVerifyLiveCandidate,selectExactScopeOwnerDecision,sha256,validateLiveChangedPaths} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import policy from '../../../coordination/kidults/governance/autonomous-internal-landing-policy-v1.json' with {type:'json'};
@@ -64,6 +64,16 @@ test('proof cannot be rebound or mutated to grant landing, merge, or deployment 
   assert.throws(()=>assertExactScopeOwnerDecision({...proof,merge_authorized:true},input),/OWNER_DECISION_PROOF_INVALID/);
   assert.throws(()=>assertExactScopeOwnerDecision(proof,{...input,baseSha:sha('d')}),/OWNER_DECISION_PROOF_INVALID/);
   assert.throws(()=>assertExactScopeOwnerDecision({...proof,production:'ON'},input),/OWNER_DECISION_PROOF_INVALID/);
+});
+
+test('duplicate live paths fail before scope, Owner, or capability classification',()=>{
+  const file={filename:'scripts/kidults/kpmo/internal-normalizer.mjs',patch:'@@ -1 +1 @@\n-a\n+b',
+    base_content:'a\n',head_content:'b\n'};
+  assert.throws(()=>assertAutonomousFileScope({files:[file,file],policy}),/AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE/);
+  assert.throws(()=>validateLiveChangedPaths({files:[file,file],expectedPaths:[file.filename],
+    expectedScopeDigest:sha256(file.filename),policy}),/AUTONOMOUS_CHANGED_FILE_SET_DUPLICATE/);
+  assert.throws(()=>validateLiveChangedPaths({files:[file],expectedPaths:[file.filename,file.filename],
+    expectedScopeDigest:sha256(`${file.filename}\n${file.filename}`),policy}),/AUTONOMOUS_EXPECTED_FILE_SET_INVALID/);
 });
 
 test('exact Owner scope enters both independent role classifiers while retaining quorum-only HOLDs',()=>{
