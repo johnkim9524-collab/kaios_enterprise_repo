@@ -136,7 +136,7 @@ const dispatchPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance
 function scanFixture() {
   const f=fixture(),mainBody=Buffer.from(`tree ${f.tree}\nauthor main <main@example.invalid> 0 +0000\ncommitter main <main@example.invalid> 0 +0000\n\nmain\n`);
   const main=gitObjectId('commit',mainBody);f.objects.set(main,{type:'commit',bytes:mainBody});
-  const repo='owner/repo',pr={number:42,base:{ref:'main',sha:'a'.repeat(40),repo:{full_name:repo}},head:{sha:f.source,repo:{full_name:repo}}};
+  const repo='owner/repo',pr={number:42,state:'open',base:{ref:'main',sha:'a'.repeat(40),repo:{full_name:repo}},head:{sha:f.source,repo:{full_name:repo}}};
   const trace=[];
   const fetchImpl=async url=>{
     const p=new URL(url).pathname;trace.push(p);let body;

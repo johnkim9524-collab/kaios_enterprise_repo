@@ -3,7 +3,7 @@
 // validators. Keep their validation and GREEN/ruleset gates before this call.
 import {createHash} from 'node:crypto';
 export function validateOwnerRecoveryBootstrapResume({policy,purpose,repository,actor,executionRef,
-  approval,ready,rawApproval,rawReady,oneUse,runId,runAttempt,handoffWindowSeconds}) {
+  approval,ready,rawApproval,rawReady,rawPullRequest,oneUse,runId,runAttempt,handoffWindowSeconds}) {
   const fail=code=>{throw new Error(`OWNER_RECOVERY_BOOTSTRAP_${code}`);};
   const route=policy?.owner_recovery_bootstrap;
   const expected={scope:'EXACT_HEAD_OWNER_AUTHORIZED_RESUME_LEDGER_BOOTSTRAP_ONLY',purpose:'RESUME_LEDGER_BOOTSTRAP',
@@ -22,13 +22,23 @@ export function validateOwnerRecoveryBootstrapResume({policy,purpose,repository,
   if(!approval || approval.actor!==actor || !Number.isSafeInteger(approval.comment_id) || approval.comment_id<1
     || !/^sha256:[a-f0-9]{64}$/.test(approval.comment_body_sha256 || '')
     || !ready || ready.actor!==actor || ready.direct_repository_owner!==true
-    || ready.performed_via_github_app!==null || ready.synthetic_lifecycle_boundary===true) fail('NATIVE_OWNER_EVIDENCE');
+    || ready.performed_via_github_app!==null) fail('NATIVE_OWNER_EVIDENCE');
+  // The lifecycle selector may synthesize the initial ready boundary when a
+  // PR was created ready and GitHub emitted no ready_for_review timeline item.
+  // Bind that case to the native PR creation record and still require the
+  // separate immutable exact-head Owner approval below.
+  const syntheticReady=ready.synthetic_lifecycle_boundary===true;
+  const lifecycleEvidenceValid=syntheticReady
+    ? Boolean(rawPullRequest && rawPullRequest.id===ready.id && rawPullRequest.draft===false
+      && rawPullRequest.user?.login===actor && rawPullRequest.user?.type==='User'
+      && rawPullRequest.created_at===ready.created_at && ready.created_at)
+    : Boolean(rawReady && rawReady.id===ready.id && rawReady.event==='ready_for_review'
+      && rawReady.actor?.login===actor && rawReady.actor?.type==='User'
+      && rawReady.performed_via_github_app===null && ready.created_at
+      && rawReady.created_at===ready.created_at);
   // Normalized selectors cannot establish absence of app involvement: missing
   // fields may have been normalized to null. Bind strict original API evidence.
-  if(!rawReady || rawReady.id!==ready.id || rawReady.event!=='ready_for_review'
-    || rawReady.actor?.login!==actor || rawReady.actor?.type!=='User'
-    || rawReady.performed_via_github_app!==null || !ready.created_at
-    || rawReady.created_at!==ready.created_at
+  if(!lifecycleEvidenceValid
     || !rawApproval || rawApproval.id!==approval.comment_id
     || rawApproval.user?.login!==actor || rawApproval.user?.type!=='User'
     || rawApproval.author_association!=='OWNER' || rawApproval.performed_via_github_app!==null

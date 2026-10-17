@@ -144,4 +144,3 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
       artifact_id:artifact.id,artifact_digest:artifact.digest,checkpoint_digests:checkpointDigests,
       actual_authority_granted:false,reservation_write_performed:false,approval_created:false,read_only:true};
 }
-

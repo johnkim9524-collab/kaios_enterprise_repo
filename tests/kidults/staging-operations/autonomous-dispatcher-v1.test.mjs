@@ -18,6 +18,7 @@ import './independent-script-lexing-v1.test.mjs';
 import './dispatcher-recovery-classification-v1.test.mjs';
 import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
+import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
@@ -214,6 +215,8 @@ assert.deepEqual(classifyCandidate({...input,files:[governedFile('.github/workfl
 deny({files:[{filename:'.github/workflows/x.yml'}]},'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN');
 deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]},'DISPATCH_OWNER_RESERVED_ACTION');
 deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]},'DISPATCH_OWNER_RESERVED_ACTION');
+assert.deepEqual(assertAutonomousFileScope({policy,files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+    environment: KIDULTS-AUTONOMOUS-TRACK'}]}),['.github/workflows/x.yml']);
+assert.throws(()=>assertAutonomousFileScope({policy,files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+    environment: production'}]}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
 const canonicalFiles=[
   governedFile('.github/workflows/kpmo-canonical-generation-v3.yml','name: canonical\n','name: canonical\n','@@ +1 @@\n+# immutable fixture'),
   governedFile('.github/workflows/kpmo-canonical-generation-v3-apply.yml','name: apply\n','name: apply\n','@@ +1 @@\n+# immutable fixture'),
@@ -567,7 +570,29 @@ test('a later status 503 invalidates an earlier eligible candidate and publishes
     assert.equal(receipt.failure_class,'DISPATCH_READ_SERVICE_UNAVAILABLE');assert.equal(receipt.fanout_authorized,false);
   }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
 });
-test('many stale reserved candidates get bound Owner review without blob reads',async()=>{
+test('targeted protected-scope denial emits exact tree and path-bound Owner handoff without checking authority',async()=>{
+  const candidate={...pr,number:2669};let calls=0;
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2669,policy,generationSeed:'1',fetchImpl:async url=>{
+    calls++;const p=new URL(url).pathname;
+    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+    if(p.endsWith('/pulls/2669'))return fakeResponse(200,candidate);
+    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',status:'modified',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]);
+    if(p.endsWith('/issues/2669/comments'))return fakeResponse(200,[]);
+    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
+    throw new Error(`unexpected protected-scope follow-up: ${p}`);
+  }});
+  assert.equal(results.length,1);const handoff=results[0];
+  assert.equal(handoff.state,'OWNER_REVIEW_REQUIRED');assert.equal(handoff.reason,'DISPATCH_OWNER_RESERVED_ACTION');
+  assert.equal(handoff.binding.head_sha,candidate.head.sha);assert.equal(handoff.binding.head_tree_sha,sha('c'));
+  assert.deepEqual(handoff.binding.changed_paths,['.github/workflows/kidults-autonomous-track-authorization-v1.yml']);
+  assert.equal(handoff.binding.scope_digest,'sha256:'+crypto.createHash('sha256').update(handoff.binding.changed_paths.join('\n')).digest('hex'));
+  assert.equal(handoff.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
+  assert.equal(handoff.autonomous_eligible,false);assert.equal(handoff.landing_authorization_created,false);assert.equal(handoff.merge_authorized,false);
+  assert.equal(calls,7);
+});
+test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
   let calls=0,blobReads=0;
   const candidates=Array.from({length:20},(_,i)=>({...pr,number:100+i,base:{...pr.base,sha:sha('d')}}));
   const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:64,
@@ -598,10 +623,11 @@ test('an exact targeted owner-reserved PR produces a bound Owner-review record o
       if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
       if(p.endsWith('/pulls/2670'))return fakeResponse(200,reservedPr);
       if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(p.endsWith('/issues/2670/comments'))return fakeResponse(200,[]);
       if(p.endsWith(`/git/commits/${reservedPr.head.sha}`))return fakeResponse(200,{sha:reservedPr.head.sha,tree:{sha:sha('c')}});
       throw new Error('owner-reserved targeted review must not read checks, contents, or unrelated candidates');
     }});
-  assert.equal(calls,6);
+  assert.equal(calls,7);
   assert.equal(results.length,1);
   const review=results[0];
   assert.equal(review.state,'OWNER_REVIEW_REQUIRED');

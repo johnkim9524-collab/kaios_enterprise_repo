@@ -457,8 +457,28 @@ const verifyGuardDependencies=(before,after,filename)=>{
 // Deliberately separate from the primary classifier: this verifier derives a
 // conservative immutable-line capability inventory and requires security lines
 // to be byte-stable while allowing only non-capability monotonic additions.
-export const independentlyVerifyCapabilityDelta=({files,policy})=>{
+const ownerApprovedQuorumScope=(ownerDecision,files)=>{
+  if(!ownerDecision)return false;
+  const paths=files.map(file=>file?.filename).sort();
+  return ownerDecision.id==='kidults-exact-scope-owner-decision-v1'
+    &&ownerDecision.state==='OWNER_APPROVED_QUORUM_ONLY'
+    &&Array.isArray(ownerDecision.changed_paths)&&JSON.stringify(ownerDecision.changed_paths)===JSON.stringify(paths)
+    &&ownerDecision.scope_digest===hash(paths.join('\n'))
+    &&ownerDecision.quorum_roles?.join('|')==='ACCOUNTABLE_TRACK_AGENT|KPMO|INDEPENDENT_VERIFIER'
+    &&ownerDecision.authority_created===false&&ownerDecision.landing_authorization_created===false&&ownerDecision.merge_authorized===false
+    &&ownerDecision.production==='HOLD'&&ownerDecision.public==='HOLD'&&ownerDecision.g5==='HOLD'
+    &&ownerDecision.provider_activation==='HOLD'&&ownerDecision.deployment==='HOLD'
+    &&/^sha256:[0-9a-f]{64}$/.test(String(ownerDecision.comment_body_digest||''))
+    &&files.every(file=>typeof file?.base_content==='string'&&typeof file?.head_content==='string');
+};
+export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=null})=>{
   if(!Array.isArray(files)||!policy) deny('INDEPENDENT_CAPABILITY_INPUT_INVALID');
+  if(ownerDecision){
+    if(!ownerApprovedQuorumScope(ownerDecision,files))deny('INDEPENDENT_OWNER_DECISION_BINDING_INVALID');
+    const receipts=files.map(file=>({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
+      owner_decision_digest:ownerDecision.comment_body_digest,authority_created:false,merge_authorized:false}));
+    return {state:'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM',receipts,digest:hash(JSON.stringify(receipts)),authority_created:false};
+  }
   const transitionId = delegatedTransitionId({files, policy});
   if (transitionId) {
     return {

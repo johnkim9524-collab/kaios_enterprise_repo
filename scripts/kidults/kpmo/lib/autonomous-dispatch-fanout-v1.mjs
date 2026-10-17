@@ -35,7 +35,8 @@ const bindingFromEnvelope = envelope => {
   for (const field of ['base_sha', 'head_sha', 'head_tree_sha']) {
     if (!SHA.test(String(envelope[field]))) fail('AUTONOMOUS_DISPATCH_SHA_INVALID', field);
   }
-  return Object.fromEntries(fields.map(field => [field, envelope[field]]));
+  return {...Object.fromEntries(fields.map(field => [field, envelope[field]])),
+    owner_decision_digest:envelope.owner_decision?.comment_body_digest||null};
 };
 
 const receiptCore = ({envelope, runId, runAttempt, state, roleState, observedAt}) => {

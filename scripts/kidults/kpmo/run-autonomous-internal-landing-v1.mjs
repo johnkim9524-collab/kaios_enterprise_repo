@@ -14,6 +14,9 @@ import {
   validateDraftReadyRebind,
   collectPaginatedApiValues,
   validateLiveChangedPaths,
+  selectExactScopeOwnerDecision,
+  bindLiveOwnerDecision,
+  independentlyVerifyLiveCandidate,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {LANDING_READINESS_CONTEXT,isLandingReadinessCurrent} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
@@ -427,7 +430,16 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
   if (commit.tree?.sha!==envelope.head_tree_sha) throw new AutonomousLandingError('AUTONOMOUS_TREE_DRIFT');
   const fileRecords=await collectPaginatedApiValues({request:api,endpoint:`/pulls/${envelope.pull_request}/files`});
   const files=await attachImmutableContents(fileRecords);
-  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,policy,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
+  let liveOwnerDecision=null;
+  if(envelope.owner_decision){
+    const comments=await collectPaginatedApiValues({request:api,endpoint:`/issues/${envelope.pull_request}/comments`});
+    liveOwnerDecision=bindLiveOwnerDecision({expectedProof:envelope.owner_decision,comments,repository,repositoryId:pr.base?.repo?.id,
+      repositoryOwner:pr.base?.repo?.owner?.login,repositoryOwnerId:pr.base?.repo?.owner?.id,
+      pullRequest:envelope.pull_request,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+      changedPaths:files.map(file=>file.filename)});
+  }
+  validateLiveChangedPaths({files,expectedPaths:envelope.changed_paths,expectedScopeDigest:envelope.scope_digest,
+    policy,ownerDecision:liveOwnerDecision,scopeDriftCode:'AUTONOMOUS_LIVE_SCOPE_DRIFT'});
   const envelopeRequiredSource=envelope.test_evidence?.required_contexts||envelope.test_evidence?.required_evidence||[];
   const envelopeRequiresDraftDevelopment=envelopeRequiredSource.some(value=>(typeof value==='string'?value:String(value?.context||''))==='KIDULTS Draft Development Validation V1');
   const [status,checks,requiredChecks]=await Promise.all([
@@ -478,7 +490,7 @@ const validateLiveCandidate = async ({allowDraft=false,includeLandingStatus=true
     if(bound.length!==dispatched.length || bound.some((value,index)=>!sameRequiredGateEvidenceAuthority(value,dispatched[index]))) throw new AutonomousLandingError('AUTONOMOUS_REQUIRED_CHECK_IDENTITY_DRIFT');
   }
   validateRequiredGateSemanticEvidence({bindings:bound,checks:authoritativeChecks,fail:()=>{throw new AutonomousLandingError('AUTONOMOUS_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');}});
-  return {pr,commit,files,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context),required_bindings:requiredChecks};
+  return {pr,commit,files,owner_decision:liveOwnerDecision,statuses:authoritativeStatuses,checks:authoritativeChecks,required_contexts:requiredChecks.map(value=>value.context),required_bindings:requiredChecks};
 };
 const waitForReadyCandidate = async () => {
   const timeoutSeconds=Number(policy.bounded_recovery?.draft_ready_validation_timeout_seconds||420);
@@ -519,7 +531,7 @@ const rebindDraftReady = async (before, mutationToken) => {
 try {
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
-    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyCapabilityDelta({files:candidate.files,policy});
+    if (approvalRole==='INDEPENDENT_VERIFIER') independentlyVerifyLiveCandidate({candidate,policy});
     envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks,requiredContexts:candidate.required_bindings,headSha:envelope.head_sha});
     if (envelope.recovery) {
       const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);
