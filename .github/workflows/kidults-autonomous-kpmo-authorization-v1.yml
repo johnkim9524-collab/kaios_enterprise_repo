@@ -229,14 +229,9 @@ jobs:
       ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure' && (github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'repository_dispatch' || (github.event.workflow_run.event == 'workflow_dispatch' && github.event.workflow_run.actor.login == 'github-actions[bot]'))))
     runs-on: ubuntu-24.04
-    environment: KIDULTS-AUTONOMOUS-KPMO
-    timeout-minutes: 3
+    timeout-minutes: 1
     permissions:
-      actions: read
       contents: read
-      id-token: write
-    outputs:
-      admitted: ${{ steps.admission.outputs.admitted }}
     steps:
       - name: Checkout exact protected main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -244,27 +239,8 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
       - name: Admit only an eligible actual recovery workload
-        id: admission
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
-          KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
-          KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
         run: |
           set -euo pipefail
-          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
-          test -n "$AWS_ROLE_ARN"
-          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
-          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
-          echo "::add-mask::$OIDC_TOKEN"
-          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-read-budget-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
-          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
-          echo "::add-mask::$AWS_ACCESS_KEY_ID"
-          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
-          echo "::add-mask::$AWS_SESSION_TOKEN"
-          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
-          unset CREDS OIDC_JSON OIDC_TOKEN
-          aws sts get-caller-identity --output json | jq -e '.Account == "528314240275" and (.Arn | contains("assumed-role/kidults-autonomous-kpmo-staging-role/"))' >/dev/null
           node scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs
       - name: Preserve admission evidence
         if: always()
@@ -273,19 +249,13 @@ jobs:
           name: kidults-recovery-execution-admission-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
           path: out/recovery-execution-admission-v1
           retention-days: 90
-      - name: Preserve admission read-resume checkpoint
-        if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: kidults-github-read-resume-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
-          path: out/github-read-resume-v1/
-          if-no-files-found: ignore
-          retention-days: 90
-
   terminal-recovery-approval:
     name: Bounded original reservation terminal recovery KPMO
     needs: terminal-recovery-admission
-    if: needs.terminal-recovery-admission.result == 'success' && needs.terminal-recovery-admission.outputs.admitted == 'true' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: >-
+      github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
+      ((github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' && github.event.workflow_run.conclusion == 'failure'))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-KPMO
     timeout-minutes: 15

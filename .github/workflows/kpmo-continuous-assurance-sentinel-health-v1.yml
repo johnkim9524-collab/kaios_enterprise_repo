@@ -397,22 +397,37 @@ jobs:
       - name: Checkout exact protected main consumer
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
+          # repository_dispatch payloads are untrusted input. GitHub binds GITHUB_SHA
+          # to the default branch commit for this event; only execute that revision.
+          ref: ${{ github.sha }}
           persist-credentials: false
       - name: Verify exact consumer checkout
         env:
-          EXPECTED_MAIN_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
+          EXPECTED_MAIN_SHA: ${{ github.sha }}
+          EXPECTED_REPOSITORY_ID: ${{ github.repository_id }}
         run: |
           set -euo pipefail
           [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
+          if [[ "$GITHUB_EVENT_NAME" == "repository_dispatch" ]]; then
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
+              --arg main_sha "$EXPECTED_MAIN_SHA" '
+                .action == "kidults.github.read.resume.v1" and
+                .repository.full_name == $repo and
+                (.repository.id | tostring) == $repo_id and
+                .sender.login == "kidults-autonomous-landing-staging[bot]" and
+                .client_payload.source == "AWS_EVENTBRIDGE_SCHEDULER" and
+                .client_payload.slot == "READ_RESUME" and
+                .client_payload.exact_main_sha == $main_sha
+              ' "$GITHUB_EVENT_PATH" >/dev/null
+          fi
       - name: Consume exact deferred read through the shared cross-runner budget
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
           KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
           KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
-          KIDULTS_EXPECTED_MAIN_SHA: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.exact_main_sha || github.sha }}
+          KIDULTS_EXPECTED_MAIN_SHA: ${{ github.sha }}
           KIDULTS_AUTONOMOUS_RECEIPT_BUCKET: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET }}
           KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN }}
           AWS_ROLE_ARN: arn:aws:iam::528314240275:role/kidults-github-read-resume-staging-role

@@ -52,3 +52,21 @@ test('receipt KMS access remains scoped to the Owner-reserved role and does not 
   assert.equal(receiptStatements.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
   assert.equal(stack.Resources.AutonomousLedgerKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
 });
+
+test('repository_dispatch cannot select the code executed by the OIDC trusted workflow',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
+  const job=workflow.slice(workflow.indexOf('  read-resume-checkpoint:\n'));
+  const checkout=job.slice(job.indexOf('      - name: Checkout exact protected main consumer'),
+    job.indexOf('      - name: Verify exact consumer checkout'));
+  const verify=job.slice(job.indexOf('      - name: Verify exact consumer checkout'),
+    job.indexOf('      - name: Consume exact deferred read'));
+  assert.match(checkout,/ref: \$\{\{ github\.sha \}\}/);
+  assert.doesNotMatch(checkout,/github\.event\.client_payload\.exact_main_sha/);
+  assert.match(verify,/EXPECTED_MAIN_SHA: \$\{\{ github\.sha \}\}/);
+  assert.match(verify,/EXPECTED_REPOSITORY_ID: \$\{\{ github\.repository_id \}\}/);
+  assert.match(verify,/\.sender\.login == "kidults-autonomous-landing-staging\[bot\]"/);
+  assert.match(verify,/\.repository\.id \| tostring/);
+  assert.match(verify,/\.client_payload\.exact_main_sha == \$main_sha/);
+  assert.ok(job.indexOf('      - name: Verify exact consumer checkout')
+    < job.indexOf('OIDC_JSON=$(curl'));
+});

@@ -141,6 +141,7 @@ const handoffDisplayDelta=file=>{
   return a.scalar===old&&b.scalar===next;
 };
 const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pull_request_target|permissions|environment|if|secrets|vars|id-token|contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events|curl|wget|gh api|aws |gcloud |terraform|kubectl|https?:\/\/|force:|fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|authorization|credential|production|public|g5)\b/i;
+const markdownAuthorityExpansion=/(?:\bauthori[sz]\w*\s+(?:is\s+)?required\b|\b(?:allow|authorize|grant|enable)\w*\s+(?!no\b|not\b)(?:(?:the|an?)\s+)?(?:agent|workflow|operator|track|kpmo|owner|user|session|pr|pull request)?\s*(?:to\s+)?(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:may|can)\s+(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:without|no|not required|not needed|not necessary)\b.{0,100}\b(?:owner|approval|review|quorum)\b.{0,60}\b(?:ready|merge|deploy|promot\w*|production|public|g5|write|secrets?|credentials?|external effects)\b)/i;
 const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').trim()).filter(Boolean);
 const stopAction=/\b(throw|fail|deny|assert|forbid|quarantine)\b/;
 const ignoredIdentifiers=new Set(['if','else','throw','new','return','const','let','var','function','true','false','null','undefined','await','async','typeof','instanceof','in','of','this']);
@@ -319,12 +320,11 @@ const independentlyMatchesExactAi020VerifierProfileRefresh=(before,after,files)=
   const ai020Files=files.filter(file=>file.filename===ai020Path);
   const version=/^(\d+)\.(\d+)\.(\d+)$/.exec(left.version||'');
   if(!Array.isArray(ownerPaths)||ownerPaths.filter(path=>path===ai020Path).length!==1
-    ||right.owner_reserved_exact_paths?.includes(ai020Path)||ai020Files.length!==1||ai020Files[0].status!=='modified'
+    ||right.owner_reserved_exact_paths?.filter(path=>path===ai020Path).length!==1||ai020Files.length!==1||ai020Files[0].status!=='modified'
     ||!version||right.version!==`${Number(version[1])}.${Number(version[2])+1}.0`
     ||!matchesBoundedAi020Recovery(ai020Files[0].base_content,ai020Files[0].head_content))return false;
   const oldPolicy=structuredClone(left),newPolicy=structuredClone(right);delete oldPolicy.immutable_source_read_profile;delete newPolicy.immutable_source_read_profile;
   newPolicy.version=oldPolicy.version;
-  oldPolicy.owner_reserved_exact_paths=oldPolicy.owner_reserved_exact_paths.filter(path=>path!==ai020Path);
   if(JSON.stringify(oldPolicy)!==JSON.stringify(newPolicy))return false;
   const changed=Object.keys(a.source_sha256).filter(path=>a.source_sha256[path]!==b.source_sha256[path]).sort();
   if(JSON.stringify(changed)!==JSON.stringify(paths.slice().sort()))return false;
@@ -529,14 +529,72 @@ const ownerApprovedQuorumScope=(ownerDecision,files)=>{
     &&/^sha256:[0-9a-f]{64}$/.test(String(ownerDecision.comment_body_digest||''))
     &&files.every(file=>typeof file?.base_content==='string'&&typeof file?.head_content==='string');
 };
+const independentlyMatchesExactPoolingReadTransport=(file,files)=>{
+  const workflow='.github/workflows/kidults-asi-global-any-site-hourly-pooling-v2.yml';
+  if(file?.filename!==workflow||hash(file.base_content)!=='sha256:7a2728366cca4a96f1020248fcc2d08d6a94fddfe4d2fbc4fb6db7e69fb22c4a'
+    ||hash(file.head_content)!=='sha256:8f1851bcfda5936d5248033633695daf984f87b962b451dd44f8a13faa62df97')return false;
+  const expected={
+    'scripts/kidults/kpmo/read-github-json-v1.mjs':'sha256:db4f586f806248175f9ec8c1838fe1485875b924ac82e50f74976303532df9db',
+    'scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs':'sha256:5ac05f604153be6f12d7104406f90fe52df14b89eec2cfe44c0acb3d47305ec0',
+    'scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs':'sha256:119077cabe17b0397ebb5d77105c9bbdb4cb2f55142b3aa7d7069f7e8439328c',
+  };
+  return Object.entries(expected).every(([path,expectedDigest])=>{
+    const dependency=files.find(item=>item?.filename===path);
+    return typeof dependency?.head_content==='string'&&hash(dependency.head_content)===expectedDigest;
+  });
+};
+const independentlyPinnedRecoveryAdmissionWorkflowDigests=Object.freeze({
+  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:6e0efb72bfa0ccd572d4d35acc12805f09af76e10ef3028a0e525e5d2c74a80f'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:09302a7bab951fdcfeffd9e0707d63112c0be446cb83cde109f2ec1189068071'],
+  '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:3ea3160c074c7f8ae44b332d61701b80ed3b8ed799a082617996f27877354a62'],
+});
+const independentlyPinnedRecoveryAdmissionSources=Object.freeze({
+  'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:188f31ac6f91314a344478fa8b2b878d24d0f488a38999ce46cdb5c0367a1ef9'],
+  'scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs':['sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855','sha256:87bf52eb9c0a280a4d041fbcaf8374d7382c0a54fc4716bfc953b115cb413bf6'],
+});
+const independentlyMatchesExactRecoveryAdmissionWorkflow=(file,files)=>{
+  if(!Object.hasOwn(independentlyPinnedRecoveryAdmissionWorkflowDigests,file?.filename))return false;
+  const exact=(path,pair,isAdded=false)=>{
+    const matches=files.filter(entry=>entry?.filename===path);
+    return matches.length===1&&matches[0].status===(isAdded?'added':'modified')
+      &&hash(matches[0].base_content)===pair[0]&&hash(matches[0].head_content)===pair[1];
+  };
+  return Object.entries(independentlyPinnedRecoveryAdmissionWorkflowDigests).every(([path,pair])=>exact(path,pair))
+    &&Object.entries(independentlyPinnedRecoveryAdmissionSources).every(([path,pair])=>exact(path,pair,true));
+};
+const independentlyMatchesExactRecoveryAdmissionSource=file=>{
+  const pair=independentlyPinnedRecoveryAdmissionSources[file?.filename];
+  return Boolean(pair&&file.status==='added'&&hash(file.base_content)===pair[0]&&hash(file.head_content)===pair[1]);
+};
+const independentlyPinnedStagingBudgetWorkflowDigests=Object.freeze([
+  'sha256:86c56b0494692474bee8a9b8f693ca2afe44529f6cdc01526d83e21d6c03e5cd',
+  'sha256:0f78fe79092fb88995004e8d166e7470ff226d56a006cae2703f3d74467df294',
+]);
+const independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests=Object.freeze([
+  'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
+  'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
+]);
+const independentlyMatchesExactStagingBudgetWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'
+  &&hash(file.base_content)===independentlyPinnedStagingBudgetWorkflowDigests[0]
+  &&hash(file.head_content)===independentlyPinnedStagingBudgetWorkflowDigests[1];
+const independentlyMatchesExactPlatformAssuranceReadResumeWorkflow=file=>file?.filename==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+  &&hash(file.base_content)===independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests[0]
+  &&hash(file.head_content)===independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests[1];
 export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=null})=>{
   if(!Array.isArray(files)||!policy) deny('INDEPENDENT_CAPABILITY_INPUT_INVALID');
+  let ownerDecisionDigest=null;
   if(ownerDecision){
     if(!ownerApprovedQuorumScope(ownerDecision,files))deny('INDEPENDENT_OWNER_DECISION_BINDING_INVALID');
-    const receipts=files.map(file=>({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
-      owner_decision_digest:ownerDecision.comment_body_digest,authority_created:false,merge_authorized:false}));
-    return {state:'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM',receipts,digest:hash(JSON.stringify(receipts)),authority_created:false};
+    if(!files.some(file=>file?.filename===ai020PolicyPath)){
+      const receipts=files.map(file=>({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
+        owner_decision_digest:ownerDecision.comment_body_digest,authority_created:false,merge_authorized:false}));
+      return {state:'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM',receipts,digest:hash(JSON.stringify(receipts)),authority_created:false};
+    }
+    ownerDecisionDigest=ownerDecision.comment_body_digest;
   }
+  const ownerReservedExact=new Set(policy.owner_reserved_exact_paths||[]);
+  for(const file of files) if(ownerReservedExact.has(file?.filename)&&!ownerDecisionDigest)
+    deny('INDEPENDENT_OWNER_DECISION_REQUIRED',file.filename);
   const transitionId = delegatedTransitionId({files, policy});
   if (transitionId) {
     return {
@@ -550,6 +608,11 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
   for(const file of files) {
     if(!governed(file?.filename||'',policy)) continue;
     if(typeof file.base_content!=='string'||typeof file.head_content!=='string') deny('INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED',file?.filename);
+    const exactPoolingReadTransport=independentlyMatchesExactPoolingReadTransport(file,files);
+    const exactRecoveryAdmission=independentlyMatchesExactRecoveryAdmissionWorkflow(file,files);
+    const exactRecoveryAdmissionSource=independentlyMatchesExactRecoveryAdmissionSource(file);
+    const exactStagingBudgetWorkflow=independentlyMatchesExactStagingBudgetWorkflow(file);
+    const exactPlatformAssuranceWorkflow=independentlyMatchesExactPlatformAssuranceReadResumeWorkflow(file);
     if(independentlyMatchesOwnerReviewRoutingRepair(file,files,policy)){
       receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
     }
@@ -562,18 +625,32 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
     }
     verifyAutonomousPolicyAuthorityFields(file.base_content,file.head_content,file.filename,files);
     const boundedAi020Delta=verifyBoundedAi020Recovery(file.base_content,file.head_content,file.filename,files);
-    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')) verifyGuardDependencies(file.base_content,file.head_content,file.filename);
+    if(!file.filename.endsWith('.json')&&!file.filename.endsWith('.yml')&&!file.filename.endsWith('.yaml')&&!file.filename.endsWith('.md')&&!exactRecoveryAdmissionSource)
+      verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     if(!boundedAi020Delta){
-      for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
-      for(const line of after) if(securityLine.test(line)&&!before.includes(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of after) if(!before.includes(line)){
+        const candidates=file.filename.endsWith('.md')?line.split(/(?<=[.!?])\s+(?=[A-Z`])/):[line];
+        if(candidates.some(candidate=>file.filename.endsWith('.md')
+          ?!(/\b(?:grant\w*\s+no|does not grant|do not grant|doesn't grant)\b/i.test(candidate))&&markdownAuthorityExpansion.test(candidate)
+          :securityLine.test(candidate)))
+          deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
+      }
     }
     if(file.filename.endsWith('.json')) {
       let a,b; try {a=JSON.parse(file.base_content||'{}');b=JSON.parse(file.head_content||'{}')} catch {deny('INDEPENDENT_JSON_PARSE_FAILED',file.filename)}
       const walk=(left,right,path='')=>{if(left&&typeof left==='object'){for(const key of Object.keys(left)){if(!(key in (right||{})))deny('INDEPENDENT_POLICY_KEY_REMOVED',`${file.filename}:${path}${key}`);walk(left[key],right[key],`${path}${key}.`)}}else if(JSON.stringify(left)!==JSON.stringify(right))deny('INDEPENDENT_POLICY_VALUE_CHANGED',`${file.filename}:${path}`)};
       if(!boundedAi020Delta&&!independentlyMatchesExactAi020VerifierProfileRefresh(file.base_content,file.head_content,files))walk(a,b);
     }
-    receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content)});
+    receipts.push({filename:file.filename,base_digest:hash(file.base_content),head_digest:hash(file.head_content),
+      ...(exactPoolingReadTransport?{transition:'EXACT_RATE_AWARE_READ_ONLY_TRANSPORT',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmission?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION',authority_created:false,merge_authorized:false}:{}),
+      ...(exactRecoveryAdmissionSource?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION_SOURCE',authority_created:false,merge_authorized:false}:{}),
+      ...(exactStagingBudgetWorkflow?{transition:'EXACT_STAGING_BUDGET_AUTHORITY_READBACK',authority_created:false,merge_authorized:false}:{}),
+      ...(exactPlatformAssuranceWorkflow?{transition:'EXACT_ASSURANCE_READ_RESUME_EVENT_FILTER',authority_created:false,merge_authorized:false}:{}),
+      ...(ownerDecisionDigest?{owner_decision_digest:ownerDecisionDigest,authority_created:false,merge_authorized:false}:{})});
   }
-  return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts))};
+  return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts)),
+    ...(ownerDecisionDigest?{owner_scope:'OWNER_APPROVED_SCOPE_ONLY',authority_created:false,merge_authorized:false}:{})};
 };

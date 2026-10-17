@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 
-import {assertAutonomousFileScope,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,selectExactScopeOwnerDecision,sha256,validateLiveChangedPaths} from '../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import {delegatedTransitionId,matchesFinalizerReadyEvidenceTransitionFile} from '../../scripts/kidults/kpmo/lib/natural-reserve-transition-exception-v1.mjs';
@@ -79,6 +80,35 @@ const read = path => JSON.parse(fs.readFileSync(path,'utf8'));
 const delegated=read('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json');
 const landing=read('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json');
 const governed=read('coordination/kidults/kpmo/governed-landing-authorization-policy-v1.json');
+
+test('exact read-only recovery admission and staging-budget workflow transitions are pinned in both verifiers',()=>{
+  const base='550a8570a9820d54991cc21ec9e6152a173b361c';
+  const workflowPaths=[
+    '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+    '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+    '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+  ];
+  const addedPaths=[
+    'scripts/kidults/kpmo/lib/recovery-execution-admission-v1.mjs',
+    'scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs',
+  ];
+  const files=[...workflowPaths.map(filename=>({filename,status:'modified',
+    base_content:execFileSync('git',['show',`${base}:${filename}`],{encoding:'utf8'}),
+    head_content:fs.readFileSync(filename,'utf8')})),
+  ...addedPaths.map(filename=>({filename,status:'added',base_content:'',head_content:fs.readFileSync(filename,'utf8')})),
+  {filename:'.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml',status:'modified',
+    base_content:execFileSync('git',['show',`${base}:.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml`],{encoding:'utf8'}),
+    head_content:fs.readFileSync('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml','utf8')},
+  {filename:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',status:'modified',
+    base_content:execFileSync('git',['show',`${base}:.github/workflows/kidults-platform-continuous-assurance-v1.yml`],{encoding:'utf8'}),
+    head_content:fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8')}];
+  assert.equal(evaluateSemanticCapabilityDelta({files,policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files,policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  const widened=files.map(file=>({...file}));
+  widened.find(file=>file.filename===workflowPaths[0]).head_content+='\npermissions:\n  id-token: write\n';
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:widened,policy:landing}),/CAPABILITY_/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:widened,policy:landing}),/INDEPENDENT_/);
+});
 
 test('AI-020 forbids routine Owner orchestration and human independent review',()=>{
   assert.equal(delegated.normal_activation.manual_owner_orchestration_for_eligible_work,'FORBIDDEN');
@@ -203,18 +233,27 @@ test('AI-020 bounded unknown-classification recovery uses Track/KPMO and indepen
   delete base.classification_recovery;
   base.unknown_or_conflict='FAIL_CLOSED_OWNER_REQUIRED';
   const file={filename,status:'modified',patch:'@@ bounded read-only classification recovery @@',base_content:JSON.stringify(base),head_content:JSON.stringify(delegated)};
-  assert.deepEqual(assertAutonomousFileScope({files:[file],policy:landing}),[filename]);
-  assert.deepEqual(validateLiveChangedPaths({files:[file],expectedPaths:[filename],expectedScopeDigest:sha256(filename),policy:landing}),[filename]);
-  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
-  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  assert.ok(landing.owner_reserved_exact_paths.includes(filename));
+  assert.throws(()=>assertAutonomousFileScope({files:[file],policy:landing}),/OWNER_RESERVED_ACTION/);
+  assert.throws(()=>evaluateSemanticCapabilityDelta({files:[file],policy:landing}),/OWNER_DECISION_REQUIRED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file],policy:landing}),/OWNER_DECISION_REQUIRED/);
+  const scope=sha256(filename),commentBody=`AI-020 Program Owner decision — PR #2676\nRepository ID: 1281328888\nPR: 2676\nBase SHA: ${'a'.repeat(40)}\nHead SHA: ${'b'.repeat(40)}\nHead tree SHA: ${'c'.repeat(40)}\nChanged paths: 1\nChanged paths SHA-256: ${scope}\nDecision: APPROVE_EXACT_SCOPE\nDecision scope: Track Agent, KPMO, and Independent Verifier quorum required for Ready and merge\nProduction: HOLD\nPublic: HOLD\nG5: HOLD\nProvider activation: HOLD\nSTAGING deployment: HOLD`;
+  const ownerDecision=selectExactScopeOwnerDecision({comments:[{id:2676001,body:commentBody,created_at:'2026-10-17T00:00:00Z',updated_at:'2026-10-17T00:00:00Z',author_association:'OWNER',user:{login:'johnkim9524-collab',id:297161720}}],
+    repository:'johnkim9524-collab/kaios_enterprise_repo',repositoryId:'1281328888',repositoryOwner:'johnkim9524-collab',repositoryOwnerId:'297161720',
+    pullRequest:2676,baseSha:'a'.repeat(40),headSha:'b'.repeat(40),treeSha:'c'.repeat(40),changedPaths:[filename]});
+  assert.ok(ownerDecision);
+  assert.deepEqual(assertAutonomousFileScope({files:[file],policy:landing,ownerDecision}),[filename]);
+  assert.deepEqual(validateLiveChangedPaths({files:[file],expectedPaths:[filename],expectedScopeDigest:scope,policy:landing,ownerDecision}),[filename]);
+  assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing,ownerDecision}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing,ownerDecision}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
 
   for(const verify of [evaluateSemanticCapabilityDelta,independentlyVerifyCapabilityDelta]){
     const expanded=structuredClone(delegated);
     expanded.owner_reserved_actions=expanded.owner_reserved_actions.filter(action=>action!=='PRODUCTION');
-    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(expanded)}],policy:landing}),/BOUNDED_READ_ONLY_RECOVERY/);
+    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(expanded)}],policy:landing,ownerDecision}),/BOUNDED_READ_ONLY_RECOVERY/);
     const widened=structuredClone(delegated);
     widened.classification_recovery.maximum_reclassification_attempts=3;
-    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(widened)}],policy:landing}),/BOUNDED_READ_ONLY_RECOVERY/);
+    assert.throws(()=>verify({files:[{...file,head_content:JSON.stringify(widened)}],policy:landing,ownerDecision}),/BOUNDED_READ_ONLY_RECOVERY/);
   }
 });
 
@@ -414,6 +453,23 @@ test('safe internal implementation replacement is autonomous in both independent
   };
   assert.equal(evaluateSemanticCapabilityDelta({files:[file],policy:landing}).state,'SEMANTIC_CAPABILITY_DELTA_PASS');
   assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+});
+
+test('Markdown policy prose bypasses JavaScript parsing while retaining fail-closed text checks',()=>{
+  const filename='.github/AI_AGENT_OPERATING_RULES.md';
+  const base_content='# Operating policy\nProduction remains HOLD.\n';
+  const head_content=base_content+"Owner's note contains an apostrophe and a literal `{` in prose.\n";
+  const file={filename,base_content,head_content};
+  assert.equal(independentlyVerifyCapabilityDelta({files:[file],policy:landing}).state,'INDEPENDENT_CAPABILITY_VERIFIED');
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[file,{
+    filename:'AGENTS.md',base_content:'Production remains HOLD.\n',head_content:'Production is enabled.\n',
+  }],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_CHANGED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{
+    filename,base_content,head_content:base_content+'Agents may merge without Owner approval.\n',
+  }],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
+  assert.throws(()=>independentlyVerifyCapabilityDelta({files:[{
+    filename,base_content,head_content:base_content+'New authorization required.\n',
+  }],policy:landing}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
 });
 
 test('exact Finalizer reservation-before-token reorder passes independent verifier without broad reorder exemption',()=>{

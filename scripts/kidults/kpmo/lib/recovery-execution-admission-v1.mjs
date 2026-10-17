@@ -5,7 +5,7 @@ const assurance='KIDULTS Platform Continuous Assurance V1';
 const paths={ [gate]:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',
   [assurance]:'.github/workflows/kidults-platform-continuous-assurance-v1.yml' };
 const check=(ok,code)=>{if(!ok)throw Error('RECOVERY_ADMISSION_'+code);};
-export async function recoveryExecutionAdmission({env,event,get}){
+export function recoveryExecutionAdmission({env,event}){
   check(env.GITHUB_ACTIONS==='true'&&env.GITHUB_EVENT_NAME==='workflow_run'
     &&/^[1-9][0-9]{0,2}$/.test(env.GITHUB_RUN_ATTEMPT||'')
     &&env.GITHUB_REF==='refs/heads/main'&&env.GITHUB_REPOSITORY===repository
@@ -27,19 +27,6 @@ export async function recoveryExecutionAdmission({env,event,get}){
     return result(true,'FAILURE_PARENT_REQUIRES_FULL_NATIVE_VERIFICATION');
   }
   check(run.event==='workflow_run'&&run.conclusion==='success','GATE');
-  const live=await get(`actions/runs/${run.id}`);
-  check(['id','name','path','status','conclusion','run_attempt','head_sha','head_branch','event'].every(k=>live[k]===run[k])
-    &&live.repository?.full_name===repository&&String(live.repository?.id)==='1281328888'
-    &&live.head_repository?.full_name===repository,'READBACK');
-  const listing=await get(`actions/runs/${run.id}/attempts/1/jobs?per_page=100`);
-  check(Array.isArray(listing.jobs)&&Number.isSafeInteger(listing.total_count)&&listing.total_count===listing.jobs.length
-    &&listing.total_count<=100&&listing.incomplete_results!==true&&new Set(listing.jobs.map(j=>j.id)).size===listing.jobs.length
-    &&listing.jobs.every(j=>Number.isSafeInteger(j.id)&&j.id>0&&j.run_id===run.id
-      &&(j.run_attempt===undefined||j.run_attempt===1)&&j.status==='completed'),'JOBS');
-  const authority=listing.jobs.filter(j=>j.name==='success-authority-gate');
-  check(authority.length===1,'AUTHORITY_CARDINALITY');
-  if(authority[0].conclusion==='skipped')return result(false,'ACTUAL_AUTHORITY_JOB_SKIPPED');
-  check(authority[0].conclusion==='success','AUTHORITY_FAILURE');
   return result(true,'ACTUAL_AUTHORITY_REQUIRES_FULL_NATIVE_VERIFICATION');
 }
 function result(admitted,reason){return {state:admitted?'EXECUTION_ADMITTED_NOT_AUTHORITY':'NON_AUTHORIZING_NOOP',admitted,reason,

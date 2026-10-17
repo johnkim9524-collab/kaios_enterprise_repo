@@ -814,7 +814,7 @@ jobs:
           path: /tmp/kir-coverage-assurance-continuation-v1.json
           retention-days: 90
           if-no-files-found: error
-      - name: Dispatch exact Coverage consumer, Assurance, Sentinel continuation, and Reserve
+      - name: Dispatch exact Coverage consumer and Assurance
         env:
           GH_TOKEN: ${{ github.token }}
           DISPATCH_ARTIFACT_ID: ${{ steps.dispatch_archive.outputs.artifact-id }}
@@ -833,9 +833,6 @@ jobs:
           CONTINUATION_KEY=$(jq -r .continuation_key /tmp/kir-coverage-assurance-continuation-v1.json)
           COVERAGE_WORKFLOW_PATH=$(jq -r .coverage_workflow_path /tmp/kir-coverage-assurance-continuation-v1.json)
           GENERATION_ID=$(jq -r .generation_id /tmp/kir-coverage-assurance-continuation-v1.json)
-          # Start the existing restricted Assurance and Sentinel consumers.
-          # Assurance's bounded read barrier binds it to this exact Coverage
-          # run and waits for the authenticated Sentinel terminal receipt.
           jq -n --arg ref main --arg profile sentinel --arg coverage_event "$COVERAGE_EVENT" \
             --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" \
             --arg sha "$GITHUB_SHA" --arg tree "$SOURCE_TREE" --arg created "$COVERAGE_CREATED_AT" \
@@ -846,8 +843,10 @@ jobs:
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-platform-continuous-assurance-v1.yml/dispatches" \
             --input /tmp/kir-coverage-assurance-dispatch-request-v1.json
 
-          # Prime the required Reserve producer before starting the exact
-          # Sentinel continuation.
+          # A Coverage continuation proves the exact Requirement artifact, but
+          # it is not itself the CORE FOUR terminal. Start a fresh Reserve
+          # generation on protected main so its workflow_run Assurance emits
+          # the authoritative CORE FOUR health receipt without a manual retry.
           jq -n --arg ref main '{ref:$ref}' > /tmp/kir-core-four-terminal-reserve-dispatch-v1.json
           gh api --method POST -H 'Accept: application/vnd.github+json' \
             "/repos/${GITHUB_REPOSITORY}/actions/workflows/kidults-asi-sharded-source-reserve-v1.yml/dispatches" \

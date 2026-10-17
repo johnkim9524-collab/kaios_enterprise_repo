@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {canonicalJson, sha256, validateWorkload, validateEnvelope, deriveApprovalDecision, validateQuorum, validateRecoveryGeneration, validateDraftReadyRebind, buildTerminalReceipt} from './lib/autonomous-internal-landing-v1.mjs';
+import {canonicalJson, sha256, selectExactScopeOwnerDecision, validateWorkload, validateEnvelope, deriveApprovalDecision, validateQuorum, validateRecoveryGeneration, validateDraftReadyRebind, buildTerminalReceipt} from './lib/autonomous-internal-landing-v1.mjs';
 
 const policy = JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 const sha = char => char.repeat(40);
@@ -104,6 +104,12 @@ canonicalEnvelope.scope_digest=sha256([...canonicalEnvelope.changed_paths].sort(
 assert.equal(validateEnvelope(canonicalEnvelope,{policy,now}).changed_paths.length,2);
 const trustRootEnvelope={...canonicalEnvelope,changed_paths:['coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json']};
 trustRootEnvelope.scope_digest=sha256(trustRootEnvelope.changed_paths.join('\n'));
+const ownerBody=`AI-020 Program Owner decision — PR #42\nRepository ID: ${base.repository_id}\nPR: 42\nBase SHA: ${base.base_sha}\nHead SHA: ${base.head_sha}\nHead tree SHA: ${base.head_tree_sha}\nChanged paths: 1\nChanged paths SHA-256: ${trustRootEnvelope.scope_digest}\nDecision: APPROVE_EXACT_SCOPE\nDecision scope: Track Agent, KPMO, and Independent Verifier quorum required for Ready and merge\nProduction: HOLD\nPublic: HOLD\nG5: HOLD\nProvider activation: HOLD\nSTAGING deployment: HOLD`;
+trustRootEnvelope.owner_decision=selectExactScopeOwnerDecision({comments:[{id:42,body:ownerBody,created_at:'2026-09-21T12:00:00Z',updated_at:'2026-09-21T12:00:00Z',author_association:'OWNER',user:{login:'johnkim9524-collab',id:297161720}}],
+  repository:base.repository,repositoryId:base.repository_id,repositoryOwner:'johnkim9524-collab',repositoryOwnerId:'297161720',pullRequest:42,
+  baseSha:base.base_sha,headSha:base.head_sha,treeSha:base.head_tree_sha,changedPaths:trustRootEnvelope.changed_paths});
+assert.ok(trustRootEnvelope.owner_decision);
+assert.throws(()=>validateEnvelope({...trustRootEnvelope,owner_decision:undefined},{policy,now}),/OWNER_RESERVED_ACTION/);
 assert.doesNotThrow(()=>validateEnvelope(trustRootEnvelope,{policy,now}));
 const otherTrustRootEnvelope={...trustRootEnvelope,changed_paths:['coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json']};
 otherTrustRootEnvelope.scope_digest=sha256(otherTrustRootEnvelope.changed_paths.join('\n'));

@@ -136,6 +136,7 @@
   "owner_reserved_exact_paths": [
     "CONSTITUTION.md",
     "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
     "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
     "coordination/kidults/governance/autonomous-workload-identity-registry-v1.json"
   ],
@@ -596,8 +597,8 @@
       "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
       "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
       "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:2c89c22203c4a914e8751e576d757584b592417c64e8c7df8f0a7369e19f6484",
-      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:caa6bcfdc649f4500bd4bbd36702c05083c3a089408f9ee4de588eab19bd3644",
-      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:b8fe7256e20fa1c91448d5cc07d84a6497aa2c296ae42e81ed7157de134ba524"
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:4dace6c08b5e88cc52ac58b1509ac0d8fbc764c605b44fc2c5212999760a1d0f",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:5d1e862b8c796d95b95c9eae6506460aafeea69a023d654e025aab56d63f734a"
     }
   }
 }

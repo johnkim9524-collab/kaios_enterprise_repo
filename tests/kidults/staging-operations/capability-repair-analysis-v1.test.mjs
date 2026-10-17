@@ -79,11 +79,25 @@ test('paired immutable metadata retains the other changed source during per-file
   assert.equal(report.blocked_path_count,2);
   assert.ok(report.findings.every(item=>!item.path.endsWith('.json')));
 });
+test('diagnostic scan accepts the integrated PR files and source bytes within fixed bounds',()=>{
+  const input=fixture();
+  input.files=Array.from({length:140},(_,n)=>({filename:`scripts/kidults/kpmo/file-${String(n).padStart(3,'0')}.mjs`,
+    base_content:'const value=1;\n',head_content:'const value=1;\n'}));
+  input.files[0].base_content='x'.repeat(5*1024*1024);
+  const report=analyzeCapabilityRepair(input);
+  assert.equal(report.scan_budget.maximum_files,256);
+  assert.equal(report.scan_budget.maximum_source_bytes,8*1024*1024);
+  assert.equal(report.scan_budget.source_bytes,5*1024*1024+Buffer.byteLength('const value=1;\n')
+    +(140-1)*Buffer.byteLength('const value=1;\n')*2);
+  assert.equal(report.binding.changed_paths.length,140);
+  assert.equal(report.repository_mutation_performed,false);
+  assert.equal(report.merge_authorized,false);
+});
 for(const [name,mutate]of Object.entries({
   'duplicate path':x=>x.files.push(x.files[0]),'missing source':x=>delete x.files[0].head_content,
   'path traversal':x=>x.files[0].filename='../unsafe', 'newline path':x=>x.files[0].filename+='\n',
-  'invalid tuple':x=>x.headSha='unbound','file budget':x=>x.files=Array.from({length:129},(_,n)=>({...x.files[0],filename:`scripts/kidults/kpmo/${n}.mjs`})),
-  'byte budget':x=>x.files[0].head_content='x'.repeat(4*1024*1024),
+  'invalid tuple':x=>x.headSha='unbound','file budget':x=>x.files=Array.from({length:257},(_,n)=>({...x.files[0],filename:`scripts/kidults/kpmo/${n}.mjs`})),
+  'byte budget':x=>x.files[0].head_content='x'.repeat(8*1024*1024),
 })){test(`analysis rejects ${name}`,()=>{const input=fixture();mutate(input);assert.throws(()=>analyzeCapabilityRepair(input),/CAPABILITY_REPAIR_ANALYSIS_INPUT_INVALID/);});}
 test('dispatcher preserves its original rejected state and reason with diagnostics',()=>{
   const input=fixture(),record={state:'OWNER_REVIEW_REQUIRED',reason:'CAPABILITY_GUARD_DEPENDENCY_CHANGED',merge_authorized:false};
