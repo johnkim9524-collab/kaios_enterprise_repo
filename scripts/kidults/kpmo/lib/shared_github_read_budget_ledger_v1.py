@@ -1,4 +1,3 @@
-"""Signed shared-budget operations through the existing protected writer."""
 import base64
 import hashlib
 import json
