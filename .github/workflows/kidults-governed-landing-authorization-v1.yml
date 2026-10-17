@@ -286,10 +286,12 @@ jobs:
               process.exit(0);
             }
             if(final.draft===true){
-              if(process.env.AUTHORIZATION_OUTCOME!=='success')throw new GateFailure('DRAFT_DEVELOPMENT_EVALUATION_FAILED');
               assertHoldBoundary();
-              await status('pending','Draft is non-promotable; automated Ready transition pending');
-              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE',repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
+              const draftDevelopmentValidated=process.env.AUTHORIZATION_OUTCOME==='success';
+              await status('pending',draftDevelopmentValidated
+                ?'Draft development validated; landing remains non-promotable'
+                :'Draft development validation has not passed; see its dedicated status');
+              const receipt={id:'kidults-governed-landing-readiness-receipt-v1',version:'1.0.0',state:draftDevelopmentValidated?'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE':'VERIFIED_FAIL',...(draftDevelopmentValidated?{}:{failure_code:'DRAFT_DEVELOPMENT_EVALUATION_FAILED'}),repository:repo,workflow_run_id:Number(process.env.GITHUB_RUN_ID),workflow_run_attempt:Number(process.env.GITHUB_RUN_ATTEMPT),pull_request:Number(number),exact_base_sha:base,exact_head_sha:head,evaluated_at:new Date().toISOString(),final_live_reread:true,ready_state_grants_authorization:false,landing_authorization_created:false,atomic_landing_required:false,promotion_eligible:false,production:'HOLD',public_release:'HOLD',g5:'HOLD'};writeReceipt(receipt);console.log(JSON.stringify(receipt,null,2));
               process.exit(0);
             }
             assertStableFinalReread(final,final,{repository:repo,expectedHeadSha:head,noMergePolicy:policy.no_merge_policy});
