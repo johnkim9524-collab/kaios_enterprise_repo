@@ -41,7 +41,7 @@ try{
     const runId=Number(input.source_run_id),runAttempt=Number(input.source_run_attempt);
     if(!Number.isSafeInteger(runId)||runId<=0)throw Error('GITHUB_RESUME_OWNER_DISPATCH_RUN_ID');
     manualRecoveryEvent={action:'completed',workflow_run:{id:runId,run_attempt:runAttempt,head_sha:input.source_sha,
-      head_branch:'main',event:'workflow_run',conclusion:'failure',
+      head_branch:'main',event:null,conclusion:null,
       repository:{full_name:env.GITHUB_REPOSITORY,id:Number(env.GITHUB_REPOSITORY_ID)}}};
   }
   const event=isResumeDispatch
