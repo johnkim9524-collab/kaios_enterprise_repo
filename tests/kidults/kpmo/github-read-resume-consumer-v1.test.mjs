@@ -47,7 +47,7 @@ test('allows the checkpoint exact direct GET target while keeping it read-only',
  const targetCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:targetRoute}};
  const targetLine=JSON.stringify(targetCheckpoint);let calls=0;
  await consumeGithubReadResumeCheckpoint({...common,checkpoint:targetCheckpoint,
-  archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:targetLine+'\\n'}]}),
+  archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:targetLine+'\n'}]}),
   read:async value=>{calls++;assert.equal(value,targetRoute);return {id:988};}});
  assert.equal(calls,1);
 });
