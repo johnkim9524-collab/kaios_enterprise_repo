@@ -98,7 +98,7 @@ jobs:
                 (.repository.id | tostring) == $repo_id and
                 .workflow_run.head_branch == "main" and
                 (.workflow_run.head_sha | test("^[0-9a-f]{40}$")) and
-                .workflow_run.head_sha != $main_sha and
+                .workflow_run.head_sha == $main_sha and
                 .workflow_run.conclusion != "success"
               ' "$GITHUB_EVENT_PATH" >/dev/null
           fi
