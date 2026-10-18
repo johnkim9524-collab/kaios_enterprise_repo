@@ -123,28 +123,33 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         else try{payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{if(response.ok)throw Error('GITHUB_READ_INVALID_JSON');payload=null;}
       }catch(error){transportFailure=error;transportCode=retryableTransportCode(error,activeSignal);}
       finally{
-        // If a throttled response arrived but its body stream failed, commit
-        // the shared cooldown before completing this permit. Otherwise another
-        // runner can observe the released slot with a stale blocked_until.
-        if(response&&bodyReadFailure){
-          const interruptedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
-          const interruptedThrottle=[403,429].includes(response.status)
-            &&(interruptedDiagnostic.rate_remaining===0||interruptedDiagnostic.retry_after_seconds!==null||response.status===429);
-          const interruptedQuotaExhaustion=response.ok&&interruptedDiagnostic.rate_remaining===0;
-          if(interruptedThrottle||interruptedQuotaExhaustion){
-            if(interruptedDiagnostic.rate_remaining===0&&(interruptedDiagnostic.rate_reset_epoch===null
-              ||interruptedDiagnostic.rate_reset_epoch*1000<=now()||interruptedDiagnostic.rate_reset_epoch*1000-now()>86400000)){
-              const error=Error('GITHUB_READ_INVALID_RATE_RESET');error.http_diagnostic=interruptedDiagnostic;throw error;}
-            const resetAt=interruptedDiagnostic.rate_remaining===0&&interruptedDiagnostic.rate_reset_epoch!==null
-              ?interruptedDiagnostic.rate_reset_epoch*1000+1000:0;
-            const explicit=Math.max(interruptedDiagnostic.retry_after_seconds===null?0:now()+interruptedDiagnostic.retry_after_seconds*1000,resetAt);
-            const interruptedResumeAt=Math.max(explicit,now()+60000);
-            budget.blockUntil(interruptedResumeAt);
-            if(budget.pauseUntil)await budget.pauseUntil(interruptedResumeAt);
+        let finalizationFailure=null,finishPermit=true;
+        try{
+          // If a throttled response arrived but its body stream failed, commit
+          // the shared cooldown before completing this permit. Otherwise another
+          // runner can observe the released slot with a stale blocked_until.
+          if(response&&bodyReadFailure){
+            const interruptedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
+            const interruptedThrottle=[403,429].includes(response.status)
+              &&(interruptedDiagnostic.rate_remaining===0||interruptedDiagnostic.retry_after_seconds!==null||response.status===429);
+            const interruptedQuotaExhaustion=response.ok&&interruptedDiagnostic.rate_remaining===0;
+            if(interruptedThrottle||interruptedQuotaExhaustion){
+              if(interruptedDiagnostic.rate_remaining===0&&(interruptedDiagnostic.rate_reset_epoch===null
+                ||interruptedDiagnostic.rate_reset_epoch*1000<=now()||interruptedDiagnostic.rate_reset_epoch*1000-now()>86400000)){
+                const error=Error('GITHUB_READ_INVALID_RATE_RESET');error.http_diagnostic=interruptedDiagnostic;throw error;}
+              const resetAt=interruptedDiagnostic.rate_remaining===0&&interruptedDiagnostic.rate_reset_epoch!==null
+                ?interruptedDiagnostic.rate_reset_epoch*1000+1000:0;
+              const explicit=Math.max(interruptedDiagnostic.retry_after_seconds===null?0:now()+interruptedDiagnostic.retry_after_seconds*1000,resetAt);
+              const interruptedResumeAt=Math.max(explicit,now()+60000);
+              budget.blockUntil(interruptedResumeAt);
+              if(budget.pauseUntil){finishPermit=false;await budget.pauseUntil(interruptedResumeAt);finishPermit=true;}
+            }
           }
-        }
-        if(typeof release.finish==='function')await release.finish();
-        release();
+        }catch(error){finalizationFailure=error;}
+        try{if(finishPermit&&typeof release.finish==='function')await release.finish();}
+        catch(error){finalizationFailure??=error;}
+        finally{release();}
+        if(finalizationFailure)throw finalizationFailure;
       }
       if(transportFailure){
         if(!transportCode){

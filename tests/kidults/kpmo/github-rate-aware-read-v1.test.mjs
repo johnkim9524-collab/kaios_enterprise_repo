@@ -82,14 +82,32 @@ test('shared cooldown is persisted before the permit is completed after an inter
  await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
  assert.deepEqual(events,['acquire','persist','finish']);
 });
+test('failed shared cooldown persistence releases locally without completing the cross-runner permit',async()=>{
+ const events=[],body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>Object.assign(()=>events.push('release'),
+   {finish:async()=>events.push('finish')}),pauseUntil:async()=>{events.push('persist');throw Error('store unavailable');}};
+ const read=createGithubRateAwareRead({token:'fake',binding,budget,now:()=>100000,
+  fetchImpl:async()=>new Response(body,{status:429,headers:{'retry-after':'2'}})});
+ await assert.rejects(read(url),/store unavailable/);
+ assert.deepEqual(events,['persist','release']);
+});
 test('interrupted rate responses reject missing, expired, or excessive reset metadata',async()=>{
  for(const reset of [null,'99','999999999']){
   const headers={'x-ratelimit-remaining':'0'};if(reset!==null)headers['x-ratelimit-reset']=reset;
   const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
   const f=fixture([new Response(body,{status:403,headers})],{maxTransportRetries:2});
   await assert.rejects(f.read(url),/GITHUB_READ_INVALID_RATE_RESET/);
-  assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
+  assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);assert.equal(f.budget.snapshot().active,0);
  }
+});
+test('invalid interrupted reset still completes and releases the shared read permit',async()=>{
+ const events=[],body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>Object.assign(()=>events.push('release'),
+   {finish:async()=>events.push('finish')})};
+ const read=createGithubRateAwareRead({token:'fake',binding,budget,now:()=>100000,
+  fetchImpl:async()=>new Response(body,{status:403,headers:{'x-ratelimit-remaining':'0','x-ratelimit-reset':'99'}})});
+ await assert.rejects(read(url),/GITHUB_READ_INVALID_RATE_RESET/);
+ assert.deepEqual(events,['finish','release']);
 });
 test('transient checkpoint resume time is clamped to the outer runner deadline',async()=>{
  const f=fixture([transientSocket()],{maxTransportRetries:0,resumeDeadline:100050});
