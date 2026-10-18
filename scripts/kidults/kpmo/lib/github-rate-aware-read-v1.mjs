@@ -129,6 +129,9 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
             &&(failedDiagnostic.rate_remaining===0||failedDiagnostic.retry_after_seconds!==null||response.status===429);
           const successfulQuotaExhaustion=response.ok&&failedDiagnostic.rate_remaining===0;
           if(hasThrottleMetadata||successfulQuotaExhaustion){
+            if(failedDiagnostic.rate_remaining===0&&(failedDiagnostic.rate_reset_epoch===null
+              ||failedDiagnostic.rate_reset_epoch*1000<=now()||failedDiagnostic.rate_reset_epoch*1000-now()>86400000)){
+              const error=Error('GITHUB_READ_INVALID_RATE_RESET');error.http_diagnostic=failedDiagnostic;throw error;}
             const resetAt=failedDiagnostic.rate_remaining===0&&failedDiagnostic.rate_reset_epoch!==null
               ?failedDiagnostic.rate_reset_epoch*1000+1000:0;
             const explicit=Math.max(failedDiagnostic.retry_after_seconds===null?0:now()+failedDiagnostic.retry_after_seconds*1000,resetAt);
