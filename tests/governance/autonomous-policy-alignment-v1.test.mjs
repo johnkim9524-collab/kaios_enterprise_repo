@@ -103,7 +103,13 @@ test('exact read-only recovery admission and staging-budget workflow transitions
     assert.equal(sha256(base_content),baselineHashes[filename],`baseline fixture changed: ${filename}`);
     return base_content;
   };
-  const files=[...workflowPaths.map(filename=>({filename,status:'modified',base_content:pinnedBaseContent(filename),head_content:fs.readFileSync(filename,'utf8')})),
+  const pinnedHeadContent=filename=>{
+    if(filename!==workflowPaths[2])return fs.readFileSync(filename,'utf8');
+    const head_content=fs.readFileSync('tests/fixtures/governance/autonomous-policy-alignment-v1/head/kidults-autonomous-track-authorization-v1.yml','utf8');
+    assert.equal(sha256(head_content),'sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc','pinned current Track head changed');
+    return head_content;
+  };
+  const files=[...workflowPaths.map(filename=>({filename,status:'modified',base_content:pinnedBaseContent(filename),head_content:pinnedHeadContent(filename)})),
   ...addedPaths.map(filename=>({filename,status:'added',base_content:'',head_content:fs.readFileSync(filename,'utf8')})),
   {filename:'.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml',status:'modified',
     base_content:pinnedBaseContent('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'),
