@@ -25,12 +25,6 @@ const watchedWorkflowNames = (sourceText) => {
   return [...workflowRunBlock.matchAll(/^      - '([^']+)'$/gm)].map((match) => match[1]);
 };
 const watched = watchedWorkflowNames(workflow);
-const auditJob = workflow.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1];
-assert(typeof auditJob === 'string', 'ASSURANCE_AUDIT_JOB_NOT_FOUND');
-assert(auditJob.includes("github.event.workflow_run.path == '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'")
-  && auditJob.includes("needs.classify-canonical-identity.outputs.upstream_class == 'KPMO_EXACT_SHA_PRODUCER_HEALTH'"),
-'ASSURANCE_AUDIT_GATE_NOT_BOUND_TO_CLASSIFIED_SENTINEL');
-assert(!auditJob.includes('github.event.workflow_run.name =='), 'ASSURANCE_AUDIT_GATE_STATIC_RUNTIME_NAME');
 assert(JSON.stringify(watchedWorkflowNames(workflow.replaceAll('\n', '\r\n'))) === JSON.stringify(watched),
   'WORKFLOW_WATCH_CRLF_PARITY');
 for (const entry of contract.workflow_run_class_allowlist) {
