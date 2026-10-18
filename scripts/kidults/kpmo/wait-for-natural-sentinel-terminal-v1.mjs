@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {spawnSync} from 'node:child_process';
-import {sentinelOrderBarrierBudget, withinSentinelObservationWindow} from './lib/sentinel-order-barrier-budget-v1.mjs';
+import {sentinelOrderBarrierBudget, withinSentinelObservationWindow, sentinelRunNameMatches} from './lib/sentinel-order-barrier-budget-v1.mjs';
 import {verifyAuthenticatedSentinelContinuation} from './lib/authenticated-sentinel-continuation-v1.mjs';
 
 const REPOSITORY = process.env.GITHUB_REPOSITORY || '';
@@ -13,7 +13,6 @@ const TOKEN = process.env.GH_TOKEN || '';
 const FORWARDED_COVERAGE_RUN_ID = Number(process.env.KPMO_COVERAGE_RUN_ID || 0);
 const FORWARDED_COVERAGE_RUN_ATTEMPT = Number(process.env.KPMO_COVERAGE_RUN_ATTEMPT || 0);
 const WORKFLOW_FILE = 'kpmo-continuous-assurance-sentinel-health-v1.yml';
-const WORKFLOW_NAME = 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1';
 const RECEIPT_NAME = 'kpmo-continuous-assurance-sentinel-health-v1.json';
 const SHA = /^[0-9a-f]{40}$/;
 const DIGEST = /^sha256:[0-9a-f]{64}$/;
@@ -109,7 +108,7 @@ function eventIssuedAt() {
 function candidatesFrom(runs, cutoffMs) {
   const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_dispatch' : 'repository_dispatch';
   return (runs || []).filter(run =>
-    run?.name === WORKFLOW_NAME &&
+    sentinelRunNameMatches(run?.name, run?.id, sentinelEvent) &&
     run?.path === `.github/workflows/${WORKFLOW_FILE}` &&
     run?.repository?.full_name === REPOSITORY &&
     run?.head_repository?.full_name === REPOSITORY &&
