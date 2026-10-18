@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "5344c099c39af8205f7dc5e4209f4fe04804802c",
+  "revision": "e67477e76bbb378c498b3b7a7a5716ee0382b1db",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 857
+    "file_count": 858
   },
   "files": [
     {
@@ -6482,6 +6482,12 @@
       "sha256": "sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564"
     },
     {
+      "path": "tests/fixtures/governance/autonomous-policy-alignment-v1/head/kidults-autonomous-track-authorization-v1.yml",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "182494684f5e8f7be32cc8405d688b3c55677d2d",
+      "sha256": "sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc"
+    },
+    {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "52308701d32ce4fd72b7b27001b33059c7f4e14b",
@@ -6510,8 +6516,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "81578b298743a249d013fff5b74404d4a97bc9a6",
-      "sha256": "sha256:f24a86c01096871dd0cef67af46b19a4d5cd63a490d417a27dd0df5c5451f60b",
+      "git_blob": "64f331918eb6b26b0a011c15a3d050561ca8e3a0",
+      "sha256": "sha256:8905144bf82d9120a42a6916134d1a49a25ea9c79a0a59d8536cc69c0ddd261b",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7216,5 +7222,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3feae156f34ba2c141c6657ff8525faad9bc1f3a8551445a05fbbd4056818485"
+  "manifest_sha256": "sha256:b169277ab74235af1282a16ff38fe9e09ce50aeed1a438a534bc506084fc1913"
 }
