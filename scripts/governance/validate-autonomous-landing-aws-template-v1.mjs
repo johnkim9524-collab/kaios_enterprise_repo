@@ -79,7 +79,8 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   const workflowPath = `.github/workflows/${workflowFile}`;
   const workflow = fs.readFileSync(workflowPath,'utf8');
   assert.match(workflow, new RegExp(`^name:`, 'm'));
-  assert.ok(workflow.includes(`      - ${eventName}`));
+  if (prefix === 'Track') assert.doesNotMatch(workflow, /^  repository_dispatch:/m);
+  else assert.ok(workflow.includes(`      - ${eventName}`));
   for (const other of approvals.map(value=>value[6]).filter(value=>value!==eventName)) assert.equal(workflow.includes(`      - ${other}`), false);
   assert.ok(workflow.includes(`environment: ${template.Parameters[environmentParameter].Default}`));
   assert.ok(workflow.includes('environment: KIDULTS-AUTONOMOUS-FINALIZER'));
