@@ -38,6 +38,14 @@ function fixture(){
   };
   return {run,receipt,bytes,artifact,calls,get,readBytes:async()=>bytes,archiveReader};
 }
+test('binds the exact live Sentinel run with its observer-wrapped runtime name',async()=>{
+  const f=fixture();
+  f.run.name='KIDULTS_AUTH_OBSERVER/KIDULTS Platform Continuous Assurance V1/39081891557';
+  const result=await bindAssuranceUpstreamSentinelReceipt({run:f.run,sourceSha:sha,get:f.get,readBytes:f.readBytes,
+    archiveReader:f.archiveReader,observedAt:'2026-10-11T11:30:00Z'});
+  assert.equal(result.run_id,901);
+  assert.equal(result.receipt_digest,f.receipt.receipt_digest);
+});
 test('binds the exact live Sentinel run, artifact bytes, and sealed receipt digest',async()=>{
   const f=fixture(),result=await bindAssuranceUpstreamSentinelReceipt({run:f.run,sourceSha:sha,get:f.get,readBytes:f.readBytes,archiveReader:f.archiveReader,observedAt:'2026-10-11T11:30:00Z'});
   assert.equal(result.receipt_digest,f.receipt.receipt_digest);
@@ -45,6 +53,8 @@ test('binds the exact live Sentinel run, artifact bytes, and sealed receipt dige
 });
 for(const [name,mutate] of [
   ['manual Sentinel event',f=>{f.run.event='workflow_dispatch';}],
+  ['wrong observer name prefix',f=>{f.run.name='OTHER_OBSERVER/KIDULTS Platform Continuous Assurance V1/39081891557';}],
+  ['malformed observer run ID',f=>{f.run.name='KIDULTS_AUTH_OBSERVER/KIDULTS Platform Continuous Assurance V1/not-a-run';}],
   ['borrowed source SHA',f=>{f.run.head_sha='b'.repeat(40);}],
   ['wrong artifact digest',f=>{f.artifact.digest='sha256:'+'0'.repeat(64);}],
   ['duplicate exact artifact',f=>{f.get=async route=>route==='actions/runs/901'?f.run:
