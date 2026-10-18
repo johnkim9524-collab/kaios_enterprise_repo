@@ -4,12 +4,27 @@ import {createGithubRateAwareRead,createReadBudget,readResumeCheckpoint} from '.
 import {createSharedGithubReadBudget} from '../../../scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs';
 const url='https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10';
 const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:20,run_attempt:1,original_run_id:38132692877,original_run_attempt:1};
-function fixture(responses){let time=100000,calls=0;const waits=[],checkpoints=[];
+function fixture(responses,options={}){let time=100000,calls=0;const waits=[],checkpoints=[];
  const now=()=>time,wait=async ms=>{waits.push(ms);time+=ms;},budget=createReadBudget({now,wait,minIntervalMs:0});
- const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),fetchImpl:async(_url,options)=>{assert.equal(options.method,'GET');calls++;const r=responses.shift();if(r instanceof Error)throw r;return r;}});
+ const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),...options,fetchImpl:async(_url,options)=>{assert.equal(options.method,'GET');calls++;const r=responses.shift();if(r instanceof Error)throw r;return r;}});
  return {read,now,wait,budget,waits,checkpoints,calls:()=>calls,setTime:t=>{time=t;}};}
 const response=(status,headers={},body={ok:true})=>new Response(JSON.stringify(body),{status,headers});
 test('successful read no approval claim',async()=>{const f=fixture([response(200)]);assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),1);});
+const transientSocket=()=>Object.assign(new TypeError('fetch failed'),{cause:Object.assign(new Error('other side closed'),{code:'UND_ERR_SOCKET'})});
+test('transient socket close retries a GET with a separately charged attempt',async()=>{
+ const f=fixture([transientSocket(),response(200)],{maxRetries:0,maxTransportRetries:1});
+ assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);assert.equal(f.budget.snapshot().calls,2);
+});
+test('exhausted transient retries defer a bounded read checkpoint',async()=>{
+ const f=fixture([transientSocket(),transientSocket()],{maxRetries:0,maxTransportRetries:1});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);
+ assert.equal(f.checkpoints.length,1);assert.equal(f.checkpoints[0].reason,'TRANSIENT_NETWORK');assert.equal(f.checkpoints[0].producer_failure_claimed,false);
+});
+test('unknown transport errors remain fail closed without retry',async()=>{
+ const f=fixture([new Error('unexpected programming error')],{maxTransportRetries:2});
+ await assert.rejects(f.read(url),/unexpected programming error/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
+});
+
 test('primary quota reset waits and resumes same GET',async()=>{const f=fixture([response(403,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'102'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[3000]);assert.equal(f.calls(),2);assert.equal(f.checkpoints.length,0);});
 test('secondary Retry-After controls bounded wait',async()=>{const f=fixture([response(403,{'retry-after':'2'},{message:'You have exceeded a secondary rate limit.'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[2000]);});
 test('429 without headers defers one minute rather than spins',async()=>{const f=fixture([response(429)]);await assert.rejects(f.read(url),/DEFERRED/);assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].resume_at,new Date(160000).toISOString());assert.equal(f.checkpoints[0].producer_failure_claimed,false);});
