@@ -53,9 +53,11 @@ test('transport failures do not consume the HTTP throttle retry allowance',async
 test('HTTP rate metadata is honored when the response body stream closes',async()=>{
  const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
  const f=fixture([new Response(body,{status:429,headers:{'retry-after':'2'}})],{maxRetries:0,maxTransportRetries:2});
+ const persisted=[];f.budget.pauseUntil=async at=>persisted.push(at);
  await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
  assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');
  assert.ok(Date.parse(f.checkpoints[0].resume_at)>=100000+2000);
+ assert.deepEqual(persisted,[Date.parse(f.checkpoints[0].resume_at)]);
 });
 test('interrupted rate responses reject missing, expired, or excessive reset metadata',async()=>{
  for(const reset of [null,'99','999999999']){
