@@ -65,7 +65,10 @@ class RecoveryWorkflowTests(unittest.TestCase):
             recovery_if = workflow['jobs']['terminal-recovery-admission']['if']
             self.assertNotIn("github.event_name == 'workflow_dispatch'", recovery_if)
         track = self.workflow('track')
-        self.assertNotIn('repository_dispatch', track['on'])
+        self.assertEqual(track['on']['repository_dispatch']['types'], ['kidults.authorization.generation.v1'])
+        self.assertIn("github.event_name == 'repository_dispatch'", track['jobs']['record-role-approval']['if'])
+        self.assertNotIn('workflow_dispatch', track['on'])
+        self.assertNotIn('finalize-if-quorum', track['jobs'])
 
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_workflow()
