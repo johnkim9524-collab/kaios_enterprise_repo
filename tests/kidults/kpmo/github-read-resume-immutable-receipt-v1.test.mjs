@@ -7,7 +7,7 @@ import {buildGithubReadResumeTerminalReceipt,githubReadResumeReceiptKey,sealGith
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 
 const event={workflow_run:{id:4321,run_attempt:2,head_sha:'a'.repeat(40)}};
-const result={state:'READ_ONLY_CHECKPOINT_RESUMED',method:'GET',actual_authority_granted:false};
+const result={state:'READ_ONLY_CHECKPOINT_RESUMED',method:'GET',route:'/repos/example/actions/runs/1',route_count:1,checkpoint_consumed:true,actual_authority_granted:false};
 const consumer={run_id:'9876',run_attempt:1};
 const makeReceipt=()=>buildGithubReadResumeTerminalReceipt({result,event,consumer,exactMainSha:'a'.repeat(40),createdAt:'2026-10-13T00:00:00.000Z'});
 
@@ -17,7 +17,7 @@ test('terminal receipt binds exact main, original and consumer run without check
   assert.equal(githubReadResumeReceiptKey(receipt),'receipts/read-resume/4321/2/'+'a'.repeat(40)+'/9876-1.json');
   assert.equal(JSON.stringify(receipt).includes('nonce'),false);
   assert.equal(JSON.stringify(receipt).includes('checkpoint'),false);
-  assert.equal(receipt.outcome.actual_authority_granted,false);
+  assert.equal(receipt.outcome.route_count,1);\n  assert.equal(receipt.outcome.actual_authority_granted,false);
 });
 
 test('seal writes once with compliance retention then physically reads back the same version and bytes',async()=>{
@@ -45,6 +45,18 @@ test('seal writes once with compliance retention then physically reads back the 
     assert.equal(sealed.version_id,'version-1');assert.equal(sealed.body_readback_verified,true);
     assert.deepEqual(calls,['put-object','head-object','get-object']);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
+
+test('records the exact count of validated resumed GET routes and rejects inconsistent success metadata',()=>{
+  const plural={state:'READ_ONLY_CHECKPOINTS_RESUMED',route_count:2,actual_authority_granted:false,
+    results:[{method:'GET',route:'/repos/example/actions/runs/1',route_count:1,checkpoint_consumed:true},
+      {method:'GET',route:'/repos/example/branches/main',route_count:1,checkpoint_consumed:true}]};
+  const receipt=buildGithubReadResumeTerminalReceipt({result:plural,event,consumer,exactMainSha:'a'.repeat(40)});
+  assert.equal(receipt.outcome.route_count,2);
+  assert.throws(()=>buildGithubReadResumeTerminalReceipt({result:{...result,route_count:0},event,consumer,
+    exactMainSha:'a'.repeat(40)}),/ROUTE_COUNT/);
+  assert.throws(()=>buildGithubReadResumeTerminalReceipt({result:{...plural,route_count:1},event,consumer,
+    exactMainSha:'a'.repeat(40)}),/ROUTE_COUNT/);
 });
 
 test('rejects receipt drift and never reports a terminal for authority-granting outcomes',async()=>{
