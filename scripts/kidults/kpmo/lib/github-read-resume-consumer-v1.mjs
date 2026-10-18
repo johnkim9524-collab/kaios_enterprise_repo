@@ -44,7 +44,7 @@ function routeAllowed(route,binding,now=()=>Date.now()){
   check(allowed.some(pattern=>pattern.test(path))||sentinelAllowed,'ROUTE_NOT_ALLOWLISTED');
   const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/((?:[1-9]|[1-9][0-9]|100))\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
   if(run){
-    const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id]
+    const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id,binding.deferred_target_run_id]
       .filter(value=>value!==undefined).map(String);
     check(boundRuns.includes(run[1]),'ROUTE_TARGET_RUN');
     if(run[2]&&run[1]===binding.run_id)check(Number(run[2])===binding.run_attempt,'ROUTE_TARGET_ATTEMPT');
@@ -97,7 +97,10 @@ export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,arch
   const resumeAt=Date.parse(checkpoint.resume_at);
   check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at,'RESUME_TIME');
   check(checkpoint.unfinished_operation?.method==='GET','METHOD');
-  const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,b,now);
+  const deferredTarget=checkpoint.unfinished_operation.route.match(
+    /^\/repos\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/runs\/([1-9][0-9]{0,15})$/);
+  const routeBinding={...b,...(deferredTarget?{deferred_target_run_id:deferredTarget[1]}:{})};
+  const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,routeBinding,now);
   return {packet,resumeAt,route:checkpoint.unfinished_operation.route,allowedRoute};
 }
 
