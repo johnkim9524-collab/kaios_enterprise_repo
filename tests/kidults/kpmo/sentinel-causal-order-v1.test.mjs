@@ -40,6 +40,13 @@ function execute(rows){
     assert.ifError(result.error);return {result,receipt:JSON.parse(fs.readFileSync(path.join(root,'receipt.json')))};
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 }
+test('new Sentinel producer runs use the canonical workflow name while observers remain distinct',()=>{
+  const workflow=fs.readFileSync(sentinelPath,'utf8');
+  assert.ok(workflow.includes("'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' }}"));
+  assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/{0}/{1}'"));
+  assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/{0}'"));
+});
+
 test('actual barrier binds Coverage C1 despite newer unrelated cancellation and manual success',()=>{
   const {result,receipt}=execute([row({id:10}),row({id:11,upstream:8,conclusion:'cancelled'}),row({id:12,manual:true}),row({id:13,conclusion:'cancelled',archive:false})]);
   assert.equal(result.status,0,result.stderr);assert.equal(receipt.sentinel_run_id,10);assert.equal(receipt.state,'VERIFIED_PASS');
