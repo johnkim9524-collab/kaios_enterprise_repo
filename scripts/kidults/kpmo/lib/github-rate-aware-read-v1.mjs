@@ -3,12 +3,13 @@ import {createHash,randomBytes} from 'node:crypto';
 import {githubHttpFailureDiagnostic} from './github-http-failure-diagnostic-v1.mjs';
 const check=(ok,code)=>{if(!ok)throw Error('GITHUB_READ_'+code);};
 const RETRYABLE_TRANSPORT_CODES=new Set(['ECONNRESET','ETIMEDOUT','EAI_AGAIN','UND_ERR_SOCKET','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT']);
-function isRetryableTransportError(error){
+function retryableTransportCode(error,signal){
+  if(signal?.aborted&&signal.reason?.name==='TimeoutError')return 'ABORT_SIGNAL_TIMEOUT';
   const seen=new Set();let current=error;
   while(current&&typeof current==='object'&&!seen.has(current)){
-    seen.add(current);if(RETRYABLE_TRANSPORT_CODES.has(current.code))return true;current=current.cause;
+    seen.add(current);if(RETRYABLE_TRANSPORT_CODES.has(current.code))return current.code;current=current.cause;
   }
-  return false;
+  return null;
 }
 const pools=new Map();
 const artifactStorageUrl=(location,base)=>{
@@ -52,11 +53,11 @@ export function readResumeCheckpoint({binding,route,diagnostic,resumeAt,attempts
     reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
     promotion_eligible:false,mutation_retry_authorized:false};
 }
-export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,binding,maxBytes=1048576,responseMode='json',allowArtifactRedirect=false,operationDedupeKey=null,maxRetries=2,maxTransportRetries=2,maxInlineWaitMs=55000,
+export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,binding,maxBytes=1048576,responseMode='json',allowArtifactRedirect=false,operationDedupeKey=null,maxRetries=2,maxTransportRetries=2,maxInlineWaitMs=55000,resumeDeadline=Number.MAX_SAFE_INTEGER,
   deadlineMs=120000,now=()=>Date.now(),wait=ms=>new Promise(r=>setTimeout(r,ms)),budget,onCheckpoint=()=>{}}){
   check(typeof token==='string'&&token.length>0&&Number.isSafeInteger(maxRetries)&&maxRetries>=0&&maxRetries<=3&&Number.isSafeInteger(maxInlineWaitMs)&&maxInlineWaitMs>=0&&maxInlineWaitMs<=55000
     &&Number.isSafeInteger(deadlineMs)&&deadlineMs>0&&deadlineMs<=1800000&&Number.isSafeInteger(maxBytes)&&maxBytes>0&&maxBytes<=8*1024*1024
-    &&Number.isSafeInteger(maxTransportRetries)&&maxTransportRetries>=0&&maxTransportRetries<=3&&['json','bytes'].includes(responseMode)&&(operationDedupeKey===null||typeof operationDedupeKey==='string'&&operationDedupeKey.length>=1&&operationDedupeKey.length<=512),'CONFIG');
+    &&Number.isSafeInteger(maxTransportRetries)&&maxTransportRetries>=0&&maxTransportRetries<=3&&Number.isSafeInteger(resumeDeadline)&&resumeDeadline>=0&&['json','bytes'].includes(responseMode)&&(operationDedupeKey===null||typeof operationDedupeKey==='string'&&operationDedupeKey.length>=1&&operationDedupeKey.length<=512),'CONFIG');
   const rawNow=now;let lastTime=rawNow();
   check(Number.isSafeInteger(lastTime)&&lastTime>=0,'CLOCK');
   now=()=>{const value=rawNow();check(Number.isSafeInteger(value)&&value>=lastTime,'CLOCK_ROLLBACK');lastTime=value;return value;};
@@ -70,7 +71,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
     const target=new URL(url);check(target.origin==='https://api.github.com'&&!target.username&&!target.password&&!target.hash
       &&(target.pathname==='/repos/johnkim9524-collab/kaios_enterprise_repo'||target.pathname.startsWith('/repos/johnkim9524-collab/kaios_enterprise_repo/')),'ORIGIN');
     const route=target.pathname+target.search;
-    let transportRetries=0;
+    let transportRetries=0,httpRetries=0;
     for(let attempt=0;;attempt++){
       check(Number.isSafeInteger(now())&&now()>=started,'CLOCK_ROLLBACK');
       const blocked=budget.blockedUntil();
@@ -89,17 +90,19 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
           error?.resume_at?'SHARED_GITHUB_READ_BUDGET':'INVOCATION_CALL_BUDGET');}
       if(budget.blockedUntil()>now()){release();continue;}
       if(now()>=deadline){release();return defer(route,null,now(),attempt,'INVOCATION_DEADLINE');}
-      let response,payload,transportFailure=null;
+      let response,payload,transportFailure=null,activeSignal=null;
       try{
+        activeSignal=AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())));
         response=await fetchImpl(target,{method:'GET',redirect:allowArtifactRedirect?'manual':'error',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json',
-          'X-GitHub-Api-Version':'2022-11-28','Cache-Control':'no-cache'},signal:AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())))});
+          'X-GitHub-Api-Version':'2022-11-28','Cache-Control':'no-cache'},signal:activeSignal});
         if(response.status>=300&&response.status<400){
           const archiveRoute=/^\/repos\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/artifacts\/[1-9][0-9]{0,15}\/zip$/.test(target.pathname);
           check(allowArtifactRedirect&&responseMode==='bytes'&&archiveRoute&&[301,302,303,307,308].includes(response.status),'REDIRECT');
           const location=response.headers?.get?.('location');check(typeof location==='string'&&location.length>0&&location.length<=8192,'REDIRECT');
           const storageUrl=artifactStorageUrl(location,target);try{await response.body?.cancel();}catch{}
+          activeSignal=AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())));
           response=await fetchImpl(storageUrl,{method:'GET',redirect:'error',headers:{Accept:'application/octet-stream','Cache-Control':'no-cache'},
-            signal:AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())))});
+            signal:activeSignal});
         }
         check(!response.redirected,'REDIRECT');
         const reader=response.body?.getReader();check(reader,'BODY');const chunks=[];let total=0;
@@ -112,10 +115,33 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         else try{payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{if(response.ok)throw Error('GITHUB_READ_INVALID_JSON');payload=null;}
       }catch(error){transportFailure=error;}finally{if(typeof release.finish==='function')await release.finish();release();}
       if(transportFailure){
-        if(!isRetryableTransportError(transportFailure))throw transportFailure;
-        if(transportRetries>=maxTransportRetries)return defer(route,null,now()+60000,attempt+1,'TRANSIENT_NETWORK');
+        const transportCode=retryableTransportCode(transportFailure,activeSignal);
+        if(!transportCode){
+          if(response&&!response.ok){
+            const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\\/repos\\/[^/]+\\/[^/]+/,''),response,payload:null});
+            const error=Error(`GITHUB_HTTP_${response.status}`);error.http_diagnostic=failedDiagnostic;throw error;
+          }
+          throw transportFailure;
+        }
+        if(response){
+          const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\\/repos\\/[^/]+\\/[^/]+/,''),response,payload:null});
+          const hasThrottleMetadata=[403,429].includes(response.status)
+            &&(failedDiagnostic.rate_remaining===0||failedDiagnostic.retry_after_seconds!==null||response.status===429);
+          const successfulQuotaExhaustion=response.ok&&failedDiagnostic.rate_remaining===0;
+          if(hasThrottleMetadata||successfulQuotaExhaustion){
+            const resetAt=failedDiagnostic.rate_remaining===0&&failedDiagnostic.rate_reset_epoch!==null
+              ?failedDiagnostic.rate_reset_epoch*1000+1000:0;
+            const explicit=Math.max(failedDiagnostic.retry_after_seconds===null?0:now()+failedDiagnostic.retry_after_seconds*1000,resetAt);
+            const resumeAt=Math.max(explicit,now()+60000);
+            budget.blockUntil(resumeAt);
+            return defer(route,failedDiagnostic,resumeAt,attempt+1,'HTTP_RATE_LIMIT');
+          }
+        }
+        const transportDiagnostic={classification:'TRANSIENT_NETWORK',transport_code:transportCode};
+        const resumeAt=Math.min(now()+60000,resumeDeadline);
+        if(transportRetries>=maxTransportRetries)return defer(route,transportDiagnostic,resumeAt,attempt+1,'TRANSIENT_NETWORK');
         const retryDelay=Math.min(5000,250*2**transportRetries);
-        if(now()+retryDelay>=deadline)return defer(route,null,now()+60000,attempt+1,'TRANSIENT_NETWORK');
+        if(now()+retryDelay>=deadline)return defer(route,transportDiagnostic,resumeAt,attempt+1,'TRANSIENT_NETWORK');
         transportRetries++;await wait(retryDelay);continue;
       }
       if(now()>=deadline)return defer(route,null,now(),attempt+1,'RESPONSE_POSTPROCESSING_DEADLINE');
@@ -130,11 +156,11 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         const error=Error('GITHUB_READ_INVALID_RATE_RESET');error.http_diagnostic=diagnostic;throw error;}
       const explicit=Math.max(diagnostic.retry_after_seconds===null?0:now()+diagnostic.retry_after_seconds*1000,
         diagnostic.rate_remaining===0&&diagnostic.rate_reset_epoch!==null?diagnostic.rate_reset_epoch*1000+1000:0);
-      const backoff=explicit>now()?Math.min(55000,1000*2**attempt):Math.min(240000,60000*2**attempt);
+      const backoff=explicit>now()?Math.min(55000,1000*2**httpRetries):Math.min(240000,60000*2**httpRetries);
       const resumeAt=Math.max(explicit,now()+backoff);budget.blockUntil(resumeAt);if(budget.pauseUntil)await budget.pauseUntil(resumeAt);
-      if(attempt>=maxRetries||resumeAt-now()>maxInlineWaitMs||resumeAt>=deadline)
+      if(httpRetries>=maxRetries||resumeAt-now()>maxInlineWaitMs||resumeAt>=deadline)
         return defer(route,diagnostic,resumeAt,attempt+1,'HTTP_RATE_LIMIT');
-      await wait(resumeAt-now());
+      httpRetries++;await wait(resumeAt-now());
     }
   };
 }
