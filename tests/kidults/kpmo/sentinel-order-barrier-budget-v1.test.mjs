@@ -35,4 +35,7 @@ test('Sentinel run-name overrides match only the exact dispatch run ID', () => {
   assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), false);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252091', 39122252091, 'workflow_run'), false);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/0', 0, 'workflow_dispatch'), false);
+  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), true);
+  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'repository_dispatch'), true);
+  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_run'), false);
 });
