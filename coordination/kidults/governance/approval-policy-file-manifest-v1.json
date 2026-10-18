@@ -3565,8 +3565,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e91a214da6ff049a2c84cfe880dcb83e8f005fef",
-      "sha256": "sha256:146bef351aab828b2a0a80a50a7eaa8f0762e1dfdd3e759bad4465c696a43d0d",
+      "git_blob": "93c3978cf24a9a51ac0ba1b60a119d3c98f6af83",
+      "sha256": "sha256:3dc2c78b87705a9d47594ab31cad20727cc9ee9b9e87c8b90c00153a1ba22827",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:744a518f5e71e96cd83a623a3be138e7aea982edbfd057b34c6b54386a6d83d1"
+  "manifest_sha256": "sha256:ec34c4801308e599a1b40f2301283b199688a44e4788e0cd101d32bb07a5c938"
 }
