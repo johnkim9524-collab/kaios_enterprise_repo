@@ -63,6 +63,29 @@ test('an Assurance producer checkpoint is admitted under its exact workflow iden
   assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');
 });
 
+test('an exact protected-main push producer is admitted for read-only checkpoint recovery',async()=>{
+  const pushRun={...run,event:'push'};
+  const pushEvent={action:'completed',workflow_run:{...pushRun}};
+  delete pushEvent.workflow_run.path;
+  const f=fixture({trigger:pushRun});
+  const result=await consumeGithubReadResumeHandoff({event:pushEvent,readJson:f.readJson,readArchiveBytes:async()=>archiveBytes,
+    archiveReader:(bytes,digest)=>{assert.equal(digest,artifactDigest);return packetFor(checkpoint);},now:f.now});
+  assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');
+  assert.equal(result.actual_authority_granted,false);
+});
+
+test('an unapproved producer event is rejected before any GitHub read or archive download',async()=>{
+  const scheduledRun={...run,event:'schedule'};
+  const scheduledEvent={action:'completed',workflow_run:{...scheduledRun}};
+  delete scheduledEvent.workflow_run.path;
+  const f=fixture({trigger:scheduledRun});
+  let downloads=0;
+  await assert.rejects(consumeGithubReadResumeHandoff({event:scheduledEvent,readJson:f.readJson,
+    readArchiveBytes:async()=>{downloads++;return archiveBytes;},archiveReader:()=>packetFor(checkpoint),now:f.now}),/TRIGGER_BINDING/);
+  assert.equal(f.calls.length,0);
+  assert.equal(downloads,0);
+});
+
 test('a future checkpoint outside the single bounded runner window is left deferred without route execution',async()=>{
   const future=readResumeCheckpoint({binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:sourceSha,
     run_id:String(runId),run_attempt:attempt},route,diagnostic:null,resumeAt:Date.parse('2026-10-12T10:20:00.000Z'),attempts:2,reason:'HTTP_RATE_LIMIT'});
