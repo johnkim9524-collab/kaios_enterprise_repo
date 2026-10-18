@@ -58,7 +58,9 @@ try{
   expectedBinding.source_sha=producer?.head_sha;
   const operationDedupePrefix=event.resume_schedule?.schedule_id
     ?`github-read-resume:v2:${event.resume_schedule.schedule_id}`
-    :`github-read-resume:v2:${producer?.id}:${producer?.run_attempt}:${producer?.head_sha}`;
+    :isOwnerManualRecovery
+      ?`github-read-resume:v2:owner-recovery:${env.GITHUB_RUN_ID}:${env.GITHUB_RUN_ATTEMPT}:${producer?.id}:${producer?.run_attempt}:${producer?.head_sha}`
+      :`github-read-resume:v2:${producer?.id}:${producer?.run_attempt}:${producer?.head_sha}`;
   let operationIndex=0;
   const boundedRead=(route,options={})=>readWithBoundedGithubDeferrals({route,expectedBinding,deadline:runnerDeadline,
     onDeferral:value=>deferredReads.push(value),read:()=>runtimeGithubRead(env.GITHUB_TOKEN,{deadlineMs:300000,
