@@ -88,11 +88,22 @@ export function buildGithubReadResumeTerminalReceipt({result,event,consumer,exac
   const originalRunId=event?.resume_schedule?.resume_binding?.run_id??workflowRun?.id;
   const originalAttempt=event?.resume_schedule?.resume_binding?.run_attempt??workflowRun?.run_attempt;
   const originalSha=event?.resume_schedule?.resume_binding?.source_sha??workflowRun?.head_sha;
+  let routeCount=0;
+  if(result.state==='READ_ONLY_CHECKPOINT_RESUMED'){
+    requireReceipt(result.method==='GET'&&typeof result.route==='string'&&result.checkpoint_consumed===true
+      &&result.route_count===1,'ROUTE_COUNT');
+    routeCount=1;
+  }else if(result.state==='READ_ONLY_CHECKPOINTS_RESUMED'){
+    requireReceipt(Array.isArray(result.results)&&result.results.length>=1&&result.results.length<=8
+      &&result.route_count===result.results.length&&result.results.every(item=>item?.method==='GET'
+        &&typeof item.route==='string'&&item.checkpoint_consumed===true&&item.route_count===1),'ROUTE_COUNT');
+    routeCount=result.results.length;
+  }else requireReceipt(result.route_count===undefined||result.route_count===0,'ROUTE_COUNT');
   const base={id:'kidults-github-read-resume-terminal-receipt-v1',version:'1.0.0',state:'READ_RESUME_TERMINAL',
     created_at:createdAt,exact_main_sha:exactMainSha,
     original:{run_id:String(originalRunId),run_attempt:Number(originalAttempt),source_sha:originalSha},
     consumer:{run_id:String(consumer.run_id),run_attempt:Number(consumer.run_attempt)},
-    outcome:{state:result.state,method:result.method??null,route_count:Number.isSafeInteger(result.route_count)?result.route_count:0,
+    outcome:{state:result.state,method:result.method??null,route_count:routeCount,
       actual_authority_granted:false,read_only:true}};
   const receipt_digest=sha256(canonicalJson(base));
   return {...base,receipt_digest};
