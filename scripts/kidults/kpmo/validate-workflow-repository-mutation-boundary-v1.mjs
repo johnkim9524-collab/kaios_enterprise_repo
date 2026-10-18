@@ -308,7 +308,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
     const record = jobs.find(value => value[1] === 'record-role-approval')?.[2] || '';
     require(record.includes("if: github.event_name == 'repository_dispatch' &&"), 'live-approval-dispatch-only');
     const originalFinalizer = jobs.find(value => value[1] === 'finalize-if-quorum')?.[2] || '';
-    require(originalFinalizer.includes("if: needs.record-role-approval.result == 'success' &&"), 'live-finalizer-dispatch-dependency');
+    if (expected.approvalOnly) require(!originalFinalizer, 'approval-only-no-live-finalizer');
+    else require(originalFinalizer.includes("if: needs.record-role-approval.result == 'success' &&"), 'live-finalizer-dispatch-dependency');
     const recoveryJobs = jobs.filter(value => value[1].startsWith('terminal-recovery-') || value[1].startsWith('interrupted-recovery-'));
     const admission = recoveryJobs.find(value => value[1] === 'terminal-recovery-admission')?.[2] || '';
     require(Boolean(admission), 'recovery-admission-required');
