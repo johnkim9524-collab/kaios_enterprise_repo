@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fbc1320288e90537e08987b61241f8a3c11928e3",
+  "revision": "f306be52f2bd862774948df6d6ea1859b19d256c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4141,8 +4141,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d8b4e4289388717aba3c083edfb5f1a68df90017",
-      "sha256": "sha256:2ac217ca5fbe956ecfae97e1a0e5b57bcdcc9e45b589c9d53149f2d19a6c4742",
+      "git_blob": "272eefc95b1ece3587bd43cf9872e3d4092638ca",
+      "sha256": "sha256:a12db3c942dd9ce9a28fd6520099db674d3e21ee771eeeebad8be1000ae6f02b",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4232,8 +4232,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "2c2512999d932b4ba085f77e2c14ceb3b8ad90ab",
-      "sha256": "sha256:119077cabe17b0397ebb5d77105c9bbdb4cb2f55142b3aa7d7069f7e8439328c",
+      "git_blob": "38d34dbac8d6273a3bd8f2e99410f057fed53a2e",
+      "sha256": "sha256:5822ea3e49d7f1a41bc534e45804c39caf8a139ac4a79f3b23b4240db3031fcf",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6834,8 +6834,8 @@
     {
       "path": "tests/kidults/kpmo/github-rate-aware-read-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3d3902466e400439cd1080234f8799d790f394c4",
-      "sha256": "sha256:76d41d902bb40cbf9a3cb8a68b2e8c70c2659ab53ddb19fad4596b265d150109"
+      "git_blob": "13f6e2c35049958f75b14840aacd642713bc9bf3",
+      "sha256": "sha256:c015818d7c7b2be7397e059dc1e20f4d5006995d37f6f02d9d63ccfaa68ef443"
     },
     {
       "path": "tests/kidults/kpmo/github-read-resume-consumer-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7a6d269f9812cefc87dcc9dd96ebc3c63b43797b94abd8ebfe6f8bbffa66118f"
+  "manifest_sha256": "sha256:f7acc7c0cb2fc95261bac053d899dd5ab5ff46a1d9fff49ac49909dd7d283ffa"
 }
