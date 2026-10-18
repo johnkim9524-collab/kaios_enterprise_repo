@@ -118,13 +118,13 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         const transportCode=retryableTransportCode(transportFailure,activeSignal);
         if(!transportCode){
           if(response&&!response.ok){
-            const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\\/repos\\/[^/]+\\/[^/]+/,''),response,payload:null});
+            const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
             const error=Error(`GITHUB_HTTP_${response.status}`);error.http_diagnostic=failedDiagnostic;throw error;
           }
           throw transportFailure;
         }
         if(response){
-          const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\\/repos\\/[^/]+\\/[^/]+/,''),response,payload:null});
+          const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
           const hasThrottleMetadata=[403,429].includes(response.status)
             &&(failedDiagnostic.rate_remaining===0||failedDiagnostic.retry_after_seconds!==null||response.status===429);
           const successfulQuotaExhaustion=response.ok&&failedDiagnostic.rate_remaining===0;
