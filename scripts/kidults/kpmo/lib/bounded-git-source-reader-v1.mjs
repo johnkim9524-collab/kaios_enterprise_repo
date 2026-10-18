@@ -99,7 +99,7 @@ export function createBoundedGitSourceReader({sourceShas,readObject,limits={},cl
   };
   const file=async(ref,path)=>{const value=await fileOrNull(ref,path);if(value===null)fail('SOURCE_BATCH_FILE_MISSING');return value;};
   const seal=()=>{check();if(inFlight)fail('SOURCE_BATCH_SEAL_PENDING_READS');sealed=true;};
-  const reader=Object.freeze({commit,file,fileOrNull,blobOrNull,seal,receipt:()=>({scope:'LOCAL_VERIFIED_OBJECTS_NOT_NATIVE_TRANSPORT',
+  const reader=Object.freeze({hasSource:ref=>{check();return allowed.has(ref);},commit,file,fileOrNull,blobOrNull,seal,receipt:()=>({scope:'LOCAL_VERIFIED_OBJECTS_NOT_NATIVE_TRANSPORT',
     sealed,source_count:allowed.size,object_reads:reads,object_bytes:bytes,tree_entries:entries,
     elapsed_milliseconds:last-started,limits:{...bound},state:terminal?'GLOBAL_ABORT':'SOURCE_READER_OPEN',
     authorization_created:false,transport_verified:false,production:'HOLD',public:'HOLD',g5:'HOLD'})});

@@ -319,7 +319,7 @@ async function checkPages(repository,sha,token){const out=[];for(let page=1;page
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
 async function immutableContent(repository,path,ref,token){
   if(/\.(zip|gz|png|jpg|jpeg|webp|pdf|woff2?|ttf|ico)$/i.test(path))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);
-  if(token.sourceReader){
+  if(token.sourceReader&&token.sourceReader.hasSource(ref)){
     const value=await token.sourceReader.blobOrNull(ref,path);
     if(value===null)fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
     try{const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(value.body);if(text.includes('\0'))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);return text;}
@@ -331,7 +331,7 @@ async function immutableContent(repository,path,ref,token){
   catch{fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);}
 }
 async function contentBlobShaOrNull(repository,path,ref,token){
-  if(token.sourceReader)return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
+  if(token.sourceReader&&token.sourceReader.hasSource(ref))return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
@@ -382,7 +382,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 // Optional verified-object adapter for full-scope diagnosis. The native CLI
 // supplies no adapter; native transport/profile activation remains separate.
 async function immutableCommit(repository,ref,client){
-  return client.sourceReader?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
+  return client.sourceReader&&client.sourceReader.hasSource(ref)?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
 }
 export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false,operationQuarantine=null}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
