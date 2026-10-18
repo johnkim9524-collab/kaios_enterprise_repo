@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "0b25be849e61fe86f0b94555e71a02de5c359676",
+  "revision": "559422347ae0850ce1d16fbc1ccf7b8843f46f2b",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -665,8 +665,8 @@
     {
       "path": ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d99d0f2333a165c196de4f8f8b4c2ca2fe44608f",
-      "sha256": "sha256:033589bffbf66dbc9b146922e1f4e5fd5e0913ff00b1f4af03354cb03cc59670",
+      "git_blob": "efdace8980a442abc0de13d6bf17c78d13fccdfd",
+      "sha256": "sha256:6f1c0bf53ba6801d57d0c737ff2500e1359fb77e03091a7bd9c488615f3e182b",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6966,8 +6966,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1c6e7cf7c72478f200626dade394f84e83759a22",
-      "sha256": "sha256:d7ea855f2ddd3b7171120bec3d324c93dc0085c8e843cf7cf5f1882845151a06"
+      "git_blob": "1e4da856de4579e8752f0c5720b4b5bd32f969a4",
+      "sha256": "sha256:ace39dc4bd8f050e86e376181bd37bdfc391c02b70d668572f0284466baba56c"
     },
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:709e08bbf1f27ad0bf47a140acb0d227996a1feacf3cb785b3f03b85084ae0ee"
+  "manifest_sha256": "sha256:27d6628b7d4236754abc6580207522108045e08ee9aef474dc0b7a35399554e0"
 }
