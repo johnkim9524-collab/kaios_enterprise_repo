@@ -184,8 +184,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "182494684f5e8f7be32cc8405d688b3c55677d2d",
-      "sha256": "sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc",
+      "git_blob": "0997fcf01750415cb6f8bdec1f246b12150256d9",
+      "sha256": "sha256:93d253d91bb49c7fe69834c704e29953613896fe07d43382dabc86519b87cfca",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:744a518f5e71e96cd83a623a3be138e7aea982edbfd057b34c6b54386a6d83d1"
+  "manifest_sha256": "sha256:dc996c11921b95c0d39d2babfeaa172614837dea1c14430b9d01e5e01e5b2bbf"
 }
