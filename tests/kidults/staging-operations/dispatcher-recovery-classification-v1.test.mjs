@@ -13,7 +13,7 @@ test('native trigger rejects forks, contradiction, absent identity, wrong path, 
   for(const mutate of mutations){const x=structuredClone(input);mutate(x);assert.throws(()=>validateDispatcherTrigger(x),/DISPATCH_TRIGGER_/);}
 });
 test('stale review/repair disposition preserves original base and current main with no mutation authority',()=>{
-  const context={pr:{number:42,base:{ref:'main',sha:sha('b'),repo:{full_name:input.repository,id:1281328888}},head:{sha:sha('c')}},mainSha:sha('a'),treeSha:sha('d'),files:[{filename:'scripts/guard.mjs'}]};
+  const context={pr:{number:42,state:'open',merged:false,base:{ref:'main',sha:sha('b'),repo:{full_name:input.repository,id:1281328888}},head:{sha:sha('c')}},mainSha:sha('a'),treeSha:sha('d'),files:[{filename:'scripts/guard.mjs'}]};
   for(const [fn,code,state] of [[buildOwnerReviewRequired,'CAPABILITY_GUARD_WEAKENED','OWNER_REVIEW_REQUIRED'],[buildPolicyRepairRequired,'INDEPENDENT_SECURITY_CAPABILITY_ADDED','POLICY_REPAIR_REQUIRED']]){
     const r=fn({...context,error:{code,message:code}});assert.equal(r.state,state);assert.equal(r.binding.base_sha,sha('b'));assert.equal(r.binding.current_main_sha,sha('a'));assert.equal(r.binding.classification_mode,'STALE_BASE');assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);
   }

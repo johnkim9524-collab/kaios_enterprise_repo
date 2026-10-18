@@ -18,7 +18,7 @@ export function analyzeCapabilityRepair({repository,repositoryId,pullRequest,bas
   if(typeof repository!=='string'||!/^[-\w.]+\/[-\w.]+$/.test(repository)
     ||!/^\d+$/.test(String(repositoryId))||!Number.isSafeInteger(pullRequest)||pullRequest<1
     ||![baseSha,headSha,treeSha].every(value=>typeof value==='string'&&sha.test(value))
-    ||!Array.isArray(files)||!files.length||files.length>128||!policy
+    ||!Array.isArray(files)||!files.length||files.length>256||!policy
     ||!Array.isArray(policy.delegated_internal_path_prefixes)||!Array.isArray(policy.delegated_internal_exact_path_exceptions))invalid();
   const seen=new Set();let bytes=0;
   for(const file of files){
@@ -27,7 +27,7 @@ export function analyzeCapabilityRepair({repository,repositoryId,pullRequest,bas
       ||seen.has(file.filename)||typeof file.base_content!=='string'||typeof file.head_content!=='string')invalid();
     seen.add(file.filename);bytes+=Buffer.byteLength(file.base_content)+Buffer.byteLength(file.head_content);
   }
-  if(bytes>4*1024*1024)invalid();
+  if(bytes>8*1024*1024)invalid();
   // Use the supplied protected policy's canonical reserved-path registry;
   // this diagnostic does not load or consume an approval envelope itself.
   const authorityPaths=new Set(['coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',
@@ -69,7 +69,7 @@ export function analyzeCapabilityRepair({repository,repositoryId,pullRequest,bas
     classifier_changes:classifierChanges,authority_policy_changes:authorityChanges,
     activation_constraint:classifierChanges.length||authorityChanges.length?'CANDIDATE_CANNOT_AUTHORIZE_ITS_OWN_POLICY_ACTIVATION':'EXISTING_PROTECTED_CLASSIFICATION_REQUIRED',
     next_action:accepted?'RUN_FULL_EXISTING_PROTECTED_VALIDATION':'REPAIR_REPORTED_PATHS_THEN_REVALIDATE_FROM_PROTECTED_SOURCE',
-    scan_budget:{maximum_files:128,maximum_source_bytes:4*1024*1024,source_bytes:bytes,network_reads:0},
+    scan_budget:{maximum_files:256,maximum_source_bytes:8*1024*1024,source_bytes:bytes,network_reads:0},
     automatic_retry_performed:false,repository_mutation_performed:false,authority_created:false,
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
     production:'HOLD',public:'HOLD',g5:'HOLD'};

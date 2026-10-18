@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_RESUME_CONTRACT_V1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "mandatory": true,
   "applies_at": [
     "EVERY_WORK_EXECUTION_START",
@@ -137,5 +137,49 @@
     "cross_system_exactly_once_claimed": false,
     "grants_new_owner_authority": false,
     "policy_activation_requires_exact_head_owner_decision": true
+  },
+  "interactive_local_work_policy": {
+    "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
+    "session_provenance_source": "TRUSTED_PLATFORM_EXECUTION_CONTEXT",
+    "repository_self_assertion_is_session_provenance": false,
+    "repository_policy_validator_attests_runtime_session": false,
+    "missing_or_ambiguous_platform_session_context": "LOCAL_EXCEPTION_UNAVAILABLE",
+    "platform_attestation_contract": {
+      "required_for_automated_local_exception": true,
+      "signature_validation_required": true,
+      "trust_anchor_controlled_by_platform": true,
+      "repository_supplied_attestation_authoritative": false,
+      "required_binding_fields": [
+        "issuer",
+        "audience",
+        "task_id",
+        "session_id",
+        "repository",
+        "worktree_identity",
+        "sandbox_identity",
+        "capabilities",
+        "issued_at",
+        "expires_at",
+        "signature"
+      ],
+      "allowed_capabilities_exact": [
+        "LOCAL_REPOSITORY_READ",
+        "LOCAL_REPOSITORY_EDIT",
+        "SANDBOXED_TEST_EXECUTION"
+      ],
+      "runtime_consumer_status": "NOT_IMPLEMENTED",
+      "without_runtime_consumer": "NO_REPOSITORY_AUTHORITY_GRANTED"
+    },
+    "repository_policy_can_authorize_execution_without_platform_consumer": false,
+    "scope": "LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS",
+    "resume_reconciliation_still_required": true,
+    "fresh_exact_head_bootstrap_required": false,
+    "bootstrap_receipt_required": false,
+    "allows_local_edits_and_tests": true,
+    "allows_agent_dispatch": false,
+    "allows_github_mutation": false,
+    "external_development_branch_writes_still_require_fresh_exact_head_bootstrap": true,
+    "draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap": true,
+    "grants_new_authority": false
   }
 }

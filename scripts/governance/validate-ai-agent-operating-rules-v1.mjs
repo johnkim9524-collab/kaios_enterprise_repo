@@ -9,6 +9,7 @@ const files = {
   copilot: '.github/copilot-instructions.md',
   contract: 'coordination/kidults/governance/ai-agent-operating-rules-v1.json',
   githubBootstrapContract: 'coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json',
+  resumeContract: 'coordination/kidults/governance/resume-contract-v1.json',
   readiness: 'coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json',
   constitution: 'CONSTITUTION.md',
   charter: 'docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md',
@@ -35,6 +36,38 @@ const readText = (p) => fs.readFileSync(resolvePath(p), 'utf8');
 const readJson = (p) => JSON.parse(readText(p));
 const assert = (condition, message) => { if (!condition) fail(message); };
 const exactJson = (actual, expected) => JSON.stringify(actual) === JSON.stringify(expected);
+
+const INTERACTIVE_PLATFORM_SESSION_POLICY = {
+  eligible_session: 'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION',
+  session_provenance_source: 'TRUSTED_PLATFORM_EXECUTION_CONTEXT',
+  repository_self_assertion_is_session_provenance: false,
+  repository_policy_validator_attests_runtime_session: false,
+  missing_or_ambiguous_platform_session_context: 'LOCAL_EXCEPTION_UNAVAILABLE',
+  platform_attestation_contract: {
+    required_for_automated_local_exception: true,
+    signature_validation_required: true,
+    trust_anchor_controlled_by_platform: true,
+    repository_supplied_attestation_authoritative: false,
+    required_binding_fields: ['issuer','audience','task_id','session_id','repository','worktree_identity','sandbox_identity','capabilities','issued_at','expires_at','signature'],
+    allowed_capabilities_exact: ['LOCAL_REPOSITORY_READ','LOCAL_REPOSITORY_EDIT','SANDBOXED_TEST_EXECUTION'],
+    runtime_consumer_status: 'NOT_IMPLEMENTED',
+    without_runtime_consumer: 'NO_REPOSITORY_AUTHORITY_GRANTED'
+  },
+  repository_policy_can_authorize_execution_without_platform_consumer: false,
+  scope: 'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS',
+  explicit_user_task_required: true,
+  platform_workspace_sandbox_required: true,
+  bootstrap_receipt_required: false,
+  allows_local_edits_and_tests: true,
+  allows_external_agent_dispatch: false,
+  allows_agent_dispatch: false,
+  allows_github_mutation: false,
+  allows_main_write_merge_approval_deploy: false,
+  bootstrap_verified_claim_without_consumed_receipt_allowed: false,
+  full_root_of_trust_claimed: false,
+  external_dispatchers_still_require_protected_launcher_and_verified_bootstrap: true
+};
+
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasTopLevelTrigger = (text, trigger) => new RegExp(`^  ${escapeRegex(trigger)}:\\s*$`, 'm').test(text);
 
@@ -47,6 +80,7 @@ const policy = readText(files.policy);
 const copilot = readText(files.copilot);
 const contract = readJson(files.contract);
 const githubBootstrapContract = readJson(files.githubBootstrapContract);
+const resumeContract = readJson(files.resumeContract);
 const readiness = readJson(files.readiness);
 const constitution = readText(files.constitution);
 const charter = readText(files.charter);
@@ -87,7 +121,7 @@ for (const field of ['autonomous_effect','global_effect','irreplaceable_value_ef
 }
 
 assert(contract.id === 'kidults-ai-agent-operating-rules-v1', 'CONTRACT_ID');
-assert(contract.version === '2.0.0', 'CONTRACT_VERSION');
+assert(contract.version === '2.1.0', 'CONTRACT_VERSION');
 assert(typeof contract.change_rationale === 'string' && contract.change_rationale.length > 20, 'CONTRACT_CHANGE_RATIONALE');
 assert(contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS');
 assert(contract.owner === 'KPMO', 'CONTRACT_OWNER');
@@ -140,7 +174,9 @@ assert(contract.enforcement?.bootstrap_binds_agent_role_jd_and_accountability_re
 assert(contract.github_bootstrap_contract_path === files.githubBootstrapContract, 'CONTRACT_GITHUB_BOOTSTRAP_PATH');
 assert(contract.roles_and_responsibilities_path === files.roles, 'CONTRACT_ROLE_REGISTRY_PATH');
 assert(contract.enforcement?.github_canonical_bootstrap_required === true, 'GITHUB_BOOTSTRAP_REQUIRED');
-assert(contract.enforcement?.bootstrap_receipt_before_task_required === true, 'GITHUB_BOOTSTRAP_RECEIPT_REQUIRED');
+assert(contract.enforcement?.bootstrap_receipt_before_agent_task_execution_required === true, 'GITHUB_BOOTSTRAP_RECEIPT_REQUIRED');
+assert(contract.enforcement?.bootstrap_receipt_before_interactive_local_work_required === false, 'GITHUB_BOOTSTRAP_LOCAL_EXCEPTION');
+assert(contract.github_bootstrap_scope?.ai_or_model_agent_instances_required === true && contract.github_bootstrap_scope?.interactive_platform_sessions_exempt_from_local_work_bootstrap_receipt === true, 'GITHUB_BOOTSTRAP_SCOPE');
 assert(contract.enforcement?.bootstrap_independent_verification_and_consumption_required === true, 'GITHUB_BOOTSTRAP_INDEPENDENT_VERIFICATION_REQUIRED');
 assert(contract.enforcement?.bootstrap_agent_task_session_nonce_binding_required === true, 'GITHUB_BOOTSTRAP_BINDINGS_REQUIRED');
 assert(contract.enforcement?.bootstrap_reads_exact_committed_git_blobs === true, 'GITHUB_BOOTSTRAP_COMMITTED_BLOBS_REQUIRED');
@@ -149,6 +185,44 @@ assert(contract.enforcement?.github_event_context_establishes_current_github_sta
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
 assert(githubBootstrapContract.version === '1.7.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(exactJson(githubBootstrapContract.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'GITHUB_BOOTSTRAP_INTERACTIVE_SESSION_SCOPE');
+
+const INTERACTIVE_LOCAL_WORK_RESUME_POLICY = {
+  eligible_session: 'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION',
+  session_provenance_source: 'TRUSTED_PLATFORM_EXECUTION_CONTEXT',
+  repository_self_assertion_is_session_provenance: false,
+  repository_policy_validator_attests_runtime_session: false,
+  missing_or_ambiguous_platform_session_context: 'LOCAL_EXCEPTION_UNAVAILABLE',
+  platform_attestation_contract: {
+    required_for_automated_local_exception: true,
+    signature_validation_required: true,
+    trust_anchor_controlled_by_platform: true,
+    repository_supplied_attestation_authoritative: false,
+    required_binding_fields: ['issuer','audience','task_id','session_id','repository','worktree_identity','sandbox_identity','capabilities','issued_at','expires_at','signature'],
+    allowed_capabilities_exact: ['LOCAL_REPOSITORY_READ','LOCAL_REPOSITORY_EDIT','SANDBOXED_TEST_EXECUTION'],
+    runtime_consumer_status: 'NOT_IMPLEMENTED',
+    without_runtime_consumer: 'NO_REPOSITORY_AUTHORITY_GRANTED'
+  },
+  repository_policy_can_authorize_execution_without_platform_consumer: false,
+  scope: 'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS',
+  resume_reconciliation_still_required: true,
+  fresh_exact_head_bootstrap_required: false,
+  bootstrap_receipt_required: false,
+  allows_local_edits_and_tests: true,
+  allows_agent_dispatch: false,
+  allows_github_mutation: false,
+  external_development_branch_writes_still_require_fresh_exact_head_bootstrap: true,
+  draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap: true,
+  grants_new_authority: false
+};
+assert(resumeContract.version === '1.4.0', 'RESUME_CONTRACT_VERSION');
+assert(exactJson(resumeContract.interactive_local_work_policy, INTERACTIVE_LOCAL_WORK_RESUME_POLICY), 'RESUME_INTERACTIVE_LOCAL_WORK_POLICY');
+assert(exactJson(contract.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'OPERATING_INTERACTIVE_SESSION_SCOPE');
+assert(exactJson(registry.mandatory_inheritance?.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'REGISTRY_INTERACTIVE_SESSION_SCOPE');
+assert(exactJson(registry.registered_policy?.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'REGISTRY_POLICY_INTERACTIVE_SESSION_SCOPE');
+assert(registry.mandatory_inheritance?.bootstrap_load_before_task_execution_required === true && registry.mandatory_inheritance?.bootstrap_load_before_agent_dispatch_required === true, 'REGISTRY_BOOTSTRAP_DISPATCH_SCOPE');
+assert(exactJson(readiness.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'READINESS_INTERACTIVE_SESSION_SCOPE');
+
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
 assert(githubBootstrapContract.bootstrap_entrypoint?.path === files.githubBootstrapEntrypoint, 'GITHUB_BOOTSTRAP_ENTRYPOINT');
@@ -360,7 +434,7 @@ assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUND
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
 assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
-assert(registry.registered_policy?.policy_version === '2.0.0', 'REGISTRY_POLICY_VERSION');
+assert(registry.registered_policy?.policy_version === '2.1.0', 'REGISTRY_POLICY_VERSION');
 assert(registry.registered_policy?.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'REGISTRY_AUTONOMOUS_CLOSURE_POLICY');
 assert(typeof registry.change_rationale === 'string' && registry.change_rationale.length > 20, 'REGISTRY_CHANGE_RATIONALE');
 assert(registry.registered_policy?.platform_constitution_path === files.platform, 'REGISTRY_PLATFORM_PATH');
@@ -435,8 +509,8 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.3.0', 'ROLE_REGISTRY_VERSION');
-assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1', 'READINESS_ID');
+assert(roles.registry_version === '1.4.0', 'ROLE_REGISTRY_VERSION');
+assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1' && readiness.version === '1.3.0', 'READINESS_ID');
 assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
 assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');
 assert(readiness.pre_dispatch_attestation?.assigned_role_resolved_from_registry === true, 'READINESS_ROLE_RESOLUTION');
@@ -458,7 +532,8 @@ assert(behavior.production === 'HOLD' && behavior.public === 'HOLD', 'AUTONOMOUS
 assert(valueGate.regression_policy?.any_fail === 'P0_CORRECTIVE_ACTION', 'VALUE_GATE_CORRECTIVE_ACTION');
 assert(valueGate.production === 'HOLD', 'VALUE_GATE_PRODUCTION_HOLD');
 assert(roles.constitutional_readiness?.manifest === files.readiness, 'ROLE_READINESS_MANIFEST');
-assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true, 'ROLE_READINESS_PREWORK');
+assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true && roles.constitutional_readiness?.required_before_agent_dispatch === true, 'ROLE_READINESS_DISPATCH_SCOPE');
+assert(exactJson(roles.constitutional_readiness?.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'ROLE_INTERACTIVE_SESSION_SCOPE');
 assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'ROLE_READINESS_REPLACEMENT');
 assert(roles.ai_agent_accountability_enforcement?.governing_rule === 'AI-019 / ACCOUNTABILITY_AND_NON_DELEGATION', 'ROLE_REGISTRY_ACCOUNTABILITY_RULE');
 assert(roles.ai_agent_accountability_enforcement?.scope === 'KPMO_AND_ALL_AI_MODEL_AND_RUNTIME_IDENTITIES', 'ROLE_REGISTRY_AI_SCOPE');

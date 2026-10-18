@@ -19,6 +19,35 @@
       "environment": "KIDULTS-AUTONOMOUS-FINALIZER",
       "exact_main_sha_input": "expected_main_sha",
       "immutable_terminal_receipt": true
+    },
+    {
+      "operation": "GITHUB_READ_RESUME_ONE_TIME_SCHEDULE",
+      "workflow": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+      "environment": "KIDULTS-AUTONOMOUS-READ-RESUME",
+      "exact_main_sha_input": "KIDULTS_EXPECTED_MAIN_SHA",
+      "immutable_terminal_receipt": true,
+      "preprovisioned_owner_authorized_iam_role_required": true,
+      "allowed_effects": [
+        "GET_GITHUB_API_WITH_SHARED_CROSS_RUNNER_BUDGET",
+        "CREATE_ONE_DETERMINISTIC_UTC_SCHEDULE",
+        "READ_BACK_EXACT_SCHEDULE",
+        "WRITE_READ_RESUME_RECEIPT_TO_OBJECT_LOCK_COMPLIANCE"
+      ],
+      "schedule_constraints": [
+        "EXACT_ORIGINAL_RUN_ATTEMPT_SHA_ARTIFACT_AND_CHECKPOINT_DIGESTS",
+        "IDEMPOTENT_CLIENT_TOKEN",
+        "FIXED_STAGING_DISPATCHER_TARGET",
+        "FIXED_STAGING_SCHEDULER_ROLE",
+        "ACTION_AFTER_COMPLETION_DELETE",
+        "NO_GITHUB_WRITE_AUTHORITY"
+      ],
+      "receipt_constraints": [
+        "CONDITIONAL_CREATE_ONLY",
+        "COMPLIANCE_RETENTION_TEN_YEARS",
+        "SSE_KMS_FIXED_RECEIPT_KEY",
+        "VERSION_CHECKSUM_RETENTION_ENCRYPTION_AND_BODY_READBACK"
+      ],
+      "iam_permission_expansion": "OWNER_RESERVED_EXACT_ACTION_ONLY"
     }
   ],
   "required_constraints": [

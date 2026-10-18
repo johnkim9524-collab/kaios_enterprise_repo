@@ -4,7 +4,7 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {createRequire} from 'node:module';
 import {canonicalJson} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {brokerResumeLifecycle,brokerMintFinalizer,observeLifecycleCutover,classifyFinalizerTokenDrain,brokerReadFinalizerRecoveryContext} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
+import {brokerResumeLifecycle,brokerReconcileLifecycleOperation,brokerMintFinalizer,observeLifecycleCutover,classifyFinalizerTokenDrain,brokerReadFinalizerRecoveryContext} from '../../../scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs';
 const {assertPublicMintBoundary}=createRequire(import.meta.url)('../../../infrastructure/aws/staging/autonomous-event-token-broker-v1.cjs');
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha=c=>c.repeat(40);
 const key=crypto.generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
@@ -32,6 +32,15 @@ function setup({operation=event.operation,lost=false,drift=false,reversed=false,
         else {row.operation_key=v[':next'];row.owner=v[':owner'];row.state=v[':flight'];row.schema=v[':schema'];
           row.binding=structuredClone(v[':binding']);row.phase=v[':pre'];}
         return {};
+      }
+      if(v[':unknown']){
+        if(!row||row.state!==v[':unknown']||JSON.stringify(row.binding)!==JSON.stringify(v[':binding']))throw conditional();
+        row.state=v[':success'];row.receipt=structuredClone(v[':receipt']);return {};
+      }
+      if(v[':success']){
+        if(!row||row.operation_key!==v[':key']||row.owner!==v[':owner']||row.state!==v[':flight']||row.phase!==v[':started']||
+          row.schema!==v[':schema']||JSON.stringify(row.binding)!==JSON.stringify(v[':binding']))throw conditional();
+        row.state=v[':success'];return {};
       }
       if(!row||row.owner!==v[':owner']||row.state!=='IN_FLIGHT'||(v[':pre']&&row.phase!==v[':pre'])||
         (v[':key']&&(row.operation_key!==v[':key']||row.schema!==v[':schema'])))throw conditional();
@@ -72,6 +81,30 @@ for(const operation of ['STALE_BASE_CONVERGENCE','REDUNDANT_PR_HYGIENE'])test(`$
 for(const fixture of [{lost:true},{readFailure:true},{reversed:true},{operation:'REDUNDANT_PR_HYGIENE',lost:true}])test(`uncertain mutation remains fenced ${JSON.stringify(fixture)}`,async()=>{
   const s=setup(fixture);await assert.rejects(s.call());assert.equal((await s.call('replacement')).state,'HOLD_RECONCILE');
   assert.deepEqual(s.counts(),{writes:1,mints:1});assert.equal([...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#')).state,'UNKNOWN');
+});
+test('lost stale-base response is reconciled only from the exact ordered commit graph and both durable rows',async()=>{
+  const s=setup({lost:true});await assert.rejects(s.call());
+  const reconcileEvent={...structuredClone(s.event),action:'RECONCILE_LIFECYCLE_OPERATION'};
+  const identity={caller_class:'DISPATCHER',run_id:reconcileEvent.run_id,source_sha:reconcileEvent.binding.current_main_sha};
+  const priorMint=s.dependencies.mint;
+  s.dependencies.mint=async args=>{assert.equal(args.action,'MINT_INSTALLATION_TOKEN');assert.equal(args.permission_profile,undefined);
+    assert.equal(args.authorization_generation.startsWith('lifecycle-reconcile-'),true);
+    return {...await priorMint(args),token:'PRIVATE_READ_TOKEN'};};
+  const receipt=await brokerReconcileLifecycleOperation({...s.dependencies,event:reconcileEvent,callerIdentity:identity});
+  assert.equal(receipt.state,'RECONCILED_SUCCESS');assert.equal(receipt.physical_store_readback,'VERIFIED');
+  assert.equal(receipt.receipt.outcome.reconciled_from_native_readback,true);
+  const operation=[...s.rows.values()].find(r=>r.pk.startsWith('RESUME_OPERATION_V1#'));
+  const family=[...s.rows.values()].find(r=>r.schema==='LIFECYCLE_PHASE_FENCE_V1');
+  assert.equal(operation.state,'SUCCESS');assert.equal(family.state,'SUCCESS');assert.equal(family.phase,'WRITE_STARTED');
+  assert.equal(s.counts().writes,1);assert.equal(s.counts().mints,2);
+});
+test('redundant-PR close outcomes stay on the original broker path and are never replayed by this update reconciler',async()=>{
+  const s=setup({operation:'REDUNDANT_PR_HYGIENE',lost:true});await assert.rejects(s.call());
+  const input={...structuredClone(s.event),action:'RECONCILE_LIFECYCLE_OPERATION'};
+  const result=await brokerReconcileLifecycleOperation({...s.dependencies,event:input,
+    callerIdentity:{caller_class:'DISPATCHER',run_id:input.run_id,source_sha:input.binding.current_main_sha}});
+  assert.equal(result.state,'NOT_APPLICABLE');assert.equal(result.reconciliation_mutation_attempted,false);
+  assert.deepEqual(s.counts(),{writes:1,mints:1});
 });
 test('changed inventory cannot manufacture a second operation for the same mutation tuple',async()=>{
   const s=setup();await s.call();const changed=structuredClone(s.event);changed.binding.changed_paths=['src/other.js'];

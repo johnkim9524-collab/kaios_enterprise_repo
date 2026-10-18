@@ -34,11 +34,15 @@ All child-agent rules inherit this policy. A local instruction may be stricter b
 
 Every KPMO, Track agent, child agent, reviewer, operator, and dispatcher must read and accept `docs/governance/KIDULTS_AGENT_CONSTITUTIONAL_CHARTER_V1.md` and satisfy `coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json` before task analysis or execution. The exact committed `HEAD` reading set is mandatory: platform vision and goals; operating principles; AI governance; the assigned JD and role; and working attitude. The bound agent must explicitly accept its role mission, authority limits, outputs, prohibitions, success measures, and reporting cadence. Prior-session, parent, cached, chat-only, or unverified acknowledgement is not transferable.
 
+A user-initiated, platform-managed interactive session may inspect or edit only its sandboxed local worktree and run local tests without the absent external launcher or readiness receipt. Repository fields or validator output cannot attest session provenance or grant this permission. Any automated repository evaluator would require a platform-signed attestation bound to issuer/audience, task/session, repository/worktree/sandbox, exact local-only capabilities, and issue/expiry; no repository runtime consumer for that attestation is implemented. Until one exists, repository-side execution authorization from this exception is unavailable. Missing or ambiguous platform context also disables the exception. This path cannot dispatch agents, mutate GitHub, perform external effects, or claim verified bootstrap/readiness.
+
 If readiness is missing, stale, incomplete, role-mismatched, or unconsumed, dispatch is denied and any resulting output is rejected. A confirmed material or repeated violation requires immediate task removal, dispatch disablement, evidence preservation, and replacement through a newly bootstrapped accountable identity. No removed identity may self-adjudicate or approve its replacement, and KPMO may not self-exempt. Machine checks prove loading, binding, acceptance, and receipt consumption—not human-like comprehension.
 
 ### 2.1 GitHub canonical source bootstrap
 
 Before task analysis or execution, every AI or model agent instance and every automation or workflow that dispatches one must pass the registered GitHub bootstrap entrypoint and independent receipt verifier. The pre-dispatch trust closure includes `coordination/kidults/registry/roles-and-responsibilities.json`, so the assigned Agent JD and KPMO-inclusive `AI-019` accountability rule must be loaded from the exact committed `HEAD` blob before dispatch. Generic CI jobs and deterministic application pipelines that dispatch no AI or model agent are outside the mandatory bootstrap scope; defense-in-depth use of the gate does not reclassify them as AI agents. The controlling contract is `coordination/kidults/governance/ai-agent-github-bootstrap-contract-v1.json`.
+
+The local interactive session exception in section 2.0 does not authorize agent dispatch, automated evaluation, or external effects.
 
 Provider work has an additional exact-HEAD prerequisite: `docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md` and `coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json`. Before provider analysis, outreach, contracting, integration, monitoring, or reporting, the agent must read both documents plus current registry and communication evidence. Duplicate outreach and resending a previously sent message without explicit authority are prohibited. Provider reporting must be separated by source layer, brand/vertical, and provider and must preserve legal, spend, credential, Production, public-release, and external-communication gates.
 
@@ -388,6 +392,10 @@ Legitimate blockers remain protected and must be reported precisely: missing too
 
 Production, Public, G5, external communications, spend, contracts, legal exceptions, irreversible security changes, secrets, credential or permission expansion, trust-root or ruleset weakening, destructive data actions, and protected promotion or release remain Program Owner reserved. Unknown, conflicting, stale, replayed, or scope-drifted authority fails closed. Decision authority is delegated; accountability is not.
 
+An unknown classification receives at most two read-only reclassification attempts; only an unresolved result is escalated to the Owner. Conflicting authority is held for fresh machine classification, while stale, replayed, or scope-drifted authority requires a fresh exact binding.
+
+The AI-020 policy file remains an exact Owner-reserved path. A change to that file requires a fresh exact-scope Owner decision to route the exact change to Track, KPMO, and Independent Verifier; that decision grants no role approval, quorum, Ready, landing, or merge authority. The machine-pinned bounded UNKNOWN-classification correction is limited to two read-only reclassification attempts, with Owner escalation only if still unresolved. Its primary and independent verifiers must validate the exact policy delta. Routine use of that runtime classification rule does not require a per-case Owner decision. Every other AI-020 policy change remains Owner-reserved.
+
 ## 17. Global leading platform scale stewardship
 
 KIDULTS must be designed and operated as a global leading platform across the entire value chain. Boutique, single-market, local-only, manually sustained, or single-provider assumptions are prohibited as an unstated production model.
@@ -418,7 +426,7 @@ The platform constitution, machine contract, registry entry, status schema, and 
 
 Policy changes require:
 
-- KPMO governance review;
+- KPMO governance review through the normal delegated quorum for bounded internal policy corrections; Owner review only for authority expansion, trust-root or ruleset weakening, and other reserved actions;
 - synchronized update to human and machine-readable rules;
 - passing governance validation;
 - explicit change rationale and version increment.
@@ -433,7 +441,7 @@ Before each side effect, reconcile live state and atomically claim a stable idem
 
 The machine contract is `coordination/kidults/governance/resume-contract-v1.json`. Bootstrap verification remains mandatory before task dispatch. This rule does not grant new authority or prove external ChatGPT/Codex launcher enforcement. Production/Public/G5, Provider activation, PAT and ruleset bypass remain HOLD.
 
-For explicitly authorized reversible development-branch code/policy corrections only, `development_branch_resume` permits fresh exact-head bootstrap, live-head reconciliation, an exact parent/payload-bound commit, non-forced expected-head update, and durable Git commit history instead of a protected operation-ledger claim. Rejected or ambiguous writes require reconciliation with no blind retry. This exception grants no main write, merge, approval, dispatch, deployment, generation, reservation consumption, or promotion authority. Protected operations retain their original ledger and authority gates. Routine independent human reviewers are not required; accountable Track-agent and KPMO authority and exact-head machine verification remain required.
+For explicitly authorized reversible development-branch code/policy corrections only, `development_branch_resume` permits fresh exact-head bootstrap, live-head reconciliation, an exact parent/payload-bound commit, non-forced expected-head update, and durable Git commit history instead of a protected operation-ledger claim. Rejected or ambiguous writes require reconciliation with no blind retry. This exception grants no main write, merge, approval, dispatch, deployment, generation, reservation consumption, or promotion authority. Protected operations retain their original ledger and authority gates. Routine independent human reviewers and Track-agent role approvals are not required; one accountable KPMO role authorization and exact-head machine verification remain required.
 
 
 

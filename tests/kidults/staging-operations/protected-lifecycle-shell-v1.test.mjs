@@ -19,8 +19,8 @@ aws(){
   else
     echo invoke >> trace
     [[ "$CASE" != invoke_failed ]] || return 7
-    local output; for output; do :; done
-    printf '%s' "$BROKER_BODY" > "$output"
+    local output='' is_reconcile='false' arg; for arg; do output=$arg; [[ "$arg" != *RECONCILE_LIFECYCLE_OPERATION* ]] || is_reconcile='true'; done
+    if [[ "$is_reconcile" == true ]]; then printf '%s' "$RECONCILE_BODY" > "$output"; else printf '%s' "$BROKER_BODY" > "$output"; fi
     printf '%s' "$METADATA_BODY"
   fi
 }
@@ -28,6 +28,7 @@ export -f curl aws
 `;
 for(const [name,options] of [
   ['success',{}],['reuse',{response:{...valid,state:'REUSED_SUCCESS'}}],
+  ['not_applicable',{reconcileResponse:{ok:true,state:'NOT_APPLICABLE',reconciliation_mutation_attempted:false}}],
   ['oidc_transport',{}],['oidc_invalid',{oidc:'{"value":null}'}],['sts_failed',{}],['sts_partial',{creds:'key secret'}],
   ['sts_extra',{creds:'key secret session extra'}],['sts_none',{creds:'None secret session'}],['invoke_failed',{}],
   ['function_error',{metadata:'{"StatusCode":200,"FunctionError":"Unhandled"}'}],['metadata_invalid',{metadata:'invalid'}],
@@ -35,7 +36,7 @@ for(const [name,options] of [
   ['drain_hold',{response:{ok:false,state:'HOLD_RECONCILE',reason:'LEGACY_TOKEN_DRAIN_WINDOW',mutation_attempted:false},observation:{state:'HOLD_RECONCILE',reason:'LEGACY_TOKEN_DRAIN_WINDOW',mutation_attempted:false}}],
   ['original_fence',{response:{ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION'},observation:{state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION'}}],
   ['original_row',{response:{ok:false,state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION',original_operation_key:'sha256:'+'d'.repeat(64),original_operation_state:'UNKNOWN',original_operation_phase:'UNAVAILABLE',original_binding_verified:true,original_exact_target:target,token:'must-not-escape'},observation:{state:'HOLD_RECONCILE',reason:'ORIGINAL_LIFECYCLE_TARGET_REQUIRES_RECONCILIATION',original_operation_key:'sha256:'+'d'.repeat(64),original_operation_state:'UNKNOWN',original_operation_phase:'UNAVAILABLE',original_binding_verified:true,original_exact_target:target}}],
-  ['invalid_original_row',{response:{ok:false,state:'HOLD_RECONCILE',original_operation_key:'must-not-escape',original_operation_state:'secret arbitrary error',original_operation_phase:{secret:'must-not-escape'},original_binding_verified:'true',original_exact_target:'must-not-escape'},observation:{state:'HOLD_RECONCILE'}}],
+    ['invalid_original_row',{response:{ok:false,state:'HOLD_RECONCILE',original_operation_key:'must-not-escape',original_operation_state:'secret arbitrary error',original_operation_phase:{secret:'must-not-escape'},original_binding_verified:'true',original_exact_target:'must-not-escape'},observation:{state:'HOLD_RECONCILE'}}],
   ['bounded_diagnostics',{response:{ok:false,state:'HOLD_RECONCILE',failure_code:'RESUME_LIFECYCLE_DENIED:LIVE_TUPLE',reason:'x'.repeat(200),mutation_attempted:'false',token:'must-not-escape',caller_oidc_token:'must-not-escape',error:'secret arbitrary error'},observation:{state:'HOLD_RECONCILE',failure_code:'RESUME_LIFECYCLE_DENIED:LIVE_TUPLE'}}],
   ['wrong_target',{response:{...valid,receipt:{...valid.receipt,binding:{...valid.receipt.binding,exact_target:'wrong'}}}}],
   ['exposed_token',{response:{...valid,token:'must-not-escape'}}],
@@ -45,17 +46,18 @@ for(const [name,options] of [
     fs.writeFileSync(path.join(root,'operation.sh'),source);
     const result=spawnSync('bash',['--noprofile','--norc','-c',`${mocks}\nbash operation.sh "$BINDING" STALE_BASE_CONVERGENCE receipt.json`],{
       cwd:root,encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,CASE:name,BINDING:JSON.stringify(binding),OIDC_BODY:options.oidc||'{"value":"OFFLINE_OIDC"}',
-        CREDS_BODY:options.creds||'key secret session',BROKER_BODY:options.raw||JSON.stringify(options.response||valid),METADATA_BODY:options.metadata||'{"StatusCode":200}',
+        CREDS_BODY:options.creds||'key secret session',BROKER_BODY:options.raw||JSON.stringify(options.response||valid),
+        RECONCILE_BODY:JSON.stringify(options.reconcileResponse||{ok:true,state:'NO_PRIOR_UNKNOWN',reconciliation_mutation_attempted:false}),METADATA_BODY:options.metadata||'{"StatusCode":200}',
         GITHUB_REPOSITORY:repository,GITHUB_REPOSITORY_ID:'123',GITHUB_RUN_ID:'101',GITHUB_RUN_ATTEMPT:'1',AWS_ROLE_ARN:'offline',BROKER_FUNCTION:'offline',
         ACTIONS_ID_TOKEN_REQUEST_TOKEN:'offline',ACTIONS_ID_TOKEN_REQUEST_URL:'https://offline.invalid/token'}});
     assert.ifError(result.error);
     const receipt=JSON.parse(fs.readFileSync(path.join(root,'receipt.json')));
-    if(['success','reuse'].includes(name)){assert.equal(result.status,0,result.stderr);assert.equal(receipt.ok,true);}
+    if(['success','reuse','not_applicable'].includes(name)){assert.equal(result.status,0,result.stderr);assert.equal(receipt.ok,true);}
     else{assert.notEqual(result.status,0,name);assert.equal(receipt.state,'HOLD_RECONCILE');assert.equal(receipt.retry_without_reconciliation,false);
       if(options.observation)assert.deepEqual(receipt.broker_observation,options.observation);
       assert.ok(!JSON.stringify(receipt).includes('must-not-escape'));assert.ok(!JSON.stringify(receipt).includes('secret arbitrary error'));
     }
     const invokes=fs.existsSync(path.join(root,'trace'))?fs.readFileSync(path.join(root,'trace'),'utf8').trim().split('\n').length:0;
-    assert.ok(invokes<=1);assert.equal(result.stdout,'');
+    assert.ok(invokes<=2);if(['success','reuse','not_applicable'].includes(name))assert.equal(invokes,2);assert.equal(result.stdout,'');
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 });

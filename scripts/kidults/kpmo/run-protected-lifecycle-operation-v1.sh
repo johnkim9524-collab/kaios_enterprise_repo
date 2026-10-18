@@ -39,6 +39,12 @@ done
 [[ -z "$extra" ]] || write_failure LIFECYCLE_STS_RESPONSE_INVALID
 export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
 unset CREDS OIDC_JSON
+reconciliation_output="${output}.reconciliation"
+reconciliation_request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg operation "$operation" --arg run "$GITHUB_RUN_ID" --arg caller "$OIDC_TOKEN" --argjson attempt "$GITHUB_RUN_ATTEMPT" --argjson binding "$binding" '{action:"RECONCILE_LIFECYCLE_OPERATION",repository:$repo,repository_id:$rid,operation:$operation,binding:$binding,run_id:$run,run_attempt:$attempt,caller_oidc_token:$caller}') || write_failure LIFECYCLE_RECONCILIATION_REQUEST_INVALID
+reconciliation_metadata=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-connect-timeout 10 --cli-read-timeout 200 --cli-binary-format raw-in-base64-out --payload "$reconciliation_request" "$reconciliation_output") || write_failure LIFECYCLE_RECONCILIATION_INVOKE_OUTCOME_UNKNOWN
+jq -e '.StatusCode==200 and (.FunctionError // null)==null' <<< "$reconciliation_metadata" >/dev/null || { cp "$reconciliation_output" "$output" 2>/dev/null || true; write_failure LIFECYCLE_RECONCILIATION_BROKER_OUTCOME_UNKNOWN; }
+jq -e '.ok==true and (.state as $s | (["NO_PRIOR_UNKNOWN","NOT_APPLICABLE","ALREADY_TERMINAL_SUCCESS","RECONCILED_SUCCESS"]|index($s))!=null) and (.reconciliation_mutation_attempted==false)' "$reconciliation_output" >/dev/null || { cp "$reconciliation_output" "$output" 2>/dev/null || true; rm -f "$reconciliation_output"; write_failure LIFECYCLE_RECONCILIATION_REQUIRED; }
+rm -f "$reconciliation_output"
 request=$(jq -cn --arg repo "$GITHUB_REPOSITORY" --arg rid "$GITHUB_REPOSITORY_ID" --arg operation "$operation" --arg run "$GITHUB_RUN_ID" --arg caller "$OIDC_TOKEN" --argjson attempt "$GITHUB_RUN_ATTEMPT" --argjson binding "$binding" '{action:"RESUME_LIFECYCLE_OPERATION",repository:$repo,repository_id:$rid,operation:$operation,binding:$binding,run_id:$run,run_attempt:$attempt,caller_oidc_token:$caller}') || write_failure LIFECYCLE_REQUEST_INVALID
 unset OIDC_TOKEN
 metadata=$(aws lambda invoke --function-name "$BROKER_FUNCTION" --cli-connect-timeout 10 --cli-read-timeout 200 --cli-binary-format raw-in-base64-out --payload "$request" "$output") || write_failure LIFECYCLE_INVOKE_OUTCOME_UNKNOWN

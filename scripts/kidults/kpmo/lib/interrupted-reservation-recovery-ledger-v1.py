@@ -16,6 +16,9 @@ SHA = re.compile(r'^[a-f0-9]{40}$')
 DIGEST = re.compile(r'^sha256:[a-f0-9]{64}$')
 RUN = re.compile(r'^[1-9][0-9]{0,15}$')
 REQUEST_FIELDS = set(('id version repository repository_id pull_request base_sha head_sha head_tree_sha merge_sha source_sha original_run_id original_run_attempt original_generation nonce_digest issued_at expires_at').split()) | set(HOLD)
+ORIGINAL_TERMINAL_REPAIR_CASE = {'pull_request': 2655, 'merge_sha': 'd1b801ebf75dfc2b582c6381771f8194016328ca', 'original_run_id': '38132692877', 'original_run_attempt': 1}
+ORIGINAL_TERMINAL_REPAIR_ARCHIVE = {'artifact_id': 11700046124, 'archive_digest': 'sha256:b29d657aabd33895864a838dd84b836579a3febd9a4bd1299437580578f07ab4'}
+ORIGINAL_TERMINAL_NULL_REFS = [38132692877, 11700046124, ORIGINAL_TERMINAL_REPAIR_ARCHIVE['archive_digest']]
 
 
 def require(value, code):
@@ -59,11 +62,27 @@ def validate_request(r, now, fresh=True):
     return digest(r)
 
 
+def validate_original_terminal_repair_request(r, now, fresh=True):
+    request_digest = validate_request(r, now, fresh)
+    require(all(r.get(k) == v for k, v in ORIGINAL_TERMINAL_REPAIR_CASE.items()), 'ORIGINAL_REPAIR_INCIDENT')
+    return request_digest
+
+
+def validate_original_terminal_repair_successor(old, new, now):
+    old_digest = validate_original_terminal_repair_request(old, now, False)
+    validate_original_terminal_repair_request(new, now, True)
+    mutable = {'issued_at', 'expires_at'}
+    require(all(old.get(k) == new.get(k) for k in REQUEST_FIELDS - mutable), 'ORIGINAL_REPAIR_SUCCESSOR_IDENTITY')
+    require(epoch(old['expires_at']) <= now and epoch(new['issued_at']) >= epoch(old['expires_at']),
+            'ORIGINAL_REPAIR_SUCCESSOR_WINDOW')
+    return old_digest
+
+
 def validate_evidence(e, r):
     # Facts, not authorization booleans. Three protected signers authenticate
     # these native references independently; schema alone proves no runtime.
     legacy_fields = {'repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha', 'merge_parents', 'merged_at', 'original_run', 'checks'} | set(HOLD)
-    failure_fields = legacy_fields | {'evidence_profile'}
+    failure_fields = legacy_fields | {'evidence_profile', 'original_archive'}
     require(isinstance(e, dict) and set(e) in (legacy_fields, failure_fields), 'EVIDENCE_FIELDS')
     require(all(e[k] == r[k] for k in ('repository', 'source_sha', 'pull_request', 'merge_sha', 'head_sha', 'head_tree_sha')) and all(e[k] == v for k, v in HOLD.items()), 'EVIDENCE_BINDING')
     require(e['merge_parents'] == [r['base_sha'], r['head_sha']], 'MERGE_GRAPH')
@@ -77,10 +96,42 @@ def validate_evidence(e, r):
     require(not ('evidence_profile' in e and not failure_profile), 'EVIDENCE_PROFILE')
     allowed_kinds = failed_assurance_kinds if failure_profile else normal_kinds
     require(isinstance(checks, list) and len(checks) == 4 and {x.get('kind') for x in checks if isinstance(x, dict)} == allowed_kinds, 'CHECKS')
+    if failure_profile:
+        archive = e.get('original_archive')
+        require(isinstance(archive, dict) and set(archive) == {'artifact_id','archive_digest'}
+            and type(archive['artifact_id']) is int and archive['artifact_id'] > 0
+            and isinstance(archive['archive_digest'], str) and DIGEST.fullmatch(archive['archive_digest']), 'ORIGINAL_REPAIR_ARCHIVE')
     for c in checks:
         expected_conclusion = 'failure' if failure_profile and c.get('kind') == 'TERMINAL_NULL_ASSURANCE_FAILURE' else 'success'
-        require(set(c) == {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'} and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1 and c['source_sha'] == r['source_sha'] and c['conclusion'] == expected_conclusion and type(c['artifact_id']) is int and c['artifact_id'] > 0 and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest')), 'CHECK_BINDING')
+        base = {'kind', 'run_id', 'run_attempt', 'source_sha', 'conclusion', 'artifact_id', 'archive_digest', 'receipt_digest'}
+        terminal_null = failure_profile and c.get('kind') == 'TERMINAL_NULL_ASSURANCE_FAILURE'
+        require(set(c) == (base | {'terminal_null_evidence_refs'} if terminal_null else base)
+            and isinstance(c['run_id'], str) and RUN.fullmatch(c['run_id']) and type(c['run_attempt']) is int and c['run_attempt'] == 1
+            and c['source_sha'] == r['source_sha'] and c['conclusion'] == expected_conclusion and type(c['artifact_id']) is int and c['artifact_id'] > 0
+            and all(isinstance(c[k], str) and DIGEST.fullmatch(c[k]) for k in ('archive_digest', 'receipt_digest'))
+            and (not terminal_null or c['terminal_null_evidence_refs'] == [int(r['original_run_id']), e['original_archive']['artifact_id'], e['original_archive']['archive_digest']]), 'CHECK_BINDING')
+    require(len({c['run_id'] for c in checks}) == 4 and len({c['artifact_id'] for c in checks}) == 4, 'CHECK_COLLISION')
     return digest(e)
+
+
+def validate_original_terminal_repair_terminal(t, r, evidence_digest):
+    request_digest = validate_original_terminal_repair_request(r, 0, False)
+    fields = {'id','version','state','lifecycle_state','authority_scope','original_reservation_transition','request_digest','evidence_digest','original_run_id','original_head_sha','original_merge_sha','original_state','original_terminal_present','actual_authority_granted','platform_closure','production','public','g5','created_at','repair_digest'}
+    transition = {'id':'kidults-original-reservation-transition-v1','from_state':'RESERVED','to_state':'CONSUMED',
+        'ledger_key':{'pk':'RESERVE#' + r['original_generation'],'sk':'NONCE#' + r['nonce_digest']},
+        'conditional_cas':True,'merge_sha':r['merge_sha']}
+    require(isinstance(t, dict) and set(t) == fields and t['id'] == 'kidults-original-reservation-terminal-repair-v1'
+        and t['version'] == '1.0.0' and t['state'] == 'ORIGINAL_TERMINAL_DEBT_ONLY'
+        and t['lifecycle_state'] == 'ORIGINAL_RESERVATION_TERMINATED_RECOVERY_ONLY'
+        and t['authority_scope'] == 'ORIGINAL_TERMINAL_DEBT_ONLY' and t['original_reservation_transition'] == transition
+        and t['request_digest'] == request_digest and t['evidence_digest'] == evidence_digest
+        and t['original_run_id'] == r['original_run_id'] and t['original_head_sha'] == r['head_sha']
+        and t['original_merge_sha'] == r['merge_sha'] and t['original_state'] == 'RESERVED'
+        and t['original_terminal_present'] is False and t['actual_authority_granted'] is False and t['platform_closure'] is False
+        and all(t[k] == 'HOLD' for k in ('production','public','g5')), 'ORIGINAL_REPAIR_TERMINAL')
+    epoch(t['created_at'])
+    require(t['repair_digest'] == digest({k:v for k,v in t.items() if k != 'repair_digest'}), 'ORIGINAL_REPAIR_TERMINAL_DIGEST')
+    return t['repair_digest']
 
 
 def validate_original_terminal(t, r=None):
@@ -114,6 +165,31 @@ class InterruptedReservationRecoveryLedger:
     def key(r):
         return {'pk': {'S': 'RESERVE#' + r['original_generation']}, 'sk': {'S': 'NONCE#' + r['nonce_digest']}}
 
+    def validate_repair_ack(self, o, r, terminal):
+        require(isinstance(o, dict) and set(o) == {'bucket','key','version_id','sha256','retention_mode','retain_until','encryption_key_arn'}
+            and o['bucket'] == self.bucket and o['key'] == 'receipts/' + r['original_generation'] + '/original-reservation-terminal-repair/' + r['merge_sha'] + '.json'
+            and isinstance(o['version_id'], str) and 0 < len(o['version_id']) <= 1024 and o['sha256'] == digest(terminal)
+            and o['retention_mode'] == 'COMPLIANCE' and o['encryption_key_arn'] == self.receipt_key
+            and epoch(o['retain_until']) >= retention_horizon(terminal['created_at']), 'ORIGINAL_REPAIR_ACK_OBJECT')
+        return o
+
+    def validate_repair_row(self, row, r):
+        validate_original_terminal_repair_request(r, self.now(), False)
+        require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
+            and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha']
+            and row.get('repair_request', {}).get('S') == canonical(r), 'ORIGINAL_REPAIR_STORED_REQUEST')
+        evidence = json.loads(row.get('repair_evidence', {}).get('S', '{}'))
+        ed = row.get('repair_evidence_digest', {}).get('S')
+        require(validate_evidence(evidence, r) == ed and evidence.get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1',
+            'ORIGINAL_REPAIR_STORED_EVIDENCE')
+        terminal = json.loads(row.get('repair_terminal_json', {}).get('S', '{}'))
+        td = validate_original_terminal_repair_terminal(terminal, r, ed)
+        require(row.get('repair_terminal_digest', {}).get('S') == td, 'ORIGINAL_REPAIR_STORED_TERMINAL_DIGEST')
+        ack = json.loads(row['repair_immutable_ack']['S']) if 'repair_immutable_ack' in row else None
+        if ack is not None:
+            self.validate_repair_ack(ack, r, terminal)
+        return evidence, ed, terminal, td, ack
+
     def get(self, key):
         return self.ddb.get_item(TableName=self.table, Key=key, ConsistentRead=True).get('Item', {})
 
@@ -132,6 +208,8 @@ class InterruptedReservationRecoveryLedger:
         key = {'pk': {'S': 'RESERVE#' + b['authorization_generation']}, 'sk': {'S': 'NONCE#' + b['nonce_digest']}}
         row = self.get(key)
         if event['action'] == 'CONSUME_RESERVATION':
+            require(not any(k in row for k in ('repair_terminal_json', 'repair_terminal_digest', 'repair_immutable_ack')),
+                    'ORIGINAL_REPAIR_IS_NOT_SUCCESS_TERMINAL')
             # Authoritative role rows were signature-verified on creation by
             # the unchanged core; recompute their exact persisted quorum.
             approvals = []
@@ -211,6 +289,346 @@ class InterruptedReservationRecoveryLedger:
                 and type(e['approval_run_attempt']) is int and e['approval_run_attempt'] == 1, 'FAILURE_APPROVAL_RUN')
         return e
 
+    @staticmethod
+    def original_repair_approval_key(request_digest, role):
+        return {'pk': {'S': 'AUTH#ORIGINAL_TERMINAL_REPAIR#' + request_digest}, 'sk': {'S': 'ROLE#' + role}}
+
+    def supersede_original_terminal_repair(self, event):
+        e = self.authenticate(event, 'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR',
+                              ('old_request', 'old_request_digest', 'evidence', 'evidence_digest'), fresh=True)
+        new = e['request']; old = e['old_request']
+        old_digest = validate_original_terminal_repair_successor(old, new, self.now())
+        require(e['old_request_digest'] == old_digest and e['evidence'].get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+                and e['evidence'].get('original_archive') == ORIGINAL_TERMINAL_REPAIR_ARCHIVE
+                and validate_evidence(e['evidence'], new) == e['evidence_digest'], 'ORIGINAL_REPAIR_SUCCESSOR_EVIDENCE')
+        new_runs=set();old_runs=set()
+        for candidate_role in ROLES:
+            candidate=self.get(self.original_repair_approval_key(e['request_digest'],candidate_role))
+            require(candidate.get('signed_event',{}).get('S'),'ORIGINAL_REPAIR_SUCCESSOR_QUORUM')
+            a=self.verify(json.loads(candidate['signed_event']['S']),self.roles[candidate_role])
+            require(a.get('action')=='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('role')==candidate_role
+                and a.get('request')==new and a.get('request_digest')==e['request_digest']
+                and a.get('old_request')==old and a.get('old_request_digest')==old_digest
+                and a.get('evidence')==e['evidence'] and a.get('evidence_digest')==e['evidence_digest'],
+                'ORIGINAL_REPAIR_SUCCESSOR_APPROVAL_BINDING')
+            new_runs.add(a['approval_run_id'])
+            prior=self.get(self.original_repair_approval_key(old_digest,candidate_role))
+            if prior:
+                oa=self.verify(json.loads(prior['signed_event']['S']),self.roles[candidate_role])
+                old_runs.add(oa['approval_run_id'])
+        require(len(new_runs)==3 and e['run_id'] not in new_runs and not(new_runs&old_runs),
+                'ORIGINAL_REPAIR_SUCCESSOR_FRESH_QUORUM')
+        row = self.get(self.key(old))
+        old_evidence = json.loads(row.get('repair_evidence', {}).get('S', '{}'))
+        require(row.get('state', {}).get('S') == 'RESERVED' and row.get('run_id', {}).get('S') == old['original_run_id']
+                and row.get('head_sha', {}).get('S') == old['head_sha']
+                and row.get('repair_request', {}).get('S') == canonical(old)
+                and validate_evidence(old_evidence, old) == row.get('repair_evidence_digest', {}).get('S')
+                and not any(k in row for k in ('repair_terminal_json', 'repair_terminal_digest', 'repair_immutable_ack',
+                    'original_terminal_json', 'original_terminal_digest', 'original_immutable_ack', 'ir_request', 'ir_terminal',
+                    'ir_terminal_digest','ir_immutable_ack')),
+                'ORIGINAL_REPAIR_SUCCESSOR_STATE')
+        require(epoch(old['expires_at']) <= self.now()
+                and float(row.get('ir_lease_until', {}).get('N', '0')) <= self.now()
+                and float(row.get('repair_lease_until', {}).get('N', '0')) <= self.now(), 'ORIGINAL_REPAIR_SUCCESSOR_NOT_QUIESCENT')
+        revision=int(row.get('repair_revision',{}).get('N','0'))
+        values = {':reserved': {'S': 'RESERVED'}, ':original': {'S': old['original_run_id']}, ':head': {'S': old['head_sha']},
+                  ':old_request': {'S': canonical(old)}, ':old_digest': {'S': old_digest},
+                  ':old_evidence_digest': {'S': row['repair_evidence_digest']['S']}, ':request': {'S': canonical(new)},
+                  ':body': {'S': canonical(e['evidence'])}, ':digest': {'S': e['evidence_digest']}}
+        condition = '#state=:reserved AND run_id=:original AND head_sha=:head AND repair_request=:old_request AND repair_evidence_digest=:old_evidence_digest AND attribute_not_exists(repair_terminal_json) AND attribute_not_exists(repair_terminal_digest) AND attribute_not_exists(repair_immutable_ack) AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(original_terminal_digest) AND attribute_not_exists(original_immutable_ack) AND attribute_not_exists(ir_request) AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND attribute_not_exists(ir_immutable_ack)'
+        if revision:
+            values[':revision']={'N':str(revision)};values[':next_revision']={'N':str(revision+1)}
+            condition+=' AND repair_revision=:revision'
+        else:
+            values[':next_revision']={'N':'1'};condition+=' AND attribute_not_exists(repair_revision)'
+        if 'ir_lease_until' in row:
+            values[':now'] = {'N': str(self.now())}
+            condition += ' AND ir_lease_until<=:now'
+        else: condition += ' AND attribute_not_exists(ir_lease_until)'
+        if 'repair_lease_until' in row:
+            values[':now'] = {'N': str(self.now())}
+            condition += ' AND repair_lease_until<=:now'
+        else: condition += ' AND attribute_not_exists(repair_lease_until)'
+        try:
+            self.ddb.update_item(TableName=self.table, Key=self.key(old),
+                UpdateExpression='SET repair_request=:request, repair_evidence=:body, repair_evidence_digest=:digest, repair_superseded_from=:old_digest, repair_revision=:next_revision',
+                ConditionExpression=condition, ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues=values)
+        except Exception:
+            observed = self.get(self.key(new))
+            require(observed.get('repair_request', {}).get('S') == canonical(new)
+                    and observed.get('repair_evidence_digest', {}).get('S') == e['evidence_digest']
+                    and observed.get('repair_revision',{}).get('N')==str(revision+1),
+                    'ORIGINAL_REPAIR_SUCCESSOR_UNKNOWN_NO_RETRY')
+            return {'state': 'ORIGINAL_TERMINAL_REPAIR_SUPERSESSION_RECONCILED', 'write_performed': False,
+                    'old_request_digest': old_digest, 'request_digest': e['request_digest'], 'old_approvals_reusable': False}
+        observed=self.get(self.key(new))
+        require(observed.get('state',{}).get('S')=='RESERVED'
+            and observed.get('run_id',{}).get('S')==old['original_run_id']
+            and observed.get('head_sha',{}).get('S')==old['head_sha']
+            and observed.get('repair_request',{}).get('S')==canonical(new)
+            and observed.get('repair_evidence_digest',{}).get('S')==e['evidence_digest']
+            and observed.get('repair_revision',{}).get('N')==str(revision+1),'ORIGINAL_REPAIR_SUCCESSOR_READBACK')
+        return {'state': 'ORIGINAL_TERMINAL_REPAIR_SUPERSEDED_NEW_QUORUM_VERIFIED', 'write_performed': True,
+                'old_request_digest': old_digest, 'request_digest': e['request_digest'], 'old_approvals_reusable': False}
+
+    def create_original_terminal_repair_approval(self, event):
+        role = event.get('envelope', {}).get('role')
+        require(role in self.roles, 'ORIGINAL_REPAIR_ROLE')
+        e = self.verify(event, self.roles[role])
+        fields = {'action', 'request', 'request_digest', 'evidence', 'evidence_digest', 'role',
+                  'approval_run_id', 'approval_run_attempt', 'workload'}
+        successor_fields={'old_request','old_request_digest'}
+        is_successor=successor_fields.issubset(e)
+        require(set(e)==(fields|successor_fields if is_successor else fields)
+                and e['action']=='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR','ORIGINAL_REPAIR_APPROVAL_FIELDS')
+        r, evidence = e['request'], e['evidence']
+        require(validate_original_terminal_repair_request(r, self.now(), True) == e['request_digest']
+                and evidence.get('evidence_profile') == 'TERMINAL_NULL_ASSURANCE_FAILURE_V1'
+                and evidence.get('original_archive') == ORIGINAL_TERMINAL_REPAIR_ARCHIVE
+                and validate_evidence(evidence, r) == e['evidence_digest'], 'ORIGINAL_REPAIR_EVIDENCE')
+        if is_successor:
+            old=e['old_request']
+            old_digest=validate_original_terminal_repair_successor(old,r,self.now())
+            require(e['old_request_digest']==old_digest,'ORIGINAL_REPAIR_SUCCESSOR_OLD_DIGEST')
+        require(isinstance(e['approval_run_id'], str) and RUN.fullmatch(e['approval_run_id'])
+                and e['approval_run_id'] != r['original_run_id'] and type(e['approval_run_attempt']) is int
+                and e['approval_run_attempt'] == 1, 'ORIGINAL_REPAIR_APPROVAL_RUN')
+        row = self.get(self.key(r))
+        require(row.get('state', {}).get('S') == 'RESERVED' and row.get('run_id', {}).get('S') == r['original_run_id']
+                and row.get('head_sha', {}).get('S') == r['head_sha']
+                and not any(k in row for k in ('original_terminal_json', 'original_terminal_digest', 'original_immutable_ack',
+                    'repair_terminal_json', 'repair_terminal_digest', 'repair_immutable_ack',
+                    'ir_request', 'ir_terminal', 'failure_request')), 'ORIGINAL_REPAIR_RESERVED_ONLY')
+        pinned=row.get('repair_request',{}).get('S')
+        if is_successor:
+            require(pinned==canonical(old) and row.get('repair_evidence_digest',{}).get('S')
+                ==digest(json.loads(row['repair_evidence']['S'])),'ORIGINAL_REPAIR_SUCCESSOR_PIN')
+        else:
+            require(pinned in (None,canonical(r)) and row.get('repair_evidence_digest',{}).get('S')
+                in (None,e['evidence_digest']),'ORIGINAL_REPAIR_PIN_CONFLICT')
+        if not is_successor and 'repair_request' not in row:
+            try:
+                self.ddb.update_item(TableName=self.table, Key=self.key(r),
+                    UpdateExpression='SET repair_request=:request, repair_evidence=:body, repair_evidence_digest=:digest',
+                    ConditionExpression='#state=:reserved AND run_id=:original AND head_sha=:head AND attribute_not_exists(repair_request) AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(ir_request)',
+                    ExpressionAttributeNames={'#state': 'state'}, ExpressionAttributeValues={
+                        ':reserved': {'S': 'RESERVED'}, ':original': {'S': r['original_run_id']}, ':head': {'S': r['head_sha']},
+                        ':request': {'S': canonical(r)}, ':body': {'S': canonical(evidence)}, ':digest': {'S': e['evidence_digest']}})
+            except Exception:
+                row = self.get(self.key(r))
+                require(row.get('repair_request', {}).get('S') == canonical(r)
+                        and row.get('repair_evidence_digest', {}).get('S') == e['evidence_digest'], 'ORIGINAL_REPAIR_PIN_UNKNOWN_NO_RETRY')
+        key = self.original_repair_approval_key(e['request_digest'], role); prior = self.get(key)
+        if prior:
+            require(prior.get('signed_event', {}).get('S') == canonical(event), 'ORIGINAL_REPAIR_APPROVAL_CONFLICT')
+            return {'state': 'EXISTING_ORIGINAL_TERMINAL_REPAIR_APPROVAL', 'write_performed': False}
+        try:
+            self.ddb.put_item(TableName=self.table, Item={**key, 'signed_event': {'S': canonical(event)}},
+                              ConditionExpression='attribute_not_exists(pk) AND attribute_not_exists(sk)')
+        except Exception:
+            prior = self.get(key)
+            require(prior.get('signed_event', {}).get('S') == canonical(event), 'ORIGINAL_REPAIR_APPROVAL_UNKNOWN_NO_RETRY')
+            return {'state': 'EXISTING_ORIGINAL_TERMINAL_REPAIR_APPROVAL', 'write_performed': False}
+        return {'state': 'ORIGINAL_TERMINAL_REPAIR_APPROVAL_STORED', 'successor_candidate':is_successor,'write_performed': True}
+
+    def read_original_terminal_repair_context(self, event):
+        e = event.get('envelope', {}); role = e.get('role')
+        require(role in self.roles or role == 'FINALIZER', 'ORIGINAL_REPAIR_CONTEXT_ROLE')
+        self.verify(event, self.finalizer if role == 'FINALIZER' else self.roles[role])
+        require(set(e) == {'action','request','request_digest','role','run_id','run_attempt','workload'}
+                and e['action'] == 'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT', 'ORIGINAL_REPAIR_CONTEXT_FIELDS')
+        r = e['request']; rd = validate_original_terminal_repair_request(r, self.now(), False)
+        require(rd == e['request_digest'] and isinstance(e['run_id'], str) and RUN.fullmatch(e['run_id'])
+                and e['run_id'] != r['original_run_id'] and type(e['run_attempt']) is int and e['run_attempt'] == 1, 'ORIGINAL_REPAIR_CONTEXT_BINDING')
+        row = self.get(self.key(r))
+        if not row: return {'state':'ORIGINAL_RESERVATION_MISSING','write_performed':False}
+        require(row.get('run_id',{}).get('S') == r['original_run_id'] and row.get('head_sha',{}).get('S') == r['head_sha'], 'ORIGINAL_REPAIR_CONTEXT_OWNER')
+        if row.get('state',{}).get('S') == 'CONSUMED' and 'repair_terminal_json' not in row:
+            return {'state':'ORIGINAL_RESERVATION_NOT_RESERVED','write_performed':False}
+        if 'repair_terminal_json' in row:
+            evidence, ed, terminal, _, ack = self.validate_repair_row(row, r)
+            approvals=[]; rd=digest(r)
+            for candidate_role in ROLES:
+                prior=self.get(self.original_repair_approval_key(rd,candidate_role))
+                require(prior.get('signed_event',{}).get('S'),'ORIGINAL_REPAIR_STORED_QUORUM')
+                a=self.verify(json.loads(prior['signed_event']['S']),self.roles[candidate_role])
+                require(a.get('action')=='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('role')==candidate_role
+                    and a.get('request')==r and a.get('request_digest')==rd and a.get('evidence')==evidence
+                    and a.get('evidence_digest')==ed,'ORIGINAL_REPAIR_STORED_APPROVAL')
+                approvals.append(a)
+            require(len({a['approval_run_id'] for a in approvals})==3,'ORIGINAL_REPAIR_STORED_RUN_COLLISION')
+            return {'state':'ORIGINAL_TERMINAL_DEBT_ONLY','request':r,'terminal':terminal,
+                    'evidence':evidence,'evidence_digest':ed,
+                    'approvals':approvals,'immutable_ack':ack,
+                    'repair_revision':int(row.get('repair_revision',{}).get('N','0')),
+                    'repair_execution_run':row.get('repair_execution_run',{}).get('S'),
+                    'repair_lease_until':float(row.get('repair_lease_until',{}).get('N','0')),
+                    'write_performed':False}
+        require(row.get('state',{}).get('S') == 'RESERVED' and row.get('merge_sha',{}).get('S') in (None,r['merge_sha'])
+                and not any(k in row for k in ('original_terminal_json','original_terminal_digest','original_immutable_ack','ir_request','ir_terminal')),
+                'ORIGINAL_REPAIR_CONTEXT_RESERVED')
+        pinned = json.loads(row['repair_request']['S']) if 'repair_request' in row else None
+        evidence = json.loads(row['repair_evidence']['S']) if 'repair_evidence' in row else None
+        ed = row.get('repair_evidence_digest',{}).get('S')
+        successor=bool(pinned and pinned!=r)
+        if successor:
+            old_digest=validate_original_terminal_repair_successor(pinned,r,self.now())
+            require(evidence is not None and validate_evidence(evidence,pinned)==ed,'ORIGINAL_REPAIR_CONTEXT_OLD_PIN')
+        elif pinned: require(evidence is not None and validate_evidence(evidence,r) == ed, 'ORIGINAL_REPAIR_CONTEXT_PIN')
+        approvals=[]
+        candidate_evidence=None;candidate_ed=None
+        for candidate_role in ROLES:
+            prior=self.get(self.original_repair_approval_key(rd,candidate_role))
+            if prior:
+                packet=json.loads(prior['signed_event']['S']); a=self.verify(packet,self.roles[candidate_role])
+                require(a.get('action')=='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('request')==r
+                    and a.get('request_digest')==rd and a.get('role')==candidate_role
+                    and (not successor or (a.get('old_request')==pinned and a.get('old_request_digest')==old_digest)),
+                    'ORIGINAL_REPAIR_CONTEXT_APPROVAL')
+                if successor:
+                    if candidate_evidence is None:candidate_evidence,candidate_ed=a.get('evidence'),a.get('evidence_digest')
+                    require(a.get('evidence')==candidate_evidence and a.get('evidence_digest')==candidate_ed
+                        and validate_evidence(candidate_evidence,r)==candidate_ed,'ORIGINAL_REPAIR_SUCCESSOR_APPROVAL_DRIFT')
+                else:
+                    require(a.get('evidence_digest')==ed and a.get('evidence')==evidence,'ORIGINAL_REPAIR_CONTEXT_APPROVAL')
+                approvals.append(a)
+        require(len({a['approval_run_id'] for a in approvals}) == len(approvals), 'ORIGINAL_REPAIR_CONTEXT_RUN_COLLISION')
+        if successor:
+            return {'state':'ORIGINAL_TERMINAL_REPAIR_SUCCESSOR_PENDING','request':r,'old_request':pinned,
+                'old_request_digest':old_digest,'evidence':candidate_evidence,'evidence_digest':candidate_ed,
+                'approvals':approvals,'terminal':None,'immutable_ack':None,
+                'repair_revision':int(row.get('repair_revision',{}).get('N','0')),
+                'repair_execution_run':row.get('repair_execution_run',{}).get('S'),
+                'repair_lease_until':float(row.get('repair_lease_until',{}).get('N','0')),'write_performed':False}
+        return {'state':'ORIGINAL_TERMINAL_REPAIR_PENDING','request':pinned,'evidence':evidence,'evidence_digest':ed,
+                'approvals':approvals,'terminal':None,'immutable_ack':None,
+                'repair_revision':int(row.get('repair_revision',{}).get('N','0')),
+                'repair_execution_run':row.get('repair_execution_run',{}).get('S'),
+                'repair_lease_until':float(row.get('repair_lease_until',{}).get('N','0')),'write_performed':False}
+
+    def claim_original_terminal_repair(self, event):
+        e=self.authenticate(event,'CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR',('expected_revision','lease_seconds'),fresh=False)
+        r=e['request'];row=self.get(self.key(r));ed=row.get('repair_evidence_digest',{}).get('S')
+        evidence=json.loads(row.get('repair_evidence',{}).get('S','{}'));rd=e['request_digest']
+        require(row.get('state',{}).get('S')=='RESERVED' and row.get('run_id',{}).get('S')==r['original_run_id']
+            and row.get('head_sha',{}).get('S')==r['head_sha'] and row.get('repair_request',{}).get('S')==canonical(r)
+            and ed and validate_evidence(evidence,r)==ed,'ORIGINAL_REPAIR_CLAIM_CONTEXT')
+        runs=set()
+        for role in ROLES:
+            prior=self.get(self.original_repair_approval_key(rd,role))
+            require(prior.get('signed_event',{}).get('S'),'ORIGINAL_REPAIR_QUORUM')
+            a=self.verify(json.loads(prior['signed_event']['S']),self.roles[role])
+            require(a.get('action')=='APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('role')==role
+                and a.get('request')==r and a.get('request_digest')==rd
+                and a.get('evidence')==evidence and a.get('evidence_digest')==ed,'ORIGINAL_REPAIR_CLAIM_APPROVAL')
+            runs.add(a['approval_run_id'])
+        require(len(runs)==3 and e['run_id'] not in runs,'ORIGINAL_REPAIR_CLAIM_QUORUM')
+        now=self.now();revision=int(row.get('repair_revision',{}).get('N','0'))
+        require(type(e.get('expected_revision')) is int and e['expected_revision']==revision
+            and type(e.get('lease_seconds')) is int and 1<=e['lease_seconds']<=120
+            and float(row.get('repair_lease_until',{}).get('N','0'))<=now,'ORIGINAL_REPAIR_CLAIM_LEASE')
+        until=now+e['lease_seconds']
+        values={':reserved':{'S':'RESERVED'},':original':{'S':r['original_run_id']},':head':{'S':r['head_sha']},
+            ':request':{'S':canonical(r)},':evidence':{'S':ed},':run':{'S':e['run_id']},
+            ':revision':{'N':str(revision+1)},':until':{'N':str(until)}}
+        condition='#state=:reserved AND run_id=:original AND head_sha=:head AND repair_request=:request AND repair_evidence_digest=:evidence '
+        condition+='AND attribute_not_exists(repair_terminal_json) AND attribute_not_exists(repair_terminal_digest) AND attribute_not_exists(repair_immutable_ack) '
+        condition+='AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(original_terminal_digest) AND attribute_not_exists(original_immutable_ack) '
+        condition+='AND attribute_not_exists(ir_request) AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND attribute_not_exists(ir_immutable_ack) '
+        if revision:
+            values[':previous']={'N':str(revision)}
+            condition+='AND repair_revision=:previous'
+        else: condition+='AND attribute_not_exists(repair_revision)'
+        # A previous supersession can advance the revision without ever
+        # acquiring a repair lease. Bind whichever lease state was observed;
+        # requiring an absent lease only at revision zero strands that row.
+        if 'repair_lease_until' in row:
+            values[':now']={'N':str(now)}
+            condition+=' AND repair_lease_until<=:now'
+        else: condition+=' AND attribute_not_exists(repair_lease_until)'
+        if 'ir_lease_until' in row:
+            values[':now']={'N':str(now)}
+            condition+=' AND ir_lease_until<=:now'
+        else: condition+=' AND attribute_not_exists(ir_lease_until)'
+        saved=self.ddb.update_item(TableName=self.table,Key=self.key(r),
+            UpdateExpression='SET repair_execution_run=:run, repair_revision=:revision, repair_lease_until=:until',
+            ConditionExpression=condition,ExpressionAttributeNames={'#state':'state'},
+            ExpressionAttributeValues=values,ReturnValues='ALL_NEW').get('Attributes',{})
+        require(saved.get('repair_execution_run',{}).get('S')==e['run_id']
+            and saved.get('repair_revision',{}).get('N')==str(revision+1)
+            and saved.get('repair_lease_until',{}).get('N')==str(until)
+            and saved.get('repair_request',{}).get('S')==canonical(r)
+            and saved.get('repair_evidence_digest',{}).get('S')==ed,'ORIGINAL_REPAIR_CLAIM_READBACK')
+        return {'state':'ORIGINAL_TERMINAL_REPAIR_LEASE_ONLY','revision':revision+1,'lease_until':until,
+            'owner_run_id':e['run_id'],'request_digest':rd,'evidence_digest':ed}
+
+    def finalize_original_terminal_repair(self, event):
+        e = self.authenticate(event, 'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR', ('terminal', 'evidence_digest','expected_revision'), fresh=False)
+        r, terminal = e['request'], e['terminal']; validate_original_terminal_repair_request(r, self.now(), False); row = self.get(self.key(r))
+        evidence = json.loads(row.get('repair_evidence', {}).get('S', '{}'))
+        ed = row.get('repair_evidence_digest', {}).get('S')
+        require(row.get('repair_request', {}).get('S') == canonical(r) and ed == e['evidence_digest']
+                and validate_evidence(evidence, r) == ed, 'ORIGINAL_REPAIR_EVIDENCE_PIN')
+        revision=int(row.get('repair_revision',{}).get('N','0'))
+        require(type(e.get('expected_revision')) is int and e['expected_revision']==revision
+            and row.get('repair_execution_run',{}).get('S')==e['run_id']
+            and float(row.get('repair_lease_until',{}).get('N','0'))>self.now(),'ORIGINAL_REPAIR_FINALIZER_LEASE')
+        approvals = []
+        for candidate_role in ROLES:
+            prior = self.get(self.original_repair_approval_key(e['request_digest'], candidate_role))
+            require(prior.get('signed_event', {}).get('S'), 'ORIGINAL_REPAIR_QUORUM')
+            packet = json.loads(prior['signed_event']['S']); a = self.verify(packet, self.roles[candidate_role])
+            require(a.get('action') == 'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR' and a.get('role') == candidate_role
+                    and a.get('request') == r and a.get('request_digest') == e['request_digest']
+                    and a.get('evidence_digest') == ed and a.get('evidence') == evidence, 'ORIGINAL_REPAIR_APPROVAL_BINDING')
+            approvals.append(a)
+        require(len({a['approval_run_id'] for a in approvals}) == 3, 'ORIGINAL_REPAIR_QUORUM_RUN_COLLISION')
+        validate_original_terminal_repair_terminal(terminal, r, ed)
+        if 'repair_terminal_json' in row:
+            _, _, stored_terminal, _, _ = self.validate_repair_row(row, r)
+            require(canonical(stored_terminal) == canonical(terminal),
+                    'ORIGINAL_REPAIR_TERMINAL_CONFLICT')
+            return {'state':'ORIGINAL_TERMINAL_DEBT_ONLY','terminal':terminal,'terminal_digest':terminal['repair_digest'],
+                    'write_performed':False,'actual_authority_granted':False,'promotion_eligible':False}
+        require(row.get('state', {}).get('S') == 'RESERVED' and row.get('run_id', {}).get('S') == r['original_run_id']
+                and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') in (None, r['merge_sha'])
+                and not any(k in row for k in ('original_terminal_json','original_terminal_digest','original_immutable_ack',
+                    'repair_terminal_json','repair_terminal_digest','ir_request','ir_terminal')), 'ORIGINAL_REPAIR_STATE')
+        merge_condition=' AND merge_sha=:merge' if 'merge_sha' in row else ' AND attribute_not_exists(merge_sha)'
+        result = self.ddb.update_item(TableName=self.table, Key=self.key(r),
+            UpdateExpression='SET #state=:consumed, merge_sha=:merge, repair_terminal_json=:terminal, repair_terminal_digest=:digest',
+            ConditionExpression='#state=:reserved AND run_id=:original AND head_sha=:head AND repair_request=:request AND repair_evidence_digest=:evidence_digest AND repair_execution_run=:run AND repair_revision=:revision AND repair_lease_until>:now'+merge_condition+' AND attribute_not_exists(repair_terminal_json) AND attribute_not_exists(repair_terminal_digest) AND attribute_not_exists(repair_immutable_ack) AND attribute_not_exists(original_terminal_json) AND attribute_not_exists(original_terminal_digest) AND attribute_not_exists(original_immutable_ack) AND attribute_not_exists(ir_request) AND attribute_not_exists(ir_terminal) AND attribute_not_exists(ir_terminal_digest) AND attribute_not_exists(ir_immutable_ack)',
+            ExpressionAttributeNames={'#state':'state'}, ExpressionAttributeValues={':reserved':{'S':'RESERVED'}, ':consumed':{'S':'CONSUMED'},
+                ':original':{'S':r['original_run_id']}, ':head':{'S':r['head_sha']}, ':merge':{'S':r['merge_sha']},
+                ':request':{'S':canonical(r)}, ':evidence_digest':{'S':ed}, ':run':{'S':e['run_id']},
+                ':revision':{'N':str(revision)}, ':now':{'N':str(self.now())},
+                ':terminal':{'S':canonical(terminal)}, ':digest':{'S':terminal['repair_digest']}}, ReturnValues='ALL_NEW')
+        saved = result.get('Attributes', {})
+        require(saved.get('state',{}).get('S') == 'CONSUMED' and saved.get('repair_terminal_json',{}).get('S') == canonical(terminal)
+                and saved.get('repair_terminal_digest',{}).get('S') == terminal['repair_digest'], 'ORIGINAL_REPAIR_READBACK')
+        return {'state':'ORIGINAL_TERMINAL_DEBT_ONLY','terminal':terminal,'terminal_digest':terminal['repair_digest'],
+                'write_performed':True,'actual_authority_granted':False,'promotion_eligible':False}
+
+    def acknowledge_original_terminal_repair(self, event):
+        e = self.authenticate(event, 'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE', ('object','evidence_digest'), fresh=False)
+        r = e['request']; validate_original_terminal_repair_request(r, self.now(), False); row = self.get(self.key(r))
+        evidence, ed, terminal, td, _ = self.validate_repair_row(row, r)
+        require(e['evidence_digest'] == ed, 'ORIGINAL_REPAIR_ACK_EVIDENCE_BINDING')
+        o = e['object']
+        self.validate_repair_ack(o, r, terminal)
+        if 'repair_immutable_ack' in row:
+            require(row['repair_immutable_ack']['S'] == canonical(o), 'ORIGINAL_REPAIR_ACK_CONFLICT')
+            return {'state':'ORIGINAL_TERMINAL_REPAIR_IMMUTABLE_ACKNOWLEDGED','write_performed':False}
+        saved = self.ddb.update_item(TableName=self.table, Key=self.key(r),
+            UpdateExpression='SET repair_immutable_ack=:object',
+            ConditionExpression='#state=:consumed AND run_id=:original AND repair_terminal_digest=:digest AND attribute_not_exists(repair_immutable_ack)',
+            ExpressionAttributeNames={'#state':'state'}, ExpressionAttributeValues={':consumed':{'S':'CONSUMED'},
+                ':original':{'S':r['original_run_id']}, ':digest':{'S':td}, ':object':{'S':canonical(o)}}, ReturnValues='ALL_NEW').get('Attributes', {})
+        require(saved.get('repair_immutable_ack', {}).get('S') == canonical(o)
+                and saved.get('repair_terminal_digest', {}).get('S') == td, 'ORIGINAL_REPAIR_ACK_READBACK')
+        return {'state':'ORIGINAL_TERMINAL_REPAIR_IMMUTABLE_ACKNOWLEDGED','write_performed':True}
+
     def failure_context(self, event):
         e = event.get('envelope', {}); role = e.get('role')
         require(role in self.roles or role == 'FINALIZER', 'FAILURE_CONTEXT_ROLE')
@@ -265,7 +683,9 @@ class InterruptedReservationRecoveryLedger:
         require(row.get('state', {}).get('S') == 'CONSUMED' and row.get('run_id', {}).get('S') == r['original_run_id']
                 and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('merge_sha', {}).get('S') == r['merge_sha'
                 ] and 'original_terminal_json' not in row and 'original_terminal_digest' not in row
-                and 'original_immutable_ack' not in row and 'ir_terminal' not in row and 'ir_terminal_digest' not in row
+                and 'original_immutable_ack' not in row and 'repair_terminal_json' not in row
+                and 'repair_terminal_digest' not in row and 'repair_immutable_ack' not in row
+                and 'ir_terminal' not in row and 'ir_terminal_digest' not in row
                 and 'ir_immutable_ack' not in row and 'ir_request' not in row and 'failure_terminal' not in row
                 and 'failure_terminal_digest' not in row and 'failure_immutable_ack' not in row, 'FAILURE_TERMINAL_NULL_ONLY')
         require(row.get('failure_request', {}).get('S') in (None, canonical(r)), 'FAILURE_REQUEST_CONFLICT')
@@ -390,6 +810,11 @@ class InterruptedReservationRecoveryLedger:
             return {'state': 'ORIGINAL_RESERVATION_MISSING', 'write_performed': False}
         require(row.get('run_id', {}).get('S') == r['original_run_id'] and row.get('head_sha', {}).get('S') == r['head_sha'] and row.get('state', {}).get('S') in ('RESERVED', 'CONSUMED'), 'CONTEXT_RESERVATION')
         if row['state']['S'] == 'CONSUMED' and 'ir_request' not in row:
+            if 'repair_terminal_json' in row:
+                evidence, ed, terminal, _, ack = self.validate_repair_row(row, r)
+                return {'state': 'ORIGINAL_TERMINAL_DEBT_ONLY', 'terminal': terminal,
+                        'request': r, 'evidence': evidence, 'evidence_digest': ed, 'immutable_ack': ack,
+                        'write_performed': False}
             if 'original_terminal_json' in row:
                 terminal = json.loads(row['original_terminal_json']['S'])
                 require(validate_original_terminal(terminal, r) == row.get('original_terminal_digest', {}).get('S') and row.get('merge_sha', {}).get('S') == r['merge_sha'], 'ORIGINAL_STORED_TERMINAL')

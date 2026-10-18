@@ -26,9 +26,15 @@ function fixture(){
  if(r.startsWith('compare/'))return {base_commit:{sha:sha('d')},merge_base_commit:{sha:sha('d')},behind_by:0,status:'ahead'};
  throw Error('unknown '+r);};
  f.archiveReader=(bytes,expected)=>{assert.equal('sha256:'+createHash('sha256').update(bytes).digest('hex'),expected);return {members:[{name:'receipt.json',encoding:'utf-8',text:JSON.stringify(f.receipt)}]};};
- f.call=()=>discoverInterruptedRecoveryCandidates({sourceSha:sha('e'),upstream:{created_at:'2026-10-11T09:59:00Z'},get:f.get,readBytes:async()=>f.bytes,archiveReader:f.archiveReader,now:()=>now});return f;
+ f.call=(observedNow=now)=>discoverInterruptedRecoveryCandidates({sourceSha:sha('e'),upstream:{created_at:'2026-10-11T09:59:00Z',updated_at:'2026-10-11T09:59:00Z'},get:f.get,readBytes:async()=>f.bytes,archiveReader:f.archiveReader,now:()=>observedNow});return f;
 }
 test('real failure archive supplies only a hint, followed by exact merged graph/native readback',async()=>{const f=fixture(),r=await f.call();assert.equal(r.candidates.length,1);assert.equal(r.candidates[0].request.original_run_id,'100');assert.ok(f.calls.some(r=>r.includes('event=repository_dispatch&status=failure')));});
+test('roles derive the same recovery request from one shared authenticated timestamp',async()=>{
+ const f=fixture(),one=await f.call(now+1000),two=await f.call(now+5000);
+ assert.deepEqual(one.candidates[0].request,two.candidates[0].request);
+ assert.equal(one.candidates[0].request.issued_at,'2026-10-11T09:59:00.000Z');
+ await assert.rejects(f.call(now+1800000),/SHARED_REQUEST_WINDOW/);
+});
 test('UNKNOWN #1677 never becomes a candidate or PR read',async()=>{const f=fixture();f.tuple.pull_request=1677;f.build();assert.equal((await f.call()).candidates.length,0);assert.equal(f.calls.some(r=>r==='pulls/1677'),false);});
 test('legacy/missing immutable original tuple is explicit unresolved observation',async()=>{const f=fixture();delete f.receipt.original_reservation;f.build();const r=await f.call();assert.equal(r.candidates.length,0);assert.equal(r.unrecoverable_legacy_or_missing_artifacts,1);});
 for(const [name,mutate] of [['borrowed run',f=>f.artifact.workflow_run.id=101],['digest',f=>f.artifact.digest='sha256:'+'0'.repeat(64)],['original run spoof',f=>{f.tuple.original_run_id='101';f.build();}]])test('failure hint rejects '+name,async()=>{const f=fixture();mutate(f);await assert.rejects(f.call());});

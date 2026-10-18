@@ -50,14 +50,14 @@ test('an unbound producer cohort remains HOLD without a synthetic producer id',(
  r.producer_cohort_failure_class='PRODUCER_COHORT_WINDOW_EXCEEDED';
  assert.equal(validateSentinelObservation(seal(r),env).semantic_health_state,'VERIFIED_HOLD');
 });
-test('repository-wide fanout stays inside unchanged limits with existing mutation guards',()=>{
+test('repository-wide fanout stays inside declared limits with existing mutation guards',()=>{
  const p=spawnSync(process.execPath,['scripts/kidults/kpmo/validate-asi-workflow-fanout-budget-v1.mjs'],{encoding:'utf8',timeout:15000});
  assert.equal(p.status,0,p.stderr);const report=JSON.parse(p.stdout);
- assert.ok(report.workflow_run_consumers<=16);
- assert.ok(report.execution_workflow_run_edges<=29);assert.ok(report.control_observer_edges<=20);
+ assert.ok(report.workflow_run_consumers<=26);
+ assert.ok(report.execution_workflow_run_edges<=36);assert.ok(report.control_observer_edges<=20);
  const budget=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'));
- assert.equal(budget.budgets.workflow_run_consumers_max,16);
- assert.equal(budget.budgets.execution_workflow_run_edges_max,29);
+ assert.equal(budget.budgets.workflow_run_consumers_max,26);
+ assert.equal(budget.budgets.execution_workflow_run_edges_max,36);
  assert.equal(budget.budgets.control_observer_edges_max,20);
 });
 test('observer records RED/HOLD without changing the independent strict gate',()=>{

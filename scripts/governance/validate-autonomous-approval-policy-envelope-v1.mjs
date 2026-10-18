@@ -50,8 +50,34 @@ for (const name of ["INTERNAL_REVERSIBLE", "STAGING_BOUNDED"]) {
 if (envelope.classes.STAGING_BOUNDED.executor!==stagingExecutor.id || stagingExecutor.risk_class!=="STAGING_BOUNDED" || stagingExecutor.execution_model!=="ALLOWLISTED_EXACT_SHA_WORKFLOW") fail("STAGING_BOUNDED_EXECUTOR_BINDING_INVALID");
 if (stagingExecutor.arbitrary_command_execution!==false || stagingExecutor.operations.length<1) fail("STAGING_BOUNDED_EXECUTOR_SCOPE_INVALID");
 for (const operation of stagingExecutor.operations) {
-  if (!operation.immutable_terminal_receipt || operation.exact_main_sha_input!=="expected_main_sha" || operation.environment!=="KIDULTS-AUTONOMOUS-FINALIZER") fail(`STAGING_BOUNDED_OPERATION_INVALID:${operation.operation}`);
   const workflow=execFileSync("git",["show",`HEAD:${operation.workflow}`],{cwd:root,encoding:"utf8",maxBuffer:64*1024*1024});
+  if(operation.operation==="GITHUB_READ_RESUME_ONE_TIME_SCHEDULE"){
+    if(!operation.immutable_terminal_receipt||operation.exact_main_sha_input!=="KIDULTS_EXPECTED_MAIN_SHA"
+      ||operation.environment!=="KIDULTS-AUTONOMOUS-READ-RESUME"
+      ||operation.preprovisioned_owner_authorized_iam_role_required!==true
+      ||operation.iam_permission_expansion!=="OWNER_RESERVED_EXACT_ACTION_ONLY") fail("READ_RESUME_BOUNDED_CONTRACT_INVALID");
+    for(const marker of ["KIDULTS_EXPECTED_MAIN_SHA","EXPECTED_MAIN_SHA","git rev-parse HEAD","id-token: write","exact_main_sha","KIDULTS_AUTONOMOUS_RECEIPT_BUCKET","KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN"])
+      if(!workflow.includes(marker))fail(`READ_RESUME_WORKFLOW_CONTROL_MISSING:${marker}`);
+    const store=execFileSync("git",["show","HEAD:scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs"],{cwd:root,encoding:"utf8"});
+    for(const marker of ["--if-none-match","COMPLIANCE","--checksum-mode","get-object","body_readback_verified"])
+      if(!store.includes(marker))fail(`READ_RESUME_IMMUTABLE_RECEIPT_CONTROL_MISSING:${marker}`);
+    const role=read("infrastructure/aws/staging/github-read-resume-role-v1.json");
+    const roleStatements=role.Resources.GithubReadResumeRole.Properties.Policies[0].PolicyDocument.Statement;
+    if(!role.Description.includes("OWNER_RESERVED_STAGING_INFRA_CHANGE")
+      ||!roleStatements.some(value=>value.Action?.includes?.("scheduler:CreateSchedule")&&value.Resource?.includes?.("kidults-read-resume-*"))
+      ||!roleStatements.some(value=>value.Action?.includes?.("s3:PutObject")&&value.Action?.includes?.("s3:PutObjectRetention")
+        &&value.Resource?.["Fn::Sub"]?.includes?.("receipts/read-resume/*")))
+      fail("READ_RESUME_OWNER_ROLE_BOUNDARY_INVALID");
+    const landing=read("infrastructure/aws/staging/autonomous-internal-landing-v1.json");
+    const receiptKey=landing.Resources.AutonomousReceiptKey;
+    const accountDelegation=receiptKey.Properties.KeyPolicy.Statement.find(value=>value.Sid==="EnableAccountAdministration");
+    if(accountDelegation?.Principal?.AWS?.["Fn::Sub"]!=="arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+      ||accountDelegation.Action!=="kms:*"||accountDelegation.Resource!=="*"
+      ||receiptKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==="AllowReadResumeObjectLockReceiptsThroughS3"))
+      fail("READ_RESUME_RECEIPT_KEY_OWNER_BOUNDARY_INVALID");
+    continue;
+  }
+  if (!operation.immutable_terminal_receipt || operation.exact_main_sha_input!=="expected_main_sha" || operation.environment!=="KIDULTS-AUTONOMOUS-FINALIZER") fail(`STAGING_BOUNDED_OPERATION_INVALID:${operation.operation}`);
   for (const marker of ["expected_main_sha","id-token: write","object-lock-mode COMPLIANCE","PRODUCTION_STATE","PUBLIC_STATE","G5_STATE"]) if (!workflow.includes(marker)) fail(`STAGING_BOUNDED_WORKFLOW_CONTROL_MISSING:${operation.operation}:${marker}`);
 }
 if (envelope.classes.OWNER_RESERVED.routine_owner_approval !== "REQUIRED_PER_EXACT_ACTION") fail("OWNER_BOUNDARY_WEAKENED");

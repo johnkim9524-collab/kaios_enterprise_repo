@@ -19,7 +19,7 @@ for(const workflow of FINALIZER_WORKFLOWS)test('existing registered finalizer ca
 });
 test('candidate cannot self-register workflow or relax quorum',()=>{
  assert.throws(()=>assertFinalizerElection({policy,workflow:'Attacker'}));
- const altered=structuredClone(policy);altered.bounded_recovery.normal_ops_finalizer.requires_three_role_quorum=false;
+ const altered=structuredClone(policy);altered.bounded_recovery.normal_ops_finalizer.requires_kpmo_and_machine_verifier=false;
  assert.throws(()=>assertFinalizerElection({policy:altered,workflow:FINALIZER_WORKFLOWS[0]}));
 });
 test('a late completing role does not depend on the early verifier remaining alive',()=>{

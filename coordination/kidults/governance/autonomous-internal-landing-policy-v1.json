@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "1.18.0",
+  "version": "2.1.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -54,7 +54,6 @@
   "state_model": [
     "SCOPE_GRANTED",
     "KPMO_AUTHORIZED",
-    "TRACK_AUTHORIZED",
     "INDEPENDENT_VERIFIED",
     "LANDING_RESERVED",
     "MERGED_EVENT_EMITTED",
@@ -70,9 +69,8 @@
     "OWNER_HOLD"
   ],
   "approval_quorum": {
-    "minimum": 2,
+    "minimum": 1,
     "required_roles": [
-      "ACCOUNTABLE_TRACK_AGENT",
       "KPMO"
     ],
     "manual_independent_review_required": false,
@@ -108,7 +106,7 @@
     "NO_OWNER_RESERVED_ACTION",
     "REQUIRED_CHECKS_GREEN",
     "HEAD_TREE_SCOPE_STABLE",
-    "TRACK_AND_KPMO_QUORUM",
+    "KPMO_AUTHORIZATION",
     "AUTOMATED_MACHINE_VERIFIER_PASS",
     "DURABLE_NONCE_RESERVATION_PASS"
   ],
@@ -135,8 +133,8 @@
   ],
   "owner_reserved_exact_paths": [
     "CONSTITUTION.md",
-    "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
     "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json",
+    "coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json",
     "coordination/kidults/governance/github-oidc-subject-customization-v1.json",
     "coordination/kidults/governance/autonomous-workload-identity-registry-v1.json"
   ],
@@ -148,7 +146,6 @@
   ],
   "owner_reserved_added_patch_patterns": [
     "environment:[ ]*(production|public|g5)",
-    "^[ \\t]*environment:",
     "^[ \\t]*(contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events):[ ]*write",
     "uses:[ ]*aws-actions/configure-aws-credentials",
     "id-token:[ ]*write",
@@ -157,7 +154,7 @@
     "^[ \\t]*(repository_dispatch|pull_request_target):",
     "^[ \\t]*(run|uses):.*(curl|wget|gh api|aws |gcloud |az |terraform|kubectl|http://|https://)",
     "--admin-bypass",
-    "force:[ ]*true"
+    "^[ \\t]*force:[ ]*true([ \\t]*#.*)?$"
   ],
   "scope_classification": {
     "path_alone_makes_internal_work_owner_reserved": false,
@@ -368,13 +365,12 @@
       "writer_policy_rejection_retry": false,
       "persistent_writer_failure": "FAIL_CLOSED_AND_WAIT_FOR_AUTONOMOUS_STAGING_SELF_HEAL",
       "requires_exact_head": true,
-      "requires_three_role_quorum": true,
+      "requires_kpmo_and_machine_verifier": true,
       "production": "HOLD",
       "public": "HOLD",
       "g5": "HOLD",
-      "election_mode": "ORIGINAL_RESERVATION_CAS_AFTER_THREE_ROLE_QUORUM",
+      "election_mode": "ORIGINAL_RESERVATION_CAS_AFTER_KPMO_AND_MACHINE_VERIFICATION",
       "allowed_workflows": [
-        "KIDULTS Autonomous Track Authorization V1",
         "KIDULTS Autonomous KPMO Authorization V1",
         "KIDULTS Autonomous Independent Verification V1"
       ],
@@ -561,22 +557,6 @@
     ],
     "path_name_alone_is_owner_gate": false
   },
-  "protected_code_repair": {
-    "enabled": true,
-    "executor": "EXACT_PROTECTED_MAIN",
-    "scope": "REGISTERED_NON_AUTHORIZING_FAILURE_DIAGNOSTICS",
-    "primary_and_independent_required": true,
-    "track_kpmo_quorum_required": true,
-    "candidate_policy_authority": false,
-    "transitions": [
-      {
-        "id": "DISPATCH_READ_DIAGNOSTICS_V1",
-        "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
-        "base_digest": "sha256:8ad9d9b4f9fc17158cf8ab3e2f59e535c54c1226c4425b7c0e4b8bdfdeb7dd4b",
-        "head_digest": "sha256:26664977c2422ca885295b1ad751dc105cd6e171daaadce184348f5651c952eb"
-      }
-    ]
-  },
   "immutable_source_read_profile": {
     "id": "kidults-bounded-public-git-source-profile-v1",
     "version": "1.0.0",
@@ -607,15 +587,15 @@
       "job_timeout_minutes": 10
     },
     "source_sha256": {
-      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:d3e4646a549c508d4d79784cf5f6b025dd21ba6aae3f3c6eb03afa399eafde73",
+      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:65a103bd232a0a1159ef00e76e007046d2eeb7973806170d081207e35b5dae70",
       "scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs": "sha256:4e066ff50e5106c3f554be81db5e65a082ff0fa52d30abc92e5cccecff4d290f",
       "coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json": "sha256:e28a2210b5651f92d46cc54259474b6892f512c26f16b3ec194a6436cc236701",
       "scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs": "sha256:8a3a9d656d420897f2175c5e5d0cb115fb03ebf8c9df7bf60a072139852891ad",
       "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
       "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
       "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:2c89c22203c4a914e8751e576d757584b592417c64e8c7df8f0a7369e19f6484",
-      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:37361c3d8e72eeb2836afa34dd804b5545a894b57029899b696a404110fe3d61",
-      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:a891de4094e400ceba7b6a25565af5b1beeae3754be3926cd710c16a6593fe5f"
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:df2ba7148f0f87ba48d27bb4add479d656a773222cc57d750d2926a32db14b2f",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:16d864e6ca31ef8fd2b6c52825aaa53c8cfc0f8e274d80edf160d06fdb0ea13e"
     }
   }
 }

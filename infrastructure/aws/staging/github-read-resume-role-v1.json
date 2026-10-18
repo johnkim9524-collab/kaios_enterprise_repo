@@ -1,0 +1,231 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "OWNER_RESERVED_STAGING_INFRA_CHANGE: staging read-resume role includes exact one-time Scheduler permissions.",
+  "Parameters": {
+    "GitHubOidcProviderArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:iam::528314240275:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+    },
+    "LedgerTableArn": {
+      "Type": "String",
+      "Default": "arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger",
+      "AllowedPattern": "^arn:aws:dynamodb:ap-northeast-2:528314240275:table/kidults-autonomous-landing-staging-ledger$"
+    },
+    "ReceiptBucketName": {
+      "Type": "String",
+      "AllowedPattern": "^kidults-autonomous-[a-z0-9-]+$"
+    },
+    "ReceiptKeyArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:kms:ap-northeast-2:528314240275:key/[A-Za-z0-9-]+$"
+    },
+    "SharedBudgetWriterFunctionArn": {
+      "Type": "String",
+      "Default": "arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging",
+      "AllowedPattern": "^arn:aws:lambda:ap-northeast-2:528314240275:function:kidults-autonomous-ledger-writer-staging$"
+    }
+  },
+  "Resources": {
+    "GithubReadResumeRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kidults-github-read-resume-staging-role",
+        "MaxSessionDuration": 900,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Ref": "GitHubOidcProviderArn"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                "token.actions.githubusercontent.com:sub": [
+                  "repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml@refs/heads/main",
+                  "repo:johnkim9524-collab/kaios_enterprise_repo:environment:KIDULTS-AUTONOMOUS-READ-RESUME:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-authorization-read-resume-observer-v1.yml@refs/heads/main"
+                ]
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "github-read-resume-shared-budget-only",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "lambda:InvokeFunction"
+                  ],
+                  "Resource": {
+                    "Ref": "SharedBudgetWriterFunctionArn"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:Sign"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "SharedBudgetSigningKey",
+                      "Arn"
+                    ]
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "scheduler:CreateSchedule",
+                    "scheduler:GetSchedule"
+                  ],
+                  "Resource": "arn:aws:scheduler:ap-northeast-2:528314240275:schedule/default/kidults-read-resume-*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": "iam:PassRole",
+                  "Resource": "arn:aws:iam::528314240275:role/kidults-natural-clock-scheduler-staging-v1",
+                  "Condition": {
+                    "StringEquals": {
+                      "iam:PassedToService": "scheduler.amazonaws.com"
+                    }
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "s3:PutObject",
+                    "s3:PutObjectRetention",
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "s3:GetObjectRetention"
+                  ],
+                  "Resource": {
+                    "Fn::Sub": "arn:${AWS::Partition}:s3:::${ReceiptBucketName}/receipts/read-resume/*"
+                  }
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "kms:GenerateDataKey",
+                    "kms:Decrypt"
+                  ],
+                  "Resource": {
+                    "Ref": "ReceiptKeyArn"
+                  },
+                  "Condition": {
+                    "StringEquals": {
+                      "kms:ViaService": "s3.ap-northeast-2.amazonaws.com"
+                    },
+                    "ArnEquals": {
+                      "kms:EncryptionContext:aws:s3:arn": {
+                        "Fn::Sub": "arn:${AWS::Partition}:s3:::${ReceiptBucketName}"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "GithubReadResume"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ]
+      }
+    },
+    "SharedBudgetSigningKey": {
+      "Type": "AWS::KMS::Key",
+      "Properties": {
+        "KeySpec": "ECC_NIST_P256",
+        "KeyUsage": "SIGN_VERIFY",
+        "KeyPolicy": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "EnableAccountAdministration",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${AWS::AccountId}:root"
+                }
+              },
+              "Action": "kms:*",
+              "Resource": "*"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "STAGING"
+          },
+          {
+            "Key": "System",
+            "Value": "GithubReadResume"
+          },
+          {
+            "Key": "Production",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "Public",
+            "Value": "HOLD"
+          },
+          {
+            "Key": "G5",
+            "Value": "HOLD"
+          }
+        ],
+        "Description": "KIDULTS STAGING read-resume shared-budget signing key"
+      }
+    }
+  },
+  "Outputs": {
+    "GithubReadResumeRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "GithubReadResumeRole",
+          "Arn"
+        ]
+      }
+    },
+    "SharedBudgetSigningKeyArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "SharedBudgetSigningKey",
+          "Arn"
+        ]
+      },
+      "Export": {
+        "Name": "kidults-read-resume-shared-budget-signing-key-arn-v1"
+      }
+    }
+  }
+}

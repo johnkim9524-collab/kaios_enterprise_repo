@@ -1,10 +1,11 @@
 """Deterministically bundle the reviewed component; never deploy to AWS."""
 import argparse
+import ast
 import base64
 import json
 import hashlib
 import sys
-import zlib
+import bz2
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -13,38 +14,53 @@ COMPONENT = ROOT / 'scripts/kidults/kpmo/lib/autonomous_postmerge_recovery_ledge
 MARKER = '\n# BEGIN BOUNDED POSTMERGE RECOVERY LEDGER V1\n'
 CORE = ROOT / 'scripts/kidults/kpmo/lib/autonomous-landing-ledger-core-v2.py'
 INTERRUPTED = ROOT / 'scripts/kidults/kpmo/lib/interrupted-reservation-recovery-ledger-v1.py'
+SHARED_BUDGET = ROOT / 'scripts/kidults/kpmo/lib/shared_github_read_budget_ledger_v1.py'
 PACKED_MARKER = '# KIDULTS_FIXED_LEDGER_SOURCE_CAPSULE_V1'
+
+def compact_python(source):
+    return ast.unparse(ast.parse(source)) + '\n'
 
 
 def bundled(source):
     # Fixed source inventory; namespaces preserve the original digest contract.
     core = CORE.read_text() if source.startswith(PACKED_MARKER) else source.split(MARKER)[0]
-    inventory = {'core': core, 'historical': COMPONENT.read_text(), 'interrupted': INTERRUPTED.read_text()}
+    inventory = {'core': compact_python(core), 'historical': compact_python(COMPONENT.read_text()),
+                 'interrupted': compact_python(INTERRUPTED.read_text()),
+                 'shared_budget': compact_python(SHARED_BUDGET.read_text())}
     hashes = {key: hashlib.sha256(value.encode()).hexdigest() for key, value in inventory.items()}
-    packed = base64.b64encode(zlib.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), 9)).decode('ascii')
-    loader = PACKED_MARKER + "\nimport base64, zlib, hashlib, json\n"
-    loader += "_ledger_source_hashes = " + repr(hashes) + "\n"
-    loader += "_ledger_sources = json.loads(zlib.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
-    loader += "if set(_ledger_sources) != set(_ledger_source_hashes) or any(hashlib.sha256(v.encode()).hexdigest() != _ledger_source_hashes[k] for k,v in _ledger_sources.items()): raise ValueError('LEDGER_CAPSULE_DIGEST')\n"
-    loader += "exec(compile(_ledger_sources['core'], '<ledger-core>', 'exec'), globals())\n"
-    loader += "_recovery_namespace = {'__name__': 'bounded_postmerge_recovery'}\nexec(compile(_ledger_sources['historical'], '<historical-recovery>', 'exec'), _recovery_namespace)\n"
-    loader += "_interrupted_namespace = {'__name__': 'interrupted_reservation_recovery'}\nexec(compile(_ledger_sources['interrupted'], '<interrupted-recovery>', 'exec'), _interrupted_namespace)\n"
+    packed = base64.b64encode(bz2.compress(json.dumps(inventory, sort_keys=True, separators=(',', ':')).encode(), compresslevel=9)).decode('ascii')
+    loader = PACKED_MARKER + "\nimport base64, bz2, hashlib, json\n"
+    loader += "_h = " + repr(hashes) + "\n"
+    loader += "_s = json.loads(bz2.decompress(base64.b64decode(" + repr(packed) + ")).decode('utf-8'))\n"
+    loader += "if set(_s) != set(_h) or any(hashlib.sha256(v.encode()).hexdigest() != _h[k] for k,v in _s.items()): raise ValueError('LEDGER_CAPSULE_DIGEST')\n"
+    loader += "exec(compile(_s['core'], '<ledger-core>', 'exec'), globals())\n"
+    loader += "_r = {'__name__': 'bounded_postmerge_recovery'}\nexec(compile(_s['historical'], '<historical-recovery>', 'exec'), _r)\n"
+    loader += "_i = {'__name__': 'interrupted_reservation_recovery'}\nexec(compile(_s['interrupted'], '<interrupted-recovery>', 'exec'), _i)\n"
+    loader += "_b = {'__name__': 'shared_github_read_budget'}\nexec(compile(_s['shared_budget'], '<shared-budget>', 'exec'), _b)\n"
+    loader += "_role_config = {role: {'workload_id': ROLE_WORKLOAD_IDS[role], 'signing_key_arn': ROLE_KEYS[role], 'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS}\n"
     return loader + '''
-_original_landing_handler = handler
+_o = handler
 
 def handler(event, context):
     if not isinstance(event, dict):
         raise ValueError('EVENT_INVALID')
     envelope = event.get('envelope')
+    if isinstance(envelope, dict) and envelope.get('contract') == 'kidults-shared-github-read-budget-v1':
+        shared_role_config = {**_role_config, 'READ_RESUME': {'workload_id': 'kidults-github-read-resume-v1',
+            'signing_key_arn': os.environ['READ_RESUME_SIGNING_KEY_ARN'], 'environment': 'KIDULTS-AUTONOMOUS-READ-RESUME'}}
+        ledger = _b['Ledger'](
+            ddb=ddb, kms=kms, table=TABLE, role_config=shared_role_config,
+        )
+        return {'ok': True, **ledger.handle(event)}
     if envelope is None:
         if event.get('action') == 'READ_ORIGINAL_CONSUMED_TERMINAL' or (event.get('action') == 'CONSUME_RESERVATION' and 'terminal' in event):
-            ledger = _interrupted_namespace['InterruptedReservationRecoveryLedger'](
+            ledger = _i['InterruptedReservationRecoveryLedger'](
                 ddb=ddb, kms=kms, table=TABLE,
-                role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role], 'signing_key_arn': ROLE_KEYS[role], 'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+                role_config=_role_config,
                 finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID, 'signing_key_arn': FINALIZER_SIGNING_KEY, 'environment': FINALIZER_ENVIRONMENT},
                 receipt_bucket=os.environ['RECEIPT_BUCKET'], receipt_key_arn=os.environ['RECEIPT_KEY_ARN'])
             return ledger.consume_original_terminal(event)
-        return _original_landing_handler(event, context)
+        return _o(event, context)
     if not isinstance(envelope, dict):
         raise ValueError('RECOVERY_ENVELOPE_INVALID')
     methods = {
@@ -56,6 +72,12 @@ def handler(event, context):
     }
     interrupted_methods = {
         'APPROVE_MERGED_RESERVATION_RECOVERY': 'create_approval',
+        'APPROVE_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'create_original_terminal_repair_approval',
+        'FINALIZE_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'finalize_original_terminal_repair',
+        'ACK_ORIGINAL_TERMINAL_REPAIR_IMMUTABLE': 'acknowledge_original_terminal_repair',
+        'READ_RESERVED_ORIGINAL_TERMINAL_REPAIR_CONTEXT': 'read_original_terminal_repair_context',
+        'CLAIM_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'claim_original_terminal_repair',
+        'SUPERSEDE_EXPIRED_RESERVED_ORIGINAL_TERMINAL_REPAIR': 'supersede_original_terminal_repair',
         'APPROVE_FAILED_ASSURANCE_TERMINAL_RECOVERY': 'create_failure_approval',
         'READ_MERGED_RECOVERY': 'read',
         'READ_MERGED_RECOVERY_CONTEXT': 'read_context',
@@ -70,11 +92,9 @@ def handler(event, context):
     }
     interrupted_method = interrupted_methods.get(envelope.get('action'))
     if interrupted_method is not None:
-        ledger = _interrupted_namespace['InterruptedReservationRecoveryLedger'](
+        ledger = _i['InterruptedReservationRecoveryLedger'](
             ddb=ddb, kms=kms, table=TABLE,
-            role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role],
-                              'signing_key_arn': ROLE_KEYS[role],
-                              'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+            role_config=_role_config,
             finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID,
                               'signing_key_arn': FINALIZER_SIGNING_KEY,
                               'environment': FINALIZER_ENVIRONMENT},
@@ -85,11 +105,9 @@ def handler(event, context):
     method = methods.get(envelope.get('action'))
     if method is None:
         raise ValueError('RECOVERY_ACTION_FORBIDDEN')
-    ledger = _recovery_namespace['RecoveryLedger'](
+    ledger = _r['RecoveryLedger'](
         ddb=ddb, kms=kms, table=TABLE,
-        role_config={role: {'workload_id': ROLE_WORKLOAD_IDS[role],
-                          'signing_key_arn': ROLE_KEYS[role],
-                          'environment': ROLE_ENVIRONMENTS[role]} for role in ROLE_KEYS},
+        role_config=_role_config,
         finalizer_config={'workload_id': FINALIZER_WORKLOAD_ID,
                           'signing_key_arn': FINALIZER_SIGNING_KEY,
                           'environment': FINALIZER_ENVIRONMENT},

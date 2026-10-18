@@ -4,7 +4,7 @@ import {assertBoundedGitSourceReader,createBoundedGitSourceReader} from './lib/b
 import {fetchBoundedPublicGitPack} from './lib/bounded-git-public-transport-v1.mjs';
 import {isBoundedGitSourceProfileEnabled} from './lib/bounded-git-source-profile-v1.mjs';
 import crypto from 'node:crypto';
-import {assertAutonomousFileScope,canonicalJson,sha256} from './lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,canonicalJson,sha256,selectExactScopeOwnerDecision} from './lib/autonomous-internal-landing-v1.mjs';
 import {CapabilityDeltaError,evaluateSemanticCapabilityDelta} from './lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from './lib/independent-capability-verifier-v1.mjs';
 import {bindRequiredGateEvidence} from './lib/required-gate-evidence-v1.mjs';
@@ -18,6 +18,9 @@ const OWNER_REVIEW_CODES=new Set([
   'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
   'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
   'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED',
+  // Reserved operations require a head-bound Owner disposition. Treating this
+  // as a generic skip hides the actionable review record from the dispatcher.
+  'DISPATCH_OWNER_RESERVED_ACTION',
   'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
   'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
 ]);
@@ -159,14 +162,15 @@ export async function reclassifyUnknownCandidate({context,error,approvalPolicy,r
 
 export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   const changedPaths=files.map(file=>file.filename).sort();
-  if(!pr||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
+  if(!pr||pr.state!=='open'||pr.merged===true||pr.base?.ref!=='main'||!SHA.test(String(pr.base?.sha))||!SHA.test(String(mainSha))||!SHA.test(String(pr.head?.sha))
     ||!SHA.test(String(treeSha))||!changedPaths.length||!isOwnerReviewRequired(error)) fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
   const scopeDigest=sha256(changedPaths.join('\n'));
   return {
     state:'OWNER_REVIEW_REQUIRED',pull_request:Number(pr.number),reason:error.code,
     classification_failure:{code:error.code,
       changed_path:changedPaths.find(path=>String(error.message).startsWith(`${error.code}:${path}`))||null,
-      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
+      stage:error.code==='DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED'?'BOUNDED_STALE_COMPARISON'
+        :error.code==='DISPATCH_OWNER_RESERVED_ACTION'?'OWNER_RESERVED_SCOPE_GATE':'IMMUTABLE_CAPABILITY_DELTA',authority_created:false},
     binding:{repository:pr.base.repo.full_name,repository_id:String(pr.base.repo.id),pull_request:Number(pr.number),
       base_sha:pr.base.sha,current_main_sha:mainSha,classification_mode:pr.base.sha===mainSha?'CURRENT_BASE':'STALE_BASE',head_sha:pr.head.sha,head_tree_sha:treeSha,changed_paths:changedPaths,scope_digest:scopeDigest},
     autonomous_eligible:false,landing_authorization_created:false,merge_authorized:false,
@@ -174,8 +178,8 @@ export function buildOwnerReviewRequired({pr,mainSha,treeSha,files,error}) {
   };
 }
 
-export function assertDelegatedPathScope(changedPaths,policy){
-  try { return assertAutonomousFileScope({files:changedPaths,policy,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'}); }
+export function assertDelegatedPathScope(changedPaths,policy,ownerDecision=null){
+  try { return assertAutonomousFileScope({files:changedPaths,policy,ownerDecision,errorCode:'DISPATCH_OWNER_RESERVED_ACTION'}); }
   catch(error){ if(error?.code) throw new DispatcherError(error.code,error.message.split(':').slice(1).join(':')); throw error; }
 }
 
@@ -199,15 +203,15 @@ export function classifyStaleBaseCandidate({pr,mainSha,files,policy}) {
     changed_paths:files.map(x=>x.filename).sort(),state:'STALE_RECOVERABLE'};
 }
 
-export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,generationSeed,now=new Date()}) {
+export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[],requiredChecks=[],requiredContexts=[],policy,generationSeed,ownerDecision=null,now=new Date()}) {
   if (!pr || pr.state!=='open' || pr.merged===true) fail('DISPATCH_PR_NOT_OPEN');
   if (pr.base?.ref!=='main' || pr.base?.sha!==mainSha || !SHA.test(String(mainSha))) fail('DISPATCH_BASE_STALE');
   if (pr.head?.repo?.full_name!==pr.base?.repo?.full_name || !SHA.test(String(pr.head?.sha)) || !SHA.test(String(treeSha))) fail('DISPATCH_REPOSITORY_SCOPE_INVALID');
   const changedPaths=[...files].map(x=>x.filename).sort();
   if (!changedPaths.length || changedPaths.some(x=>typeof x!=='string'||!x||x.startsWith('/')||x.includes('..'))) fail('DISPATCH_PATH_INVALID');
-  assertDelegatedPathScope(files,policy);
-  evaluateSemanticCapabilityDelta({files,policy});
-  independentlyVerifyCapabilityDelta({files,policy});
+  assertDelegatedPathScope(files,policy,ownerDecision);
+  evaluateSemanticCapabilityDelta({files,policy,ownerDecision});
+  independentlyVerifyCapabilityDelta({files,policy,ownerDecision});
   const required=(requiredChecks.length?requiredChecks:requiredContexts.map(context=>({context,integration_id:0})))
     .map(value=>({context:String(value.context),integration_id:Number(value.integration_id||0)}))
     .sort((a,b)=>a.context.localeCompare(b.context)||a.integration_id-b.integration_id);
@@ -238,7 +242,7 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
     head_sha:pr.head.sha,head_tree_sha:treeSha,scope_digest:scopeDigest,test_evidence:testEvidence,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_plan:rollbackPlan,rollback_digest:sha256(canonicalJson(rollbackPlan)),
     authorization_generation:generation,nonce_digest:`sha256:${nonce}`,issued_at:issuedAt.toISOString(),expires_at:expiresAt.toISOString(),
-    operation:policy.delegated_operation,changed_paths:changedPaths,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    operation:policy.delegated_operation,changed_paths:changedPaths,...(ownerDecision?{owner_decision:ownerDecision}:{}),production:'HOLD',public:'HOLD',g5:'HOLD'};
 }
 
 // One invocation owns its budget and immutable cache. Mutable authority reads
@@ -401,7 +405,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1');
   if(!baseRequiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
-  const filePlans=new Map();let sourceEvidence=null;
+  const filePlans=new Map(),ownerDecisions=new Map();let sourceEvidence=null;
   const prSourceBinding=pr=>({pull_request:pr.number,head_sha:pr.head?.sha,base_sha:pr.base?.sha,base_ref:pr.base?.ref,head_repository:pr.head?.repo?.full_name,base_repository:pr.base?.repo?.full_name,head_repository_id:pr.head?.repo?.id,base_repository_id:pr.base?.repo?.id,head_ref:pr.head?.ref,merged:pr.merged===true,state:pr.state,draft:pr.draft===true});
   if(sourceTransport){
     const sources=new Set([mainSha]),plan=[];
@@ -413,7 +417,20 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       if(canonicalJson(prSourceBinding(fresh))!==canonicalJson(prSourceBinding(pr)))throw Object.assign(new Error('SOURCE_BATCH_CANDIDATE_BINDING_CHANGED'),{code:'SOURCE_BATCH_CANDIDATE_BINDING_CHANGED',global:true});
       if(filePlans.has(pr.number))fail('DISPATCH_SOURCE_PLAN_DUPLICATE');
       const files=Object.freeze(records.map(record=>Object.freeze({...record})));filePlans.set(pr.number,files);
-      try{assertDelegatedPathScope(files,policy);}catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;continue;}
+      let ownerDecision=null;
+      try{assertDelegatedPathScope(files,policy);}catch(error){
+        if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
+        if(prNumber!==Number(pr.number)||!isOwnerReviewRequired(error))continue;
+        const commit=await immutableCommit(repository,pr.head.sha,token);
+        const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
+        ownerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
+          repositoryOwner:pr.base.repo.owner?.login,repositoryOwnerId:pr.base.repo.owner?.id,
+          pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+          changedPaths:files.map(file=>file.filename)});
+        if(!ownerDecision)continue;
+        ownerDecisions.set(pr.number,ownerDecision);
+        assertDelegatedPathScope(files,policy,ownerDecision);
+      }
       // Oversize stale candidates need only bound metadata and a head tree,
       // never a whole-source preparation that can exhaust the global budget.
       if(pr.base.sha!==mainSha&&files.length>128)continue;
@@ -437,11 +454,13 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   }
   const fileRecordsFor=pr=>filePlans.has(pr.number)?filePlans.get(pr.number):pages(`/repos/${repository}/pulls/${pr.number}/files`,token);
   const results=[];
-  for(const pr of prs){let candidateContext=null;try{
+  for(const pr of prs){let candidateContext=null,candidateFilesForReview=null;try{
     if(pr.head?.repo?.full_name!==pr.base?.repo?.full_name){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_REPOSITORY_SCOPE_INVALID'});continue;}
+    if(pr.state!=='open'||pr.merged===true){results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_PR_NOT_OPEN'});continue;}
     const quarantine=quarantinedOperation(pr,operationQuarantine);
     if(quarantine){results.push(quarantine);continue;}
     const completeFileRecords=await fileRecordsFor(pr);
+    candidateFilesForReview=completeFileRecords;
     if (!completeFileRecords.length) {
       const [headCommit,mainCommit]=await Promise.all([
         immutableCommit(repository,pr.head.sha,token),immutableCommit(repository,mainSha,token)]);
@@ -451,12 +470,14 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(pr.base?.ref!=='main' || pr.base?.sha!==mainSha){
       if(pr.base?.ref!=='main' || !SHA.test(String(pr.base?.sha)) || !SHA.test(String(pr.head?.sha))) {results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_BASE_STALE'});continue;}
       const fileRecords=completeFileRecords;
-      // Path-only denials need no blob reads. This is the same mandatory
-      // scope gate used by classification, never a grant based on metadata.
-      assertDelegatedPathScope(fileRecords,policy);
       const commit=fileRecords.length>128
         ?await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token)
         :await immutableCommit(repository,pr.head.sha,token);
+      candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,
+        classificationMode:'STALE_BASE',protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
+      // Preserve the cheap path-only rejection while retaining the immutable
+      // head/tree/path binding required for an Owner review record.
+      assertDelegatedPathScope(fileRecords,policy);
       if(fileRecords.length>128){
         const review=buildOwnerReviewRequired({pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,error:new DispatcherError('DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED')});
         review.bounded_comparison={changed_file_count:fileRecords.length,max_comparison_files:128,comparison_performed:false,authority_created:false};
@@ -480,14 +501,47 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
         : x)
       : baseRequiredChecks;
     const fileRecords=completeFileRecords;
-    assertDelegatedPathScope(fileRecords,policy);
-    const [commit,status,checks]=await Promise.all([immutableCommit(repository,pr.head.sha,token),api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
+    let commit=null;
+    let ownerDecision=ownerDecisions.get(pr.number)||null;
+    if(ownerDecision)assertDelegatedPathScope(fileRecords,policy,ownerDecision);
+    else try { assertDelegatedPathScope(fileRecords,policy); }
+    catch(error) {
+      if(!isOwnerReviewRequired(error))throw error;
+      commit=await immutableCommit(repository,pr.head.sha,token);
+      if(prNumber===Number(pr.number)){
+        const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
+        ownerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
+          repositoryOwner:pr.base.repo.owner?.login,repositoryOwnerId:pr.base.repo.owner?.id,
+          pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+          changedPaths:fileRecords.map(file=>file.filename)});
+      }
+      if(ownerDecision){ownerDecisions.set(pr.number,ownerDecision);assertDelegatedPathScope(fileRecords,policy,ownerDecision);}
+      else {candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,
+        protectedRulesetDigest:sha256(canonicalJson(soloDetail))};throw error;}
+    }
+    if(!commit)commit=await immutableCommit(repository,pr.head.sha,token);
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
+    const [status,checks]=await Promise.all([api(`/repos/${repository}/commits/${pr.head.sha}/status`,token),checkPages(repository,pr.head.sha,token)]);
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
-    const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed});
+    assertDelegatedPathScope(fileRecords,policy,ownerDecision);
+    const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,ownerDecision});
     results.push({state:'ELIGIBLE',envelope:candidate});
   }catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
+    // Keep bulk/scheduled scans path-only and bounded. For the exact PR
+    // named by a protected workflow_run or recovery input, resolve only the
+    // commit tree needed by the existing Owner-review binding. This records
+    // the denial for Owner review; it never admits the PR to quorum or grants
+    // landing authority.
+    if(prNumber===Number(pr.number)&&(pr.state!=='open'||pr.merged===true)){
+      results.push({state:'SKIPPED',pull_request:pr.number,reason:'DISPATCH_PR_NOT_OPEN'});continue;
+    }
+    if(!candidateContext&&error?.code==='DISPATCH_OWNER_RESERVED_ACTION'
+      &&Array.isArray(candidateFilesForReview)&&candidateFilesForReview.length){
+      const headCommit=await api(`/repos/${repository}/git/commits/${pr.head.sha}`,token);
+      if(headCommit.sha!==pr.head.sha||!SHA.test(String(headCommit.tree?.sha)))fail('DISPATCH_OWNER_REVIEW_BINDING_INVALID');
+      candidateContext={pr,mainSha,treeSha:headCommit.tree.sha,files:candidateFilesForReview};
+    }
     if(candidateContext&&isUnknownClassification(error)) {
       const recovered=await reclassifyUnknownCandidate({context:candidateContext,error,approvalPolicy,
         readCandidate:async()=>{
