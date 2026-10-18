@@ -5,7 +5,7 @@ run-name: >-
       (github.event_name == 'workflow_run' &&
       contains(fromJSON('["KIDULTS Platform Continuous Assurance V1"]'), github.event.workflow_run.name) &&
       format('KIDULTS_AUTH_OBSERVER/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id)) ||
-      format('KIDULTS_SENTINEL/{0}', github.run_id) }}
+      'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' }}
 
 on:
   repository_dispatch:

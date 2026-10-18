@@ -24,5 +24,5 @@ export function withinSentinelObservationWindow(createdMs, cutoffMs, windowSecon
 export function sentinelRunNameMatches(runName, runId, eventName) {
   return Number.isSafeInteger(runId) && runId > 0
     && ['repository_dispatch', 'workflow_dispatch'].includes(eventName)
-    && runName === `KIDULTS_SENTINEL/${runId}`;
+    && (runName === `KIDULTS_SENTINEL/${runId}` || runName === 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1');
 }

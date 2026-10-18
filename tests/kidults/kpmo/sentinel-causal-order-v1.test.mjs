@@ -10,7 +10,7 @@ import {coverageGenerationId} from '../../../scripts/kidults/kpmo/validate-kir-c
 const repository='johnkim9524-collab/kaios_enterprise_repo',source='a'.repeat(40),time=Date.parse('2026-10-10T00:00:00Z');
 const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',coveragePath='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
 function row({id,upstream=9,conclusion='success',archive=true,pending=false,manual=false,tamper=false}){
-  const run={id,run_attempt:1,name:`KIDULTS_SENTINEL/${id}`,path:sentinelPath,
+  const run={id,run_attempt:1,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',path:sentinelPath,
     head_branch:'main',head_sha:source,event:'workflow_dispatch',repository:{full_name:repository},head_repository:{full_name:repository},
     created_at:new Date(time-90000+id*1000).toISOString(),status:pending?'in_progress':'completed',conclusion:pending?null:conclusion};
   if(!archive)return {run,artifacts:[]};
@@ -40,6 +40,13 @@ function execute(rows){
     assert.ifError(result.error);return {result,receipt:JSON.parse(fs.readFileSync(path.join(root,'receipt.json')))};
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 }
+test('new Sentinel producer runs use the canonical workflow name while observers remain distinct',()=>{
+  const workflow=fs.readFileSync(sentinelPath,'utf8');
+  assert.ok(workflow.includes("'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' }}"));
+  assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/{0}/{1}'"));
+  assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/{0}'"));
+});
+
 test('actual barrier binds Coverage C1 despite newer unrelated cancellation and manual success',()=>{
   const {result,receipt}=execute([row({id:10}),row({id:11,upstream:8,conclusion:'cancelled'}),row({id:12,manual:true}),row({id:13,conclusion:'cancelled',archive:false})]);
   assert.equal(result.status,0,result.stderr);assert.equal(receipt.sentinel_run_id,10);assert.equal(receipt.state,'VERIFIED_PASS');
