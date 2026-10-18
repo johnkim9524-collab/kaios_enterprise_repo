@@ -3402,8 +3402,8 @@
     {
       "path": "infrastructure/aws/staging/github-read-resume-role-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f0b12343cd3c67fdd2db7495164b50df244ea29a",
-      "sha256": "sha256:5ed26a95a84cc490ccdbbdd1e9394c45be2d3ab56fe9cdcf7fbae9bd5f4a2b90",
+      "git_blob": "2e441cbe417f8c12c6d075a5ebf3f546316bfbc0",
+      "sha256": "sha256:fff242d5d6026f6997c640d3fd45feb7b64cbc62901afca6d920bc8418ebda17",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7164,8 +7164,8 @@
     {
       "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e7958679e87da2bcb29b4f19f0097b02fee933ce",
-      "sha256": "sha256:9922b4fbdd1d9fbfbdcb4036fb095b11800f3b9d78f7d86c415ddf3789be2841"
+      "git_blob": "76d8e5c4fbfc6cffe039ebc5f6ebaccdd348f2c4",
+      "sha256": "sha256:47eac29c83b84822b49de2c9fa8a03245e90e316d2ddc7740f18416959bed412"
     },
     {
       "path": "tests/kidults/staging-operations/independent-handoff-run-name-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:27d6628b7d4236754abc6580207522108045e08ee9aef474dc0b7a35399554e0"
+  "manifest_sha256": "sha256:0d968b365033bc4dfbac2c696c3d7f4276fe84fabf08c2a59ea68918e12d3a92"
 }
