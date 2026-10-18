@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "516d8d1af35a47c79ade535adee6729697aa8a0d",
+  "revision": "3ff7c51b8965f01625454f12053ce603feb10669",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -574,8 +574,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "57ed9b04270efe8e3133ef03fd1e4e22b4596f84",
-      "sha256": "sha256:61ad6b8a0b3c06615916b8dd72fd738b75365bb27dccad941afa58c951627e23",
+      "git_blob": "a6411e3042da6dac3a6c776bf9674cb82fe0c1ad",
+      "sha256": "sha256:51c743eb7653da6adf52b552ae3e6718c22e263af6a751709eef4cddfadaa4da",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -717,8 +717,8 @@
     {
       "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "9d5bba7f313d349dc2b179cc6be735670f4b9484",
-      "sha256": "sha256:9ab26c1ad14b022db1fe6a574fc093cb5af3a7b22b9ade373ad8b41cc151ccae",
+      "git_blob": "b1dbb1a065de5ceb515e07139877d82ec0826099",
+      "sha256": "sha256:c1673365c25a0d0bbcc30bf5d0b033b64d1af9e221852cf9725f97dde283faef",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:7385f67f5965f542b74b212d24d07683b5b8a59bc61552b5ded45e7c28a72edb"
+  "manifest_sha256": "sha256:802a3639c2fdac785f40bbb0702d987678f71b2dda00fca523bee64ce3bc8736"
 }
