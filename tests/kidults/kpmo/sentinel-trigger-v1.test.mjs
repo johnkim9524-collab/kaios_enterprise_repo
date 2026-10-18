@@ -141,7 +141,7 @@ test('Sentinel observes operational producers and Assurance failures without an 
  assert.ok(waiter.includes('SPECS, workflowRuns'));
 });
 
-test('failed role workflows use a terminal read-resume observer outside the health-gate cycle',()=>{
+test('failed authorization and Assurance workflows use a terminal read-resume observer outside the health-gate cycle',()=>{
  const observer=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
  const trigger=observer.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing authorization read-resume observer trigger');
@@ -149,6 +149,7 @@ test('failed role workflows use a terminal read-resume observer outside the heal
   'KIDULTS Autonomous Track Authorization V1',
   'KIDULTS Autonomous KPMO Authorization V1',
   'KIDULTS Autonomous Independent Verification V1',
+  'KIDULTS Platform Continuous Assurance V1',
  ]);
  assert.match(observer,/github\.event\.workflow_run\.conclusion != 'success'/);
  assert.match(observer,/run-github-read-resume-handoff-v1\.mjs/);

@@ -8,6 +8,7 @@ on:
       - 'KIDULTS Autonomous Track Authorization V1'
       - 'KIDULTS Autonomous KPMO Authorization V1'
       - 'KIDULTS Autonomous Independent Verification V1'
+      - 'KIDULTS Platform Continuous Assurance V1'
     branches: [main]
     types: [completed]
 
