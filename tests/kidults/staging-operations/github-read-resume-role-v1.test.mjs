@@ -65,6 +65,32 @@ test('receipt KMS access remains scoped to the Owner-reserved role and does not 
   assert.equal(stack.Resources.AutonomousLedgerKey.Properties.KeyPolicy.Statement.some(value=>value.Sid==='AllowReadResumeObjectLockReceiptsThroughS3'),false);
 });
 
+test('manual checkpoint selection is owner-only, exact-main bound, and remains a read-only consumer',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
+  const runner=fs.readFileSync('scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs','utf8');
+  assert.match(workflow,/^  workflow_dispatch:/m);
+  for(const input of ['source_run_id','source_run_attempt','source_sha','expected_main_sha'])
+    assert.match(workflow,new RegExp(`^      ${input}:`, 'm'));
+  const job=workflow.slice(workflow.indexOf('  preserve-failed-role-read-resume:'));
+  assert.match(job,/github\.actor == 'johnkim9524-collab'/);
+  assert.match(job,/github\.ref == 'refs\/heads\/main'/);
+  assert.match(job,/github\.event\.inputs\.expected_main_sha == github\.sha/);
+  const verify=job.slice(job.indexOf('      - name: Verify exact consumer checkout'),
+    job.indexOf('      - name: Consume exact deferred read'));
+  assert.match(verify,/\.sender\.login == \$actor/);
+  assert.match(verify,/\.inputs\.source_run_id \| test\("\^\[1-9\]\[0-9\]\{0,15\}\$"\)/);
+  assert.ok(job.indexOf('      - name: Verify exact consumer checkout') < job.indexOf('OIDC_JSON=$(curl'));
+  assert.match(runner,/GITHUB_ACTOR!=='johnkim9524-collab'/);
+  assert.match(runner,/input\.expected_main_sha!==expectedMainSha/);
+  assert.match(runner,/manualRecoveryEvent=\{action:'completed',workflow_run:/);
+  assert.match(runner,/const selectedRun=await readJson\(`actions\/runs\/\$\{producer\?\.id\}`\)/);
+  assert.match(runner,/producer\.event=selectedRun\.event/);
+  assert.match(runner,/producer\.conclusion=selectedRun\.conclusion/);
+  assert.doesNotMatch(runner,/event:'workflow_run',conclusion:'failure'/);
+  assert.match(workflow,/id-token: write/);
+  assert.match(runner,/actual_authority_granted:false,read_only:true/);
+});
+
 test('repository_dispatch cannot select the code executed by the OIDC trusted workflow',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
   const job=workflow.slice(workflow.indexOf('  read-resume-checkpoint:\n'));

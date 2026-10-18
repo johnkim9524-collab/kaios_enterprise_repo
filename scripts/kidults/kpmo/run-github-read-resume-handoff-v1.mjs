@@ -26,13 +26,31 @@ try{
     ||rawEvent.sender?.login!=='kidults-autonomous-landing-staging[bot]'
     ||rawEvent.client_payload?.source!=='AWS_EVENTBRIDGE_SCHEDULER'
     ||rawEvent.client_payload?.exact_main_sha!==expectedMainSha))throw Error('GITHUB_RESUME_DISPATCH_SENDER');
+  const isOwnerManualRecovery=env.GITHUB_EVENT_NAME==='workflow_dispatch';
+  let manualRecoveryEvent=null;
+  if(isOwnerManualRecovery){
+    const input=rawEvent.inputs||{};
+    if(env.GITHUB_ACTOR!=='johnkim9524-collab'||rawEvent.sender?.login!=='johnkim9524-collab'
+      ||env.GITHUB_REPOSITORY!=='johnkim9524-collab/kaios_enterprise_repo'
+      ||Number(env.GITHUB_REPOSITORY_ID)!==1281328888||env.GITHUB_REF!=='refs/heads/main'
+      ||rawEvent.ref!=='refs/heads/main'||rawEvent.repository?.full_name!==env.GITHUB_REPOSITORY
+      ||Number(rawEvent.repository?.id)!==Number(env.GITHUB_REPOSITORY_ID)||input.expected_main_sha!==expectedMainSha
+      ||!/^[1-9][0-9]{0,15}$/.test(input.source_run_id||'')
+      ||!/^(?:[1-9]|[1-9][0-9]|100)$/.test(input.source_run_attempt||'')
+      ||!/^[a-f0-9]{40}$/.test(input.source_sha||''))throw Error('GITHUB_RESUME_OWNER_DISPATCH_BINDING');
+    const runId=Number(input.source_run_id),runAttempt=Number(input.source_run_attempt);
+    if(!Number.isSafeInteger(runId)||runId<=0)throw Error('GITHUB_RESUME_OWNER_DISPATCH_RUN_ID');
+    manualRecoveryEvent={action:'completed',workflow_run:{id:runId,run_attempt:runAttempt,head_sha:input.source_sha,
+      head_branch:'main',event:null,conclusion:null,
+      repository:{full_name:env.GITHUB_REPOSITORY,id:Number(env.GITHUB_REPOSITORY_ID)}}};
+  }
   const event=isResumeDispatch
     ?{action:'completed',resume_schedule:rawEvent.client_payload,workflow_run:{id:Number(rawEvent.client_payload?.resume_binding?.run_id),
       run_attempt:rawEvent.client_payload?.resume_binding?.run_attempt,head_sha:rawEvent.client_payload?.resume_binding?.source_sha,
       head_branch:'main',event:rawEvent.client_payload?.resume_binding?.producer_event,
       conclusion:rawEvent.client_payload?.resume_binding?.producer_conclusion,
       repository:{full_name:env.GITHUB_REPOSITORY,id:Number(env.GITHUB_REPOSITORY_ID)}}}
-    :rawEvent;
+    :isOwnerManualRecovery?manualRecoveryEvent:rawEvent;
   normalizedEvent=event;
   const producer=event.workflow_run;
   expectedBinding.run_id=String(producer?.id);
@@ -49,6 +67,19 @@ try{
   const readJson=async route=>(await boundedRead(route)).value;
   const readArchiveBytes=async route=>(await boundedRead(route,{responseMode:'bytes',maxBytes:8*1024*1024,
     allowArtifactRedirect:true})).value;
+  if(isOwnerManualRecovery){
+    const selectedRun=await readJson(`actions/runs/${producer?.id}`);
+    if(selectedRun?.id!==producer?.id||selectedRun.run_attempt!==producer?.run_attempt
+      ||selectedRun.head_sha!==producer?.head_sha||selectedRun.head_branch!=='main'
+      ||selectedRun.repository?.full_name!==env.GITHUB_REPOSITORY
+      ||Number(selectedRun.repository?.id)!==Number(env.GITHUB_REPOSITORY_ID)
+      ||selectedRun.head_repository?.full_name!==env.GITHUB_REPOSITORY
+      ||selectedRun.status!=='completed'||selectedRun.conclusion==='success'
+      ||!['push','repository_dispatch','workflow_run'].includes(selectedRun.event))
+      throw Error('GITHUB_RESUME_OWNER_SOURCE_RUN_READBACK');
+    producer.event=selectedRun.event;
+    producer.conclusion=selectedRun.conclusion;
+  }
   const scheduleResume=async request=>{
     const schedule=createGithubReadResumeScheduleRequest({binding:request.binding,resumeAt:request.resumeAt,
       checkpointDigests:request.checkpointDigests});
