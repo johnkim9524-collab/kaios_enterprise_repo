@@ -43,8 +43,10 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     assert.equal(condition['token.actions.githubusercontent.com:aud'],'sts.amazonaws.com');
     assert.equal(condition['token.actions.githubusercontent.com:sub']['Fn::Sub'],`repo:${'${GitHubRepository}'}:environment:${'${' + envParam + '}'}:workflow_ref:${'${' + wfParam + '}'}`);
     const workflow=fs.readFileSync(`.github/workflows/${workflowFile}`,'utf8');
-    if(prefix==='Track')assert.doesNotMatch(workflow,/^  repository_dispatch:/m);
-    else assert.ok(workflow.includes(`      - ${eventName}`));
+    if(prefix==='Track') {
+      assert.match(workflow,/^  repository_dispatch:\n    types:\n      - kidults\.authorization\.generation\.v1$/m);
+      assert.doesNotMatch(workflow,/^  finalize-if-quorum:/m);
+    } else assert.ok(workflow.includes(`      - ${eventName}`));
     for(const other of roles.map(v=>v[5]).filter(v=>v!==eventName)) assert.equal(workflow.includes(`      - ${other}`),false);
     assert.ok(workflow.includes(`environment: ${template.Parameters[envParam].Default}`));
     refs.add(template.Parameters[wfParam].Default);
