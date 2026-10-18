@@ -12,10 +12,11 @@ const SENTINEL_PATH='.github/workflows/kpmo-continuous-assurance-sentinel-health
 const SENTINEL_NAME='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1';
 const DIGEST=/^sha256:[a-f0-9]{64}$/;
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`ASSURANCE_SENTINEL_BINDING_${code}`);};
+const observerWrappedSentinelName=/^KIDULTS_AUTH_OBSERVER\/KIDULTS Platform Continuous Assurance V1\/[1-9][0-9]{0,15}$/;
 
 export async function bindAssuranceUpstreamSentinelReceipt({run,sourceSha,get,readBytes,archiveReader=readArchive,observedAt=new Date().toISOString()}){
   requireEvidence(/^[a-f0-9]{40}$/.test(sourceSha||''),'SOURCE_SHA');
-  requireEvidence(run?.name===SENTINEL_NAME&&run.path===SENTINEL_PATH&&['workflow_run','repository_dispatch'].includes(run.event)
+  requireEvidence((run?.name===SENTINEL_NAME||observerWrappedSentinelName.test(run?.name||''))&&run.path===SENTINEL_PATH&&['workflow_run','repository_dispatch'].includes(run.event)
     &&run.status==='completed'&&run.conclusion==='success'&&run.run_attempt===1
     &&run.head_sha===sourceSha&&run.head_branch==='main'
     &&run.repository?.full_name===REPOSITORY&&String(run.repository?.id)==='1281328888'
