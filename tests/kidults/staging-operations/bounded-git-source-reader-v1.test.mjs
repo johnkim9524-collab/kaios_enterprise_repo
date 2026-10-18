@@ -13,7 +13,7 @@ function fixture(mode='100644',content='same immutable bytes\n') {
   return {objects,blob,tree,source,readObject,reads:()=>reads,reader:options=>createBoundedGitSourceReader({sourceShas:[source],readObject,...options})};
 }
 test('exact commit/tree/blob binding and immutable cache preserve the same bytes',async()=>{
-  const f=fixture(),r=f.reader();assert.equal((await r.commit(f.source)).tree.sha,f.tree);
+  const f=fixture(),r=f.reader();assert.equal(r.hasSource(f.source),true);assert.equal(r.hasSource('a'.repeat(40)),false);assert.equal((await r.commit(f.source)).tree.sha,f.tree);
   const first=await r.file(f.source,'file.mjs');assert.equal(first.content,'same immutable bytes\n');
   f.objects.get(f.blob).bytes.fill(0);assert.deepEqual(await r.file(f.source,'file.mjs'),first);
   assert.equal(f.reads(),3);assert.equal(r.receipt().authorization_created,false);assert.equal(r.receipt().transport_verified,false);
@@ -109,7 +109,7 @@ test('verified absence is distinct from missing object and does not poison valid
 });
 test('absence cannot hide an unregistered source or reset a poisoned reader',async()=>{
   const f=fixture(),r=f.reader();await assert.rejects(r.fileOrNull('a'.repeat(40),'absent.mjs'),/SOURCE_NOT_REGISTERED/);
-  await assert.rejects(r.fileOrNull(f.source,'absent.mjs'),/SOURCE_NOT_REGISTERED/);
+  await assert.rejects(r.fileOrNull(f.source,'absent.mjs'),/SOURCE_NOT_REGISTERED/);assert.throws(()=>r.hasSource(f.source),/SOURCE_NOT_REGISTERED/);
 });
 test('invalid UTF-8 cannot silently replace source bytes',async()=>{
   const f=fixture('100644',Buffer.from([0xff]));await assert.rejects(f.reader().file(f.source,'file.mjs'),/TEXT_INVALID/);
@@ -170,6 +170,16 @@ test('full discovery produces identical stale redundancy binding from verified o
   const expected=await discover(a.args),actual=await discover({...b.args,sourceReader:reader});
   assert.deepEqual(actual,expected);assert.equal(actual.length,2);assert.ok(actual.every(x=>x.state==='STALE_REDUNDANT'));
   assert.ok(!b.trace.some(x=>x.includes('/contents/')||x.includes('/git/commits/')));
+});
+test('discovery uses the bounded shared REST budget for immutable refs outside the sealed source batch',async()=>{
+  const a=scanFixture(),b=scanFixture(),reader=b.reader(),movedHead='e'.repeat(40);
+  a.pr.head.sha=movedHead;b.pr.head.sha=movedHead;
+  await reader.file(b.f.source,'file.mjs');await reader.file(b.main,'file.mjs');reader.seal();
+  const expected=await discover(a.args),actual=await discover({...b.args,sourceReader:reader});
+  assert.deepEqual(actual,expected);assert.ok(actual.every(x=>x.state==='STALE_REDUNDANT'));
+  assert.ok(b.trace.some(path=>path.includes('/git/commits/'+movedHead)));
+  assert.ok(b.trace.filter(path=>path.includes('/contents/')).length>0);
+  assert.equal(reader.receipt().state,'SOURCE_READER_OPEN');
 });
 test('source failure inside discovery invalidates prior results and stops later candidates',async()=>{
   const s=scanFixture();s.f.objects.delete(s.f.tree);const reader=s.reader();await reader.commit(s.f.source);reader.seal();const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-abort-'));

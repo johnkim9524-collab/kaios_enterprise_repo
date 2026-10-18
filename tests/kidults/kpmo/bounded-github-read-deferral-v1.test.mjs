@@ -26,6 +26,13 @@ test('a second deferral is bounded and preserved for a HOLD receipt',async()=>{
   assert.equal(calls,3);
 });
 
+test('a checkpoint clamped exactly to the runner deadline preserves the original deferred error',async()=>{
+  const original=deferred(checkpoint(10000));let calls=0;
+  await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>9000,
+    read:async()=>{calls++;throw original;}}),error=>error===original&&error.read_resume_checkpoint===original.read_resume_checkpoint);
+  assert.equal(calls,1);
+});
+
 test('wrong runner binding, route, authority flags and out-of-deadline wait fail closed',async t=>{
   const mutations=[
     cp=>{cp.binding.run_id='9002';},

@@ -17,7 +17,8 @@ test('terminal receipt binds exact main, original and consumer run without check
   assert.equal(githubReadResumeReceiptKey(receipt),'receipts/read-resume/4321/2/'+'a'.repeat(40)+'/9876-1.json');
   assert.equal(JSON.stringify(receipt).includes('nonce'),false);
   assert.equal(JSON.stringify(receipt).includes('checkpoint'),false);
-  assert.equal(receipt.outcome.route_count,1);\n  assert.equal(receipt.outcome.actual_authority_granted,false);
+  assert.equal(receipt.outcome.route_count,1);
+  assert.equal(receipt.outcome.actual_authority_granted,false);
 });
 
 test('seal writes once with compliance retention then physically reads back the same version and bytes',async()=>{

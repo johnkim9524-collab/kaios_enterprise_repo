@@ -4,12 +4,118 @@ import {createGithubRateAwareRead,createReadBudget,readResumeCheckpoint} from '.
 import {createSharedGithubReadBudget} from '../../../scripts/kidults/kpmo/lib/shared-github-read-budget-v1.mjs';
 const url='https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10';
 const binding={root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',source_sha:'a'.repeat(40),run_id:20,run_attempt:1,original_run_id:38132692877,original_run_attempt:1};
-function fixture(responses){let time=100000,calls=0;const waits=[],checkpoints=[];
+function fixture(responses,options={}){let time=100000,calls=0;const waits=[],checkpoints=[];
  const now=()=>time,wait=async ms=>{waits.push(ms);time+=ms;},budget=createReadBudget({now,wait,minIntervalMs:0});
- const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),fetchImpl:async(_url,options)=>{assert.equal(options.method,'GET');calls++;const r=responses.shift();if(r instanceof Error)throw r;return r;}});
+ const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),...options,fetchImpl:async(_url,options)=>{assert.equal(options.method,'GET');calls++;const r=responses.shift();if(r instanceof Error)throw r;return r;}});
  return {read,now,wait,budget,waits,checkpoints,calls:()=>calls,setTime:t=>{time=t;}};}
 const response=(status,headers={},body={ok:true})=>new Response(JSON.stringify(body),{status,headers});
 test('successful read no approval claim',async()=>{const f=fixture([response(200)]);assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),1);});
+const transientSocket=()=>Object.assign(new TypeError('fetch failed'),{cause:Object.assign(new Error('other side closed'),{code:'UND_ERR_SOCKET'})});
+test('transient socket close retries a GET with a separately charged attempt',async()=>{
+ const f=fixture([transientSocket(),response(200)],{maxRetries:0,maxTransportRetries:1});
+ assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);assert.equal(f.budget.snapshot().calls,2);
+});
+test('transient transport retry consumes a fresh cross-runner permit',async()=>{
+ let time=100000,row=null,attempts=0;const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'transient-retry-test'};
+ const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async(_key,version,next)=>{if((row?.version??0)!==version)return 'CONFLICT';row=structuredClone(next);return 'COMMITTED';}};
+ const now=()=>time,wait=async ms=>{time+=ms;};
+ const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,now});
+ const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,operationDedupeKey:'resume:run:10',maxRetries:0,maxTransportRetries:1,
+   fetchImpl:async()=>{attempts++;if(attempts===1)throw transientSocket();return response(200);}});
+ assert.deepEqual(await read(url),{ok:true});assert.equal(attempts,2);assert.equal(row.spent,2);
+ assert.equal(Object.keys(row.operations).length,2);assert.ok(Object.values(row.operations).every(item=>item.state==='COMPLETED'));
+});
+test('exhausted transient retries defer a bounded read checkpoint',async()=>{
+ const f=fixture([transientSocket(),transientSocket()],{maxRetries:0,maxTransportRetries:1});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);
+ assert.equal(f.checkpoints.length,1);assert.equal(f.checkpoints[0].reason,'TRANSIENT_NETWORK');assert.equal(f.checkpoints[0].producer_failure_claimed,false);
+});
+test('unknown transport errors remain fail closed without retry',async()=>{
+ const f=fixture([new Error('unexpected programming error')],{maxTransportRetries:2});
+ await assert.rejects(f.read(url),/unexpected programming error/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
+});
+test('an unrelated AbortError without the internal timeout signal is not retried',async()=>{
+ const error=Error('caller abort');error.name='AbortError';
+ const f=fixture([error],{maxTransportRetries:2});
+ await assert.rejects(f.read(url),/caller abort/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
+});
+test('internal AbortSignal timeout is checkpointed as a bounded transport failure',async()=>{
+ const checkpoints=[];let calls=0;
+ const read=createGithubRateAwareRead({token:'fake',binding,deadlineMs:10,resumeDeadline:100100,
+  now:()=>100000,wait:async()=>{},maxTransportRetries:1,onCheckpoint:x=>checkpoints.push(x),
+  fetchImpl:async(_url,options)=>{calls++;await new Promise(resolve=>setTimeout(resolve,20));throw options.signal.reason;}});
+ await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(calls,1);assert.equal(checkpoints[0].http_diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
+ assert.equal(checkpoints[0].resume_at,new Date(100100).toISOString());
+});
+test('a policy error stays non-retryable if the internal signal expires during permit finalization',async()=>{
+ const f=fixture([]);
+ f.budget.acquire=async()=>{const release=()=>{};release.finish=async()=>{await new Promise(resolve=>setTimeout(resolve,15));};return release;};
+ const read=createGithubRateAwareRead({token:'fake',binding,deadlineMs:1000,wait:async()=>{},
+  fetchImpl:async()=>{const error=Error('GITHUB_READ_REDIRECT');error.code='GITHUB_READ_REDIRECT';throw error;},budget:f.budget});
+ await assert.rejects(read(url),/GITHUB_READ_REDIRECT/);
+ assert.equal(f.calls(),0);assert.equal(f.checkpoints.length,0);
+});
+test('transport failures do not consume the HTTP throttle retry allowance',async()=>{
+ const f=fixture([transientSocket(),response(429,{'retry-after':'1'}),response(429,{'retry-after':'1'})],
+  {maxRetries:1,maxTransportRetries:1});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.calls(),3);assert.deepEqual(f.waits,[250,1000]);
+ assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');assert.equal(f.checkpoints[0].attempts_used,3);
+});
+test('HTTP rate metadata is honored when the response body stream closes',async()=>{
+ const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const f=fixture([new Response(body,{status:429,headers:{'retry-after':'2'}})],{maxRetries:0,maxTransportRetries:2});
+ const persisted=[];f.budget.pauseUntil=async at=>persisted.push(at);
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');
+ assert.ok(Date.parse(f.checkpoints[0].resume_at)>=100000+2000);
+ assert.deepEqual(persisted,[Date.parse(f.checkpoints[0].resume_at)]);
+});
+test('shared cooldown is persisted before the permit is completed after an interrupted throttled body',async()=>{
+ const events=[];let time=100000,row={version:0};
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>{events.push('acquire');return Object.assign(()=>{},
+   {finish:async()=>{events.push('finish');}});},pauseUntil:async()=>{events.push('persist');}};
+ const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const read=createGithubRateAwareRead({token:'fake',binding,now:()=>time,wait:async ms=>{time+=ms;},budget,maxRetries:0,
+  fetchImpl:async()=>new Response(body,{status:429,headers:{'retry-after':'2'}})});
+ await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
+ assert.deepEqual(events,['acquire','persist','finish']);
+});
+test('failed shared cooldown persistence releases locally without completing the cross-runner permit',async()=>{
+ const events=[],body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>Object.assign(()=>events.push('release'),
+   {finish:async()=>events.push('finish')}),pauseUntil:async()=>{events.push('persist');throw Error('store unavailable');}};
+ const read=createGithubRateAwareRead({token:'fake',binding,budget,now:()=>100000,
+  fetchImpl:async()=>new Response(body,{status:429,headers:{'retry-after':'2'}})});
+ await assert.rejects(read(url),/store unavailable/);
+ assert.deepEqual(events,['persist','release']);
+});
+test('interrupted rate responses reject missing, expired, or excessive reset metadata',async()=>{
+ for(const reset of [null,'99','999999999']){
+  const headers={'x-ratelimit-remaining':'0'};if(reset!==null)headers['x-ratelimit-reset']=reset;
+  const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+  const f=fixture([new Response(body,{status:403,headers})],{maxTransportRetries:2});
+  await assert.rejects(f.read(url),/GITHUB_READ_INVALID_RATE_RESET/);
+  assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);assert.equal(f.budget.snapshot().active,0);
+ }
+});
+test('invalid interrupted reset still completes and releases the shared read permit',async()=>{
+ const events=[],body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>Object.assign(()=>events.push('release'),
+   {finish:async()=>events.push('finish')})};
+ const read=createGithubRateAwareRead({token:'fake',binding,budget,now:()=>100000,
+  fetchImpl:async()=>new Response(body,{status:403,headers:{'x-ratelimit-remaining':'0','x-ratelimit-reset':'99'}})});
+ await assert.rejects(read(url),/GITHUB_READ_INVALID_RATE_RESET/);
+ assert.deepEqual(events,['finish','release']);
+});
+test('transient checkpoint resume time is clamped to the outer runner deadline',async()=>{
+ const f=fixture([transientSocket()],{maxTransportRetries:0,resumeDeadline:100050});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.checkpoints[0].resume_at,new Date(100050).toISOString());
+ assert.equal(f.checkpoints[0].http_diagnostic.transport_code,'UND_ERR_SOCKET');
+});
+
 test('primary quota reset waits and resumes same GET',async()=>{const f=fixture([response(403,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'102'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[3000]);assert.equal(f.calls(),2);assert.equal(f.checkpoints.length,0);});
 test('secondary Retry-After controls bounded wait',async()=>{const f=fixture([response(403,{'retry-after':'2'},{message:'You have exceeded a secondary rate limit.'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[2000]);});
 test('429 without headers defers one minute rather than spins',async()=>{const f=fixture([response(429)]);await assert.rejects(f.read(url),/DEFERRED/);assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].resume_at,new Date(160000).toISOString());assert.equal(f.checkpoints[0].producer_failure_claimed,false);});

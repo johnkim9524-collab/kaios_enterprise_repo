@@ -63,9 +63,13 @@ try{
       :`github-read-resume:v2:${producer?.id}:${producer?.run_attempt}:${producer?.head_sha}`;
   let operationIndex=0;
   const boundedRead=(route,options={})=>readWithBoundedGithubDeferrals({route,expectedBinding,deadline:runnerDeadline,
-    onDeferral:value=>deferredReads.push(value),read:()=>runtimeGithubRead(env.GITHUB_TOKEN,{deadlineMs:300000,
-      maxRetries:0,bindingOverride:{run_id:String(producer?.id),run_attempt:producer?.run_attempt,source_sha:producer?.head_sha},
-      operationDedupeKey:`${operationDedupePrefix}:read-${operationIndex++}`,...options})(api(route))});
+    onDeferral:value=>deferredReads.push(value),read:()=>{
+      const remainingMs=runnerDeadline-Date.now();
+      if(remainingMs<=0)throw Error('GITHUB_READ_RESUME_RUNNER_DEADLINE');
+      return runtimeGithubRead(env.GITHUB_TOKEN,{deadlineMs:Math.min(300000,remainingMs),
+        maxRetries:0,bindingOverride:{run_id:String(producer?.id),run_attempt:producer?.run_attempt,source_sha:producer?.head_sha},
+        operationDedupeKey:`${operationDedupePrefix}:read-${operationIndex++}`,resumeDeadline:runnerDeadline,...options})(api(route));
+    }});
   const readJson=async route=>(await boundedRead(route)).value;
   const readArchiveBytes=async route=>(await boundedRead(route,{responseMode:'bytes',maxBytes:8*1024*1024,
     allowArtifactRedirect:true})).value;

@@ -17,10 +17,10 @@ function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
   check(checkpoint.unfinished_operation?.method==='GET'
     &&checkpoint.unfinished_operation.route===`/repos/${REPO}/${route}`,'ROUTE');
   check(['HTTP_RATE_LIMIT','SHARED_BUDGET_RATE_WAIT','SHARED_GITHUB_READ_BUDGET',
-    'INVOCATION_CALL_BUDGET','INVOCATION_DEADLINE'].includes(checkpoint.reason),'REASON');
+    'INVOCATION_CALL_BUDGET','INVOCATION_DEADLINE','TRANSIENT_NETWORK'].includes(checkpoint.reason),'REASON');
   const due=Date.parse(checkpoint.resume_at);
   check(Number.isFinite(due)&&new Date(due).toISOString()===checkpoint.resume_at&&due<=deadline,'DEADLINE');
-  check(now()<=deadline,'DEADLINE');
+  check(now()<deadline,'DEADLINE');
   return due;
 }
 
@@ -59,15 +59,18 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     &&Number.isSafeInteger(deadline)&&Number.isSafeInteger(maxDeferrals)&&maxDeferrals>=0&&maxDeferrals<=2,'CONFIG');
   let deferrals=0;
   for(;;){
-    check(now()<=deadline,'DEADLINE');
+    check(now()<deadline,'DEADLINE');
     try{return {value:await read(),deferrals};}
     catch(error){
       const checkpoint=error?.read_resume_checkpoint;
       if(!checkpoint||deferrals>=maxDeferrals)throw error;
       const due=validateDeferral({checkpoint,route,expectedBinding,now,deadline});
+      // A valid checkpoint clamped to the runner's exact end cannot be resumed
+      // here, but the original deferred error carries the durable HOLD evidence.
+      if(due>=deadline)throw error;
       onDeferral({index:deferrals+1,resume_at:checkpoint.resume_at,reason:checkpoint.reason});
       if(due>now())await wait(due-now());
-      check(now()<=deadline,'DEADLINE');
+      check(now()<deadline,'DEADLINE');
       deferrals++;
     }
   }
