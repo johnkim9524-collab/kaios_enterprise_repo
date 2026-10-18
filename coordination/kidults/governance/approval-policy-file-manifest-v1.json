@@ -185,7 +185,7 @@
       "path": ".github/workflows/kidults-autonomous-track-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "1f92793b2189a674b7a86639effa6e98013d0923",
-      "sha256": "sha256:c5f03bd99e18fea3f315e79ead5ecb9f04643dbc1acafb9c474ffe75ffa3def9",
+      "sha256": "sha256:e7428f1cae2b46288f3db8f9d6372f50e26678bbd0c09a8818d4052d677ca64c",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7057,7 +7057,7 @@
       "path": "tests/kidults/staging-operations/autonomous-finalizer-election-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "41410f502228f9daf5ae24fdc0cc94dc25835c5e",
-      "sha256": "sha256:6a6676a7e4f9d6844d33ac31199f9f970bb60800d23dc497333db1a2787b1046"
+      "sha256": "sha256:fb7e47041b8dc71264e34d3a097e8fcba75f7c878f9a5255df5f2dca9765c80c"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
@@ -7087,7 +7087,7 @@
       "path": "tests/kidults/staging-operations/aws-autonomous-landing-boundary-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "8b437f85f551b8fb5ed17f9d26d1603264525bf1",
-      "sha256": "sha256:aec08d3cb8cb761128b634b77466cc1a80bbe6753b3a33b1dcede882678a731f"
+      "sha256": "sha256:a91b92f81a61217715d078d316f944adf1d763439d5c7f0f6cfe0cf88bfdd6df"
     },
     {
       "path": "tests/kidults/staging-operations/bounded-git-pack-decoder-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:3feae156f34ba2c141c6657ff8525faad9bc1f3a8551445a05fbbd4056818485"
+  "manifest_sha256": "sha256:c94450386ddada9d73d3de1c616ea594c08f185f3cbbe840abf927a02128566f"
 }
