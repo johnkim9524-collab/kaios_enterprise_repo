@@ -61,7 +61,7 @@ test('transient checkpoint resume time is clamped to the outer runner deadline',
  const f=fixture([transientSocket()],{maxTransportRetries:0,resumeDeadline:100050});
  await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
  assert.equal(f.checkpoints[0].resume_at,new Date(100050).toISOString());
- assert.equal(f.checkpoints[0].diagnostic.transport_code,'UND_ERR_SOCKET');
+ assert.equal(f.checkpoints[0].http_diagnostic.transport_code,'UND_ERR_SOCKET');
 });
 
 test('primary quota reset waits and resumes same GET',async()=>{const f=fixture([response(403,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'102'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[3000]);assert.equal(f.calls(),2);assert.equal(f.checkpoints.length,0);});
