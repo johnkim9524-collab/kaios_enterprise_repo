@@ -15,6 +15,16 @@ test('transient socket close retries a GET with a separately charged attempt',as
  const f=fixture([transientSocket(),response(200)],{maxRetries:0,maxTransportRetries:1});
  assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);assert.equal(f.budget.snapshot().calls,2);
 });
+test('transient transport retry consumes a fresh cross-runner permit',async()=>{
+ let time=100000,row=null,attempts=0;const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'transient-retry-test'};
+ const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async(_key,version,next)=>{if((row?.version??0)!==version)return 'CONFLICT';row=structuredClone(next);return 'COMMITTED';}};
+ const now=()=>time,wait=async ms=>{time+=ms;};
+ const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,now});
+ const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,operationDedupeKey:'resume:run:10',maxRetries:0,maxTransportRetries:1,
+   fetchImpl:async()=>{attempts++;if(attempts===1)throw transientSocket();return response(200);}});
+ assert.deepEqual(await read(url),{ok:true});assert.equal(attempts,2);assert.equal(row.spent,2);
+ assert.equal(Object.keys(row.operations).length,2);assert.ok(Object.values(row.operations).every(item=>item.state==='COMPLETED'));
+});
 test('exhausted transient retries defer a bounded read checkpoint',async()=>{
  const f=fixture([transientSocket(),transientSocket()],{maxRetries:0,maxTransportRetries:1});
  await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);
