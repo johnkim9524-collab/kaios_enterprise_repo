@@ -19,7 +19,7 @@ const common={checkpoint,run,artifact,archiveBytes,expected,now:()=>Date.parse('
 test('verifies the exact run, artifact bytes, resume time and GET route before one read',async()=>{
  let calls=0;const result=await consumeGithubReadResumeCheckpoint({...common,read:async value=>{calls++;assert.equal(value,route);return {id:runId};}});
  assert.equal(calls,1);assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');assert.equal(result.value.id,runId);
- assert.equal(result.actual_authority_granted,false);assert.equal(result.reservation_write_performed,false);
+ assert.equal(result.route_count,1);assert.equal(result.actual_authority_granted,false);assert.equal(result.reservation_write_performed,false);
 });
 
 test('resumes validated read routes including paginated compare continuation',async()=>{
