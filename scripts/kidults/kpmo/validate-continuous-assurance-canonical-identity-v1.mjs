@@ -25,7 +25,7 @@ const watchedWorkflowNames = (sourceText) => {
   return [...workflowRunBlock.matchAll(/^      - '([^']+)'$/gm)].map((match) => match[1]);
 };
 const watched = watchedWorkflowNames(workflow);
-const auditJob = workflow.match(/^  audit:\\n([\\s\\S]*?)^    concurrency:/m)?.[1];
+const auditJob = workflow.match(/^  audit:\n([\s\S]*?)^    concurrency:/m)?.[1];
 assert(typeof auditJob === 'string', 'ASSURANCE_AUDIT_JOB_NOT_FOUND');
 assert(auditJob.includes("github.event.workflow_run.path == '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'")
   && auditJob.includes("needs.classify-canonical-identity.outputs.upstream_class == 'KPMO_EXACT_SHA_PRODUCER_HEALTH'"),
