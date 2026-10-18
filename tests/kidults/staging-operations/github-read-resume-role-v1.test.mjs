@@ -83,6 +83,7 @@ test('manual checkpoint selection is owner-only, exact-main bound, and remains a
   assert.match(runner,/GITHUB_ACTOR!=='johnkim9524-collab'/);
   assert.match(runner,/input\.expected_main_sha!==expectedMainSha/);
   assert.match(runner,/manualRecoveryEvent=\{action:'completed',workflow_run:/);
+  assert.match(runner,/isOwnerManualRecovery\s*\?`github-read-resume:v2:owner-recovery:\$\{env\.GITHUB_RUN_ID\}:\$\{env\.GITHUB_RUN_ATTEMPT\}:/);
   assert.match(runner,/const selectedRun=await readJson\(`actions\/runs\/\$\{producer\?\.id\}`\)/);
   assert.match(runner,/producer\.event=selectedRun\.event/);
   assert.match(runner,/producer\.conclusion=selectedRun\.conclusion/);
