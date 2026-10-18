@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "559422347ae0850ce1d16fbc1ccf7b8843f46f2b",
+  "revision": "a93bdca3cad4845c5ec10e693b0821419366b72f",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4284,8 +4284,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4a32caa8729d580276c61b145ab45f96f643b6b9",
-      "sha256": "sha256:bd0d14359c7af2304929ad0633bb3d50eb62236589b6a7e6ead128249f199488",
+      "git_blob": "d666249e2454a350de7809b9d14f59fdc84c737f",
+      "sha256": "sha256:d5a8832b7a3288fc29e360946b3079eb8889f9d7b959242018bf7d4bb3299d30",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:08e5aad1b68b189823e027f97b7bf4438f7e5cfd5867ed924f9f4a2b5b3914da"
+  "manifest_sha256": "sha256:09a3eef35d269a72212415b2a9c12b1dcc49b0ea7fabfbcb8ef6832dd32ec33b"
 }
