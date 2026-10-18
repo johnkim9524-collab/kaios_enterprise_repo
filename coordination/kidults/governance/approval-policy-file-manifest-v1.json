@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "7c0fd91d217bc42b9023b1c289b6b8d53eb2050d",
+  "revision": "fe30bc3d4aaca0787b061cd1ff8412229bb1a0f5",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6834,8 +6834,8 @@
     {
       "path": "tests/kidults/kpmo/github-rate-aware-read-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "2d31de07a7259c3897a1e9d30fdfac594ec9e2aa",
-      "sha256": "sha256:80c6cf203e436075c762b64b63730547e2276900c2282072b7771db30505dfe0"
+      "git_blob": "ca0fe2382746b0431345cdb3eade74c4f1589fd4",
+      "sha256": "sha256:fdb4d04868d28d774dee43958fd8c11d256c8efa2f1e18a2ca4e3fde7576fae1"
     },
     {
       "path": "tests/kidults/kpmo/github-read-resume-consumer-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:46e016e90234eb08d6b33b3cf3cc2f416c003b0c9b17782ef1e9518f02a44542"
+  "manifest_sha256": "sha256:77d45b389555118391edc2c6c2632b4fb50a9efb2f48bc270be60c031959df1f"
 }
