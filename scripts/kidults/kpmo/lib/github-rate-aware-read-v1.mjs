@@ -90,7 +90,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
           error?.resume_at?'SHARED_GITHUB_READ_BUDGET':'INVOCATION_CALL_BUDGET');}
       if(budget.blockedUntil()>now()){release();continue;}
       if(now()>=deadline){release();return defer(route,null,now(),attempt,'INVOCATION_DEADLINE');}
-      let response,payload,transportFailure=null,activeSignal=null;
+      let response,payload,transportFailure=null,activeSignal=null,bodyReadFailure=false;
       try{
         activeSignal=AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())));
         response=await fetchImpl(target,{method:'GET',redirect:allowArtifactRedirect?'manual':'error',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json',
@@ -106,7 +106,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         }
         check(!response.redirected,'REDIRECT');
         const reader=response.body?.getReader();check(reader,'BODY');const chunks=[];let total=0;
-        try{for(;;){const {done,value}=await reader.read();check(now()<deadline,'BODY_DEADLINE');if(done)break;total+=value.byteLength;check(total<=maxBytes,'RESPONSE_BOUND');chunks.push(Buffer.from(value));}}
+        try{for(;;){let item;try{item=await reader.read();}catch(error){bodyReadFailure=true;throw error;}const {done,value}=item;check(now()<deadline,'BODY_DEADLINE');if(done)break;total+=value.byteLength;check(total<=maxBytes,'RESPONSE_BOUND');chunks.push(Buffer.from(value));}}
         catch(error){try{Promise.resolve(reader.cancel()).catch(()=>{});}catch{}throw error;}
         finally{reader.releaseLock();}
         check(now()<deadline,'BODY_DEADLINE');
@@ -117,7 +117,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
       if(transportFailure){
         const transportCode=retryableTransportCode(transportFailure,activeSignal);
         if(!transportCode){
-          if(response&&!response.ok){
+          if(response&&!response.ok&&bodyReadFailure){
             const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
             const error=Error(`GITHUB_HTTP_${response.status}`);error.http_diagnostic=failedDiagnostic;throw error;
           }
