@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "a93bdca3cad4845c5ec10e693b0821419366b72f",
+  "revision": "3b2532f01a595bc28b9dd47b495d64ef214ea286",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -665,8 +665,8 @@
     {
       "path": ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "efdace8980a442abc0de13d6bf17c78d13fccdfd",
-      "sha256": "sha256:6f1c0bf53ba6801d57d0c737ff2500e1359fb77e03091a7bd9c488615f3e182b",
+      "git_blob": "739556a5d779715c181100fc991aef0312435529",
+      "sha256": "sha256:3271ff0b1905240db9bec3d42c996ce432d29feddc2470df4e870fe4abddc234",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4740,8 +4740,8 @@
     {
       "path": "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "255f0e50b6ba3304df590c05cf21fbf419331e6c",
-      "sha256": "sha256:0aae3e2e957f2b5425ffabe284e2d98850607bf65c77f70332dc13acc9d8de1f",
+      "git_blob": "4a53cbf7521bc81ed3993c9255a29b6260720d2a",
+      "sha256": "sha256:1fca45fa099728c0082a9f6ba7014a79f6f03e5af26781a5c670efc728390bb8",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7164,8 +7164,8 @@
     {
       "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "76d8e5c4fbfc6cffe039ebc5f6ebaccdd348f2c4",
-      "sha256": "sha256:47eac29c83b84822b49de2c9fa8a03245e90e316d2ddc7740f18416959bed412"
+      "git_blob": "2ee60a92fe736aebb44962e5934d1a62352c874a",
+      "sha256": "sha256:6e844edab1a1536b24f243f2a90c08ef934762bb39569179525c67e152da6362"
     },
     {
       "path": "tests/kidults/staging-operations/independent-handoff-run-name-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:1daf5f00053a6a65559d6e3ae8aa3f7430af0d33b89e9846de7229d906da1ccf"
+  "manifest_sha256": "sha256:3e58222e8a60441a7936b6569dda8e27715d0b7436d2887e3da3dd366843fee6"
 }
