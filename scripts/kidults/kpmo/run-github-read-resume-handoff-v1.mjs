@@ -65,7 +65,7 @@ try{
   const boundedRead=(route,options={})=>readWithBoundedGithubDeferrals({route,expectedBinding,deadline:runnerDeadline,
     onDeferral:value=>deferredReads.push(value),read:()=>runtimeGithubRead(env.GITHUB_TOKEN,{deadlineMs:300000,
       maxRetries:0,bindingOverride:{run_id:String(producer?.id),run_attempt:producer?.run_attempt,source_sha:producer?.head_sha},
-      operationDedupeKey:`${operationDedupePrefix}:read-${operationIndex++}`,...options})(api(route))});
+      operationDedupeKey:`${operationDedupePrefix}:read-${operationIndex++}`,resumeDeadline:runnerDeadline,...options})(api(route))});
   const readJson=async route=>(await boundedRead(route)).value;
   const readArchiveBytes=async route=>(await boundedRead(route,{responseMode:'bytes',maxBytes:8*1024*1024,
     allowArtifactRedirect:true})).value;
