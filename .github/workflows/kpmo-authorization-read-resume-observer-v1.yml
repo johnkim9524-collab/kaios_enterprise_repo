@@ -1,6 +1,6 @@
 name: KPMO Authorization Read-Resume Observer V1
 run-name: >-
-  KIDULTS_AUTH_READ_RESUME/${{ github.event.workflow_run.name }}/${{ github.event.workflow_run.id }}
+  ${{ github.event_name == 'workflow_run' && format('KIDULTS_AUTH_READ_RESUME/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) || format('KIDULTS_AUTH_READ_RESUME/manual/{0}', github.event.inputs.source_run_id) }}
 
 on:
   workflow_run:
@@ -11,22 +11,51 @@ on:
       - 'KIDULTS Platform Continuous Assurance V1'
     branches: [main]
     types: [completed]
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Exact failed producer run ID containing the deferred read checkpoint
+        required: true
+        type: string
+      source_run_attempt:
+        description: Exact producer run attempt bound to the checkpoint
+        required: true
+        type: string
+      source_sha:
+        description: Exact producer commit SHA bound to the checkpoint
+        required: true
+        type: string
+      expected_main_sha:
+        description: Current protected main SHA that this read-only consumer must run
+        required: true
+        type: string
 
 permissions: {}
 
 concurrency:
-  group: kpmo-authorization-read-resume-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  group: kpmo-authorization-read-resume-${{ github.event.workflow_run.id || github.event.inputs.source_run_id }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt }}
   cancel-in-progress: false
 
 jobs:
   preserve-failed-role-read-resume:
     if: >-
-      github.event_name == 'workflow_run' &&
-      github.event.workflow_run.repository.full_name == github.repository &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.status == 'completed' &&
-      github.event.workflow_run.conclusion != 'success'
+      (
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.repository.full_name == github.repository &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.status == 'completed' &&
+        github.event.workflow_run.conclusion != 'success'
+      ) || (
+        github.event_name == 'workflow_dispatch' &&
+        github.actor == 'johnkim9524-collab' &&
+        github.repository == 'johnkim9524-collab/kaios_enterprise_repo' &&
+        github.ref == 'refs/heads/main' &&
+        github.event.inputs.expected_main_sha == github.sha &&
+        github.event.inputs.source_run_id != '' &&
+        github.event.inputs.source_run_attempt != '' &&
+        github.event.inputs.source_sha != ''
+      )
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: KIDULTS-AUTONOMOUS-READ-RESUME
@@ -44,20 +73,35 @@ jobs:
         env:
           EXPECTED_MAIN_SHA: ${{ github.sha }}
           EXPECTED_REPOSITORY_ID: ${{ github.repository_id }}
+          EXPECTED_ACTOR: johnkim9524-collab
         run: |
           set -euo pipefail
           [[ "$EXPECTED_MAIN_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_MAIN_SHA"
-          jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
-            --arg main_sha "$EXPECTED_MAIN_SHA" '
-              .action == "completed" and
-              .repository.full_name == $repo and
-              (.repository.id | tostring) == $repo_id and
-              .workflow_run.head_branch == "main" and
-              (.workflow_run.head_sha | test("^[0-9a-f]{40}$")) and
-              .workflow_run.head_sha == $main_sha and
-              .workflow_run.conclusion != "success"
-            ' "$GITHUB_EVENT_PATH" >/dev/null
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
+              --arg main_sha "$EXPECTED_MAIN_SHA" --arg actor "$EXPECTED_ACTOR" '
+                .repository.full_name == $repo and
+                (.repository.id | tostring) == $repo_id and
+                .sender.login == $actor and
+                .ref == "refs/heads/main" and
+                .inputs.expected_main_sha == $main_sha and
+                (.inputs.source_run_id | test("^[1-9][0-9]{0,15}$")) and
+                (.inputs.source_run_attempt | test("^([1-9]|[1-9][0-9]|100)$")) and
+                (.inputs.source_sha | test("^[0-9a-f]{40}$"))
+              ' "$GITHUB_EVENT_PATH" >/dev/null
+          else
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
+              --arg main_sha "$EXPECTED_MAIN_SHA" '
+                .action == "completed" and
+                .repository.full_name == $repo and
+                (.repository.id | tostring) == $repo_id and
+                .workflow_run.head_branch == "main" and
+                (.workflow_run.head_sha | test("^[0-9a-f]{40}$")) and
+                .workflow_run.head_sha != $main_sha and
+                .workflow_run.conclusion != "success"
+              ' "$GITHUB_EVENT_PATH" >/dev/null
+          fi
       - name: Consume exact deferred read through the shared cross-runner budget
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -91,7 +135,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}-${{ github.run_id }}
+          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id || github.event.inputs.source_run_id }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt }}-${{ github.run_id }}
           path: out/github-read-resume-handoff-v1/receipt.json
           if-no-files-found: warn
           retention-days: 90
