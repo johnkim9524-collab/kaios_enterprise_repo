@@ -26,13 +26,31 @@ try{
     ||rawEvent.sender?.login!=='kidults-autonomous-landing-staging[bot]'
     ||rawEvent.client_payload?.source!=='AWS_EVENTBRIDGE_SCHEDULER'
     ||rawEvent.client_payload?.exact_main_sha!==expectedMainSha))throw Error('GITHUB_RESUME_DISPATCH_SENDER');
+  const isOwnerManualRecovery=env.GITHUB_EVENT_NAME==='workflow_dispatch';
+  let manualRecoveryEvent=null;
+  if(isOwnerManualRecovery){
+    const input=rawEvent.inputs||{};
+    if(env.GITHUB_ACTOR!=='johnkim9524-collab'||rawEvent.sender?.login!=='johnkim9524-collab'
+      ||env.GITHUB_REPOSITORY!=='johnkim9524-collab/kaios_enterprise_repo'
+      ||Number(env.GITHUB_REPOSITORY_ID)!==1281328888||env.GITHUB_REF!=='refs/heads/main'
+      ||rawEvent.ref!=='refs/heads/main'||rawEvent.repository?.full_name!==env.GITHUB_REPOSITORY
+      ||Number(rawEvent.repository?.id)!==Number(env.GITHUB_REPOSITORY_ID)||input.expected_main_sha!==expectedMainSha
+      ||!/^[1-9][0-9]{0,15}$/.test(input.source_run_id||'')
+      ||!/^(?:[1-9]|[1-9][0-9]|100)$/.test(input.source_run_attempt||'')
+      ||!/^[a-f0-9]{40}$/.test(input.source_sha||''))throw Error('GITHUB_RESUME_OWNER_DISPATCH_BINDING');
+    const runId=Number(input.source_run_id),runAttempt=Number(input.source_run_attempt);
+    if(!Number.isSafeInteger(runId)||runId<=0)throw Error('GITHUB_RESUME_OWNER_DISPATCH_RUN_ID');
+    manualRecoveryEvent={action:'completed',workflow_run:{id:runId,run_attempt:runAttempt,head_sha:input.source_sha,
+      head_branch:'main',event:'workflow_run',conclusion:'failure',
+      repository:{full_name:env.GITHUB_REPOSITORY,id:Number(env.GITHUB_REPOSITORY_ID)}}};
+  }
   const event=isResumeDispatch
     ?{action:'completed',resume_schedule:rawEvent.client_payload,workflow_run:{id:Number(rawEvent.client_payload?.resume_binding?.run_id),
       run_attempt:rawEvent.client_payload?.resume_binding?.run_attempt,head_sha:rawEvent.client_payload?.resume_binding?.source_sha,
       head_branch:'main',event:rawEvent.client_payload?.resume_binding?.producer_event,
       conclusion:rawEvent.client_payload?.resume_binding?.producer_conclusion,
       repository:{full_name:env.GITHUB_REPOSITORY,id:Number(env.GITHUB_REPOSITORY_ID)}}}
-    :rawEvent;
+    :isOwnerManualRecovery?manualRecoveryEvent:rawEvent;
   normalizedEvent=event;
   const producer=event.workflow_run;
   expectedBinding.run_id=String(producer?.id);
