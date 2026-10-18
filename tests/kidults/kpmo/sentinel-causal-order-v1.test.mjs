@@ -10,7 +10,7 @@ import {coverageGenerationId} from '../../../scripts/kidults/kpmo/validate-kir-c
 const repository='johnkim9524-collab/kaios_enterprise_repo',source='a'.repeat(40),time=Date.parse('2026-10-10T00:00:00Z');
 const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',coveragePath='.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml';
 function row({id,upstream=9,conclusion='success',archive=true,pending=false,manual=false,tamper=false}){
-  const run={id,run_attempt:1,name:`KIDULTS_SENTINEL/${id}`,path:sentinelPath,
+  const run={id,run_attempt:1,name:'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1',path:sentinelPath,
     head_branch:'main',head_sha:source,event:'workflow_dispatch',repository:{full_name:repository},head_repository:{full_name:repository},
     created_at:new Date(time-90000+id*1000).toISOString(),status:pending?'in_progress':'completed',conclusion:pending?null:conclusion};
   if(!archive)return {run,artifacts:[]};
