@@ -40,7 +40,7 @@ test('internal AbortSignal timeout is checkpointed as a bounded transport failur
   now:()=>100000,wait:async()=>{},maxTransportRetries:1,onCheckpoint:x=>checkpoints.push(x),
   fetchImpl:async(_url,options)=>{calls++;await new Promise(resolve=>setTimeout(resolve,20));throw options.signal.reason;}});
  await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
- assert.equal(calls,1);assert.equal(checkpoints[0].diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
+ assert.equal(calls,1);assert.equal(checkpoints[0].http_diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
  assert.equal(checkpoints[0].resume_at,new Date(100100).toISOString());
 });
 test('transport failures do not consume the HTTP throttle retry allowance',async()=>{
