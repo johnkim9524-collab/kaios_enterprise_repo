@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {sentinelOrderBarrierBudget, withinSentinelObservationWindow, SENTINEL_PRODUCER_WAIT_SECONDS}
+import {sentinelOrderBarrierBudget, withinSentinelObservationWindow, sentinelRunNameMatches, SENTINEL_PRODUCER_WAIT_SECONDS}
   from '../../../scripts/kidults/kpmo/lib/sentinel-order-barrier-budget-v1.mjs';
 test('Assurance waits through the full producer budget and terminal publication margin', () => {
   const b = sentinelOrderBarrierBudget();
@@ -26,4 +26,13 @@ test('undersized, unbounded and malformed timeout budgets fail closed', () => {
   assert.equal(sentinelOrderBarrierBudget({KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS:'2400'}).timeoutSeconds, 2400);
   for (const value of ['0', '61', 'NaN', '2.5'])
     assert.throws(() => sentinelOrderBarrierBudget({KPMO_SENTINEL_BARRIER_POLL_SECONDS:value}));
+});
+
+test('Sentinel run-name overrides match only the exact dispatch run ID', () => {
+  assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252091', 39122252091, 'workflow_dispatch'), true);
+  assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39121040309', 39121040309, 'repository_dispatch'), true);
+  assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252090', 39122252091, 'workflow_dispatch'), false);
+  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), false);
+  assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252091', 39122252091, 'workflow_run'), false);
+  assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/0', 0, 'workflow_dispatch'), false);
 });

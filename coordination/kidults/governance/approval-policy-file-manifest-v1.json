@@ -6960,8 +6960,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-observation-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3d810eb5dfb577d896e92527c3abf52f08752575",
-      "sha256": "sha256:5fdf8c8f878d521f155cfa3747e38b6751f683e6e6062ebb2a7c8cbe82be4dad"
+      "git_blob": "0998ed16167c3691b50f242a834cf5e00d6bcd5e",
+      "sha256": "sha256:be6815da3fb72048bb0942c8860c32516b403e77c2559033c20569982728a957"
     },
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:28d3d38fdfd289e9347a15392139243c98ab578496f98d0000655ea3418ce054"
+  "manifest_sha256": "sha256:19611e35c43a9d356372b3d3e1f70a8963fec6f081ca5935b4f22108019bf324"
 }

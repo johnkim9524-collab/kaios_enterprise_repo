@@ -20,3 +20,9 @@ export function withinSentinelObservationWindow(createdMs, cutoffMs, windowSecon
   return Number.isFinite(createdMs) && Number.isFinite(cutoffMs)
     && createdMs <= cutoffMs && createdMs >= cutoffMs - windowSeconds * 1000;
 }
+
+export function sentinelRunNameMatches(runName, runId, eventName) {
+  return Number.isSafeInteger(runId) && runId > 0
+    && ['repository_dispatch', 'workflow_dispatch'].includes(eventName)
+    && runName === `KIDULTS_SENTINEL/${runId}`;
+}
