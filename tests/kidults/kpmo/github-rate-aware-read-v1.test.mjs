@@ -34,6 +34,35 @@ test('unknown transport errors remain fail closed without retry',async()=>{
  const f=fixture([new Error('unexpected programming error')],{maxTransportRetries:2});
  await assert.rejects(f.read(url),/unexpected programming error/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
 });
+test('internal AbortSignal timeout is checkpointed as a bounded transport failure',async()=>{
+ const checkpoints=[];let calls=0;
+ const read=createGithubRateAwareRead({token:'fake',binding,deadlineMs:10,resumeDeadline:100100,
+  now:()=>100000,wait:async()=>{},maxTransportRetries:1,onCheckpoint:x=>checkpoints.push(x),
+  fetchImpl:async(_url,options)=>{calls++;await new Promise(resolve=>setTimeout(resolve,20));throw options.signal.reason;}});
+ await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(calls,1);assert.equal(checkpoints[0].diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
+ assert.equal(checkpoints[0].resume_at,new Date(100010).toISOString());
+});
+test('transport failures do not consume the HTTP throttle retry allowance',async()=>{
+ const f=fixture([transientSocket(),response(429,{'retry-after':'1'}),response(429,{'retry-after':'1'})],
+  {maxRetries:1,maxTransportRetries:1});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.calls(),3);assert.deepEqual(f.waits,[250,1000]);
+ assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');assert.equal(f.checkpoints[0].attempts_used,3);
+});
+test('HTTP rate metadata is honored when the response body stream closes',async()=>{
+ const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const f=fixture([new Response(body,{status:429,headers:{'retry-after':'2'}})],{maxRetries:0,maxTransportRetries:2});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');
+ assert.ok(Date.parse(f.checkpoints[0].resume_at)>=100000+2000);
+});
+test('transient checkpoint resume time is clamped to the outer runner deadline',async()=>{
+ const f=fixture([transientSocket()],{maxTransportRetries:0,resumeDeadline:100050});
+ await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(f.checkpoints[0].resume_at,new Date(100050).toISOString());
+ assert.equal(f.checkpoints[0].diagnostic.transport_code,'UND_ERR_SOCKET');
+});
 
 test('primary quota reset waits and resumes same GET',async()=>{const f=fixture([response(403,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'102'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[3000]);assert.equal(f.calls(),2);assert.equal(f.checkpoints.length,0);});
 test('secondary Retry-After controls bounded wait',async()=>{const f=fixture([response(403,{'retry-after':'2'},{message:'You have exceeded a secondary rate limit.'}),response(200)]);await f.read(url);assert.deepEqual(f.waits,[2000]);});
