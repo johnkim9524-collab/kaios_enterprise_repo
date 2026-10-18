@@ -225,6 +225,18 @@ const dynamicCoverage = classifyCanonicalIdentity({
 }, contract, contractText);
 assert(dynamicCoverage.upstream_class === 'ASI_REQUIREMENT_COVERAGE' && dynamicCoverage.terminal_observation_non_dedupable === true, 'COVERAGE_DYNAMIC_RUN_NAME_NOT_PATH_BOUND');
 
+const sentinelPath = '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
+const wrappedSentinel = classifyCanonicalIdentity({
+  ...base,
+  run_id: '9852',
+  upstream_run_id: '8852',
+  upstream_workflow_name: 'KIDULTS_AUTH_OBSERVER/KIDULTS Platform Continuous Assurance V1/39081891557',
+  upstream_workflow_path: sentinelPath,
+}, contract, contractText);
+assert(wrappedSentinel.upstream_class === 'KPMO_EXACT_SHA_PRODUCER_HEALTH'
+  && wrappedSentinel.upstream_audit_disposition === 'UPSTREAM_SUCCESS',
+'OBSERVER_WRAPPED_SENTINEL_NAME_REJECTED');
+
 for (const conclusion of ['failure', 'cancelled', 'timed_out', 'action_required', 'neutral', 'skipped', 'stale']) {
   const terminal = classifyCanonicalIdentity({ ...base, run_id: '9201', upstream_run_id: '8201', upstream_conclusion: conclusion }, contract, contractText);
   const otherTerminal = classifyCanonicalIdentity({ ...base, run_id: '9202', upstream_run_id: '8202', upstream_conclusion: conclusion }, contract, contractText);
@@ -294,6 +306,8 @@ const negativeCases = [
   ['WORKFLOW_PATH_MISMATCH', { ...base, upstream_workflow_path: '.github/workflows/other.yml' }],
   ['ARL_DYNAMIC_NAME_SHA_MALFORMED', { ...base, upstream_workflow_name: 'KIDULTS ARL / recovery-main', upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml' }],
   ['COVERAGE_DYNAMIC_NAME_CROSS_PATH', { ...base, upstream_workflow_name: `KIDULTS Coverage / source-${shaA}`, upstream_workflow_path: '.github/workflows/kidults-asi-autonomous-resolution-layer-v1.yml' }],
+  ['SENTINEL_OBSERVER_NAME_WRONG_PREFIX', { ...base, upstream_workflow_name: 'OTHER_OBSERVER/KIDULTS Platform Continuous Assurance V1/39081891557', upstream_workflow_path: '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml' }],
+  ['SENTINEL_OBSERVER_NAME_MALFORMED_RUN_ID', { ...base, upstream_workflow_name: 'KIDULTS_AUTH_OBSERVER/KIDULTS Platform Continuous Assurance V1/not-a-run', upstream_workflow_path: '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml' }],
   ['SOURCE_SHA_INVALID', { ...base, source_sha: 'bad' }],
   ['UPSTREAM_CONCLUSION_INVALID', { ...base, upstream_conclusion: 'queued' }],
   ['UPSTREAM_EVENT_INVALID', { ...base, upstream_event: 'deployment' }],
