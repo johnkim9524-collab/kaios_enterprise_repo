@@ -30,7 +30,7 @@ const AUTONOMOUS_LANDING_WORKFLOWS = new Map([
     event: 'kidults.authorization.generation.v1',
     environment: 'KIDULTS-AUTONOMOUS-TRACK',
     budgetRole: 'track',
-    retiredDispatchRole: true,
+    approvalOnly: true,
     recoveryWorkflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1'],
   }],
   [path.resolve(ROOT, 'kidults-autonomous-kpmo-authorization-v1.yml'), {
@@ -272,9 +272,27 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
     'KIDULTS_AUTONOMOUS_LANDING_LEDGER_WRITER_FUNCTION',
     'KIDULTS_AUTONOMOUS_WORKLOAD_REGISTRY_JSON',
   ];
-  if(!expected.retiredDispatchRole)workflowMarkers.push('repository_dispatch:');
-  for (const fragment of workflowMarkers) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
-  if(expected.retiredDispatchRole)require(!/^  repository_dispatch:/m.test(workflow),'track-dispatch-retired');
+  if (!expected.retiredDispatchRole) workflowMarkers.push('repository_dispatch:');
+  const approvalOnlyMarkers = new Set([
+    'contents: write',
+    'pull-requests: write',
+    'statuses: write',
+    'KIDULTS-AUTONOMOUS-FINALIZER',
+    'finalize-if-quorum:',
+    'KIDULTS_AUTONOMOUS_MODE: FINALIZE',
+  ]);
+  const requiredWorkflowMarkers = expected.approvalOnly
+    ? workflowMarkers.filter((fragment) => !approvalOnlyMarkers.has(fragment))
+    : workflowMarkers;
+  for (const fragment of requiredWorkflowMarkers) require(workflow.includes(fragment), `workflow-marker:${fragment}`);
+  if (expected.approvalOnly) {
+    require(workflow.includes('repository_dispatch:\n    types:\n      - ' + expected.event), 'dispatch-trigger-exact');
+    require(workflow.includes('permissions: {}'), 'approval-only-workflow-permissions-empty');
+    require(!/^  finalize-if-quorum:/m.test(workflow), 'approval-only-no-live-finalizer');
+    require(!/^\s*(?:contents|pull-requests|statuses):\s*write\s*$/mi.test(workflow), 'approval-only-no-repository-write');
+  } else if (expected.retiredDispatchRole) {
+    require(!/^  repository_dispatch:/m.test(workflow), 'track-dispatch-retired');
+  }
   for (const other of ['kidults.track.authorization.v1','kidults.kpmo.authorization.v1','kidults.independent.verification.v1']) {
     if (other !== expected.event) require(!workflow.includes(`      - ${other}`), `cross-role-event-forbidden:${other}`);
   }
@@ -282,7 +300,8 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
   if (/^  workflow_run:/m.test(workflow)) {
     const recoveryWorkflowList = expected.recoveryWorkflows.map(value => `'${value}'`).join(', ');
     require(workflow.includes(`  workflow_run:\n    workflows: [${recoveryWorkflowList}]\n    types: [completed]\n    branches: [main]`), 'recovery-trigger-exact-gate');
-    if(expected.retiredDispatchRole)require(!/^  repository_dispatch:/m.test(workflow),'track-dispatch-retired');
+    if (expected.approvalOnly) require(workflow.includes('repository_dispatch:\n    types:\n      - ' + expected.event), 'dispatch-trigger-exact');
+    else if(expected.retiredDispatchRole)require(!/^  repository_dispatch:/m.test(workflow),'track-dispatch-retired');
     else require(/^  repository_dispatch:/m.test(workflow),'recovery-trigger-exact-gate');
     require(!/^  workflow_dispatch:/m.test(workflow), 'recovery-trigger-exact-gate');
     const jobs = [...workflow.matchAll(/^  ([a-z][a-z0-9-]*):\n([\s\S]*?)(?=^  [a-z][a-z0-9-]*:\n|$(?![\s\S]))/gm)];
@@ -348,11 +367,16 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
       && !admissionRunner.includes('actions/runs/'), 'recovery-admission-no-duplicate-live-reads');
   }
 
-  require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
-  const approvalSection = workflow.split('  finalize-if-quorum:')[0] || '';
-  const finalizerSection = (workflow.split('  finalize-if-quorum:')[1] || '').split('  owner-reserved-boundary:')[0] || '';
-  require(!/^\s*contents:\s*write\s*$/mi.test(approvalSection), 'approval-stage-github-write-forbidden');
-  require(/^\s*contents:\s*write\s*$/mi.test(finalizerSection), 'finalizer-github-write-required');
+  if (expected.approvalOnly) {
+    require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 0, 'approval-only-contents-write-forbidden');
+    require(!/^\s*(?:pull-requests|statuses):\s*write\s*$/mi.test(workflow), 'approval-only-github-write-forbidden');
+  } else {
+    require((workflow.match(/^\s*contents:\s*write\s*$/gmi) || []).length === 1, 'single-contents-write');
+    const approvalSection = workflow.split('  finalize-if-quorum:')[0] || '';
+    const finalizerSection = (workflow.split('  finalize-if-quorum:')[1] || '').split('  owner-reserved-boundary:')[0] || '';
+    require(!/^\s*contents:\s*write\s*$/mi.test(approvalSection), 'approval-stage-github-write-forbidden');
+    require(/^\s*contents:\s*write\s*$/mi.test(finalizerSection), 'finalizer-github-write-required');
+  }
   require(!/^\s*permissions:\s*write-all\s*$/mi.test(workflow), 'write-all-forbidden');
   require(!activeLines(workflow).some(containsDirectGitPush), 'direct-git-push-forbidden');
   require(!activeLines(workflow).some(containsDirectRepositoryApiMutation), 'inline-repository-api-forbidden');
