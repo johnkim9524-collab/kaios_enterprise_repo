@@ -136,7 +136,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
               ?failedDiagnostic.rate_reset_epoch*1000+1000:0;
             const explicit=Math.max(failedDiagnostic.retry_after_seconds===null?0:now()+failedDiagnostic.retry_after_seconds*1000,resetAt);
             const resumeAt=Math.max(explicit,now()+60000);
-            budget.blockUntil(resumeAt);
+            budget.blockUntil(resumeAt);if(budget.pauseUntil)await budget.pauseUntil(resumeAt);
             return defer(route,failedDiagnostic,resumeAt,attempt+1,'HTTP_RATE_LIMIT');
           }
         }
