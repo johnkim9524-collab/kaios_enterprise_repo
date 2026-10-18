@@ -10,7 +10,7 @@ const statements=role.Properties.Policies[0].PolicyDocument.Statement;
 test('resume role trusts only the exact protected main workflow and environment',()=>{
   assert.equal(role.Type,'AWS::IAM::Role');
   assert.equal(role.Properties.RoleName,'kidults-github-read-resume-staging-role');
-  assert.equal(role.Properties.MaxSessionDuration,900);
+  assert.equal(role.Properties.MaxSessionDuration,3600);
   const condition=role.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
   assert.deepEqual(condition,{
     'token.actions.githubusercontent.com:aud':'sts.amazonaws.com',
