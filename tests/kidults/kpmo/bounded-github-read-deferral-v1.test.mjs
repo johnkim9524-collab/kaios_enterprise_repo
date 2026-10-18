@@ -32,6 +32,7 @@ test('wrong runner binding, route, authority flags and out-of-deadline wait fail
     cp=>{cp.unfinished_operation.route+='/extra';},
     cp=>{cp.actual_authority_granted=true;},
     cp=>{cp.resume_at=new Date(20000).toISOString();},
+    cp=>{cp.resume_at=new Date(10000).toISOString();},
   ];
   for(const mutate of mutations){
     await t.test('reject malformed checkpoint',async()=>{
