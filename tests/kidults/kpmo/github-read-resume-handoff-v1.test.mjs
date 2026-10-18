@@ -38,7 +38,7 @@ test('naturally triggered artifact is read back, bounded, digest-checked and res
     readArchiveBytes:async route=>{archiveReads++;assert.equal(route,`actions/artifacts/${artifact.id}/zip`);return archiveBytes;},
     archiveReader:(bytes,digest)=>{assert.deepEqual(bytes,archiveBytes);assert.equal(digest,artifactDigest);return packetFor(checkpoint);}});
   assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');assert.equal(result.actual_authority_granted,false);
-  assert.equal(result.method,'GET');assert.equal(archiveReads,1);assert.equal(f.calls.at(-1),routeForCheckpoint(checkpoint));
+  assert.equal(result.method,'GET');assert.equal(result.route_count,1);assert.equal(archiveReads,1);assert.equal(f.calls.at(-1),routeForCheckpoint(checkpoint));
 });
 
 test('an artifact unrelated to the exact triggering run fails before archive access',async()=>{
@@ -175,7 +175,7 @@ test('multiple distinct deferred routes are all validated before sequential boun
   };
   const result=await consumeGithubReadResumeHandoff({event,readJson,readArchiveBytes:async()=>archiveBytes,
     archiveReader:(bytes,digest)=>{assert.equal(digest,artifactDigest);return packetFor(checkpoint,second,second);},now:f.now});
-  assert.equal(result.state,'READ_ONLY_CHECKPOINTS_RESUMED');assert.equal(result.results.length,2);
+  assert.equal(result.state,'READ_ONLY_CHECKPOINTS_RESUMED');assert.equal(result.route_count,2);assert.equal(result.results.length,2);
   assert.equal(reads,1);assert.equal(result.actual_authority_granted,false);
 });
 
