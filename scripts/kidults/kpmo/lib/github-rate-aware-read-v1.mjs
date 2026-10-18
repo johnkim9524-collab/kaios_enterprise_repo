@@ -4,7 +4,15 @@ import {githubHttpFailureDiagnostic} from './github-http-failure-diagnostic-v1.m
 const check=(ok,code)=>{if(!ok)throw Error('GITHUB_READ_'+code);};
 const RETRYABLE_TRANSPORT_CODES=new Set(['ECONNRESET','ETIMEDOUT','EAI_AGAIN','UND_ERR_SOCKET','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT']);
 function retryableTransportCode(error,signal){
-  if(signal?.aborted&&signal.reason?.name==='TimeoutError')return 'ABORT_SIGNAL_TIMEOUT';
+  // Classify the error that actually escaped fetch/body processing. The signal
+  // may expire later while a shared permit is being durably finalized.
+  if(signal?.aborted&&signal.reason?.name==='TimeoutError'){
+    const seen=new Set();let current=error;
+    while(current&&typeof current==='object'&&!seen.has(current)){
+      if(current===signal.reason||current.name==='AbortError')return 'ABORT_SIGNAL_TIMEOUT';
+      seen.add(current);current=current.cause;
+    }
+  }
   const seen=new Set();let current=error;
   while(current&&typeof current==='object'&&!seen.has(current)){
     seen.add(current);if(RETRYABLE_TRANSPORT_CODES.has(current.code))return current.code;current=current.cause;
@@ -90,7 +98,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
           error?.resume_at?'SHARED_GITHUB_READ_BUDGET':'INVOCATION_CALL_BUDGET');}
       if(budget.blockedUntil()>now()){release();continue;}
       if(now()>=deadline){release();return defer(route,null,now(),attempt,'INVOCATION_DEADLINE');}
-      let response,payload,transportFailure=null,activeSignal=null,bodyReadFailure=false;
+      let response,payload,transportFailure=null,transportCode=null,activeSignal=null,bodyReadFailure=false;
       try{
         activeSignal=AbortSignal.timeout(Math.max(1,Math.min(20000,deadline-now())));
         response=await fetchImpl(target,{method:'GET',redirect:allowArtifactRedirect?'manual':'error',headers:{Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json',
@@ -113,9 +121,32 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         const bytes=Buffer.concat(chunks,total);
         if(response.ok&&responseMode==='bytes')payload=bytes;
         else try{payload=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{if(response.ok)throw Error('GITHUB_READ_INVALID_JSON');payload=null;}
-      }catch(error){transportFailure=error;}finally{if(typeof release.finish==='function')await release.finish();release();}
+      }catch(error){transportFailure=error;transportCode=retryableTransportCode(error,activeSignal);}
+      finally{
+        // If a throttled response arrived but its body stream failed, commit
+        // the shared cooldown before completing this permit. Otherwise another
+        // runner can observe the released slot with a stale blocked_until.
+        if(response&&bodyReadFailure){
+          const interruptedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
+          const interruptedThrottle=[403,429].includes(response.status)
+            &&(interruptedDiagnostic.rate_remaining===0||interruptedDiagnostic.retry_after_seconds!==null||response.status===429);
+          const interruptedQuotaExhaustion=response.ok&&interruptedDiagnostic.rate_remaining===0;
+          if(interruptedThrottle||interruptedQuotaExhaustion){
+            if(interruptedDiagnostic.rate_remaining===0&&(interruptedDiagnostic.rate_reset_epoch===null
+              ||interruptedDiagnostic.rate_reset_epoch*1000<=now()||interruptedDiagnostic.rate_reset_epoch*1000-now()>86400000)){
+              const error=Error('GITHUB_READ_INVALID_RATE_RESET');error.http_diagnostic=interruptedDiagnostic;throw error;}
+            const resetAt=interruptedDiagnostic.rate_remaining===0&&interruptedDiagnostic.rate_reset_epoch!==null
+              ?interruptedDiagnostic.rate_reset_epoch*1000+1000:0;
+            const explicit=Math.max(interruptedDiagnostic.retry_after_seconds===null?0:now()+interruptedDiagnostic.retry_after_seconds*1000,resetAt);
+            const interruptedResumeAt=Math.max(explicit,now()+60000);
+            budget.blockUntil(interruptedResumeAt);
+            if(budget.pauseUntil)await budget.pauseUntil(interruptedResumeAt);
+          }
+        }
+        if(typeof release.finish==='function')await release.finish();
+        release();
+      }
       if(transportFailure){
-        const transportCode=retryableTransportCode(transportFailure,activeSignal);
         if(!transportCode){
           if(response&&!response.ok&&bodyReadFailure){
             const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
@@ -136,7 +167,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
               ?failedDiagnostic.rate_reset_epoch*1000+1000:0;
             const explicit=Math.max(failedDiagnostic.retry_after_seconds===null?0:now()+failedDiagnostic.retry_after_seconds*1000,resetAt);
             const resumeAt=Math.max(explicit,now()+60000);
-            budget.blockUntil(resumeAt);if(budget.pauseUntil)await budget.pauseUntil(resumeAt);
+            budget.blockUntil(resumeAt);
             return defer(route,failedDiagnostic,resumeAt,attempt+1,'HTTP_RATE_LIMIT');
           }
         }

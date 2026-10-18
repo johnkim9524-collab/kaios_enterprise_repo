@@ -34,6 +34,11 @@ test('unknown transport errors remain fail closed without retry',async()=>{
  const f=fixture([new Error('unexpected programming error')],{maxTransportRetries:2});
  await assert.rejects(f.read(url),/unexpected programming error/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
 });
+test('an unrelated AbortError without the internal timeout signal is not retried',async()=>{
+ const error=Error('caller abort');error.name='AbortError';
+ const f=fixture([error],{maxTransportRetries:2});
+ await assert.rejects(f.read(url),/caller abort/);assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
+});
 test('internal AbortSignal timeout is checkpointed as a bounded transport failure',async()=>{
  const checkpoints=[];let calls=0;
  const read=createGithubRateAwareRead({token:'fake',binding,deadlineMs:10,resumeDeadline:100100,
@@ -42,6 +47,14 @@ test('internal AbortSignal timeout is checkpointed as a bounded transport failur
  await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
  assert.equal(calls,1);assert.equal(checkpoints[0].http_diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
  assert.equal(checkpoints[0].resume_at,new Date(100100).toISOString());
+});
+test('a policy error stays non-retryable if the internal signal expires during permit finalization',async()=>{
+ const f=fixture([]);
+ f.budget.acquire=async()=>{const release=()=>{};release.finish=async()=>{await new Promise(resolve=>setTimeout(resolve,15));};return release;};
+ const read=createGithubRateAwareRead({token:'fake',binding,deadlineMs:1000,wait:async()=>{},
+  fetchImpl:async()=>{const error=Error('GITHUB_READ_REDIRECT');error.code='GITHUB_READ_REDIRECT';throw error;},budget:f.budget});
+ await assert.rejects(read(url),/GITHUB_READ_REDIRECT/);
+ assert.equal(f.calls(),0);assert.equal(f.checkpoints.length,0);
 });
 test('transport failures do not consume the HTTP throttle retry allowance',async()=>{
  const f=fixture([transientSocket(),response(429,{'retry-after':'1'}),response(429,{'retry-after':'1'})],
@@ -58,6 +71,16 @@ test('HTTP rate metadata is honored when the response body stream closes',async(
  assert.equal(f.calls(),1);assert.equal(f.checkpoints[0].reason,'HTTP_RATE_LIMIT');
  assert.ok(Date.parse(f.checkpoints[0].resume_at)>=100000+2000);
  assert.deepEqual(persisted,[Date.parse(f.checkpoints[0].resume_at)]);
+});
+test('shared cooldown is persisted before the permit is completed after an interrupted throttled body',async()=>{
+ const events=[];let time=100000,row={version:0};
+ const budget={scope:{},blockedUntil:()=>0,blockUntil:()=>{},acquireLease:async()=>{events.push('acquire');return Object.assign(()=>{},
+   {finish:async()=>{events.push('finish');}});},pauseUntil:async()=>{events.push('persist');}};
+ const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
+ const read=createGithubRateAwareRead({token:'fake',binding,now:()=>time,wait:async ms=>{time+=ms;},budget,maxRetries:0,
+  fetchImpl:async()=>new Response(body,{status:429,headers:{'retry-after':'2'}})});
+ await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
+ assert.deepEqual(events,['acquire','persist','finish']);
 });
 test('interrupted rate responses reject missing, expired, or excessive reset metadata',async()=>{
  for(const reset of [null,'99','999999999']){
