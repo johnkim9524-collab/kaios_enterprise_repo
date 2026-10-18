@@ -137,7 +137,9 @@ test('natural assurance is causally serialized behind a successful sentinel',()=
   const assuranceAudit=assurance.match(/^  audit:\n[\s\S]*?^    if: >-\n([\s\S]*?)^    concurrency:/m)?.[1]||'';
   assert.match(assuranceAudit,/github\.event\.workflow_run\.event == 'repository_dispatch'/);
   assert.match(assurance,/name: Enforce Sentinel terminal before Assurance[\s\S]*?wait-for-natural-sentinel-terminal-v1\.mjs/);
-  assert.match(assurance,/github\.event\.workflow_run\.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'/);
+  assert.match(assuranceAudit,/github\\.event\\.workflow_run\\.path == '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1\\.yml'/);
+  assert.match(assuranceAudit,/needs\\.classify-canonical-identity\\.outputs\\.upstream_class == 'KPMO_EXACT_SHA_PRODUCER_HEALTH'/);
+  assert.doesNotMatch(assuranceAudit,/github\\.event\\.workflow_run\\.name ==/);
   assert.match(assurance,/github\.event\.workflow_run\.conclusion == 'success'/);
   assert.match(coverage,/kidults-platform-continuous-assurance-v1\.yml\/dispatches/);
 });
