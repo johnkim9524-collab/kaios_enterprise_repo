@@ -142,6 +142,6 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
   }
   return results.length===1?{...results[0],read_only:true}:
     {state:'READ_ONLY_CHECKPOINTS_RESUMED',results,run_id:run.id,run_attempt:run.run_attempt,source_sha:run.head_sha,
-      artifact_id:artifact.id,artifact_digest:artifact.digest,checkpoint_digests:checkpointDigests,
+      artifact_id:artifact.id,artifact_digest:artifact.digest,checkpoint_digests:checkpointDigests,route_count:results.length,
       actual_authority_granted:false,reservation_write_performed:false,approval_created:false,read_only:true};
 }
