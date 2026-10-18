@@ -72,7 +72,7 @@ export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,arch
     &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'CHECKPOINT_SCOPE');
   check(run?.id===Number(b.run_id)&&run.run_attempt===b.run_attempt&&run.head_sha===b.source_sha
     &&run.repository?.full_name===REPO&&String(run.repository?.id)===REPO_ID
-    &&run.path===expected.workflow_path&&['repository_dispatch','workflow_run'].includes(run.event)
+    &&run.path===expected.workflow_path&&['push','repository_dispatch','workflow_run'].includes(run.event)
     &&run.head_branch==='main','NATIVE_RUN_BINDING');
   check([...WORKFLOWS.values()].includes(run.path),'WORKFLOW_NOT_ALLOWLISTED');
   const role=[...WORKFLOWS].find(([,path])=>path===run.path)[0];

@@ -30,7 +30,7 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
   check(triggered&&Number.isSafeInteger(triggered.id)&&triggered.id>0&&Number.isSafeInteger(triggered.run_attempt)
     &&triggered.run_attempt>=1&&triggered.run_attempt<=100&&/^[a-f0-9]{40}$/.test(triggered.head_sha||'')
     &&triggered.head_branch==='main'&&triggered.repository?.full_name===REPO&&Number(triggered.repository?.id)===REPO_ID
-    &&['repository_dispatch','workflow_run'].includes(triggered.event),'TRIGGER_BINDING');
+    &&['push','repository_dispatch','workflow_run'].includes(triggered.event),'TRIGGER_BINDING');
   const resumeSchedule=event.resume_schedule;
   if(resumeSchedule){
     const binding=resumeSchedule.resume_binding;

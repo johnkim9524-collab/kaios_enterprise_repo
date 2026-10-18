@@ -24,7 +24,7 @@ const validResume = event => {
     &&binding&&/^[1-9][0-9]{0,19}$/.test(String(binding.run_id))&&Number.isSafeInteger(binding.run_attempt)
     &&binding.run_attempt>=1&&binding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(binding.source_sha||'')
     &&Number.isSafeInteger(binding.artifact_id)&&binding.artifact_id>0&&/^sha256:[a-f0-9]{64}$/.test(binding.artifact_digest||'')
-    &&['workflow_run','repository_dispatch'].includes(binding.producer_event)
+    &&['push','workflow_run','repository_dispatch'].includes(binding.producer_event)
     &&['failure','success'].includes(binding.producer_conclusion)&&Array.isArray(event.checkpoint_digests)
     &&event.checkpoint_digests.length>=1&&event.checkpoint_digests.length<=8
     &&event.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))
