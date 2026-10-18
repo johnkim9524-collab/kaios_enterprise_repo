@@ -1897,8 +1897,8 @@
     {
       "path": "coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0ec267eea35a4f287a0e38796b19859b59bbc545",
-      "sha256": "sha256:2941052fefe4bc60fed2624f48d774df388846bc48caabc09b61ddb53ed26802",
+      "git_blob": "f7188ed5b8226382cae7e3ac01b614a90106ba7f",
+      "sha256": "sha256:8229e8d32f18843b02a3a0feb214cc186f56794483c08834aaea09eba38d726e",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7216,5 +7216,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:e14ab4365128902442de92ab2443422c730f49c3713c0ab4bdfb6d78975797f7"
+  "manifest_sha256": "sha256:911a2214ae80af1dad34663a466ed17536071896cdf0ace8e023319f184dc3f2"
 }
