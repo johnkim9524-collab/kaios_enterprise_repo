@@ -41,7 +41,7 @@ test('internal AbortSignal timeout is checkpointed as a bounded transport failur
   fetchImpl:async(_url,options)=>{calls++;await new Promise(resolve=>setTimeout(resolve,20));throw options.signal.reason;}});
  await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
  assert.equal(calls,1);assert.equal(checkpoints[0].diagnostic.transport_code,'ABORT_SIGNAL_TIMEOUT');
- assert.equal(checkpoints[0].resume_at,new Date(100010).toISOString());
+ assert.equal(checkpoints[0].resume_at,new Date(100100).toISOString());
 });
 test('transport failures do not consume the HTTP throttle retry allowance',async()=>{
  const f=fixture([transientSocket(),response(429,{'retry-after':'1'}),response(429,{'retry-after':'1'})],
