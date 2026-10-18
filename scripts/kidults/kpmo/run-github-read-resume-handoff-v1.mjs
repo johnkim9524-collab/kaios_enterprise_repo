@@ -67,6 +67,19 @@ try{
   const readJson=async route=>(await boundedRead(route)).value;
   const readArchiveBytes=async route=>(await boundedRead(route,{responseMode:'bytes',maxBytes:8*1024*1024,
     allowArtifactRedirect:true})).value;
+  if(isOwnerManualRecovery){
+    const selectedRun=await readJson(`actions/runs/${producer?.id}`);
+    if(selectedRun?.id!==producer?.id||selectedRun.run_attempt!==producer?.run_attempt
+      ||selectedRun.head_sha!==producer?.head_sha||selectedRun.head_branch!=='main'
+      ||selectedRun.repository?.full_name!==env.GITHUB_REPOSITORY
+      ||Number(selectedRun.repository?.id)!==Number(env.GITHUB_REPOSITORY_ID)
+      ||selectedRun.head_repository?.full_name!==env.GITHUB_REPOSITORY
+      ||selectedRun.status!=='completed'||selectedRun.conclusion==='success'
+      ||!['push','repository_dispatch','workflow_run'].includes(selectedRun.event))
+      throw Error('GITHUB_RESUME_OWNER_SOURCE_RUN_READBACK');
+    producer.event=selectedRun.event;
+    producer.conclusion=selectedRun.conclusion;
+  }
   const scheduleResume=async request=>{
     const schedule=createGithubReadResumeScheduleRequest({binding:request.binding,resumeAt:request.resumeAt,
       checkpointDigests:request.checkpointDigests});
