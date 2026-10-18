@@ -30,6 +30,13 @@ test('rounds a subsecond reservation forward and requires exact physical schedul
   assert.throws(()=>verifyGithubReadResumeScheduleReadback(request,{...actual,Target:{...actual.Target,Input:'{}'}}),/READBACK/);
 });
 
+test('accepts an exact push producer for the same bounded one-time schedule operation',()=>{
+  const request=createGithubReadResumeScheduleRequest({binding:{...binding,producer_event:'push'},resumeAt,checkpointDigests,now});
+  assert.equal(request.input.resume_binding.producer_event,'push');
+  assert.equal(request.input.slot,'READ_RESUME');
+  assert.equal(request.input.source,'aws.scheduler');
+});
+
 test('rejects malformed or already-due schedule requests',()=>{
   assert.throws(()=>createGithubReadResumeScheduleRequest({binding:{...binding,source_sha:'x'},resumeAt,checkpointDigests,now}),/BINDING/);
   assert.throws(()=>createGithubReadResumeScheduleRequest({binding,resumeAt:now,checkpointDigests,now}),/TIME/);
