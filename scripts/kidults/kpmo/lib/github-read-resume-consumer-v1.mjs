@@ -111,7 +111,7 @@ export async function consumeGithubReadResumeCheckpoint({checkpoint,run,artifact
   const value=await read(validated.route);
   return {state:'READ_ONLY_CHECKPOINT_RESUMED',value,run_id:run.id,run_attempt:run.run_attempt,
     source_sha:run.head_sha,artifact_id:artifact.id,artifact_digest:artifact.digest,
-    method:'GET',route:validated.route,checkpoint_consumed:true,
+    method:'GET',route:validated.route,route_count:1,checkpoint_consumed:true,
     actual_authority_granted:false,reservation_write_performed:false,approval_created:false};
 }
 
