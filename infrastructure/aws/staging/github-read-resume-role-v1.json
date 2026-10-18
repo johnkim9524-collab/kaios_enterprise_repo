@@ -30,7 +30,7 @@
       "Type": "AWS::IAM::Role",
       "Properties": {
         "RoleName": "kidults-github-read-resume-staging-role",
-        "MaxSessionDuration": 3600,
+        "MaxSessionDuration": 900,
         "AssumeRolePolicyDocument": {
           "Version": "2012-10-17",
           "Statement": [
