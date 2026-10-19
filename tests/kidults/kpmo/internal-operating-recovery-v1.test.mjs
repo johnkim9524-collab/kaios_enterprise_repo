@@ -61,6 +61,21 @@ test('observation preserves real failure evidence while malformed checks still f
   const p=fixture();p.production='PASS';assert.throws(()=>observeInternalOperatingRecovery(seal(p),source));
   assert.throws(()=>observeInternalOperatingRecovery({...fixture(),receipt_digest:'bad'},source));
 });
+test('a deferred collector failure remains digest-bound incomplete recovery evidence',()=>{
+  const failureBody={id:'kidults-whole-platform-operating-proof-v1',source_sha:source,
+    repository:'johnkim9524-collab/kaios_enterprise_repo',state:'VERIFIED_FAIL',failure_class:'GITHUB_READ_DEFERRED',
+    whole_platform_runtime_proven:false,retry_authorized:false,production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
+    operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:'UNVERIFIED',reason:'GITHUB_READ_DEFERRED',evidence_refs:[]}))};
+  const proof=seal(failureBody),observed=observeInternalOperatingRecovery(proof,source);
+  assert.equal(observed.state,'VERIFIED_INCOMPLETE');
+  assert.equal(observed.pending_checks.length,INTERNAL_RECOVERY_CHECKS.length);
+  assert.ok(observed.pending_checks.every(check=>check.reason==='GITHUB_READ_DEFERRED'));
+  assert.equal(observed.failed_checks.length,0);assert.equal(observed.recovery_receipt,null);
+  assert.equal(observed.operating_recovery_proven,false);
+  assert.equal(observed.whole_platform_runtime_proven,false);assert.equal(observed.promotion_authority,false);
+  assert.throws(()=>verifyInternalOperatingRecovery(proof,source));
+  assert.throws(()=>observeInternalOperatingRecovery(proof,'b'.repeat(40)),/SOURCE_BINDING/);
+});
 test('complete observation embeds only strictly verified internal recovery',()=>{
   const r=observeInternalOperatingRecovery(fixture(),source);
   assert.equal(r.operating_recovery_proven,true);assert.equal(r.recovery_receipt.state,'VERIFIED_PASS');
