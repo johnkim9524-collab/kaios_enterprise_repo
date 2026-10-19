@@ -38,6 +38,29 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
     /^actions\/workflows\/(?:kidults-autonomous-(?:track|kpmo|independent-verification)-authorization|kidults-platform-continuous-assurance)-v1\.yml\/runs\?branch=main&status=completed&created=%3E%3D\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z&per_page=100&page=1$/,
   ];
+  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(route);
+  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(route);
+  const validHistoryRange=(encoded,page,maxAgeMs)=>{
+    if(!encoded||!page||Number(page)>100)return false;
+    let decoded='';try{decoded=decodeURIComponent(encoded);}catch{return false;}
+    const range=/^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)\.\.(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)$/.exec(decoded);
+    if(!range)return false;
+    const start=Date.parse(range[1]),end=Date.parse(range[2]),observed=now();
+    return Number.isFinite(start)&&Number.isFinite(end)&&new Date(start).toISOString()===range[1]&&new Date(end).toISOString()===range[2]
+      &&Number.isSafeInteger(observed)&&start<=end&&end-start<=maxAgeMs&&end<=observed;
+  };
+  const originalRunIdBound=(typeof expectedBinding?.original_run_id==='string'
+    &&/^[1-9][0-9]{0,15}$/.test(expectedBinding.original_run_id))
+    ||(Number.isSafeInteger(expectedBinding?.original_run_id)&&expectedBinding.original_run_id>0
+      &&expectedBinding.original_run_id<=9999999999999999);
+  const originalMissionBound=originalRunIdBound&&Number.isSafeInteger(expectedBinding.original_run_attempt)
+    &&expectedBinding.original_run_attempt>=1&&expectedBinding.original_run_attempt<=100
+    &&Number.isSafeInteger(expectedBinding.original_artifact_id)&&expectedBinding.original_artifact_id>0
+    &&/^sha256:[a-f0-9]{64}$/.test(expectedBinding.original_artifact_digest||'');
+  const trackHistoryAllowed=Boolean(trackHistory)&&originalMissionBound
+    &&validHistoryRange(trackHistory[1],trackHistory[2],31*24*60*60*1000);
+  const securityHistoryAllowed=Boolean(securityHistory)&&securityHistory[1]===expectedBinding?.source_sha
+    &&validHistoryRange(securityHistory[2],securityHistory[3],31*24*60*60*1000);
   const sentinel=/^actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs\?head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=100&page=([1-9][0-9]{0,2})$/;
   let sentinelRange=null;
   if(typeof route==='string'){
@@ -53,7 +76,7 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     }
   }
   check(typeof route==='string'&&route.length<=512&&!route.includes('#')
-    &&(routes.some(pattern=>pattern.test(route))||sentinelRange!==null),'ROUTE');
+    &&(routes.some(pattern=>pattern.test(route))||trackHistoryAllowed||securityHistoryAllowed||sentinelRange!==null),'ROUTE');
   check(typeof read==='function'&&typeof expectedBinding==='object'&&expectedBinding
     &&/^[1-9][0-9]{0,15}$/.test(String(expectedBinding.run_id))&&Number.isSafeInteger(expectedBinding.run_attempt)
     &&expectedBinding.run_attempt>=1&&expectedBinding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(expectedBinding.source_sha)
