@@ -12,7 +12,7 @@ const seal=f=>{const {receipt_digest,observed_at,...core}=f.audit;f.audit.receip
 test('recovery history excludes pre-incident runs without losing cross-main recovery',()=>{
  const q=originalRecoveryHistoryQuery({id:38132692877,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',1);
  assert.equal(q.get('created'),'2026-10-10T00:00:00.000Z..2026-10-11T22:00:00.000Z');assert.equal(q.has('status'),false);
- assert.equal(q.has('head_sha'),false);assert.equal(q.has('event'),false);assert.equal(q.get('per_page'),'25');
+ assert.equal(q.has('head_sha'),false);assert.equal(q.has('event'),false);assert.equal(q.get('per_page'),'100');
 });
 test('invalid incident windows and page budgets never widen the query',()=>{
  for(const [run,at,page] of [[{id:1,created_at:'2026-10-10T00:00:00Z'},'2026-10-11T22:00:00Z',1],
