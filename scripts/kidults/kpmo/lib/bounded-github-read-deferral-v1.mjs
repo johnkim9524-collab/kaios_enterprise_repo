@@ -47,8 +47,8 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
     /^actions\/workflows\/(?:kidults-autonomous-(?:track|kpmo|independent-verification)-authorization|kidults-platform-continuous-assurance)-v1\.yml\/runs\?branch=main&status=completed&created=%3E%3D\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z&per_page=100&page=1$/,
   ];
-  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(route);
-  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(route);
+  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=(?:25|100)&page=([1-9][0-9]{0,2})$/.exec(route);
+  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=(?:25|100)&page=([1-9][0-9]{0,2})$/.exec(route);
   const validHistoryRange=(encoded,page,maxAgeMs)=>{
     if(!encoded||!page||Number(page)>100)return false;
     let decoded='';try{decoded=decodeURIComponent(encoded);}catch{return false;}

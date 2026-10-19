@@ -204,18 +204,22 @@ const INTERACTIVE_LOCAL_WORK_RESUME_POLICY = {
     without_runtime_consumer: 'NO_REPOSITORY_AUTHORITY_GRANTED'
   },
   repository_policy_can_authorize_execution_without_platform_consumer: false,
-  scope: 'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS',
+  scope: 'LOCAL_REPOSITORY_WORKTREE_TESTS_AND_TWO_INTENT_BOUND_GITHUB_OPERATIONS',
   resume_reconciliation_still_required: true,
   fresh_exact_head_bootstrap_required: false,
   bootstrap_receipt_required: false,
   allows_local_edits_and_tests: true,
   allows_agent_dispatch: false,
   allows_github_mutation: false,
-  external_development_branch_writes_still_require_fresh_exact_head_bootstrap: true,
-  draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap: true,
+  authorized_github_operations: ['INTENT_BOUND_NON_PROTECTED_BRANCH_UPDATE','CREATE_DRAFT_PR'],
+  github_operation_exception_requires_authenticated_writer_and_exact_intent: true,
+  authenticated_github_connector_required: true,
+  external_development_branch_writes_still_require_fresh_exact_head_bootstrap: false,
+  draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap: false,
+  agent_dispatch_and_protected_operations_still_require_fresh_exact_head_bootstrap: true,
   grants_new_authority: false
 };
-assert(resumeContract.version === '1.4.0', 'RESUME_CONTRACT_VERSION');
+assert(resumeContract.version === '1.5.0', 'RESUME_CONTRACT_VERSION');
 assert(exactJson(resumeContract.interactive_local_work_policy, INTERACTIVE_LOCAL_WORK_RESUME_POLICY), 'RESUME_INTERACTIVE_LOCAL_WORK_POLICY');
 assert(exactJson(contract.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'OPERATING_INTERACTIVE_SESSION_SCOPE');
 assert(exactJson(registry.mandatory_inheritance?.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'REGISTRY_INTERACTIVE_SESSION_SCOPE');

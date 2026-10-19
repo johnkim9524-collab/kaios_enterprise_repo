@@ -5,22 +5,22 @@ const originalRun={id:38132692877,created_at:'2026-10-11T10:38:53Z'},observedAt=
 const rows=Array.from({length:101},(_,i)=>({id:i+1,created_at:'2026-10-11T12:00:00Z',status:'in_progress',conclusion:null}));
 const call=get=>listOriginalRecoveryHistory({originalRun,observedAt,get,workflow:'track.yml'});
 test('workflow run indexes stay below the bounded page size and reconcile every page',async()=>{
-  const all=Array.from({length:41},(_,i)=>({id:i+1,created_at:observedAt})),routes=[];
+  const all=Array.from({length:141},(_,i)=>({id:i+1,created_at:observedAt})),routes=[];
   const result=await collectBoundedWorkflowRunWindow({workflow:'sentinel.yml',sourceSha:'a'.repeat(40),
     after:Date.parse(originalRun.created_at),before:Date.parse(observedAt),get:async route=>{
       const q=new URL('https://example.invalid/'+route).searchParams;routes.push(q);
-      assert.equal(q.get('per_page'),'25');assert.equal(q.get('branch'),'main');assert.equal(q.get('head_sha'),'a'.repeat(40));
+      assert.equal(q.get('per_page'),'100');assert.equal(q.get('branch'),'main');assert.equal(q.get('head_sha'),'a'.repeat(40));
       const page=Number(q.get('page'));
-      return {total_count:all.length,workflow_runs:all.slice((page-1)*25,page*25)};
+      return {total_count:all.length,workflow_runs:all.slice((page-1)*100,page*100)};
     }});
-  assert.equal(routes.length,2);assert.equal(result.length,41);
+  assert.equal(routes.length,2);assert.equal(result.length,141);
   assert.deepEqual(result,all);
 });
 test('workflow run index rejects membership drift and incomplete pages',async()=>{
   await assert.rejects(collectBoundedWorkflowRunWindow({workflow:'sentinel.yml',sourceSha:'a'.repeat(40),
     after:1,before:2,get:async route=>{
       const page=Number(new URL('https://example.invalid/'+route).searchParams.get('page'));
-      return page===1?{total_count:26,workflow_runs:rows.slice(0,25)}:{total_count:27,workflow_runs:rows.slice(25,26)};
+      return page===1?{total_count:126,workflow_runs:rows.slice(0,100)}:{total_count:127,workflow_runs:rows.slice(100,101)};
     }}),/RUN_WINDOW_CHANGED/);
   await assert.rejects(collectBoundedWorkflowRunWindow({workflow:'sentinel.yml',sourceSha:'a'.repeat(40),
     after:1,before:2,get:async()=>({total_count:26,workflow_runs:rows.slice(0,24)})}),/RUN_WINDOW_PAGE_CARDINALITY/);
@@ -46,11 +46,11 @@ test('completion during pagination does not change fixed created-window membersh
     if(q.has('status'))throw Error('mutable status filter');
     const page=Number(q.get('page'));
     if(page===2)rows[100]={...rows[100],status:'completed',conclusion:'success'};
-    assert.equal(q.get('per_page'),'25');
-    return {total_count:rows.length,workflow_runs:structuredClone(rows.slice((page-1)*25,page*25))};
+    assert.equal(q.get('per_page'),'100');
+    return {total_count:rows.length,workflow_runs:structuredClone(rows.slice((page-1)*100,page*100))};
   });
   assert.equal(result.workflow_runs.length,101);assert.equal(result.complete,true);assert.equal(result.workflow_runs[100].conclusion,'success');
-  assert.equal(seen.length,5);assert.ok(seen.every(q=>q.get('created')===seen[0].get('created')));
+  assert.equal(seen.length,2);assert.ok(seen.every(q=>q.get('created')===seen[0].get('created')));
 });
 for(const [name,get,code] of [
   ['incomplete provider index',async()=>({total_count:0,workflow_runs:[],incomplete_results:true}),'INDEX'],
@@ -59,7 +59,7 @@ for(const [name,get,code] of [
   ['outside cutoff',async()=>({total_count:1,workflow_runs:[{...rows[0],created_at:'2026-10-12T06:00:01Z'}]}),'INCIDENT_WINDOW'],
   ['before incident',async()=>({total_count:1,workflow_runs:[{...rows[0],created_at:'2026-10-11T10:38:52Z'}]}),'INCIDENT_WINDOW'],
   ['changed membership',async route=>new URL('https://example.invalid/'+route).searchParams.get('page')==='1'
-    ?{total_count:101,workflow_runs:rows.slice(0,25)}:{total_count:102,workflow_runs:rows.slice(25,50)},'CHANGED']
+    ?{total_count:101,workflow_runs:rows.slice(0,100)}:{total_count:102,workflow_runs:rows.slice(100,102)},'CHANGED']
 ])test(`history rejects ${name} without accepting a bounded prefix`,async()=>{
   await assert.rejects(call(get),new RegExp('RECOVERY_HISTORY_'+code));
 });
@@ -78,9 +78,9 @@ test('exactly 1000 results are partitioned instead of assumed complete',async()=
     // GitHub caps a created-window search at 1,000 rows. It reports the cap
     // even when the actual window is larger, and only exposes that prefix.
     const cappedCount=Math.min(match.length,1000);
-    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*25,Math.min(page*25,cappedCount))};
+    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*100,Math.min(page*100,cappedCount))};
   }});
-  assert.ok(requests>=40&&requests<240);assert.equal(result.workflow_runs.length,1000);assert.equal(result.complete,true);
+  assert.ok(requests>=10&&requests<30);assert.equal(result.workflow_runs.length,1000);assert.equal(result.complete,true);
 });
 test('2,500-run history is completely reconciled through disjoint created windows',async()=>{
   let requests=0;
@@ -95,11 +95,11 @@ test('2,500-run history is completely reconciled through disjoint created window
     const page=Number(q.get('page'));
     const match=all.filter(run=>Date.parse(run.created_at)>=from&&Date.parse(run.created_at)<=to);
     const cappedCount=Math.min(match.length,1000);
-    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*25,Math.min(page*25,cappedCount))};
+    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*100,Math.min(page*100,cappedCount))};
   }});
   assert.equal(result.workflow_runs.length,2500);assert.equal(result.total_count,2500);
   assert.equal(result.complete,true);assert.equal(result.read_count,requests);
-  assert.ok(requests>25&&requests<240);
+  assert.ok(requests>0&&requests<60);
   assert.ok(result.workflow_runs.some(run=>run.id===1));
   assert.equal(new Set(result.workflow_runs.map(run=>run.id)).size,2500);
 });
@@ -110,7 +110,7 @@ test('an overfull exact-second bucket fails closed within the read ceiling',asyn
     requests++;
     const q=new URL('https://example.invalid/'+route).searchParams;
     const page=Number(q.get('page'));
-    return {total_count:1001,workflow_runs:rows.slice(0,page===1?25:1)};
+    return {total_count:1001,workflow_runs:rows.slice(0,page===1?100:1)};
   }}),/RECOVERY_HISTORY_TIMESTAMP_DENSITY/);
   assert.ok(requests<240);
 });
@@ -119,7 +119,7 @@ test('over-1000 history cannot exceed the recovery read budget',async()=>{
   await assert.rejects(call(async route=>{
     requests++;
     const page=Number(new URL('https://example.invalid/'+route).searchParams.get('page'));
-    return {total_count:2500,workflow_runs:rows.slice(0,25)};
+    return {total_count:2500,workflow_runs:rows.slice(0,100)};
   }),/RECOVERY_HISTORY_READ_BUDGET/);
   assert.equal(requests,240);
 });

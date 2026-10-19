@@ -21,17 +21,21 @@ test('interactive local sandbox work retains resume reconciliation and needs no 
   assert.equal(local.platform_attestation_contract.runtime_consumer_status,'NOT_IMPLEMENTED');
   assert.equal(local.platform_attestation_contract.without_runtime_consumer,'NO_REPOSITORY_AUTHORITY_GRANTED');
   assert.equal(local.repository_policy_can_authorize_execution_without_platform_consumer,false);
-  assert.equal(local.scope,'LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS');
+  assert.equal(local.scope,'LOCAL_REPOSITORY_WORKTREE_TESTS_AND_TWO_INTENT_BOUND_GITHUB_OPERATIONS');
   assert.equal(local.resume_reconciliation_still_required,true);
   assert.equal(local.bootstrap_receipt_required,false);
   assert.equal(local.fresh_exact_head_bootstrap_required,false);
   assert.equal(local.allows_local_edits_and_tests,true);
 });
-test('local exception grants no dispatch or GitHub mutation and preserves external bootstrap gates',()=>{
+test('local exception grants only two authenticated intent-bound GitHub operations and no dispatch',()=>{
   assert.equal(local.allows_agent_dispatch,false);
   assert.equal(local.allows_github_mutation,false);
-  assert.equal(local.external_development_branch_writes_still_require_fresh_exact_head_bootstrap,true);
-  assert.equal(local.draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap,true);
+  assert.deepEqual(local.authorized_github_operations,['INTENT_BOUND_NON_PROTECTED_BRANCH_UPDATE','CREATE_DRAFT_PR']);
+  assert.equal(local.github_operation_exception_requires_authenticated_writer_and_exact_intent,true);
+  assert.equal(local.authenticated_github_connector_required,true);
+  assert.equal(local.external_development_branch_writes_still_require_fresh_exact_head_bootstrap,false);
+  assert.equal(local.draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap,false);
+  assert.equal(local.agent_dispatch_and_protected_operations_still_require_fresh_exact_head_bootstrap,true);
   assert.equal(local.grants_new_authority,false);
 });
 test('local exception does not weaken global bootstrap, readiness, or AI-020 Owner-reserved boundaries',()=>{

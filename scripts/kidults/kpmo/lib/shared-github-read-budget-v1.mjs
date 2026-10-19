@@ -4,18 +4,21 @@ import {createHash} from 'node:crypto';
 const canonical=x=>Array.isArray(x)?`[${x.map(canonical).join(',')}]`:x&&typeof x==='object'?`{${Object.keys(x).sort().map(k=>`${JSON.stringify(k)}:${canonical(x[k])}`).join(',')}}`:JSON.stringify(x);
 const digest=x=>createHash('sha256').update(canonical(x)).digest('hex');
 const check=(ok,code)=>{if(!ok)throw Error('SHARED_GITHUB_READ_'+code);};
-export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=3600000,maxConcurrent=2,leaseMs=30000,now=()=>Date.now()}){
+export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=3600000,maxConcurrent=2,leaseMs=30000,casRetries=6,casBaseDelayMs=8,casMaxDelayMs=128,now=()=>Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),random=Math.random}){
   check(store?.authority==='PROTECTED_ATOMIC_CAS'&&typeof store.read==='function'&&typeof store.compareAndSwap==='function','STORE_AUTHORITY_REQUIRED');
   check(scope?.repository==='johnkim9524-collab/kaios_enterprise_repo'&&scope.resource==='core'
     &&typeof scope.quota_owner_id==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(scope.quota_owner_id),'QUOTA_OWNER');
   check(Number.isSafeInteger(capacity)&&capacity>0&&capacity<=600&&Number.isSafeInteger(maxConcurrent)&&maxConcurrent>=1&&maxConcurrent<=4
-    &&Number.isSafeInteger(windowMs)&&windowMs>=60000&&windowMs<=3600000&&Number.isSafeInteger(leaseMs)&&leaseMs>=1000&&leaseMs<=60000,'CONFIG');
+    &&Number.isSafeInteger(windowMs)&&windowMs>=60000&&windowMs<=3600000&&Number.isSafeInteger(leaseMs)&&leaseMs>=1000&&leaseMs<=60000
+    &&Number.isSafeInteger(casRetries)&&casRetries>=0&&casRetries<=10&&Number.isSafeInteger(casBaseDelayMs)&&casBaseDelayMs>=1&&casBaseDelayMs<=1000
+    &&Number.isSafeInteger(casMaxDelayMs)&&casMaxDelayMs>=casBaseDelayMs&&casMaxDelayMs<=5000&&typeof wait==='function'
+    &&typeof random==='function','CONFIG');
   scope=Object.freeze(structuredClone(scope));
   const configuration={scope,capacity,windowMs,maxConcurrent,leaseMs};
   const configDigest=digest(configuration),key='GITHUB_READ_BUDGET#'+digest(scope);
   let localBlockedUntil=0;
   async function transition(work){
-    for(let count=0;count<4;count++){
+    for(let count=0;count<=casRetries;count++){
       const time=now();check(Number.isSafeInteger(time)&&time>=0,'CLOCK');
       const current=await store.read(key),version=current?.version??0;
       check(!current||(current.scope_digest===digest(scope)&&current.config_digest===configDigest
@@ -39,7 +42,14 @@ export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=
       next.version=version+1;next.observed_at=time;
       const outcome=await store.compareAndSwap(key,version,next);
       if(outcome==='COMMITTED')return result.value;
-      if(outcome==='CONFLICT')continue;
+      if(outcome==='CONFLICT'){
+        if(count<casRetries){
+          const jitter=random();check(typeof jitter==='number'&&Number.isFinite(jitter)&&jitter>=0&&jitter<1,'JITTER');
+          await wait(Math.max(1,Math.floor(Math.min(casMaxDelayMs,casBaseDelayMs*2**count)*(0.5+jitter))));
+          continue;
+        }
+        const error=Error('SHARED_GITHUB_READ_CAS_CONTENTION_DEFERRED');error.resume_at=now()+1000;throw error;
+      }
       // An ambiguous CAS may have committed. No blind replay is allowed.
       throw Error('SHARED_GITHUB_READ_CAS_UNKNOWN_RECONCILE_REQUIRED');
     }
@@ -90,6 +100,7 @@ export function createSharedGithubReadBudget({store,scope,capacity=480,windowMs=
       const error=Error('SHARED_GITHUB_READ_BUDGET_DEFERRED');error.resume_at=Date.parse(permit.resume_at);throw error;
     }
     const release=()=>{};let finished=false;
+    release.resumeAt=()=>Math.max(permit.permit.expires_at+1000,now()+1000);
     release.finish=async()=>{if(finished)return;await api.finish(request,permit.fence);finished=true;};
     return release;
   };

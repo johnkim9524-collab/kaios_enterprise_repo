@@ -33,6 +33,12 @@ test('candidate selection binds exact failed main runs, repository and recent cr
   assert.deepEqual(selectReadResumeSweepCandidates({producer,listing,now,windowMs:30*60*1000}),[base]);
 });
 
+test('candidate selection accepts GitHub workflow_run display-name suffixes when workflow path is exact',()=>{
+  const kpmo=READ_RESUME_SWEEP_PRODUCERS.find(item=>item.role==='kpmo');
+  const run={...base,name:`${kpmo.name} completed`,path:kpmo.path,event:'workflow_run'};
+  assert.deepEqual(selectReadResumeSweepCandidates({producer:kpmo,listing:{total_count:1,workflow_runs:[run]},now}),[run]);
+});
+
 test('selection sorts newest-first and enforces a bounded limit',()=>{
   const older={...base,id:320,created_at:'2026-10-19T04:40:00.000Z'};
   const newest={...base,id:322,created_at:'2026-10-19T04:55:00.000Z'};

@@ -35,7 +35,8 @@ export function draftProposalOperationKey(intent){
   return hash(canonical(intent));
 }
 const policyFields={scope:'AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL',allowed_operation:'CREATE_DRAFT_PR',
-  protected_operation_ledger_required:false,fresh_exact_head_bootstrap_required:true,immutable_git_intent_required:true,
+  protected_operation_ledger_required:false,fresh_exact_head_bootstrap_required:false,
+  authenticated_github_writer_required:true,explicit_user_authorization_required:true,immutable_git_intent_required:true,
   intent_source_ancestor_required:true,descendant_changes:'DERIVED_METADATA_ONLY',
   live_base_head_and_all_pr_states_reconciliation_required:true,complete_pr_index_required:true,
   same_writer_control_context_required:true,github_duplicate_constraint_required:true,
@@ -56,13 +57,14 @@ function matches(pr,binding){
 // Pure preflight: callers must obtain these bindings from authenticated GitHub
 // reads and committed Git blobs. This function never reads credentials or writes.
 export function validateDevelopmentDraftProposalResume(input){
-  const {policy,authorized,bootstrapVerified,bootstrapSha,intent,intentDigest,intentCommitSha,intentSourceTreeSha,
+  const {policy,authorized,intent,intentDigest,intentCommitSha,intentSourceTreeSha,
     intentSourceIsAncestor,onlyDerivedMetadataSinceIntent,payload,payloadDigest,expectedHeadSha,
     liveRepository,liveBaseSha,liveHeadSha,liveHeadTreeSha,existingPullRequests,pullRequestIndexComplete,
-    sameWriterControlContextVerified,githubDuplicateConstraintAvailable,attempt=1,outcome='NOT_ATTEMPTED',operation='CREATE_DRAFT_PR'}=input;
+    sameWriterControlContextVerified,githubDuplicateConstraintAvailable,userAuthorizationVerified,
+    authenticatedGithubWriterVerified,attempt=1,outcome='NOT_ATTEMPTED',operation='CREATE_DRAFT_PR'}=input;
   const route=policy?.draft_proposal_resume;
   if(!route||!fields(route,Object.keys(policyFields))||Object.entries(policyFields).some(([k,v])=>route[k]!==v))fail('POLICY');
-  if(authorized!==true||bootstrapVerified!==true||bootstrapSha!==expectedHeadSha)fail('AUTHORITY_OR_BOOTSTRAP');
+  if(authorized!==true||userAuthorizationVerified!==true||authenticatedGithubWriterVerified!==true)fail('AUTHORITY_OR_WRITER');
   if(operation!=='CREATE_DRAFT_PR'||attempt!==1||!['NOT_ATTEMPTED','UNKNOWN','REJECTED','CREATED'].includes(outcome))fail('OPERATION_OR_ATTEMPT');
   validateIntent(intent);
   if(!SHA.test(intentCommitSha)||intentDigest!==hash(canonical(intent))||intentSourceTreeSha!==intent.source_head_tree_sha

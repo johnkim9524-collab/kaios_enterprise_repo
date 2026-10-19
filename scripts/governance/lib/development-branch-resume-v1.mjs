@@ -3,11 +3,15 @@ import {createHash} from 'node:crypto';
 const shaPattern = /^[a-f0-9]{40}$/;
 const fail = code => {throw new Error(`DEVELOPMENT_RESUME_${code}`);};
 export function validateDevelopmentBranchResume({policy, branch, expectedHead, liveHead, parentSha,
-  payload, payloadDigest, authorized, bootstrapVerified, force = false, operation = 'CODE_UPDATE'}) {
+  payload, payloadDigest, authorized, userAuthorizationVerified, authenticatedGithubWriterVerified,
+  force = false, operation = 'CODE_UPDATE'}) {
   const route = policy?.development_branch_resume;
   if (!route || route.scope !== 'EXPLICITLY_AUTHORIZED_REVERSIBLE_DEVELOPMENT_BRANCH_CODE_OR_POLICY_CORRECTION'
     || route.protected_operation_ledger_required !== false
-    || route.fresh_exact_head_bootstrap_required !== true
+    || route.fresh_exact_head_bootstrap_required !== false
+    || route.authenticated_github_writer_required !== true
+    || route.explicit_user_authorization_required !== true
+    || route.allowed_external_write_scope !== 'NON_PROTECTED_CODEX_BRANCH_ONLY'
     || route.live_head_reconciliation_required !== true
     || route.exact_parent_and_payload_digest_required !== true
     || route.expected_head_non_forced_update_required !== true
@@ -15,7 +19,7 @@ export function validateDevelopmentBranchResume({policy, branch, expectedHead, l
     || route.ambiguous_or_rejected_write !== 'RECONCILE_NO_BLIND_RETRY'
     || route.main_write_merge_approval_dispatch_deploy_generation_reservation_promotion_allowed !== false
     || route.grants_new_authority !== false) fail('POLICY');
-  if (authorized !== true || bootstrapVerified !== true) fail('AUTHORITY_OR_BOOTSTRAP');
+  if (authorized !== true || userAuthorizationVerified !== true || authenticatedGithubWriterVerified !== true) fail('AUTHORITY_OR_WRITER');
   if (operation !== 'CODE_UPDATE' || force !== false) fail('OPERATION');
   if (typeof branch !== 'string' || !branch.startsWith('codex/') || /[\s~^:?*\[\\]/.test(branch)
     || branch.includes('..') || branch.endsWith('/') || branch.endsWith('.lock')) fail('BRANCH');

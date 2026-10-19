@@ -14,7 +14,8 @@ function fixture(){
     head_branch:payload.head,source_head_sha:'b'.repeat(40),source_head_tree_sha:'c'.repeat(40),payload_digest:digest,
     scope:'AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL',authority_granted:false};
   return {policy:JSON.parse(fs.readFileSync('coordination/kidults/governance/resume-contract-v1.json','utf8')),
-    authorized:true,bootstrapVerified:true,bootstrapSha:'d'.repeat(40),intent,intentDigest:hash(canonical(intent)),
+    authorized:true,userAuthorizationVerified:true,authenticatedGithubWriterVerified:true,
+    bootstrapVerified:false,bootstrapSha:'d'.repeat(40),intent,intentDigest:hash(canonical(intent)),
     intentCommitSha:'e'.repeat(40),intentSourceTreeSha:intent.source_head_tree_sha,intentSourceIsAncestor:true,
     onlyDerivedMetadataSinceIntent:true,payload,payloadDigest:digest,expectedHeadSha:'d'.repeat(40),
     liveRepository:payload.repository,liveBaseSha:intent.base_sha,liveHeadSha:'d'.repeat(40),liveHeadTreeSha:'f'.repeat(40),
@@ -46,12 +47,12 @@ test('rejected, ambiguous or already issued create is never blindly repeated',()
   }
   assert.throws(()=>validateDevelopmentDraftProposalResume({...fixture(),attempt:2}),/OPERATION_OR_ATTEMPT/);
 });
-test('missing authority, source bootstrap, immutable intent or reconciliation evidence fails closed',()=>{
-  for(const key of ['authorized','bootstrapVerified','intentSourceIsAncestor','onlyDerivedMetadataSinceIntent',
+test('missing explicit authorization, authenticated writer, immutable intent or reconciliation evidence fails closed',()=>{
+  for(const key of ['authorized','userAuthorizationVerified','authenticatedGithubWriterVerified','intentSourceIsAncestor','onlyDerivedMetadataSinceIntent',
     'pullRequestIndexComplete','sameWriterControlContextVerified','githubDuplicateConstraintAvailable']){
     assert.throws(()=>validateDevelopmentDraftProposalResume({...fixture(),[key]:false}));
   }
-  for(const key of ['intentDigest','intentCommitSha','intentSourceTreeSha','payloadDigest','bootstrapSha']){
+  for(const key of ['intentDigest','intentCommitSha','intentSourceTreeSha','payloadDigest']){
     assert.throws(()=>validateDevelopmentDraftProposalResume({...fixture(),[key]:'invalid'}));
   }
 });
@@ -69,7 +70,7 @@ test('non-Draft and mismatched creation readbacks never gain authority',()=>{
 });
 test('operation identity is stable across derived metadata descendants and cannot include retry/session fields',()=>{
   const f=fixture(),key=draftProposalOperationKey(f.intent);
-  const g={...f,bootstrapSha:'1'.repeat(40),expectedHeadSha:'1'.repeat(40),liveHeadSha:'1'.repeat(40),liveHeadTreeSha:'2'.repeat(40)};
+  const g={...f,bootstrapVerified:false,bootstrapSha:'0'.repeat(40),expectedHeadSha:'1'.repeat(40),liveHeadSha:'1'.repeat(40),liveHeadTreeSha:'2'.repeat(40)};
   assert.equal(validateDevelopmentDraftProposalResume(g).binding.operation_key,key);
   assert.throws(()=>draftProposalOperationKey({...f.intent,session_id:'replacement'}),/INTENT/);
   assert.throws(()=>canonicalDraftProposalPayload({...f.payload,draft:false}),/PAYLOAD/);

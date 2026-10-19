@@ -1,6 +1,6 @@
 {
   "id": "KIDULTS_RESUME_CONTRACT_V1",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "mandatory": true,
   "applies_at": [
     "EVERY_WORK_EXECUTION_START",
@@ -52,7 +52,10 @@
   "development_branch_resume": {
     "scope": "EXPLICITLY_AUTHORIZED_REVERSIBLE_DEVELOPMENT_BRANCH_CODE_OR_POLICY_CORRECTION",
     "protected_operation_ledger_required": false,
-    "fresh_exact_head_bootstrap_required": true,
+    "fresh_exact_head_bootstrap_required": false,
+    "authenticated_github_writer_required": true,
+    "explicit_user_authorization_required": true,
+    "allowed_external_write_scope": "NON_PROTECTED_CODEX_BRANCH_ONLY",
     "live_head_reconciliation_required": true,
     "exact_parent_and_payload_digest_required": true,
     "expected_head_non_forced_update_required": true,
@@ -65,7 +68,9 @@
     "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
     "allowed_operation": "CREATE_DRAFT_PR",
     "protected_operation_ledger_required": false,
-    "fresh_exact_head_bootstrap_required": true,
+    "fresh_exact_head_bootstrap_required": false,
+    "authenticated_github_writer_required": true,
+    "explicit_user_authorization_required": true,
     "immutable_git_intent_required": true,
     "intent_source_ancestor_required": true,
     "descendant_changes": "DERIVED_METADATA_ONLY",
@@ -171,15 +176,19 @@
       "without_runtime_consumer": "NO_REPOSITORY_AUTHORITY_GRANTED"
     },
     "repository_policy_can_authorize_execution_without_platform_consumer": false,
-    "scope": "LOCAL_REPOSITORY_WORKTREE_AND_SANDBOXED_TESTS",
+    "scope": "LOCAL_REPOSITORY_WORKTREE_TESTS_AND_TWO_INTENT_BOUND_GITHUB_OPERATIONS",
     "resume_reconciliation_still_required": true,
     "fresh_exact_head_bootstrap_required": false,
     "bootstrap_receipt_required": false,
     "allows_local_edits_and_tests": true,
     "allows_agent_dispatch": false,
     "allows_github_mutation": false,
-    "external_development_branch_writes_still_require_fresh_exact_head_bootstrap": true,
-    "draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap": true,
+    "authorized_github_operations": ["INTENT_BOUND_NON_PROTECTED_BRANCH_UPDATE", "CREATE_DRAFT_PR"],
+    "github_operation_exception_requires_authenticated_writer_and_exact_intent": true,
+    "authenticated_github_connector_required": true,
+    "external_development_branch_writes_still_require_fresh_exact_head_bootstrap": false,
+    "draft_proposal_and_all_external_effects_still_require_fresh_exact_head_bootstrap": false,
+    "agent_dispatch_and_protected_operations_still_require_fresh_exact_head_bootstrap": true,
     "grants_new_authority": false
   }
 }
