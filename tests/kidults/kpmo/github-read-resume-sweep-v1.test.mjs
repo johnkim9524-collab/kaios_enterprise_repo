@@ -59,6 +59,14 @@ test('repeated sweeps derive the same future wake from the source run and checkp
   assert.throws(()=>deterministicReadResumeSweepWakeAt({createdAt:'2026-10-19T04:00:00.000Z',checkpointResumeAt:now,now}),/WAKE_CONFIG/);
 });
 
+test('wake calculation accepts GitHub whole-second UTC timestamps',()=>{
+  const createdAt='2026-10-19T04:45:00Z';
+  assert.equal(deterministicReadResumeSweepWakeAt({createdAt,checkpointResumeAt:now,now}),
+    Date.parse('2026-10-19T05:16:00.000Z'));
+  assert.throws(()=>deterministicReadResumeSweepWakeAt({createdAt:'2026-10-19T04:45:00+00:00',checkpointResumeAt:now,now}),
+    /WAKE_CONFIG/);
+});
+
 test('the 28-minute scan boundary schedules once and ages out before the next sweep',()=>{
   const boundary={...base,created_at:'2026-10-19T04:32:00.000Z'};
   const selected=selectReadResumeSweepCandidates({producer,listing:{total_count:1,workflow_runs:[boundary]},now,windowMs:28*60*1000});

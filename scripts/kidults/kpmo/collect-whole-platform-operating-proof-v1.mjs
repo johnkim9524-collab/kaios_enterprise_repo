@@ -123,11 +123,10 @@ export async function listOriginalRecoveryHistory({originalRun,observedAt,get,wo
       &&index.incomplete_results!==true,'RECOVERY_HISTORY_INDEX');
     return index;
   };
-  const history=[],pending=[{start:queryStart,end:queryEnd}];let initialTotal;
+  const history=[],pending=[{start:queryStart,end:queryEnd}];let completeTotal=0;
   while(pending.length){
     const range=pending.shift();
     const first=await queryPage(range,1);
-    if(initialTotal===undefined)initialTotal=first.total_count;
     if(first.total_count>=RECOVERY_HISTORY_SEARCH_RESULT_CAP){
       // GitHub caps each created-range search at 1,000 rows. A result count
       // exactly at the cap is ambiguous too, so split until every query is
@@ -141,6 +140,10 @@ export async function listOriginalRecoveryHistory({originalRun,observedAt,get,wo
       continue;
     }
     let count=first.total_count;
+    // A capped parent query reports 1,000 even when the full window contains
+    // more rows. Only disjoint, uncapped leaf windows contribute to the
+    // complete snapshot cardinality.
+    completeTotal+=count;
     const pages=Math.max(1,Math.ceil(count/RECOVERY_HISTORY_PAGE_SIZE));
     for(let page=1;page<=pages;page++){
       const index=page===1?first:await queryPage(range,page);
@@ -148,7 +151,7 @@ export async function listOriginalRecoveryHistory({originalRun,observedAt,get,wo
       const expected=Math.min(RECOVERY_HISTORY_PAGE_SIZE,count-(page-1)*RECOVERY_HISTORY_PAGE_SIZE);
       requireEvidence(index.workflow_runs.length===expected,'RECOVERY_HISTORY_PAGE_CARDINALITY');
       history.push(...index.workflow_runs);
-      requireEvidence(history.length<=initialTotal,'RECOVERY_HISTORY_CARDINALITY');
+      requireEvidence(history.length<=completeTotal,'RECOVERY_HISTORY_CARDINALITY');
     }
   }
   const unique=new Map();
@@ -159,7 +162,7 @@ export async function listOriginalRecoveryHistory({originalRun,observedAt,get,wo
     requireEvidence(!unique.has(run.id),'RECOVERY_HISTORY_DUPLICATE');
     unique.set(run.id,run);
   }
-  requireEvidence(unique.size===initialTotal,'RECOVERY_HISTORY_SNAPSHOT_CARDINALITY');
+  requireEvidence(unique.size===completeTotal,'RECOVERY_HISTORY_SNAPSHOT_CARDINALITY');
   const exact= [...unique.values()].filter(run=>Date.parse(run.created_at)>=start&&Date.parse(run.created_at)<=end);
   return {workflow_runs:exact,total_count:exact.length,complete:true,read_count:reads};
 }
