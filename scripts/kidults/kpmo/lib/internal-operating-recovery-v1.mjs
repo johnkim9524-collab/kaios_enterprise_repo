@@ -17,7 +17,7 @@ function validateProof(proof,sourceSha){
 }
 export function observeInternalOperatingRecovery(proof,sourceSha){
   validateProof(proof,sourceSha);
-  const pending=[];
+  const pending=[],failed=[];
   for(const id of INTERNAL_RECOVERY_CHECKS){
     const matches=proof.operating_checks.filter(c=>c.id===id);
     if(matches.length!==1)fail('CHECK_SET');
@@ -25,13 +25,14 @@ export function observeInternalOperatingRecovery(proof,sourceSha){
     if(c.state==='VERIFIED_PASS'){
       if(!Array.isArray(c.evidence_refs)||!c.evidence_refs.length)fail(id);
     }else if(['UNVERIFIED','VERIFIED_HOLD'].includes(c.state))pending.push({id,state:c.state,reason:c.reason??'EVIDENCE_PENDING'});
+    else if(c.state==='VERIFIED_FAIL')failed.push({id,state:c.state,reason:c.reason??'EVIDENCE_FAILED',evidence_refs:Array.isArray(c.evidence_refs)?c.evidence_refs:[]});
     else fail(id);
   }
   const receipt={id:'kidults-internal-operating-recovery-observation-v1',scope:'READ_ONLY_RECOVERY_OBSERVATION',
-    state:pending.length?'VERIFIED_INCOMPLETE':'VERIFIED_PASS',source_sha:sourceSha,
-    source_proof_digest:proof.receipt_digest,pending_checks:pending,
-    operating_recovery_proven:pending.length===0,
-    recovery_receipt:pending.length?null:verifyInternalOperatingRecovery(proof,sourceSha),
+    state:failed.length?'VERIFIED_FAIL':pending.length?'VERIFIED_INCOMPLETE':'VERIFIED_PASS',source_sha:sourceSha,
+    source_proof_digest:proof.receipt_digest,pending_checks:pending,failed_checks:failed,
+    operating_recovery_proven:pending.length===0&&failed.length===0,
+    recovery_receipt:pending.length||failed.length?null:verifyInternalOperatingRecovery(proof,sourceSha),
     observation_success_is_operating_completion:false,whole_platform_runtime_proven:false,
     natural_chain_terminal_authority:false,promotion_authority:false,
     production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};

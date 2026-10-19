@@ -14,11 +14,12 @@ test('historical score remains historical even when its source SHA equals the ob
     assert.equal(proof.whole_platform_runtime_proven,false);
   }
 });
-test('all fourteen value-chain dimensions remain unverified even when static declarations say PASS',()=>{
+test('one scoped dimension remains unverified while thirteen are future expansion',()=>{
   const proof=inventoryWholePlatform(contract,{...scorecard,dimensions:scorecard.dimensions.map(d=>({...d,state:'PASS'}))},'a'.repeat(40));
   assert.equal(proof.value_chain.length,14);
   assert.equal(proof.whole_platform_runtime_proven,false);
-  assert.ok(proof.value_chain.every(d=>d.runtime_state==='UNVERIFIED'));
+  assert.equal(proof.value_chain.filter(d=>d.runtime_state==='UNVERIFIED').length,1);
+  assert.equal(proof.value_chain.filter(d=>d.runtime_state==='FUTURE_EXPANSION').length,13);
   assert.ok(proof.operating_checks.every(d=>d.retry_authorized===false));
   assert.equal(proof.provider_activation,'HOLD');
 });

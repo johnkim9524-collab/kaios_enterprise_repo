@@ -336,9 +336,11 @@ function constrainedAutonomousLandingViolations(workflow, runner, expected, admi
     require(recoveryRunner.includes('inputs?.gate_run_id')
       && recoveryRunner.includes("inputs.gate_run_attempt==='1'")
       && recoveryRunner.includes('inputs.head_sha===env.GITHUB_SHA'), 'recovery-runner-dispatch-input-binding');
-    require(recoveryRunner.includes('recoveryNativeGet(`actions/runs/${inputs.gate_run_id}`)')
-      && recoveryRunner.includes('recoveryNativeGet(`actions/runs/${upstream.id}`)'), 'recovery-runner-live-gate-readback');
+    require(recoveryRunner.includes('recoveryNativeRunGet(`actions/runs/${inputs.gate_run_id}`)')
+      && recoveryRunner.includes('recoveryNativeRunGet(`actions/runs/${upstream.id}`)'), 'recovery-runner-bounded-live-gate-readback');
     const nativeTrigger = read(RECOVERY_NATIVE_TRIGGER);
+    require(nativeTrigger.includes('readWithBoundedGithubDeferrals')
+      && nativeTrigger.includes('export const recoveryNativeRunGet=createBoundedRecoveryRunGet()'), 'recovery-runner-shared-budget-resume');
     require(nativeTrigger.includes('actions/runs/${live.id}/attempts/1/jobs?per_page=100')
       && nativeTrigger.includes('actions/runs/${role.id}/attempts/1/jobs?per_page=100'), 'recovery-runner-exact-attempt-jobs-readback');
     require(admissionRunner.includes('env.GITHUB_WORKFLOW_SHA===env.GITHUB_SHA')

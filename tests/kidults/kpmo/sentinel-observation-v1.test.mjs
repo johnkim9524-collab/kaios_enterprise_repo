@@ -55,10 +55,14 @@ test('repository-wide fanout stays inside declared limits with existing mutation
  assert.equal(p.status,0,p.stderr);const report=JSON.parse(p.stdout);
  assert.ok(report.workflow_run_consumers<=26);
  assert.ok(report.execution_workflow_run_edges<=37);assert.ok(report.control_observer_edges<=20);
+ assert.equal(report.critical_source_cascade_depth,3);
+ assert.equal(report.workflow_run_static_graph_depth,8);
  const budget=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'));
  assert.equal(budget.budgets.workflow_run_consumers_max,26);
  assert.equal(budget.budgets.execution_workflow_run_edges_max,37);
  assert.equal(budget.budgets.control_observer_edges_max,20);
+ assert.equal(budget.budgets.workflow_run_chain_depth_max,3);
+ assert.equal(budget.budgets.workflow_run_static_graph_depth_max,8);
 });
 test('observer records RED/HOLD without changing the independent strict gate',()=>{
  const a=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');

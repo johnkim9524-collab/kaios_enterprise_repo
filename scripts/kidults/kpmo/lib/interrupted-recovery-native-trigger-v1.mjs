@@ -1,4 +1,5 @@
 import {runtimeGithubRead} from './runtime-github-read-v1.mjs';
+import {readWithBoundedGithubDeferrals} from './bounded-github-read-deferral-v1.mjs';
 import {createInvocationArchiveByteCache} from './invocation-archive-byte-cache-v1.mjs';
 import {assuranceSentinelObservationRoute} from './assurance-sentinel-observation-route-v1.mjs';
 import {assuranceClockObservationBoundary} from './assurance-clock-observation-boundary-v1.mjs';
@@ -20,6 +21,33 @@ const sentinelName='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel
 const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
 const check=(ok,code)=>{if(!ok)throw new Error('INTERRUPTED_TRIGGER_'+code);};
 export const recoveryNativeGet=route=>runtimeGithubRead(process.env.GITHUB_TOKEN||process.env.GH_TOKEN)(`https://api.github.com/repos/${repository}/${route}`);
+export function createBoundedRecoveryRunGet({env=process.env,token=env.GITHUB_TOKEN||env.GH_TOKEN,
+  readFactory=runtimeGithubRead,now=()=>Date.now(),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),maxRuntimeMs=18*60*1000,
+  persistCheckpoint=checkpoint=>{
+    const directory='out/github-read-resume-v1';fs.mkdirSync(directory,{recursive:true,mode:0o700});
+    fs.appendFileSync(`${directory}/checkpoints.jsonl`,JSON.stringify(checkpoint)+'\n',{mode:0o600});
+  }}={}){
+  const deadline=now()+maxRuntimeMs;
+  const expectedBinding={run_id:String(env.GITHUB_RUN_ID),run_attempt:Number(env.GITHUB_RUN_ATTEMPT),source_sha:env.GITHUB_SHA};
+  return async route=>{
+    let latestCheckpoint=null;
+    try{
+      const result=await readWithBoundedGithubDeferrals({route,expectedBinding,deadline,now,wait,
+        read:async()=>{
+          latestCheckpoint=null;
+          try{return await readFactory(token,{deadlineMs:Math.max(1,Math.min(900000,deadline-now())),resumeDeadline:deadline,persistCheckpoints:false})
+            (`https://api.github.com/repos/${repository}/${route}`);}
+          catch(error){latestCheckpoint=error?.read_resume_checkpoint||latestCheckpoint;throw error;}
+        }});
+      return result.value;
+    }catch(error){
+      latestCheckpoint=error?.read_resume_checkpoint||latestCheckpoint;
+      if(latestCheckpoint)persistCheckpoint(latestCheckpoint);
+      throw error;
+    }
+  };
+}
+export const recoveryNativeRunGet=createBoundedRecoveryRunGet();
 const nativeBytes=route=>execFileSync('gh',['api',`repos/${repository}/${route}`],{timeout:30000,maxBuffer:8*1024*1024,stdio:['ignore','pipe','pipe']});
 export async function verifyFailureAssuranceParent({run,eventAction='completed',sourceSha,get,readBytes,archiveReader=readArchive}){
   check(eventAction==='completed'&&run?.name===assuranceName&&run.path===assurancePath

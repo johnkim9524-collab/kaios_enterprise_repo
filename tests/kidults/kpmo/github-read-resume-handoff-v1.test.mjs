@@ -110,6 +110,16 @@ test('a future checkpoint outside the runner window creates a bound wake-up and 
   assert.equal(f.calls.some(value=>value===routeForCheckpoint(future)),false);
 });
 
+test('scheduled discovery only validates the checkpoint and enqueues one wake-up without consuming its GET',async()=>{
+  const f=fixture({now:()=>Date.parse('2026-10-12T10:01:00.000Z')});let scheduled=null;
+  const result=await consumeGithubReadResumeHandoff({event,readJson:f.readJson,readArchiveBytes:async()=>archiveBytes,
+    archiveReader:(bytes,digest)=>{assert.equal(digest,artifactDigest);return packetFor(checkpoint);},now:f.now,scheduleOnly:true,
+    scheduleResume:async request=>{scheduled=request;return {state:'RESUME_SCHEDULED',schedule_name:'kidults-read-resume-'+ 'f'.repeat(40)};}});
+  assert.equal(result.state,'RESUME_SCHEDULED');assert.equal(result.reason,'SWEEP_HANDOFF');
+  assert.ok(scheduled.resumeAt>Date.parse('2026-10-12T10:01:00.000Z'));
+  assert.equal(f.calls.some(value=>value===routeForCheckpoint(checkpoint)),false);
+});
+
 test('scheduled duplicate delivery revalidates original run and schedule binding before the resumed GET',async()=>{
   let current=Date.parse('2026-10-12T10:01:00.000Z');const f=fixture({now:()=>current});let reads=0;
   const digest=sha256(canonicalJson(checkpoint)).replace(/^sha256:/,'');

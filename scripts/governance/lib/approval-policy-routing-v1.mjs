@@ -22,7 +22,6 @@ export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   "scripts/kidults/kpmo/run-protected-lifecycle-operation-v1.sh",
   "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
   "scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs",
-  "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs",
@@ -34,10 +33,14 @@ export const EXPLICIT_EXECUTION_CONTROLS=Object.freeze([
   ...MUTATING_EXECUTION_LIBRARIES,
 ]);
 const STAGING_BOUNDED_READ_RESUME_CONTROLS=Object.freeze([
+  ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
   ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
   "infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs",
   "infrastructure/aws/staging/natural-clock-dispatcher-v1.json",
   "scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs",
+  "scripts/kidults/kpmo/run-scheduled-github-read-resume-sweep-v1.mjs",
+  "scripts/kidults/kpmo/lib/github-read-resume-sweep-v1.mjs",
+  "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs",
   "scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs",

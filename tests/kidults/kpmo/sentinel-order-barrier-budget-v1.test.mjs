@@ -28,14 +28,13 @@ test('undersized, unbounded and malformed timeout budgets fail closed', () => {
     assert.throws(() => sentinelOrderBarrierBudget({KPMO_SENTINEL_BARRIER_POLL_SECONDS:value}));
 });
 
-test('Sentinel run-name overrides match only the exact dispatch run ID', () => {
+test('Sentinel run-name accepts exact run IDs or the canonical name only for dispatch events', () => {
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252091', 39122252091, 'workflow_dispatch'), true);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39121040309', 39121040309, 'repository_dispatch'), true);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252090', 39122252091, 'workflow_dispatch'), false);
-  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), false);
+  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), true);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/39122252091', 39122252091, 'workflow_run'), false);
   assert.equal(sentinelRunNameMatches('KIDULTS_SENTINEL/0', 0, 'workflow_dispatch'), false);
-  assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_dispatch'), true);
   assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'repository_dispatch'), true);
   assert.equal(sentinelRunNameMatches('KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 39122252091, 'workflow_run'), false);
 });

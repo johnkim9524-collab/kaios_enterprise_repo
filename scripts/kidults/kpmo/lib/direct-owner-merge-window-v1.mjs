@@ -12,12 +12,28 @@ export function verifyDirectOwnerMergeWindow({mergedAt, openedAt, handoffWindowS
     if (!Number.isFinite(time) || new Date(time).toISOString() !== value.replace(/(?:\.(\d{1,3}))?Z$/, (_, fraction) => `.${(fraction || '').padEnd(3, '0')}Z`)) fail(code);
     return time;
   };
+  // Approval comments are owner-authored and commonly use their local UTC
+  // offset (for example +09:00). Validate that timestamp as an instant while
+  // keeping the merge/opening timestamps on the stricter UTC precision path.
+  const exactOffsetInstant = (value, code) => {
+    const match = typeof value === 'string'
+      ? /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?(Z|[+-](\d{2}):(\d{2}))$/.exec(value)
+      : null;
+    if (!match) fail(code);
+    if (match[4] !== undefined && (Number(match[4]) > 23 || Number(match[5]) > 59)) fail(code);
+    const local = `${match[1]}.${(match[2] || '').padEnd(3, '0')}Z`;
+    const localTime = Date.parse(local);
+    if (!Number.isFinite(localTime) || new Date(localTime).toISOString() !== local) fail(code);
+    const time = Date.parse(value);
+    if (!Number.isFinite(time)) fail(code);
+    return time;
+  };
   const lower = exactUtc(mergedAt, 'DIRECT_OWNER_HANDOFF_MERGED_AT_INVALID');
   // The controller creates this boundary locally with Date.toISOString().
   // A coarse opening timestamp cannot establish when authority began.
   if (typeof openedAt !== 'string' || !/\.\d{3}Z$/.test(openedAt)) fail('DIRECT_OWNER_HANDOFF_OPENED_AT_PRECISION_REQUIRED');
   const opened = exactUtc(openedAt, 'DIRECT_OWNER_HANDOFF_OPENED_AT_INVALID');
-  const expires = exactUtc(approvalExpiresAt, 'DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_INVALID');
+  const expires = exactOffsetInstant(approvalExpiresAt, 'DIRECT_OWNER_HANDOFF_APPROVAL_EXPIRY_INVALID');
   if (!Number.isInteger(handoffWindowSeconds) || handoffWindowSeconds < 60 || handoffWindowSeconds > 900) fail('DIRECT_OWNER_HANDOFF_WINDOW_INVALID');
   const digits = /\.(\d+)Z$/.exec(mergedAt)?.[1].length || 0;
   const resolution = 10 ** (3 - digits);

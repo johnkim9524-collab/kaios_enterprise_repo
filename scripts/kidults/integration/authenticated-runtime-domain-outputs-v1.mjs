@@ -19,7 +19,11 @@ export async function authenticateRuntimeDomainOutput({reference,domainId,contra
     ||['production','public','g5','provider_activation'].some(k=>contract[k]!=='HOLD'))fail('CONTRACT');
   if(!/^[a-f0-9]{40}$/.test(sourceSha||'')||!(now instanceof Date)||!Number.isFinite(now.getTime()))fail('CONTEXT');
   const registrations=contract.runtime_domain_sources.filter(row=>row.domain_id===domainId);
-  if(registrations.length===0)return {domain_id:domainId,state:'HOLD',blocker:'NATIVE_DOMAIN_PRODUCER_NOT_REGISTERED'};
+  if(registrations.length===0){
+    if(contract.autonomous_operating_readiness?.future_expansion_domains?.includes(domainId))
+      return {domain_id:domainId,state:'FUTURE_EXPANSION',blocking:false,next_action:'ADD_AFTER_PROVIDER_CONTRACT'};
+    return {domain_id:domainId,state:'HOLD',blocker:'NATIVE_DOMAIN_PRODUCER_NOT_REGISTERED'};
+  }
   if(registrations.length!==1)fail('REGISTRATION_CARDINALITY');
   if(!reference)return {domain_id:domainId,state:'HOLD',blocker:'NATIVE_DOMAIN_OUTPUT_REFERENCE_MISSING'};
   if(!positive(reference.run_id)||!positive(reference.artifact_id))fail('REFERENCE');
@@ -88,6 +92,11 @@ export async function authenticateRuntimeDomainOutput({reference,domainId,contra
 export async function reconcileRuntimeDomainOutputs({references={},definition,connection,contract,sourceSha,token,
   read=authenticatedGithubRead,download=downloadArtifact,now=new Date()}){
   orderedRuntimeDomains(definition);
+  const autonomy=contract?.autonomous_operating_readiness;
+  const required=new Set(autonomy?.mandatory_runtime_domains||[]),future=new Set(autonomy?.future_expansion_domains||[]);
+  if(autonomy?.scope!=='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'||required.size!==1
+    ||!required.has('SECURITY_SUPPLY_CHAIN')||future.size!==13||[...required,...future].length!==14
+    ||definition.domains.some(row=>!required.has(row.id)&&!future.has(row.id)))fail('AUTONOMY_SCOPE');
   if(!references||Array.isArray(references)||typeof references!=='object'
     ||Object.keys(references).some(id=>!definition.domains.some(row=>row.id===id)))fail('REFERENCE_SET');
   const outputs={},receiptDigests={},results=[],pending=new Map(definition.domains.map(row=>[row.id,
@@ -98,6 +107,11 @@ export async function reconcileRuntimeDomainOutputs({references={},definition,co
     if(!ready.length)fail('DEPENDENCY_CYCLE');
     for(const row of ready){
       pending.delete(row.id);seen.add(row.id);
+      if(future.has(row.id)){
+        results.push({domain_id:row.id,state:'FUTURE_EXPANSION',blocking:false,
+          next_action:'ADD_AFTER_PROVIDER_CONTRACT',dispatch_authorized:false});
+        continue;
+      }
       const missing=row.requires.filter(id=>!receiptDigests[id]);
       let result;
       if(row.id!=='SECURITY_SUPPLY_CHAIN'&&connection?.state!=='INPUT_TRANSPORT_AND_CONTENT_VERIFIED'){
@@ -115,9 +129,18 @@ export async function reconcileRuntimeDomainOutputs({references={},definition,co
       }else results.push(result);
     }
   }
+  const scopedReady=results.some(row=>row.domain_id==='SECURITY_SUPPLY_CHAIN'
+    &&row.state==='AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED');
+  const wholePlatformReady=results.every(row=>row.state==='AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED');
   return {id:'kidults-runtime-domain-output-connections-v1',source_sha:sourceSha,
-    state:results.every(row=>row.state==='AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED')?'OUTPUT_CONNECTIONS_VERIFIED':'VERIFIED_INCOMPLETE',
-    authenticated_output_count:Object.keys(receiptDigests).length,required_output_count:14,
+    state:wholePlatformReady?'OUTPUT_CONNECTIONS_VERIFIED':scopedReady?'FUTURE_EXPANSION':'VERIFIED_INCOMPLETE',
+    autonomous_scope:{state:scopedReady?'VERIFIED_PASS':'VERIFIED_HOLD',required_domain_ids:[...required],
+      authenticated_output_count:results.filter(row=>required.has(row.domain_id)
+        &&row.state==='AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED').length,required_output_count:required.size,
+      future_expansion_domain_ids:[...future].sort(),future_expansion_is_blocking:false},
+    authenticated_output_count:Object.keys(receiptDigests).length,required_output_count:required.size,
+    whole_platform_required_output_count:14,whole_platform_state:wholePlatformReady?'VERIFIED_PASS'
+      :scopedReady?'FUTURE_EXPANSION':'VERIFIED_INCOMPLETE',
     domains:results,native_domain_receipt_emitted:false,whole_platform_runtime_proven:false,
     dispatch_authorized:false,external_writes:0,production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
 }

@@ -1,8 +1,10 @@
 name: KPMO Authorization Read-Resume Observer V1
 run-name: >-
-  ${{ github.event_name == 'workflow_run' && format('KIDULTS_AUTH_READ_RESUME/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) || format('KIDULTS_AUTH_READ_RESUME/manual/{0}', github.event.inputs.source_run_id) }}
+  ${{ github.event_name == 'workflow_run' && format('KIDULTS_AUTH_READ_RESUME/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) || (github.event_name == 'schedule' && format('KIDULTS_AUTH_READ_RESUME/sweep/{0}', github.run_id)) || format('KIDULTS_AUTH_READ_RESUME/manual/{0}', github.event.inputs.source_run_id) }}
 
 on:
+  schedule:
+    - cron: '*/15 * * * *'
   workflow_run:
     workflows:
       - 'KIDULTS Autonomous Track Authorization V1'
@@ -33,7 +35,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: kpmo-authorization-read-resume-${{ github.event.workflow_run.id || github.event.inputs.source_run_id }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt }}
+  group: ${{ github.event_name == 'schedule' && 'kpmo-authorization-read-resume-sweep' || format('kpmo-authorization-read-resume-{0}-{1}', github.event.workflow_run.id || github.event.inputs.source_run_id || github.run_id, github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt || 'schedule') }}
   cancel-in-progress: false
 
 jobs:
@@ -55,6 +57,10 @@ jobs:
         github.event.inputs.source_run_id != '' &&
         github.event.inputs.source_run_attempt != '' &&
         github.event.inputs.source_sha != ''
+      ) || (
+        github.event_name == 'schedule' &&
+        github.repository == 'johnkim9524-collab/kaios_enterprise_repo' &&
+        github.ref == 'refs/heads/main'
       )
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -90,7 +96,7 @@ jobs:
                 (.inputs.source_run_attempt | test("^([1-9]|[1-9][0-9]|100)$")) and
                 (.inputs.source_sha | test("^[0-9a-f]{40}$"))
               ' "$GITHUB_EVENT_PATH" >/dev/null
-          else
+          elif [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
             jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
               --arg main_sha "$EXPECTED_MAIN_SHA" '
                 .action == "completed" and
@@ -101,6 +107,12 @@ jobs:
                 .workflow_run.head_sha == $main_sha and
                 .workflow_run.conclusion != "success"
               ' "$GITHUB_EVENT_PATH" >/dev/null
+          else
+            test "$GITHUB_REF" = "refs/heads/main"
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" '
+              .repository.full_name == $repo and
+              (.repository.id | tostring) == $repo_id
+            ' "$GITHUB_EVENT_PATH" >/dev/null
           fi
       - name: Consume exact deferred read through the shared cross-runner budget
         env:
@@ -130,12 +142,16 @@ jobs:
           aws sts get-caller-identity --output json | jq -e '.Account == "528314240275" and (.Arn | contains("assumed-role/kidults-github-read-resume-staging-role/"))' >/dev/null
           test -n "$KIDULTS_AUTONOMOUS_RECEIPT_BUCKET"
           test -n "$KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN"
-          node scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs
+          if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
+            node scripts/kidults/kpmo/run-scheduled-github-read-resume-sweep-v1.mjs
+          else
+            node scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs
+          fi
       - name: Preserve bounded read-only handoff receipt
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id || github.event.inputs.source_run_id }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt }}-${{ github.run_id }}
+          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id || github.event.inputs.source_run_id || 'sweep' }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt || 'scheduled' }}-${{ github.run_id }}
           path: out/github-read-resume-handoff-v1/receipt.json
           if-no-files-found: warn
           retention-days: 90

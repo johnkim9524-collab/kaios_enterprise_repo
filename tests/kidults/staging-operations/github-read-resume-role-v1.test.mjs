@@ -92,6 +92,23 @@ test('manual checkpoint selection is owner-only, exact-main bound, and remains a
   assert.match(runner,/actual_authority_granted:false,read_only:true/);
 });
 
+test('scheduled recovery sweep is exact-main bound and uses the same bounded read-only handoff',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
+  const runner=fs.readFileSync('scripts/kidults/kpmo/run-scheduled-github-read-resume-sweep-v1.mjs','utf8');
+  const routes=fs.readFileSync('scripts/kidults/kpmo/lib/github-read-resume-sweep-v1.mjs','utf8');
+  assert.match(workflow,/^  schedule:\n    - cron: '\*\/15 \* \* \* \*'/m);
+  assert.match(workflow,/github\.event_name == 'schedule'[\s\S]*?github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow,/run-scheduled-github-read-resume-sweep-v1\.mjs/);
+  assert.match(runner,/GITHUB_EVENT_NAME==='schedule'/);
+  assert.match(runner,/env\.GITHUB_REF==='refs\/heads\/main'/);
+  assert.match(runner,/consumerSha===env\.GITHUB_SHA/);
+  assert.match(runner,/consumeGithubReadResumeHandoff/);
+  assert.match(runner,/scheduleOnly:true/);
+  assert.match(runner,/producer_rerun_dispatched:false/);
+  assert.match(runner,/windowMs:sweepWindowMs,limit:3/);
+  assert.doesNotMatch(runner,/gh\s+workflow\s+run|repository_dispatch.*create/);
+});
+
 test('repository_dispatch cannot select the code executed by the OIDC trusted workflow',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
   const job=workflow.slice(workflow.indexOf('  read-resume-checkpoint:\n'));

@@ -8,6 +8,8 @@ const assurancePath = '.github/workflows/kidults-platform-continuous-assurance-v
 const canonicalIdentityPath = 'coordination/kidults/kpmo/continuous-assurance-canonical-identity-v1.json';
 const contract = JSON.parse(fs.readFileSync(path.join(root, contractPath), 'utf8'));
 const canonicalIdentity = JSON.parse(fs.readFileSync(path.join(root, canonicalIdentityPath), 'utf8'));
+const naturalClockContractPath = 'coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json';
+const naturalClockContract = JSON.parse(fs.readFileSync(path.join(root, naturalClockContractPath), 'utf8'));
 
 const inlineProducerProbe = parseWorkflow('.github/workflows/inline-producer-probe.yml', `name: Inline Producer Probe\non:\n  workflow_run:\n    workflows: ['Producer A', 'Producer B']\n    branches: [main]\n    types: [completed]\npermissions: {}\n`);
 if (JSON.stringify(inlineProducerProbe.producers) !== JSON.stringify(['Producer A', 'Producer B'])) {
@@ -50,6 +52,13 @@ function readGraph(overrides = new Map()) {
 function graphMetrics(graph, controlObserverEdges) {
   const observerEdgeKeys = new Set(controlObserverEdges.map(({ producer, consumer }) => `${producer}\u0000${consumer}`));
   const executionEdges = graph.edges.filter(({ producer, consumer }) => !observerEdgeKeys.has(`${producer}\u0000${consumer}`));
+  // Observer edges are excluded from execution fan-out budgets, but they are
+  // real Actions triggers and must participate in runtime cycle/depth analysis.
+  const runtimeAdjacency = new Map();
+  for (const { producer, consumer } of graph.edges) {
+    if (!runtimeAdjacency.has(producer)) runtimeAdjacency.set(producer, []);
+    runtimeAdjacency.get(producer).push(consumer);
+  }
   const adjacency = new Map();
   for (const { producer, consumer } of executionEdges) {
     if (!adjacency.has(producer)) adjacency.set(producer, []);
@@ -65,7 +74,7 @@ function graphMetrics(graph, controlObserverEdges) {
     }
     if (visited.has(node)) return;
     visiting.add(node);
-    for (const next of adjacency.get(node) || []) visit(next);
+    for (const next of runtimeAdjacency.get(node) || []) visit(next);
     visiting.delete(node);
     visited.add(node);
   }
@@ -76,7 +85,7 @@ function graphMetrics(graph, controlObserverEdges) {
     if (depthMemo.has(node)) return depthMemo.get(node);
     if (active.has(node)) return Number.POSITIVE_INFINITY;
     const nextActive = new Set(active).add(node);
-    const children = adjacency.get(node) || [];
+    const children = runtimeAdjacency.get(node) || [];
     const value = children.length ? 1 + Math.max(...children.map((child) => depth(child, nextActive))) : 0;
     depthMemo.set(node, value);
     return value;
@@ -92,7 +101,9 @@ function graphMetrics(graph, controlObserverEdges) {
     direct_consumers_per_producer_max: directMax,
     direct_consumer_max_producers: directCounts.filter((item) => item.count === directMax),
     direct_consumer_counts_over_one: directCounts.filter((item) => item.count > 1),
-    workflow_run_chain_depth: Math.max(...[...graph.byName.keys()].map((name) => depth(name))),
+    // This is the raw structural DAG depth. GitHub suppresses workflow_run
+    // cascades beyond three levels, so it is not an executable chain length.
+    workflow_run_static_graph_depth: Math.max(...[...graph.byName.keys()].map((name) => depth(name))),
     cycles,
   };
 }
@@ -169,6 +180,41 @@ function validate(overrides = new Map()) {
   }
 
   const metrics = graphMetrics(graph, controlObserverEdges);
+  const criticalChain = contract.critical_workflow_run_chain || [];
+  metrics.critical_source_cascade_depth = Math.max(0, criticalChain.length - 1);
+  for (let index = 1; index < criticalChain.length; index += 1) {
+    if (!graph.edges.some(({ producer, consumer }) => producer === criticalChain[index - 1] && consumer === criticalChain[index])) {
+      findings.push(`critical workflow_run chain edge missing: ${criticalChain[index - 1]} -> ${criticalChain[index]}`);
+    }
+  }
+  const limitRecovery = contract.workflow_run_chain_limit_recovery;
+  let recoveryRootsValid = Array.isArray(limitRecovery?.independent_recovery_roots)
+    && limitRecovery.independent_recovery_roots.length === 3;
+  for (const recoveryRoot of limitRecovery?.independent_recovery_roots || []) {
+    const workflow = graph.byName.get(recoveryRoot.workflow);
+    if (!workflow || workflow.filePath !== recoveryRoot.path) {
+      recoveryRootsValid = false;
+      continue;
+    }
+    if (recoveryRoot.independent_event) {
+      const eventMarker = new RegExp(`types: \\[${recoveryRoot.independent_event}(?:,|\\])`);
+      if (!eventMarker.test(workflow.text) || recoveryRoot.contract !== naturalClockContractPath
+        || naturalClockContract.external_dispatch_events_by_slot?.[recoveryRoot.contract_slot] !== recoveryRoot.independent_event) {
+        recoveryRootsValid = false;
+      }
+    } else if (recoveryRoot.independent_schedule) {
+      const recoveryRunnerPath = path.join(root, recoveryRoot.recovery_runner || '');
+      const recoveryRunner = recoveryRoot.recovery_runner && fs.existsSync(recoveryRunnerPath)
+        ? fs.readFileSync(recoveryRunnerPath, 'utf8') : '';
+      if (!workflow.text.includes(`- cron: '${recoveryRoot.independent_schedule}'`) || !workflow.text.includes(recoveryRoot.recovery_runner)
+        || !recoveryRunner.includes('scheduleOnly:true')) recoveryRootsValid = false;
+    } else {
+      recoveryRootsValid = false;
+    }
+  }
+  if (limitRecovery?.limit !== budgets.workflow_run_chain_depth_max || limitRecovery?.limit !== 3 || !recoveryRootsValid) {
+    findings.push('workflow_run chain-limit recovery clock is missing or misbound');
+  }
 
   for (const item of contract.static_validators) {
     const workflow = graph.byName.get(item.workflow);
@@ -206,7 +252,8 @@ function validate(overrides = new Map()) {
       findings.push(`direct consumer fan-out budget exceeded: ${item.producer}`);
     }
   }
-  if (metrics.workflow_run_chain_depth > budgets.workflow_run_chain_depth_max) findings.push('workflow_run chain depth budget exceeded');
+  if (metrics.critical_source_cascade_depth > budgets.workflow_run_chain_depth_max) findings.push('critical source cascade exceeds GitHub workflow_run chain limit');
+  if (metrics.workflow_run_static_graph_depth > budgets.workflow_run_static_graph_depth_max) findings.push('workflow_run static graph depth budget exceeded');
   if (metrics.cycles > budgets.cycles_max) findings.push('workflow_run cycle budget exceeded');
 
   for (const key of ['autonomous_effect', 'global_effect', 'irreplaceable_value_effect', 'transparency_effect']) {
@@ -230,7 +277,45 @@ for (const item of contract.static_validators) {
   if (mutated.findings.length === 0) fail(`${item.workflow}: redundant workflow_run mutation escaped`);
 }
 
+const sentinelPath = '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
+const sentinelOriginal = fs.readFileSync(path.join(root, sentinelPath), 'utf8');
+const feedbackCycleMutation = sentinelOriginal.replace(
+  "      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'",
+  "      - 'KIDULTS ASI Requirement-to-Adapter Coverage v1'\n      - 'KIDULTS Platform Continuous Assurance V1'",
+);
+if (feedbackCycleMutation === sentinelOriginal) fail('feedback-cycle mutation fixture missing');
+const feedbackCycleResult = validate(new Map([[sentinelPath, feedbackCycleMutation]]));
+if (!feedbackCycleResult.findings.includes('workflow_run cycle budget exceeded')) {
+  fail(`observer feedback-cycle mutation escaped: ${JSON.stringify(feedbackCycleResult.metrics)}`);
+}
+const lostNaturalClockMutation = sentinelOriginal.replace(
+  'types: [kidults.natural.clock.sentinel.v1, kidults.github.read.resume.v1]',
+  'types: [kidults.github.read.resume.v1]',
+);
+if (lostNaturalClockMutation === sentinelOriginal) fail('chain-limit recovery clock mutation fixture missing');
+const lostNaturalClockResult = validate(new Map([[sentinelPath, lostNaturalClockMutation]]));
+if (!lostNaturalClockResult.findings.includes('workflow_run chain-limit recovery clock is missing or misbound')) {
+  fail('suppressed Coverage-to-Sentinel observer recovery mutation escaped');
+}
+
 const assuranceOriginal = fs.readFileSync(path.join(root, assurancePath), 'utf8');
+const lostAssuranceClockMutation = assuranceOriginal.replace(
+  'types: [kidults.natural.clock.assurance.v1]',
+  'types: [kidults.natural.clock.unknown.v1]',
+);
+if (lostAssuranceClockMutation === assuranceOriginal
+  || !validate(new Map([[assurancePath, lostAssuranceClockMutation]])).findings
+    .includes('workflow_run chain-limit recovery clock is missing or misbound')) {
+  fail('suppressed Coverage-to-Assurance recovery mutation escaped');
+}
+const resumeObserverPath = '.github/workflows/kpmo-authorization-read-resume-observer-v1.yml';
+const resumeObserverOriginal = fs.readFileSync(path.join(root, resumeObserverPath), 'utf8');
+const lostSweepMutation = resumeObserverOriginal.replace("- cron: '*/15 * * * *'", "- cron: '*/20 * * * *'");
+if (lostSweepMutation === resumeObserverOriginal
+  || !validate(new Map([[resumeObserverPath, lostSweepMutation]])).findings
+    .includes('workflow_run chain-limit recovery clock is missing or misbound')) {
+  fail('suppressed role observer sweep recovery mutation escaped');
+}
 const writePermissionMutation = assuranceOriginal.replace('  actions: read', '  actions: write');
 if (validate(new Map([[assurancePath, writePermissionMutation]])).findings.length === 0) {
   fail('control observer write-permission mutation escaped');

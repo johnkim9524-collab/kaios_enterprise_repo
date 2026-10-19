@@ -36,11 +36,20 @@ test('fractional precision is bounded by its exposed decimal places', () => {
   const exact = verifyDirectOwnerMergeWindow({...good, mergedAt: '2026-10-08T22:00:00.950Z'});
   assert.equal(exact.resolution_ms, 1);
 });
+test('approval expiry accepts a valid explicit timezone offset as the same instant', () => {
+  const utc = verifyDirectOwnerMergeWindow(good);
+  const offset = verifyDirectOwnerMergeWindow({...good, approvalExpiresAt: '2026-10-09T07:10:00.000+09:00'});
+  assert.equal(offset.approval_expires_at_ms, utc.approval_expires_at_ms);
+});
 test('invalid timestamps, rollover dates and oversized windows fail closed', () => {
   for (const field of ['mergedAt', 'openedAt', 'approvalExpiresAt']) {
     for (const value of [undefined, 'not-a-time', '2026-02-30T22:00:00Z', '2026-10-08T22:00:00', '2026-10-08T24:00:00Z']) {
       assert.throws(() => verifyDirectOwnerMergeWindow({...good, [field]: value}));
     }
+  }
+  for (const approvalExpiresAt of ['2026-10-08T22:10:00+24:00', '2026-02-30T22:10:00+09:00',
+    '2026-10-08T22:10:00+09', '2026-10-08T22:10:00+09:60']) {
+    assert.throws(() => verifyDirectOwnerMergeWindow({...good, approvalExpiresAt}), /APPROVAL_EXPIRY_INVALID/);
   }
   assert.throws(() => verifyDirectOwnerMergeWindow({...good, handoffWindowSeconds: 901}), /WINDOW_INVALID/);
 });

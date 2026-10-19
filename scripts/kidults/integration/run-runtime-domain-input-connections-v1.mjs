@@ -56,7 +56,10 @@ const required={
 const domains=definition.domains.filter(d=>d.id!=='SECURITY_SUPPLY_CHAIN');
 if(domains.length!==13||new Set(domains.map(d=>d.id)).size!==13
   ||Object.keys(required).length!==13||domains.some(d=>!required[d.id]))throw new Error('RUNTIME_INPUT_CONNECTION_DOMAIN_SET');
-const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSha,state:'VERIFIED_INCOMPLETE',
+const scopedReady=nativeOutputs.autonomous_scope?.state==='VERIFIED_PASS';
+const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSha,
+  state:scopedReady?'FUTURE_EXPANSION':'VERIFIED_INCOMPLETE',
+  autonomous_scope:nativeOutputs.autonomous_scope,whole_platform_state:nativeOutputs.whole_platform_state,
   workload_execution:workloads,
   native_output_connections:nativeOutputs,
   evidence_scope:'INPUT_CONNECTION_OBSERVATION_NOT_RUNTIME_DOMAIN_CERTIFICATION',
@@ -65,14 +68,15 @@ const body={id:'kidults-runtime-domain-input-connections-v1',source_sha:sourceSh
     producer_id:connection.producer_id,run_id:connection.run_id,run_attempt:connection.run_attempt,
     artifact_id:connection.artifact_id,artifact_digest:connection.artifact_digest,binding_digest:connection.binding_digest}:null,
   domain_connections:domains.map(d=>({domain_id:d.id,owner:d.owner,requires:d.requires,
-    required_evidence:required[d.id],state:'HOLD',native_domain_proven:false,
+    required_evidence:required[d.id],state:'FUTURE_EXPANSION',blocking:false,
+    next_action:'ADD_AFTER_PROVIDER_CONTRACT',native_domain_proven:false,
     input_transport_connected:connection.state==='INPUT_TRANSPORT_AND_CONTENT_VERIFIED'
       &&['VALUE_TRACEABILITY','SOURCE_RIGHTS','ENTITY_RESOLUTION','MARKET_EVIDENCE','ASI_EXECUTION','PRIVACY_RETENTION'].includes(d.id)})),
   reference_discovery:discovery,native_domain_receipt_emitted:false,whole_platform_runtime_proven:false,
   legal_admission_independently_verified:false,immutable_pair_created:false,remote_workload_verified:false,
   production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
   autonomous_effect:'Bounded native input reconciliation precedes business processing; absent authority remains HOLD.',
-  global_effect:'All 13 outstanding domains retain explicit source-neutral input requirements.',
+  global_effect:'All 13 future-expansion domains retain explicit source-neutral input requirements.',
   irreplaceable_value_effect:'Input and output provenance remains bound to platform-owned processing.',
   transparency_effect:'Authenticated transport, legal admission, storage and actual runtime remain distinct.'};
 const result={...body,receipt_digest:sha256(canonicalJson(body))};

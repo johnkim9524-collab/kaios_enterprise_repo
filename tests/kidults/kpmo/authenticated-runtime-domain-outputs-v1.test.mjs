@@ -9,6 +9,7 @@ import {authenticateRuntimeDomainOutput,reconcileRuntimeDomainOutputs} from '../
 const repo='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40),h='sha256:'+'b'.repeat(64);
 const now=new Date('2026-10-09T00:34:00Z'),rawHash=bytes=>'sha256:'+createHash('sha256').update(bytes).digest('hex');
 const holds={production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
+const autonomy=JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/kpmo/whole-platform-operating-proof-v1.json',import.meta.url))).autonomous_operating_readiness;
 const seal=(body,key)=>({...body,[key]:digest(body)});
 function fixture(domainId='VALUE_TRACEABILITY'){
  const workflow='kidults-fixture-domain.yml',prefix='kidults-fixture-domain',runId=900;
@@ -25,6 +26,7 @@ function fixture(domainId='VALUE_TRACEABILITY'){
  members['runtime-domain-receipt.json']=JSON.stringify(seal(receipt,'receipt_digest'));
  return {domainId,sourceSha:sha,inputDigest:h,sourceIds:['fixture-source'],now,members,
   contract:{id:'kidults-whole-platform-operating-proof-v1',repository:repo,maximum_evidence_age_seconds:108000,...holds,
+   autonomous_operating_readiness:autonomy,
    runtime_domain_sources:[{domain_id:domainId,workflow,artifact_prefix:prefix}]},
   reference:{run_id:runId,artifact_id:123},
   run:{id:runId,path:'.github/workflows/'+workflow,repository:{full_name:repo},head_sha:sha,head_branch:'main',
@@ -67,9 +69,12 @@ test('native output fixture exercises transport and content boundaries without e
 test('security fixture authenticates every primary byte digest',async()=>{
  assert.equal((await authenticateRuntimeDomainOutput(args(fixture('SECURITY_SUPPLY_CHAIN')))).state,'AUTHENTICATED_NATIVE_OUTPUT_CONTENT_VERIFIED');
 });
-test('unregistered, missing reference and missing read token hold without network access',async()=>{
+test('future unregistered domain is expansion; required missing reference and token hold without network access',async()=>{
  const f=fixture(),read=async()=>{throw new Error('must not read');};
- assert.equal((await authenticateRuntimeDomainOutput({...f,contract:{...f.contract,runtime_domain_sources:[]},read})).blocker,'NATIVE_DOMAIN_PRODUCER_NOT_REGISTERED');
+ const future=await authenticateRuntimeDomainOutput({...f,contract:{...f.contract,runtime_domain_sources:[]},read});
+ assert.equal(future.state,'FUTURE_EXPANSION');assert.equal(future.blocking,false);
+ const required=fixture('SECURITY_SUPPLY_CHAIN');
+ assert.equal((await authenticateRuntimeDomainOutput({...required,contract:{...required.contract,runtime_domain_sources:[]},read})).blocker,'NATIVE_DOMAIN_PRODUCER_NOT_REGISTERED');
  assert.equal((await authenticateRuntimeDomainOutput({...f,reference:null,read})).blocker,'NATIVE_DOMAIN_OUTPUT_REFERENCE_MISSING');
  assert.equal((await authenticateRuntimeDomainOutput({...f,read})).blocker,'NATIVE_ARTIFACT_READ_AUTHORITY_MISSING');
 });
@@ -123,13 +128,15 @@ for(const kind of ['MAIN_CHANGED','RUN_CHANGED','ARTIFACT_CHANGED'])test(`native
   return r;
  };await assert.rejects(authenticateRuntimeDomainOutput(a),new RegExp(kind));
 });
-test('reconciliation preserves fourteen HOLDs without input, certificate or network execution',async()=>{
+test('reconciliation keeps the required security receipt on HOLD and classifies thirteen as future expansion',async()=>{
  const definition=JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json',import.meta.url)));
  const f=fixture('SECURITY_SUPPLY_CHAIN');
  const result=await reconcileRuntimeDomainOutputs({...f,definition,connection:{state:'HOLD'},read:async()=>{throw new Error('must not read');}});
  assert.equal(result.domains.length,14);assert.equal(result.authenticated_output_count,0);
  assert.equal(result.whole_platform_runtime_proven,false);assert.equal(result.native_domain_receipt_emitted,false);
- for(const row of result.domains)assert.equal(row.state,'HOLD');
+ assert.equal(result.autonomous_scope.state,'VERIFIED_HOLD');assert.equal(result.autonomous_scope.required_output_count,1);
+ assert.equal(result.domains.filter(row=>row.state==='FUTURE_EXPANSION').length,13);
+ assert.equal(result.domains.find(row=>row.domain_id==='SECURITY_SUPPLY_CHAIN').state,'HOLD');
 });
 test('reconciliation rejects invented domain and cyclic definitions',async()=>{
  const definition=JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json',import.meta.url)));
@@ -142,8 +149,9 @@ test('reconciled native security fixture strips private receipt and primary bodi
  const definition=JSON.parse(fs.readFileSync(new URL('../../../coordination/kidults/kpmo/runtime-domain-evidence-demand-v1.json',import.meta.url)));
  const f=fixture('SECURITY_SUPPLY_CHAIN');
  const result=await reconcileRuntimeDomainOutputs({...args(f),references:{SECURITY_SUPPLY_CHAIN:f.reference},definition,connection:{state:'HOLD'}});
- assert.equal(result.authenticated_output_count,1);assert.equal(result.state,'VERIFIED_INCOMPLETE');
- assert.equal(result.domains.filter(r=>r.state==='HOLD').length,13);
+ assert.equal(result.authenticated_output_count,1);assert.equal(result.state,'FUTURE_EXPANSION');
+ assert.equal(result.autonomous_scope.state,'VERIFIED_PASS');assert.equal(result.whole_platform_state,'FUTURE_EXPANSION');
+ assert.equal(result.domains.filter(r=>r.state==='FUTURE_EXPANSION').length,13);
  const security=result.domains.find(r=>r.domain_id==='SECURITY_SUPPLY_CHAIN');
  assert.equal(Object.hasOwn(security,'receipt'),false);assert.equal(Object.hasOwn(security,'output'),false);
  assert.equal(JSON.stringify(result).includes('primary_evidence'),false);
@@ -153,6 +161,5 @@ test('runtime reliability waits for authenticated immutable business pair even w
  const f=fixture('SECURITY_SUPPLY_CHAIN');
  const result=await reconcileRuntimeDomainOutputs({...f,definition,connection:{state:'INPUT_TRANSPORT_AND_CONTENT_VERIFIED'},read:async()=>{throw new Error('must not read');}});
  const reliability=result.domains.find(r=>r.domain_id==='RUNTIME_RELIABILITY');
- assert.equal(reliability.blocker,'AUTHENTICATED_NATIVE_DEPENDENCY_MISSING');
- assert.deepEqual(reliability.unmet_dependencies,['IMMUTABLE_CANDIDATE']);
+ assert.equal(reliability.state,'FUTURE_EXPANSION');assert.equal(reliability.blocking,false);
 });

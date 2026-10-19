@@ -77,9 +77,26 @@
     "mandatory_runtime_domains": [
       "SECURITY_SUPPLY_CHAIN"
     ],
+    "future_expansion_domains": [
+      "VALUE_TRACEABILITY",
+      "SOURCE_RIGHTS",
+      "ENTITY_RESOLUTION",
+      "MARKET_EVIDENCE",
+      "ASI_EXECUTION",
+      "IMMUTABLE_CANDIDATE",
+      "TRACK_B_VALIDATION",
+      "PROJECTION_TRUTH",
+      "PORTAL_TRANSPARENCY_ACCESSIBILITY",
+      "EOS_FOUNDER_WORKFLOW",
+      "RUNTIME_RELIABILITY",
+      "PRIVACY_RETENTION",
+      "INTEGRATION_GATE"
+    ],
     "connected_registered_domains_required": true,
     "unregistered_domains_block_autonomy": false,
     "unregistered_domains_are_pass": false,
+    "unregistered_domains_are_future_expansion": true,
+    "future_expansion_scope": "WHOLE_PLATFORM_ONLY",
     "required_operating_checks": [
       "CORE_FOUR_CONTENT",
       "DISTINCT_NATURAL_GENERATIONS",
