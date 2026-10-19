@@ -52,6 +52,40 @@ export function validateFailureRecoverySentinelBinding({audit,parent,run,sentine
       &&upstream.source_receipt_digest===health.receipt_digest,'RECOVERY_FAILURE_CAUSAL_SENTINEL');
   }
 }
+const TERMINAL_NULL_REASON='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE';
+const validTerminalNullRefs=refs=>Array.isArray(refs)&&refs.length===3
+  &&/^[1-9][0-9]{0,15}$/.test(String(refs[0]))&&Number.isSafeInteger(Number(refs[0]))
+  &&Number.isSafeInteger(refs[1])&&refs[1]>0&&/^sha256:[a-f0-9]{64}$/.test(refs[2]||'');
+export function validateFailureOperatingProofBinding({operatingProof,parent,request,originalArchive}){
+  const {receipt_digest:proofDigest,...proofBody}=operatingProof||{};
+  const failedOperating=operatingProof?.operating_checks?.filter(c=>c.state==='VERIFIED_FAIL')||[];
+  const terminalCheck=failedOperating[0];
+  const base=operatingProof?.id==='kidults-whole-platform-operating-proof-v1'
+    &&operatingProof.repository===I.repository&&operatingProof.source_sha===parent?.source_sha
+    &&operatingProof.state==='VERIFIED_FAIL'&&operatingProof.whole_platform_runtime_proven===false
+    &&proofDigest===sha256(canonicalJson(proofBody))&&failedOperating.length===1
+    &&terminalCheck?.id===parent?.terminal_check_id
+    &&parent?.terminal_check_reason===TERMINAL_NULL_REASON
+    &&validTerminalNullRefs(parent?.terminal_check_evidence_refs)
+    &&String(parent.terminal_check_evidence_refs[0])===String(request?.original_run_id)
+    &&parent.terminal_check_evidence_refs[1]===originalArchive?.artifact_id
+    &&parent.terminal_check_evidence_refs[2]===originalArchive?.archive_digest;
+  const direct=terminalCheck?.reason===TERMINAL_NULL_REASON
+    &&canonicalJson(terminalCheck.evidence_refs)===canonicalJson(parent?.terminal_check_evidence_refs);
+  const observation=operatingProof?.original_terminal_null_observation;
+  const refs=observation?.evidence_refs;
+  const protectedRow=(operatingProof?.protected_evidence||[]).some(row=>
+    row.workflow_path==='.github/workflows/kidults-autonomous-track-authorization-v1.yml'
+      &&row.run_attempt===1&&/^[a-f0-9]{40}$/.test(row.source_sha||'')
+      &&String(row.run_id)===String(refs?.[0])&&row.artifact_id===refs?.[1]&&row.artifact_digest===refs?.[2]);
+  const preserved=terminalCheck?.reason==='WHOLE_RUNTIME_RECOVERY_HISTORY_CARDINALITY'
+    &&(!terminalCheck.evidence_refs||terminalCheck.evidence_refs.length===0)
+    &&observation?.state==='VERIFIED_FAIL'&&observation.reason===TERMINAL_NULL_REASON
+    &&observation.actual_authority_granted===false&&observation.retry_without_reconciliation===false
+    &&validTerminalNullRefs(refs)&&canonicalJson(refs)===canonicalJson(parent?.terminal_check_evidence_refs)
+    &&protectedRow;
+  assert(base&&(direct||preserved),'RECOVERY_FAILURE_TERMINAL_NULL_ONLY');
+}
 const transport=(route,binary=false)=>{
   try{
     const result=execFileSync('gh',['api','-H','Accept: application/vnd.github+json',`/repos/${I.repository}/${route}`],
@@ -158,19 +192,7 @@ function createExactMainEvidence({policy,readJson=route=>transport(route),readBy
     assert(audit.receipt_digest===parent.audit_receipt_digest&&audit.states?.internal_control_state==='VERIFIED_PASS'
       &&audit.states?.promotion_eligible===false&&audit.execution?.trigger===parentRun.event,
       'RECOVERY_FAILURE_AUDIT_BINDING');
-    const {receipt_digest:proofDigest,...proofBody}=operatingProof;
-    const failedOperating=operatingProof.operating_checks?.filter(c=>c.state==='VERIFIED_FAIL')||[];
-    const terminalCheck=failedOperating[0];
-    assert(operatingProof.id==='kidults-whole-platform-operating-proof-v1'&&operatingProof.repository===I.repository
-      &&operatingProof.source_sha===sha&&operatingProof.state==='VERIFIED_FAIL'
-      &&operatingProof.whole_platform_runtime_proven===false&&proofDigest===sha256(canonicalJson(proofBody))
-      &&failedOperating.length===1&&terminalCheck?.id===parent.terminal_check_id
-      &&terminalCheck.reason===parent.terminal_check_reason
-      &&terminalCheck.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
-      &&canonicalJson(terminalCheck.evidence_refs)===canonicalJson(parent.terminal_check_evidence_refs)
-      &&String(terminalCheck.evidence_refs?.[0])===String(request.original_run_id)
-      &&terminalCheck.evidence_refs?.[1]===originalArchive?.artifact_id
-      &&terminalCheck.evidence_refs?.[2]===originalArchive?.archive_digest,'RECOVERY_FAILURE_TERMINAL_NULL_ONLY');
+    validateFailureOperatingProofBinding({operatingProof,parent,request,originalArchive});
     const assuranceJobs=await jobsFor(parentRun),failedJobs=assuranceJobs.jobs.filter(j=>j.status==='completed'&&j.conclusion==='failure');
     assert(failedJobs.length===1&&failedJobs[0].name==='audit'&&failedJobs[0].id===parent.audit_job_id,
       'RECOVERY_FAILURE_AUDIT_ONLY');
