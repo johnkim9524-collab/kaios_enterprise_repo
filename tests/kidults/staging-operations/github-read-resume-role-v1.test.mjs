@@ -78,7 +78,12 @@ test('manual checkpoint selection is owner-only, exact-main bound, and remains a
   const verify=job.slice(job.indexOf('      - name: Verify exact consumer checkout'),
     job.indexOf('      - name: Consume exact deferred read'));
   assert.match(verify,/\.sender\.login == \$actor/);
+  assert.match(verify,/\.workflow_run\.head_sha \| test\("\^\[0-9a-f\]\{40\}\$"\)/);
+  assert.doesNotMatch(verify,/\.workflow_run\.head_sha == \$main_sha/);
   assert.match(verify,/\.inputs\.source_run_id \| test\("\^\[1-9\]\[0-9\]\{0,15\}\$"\)/);
+  assert.match(job,/test "\$\(git rev-parse HEAD\)" = "\$EXPECTED_MAIN_SHA"/);
+  assert.match(runner,/selectedRun\.head_sha!==producer\?\.head_sha/);
+  assert.match(runner,/consumerSha!==expectedMainSha/);
   assert.ok(job.indexOf('      - name: Verify exact consumer checkout') < job.indexOf('OIDC_JSON=$(curl'));
   assert.match(runner,/GITHUB_ACTOR!=='johnkim9524-collab'/);
   assert.match(runner,/input\.expected_main_sha!==expectedMainSha/);

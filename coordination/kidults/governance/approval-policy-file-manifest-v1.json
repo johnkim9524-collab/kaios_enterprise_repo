@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "cf5c5321ee094ed6da7dc3c85bd4952682b699d1",
+  "revision": "b55e9177c71b70d60aa196aa01552b20da783441",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -665,8 +665,8 @@
     {
       "path": ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "62502fc79af8b0af5aab2c707cf8bf37b71a260d",
-      "sha256": "sha256:3d6bf2a5c398c0b6f886aa6eb0326cbdbb552878e60c77d24b30dd1726224354",
+      "git_blob": "e8838bf034dc917c55d9acdce509bd0fa2653f79",
+      "sha256": "sha256:df273156e985ce3e89cf37616136bb06cfca6ed77cfdd1ad31f8b78ad019e13b",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7202,8 +7202,8 @@
     {
       "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1d615512132b664c0f6b37717985dcf38f409ff6",
-      "sha256": "sha256:863dc04a43a795e451df8ea9ed27523f43c458a8740b2b9f6a808b71987567d9"
+      "git_blob": "8249532cb25da1097c949c01d3de52983b6a76f0",
+      "sha256": "sha256:e9bc2705b42057c4dd3490367fcdca2554ec02cb740ebdedf9a765d87d755074"
     },
     {
       "path": "tests/kidults/staging-operations/independent-handoff-run-name-v1.test.mjs",
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:724ebd6af52834448c54ff1909714d9b8cc5fcb1ea0d0f64b362038d6b26c7f8"
+  "manifest_sha256": "sha256:4300ab43b6b64a511d4d1e2523863c648f19e9eae8416dff3c8da74a7514e090"
 }
