@@ -111,7 +111,7 @@ test('bounded resume admits exact time-bounded track and security recovery histo
   const missingOriginal=checkpoint(nowValue+1000);missingOriginal.binding.original_artifact_digest='missing';
   missingOriginal.unfinished_operation.route='/repos/johnkim9524-collab/kaios_enterprise_repo/'+track;
   await assert.rejects(readWithBoundedGithubDeferrals({route:track,expectedBinding:callerBinding,deadline:nowValue+10000,now:()=>nowValue,
-    read:async()=>{throw deferred(missingOriginal);}}),/BOUNDED_GITHUB_READ_ROUTE/);
+    read:async()=>{throw deferred(missingOriginal);}}),/BOUNDED_GITHUB_READ_TRACK_HISTORY_BINDING/);
   const invalidRoutes=[track.replace('page=17','page=101'),
     'actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha='+'c'.repeat(40)+'&created='+encoded+'&per_page=25&page=1',
     'actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created='
