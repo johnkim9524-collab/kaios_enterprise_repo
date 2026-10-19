@@ -4141,8 +4141,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "baf6c111b63c224cdd536ebce72db21d778c4c0a",
-      "sha256": "sha256:25e356d4109beda65c938bfe02f0c569f15888c7c5288522f4d10f228e80da5b",
+      "git_blob": "a45a328c535d7f20373989106a00a8f3c814069d",
+      "sha256": "sha256:59eb3b796c4c74615cfbefe52df8c08ec9801a73a26852a6f9d713886afd01bc",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:132644a19189b7d10ac640683fcb1d13d01d5d7b3c9f0a6a17a8e497bf5241cd"
+  "manifest_sha256": "sha256:1e44ed62e799aae0f6808e40e6cb5287b573ac3b69a9215a9f4df3a16558c2c9"
 }
