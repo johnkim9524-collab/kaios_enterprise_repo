@@ -16,9 +16,9 @@ export function sentinelOrderBarrierBudget(env = {}) {
     cutoffWindowSeconds: SENTINEL_ORDER_BARRIER_LOOKBACK_SECONDS,
   };
 }
-export function withinSentinelObservationWindow(createdMs, cutoffMs, windowSeconds) {
-  return Number.isFinite(createdMs) && Number.isFinite(cutoffMs)
-    && createdMs <= cutoffMs && createdMs >= cutoffMs - windowSeconds * 1000;
+export function withinSentinelObservationWindow(createdMs, cutoffMs, windowSeconds, observationStartMs = cutoffMs - windowSeconds * 1000) {
+  return Number.isFinite(createdMs) && Number.isFinite(cutoffMs) && Number.isFinite(observationStartMs)
+    && createdMs <= cutoffMs && createdMs >= observationStartMs;
 }
 
 export function sentinelRunNameMatches(runName, runId, eventName) {

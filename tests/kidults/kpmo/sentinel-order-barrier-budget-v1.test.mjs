@@ -11,6 +11,20 @@ test('Assurance waits through the full producer budget and terminal publication 
   assert.match(w, /KPMO_SENTINEL_BARRIER_TIMEOUT_SECONDS=2400/);
   assert.match(w, /timeout-minutes: 60/);
 });
+test('scheduled Assurance can observe a later Sentinel while retaining a fixed lower bound', () => {
+  const assuranceStartedAt = Date.parse('2026-10-19T10:50:55Z');
+  const sentinelCreatedAt = assuranceStartedAt + 3 * 60 * 1000;
+  const polledAt = assuranceStartedAt + 40 * 60 * 1000;
+  const window = sentinelOrderBarrierBudget().cutoffWindowSeconds;
+  const observationStart = assuranceStartedAt - window * 1000;
+  assert.equal(withinSentinelObservationWindow(sentinelCreatedAt, polledAt, window, observationStart), true);
+  assert.equal(withinSentinelObservationWindow(polledAt + 1, polledAt, window, observationStart), false);
+  assert.equal(withinSentinelObservationWindow(observationStart - 1, polledAt, window, observationStart), false);
+  const source = fs.readFileSync('scripts/kidults/kpmo/wait-for-natural-sentinel-terminal-v1.mjs', 'utf8');
+  assert.ok(source.includes('const cutoffMs = issued ?? Date.now();'));
+  assert.ok(source.includes('workflowRuns(cutoffMs, observationStartMs)'));
+});
+
 test('a 35-minute producer remains selectable but future and expired runs do not', () => {
   const cutoff = Date.parse('2026-10-08T03:45:00Z');
   const window = sentinelOrderBarrierBudget().cutoffWindowSeconds;
