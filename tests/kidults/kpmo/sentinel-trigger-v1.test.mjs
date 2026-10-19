@@ -68,7 +68,7 @@ test('coverage chain continuation accepts an exact prior-main producer SHA on th
  assert.equal(binding.exact_main_sha,producerSha);assert.equal(binding.run_id,101);
 });
 test('coverage continuation rejects a source SHA that differs from the re-read producer run',()=>{
- const p=continuationEvent();p.inputs.exact_main_sha='e'.repeat(40);
+ const p=continuationEvent();p.inputs.exact_main_sha='e'.repeat(40);p.inputs.generation_id=coverageGenerationId({sourceSha:p.inputs.exact_main_sha,runId:101,runAttempt:1});
  const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
  remote.head_sha=producerSha;remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
  assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,remote),/SENTINEL_UPSTREAM_MAIN_SHA/);
