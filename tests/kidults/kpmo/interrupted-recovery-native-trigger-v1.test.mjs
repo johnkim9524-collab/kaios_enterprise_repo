@@ -115,7 +115,8 @@ test('failure Assurance binds a history-cardinality failure back to its preserve
  delete f.proof.operating_checks[0].evidence_refs;
  f.proof.original_terminal_null_observation={state:'VERIFIED_FAIL',reason:'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',
    evidence_refs:refs,actual_authority_granted:false,retry_without_reconciliation:false};bind(f);
- f.proof.protected_evidence=[{run_id:800,run_attempt:1,artifact_id:801,artifact_digest:refs[2]}];bind(f);
+ f.proof.protected_evidence=[{workflow_path:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',run_id:800,run_attempt:1,
+   source_sha:'a'.repeat(40),artifact_id:801,artifact_digest:refs[2]}];bind(f);
  const result=await verifyInterruptedRecoveryNativeTrigger(f);
  assert.equal(result.recovery_parent.terminal_check_reason,'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE');
  assert.deepEqual(result.recovery_parent.terminal_check_evidence_refs,refs);
@@ -123,12 +124,14 @@ test('failure Assurance binds a history-cardinality failure back to its preserve
    ['missing observation',x=>delete x.proof.original_terminal_null_observation],
    ['mismatched digest',x=>x.proof.original_terminal_null_observation.evidence_refs[2]='sha256:'+'e'.repeat(64)],
    ['unbound original artifact',x=>x.proof.protected_evidence[0].artifact_digest='sha256:'+'e'.repeat(64)],
+   ['wrong original workflow',x=>x.proof.protected_evidence[0].workflow_path='.github/workflows/other.yml'],
    ['authority claim',x=>x.proof.original_terminal_null_observation.actual_authority_granted=true],
    ['unrelated failure',x=>x.proof.operating_checks[0].reason='UNRELATED_FAILURE']
  ]){const bad=failedAssuranceFixture();bad.proof.operating_checks[0].reason='WHOLE_RUNTIME_RECOVERY_HISTORY_CARDINALITY';
    delete bad.proof.operating_checks[0].evidence_refs;bad.proof.original_terminal_null_observation={state:'VERIFIED_FAIL',
      reason:'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',evidence_refs:[...refs],actual_authority_granted:false,
-     retry_without_reconciliation:false};bad.proof.protected_evidence=[{run_id:800,run_attempt:1,artifact_id:801,artifact_digest:refs[2]}];
+     retry_without_reconciliation:false};bad.proof.protected_evidence=[{workflow_path:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+       run_id:800,run_attempt:1,source_sha:'a'.repeat(40),artifact_id:801,artifact_digest:refs[2]}];
    mutate(bad);bind(bad);await assert.rejects(verifyInterruptedRecoveryNativeTrigger(bad),undefined,label);}
 });
 

@@ -95,7 +95,8 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const originalNull=proof.original_terminal_null_observation;
   const originalNullRefs=originalNull?.evidence_refs;
   const originalNullArtifactBound=validTerminalRefs(originalNullRefs)
-    &&(proof.protected_evidence||[]).some(row=>row.run_attempt===1
+    &&(proof.protected_evidence||[]).some(row=>row.workflow_path==='.github/workflows/kidults-autonomous-track-authorization-v1.yml'
+      &&row.run_attempt===1&&/^[a-f0-9]{40}$/.test(row.source_sha||'')
       &&String(row.run_id)===String(originalNullRefs[0])
       &&row.artifact_id===originalNullRefs[1]&&row.artifact_digest===originalNullRefs[2]);
   const directTerminalNull=terminalCheck?.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
