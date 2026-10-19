@@ -145,7 +145,7 @@ export function validateSentinelTrigger(env,payload=null,remoteRun=null){
     if(!object(payload?.inputs)||!payload.inputs.continuation_event_type)return null;
     const binding=validateCoverageChainContinuationEvent(env,payload);
     if(remoteRun!==null){
-      validateRun(remoteRun,continuation.exact_main_sha);
+      validateRun(remoteRun,binding.exact_main_sha);
       if(remoteRun.id!==binding.run_id||remoteRun.run_attempt!==binding.run_attempt||remoteRun.path!==binding.path
         ||remoteRun.event!==binding.upstream_event||remoteRun.conclusion!=='success')fail('SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED');
     }
