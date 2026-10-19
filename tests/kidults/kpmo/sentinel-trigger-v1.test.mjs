@@ -11,6 +11,7 @@ import {inlineProducerHealthRequired,guardRequiresProducerHealth} from '../../..
 import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo';
+const producerSha='d'.repeat(40);
 const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_REPOSITORY:repo,GITHUB_REF:'refs/heads/main',GITHUB_SHA:'a'.repeat(40)};
 const landing=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json','utf8'));
 function event(spec=PRODUCER_COMPLETIONS[3]){return {action:'completed',repository:{id:1281328888,full_name:repo},workflow_run:{id:100,run_attempt:1,repository:{id:1281328888,full_name:repo},head_repository:{id:1281328888,full_name:repo},name:spec.name,display_title:spec.name,path:spec.path,event:spec.events[0],head_branch:'main',head_sha:env.GITHUB_SHA,status:'completed',conclusion:'success'}};}
@@ -19,7 +20,7 @@ function naturalEvent(slot='SENTINEL'){
  return {action:`kidults.natural.clock.${slot.toLowerCase()}.v1`,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'kidults-autonomous-landing-staging[bot]'},client_payload:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot,exact_main_sha:env.GITHUB_SHA,nonce,dispatch_id:`kidults-natural-clock-v1:${slot}:${env.GITHUB_SHA}:${nonce}`,issued_at:'2026-09-28T07:23:30.705Z'}};
 }
 function continuationEvent(ref='main'){
- return {ref,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',coverage_workflow_path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',exact_main_sha:env.GITHUB_SHA,generation_id:coverageGenerationId({sourceSha:env.GITHUB_SHA,runId:101,runAttempt:1}),upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
+ return {ref,repository:{id:1281328888,full_name:repo},sender:{type:'Bot',login:'github-actions[bot]'},inputs:{continuation_event_type:'kidults.assurance.continuation.v1',continuation_source:'KIDULTS_COVERAGE_CHAIN_CONTINUATION',continuation_slot:'SENTINEL_CHAIN',coverage_workflow_path:'.github/workflows/kidults-asi-requirement-adapter-coverage-v1.yml',exact_main_sha:producerSha,generation_id:coverageGenerationId({sourceSha:producerSha,runId:101,runAttempt:1}),upstream_run_id:'101',upstream_run_attempt:'1',upstream_event:'workflow_run',continuation_artifact_id:'202',continuation_artifact_digest:'sha256:'+'b'.repeat(64),continuation_key:'sha256:'+'c'.repeat(64)}};
 }
 function readContinuationPayload(ref){
  const file=path.join(fs.mkdtempSync(path.join(os.tmpdir(),'sentinel-continuation-')),'event.json');
@@ -49,7 +50,7 @@ for(const ref of ['main','refs/heads/main'])test(`coverage chain continuation ac
 for(const [name,mutate] of [
  ['wrong sender',p=>p.sender.login='untrusted[bot]'],
  ['wrong ref',p=>p.ref='refs/heads/feature'],
- ['wrong source SHA',p=>p.inputs.exact_main_sha='b'.repeat(40)],
+ 
  ['missing artifact digest',p=>delete p.inputs.continuation_artifact_digest],
  ['wrong Coverage workflow path',p=>p.inputs.coverage_workflow_path='.github/workflows/kidults-asi-sharded-source-reserve-v1.yml'],
  ['wrong generation id',p=>p.inputs.generation_id='sha256:'+'f'.repeat(64)],
@@ -59,10 +60,23 @@ for(const [name,mutate] of [
 ])test(`coverage chain continuation rejects ${name}`,()=>{
  const p=continuationEvent();mutate(p);assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p));
 });
+test('coverage chain continuation accepts an exact prior-main producer SHA on the current main consumer',()=>{
+ const p=continuationEvent();
+ const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
+ remote.head_sha=producerSha;remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
+ const binding=validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,structuredClone(remote));
+ assert.equal(binding.exact_main_sha,producerSha);assert.equal(binding.run_id,101);
+});
+test('coverage continuation rejects a source SHA that differs from the re-read producer run',()=>{
+ const p=continuationEvent();p.inputs.exact_main_sha='e'.repeat(40);p.inputs.generation_id=coverageGenerationId({sourceSha:p.inputs.exact_main_sha,runId:101,runAttempt:1});
+ const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
+ remote.head_sha=producerSha;remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
+ assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,remote),/SENTINEL_UPSTREAM_MAIN_SHA/);
+});
 test('coverage continuation re-read rejects a different run identity',()=>{
  const p=continuationEvent();
  const remote=event(PRODUCER_COMPLETIONS[1]).workflow_run;
- remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
+ remote.head_sha=producerSha;remote.id=101;remote.event='workflow_run';remote.run_attempt=1;
  assert.equal(validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,structuredClone(remote)).run_id,101);
  remote.run_attempt=2;
  assert.throws(()=>validateSentinelTrigger({...env,GITHUB_EVENT_NAME:'workflow_dispatch'},p,remote),/SENTINEL_CHAIN_CONTINUATION_REMOTE_CHANGED/);

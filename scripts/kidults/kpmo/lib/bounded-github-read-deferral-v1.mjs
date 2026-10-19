@@ -3,6 +3,13 @@
 const REPO='johnkim9524-collab/kaios_enterprise_repo';
 const RESUME_ID='kidults-github-read-resume-checkpoint-v1';
 const check=(ok,code)=>{if(!ok)throw Error(`BOUNDED_GITHUB_READ_${code}`);};
+const originalMissionBound=b=>{
+  const runIdBound=(typeof b?.original_run_id==='string'&&/^[1-9][0-9]{0,15}$/.test(b.original_run_id))
+    ||(Number.isSafeInteger(b?.original_run_id)&&b.original_run_id>0&&b.original_run_id<=9999999999999999);
+  return runIdBound&&Number.isSafeInteger(b.original_run_attempt)&&b.original_run_attempt>=1&&b.original_run_attempt<=100
+    &&Number.isSafeInteger(b.original_artifact_id)&&b.original_artifact_id>0
+    &&/^sha256:[a-f0-9]{64}$/.test(b.original_artifact_digest||'');
+};
 
 function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
   check(checkpoint?.id===RESUME_ID&&checkpoint.version==='1.0.0'
@@ -11,6 +18,8 @@ function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
   check(b?.root_mission==='AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION'
     &&b.run_id===String(expectedBinding.run_id)&&b.run_attempt===expectedBinding.run_attempt
     &&b.source_sha===expectedBinding.source_sha,'BINDING');
+  if(route?.startsWith('actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created='))
+    check(originalMissionBound(b),'TRACK_HISTORY_BINDING');
   check(checkpoint.original_reservation_preserved===true&&checkpoint.reservation_write_performed===false
     &&checkpoint.producer_failure_claimed===false&&checkpoint.actual_authority_granted===false
     &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'SCOPE');
@@ -49,15 +58,7 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     return Number.isFinite(start)&&Number.isFinite(end)&&new Date(start).toISOString()===range[1]&&new Date(end).toISOString()===range[2]
       &&Number.isSafeInteger(observed)&&start<=end&&end-start<=maxAgeMs&&end<=observed;
   };
-  const originalRunIdBound=(typeof expectedBinding?.original_run_id==='string'
-    &&/^[1-9][0-9]{0,15}$/.test(expectedBinding.original_run_id))
-    ||(Number.isSafeInteger(expectedBinding?.original_run_id)&&expectedBinding.original_run_id>0
-      &&expectedBinding.original_run_id<=9999999999999999);
-  const originalMissionBound=originalRunIdBound&&Number.isSafeInteger(expectedBinding.original_run_attempt)
-    &&expectedBinding.original_run_attempt>=1&&expectedBinding.original_run_attempt<=100
-    &&Number.isSafeInteger(expectedBinding.original_artifact_id)&&expectedBinding.original_artifact_id>0
-    &&/^sha256:[a-f0-9]{64}$/.test(expectedBinding.original_artifact_digest||'');
-  const trackHistoryAllowed=Boolean(trackHistory)&&originalMissionBound
+  const trackHistoryAllowed=Boolean(trackHistory)
     &&validHistoryRange(trackHistory[1],trackHistory[2],31*24*60*60*1000);
   const securityHistoryAllowed=Boolean(securityHistory)&&securityHistory[1]===expectedBinding?.source_sha
     &&validHistoryRange(securityHistory[2],securityHistory[3],31*24*60*60*1000);

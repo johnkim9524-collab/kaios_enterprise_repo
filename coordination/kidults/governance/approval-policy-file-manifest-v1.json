@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fcea69f4f8ac9014e10118880ce780048303fdee",
+  "revision": "2d33e54adf54cec052bf75797ef3ee430fb3b3fc",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4141,8 +4141,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "baf6c111b63c224cdd536ebce72db21d778c4c0a",
-      "sha256": "sha256:25e356d4109beda65c938bfe02f0c569f15888c7c5288522f4d10f228e80da5b",
+      "git_blob": "026795a50d7a5314cf9b81fb4ec77f3b54602734",
+      "sha256": "sha256:0184ad91c3c68a0b9c32b19a4bc9dbb02409d84b4c74f2c6c4fc11d9d2354f54",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -6740,8 +6740,8 @@
     {
       "path": "tests/kidults/kpmo/bounded-github-read-deferral-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "1ae0bae2a0b9e59445a9ed4ae6b3be3ac535205b",
-      "sha256": "sha256:8457a80253d2d2d4718a02ee09914d3ac2fbfd6f27939c3939119586661533e0"
+      "git_blob": "2536838afda7440f71c03338377029a1e7367908",
+      "sha256": "sha256:3b70884b47a562f60150f42345eabb0c01b228977e5623ed1d7ae1ef0a43f7b0"
     },
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
@@ -7004,8 +7004,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f444728bb2074211b199bc6d4e48e781d3508984",
-      "sha256": "sha256:e82456efb0720b033144ab7b07a3a520e7146b18735acf9bb0254d8958c3d1e5"
+      "git_blob": "888bae87faa27dbb0fb204c568da25c3f95c5340",
+      "sha256": "sha256:c6193bd04a5514126a0f0507a2220cfd010ec3974e63c672ead0dea6df95dfab"
     },
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4262903319b34a104943af6c9b9a00f250983503fb181313a4e734d1833c90ba"
+  "manifest_sha256": "sha256:cff4c9b8c0e2e16946277ac38c2beebb1903ebd01bde3aef0b89401c0a66218c"
 }
