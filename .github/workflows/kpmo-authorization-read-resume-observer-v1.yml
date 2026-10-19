@@ -97,14 +97,12 @@ jobs:
                 (.inputs.source_sha | test("^[0-9a-f]{40}$"))
               ' "$GITHUB_EVENT_PATH" >/dev/null
           elif [[ "$GITHUB_EVENT_NAME" == "workflow_run" ]]; then
-            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" \
-              --arg main_sha "$EXPECTED_MAIN_SHA" '
+            jq -e --arg repo "$GITHUB_REPOSITORY" --arg repo_id "$EXPECTED_REPOSITORY_ID" '
                 .action == "completed" and
                 .repository.full_name == $repo and
                 (.repository.id | tostring) == $repo_id and
                 .workflow_run.head_branch == "main" and
                 (.workflow_run.head_sha | test("^[0-9a-f]{40}$")) and
-                .workflow_run.head_sha == $main_sha and
                 .workflow_run.conclusion != "success"
               ' "$GITHUB_EVENT_PATH" >/dev/null
           else
