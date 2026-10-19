@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fac0d5fa168932dad1c580e8dd4eff38f8523466",
+  "revision": "f0b1633e0d71740cbf1cf756675678743b6b7acb",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6504,8 +6504,8 @@
     {
       "path": "tests/fixtures/governance/autonomous-policy-alignment-v1/base/kidults-platform-continuous-assurance-v1.yml",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6c4c658ea0d0cce156e78c7e80aa893f133c4c9b",
-      "sha256": "sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564"
+      "git_blob": "a6411e3042da6dac3a6c776bf9674cb82fe0c1ad",
+      "sha256": "sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24"
     },
     {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
@@ -6536,8 +6536,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "81578b298743a249d013fff5b74404d4a97bc9a6",
-      "sha256": "sha256:f24a86c01096871dd0cef67af46b19a4d5cd63a490d417a27dd0df5c5451f60b",
+      "git_blob": "fce06e8439026f9d37d3dc694e5b2712ee135c79",
+      "sha256": "sha256:a60a06d4cd1aeffa69f010add0a3bbfc6afcf82f350beaacaded56245d2b603a",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7248,5 +7248,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:64aae94dbd35be0fda14e1ea9c65a41e20a66004372f69ad704077958707cf34"
+  "manifest_sha256": "sha256:793367bd2d567c29942c33f04ebc67f6a0f1a9b527f1cb2655f2e516ab259a03"
 }
