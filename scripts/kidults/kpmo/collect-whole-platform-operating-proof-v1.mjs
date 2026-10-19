@@ -16,6 +16,7 @@ import {selectLatestNaturalSentinelRun} from './select-latest-natural-sentinel-r
 import {verifyNativeResumeReuse} from './lib/native-resume-reuse-proof-v1.mjs';
 import {canonicalJson,sha256} from './lib/canonical-json-v1.mjs';
 import {buildRuntimeEvidenceDemand} from './lib/runtime-domain-evidence-demand-v1.mjs';
+import {INTERNAL_RECOVERY_CHECKS} from './lib/internal-operating-recovery-v1.mjs';
 const requireEvidence=(ok,code)=>{if(!ok)throw new Error(`WHOLE_RUNTIME_${code}`);};
 const spec=(id,workflow,events)=>({id,workflow,path:`.github/workflows/${workflow}`,events});
 const sentinel=spec('SENTINEL','kpmo-continuous-assurance-sentinel-health-v1.yml',['push','workflow_run','repository_dispatch']);
@@ -552,8 +553,11 @@ async function main(){
       whole_platform_runtime_proven:result.whole_platform_runtime_proven}));
     if(result.state==='VERIFIED_FAIL')process.exitCode=1;
   }catch(error){
-    const failure={id:contract.id,source_sha:sourceSha,state:'VERIFIED_FAIL',failure_class:String(error.message).split(':')[0],
-      whole_platform_runtime_proven:false,retry_authorized:false,production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'};
+    const failureBody={id:contract.id,source_sha:sourceSha,repository:REPOSITORY,state:'VERIFIED_FAIL',
+      failure_class:String(error.message).split(':')[0],whole_platform_runtime_proven:false,retry_authorized:false,
+      production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
+      operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:'UNVERIFIED',reason:String(error.message).split(':')[0],evidence_refs:[]}))};
+    const failure={...failureBody,receipt_digest:sha256(canonicalJson(failureBody))};
     fs.mkdirSync(path.dirname(output),{recursive:true});if(!fs.existsSync(output))fs.writeFileSync(output,JSON.stringify(failure)+'\n',{flag:'wx',mode:0o600});
     console.error(failure.failure_class);process.exitCode=1;
   }
