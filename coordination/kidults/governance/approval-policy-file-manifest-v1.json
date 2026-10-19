@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "0b094acc9d8b23530d00e25a3d6113bdcf08b9f3",
+  "revision": "fcea69f4f8ac9014e10118880ce780048303fdee",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -6740,8 +6740,8 @@
     {
       "path": "tests/kidults/kpmo/bounded-github-read-deferral-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "cf531c0fed8a04b748d1308d87ab8d80098952ad",
-      "sha256": "sha256:be94285f5df390f1326b833eab7263321cfe875711e3b9d42ab4f6c531fa0579"
+      "git_blob": "1ae0bae2a0b9e59445a9ed4ae6b3be3ac535205b",
+      "sha256": "sha256:8457a80253d2d2d4718a02ee09914d3ac2fbfd6f27939c3939119586661533e0"
     },
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5e18c0b6a0d1269236fe9df72d44deb43a154f2566a718e376ddb141a193aae6"
+  "manifest_sha256": "sha256:4262903319b34a104943af6c9b9a00f250983503fb181313a4e734d1833c90ba"
 }
