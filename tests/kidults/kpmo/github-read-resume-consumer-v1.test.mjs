@@ -42,6 +42,49 @@ test('resumes validated read routes including paginated compare continuation',as
  }
 });
 
+test('resumes the bounded historical authorization and exact-SHA security run indexes',async()=>{
+ const historyBinding={...checkpoint.binding,original_run_id:38132692877,original_run_attempt:1,
+  original_artifact_id:11700046124,original_artifact_digest:digest};
+ const historyArtifact={...artifact,expires_at:'2026-10-20T00:00:00.000Z'};
+ const historyCommon={...common,artifact:historyArtifact,now:()=>Date.parse('2026-10-19T10:00:00.000Z')};
+ const routes=[
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created=2026-10-12T10%3A31%3A23.000Z..2026-10-13T10%3A23%3A51.000Z&per_page=25&page=35',
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created=2026-10-12T10%3A33%3A35.000Z..2026-10-13T10%3A28%3A15.000Z&per_page=25&page=26',
+  `/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha=${sha}&created=2026-10-18T03%3A56%3A24.947Z..2026-10-19T09%3A56%3A24.947Z&per_page=25&page=1`,
+ ];
+ for(const candidate of routes){
+  const candidateCheckpoint=readResumeCheckpoint({binding:historyBinding,route:candidate,diagnostic:null,
+   resumeAt:Date.parse('2026-10-12T10:00:00.000Z'),attempts:2,reason:'INVOCATION_CALL_BUDGET'});
+  const candidateLine=JSON.stringify(candidateCheckpoint);let calls=0;
+  await consumeGithubReadResumeCheckpoint({...historyCommon,checkpoint:candidateCheckpoint,
+   archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:candidateLine+'\n'}]}),
+   read:async value=>{calls++;assert.equal(value,candidate);return {ok:true};}});
+  assert.equal(calls,1,candidate);
+ }
+});
+
+test('keeps historical run-index resumes bounded to exact source and safe page windows',async()=>{
+ const historyBinding={...checkpoint.binding,original_run_id:38132692877,original_run_attempt:1,
+  original_artifact_id:11700046124,original_artifact_digest:digest};
+ const historyArtifact={...artifact,expires_at:'2026-10-20T00:00:00.000Z'};
+ const historyCommon={...common,artifact:historyArtifact,now:()=>Date.parse('2026-10-19T10:00:00.000Z')};
+ const safeSecurity='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha='+sha+'&created=2026-10-18T03%3A38%3A47.015Z..2026-10-19T09%3A38%3A47.015Z&per_page=25&page=1';
+ const badRoutes=[
+  safeSecurity.replace(`head_sha=${sha}`,`head_sha=${'c'.repeat(40)}`),
+  safeSecurity.replace('page=1','page=101'),
+  safeSecurity.replace('2026-10-18T03%3A38%3A47.015Z..2026-10-19T09%3A38%3A47.015Z','2026-09-01T00%3A00%3A00.000Z..2026-10-19T09%3A38%3A47.015Z'),
+ ];
+ for(const candidate of badRoutes){
+  const candidateCheckpoint=readResumeCheckpoint({binding:historyBinding,route:candidate,diagnostic:null,
+   resumeAt:Date.parse('2026-10-12T10:00:00.000Z'),attempts:2,reason:'INVOCATION_CALL_BUDGET'});
+  const candidateLine=JSON.stringify(candidateCheckpoint);let calls=0;
+  await assert.rejects(consumeGithubReadResumeCheckpoint({...historyCommon,checkpoint:candidateCheckpoint,
+   archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:candidateLine+'\n'}]}),
+   read:async()=>{calls++;return {ok:true};}}),/GITHUB_RESUME_ROUTE_NOT_ALLOWLISTED/);
+  assert.equal(calls,0,candidate);
+ }
+});
+
 test('allows the checkpoint exact direct GET target while keeping it read-only',async()=>{
  const targetRoute='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/988';
  const targetCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:targetRoute}};

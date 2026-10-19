@@ -63,6 +63,23 @@ test('an Assurance producer checkpoint is admitted under its exact workflow iden
   assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');
 });
 
+test('a failed scheduled Assurance checkpoint is admitted under its exact workflow identity',async()=>{
+  const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+  const assuranceRun={...run,event:'schedule',conclusion:'failure',path:`${assurancePath}@refs/heads/main`};
+  const assuranceArtifact={...artifact,name:`kidults-github-read-resume-assurance-${runId}-${attempt}`,
+    workflow_run:{...artifact.workflow_run}};
+  const assuranceEvent={action:'completed',workflow_run:{...run,event:'schedule',conclusion:'failure'}};
+  delete assuranceEvent.workflow_run.path;
+  const readJson=async value=>value===`actions/runs/${runId}`?assuranceRun:
+    value===`actions/runs/${runId}/artifacts?per_page=100`?{total_count:1,artifacts:[assuranceArtifact]}:
+    value===`actions/artifacts/${artifact.id}`?assuranceArtifact:
+    value===routeForCheckpoint(checkpoint)?{id:runId,run_attempt:attempt}:null;
+  const result=await consumeGithubReadResumeHandoff({event:assuranceEvent,readJson,now:()=>Date.parse('2026-10-12T10:01:00.000Z'),
+    readArchiveBytes:async()=>archiveBytes,archiveReader:()=>packetFor(checkpoint)});
+  assert.equal(result.state,'READ_ONLY_CHECKPOINT_RESUMED');
+  assert.equal(result.actual_authority_granted,false);
+});
+
 test('an exact protected-main push producer is admitted for read-only checkpoint recovery',async()=>{
   const pushRun={...run,event:'push'};
   const pushEvent={action:'completed',workflow_run:{...pushRun}};
@@ -74,15 +91,15 @@ test('an exact protected-main push producer is admitted for read-only checkpoint
   assert.equal(result.actual_authority_granted,false);
 });
 
-test('an unapproved producer event is rejected before any GitHub read or archive download',async()=>{
+test('a scheduled non-Assurance producer is rejected before archive download',async()=>{
   const scheduledRun={...run,event:'schedule'};
   const scheduledEvent={action:'completed',workflow_run:{...scheduledRun}};
   delete scheduledEvent.workflow_run.path;
   const f=fixture({trigger:scheduledRun});
   let downloads=0;
   await assert.rejects(consumeGithubReadResumeHandoff({event:scheduledEvent,readJson:f.readJson,
-    readArchiveBytes:async()=>{downloads++;return archiveBytes;},archiveReader:()=>packetFor(checkpoint),now:f.now}),/TRIGGER_BINDING/);
-  assert.equal(f.calls.length,0);
+    readArchiveBytes:async()=>{downloads++;return archiveBytes;},archiveReader:()=>packetFor(checkpoint),now:f.now}),/RUN_READBACK/);
+  assert.equal(f.calls.length,1);
   assert.equal(downloads,0);
 });
 
