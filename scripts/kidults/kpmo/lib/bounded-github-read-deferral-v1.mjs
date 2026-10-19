@@ -18,7 +18,7 @@ function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
   check(b?.root_mission==='AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION'
     &&b.run_id===String(expectedBinding.run_id)&&b.run_attempt===expectedBinding.run_attempt
     &&b.source_sha===expectedBinding.source_sha,'BINDING');
-  if(/^actions\/workflows\/kidults-autonomous-track-authorization-v1\\.yml\/runs\\?branch=main&created=/.test(route))
+  if(route?.startsWith('actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created='))
     check(originalMissionBound(b),'TRACK_HISTORY_BINDING');
   check(checkpoint.original_reservation_preserved===true&&checkpoint.reservation_write_performed===false
     &&checkpoint.producer_failure_claimed===false&&checkpoint.actual_authority_granted===false
