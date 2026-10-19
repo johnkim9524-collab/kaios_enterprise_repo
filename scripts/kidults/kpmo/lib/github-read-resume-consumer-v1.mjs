@@ -29,6 +29,28 @@ function routeAllowed(route,binding,now=()=>Date.now()){
     /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
+  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(path);
+  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(path);
+  const validHistoryRange=(encoded,page,maxAgeMs)=>{
+    if(!encoded||!page||Number(page)>100)return false;
+    let decoded='';try{decoded=decodeURIComponent(encoded);}catch{return false;}
+    const range= /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)\.\.(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)$/.exec(decoded);
+    if(!range)return false;
+    const start=Date.parse(range[1]),end=Date.parse(range[2]),observed=now();
+    return Number.isFinite(start)&&Number.isFinite(end)&&new Date(start).toISOString()===range[1]&&new Date(end).toISOString()===range[2]
+      &&Number.isSafeInteger(observed)&&start<=end&&end-start<=maxAgeMs&&end<=observed;
+  };
+  const originalRunIdBound=(typeof binding.original_run_id==='string'
+    &&/^[1-9][0-9]{0,15}$/.test(binding.original_run_id))
+    ||(Number.isSafeInteger(binding.original_run_id)&&binding.original_run_id>0&&binding.original_run_id<=9999999999999999);
+  const originalMissionBound=originalRunIdBound
+    &&Number.isSafeInteger(binding.original_run_attempt)&&binding.original_run_attempt>=1&&binding.original_run_attempt<=100
+    &&Number.isSafeInteger(binding.original_artifact_id)&&binding.original_artifact_id>0
+    &&/^sha256:[a-f0-9]{64}$/.test(binding.original_artifact_digest||'');
+  const trackHistoryAllowed=Boolean(trackHistory)&&originalMissionBound
+    &&validHistoryRange(trackHistory[1],trackHistory[2],31*24*60*60*1000);
+  const securityHistoryAllowed=Boolean(securityHistory)&&securityHistory[1]===binding.source_sha
+    &&validHistoryRange(securityHistory[2],securityHistory[3],31*24*60*60*1000);
   const sentinel=/^actions\/workflows\/kpmo-continuous-assurance-sentinel-health-v1\.yml\/runs\?head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=100&page=([1-9][0-9]{0,2})$/;
   const match=sentinel.exec(path);
   let sentinelAllowed=false;
@@ -41,15 +63,15 @@ function routeAllowed(route,binding,now=()=>Date.now()){
         &&start<=end&&end-start<=24*60*60*1000&&end<=now();
     }
   }
-  check(allowed.some(pattern=>pattern.test(path))||sentinelAllowed,'ROUTE_NOT_ALLOWLISTED');
+  check(allowed.some(pattern=>pattern.test(path))||trackHistoryAllowed||securityHistoryAllowed||sentinelAllowed,'ROUTE_NOT_ALLOWLISTED');
   const run=path.match(/^actions\/runs\/([1-9][0-9]{0,15})(?:\/attempts\/((?:[1-9]|[1-9][0-9]|100))\/jobs\?per_page=100|\/artifacts\?per_page=100)?$/);
   if(run){
     const boundRuns=[binding.run_id,binding.original_run_id,binding.parent_run_id,binding.deferred_target_run_id]
       .filter(value=>value!==undefined).map(String);
     check(boundRuns.includes(run[1]),'ROUTE_TARGET_RUN');
     if(run[2]&&run[1]===binding.run_id)check(Number(run[2])===binding.run_attempt,'ROUTE_TARGET_ATTEMPT');
-    if(run[2]&&run[1]===binding.original_run_id)check(Number(run[2])===binding.original_run_attempt,'ROUTE_TARGET_ATTEMPT');
-    if(run[2]&&run[1]===binding.parent_run_id&&run[1]!==binding.run_id&&run[1]!==binding.original_run_id)
+    if(run[2]&&run[1]===String(binding.original_run_id))check(Number(run[2])===binding.original_run_attempt,'ROUTE_TARGET_ATTEMPT');
+    if(run[2]&&run[1]===String(binding.parent_run_id)&&run[1]!==String(binding.run_id)&&run[1]!==String(binding.original_run_id))
       check(Number(run[2])===binding.parent_run_attempt,'ROUTE_TARGET_ATTEMPT');
   }
   const artifact=path.match(/^actions\/artifacts\/([1-9][0-9]{0,15})(?:\/zip)?$/);
@@ -72,7 +94,10 @@ export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,arch
     &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'CHECKPOINT_SCOPE');
   check(run?.id===Number(b.run_id)&&run.run_attempt===b.run_attempt&&run.head_sha===b.source_sha
     &&run.repository?.full_name===REPO&&String(run.repository?.id)===REPO_ID
-    &&run.path===expected.workflow_path&&['push','repository_dispatch','workflow_run'].includes(run.event)
+    &&run.path===expected.workflow_path
+    &&(['push','repository_dispatch','workflow_run'].includes(run.event)
+      ||(run.event==='schedule'&&run.path==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+        &&run.conclusion==='failure'))
     &&run.head_branch==='main','NATIVE_RUN_BINDING');
   check([...WORKFLOWS.values()].includes(run.path),'WORKFLOW_NOT_ALLOWLISTED');
   const role=[...WORKFLOWS].find(([,path])=>path===run.path)[0];
