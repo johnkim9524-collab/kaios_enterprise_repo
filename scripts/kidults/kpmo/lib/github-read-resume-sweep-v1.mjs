@@ -17,8 +17,10 @@ export function readResumeSweepRoute(producer,{createdAfter}){
 
 export function deterministicReadResumeSweepWakeAt({createdAt,checkpointResumeAt,now=Date.now(),windowMs=28*60*1000}={}){
   const created=Date.parse(createdAt||'');
+  const canonicalCreated=Number.isFinite(created)&&(
+    new Date(created).toISOString()===createdAt||new Date(created).toISOString().replace('.000Z','Z')===createdAt);
   check(Number.isSafeInteger(now)&&Number.isSafeInteger(windowMs)&&windowMs>0&&windowMs<=24*60*60*1000
-    &&Number.isFinite(created)&&new Date(created).toISOString()===createdAt&&created>=now-windowMs&&created<=now
+    &&canonicalCreated&&created>=now-windowMs&&created<=now
     &&Number.isSafeInteger(checkpointResumeAt),'WAKE_CONFIG');
   const wakeAt=Math.max(created+31*60*1000,checkpointResumeAt);
   check(wakeAt>now,'WAKE_TIME');
