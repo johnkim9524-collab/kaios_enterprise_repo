@@ -89,6 +89,23 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const proof=JSON.parse(proofMembers[0].text),proofUnsigned=structuredClone(proof);delete proofUnsigned.receipt_digest;
   const failedChecks=(proof.operating_checks||[]).filter(c=>c.state==='VERIFIED_FAIL');
   const terminalCheck=failedChecks[0];
+  const validTerminalRefs=refs=>Array.isArray(refs)&&refs.length===3
+    &&/^[1-9][0-9]{0,15}$/.test(String(refs[0]))&&Number.isSafeInteger(Number(refs[0]))
+    &&Number.isSafeInteger(refs[1])&&refs[1]>0&&/^sha256:[a-f0-9]{64}$/.test(refs[2]||'');
+  const originalNull=proof.original_terminal_null_observation;
+  const originalNullRefs=originalNull?.evidence_refs;
+  const originalNullArtifactBound=validTerminalRefs(originalNullRefs)
+    &&(proof.protected_evidence||[]).some(row=>row.run_attempt===1
+      &&String(row.run_id)===String(originalNullRefs[0])
+      &&row.artifact_id===originalNullRefs[1]&&row.artifact_digest===originalNullRefs[2]);
+  const directTerminalNull=terminalCheck?.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
+    &&validTerminalRefs(terminalCheck.evidence_refs);
+  const recoveredTerminalNull=terminalCheck?.reason==='WHOLE_RUNTIME_RECOVERY_HISTORY_CARDINALITY'
+    &&originalNull?.state==='VERIFIED_FAIL'
+    &&originalNull.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
+    &&originalNull.actual_authority_granted===false&&originalNull.retry_without_reconciliation===false
+    &&originalNullArtifactBound;
+  const terminalEvidenceRefs=directTerminalNull?terminalCheck.evidence_refs:recoveredTerminalNull?originalNull.evidence_refs:null;
   let upstream=audit.execution?.upstream;
   let authenticatedCoverageContinuation=false;
   let coverageContinuation=null;
@@ -251,11 +268,7 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
     &&proof.repository===repository&&proof.state==='VERIFIED_FAIL'&&proof.whole_platform_runtime_proven===false
     &&proof.receipt_digest===sha256(canonicalJson(proofUnsigned))&&failedChecks.length===1
     &&terminalCheck?.id==='FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'
-    &&terminalCheck.reason==='ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE'
-    &&Array.isArray(terminalCheck.evidence_refs)&&terminalCheck.evidence_refs.length===3
-    &&/^[1-9][0-9]{0,15}$/.test(String(terminalCheck.evidence_refs[0]))
-    &&Number.isSafeInteger(terminalCheck.evidence_refs[1])&&terminalCheck.evidence_refs[1]>0
-    &&/^sha256:[a-f0-9]{64}$/.test(terminalCheck.evidence_refs[2]||'')
+    &&(directTerminalNull||recoveredTerminalNull)
     &&upstream?.workflow_name==='KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1'
     &&upstream.workflow_path==='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml'
     &&(['workflow_run','repository_dispatch'].includes(upstream.workflow_event)
@@ -269,8 +282,8 @@ export async function verifyFailureAssuranceParent({run,eventAction='completed',
   const parent={kind:'TERMINAL_NULL_ASSURANCE_FAILURE_V1',run_id:live.id,run_attempt:1,workflow_path:assurancePath,
     source_sha:sourceSha,artifact_id:artifact.id,artifact_digest:artifact.digest,archive_digest:packet.archive_digest,
     audit_receipt_digest:audit.receipt_digest,operating_proof_digest:proof.receipt_digest,
-    terminal_check_id:terminalCheck.id,terminal_check_reason:terminalCheck.reason,
-    terminal_check_evidence_refs:terminalCheck.evidence_refs,
+    terminal_check_id:terminalCheck.id,terminal_check_reason:'ORIGINAL_RESERVATION_AND_IMMUTABLE_TERMINAL_UNAVAILABLE',
+    terminal_check_evidence_refs:terminalEvidenceRefs,
     upstream_run_id:upstream.run_id,upstream_receipt_digest:upstream.source_receipt_digest,
     ...(coverageContinuation?{coverage_continuation:coverageContinuation}:{}),
     audit_job_id:failed[0].id,conclusion:'failure',actual_authority_granted:false,
