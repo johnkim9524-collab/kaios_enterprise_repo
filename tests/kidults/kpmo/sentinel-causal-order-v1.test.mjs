@@ -40,11 +40,12 @@ function execute(rows){
     assert.ifError(result.error);return {result,receipt:JSON.parse(fs.readFileSync(path.join(root,'receipt.json')))};
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 }
-test('new Sentinel producer runs use the canonical workflow name while observers remain distinct',()=>{
+test('Sentinel excludes its Assurance consumer feedback edge while keeping the read-resume observer distinct',()=>{
   const workflow=fs.readFileSync(sentinelPath,'utf8');
   assert.ok(workflow.includes("'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' }}"));
-  assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/{0}/{1}'"));
   assert.ok(workflow.includes("format('KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/{0}'"));
+  assert.doesNotMatch(workflow,/KIDULTS Platform Continuous Assurance V1/);
+  assert.match(workflow,/repository_dispatch:\s*\n\s*types: \[kidults\.natural\.clock\.sentinel\.v1, kidults\.github\.read\.resume\.v1\]/);
 });
 
 test('actual barrier binds Coverage C1 despite newer unrelated cancellation and manual success',()=>{

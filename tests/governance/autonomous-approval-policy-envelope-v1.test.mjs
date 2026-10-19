@@ -58,8 +58,11 @@ test('read-resume IAM grant stays Owner-reserved while bounded runtime uses the 
     'infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs',
     'infrastructure/aws/staging/natural-clock-dispatcher-v1.json',
     '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml',
+    '.github/workflows/kpmo-authorization-read-resume-observer-v1.yml',
     'scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs',
+    'scripts/kidults/kpmo/run-scheduled-github-read-resume-sweep-v1.mjs',
     'scripts/kidults/kpmo/lib/github-read-resume-handoff-v1.mjs',
+    'scripts/kidults/kpmo/lib/github-read-resume-sweep-v1.mjs',
     'scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs',
     'scripts/kidults/kpmo/lib/github-read-resume-immutable-receipt-v1.mjs',
   ];

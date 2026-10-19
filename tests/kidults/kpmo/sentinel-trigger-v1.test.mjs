@@ -113,27 +113,28 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
  assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
 });
 
-test('Sentinel observes operational producers and Assurance failures without an authorization feedback edge',()=>{
+test('Sentinel observes Coverage only; Assurance failure resume is handled by the terminal observer',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
  assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
   'KIDULTS ASI Requirement-to-Adapter Coverage v1',
-  'KIDULTS Platform Continuous Assurance V1',
  ]);
  assert.match(s,/run-name:[\s\S]*KIDULTS_AUTH_OBSERVER\//);
- assert.match(s,/format\('KIDULTS_AUTH_OBSERVER\/\{0\}\/\{1\}', github\.event\.workflow_run\.name, github\.event\.workflow_run\.id\)/);
+ assert.doesNotMatch(s,/github\.event\.workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
+ assert.doesNotMatch(s,/format\('KIDULTS_AUTH_OBSERVER\/\{0\}\/\{1\}'/);
  const health=s.match(/^  exact-main-health:\n    if: >-\n([\s\S]*?)^    runs-on:/m);
  assert.ok(health,'missing authoritative Sentinel health gate');
  assert.match(health[1],/github\.event\.workflow_run\.name == 'KIDULTS ASI Requirement-to-Adapter Coverage v1'/);
  assert.match(health[1],/github\.event\.workflow_run\.conclusion == 'success'/);
- const resume=s.match(/^  read-resume-checkpoint:\n    if: >-\n([\s\S]*?)^    runs-on:/m);
+ const resume=s.match(/^  read-resume-checkpoint:\n    if: ([^\n]+)[\s\S]*?^    runs-on:/m);
  assert.ok(resume,'missing bounded read-resume gate');
- assert.match(resume[1],/github\.event\.workflow_run\.conclusion == 'failure'/);
- assert.match(resume[1],/github\.event\.action == 'kidults\.github\.read\.resume\.v1'/);
+ assert.equal(resume[1],"github.event_name == 'repository_dispatch' && github.event.action == 'kidults.github.read.resume.v1'");
+ assert.doesNotMatch(resume[0],/github\.event\.workflow_run/);
  assert.match(s,/kidults\.github\.read\.resume\.v1/);
- assert.match(resume[1],/github\.event\.workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
- assert.doesNotMatch(resume[1],/KIDULTS Autonomous (?:Track|KPMO|Independent Verification) Authorization V1/);
+ const terminal=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
+ assert.match(terminal,/KIDULTS Platform Continuous Assurance V1/);
+ assert.doesNotMatch(resume[0],/KIDULTS Autonomous (?:Track|KPMO|Independent Verification) Authorization V1/);
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
  const waiter=fs.readFileSync('scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs','utf8');
@@ -237,7 +238,6 @@ test('terminal role read-resume and operational Sentinel use separate edges',()=
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
  assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
   'KIDULTS ASI Requirement-to-Adapter Coverage v1',
-  'KIDULTS Platform Continuous Assurance V1',
  ]);
  assert.match(resume,/KIDULTS Autonomous Track Authorization V1/);
  assert.match(resume,/KIDULTS Autonomous KPMO Authorization V1/);
@@ -351,6 +351,16 @@ test('Sentinel producer readiness uses complete per-workflow exact-SHA paginatio
  assert.ok(barrier.includes("page=${page}"));
  assert.match(barrier,/RUN_INDEX_PAGINATION_BOUND/);
  assert.match(barrier,/run_attempt === 1/);
+});
+
+test('Assurance seals its read-only dedupe guard even after an earlier prerequisite fails',()=>{
+ const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+ const start=workflow.indexOf('- name: Resolve bounded ephemeral canonical leader or alias');
+ assert.notEqual(start,-1);
+ const end=workflow.indexOf('\n      - name:',start+1);
+ const step=workflow.slice(start,end<0?undefined:end);
+ assert.match(step,/if: always\(\)/);
+ assert.match(step,/--output "\$PACKET_DIR\/ephemeral-guard-receipt\.json"/);
 });
 
 test('inventory digest rebinding is non-semantic while mismatched copies and routing drift fail closed',()=>{

@@ -596,6 +596,10 @@ jobs:
             "$CONSUMPTION" >/dev/null
 
       - name: Resolve bounded ephemeral canonical leader or alias
+        # This is read-only and must still seal a guard receipt when an earlier
+        # Sentinel/continuation precondition fails. The failure remains fail-closed;
+        # receipt completeness must not be lost as a secondary error.
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash

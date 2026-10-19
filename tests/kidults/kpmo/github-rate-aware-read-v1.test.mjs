@@ -127,6 +127,15 @@ test('repeated throttling has finite attempts and increasing delays',async()=>{c
 test('successful remaining zero blocks subsequent reads',async()=>{const f=fixture([response(200,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'3700'})]);await f.read(url);await assert.rejects(f.read(url),/DEFERRED/);assert.equal(f.calls(),1);});
 test('shared invocation budget caps concurrent callers and calls',async()=>{let active=0,max=0,count=0;const budget=createReadBudget({maxCalls:3,maxConcurrent:1,minIntervalMs:0});const read=createGithubRateAwareRead({token:'fake',binding,budget,fetchImpl:async()=>{active++;max=Math.max(max,active);count++;await new Promise(r=>setTimeout(r,2));active--;return response(200);}});const results=await Promise.allSettled(Array.from({length:6},()=>read(url)));assert.equal(count,3);assert.equal(max,1);assert.equal(results.filter(r=>r.status==='rejected').length,3);});
 test('body cap cancels without waiting for uncooperative cleanup',async()=>{let cancelled=false;const f=fixture([{ok:true,status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(1048577)}),cancel:()=>{cancelled=true;return new Promise(()=>{});},releaseLock:()=>{}})}}]);await assert.rejects(f.read(url),/RESPONSE_BOUND/);assert.equal(cancelled,true);});
+test('response-bound failures retain only bounded route and byte diagnostics',async()=>{
+ const f=fixture([{ok:true,status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(1025)}),cancel:async()=>{},releaseLock:()=>{}})}}],{maxBytes:1024});
+ await assert.rejects(f.read(`${url}?token=secret&page=2`),error=>{
+  assert.equal(error.message,'GITHUB_READ_RESPONSE_BOUND');
+  assert.deepEqual(error.read_diagnostic,{method:'GET',route_path:'/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/10',observed_bytes:1025,max_bytes:1024});
+  assert.equal(JSON.stringify(error.read_diagnostic).includes('secret'),false);
+  return true;
+ });
+});
 test('clock rollback is not retry authority',async()=>{const f=fixture([response(200)]);f.setTime(99999);await assert.rejects(f.read(url),/CLOCK_ROLLBACK/);assert.equal(f.calls(),0);});
 test('foreign origin cannot receive token',async()=>{const f=fixture([]);await assert.rejects(f.read('https://example.com/repos/test'),/ORIGIN/);assert.equal(f.calls(),0);});
 test('bounded artifact ZIP bytes follow only an HTTPS GitHub artifact storage redirect',async()=>{

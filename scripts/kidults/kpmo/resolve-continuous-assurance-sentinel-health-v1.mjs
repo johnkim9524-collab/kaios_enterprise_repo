@@ -24,6 +24,8 @@ const CANONICAL_TRUTH_SPEC=SPECS.find((spec)=>spec.id==='CANONICAL_TRUTH');
 const CANONICAL_GENERATION_SPEC={id:'CANONICAL_GENERATION',workflow:'kpmo-canonical-generation-v3-apply.yml',path:'.github/workflows/kpmo-canonical-generation-v3-apply.yml',events:['push']};
 const CANONICAL_CONVERGENCE_MAX_WAIT_MS=90_000;
 const CANONICAL_CONVERGENCE_POLL_MS=5_000;
+const RUN_INDEX_PAGE_SIZE=25;
+const RUN_INDEX_MAX_PAGES=40;
 
 const stable=(value)=>Array.isArray(value)?`[${value.map(stable).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map((key)=>`${JSON.stringify(key)}:${stable(value[key])}`).join(',')}}`:JSON.stringify(value);
 const sha256=(value)=>`sha256:${crypto.createHash('sha256').update(typeof value==='string'?value:stable(value)).digest('hex')}`;
@@ -238,8 +240,8 @@ export function evaluateHealth(input){
   return sealReceipt(base);
 }
 
-async function api(url,token){
-  return runtimeGithubRead(token)(url);
+async function api(url,token,options={}){
+  return runtimeGithubRead(token,options)(url);
 }
 
 export function allowedArtifactRedirect(value){
@@ -276,20 +278,20 @@ async function workflowRuns(repo,spec,sha,token,{createdAfter=null,createdBefore
   for(let attempt=1;attempt<=RUN_INDEX_SNAPSHOT_ATTEMPTS;attempt+=1){
     const out=[];let expectedCount;
     try{
-      for(let page=1;page<=10;page+=1){
-        const params = new URLSearchParams({branch:'main',head_sha:sha,per_page:'100',page:String(page)});
+      for(let page=1;page<=RUN_INDEX_MAX_PAGES;page+=1){
+        const params = new URLSearchParams({branch:'main',head_sha:sha,per_page:String(RUN_INDEX_PAGE_SIZE),page:String(page)});
         if(createdRange) params.set('created',createdRange);
         const url=`https://api.github.com/repos/${repo}/actions/workflows/${spec.workflow}/runs?${params}`;
         const value=await readPage(url);
-        if(!Array.isArray(value?.workflow_runs)||value.workflow_runs.length>100||
-           !Number.isSafeInteger(value.total_count)||value.total_count<0||value.total_count>1000||
+        if(!Array.isArray(value?.workflow_runs)||value.workflow_runs.length>RUN_INDEX_PAGE_SIZE||
+           !Number.isSafeInteger(value.total_count)||value.total_count<0||value.total_count>RUN_INDEX_PAGE_SIZE*RUN_INDEX_MAX_PAGES||
            value.incomplete_results===true)throw new Error(`${spec.id}_RUN_INDEX_INVALID`);
         if(expectedCount===undefined)expectedCount=value.total_count;
         if(value.total_count!==expectedCount)throw new Error(`${spec.id}_RUN_INDEX_COUNT_CHANGED`);
         out.push(...value.workflow_runs);
         if(out.length>expectedCount)throw new Error(`${spec.id}_RUN_INDEX_CARDINALITY_INVALID`);
         if(out.length===expectedCount)return out;
-        if(value.workflow_runs.length<100)throw new Error(`${spec.id}_RUN_INDEX_TRUNCATED`);
+        if(value.workflow_runs.length<RUN_INDEX_PAGE_SIZE)throw new Error(`${spec.id}_RUN_INDEX_TRUNCATED`);
       }
       throw new Error(`${spec.id}_RUN_INDEX_PAGINATION_BOUND`);
     }catch(error){

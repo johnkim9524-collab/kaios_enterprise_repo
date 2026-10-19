@@ -24,7 +24,7 @@ function canonicalProducerWorkflowPath(path){
 }
 
 export async function consumeGithubReadResumeHandoff({event,readJson,readArchiveBytes,archiveReader=readArchive,now=()=>Date.now(),
-  wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),deadline=Number.MAX_SAFE_INTEGER,scheduleResume}){
+  wait=ms=>new Promise(resolve=>setTimeout(resolve,ms)),deadline=Number.MAX_SAFE_INTEGER,scheduleResume,scheduleOnly=false}){
   check(event?.action==='completed'&&typeof readJson==='function'&&typeof readArchiveBytes==='function','INPUT');
   const triggered=event.workflow_run;
   check(triggered&&Number.isSafeInteger(triggered.id)&&triggered.id>0&&Number.isSafeInteger(triggered.run_attempt)
@@ -120,6 +120,7 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
       artifact_id:artifact.id,artifact_digest:artifact.digest,checkpoint_digests:checkpointDigests,
       original_resume_at:new Date(checkpointResumeAt).toISOString(),read_only:true,actual_authority_granted:false};
   };
+  if(scheduleOnly)return defer('SWEEP_HANDOFF');
   if(delta>Math.min(MAX_RESUME_WAIT_MS,deadline-now()))return defer('RUNNER_WINDOW');
   if(delta>0)await wait(delta);
   if(now()>=deadline)return defer('RUNNER_DEADLINE');

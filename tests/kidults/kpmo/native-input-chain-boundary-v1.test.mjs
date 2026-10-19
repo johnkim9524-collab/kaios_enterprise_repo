@@ -24,7 +24,10 @@ test('unregistered native input stops before reading pair or invoking Track B',(
     const receipt=JSON.parse(fs.readFileSync(path.join(output,'runtime-domain-input-connections.json')));
     assert.equal(receipt.native_input_blocker,'SOURCE_PRODUCER_NOT_REGISTERED');
     assert.equal(receipt.domain_connections.length,13);
-    assert.ok(receipt.domain_connections.every(d=>d.state==='HOLD'&&!d.native_domain_proven));
+    assert.ok(receipt.domain_connections.every(d=>d.state==='FUTURE_EXPANSION'
+      &&d.blocking===false&&d.next_action==='ADD_AFTER_PROVIDER_CONTRACT'&&!d.native_domain_proven));
+    assert.equal(receipt.autonomous_scope.state,'VERIFIED_HOLD');
+    assert.equal(receipt.whole_platform_state,'VERIFIED_INCOMPLETE');
     assert.deepEqual(fs.readdirSync(output),['runtime-domain-input-connections.json']);
   }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });

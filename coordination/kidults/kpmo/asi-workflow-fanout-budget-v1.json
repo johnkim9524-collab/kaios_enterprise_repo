@@ -42,7 +42,8 @@
     "execution_workflow_run_edges_max": 37,
     "control_observer_edges_max": 20,
     "direct_consumers_per_producer_max": 2,
-    "workflow_run_chain_depth_max": 8,
+    "workflow_run_chain_depth_max": 3,
+    "workflow_run_static_graph_depth_max": 8,
     "cycles_max": 0
   },
   "control_observer": {
@@ -105,13 +106,12 @@
       "durable_runtime_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
       "canonical_execution_claimed": false
     },
-    "reason": "Continuous Assurance is a read-only control observer with an exact downstream allowlist. Role-failure read-resume observation is isolated in a terminal workflow so authorization runs cannot feed back through Sentinel into the authority gate. Its upstream producer set still detects failed, cancelled, waiting, missing, ambiguous, or stale evidence before estate-wide ASI-green interpretation.",
+    "reason": "Continuous Assurance is a read-only control observer with an exact downstream allowlist. Role-failure read-resume observation is isolated in a terminal workflow. Sentinel observes authoritative Coverage success and native clock/read-resume dispatches, but does not subscribe to Continuous Assurance; Continuous Assurance may consume Sentinel evidence without forming an automatic feedback cycle. Its upstream producer set detects failed, cancelled, waiting, missing, ambiguous, or stale evidence before estate-wide ASI-green interpretation.",
     "allowed_downstream_consumers": [
       "KIDULTS Autonomous Independent Verification V1",
       "KIDULTS Autonomous KPMO Authorization V1",
       "KIDULTS Autonomous Track Authorization V1",
       "KPMO Continuous Assurance Scheduled Authority Gate V1",
-      "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
       "KPMO Continuous Assurance Success Authority Gate V1",
       "KPMO Authorization Read-Resume Observer V1"
     ]
@@ -124,6 +124,37 @@
     "KIDULTS ASI State Department Camera Evidence v1",
     "KIDULTS ASI Sharded Source Reserve v1"
   ],
+  "critical_workflow_run_chain": [
+    "KIDULTS ASI P0B Bounded Discovery Candidates v1",
+    "KIDULTS ASI P1 Source Preflight v1",
+    "KIDULTS ASI Autonomous Resolution Layer v1",
+    "KIDULTS ASI Requirement-to-Adapter Coverage v1"
+  ],
+  "workflow_run_chain_limit_recovery": {
+    "limit": 3,
+    "independent_recovery_roots": [
+      {
+        "workflow": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+        "path": ".github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml",
+        "independent_event": "kidults.natural.clock.sentinel.v1",
+        "contract": "coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json",
+        "contract_slot": "SENTINEL"
+      },
+      {
+        "workflow": "KIDULTS Platform Continuous Assurance V1",
+        "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
+        "independent_event": "kidults.natural.clock.assurance.v1",
+        "contract": "coordination/kidults/kpmo/natural-clock-dual-source-contract-v1.json",
+        "contract_slot": "ASSURANCE"
+      },
+      {
+        "workflow": "KPMO Authorization Read-Resume Observer V1",
+        "path": ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
+        "independent_schedule": "*/15 * * * *",
+        "recovery_runner": "scripts/kidults/kpmo/run-scheduled-github-read-resume-sweep-v1.mjs"
+      }
+    ]
+  },
   "truth_boundary": {
     "workflow_success_creates_candidate_or_evidence": false,
     "workflow_success_starts_track_b": false,
@@ -156,14 +187,13 @@
       ]
     },
     "KIDULTS Platform Continuous Assurance V1": {
-      "max": 7,
-      "required_consumer": "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
+      "max": 6,
+      "required_consumer": "KPMO Continuous Assurance Success Authority Gate V1",
       "allowed_consumers": [
         "KIDULTS Autonomous Independent Verification V1",
         "KIDULTS Autonomous KPMO Authorization V1",
         "KIDULTS Autonomous Track Authorization V1",
         "KPMO Continuous Assurance Scheduled Authority Gate V1",
-        "KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1",
         "KPMO Continuous Assurance Success Authority Gate V1",
         "KPMO Authorization Read-Resume Observer V1"
       ]

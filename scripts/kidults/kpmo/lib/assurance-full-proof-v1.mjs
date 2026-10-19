@@ -62,25 +62,30 @@ export function verifyAutonomousRuntimeReadiness(proof, sourceSha, contract=runt
     ||new Set(sources.map(x=>x.domain_id)).size!==sources.length||sources.some(x=>!ids.includes(x.domain_id))
     ||policy?.scope!=='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
     ||!sameSet(policy.mandatory_runtime_domains,['SECURITY_SUPPLY_CHAIN'])
+    ||policy.future_expansion_domains?.length!==13
+    ||!sameSet(policy.future_expansion_domains,ids.filter(id=>!policy.mandatory_runtime_domains.includes(id)))
     ||policy.connected_registered_domains_required!==true||policy.unregistered_domains_block_autonomy!==false
-    ||policy.unregistered_domains_are_pass!==false||policy.whole_platform_completion_requires_all_14_domains!==true
+    ||policy.unregistered_domains_are_pass!==false||policy.unregistered_domains_are_future_expansion!==true
+    ||policy.future_expansion_scope!=='WHOLE_PLATFORM_ONLY'||policy.whole_platform_completion_requires_all_14_domains!==true
     ||policy.business_domain_activation_requires_authenticated_receipt!==true
     ||!sameSet(policy.required_operating_checks,['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS',
       'PROTECTED_LANDING','AWS_CONFIGURATION_AND_IMMUTABILITY','NATIVE_DISPATCH','NATIVE_RESUME_REUSE','FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'])
     ||policy.mandatory_runtime_domains.some(id=>!sources.some(x=>x.domain_id===id)))fail('AUTONOMOUS_RUNTIME_CONTRACT');
-  const required=sources.map(x=>x.domain_id), readiness=proof?.autonomous_runtime_readiness;
+  const required=policy.mandatory_runtime_domains, readiness=proof?.autonomous_runtime_readiness;
   if(proof?.id!==contract.id||proof?.source_sha!==sourceSha
     ||proof?.repository!==contract.repository||!verifyDigest(proof,['receipt_digest'])
     ||!Array.isArray(proof.value_chain)||!sameSet(proof.value_chain.map(x=>x.id),ids)
-    ||proof.runtime_domain_registry?.registered_domain_count!==required.length
+    ||proof.runtime_domain_registry?.registered_domain_count!==sources.length
     ||proof.runtime_domain_registry?.required_domain_count!==14
     ||proof.autonomous_runtime_readiness_proven!==true||readiness?.state!=='VERIFIED_PASS'
     ||readiness.scope!==policy.scope||readiness.required_domain_count!==required.length
     ||readiness.verified_domain_count!==required.length||!sameSet(readiness.domain_ids,required)
-    ||!sameSet(readiness.deferred_domain_ids,ids.filter(id=>!required.includes(id))))fail('AUTONOMOUS_RUNTIME_READINESS');
+    ||!sameSet(readiness.future_expansion_domain_ids,ids.filter(id=>!required.includes(id))))fail('AUTONOMOUS_RUNTIME_READINESS');
   for(const registration of sources){
     const domain=proof.value_chain.find(x=>x.id===registration.domain_id);
-    if(domain.runtime_state!=='VERIFIED_PASS'||!/^sha256:[a-f0-9]{64}$/.test(domain.runtime_receipt_digest||''))fail('AUTONOMOUS_RUNTIME_DOMAIN',domain.id);
+    if(required.includes(domain.id)&&(domain.runtime_state!=='VERIFIED_PASS'||!/^sha256:[a-f0-9]{64}$/.test(domain.runtime_receipt_digest||'')))fail('AUTONOMOUS_RUNTIME_DOMAIN',domain.id);
+    if(domain.runtime_state!=='VERIFIED_PASS')continue;
+    if(!/^sha256:[a-f0-9]{64}$/.test(domain.runtime_receipt_digest||''))fail('AUTONOMOUS_RUNTIME_DOMAIN',domain.id);
     if(!/^[-a-zA-Z0-9_.]+\.yml$/.test(registration.workflow||'')||!isId(domain.run_id)
       ||!Array.isArray(proof.protected_evidence))fail('AUTONOMOUS_RUNTIME_PRODUCER_BINDING');
     const matches=proof.protected_evidence.filter(x=>x.workflow_path===`.github/workflows/${registration.workflow}`
@@ -88,10 +93,10 @@ export function verifyAutonomousRuntimeReadiness(proof, sourceSha, contract=runt
       &&isId(x.artifact_id)&&/^sha256:[a-f0-9]{64}$/.test(x.artifact_digest||''));
     if(matches.length!==1)fail('AUTONOMOUS_RUNTIME_PRODUCER_BINDING',domain.id);
   }
-  // Deferred entries remain explicit non-PASS observations. Registration activates their gate.
+  // Future-expansion entries remain non-PASS whole-platform observations and do not gate this scope.
   if(proof.value_chain.some(x=>!required.includes(x.id)&&x.runtime_state==='VERIFIED_PASS'))fail('AUTONOMOUS_UNREGISTERED_PASS');
   return {state:'VERIFIED_PASS',scope:policy.scope,verified_domain_count:required.length,
-    required_domain_count:required.length,deferred_domain_ids:readiness.deferred_domain_ids,
+    required_domain_count:required.length,future_expansion_domain_ids:readiness.future_expansion_domain_ids,
     whole_platform_authority:false,promotion_eligible:false};
 }
 
@@ -170,7 +175,7 @@ export function verifyAssuranceReadiness({audit,proof,assuranceRun,auditJob,sour
     verified_domain_count:runtimeReadiness.verified_domain_count,
     required_domain_count:runtimeReadiness.required_domain_count??14,
     scope:runtimeReadiness.scope??'WHOLE_PLATFORM_RUNTIME_DOMAINS',
-    deferred_domain_ids:runtimeReadiness.deferred_domain_ids??[],
+    future_expansion_domain_ids:runtimeReadiness.future_expansion_domain_ids??[],
     whole_platform_authority:false,promotion_eligible:false,sentinel_run_id:Number(sentinel.run_id),sentinel_run_attempt:1,
     sentinel_artifact_id:Number(sentinel.artifact_id),sentinel_artifact_digest:sentinel.artifact_digest,
     observation_relationship:clockRoute?.mode??'CAUSAL_SENTINEL',

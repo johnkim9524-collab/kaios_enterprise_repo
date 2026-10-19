@@ -56,11 +56,24 @@ test('bounded resume admits the complete validated recovery checkpoint route set
     'actions/runs/4321/attempts/2/jobs?per_page=100','actions/artifacts/500/zip','pulls/2655','branches/main',
     `git/commits/${'c'.repeat(40)}`,`compare/${'a'.repeat(40)}...${'b'.repeat(40)}`,
     `compare/${'a'.repeat(40)}...${'b'.repeat(40)}?per_page=1&page=2`,
-    'actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&event=repository_dispatch&status=failure&per_page=100&page=1'];
+    'actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&event=repository_dispatch&status=failure&per_page=100&page=1',
+    'actions/workflows/kidults-platform-continuous-assurance-v1.yml/runs?branch=main&status=completed&created=%3E%3D2026-10-19T04:00:00.000Z&per_page=100&page=1'];
   for(const route of routes){
     const cp=checkpoint(1000);cp.unfinished_operation.route=`/repos/johnkim9524-collab/kaios_enterprise_repo/${route}`;
     await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>1000,
       read:async()=>{throw deferred(cp);}}),/GITHUB_READ_DEFERRED/);
+  }
+});
+
+test('bounded resume rejects sweep discovery outside the exact producer and query shape',async t=>{
+  const valid='actions/workflows/kidults-platform-continuous-assurance-v1.yml/runs?branch=main&status=completed&created=%3E%3D2026-10-19T04:00:00.000Z&per_page=100&page=1';
+  for(const route of [valid.replace('branch=main','branch=other'),valid.replace('page=1','page=2'),
+    valid.replace('created=%3E%3D','created=%3E'),valid.replace('kidults-platform-continuous-assurance','unknown')]){
+    const cp=checkpoint(1000);cp.unfinished_operation.route=`/repos/johnkim9524-collab/kaios_enterprise_repo/${route}`;
+    await t.test('rejects modified sweep query',async()=>{
+      await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>1000,
+        read:async()=>{throw deferred(cp);}}),/BOUNDED_GITHUB_READ_ROUTE/);
+    });
   }
 });
 

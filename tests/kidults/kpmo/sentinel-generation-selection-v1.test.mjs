@@ -28,20 +28,21 @@ const good=run();
 const artifact={id:110,name:spec.artifacts[0],expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-09-05T10:01:00Z',expires_at:'2026-12-01T00:00:00Z',workflow_run:{id:10,head_sha:sourceSha}};
 function evaluate(runs){return evaluateProducer(spec,runs,{10:[artifact]},sourceSha,observed,{110:bytes});}
 
-test('a moving paginated producer index is re-read once as a whole bounded snapshot',async()=>{
- const pages=[],waits=[];let reads=0;
+test('producer run indexes use bounded pages and re-read a moving snapshot once',async()=>{
+ const pages=[],waits=[],pageSizes=[];let reads=0;
  const result=await workflowRuns(REPOSITORY,SPECS.find(s=>s.id==='RESERVE'),sourceSha,'unused',{
   readPage:async raw=>{
-   const url=new URL(raw),page=Number(url.searchParams.get('page'));pages.push(page);reads++;
-   if(reads===1)return {total_count:101,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))};
-   if(reads===2)return {total_count:102,workflow_runs:[{id:101},{id:102}]};
-   if(page===1)return {total_count:102,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))};
-   return {total_count:102,workflow_runs:[{id:101},{id:102}]};
+   const url=new URL(raw),page=Number(url.searchParams.get('page'));pages.push(page);pageSizes.push(Number(url.searchParams.get('per_page')));reads++;
+   if(reads===1)return {total_count:26,workflow_runs:Array.from({length:25},(_,i)=>({id:i+1}))};
+   if(reads===2)return {total_count:27,workflow_runs:[{id:26},{id:27}]};
+   if(page===1)return {total_count:27,workflow_runs:Array.from({length:25},(_,i)=>({id:i+1}))};
+   return {total_count:27,workflow_runs:[{id:26},{id:27}]};
   },
   sleep:async ms=>waits.push(ms),
  });
- assert.equal(result.length,102);
+ assert.equal(result.length,27);
  assert.deepEqual(pages,[1,2,1,2]);
+ assert.deepEqual(pageSizes,[25,25,25,25]);
  assert.deepEqual(waits,[1000]);
 });
 
@@ -51,8 +52,8 @@ test('a persistently moving producer index stops at the retry bound',async()=>{
   readPage:async raw=>{
    const page=Number(new URL(raw).searchParams.get('page'));pages.push(page);reads++;
    return page===1
-    ? {total_count:101,workflow_runs:Array.from({length:100},(_,i)=>({id:i+1}))}
-    : {total_count:102,workflow_runs:[{id:101},{id:102}]};
+    ? {total_count:26,workflow_runs:Array.from({length:25},(_,i)=>({id:i+1}))}
+    : {total_count:27,workflow_runs:[{id:26},{id:27}]};
   },
   sleep:async ms=>waits.push(ms),
  }),/RESERVE_RUN_INDEX_COUNT_CHANGED/);
@@ -246,7 +247,7 @@ globalThis.fetch=async(value,options={})=>{
     const all=[data.run,...Array.from({length:100},(_,i)=>({...data.run,id:i+1000,created_at:'2026-09-05T09:00:00Z',conclusion:'failure'}))];
     if(data.scenario==='duplicate-page')all[100]=all[1];
     const total=data.scenario==='page-count-drift'&&page===2?102:101;
-    return Response.json({total_count:total,workflow_runs:all.slice((page-1)*100,page*100)});
+    return Response.json({total_count:total,workflow_runs:all.slice((page-1)*25,page*25)});
   }
   if(data.scenario==='oversized-index')return Response.json({total_count:1001,workflow_runs:[data.run]});
   let rows=[data.run];

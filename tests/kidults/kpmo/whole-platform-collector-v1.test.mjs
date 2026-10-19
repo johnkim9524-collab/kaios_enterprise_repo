@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {digest,readArchive} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {SPECS} from '../../../scripts/kidults/kpmo/resolve-continuous-assurance-sentinel-health-v1.mjs';
-import {collectWholePlatform} from '../../../scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs';
+import {buildAutonomousOperatingCompletion,collectWholePlatform} from '../../../scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs';
 const contract=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json'));
 const scorecard=JSON.parse(fs.readFileSync(contract.value_chain_source));
 const repository=contract.repository,source='a'.repeat(40),base='b'.repeat(40);
@@ -31,10 +31,16 @@ test('latest in-flight generation holds instead of choosing an older green or ca
   const f=fixture({active:true}),r=await f.run();assert.equal(r.state,'VERIFIED_INCOMPLETE');
   assert.equal(r.operating_checks.find(c=>c.id==='CORE_FOUR_CONTENT').state,'VERIFIED_HOLD');
   assert.equal(f.counts().downloads,0);assert.equal(r.whole_platform_runtime_proven,false);
-  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'HOLD');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,contract.runtime_domain_sources.length);
+  assert.ok(r.operating_checks.every(c=>c.retry_authorized===false));assert.equal(r.value_chain.length,14);assert.equal(r.runtime_domain_registry.state,'FUTURE_EXPANSION');assert.equal(r.runtime_domain_registry.required_domain_count,14);assert.equal(r.runtime_domain_registry.registered_domain_count,contract.runtime_domain_sources.length);
   assert.equal(r.runtime_evidence_demand.demands.length,14);
   assert.equal(r.runtime_evidence_demand.dispatch_authority,false);
   assert.equal(r.runtime_evidence_demand.verified_domain_count,0);
+  assert.equal(r.autonomous_operating_completion.state,'VERIFIED_HOLD');
+  assert.equal(r.autonomous_operating_completion.scope,'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM');
+  assert.equal(r.autonomous_operating_completion.required_runtime_domain_count,1);
+  assert.deepEqual(r.autonomous_operating_completion.future_expansion_runtime_domain_ids,[...contract.autonomous_operating_readiness.future_expansion_domains].sort());
+  assert.equal(r.runtime_evidence_demand.demands.filter(d=>d.state==='FUTURE_EXPANSION').length,13);
+  assert.equal(r.autonomous_operating_completion.whole_platform_runtime_proven,false);
 });
 test('foreign producer metadata and duplicate artifacts never become partial PASS',async()=>{
   for(const options of [{foreign:true},{duplicate:true}]){
@@ -50,20 +56,45 @@ test('main drift during collection prevents publication of an older certificate'
 });
 test('default observer queries bounded exact-SHA time windows and never dispatches',async()=>{
   const queries=[];
-  const read=async url=>{
+  const read=async (url,_token,options)=>{
     if(url.endsWith('/branches/main'))return {commit:{sha:source}};
     if(url.endsWith(`/git/commits/${source}`))return {sha:source,tree:{sha:'d'.repeat(40)},parents:[{sha:base},{sha:'e'.repeat(40)}],committer:{date:'2026-10-04T11:28:35Z'}};
     if(url.endsWith('/actions/runs/38132692877'))return null;
     if(url.includes('/pulls?'))return [];
-    if(url.includes('/runs?')){const query=new URL(url).searchParams;queries.push(query);return {total_count:0,workflow_runs:[]};}
+    if(url.includes('/runs?')){const query=new URL(url).searchParams;queries.push(query);assert.equal(options.maxBytes,4*1024*1024);return {total_count:0,workflow_runs:[]};}
     throw Error('unexpected GET');
   };
   const result=await collectWholePlatform({sourceSha:source,contract,scorecard,read,observedAt:'2026-10-04T12:30:00Z'});
   assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,3+contract.runtime_domain_sources.length);
-  for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'100');assert.equal(q.get('page'),'1');
+  for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'25');assert.equal(q.get('page'),'1');
     const [after,before]=q.get('created').split('..');const duration=Date.parse(before)-Date.parse(after);
     assert.equal(duration,q.get('head_sha')===source?contract.maximum_evidence_age_seconds*1000:7200000);
     assert.ok([source,base].includes(q.get('head_sha')));
+  }
+});
+
+test('one authenticated Security domain completes Autonomous Control Plane while 13 domains remain future expansion',()=>{
+  const policy=contract.autonomous_operating_readiness,checks=contract.required_operating_checks.map(id=>({id,state:'VERIFIED_PASS'}));
+  const runtimeReadiness={state:'VERIFIED_PASS',scope:policy.scope,required_domain_count:1,verified_domain_count:1,
+    domain_ids:['SECURITY_SUPPLY_CHAIN'],future_expansion_domain_ids:policy.future_expansion_domains};
+  const result=buildAutonomousOperatingCompletion({policy,runtimeReadiness,operatingChecks:checks,normalTerminalProven:true});
+  assert.equal(result.proven,true);assert.equal(result.completion.state,'VERIFIED_PASS');
+  assert.equal(result.completion.required_runtime_domain_count,1);assert.equal(result.completion.verified_runtime_domain_count,1);
+  assert.deepEqual(result.completion.future_expansion_runtime_domain_ids,[...policy.future_expansion_domains].sort());
+  assert.equal(result.completion.whole_platform_runtime_proven,false);
+  assert.deepEqual([result.completion.production,result.completion.public,result.completion.g5,result.completion.provider_activation],['HOLD','HOLD','HOLD','HOLD']);
+});
+test('missing Security receipt, operating check, or normal terminal keeps Autonomous Control Plane on HOLD',()=>{
+  const policy=contract.autonomous_operating_readiness,checks=contract.required_operating_checks.map(id=>({id,state:'VERIFIED_PASS'}));
+  const runtimeReadiness={state:'VERIFIED_PASS',scope:policy.scope,required_domain_count:1,verified_domain_count:1,
+    domain_ids:['SECURITY_SUPPLY_CHAIN'],future_expansion_domain_ids:[]};
+  for(const options of [
+    {runtimeReadiness:{...runtimeReadiness,state:'VERIFIED_HOLD',verified_domain_count:0,domain_ids:[]}},
+    {operatingChecks:checks.map(c=>c.id==='NATIVE_RESUME_REUSE'?{...c,state:'UNVERIFIED'}:c)},
+    {normalTerminalProven:false}
+  ]){
+    const result=buildAutonomousOperatingCompletion({policy,runtimeReadiness,operatingChecks:checks,normalTerminalProven:true,...options});
+    assert.equal(result.proven,false);assert.equal(result.completion.state,'VERIFIED_HOLD');
   }
 });
 
@@ -141,7 +172,10 @@ function completeChainFixture({missingGate=false,manual=false,clock=false,gateSk
 test('overlapping genuine generations retain older evidence and require both downstream terminals',async()=>{
   const r=await completeChainFixture();
   for(const id of ['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS'])assert.equal(r.operating_checks.find(c=>c.id===id).state,'VERIFIED_PASS',JSON.stringify(r.operating_checks));
-  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.assurance_runtime_readiness_proven,false);assert.equal(r.autonomous_runtime_readiness_proven,false);assert.equal(r.autonomous_operating_proven,false);assert.equal(r.autonomous_runtime_readiness.deferred_domain_ids.length,13);assert.equal(r.assurance_runtime_readiness.verified_domain_count,0);
+  assert.equal(r.natural_chain_terminals.length,2);assert.equal(r.state,'VERIFIED_INCOMPLETE');assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.assurance_runtime_readiness_proven,false);assert.equal(r.autonomous_runtime_readiness_proven,false);assert.equal(r.autonomous_operating_proven,false);assert.deepEqual(r.autonomous_runtime_readiness.future_expansion_domain_ids,[...contract.autonomous_operating_readiness.future_expansion_domains].sort());assert.equal(r.assurance_runtime_readiness.verified_domain_count,0);
+  assert.equal(r.autonomous_operating_completion.state,'VERIFIED_HOLD');
+  assert.equal(r.autonomous_operating_completion.required_runtime_domain_count,1);
+  assert.deepEqual(r.autonomous_operating_completion.future_expansion_runtime_domain_ids,[...contract.autonomous_operating_readiness.future_expansion_domains].sort());
 });
 test('missing Gate or manual Assurance cannot complete natural terminal proof',async()=>{
   for(const options of [{missingGate:true},{manual:true}]){

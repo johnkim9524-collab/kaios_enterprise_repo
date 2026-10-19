@@ -114,7 +114,14 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         }
         check(!response.redirected,'REDIRECT');
         const reader=response.body?.getReader();check(reader,'BODY');const chunks=[];let total=0;
-        try{for(;;){let item;try{item=await reader.read();}catch(error){bodyReadFailure=true;throw error;}const {done,value}=item;check(now()<deadline,'BODY_DEADLINE');if(done)break;total+=value.byteLength;check(total<=maxBytes,'RESPONSE_BOUND');chunks.push(Buffer.from(value));}}
+        try{for(;;){let item;try{item=await reader.read();}catch(error){bodyReadFailure=true;throw error;}const {done,value}=item;check(now()<deadline,'BODY_DEADLINE');if(done)break;total+=value.byteLength;if(total>maxBytes){
+          const error=Error('GITHUB_READ_RESPONSE_BOUND');
+          // Keep enough bounded, credential-free context to identify the
+          // oversized API route from the Assurance receipt. Never retain the
+          // query string, which may contain sensitive filters or tokens.
+          error.read_diagnostic={method:'GET',route_path:target.pathname,observed_bytes:total,max_bytes:maxBytes};
+          throw error;
+        }chunks.push(Buffer.from(value));}}
         catch(error){try{Promise.resolve(reader.cancel()).catch(()=>{});}catch{}throw error;}
         finally{reader.releaseLock();}
         check(now()<deadline,'BODY_DEADLINE');

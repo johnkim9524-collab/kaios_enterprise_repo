@@ -24,7 +24,12 @@ const canary=spec('IMMUTABILITY','kidults-autonomous-object-lock-canary-v1.yml',
 const dispatcher=spec('DISPATCHER','kidults-autonomous-dispatcher-v1.yml',['workflow_run','schedule','workflow_dispatch']);
 const finalizers=['track','kpmo','independent-verification'].map(role=>spec(`FINALIZER_${role}`,`kidults-autonomous-${role}-authorization-v1.yml`,['repository_dispatch','workflow_run']));
 const rootUrl=`https://api.github.com/repos/${REPOSITORY}`;
-const RECOVERY_HISTORY_PAGE_SIZE=100;
+// Keep run-history JSON pages below the bounded reader's default 1 MiB even
+// when Actions returns unusually large workflow-run objects.
+const RUN_INDEX_PAGE_SIZE=25;
+const RUN_INDEX_MAX_PAGES=40;
+const RUN_INDEX_MAX_RESPONSE_BYTES=4*1024*1024;
+const RECOVERY_HISTORY_PAGE_SIZE=RUN_INDEX_PAGE_SIZE;
 const RECOVERY_HISTORY_SEARCH_RESULT_CAP=1000;
 const RECOVERY_HISTORY_MAX_READS=240;
 const member=(packet,basename)=>{
@@ -34,7 +39,39 @@ const member=(packet,basename)=>{
 export function operatingProofFailureDisposition(error){
   if(error?.read_resume_checkpoint?.state==='READ_DEFERRED_NOT_AUTHORITY')
     return {state:'VERIFIED_HOLD',reason:'GITHUB_READ_DEFERRED_NOT_AUTHORITY'};
-  return {state:'VERIFIED_FAIL',reason:String(error?.message||error).split(':')[0]};
+  const result={state:'VERIFIED_FAIL',reason:String(error?.message||error).split(':')[0]};
+  if(error?.read_diagnostic?.method==='GET'&&typeof error.read_diagnostic.route_path==='string'
+    &&Number.isSafeInteger(error.read_diagnostic.observed_bytes)&&Number.isSafeInteger(error.read_diagnostic.max_bytes))
+    result.read_diagnostic=error.read_diagnostic;
+  return result;
+}
+export function buildAutonomousOperatingCompletion({policy,runtimeReadiness,operatingChecks,normalTerminalProven}){
+  const requiredChecks=policy?.required_operating_checks||[];
+  const expectedChecks=['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS','PROTECTED_LANDING',
+    'AWS_CONFIGURATION_AND_IMMUTABILITY','NATIVE_DISPATCH','NATIVE_RESUME_REUSE','FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'];
+  const exactChecks=Array.isArray(requiredChecks)&&JSON.stringify([...requiredChecks].sort())===JSON.stringify([...expectedChecks].sort());
+  const exactFutureExpansion=Array.isArray(policy?.future_expansion_domains)
+    &&Array.isArray(runtimeReadiness?.future_expansion_domain_ids)
+    &&policy.future_expansion_domains.length===13&&new Set(policy.future_expansion_domains).size===13
+    &&JSON.stringify([...policy.future_expansion_domains].sort())===JSON.stringify([...runtimeReadiness.future_expansion_domain_ids].sort());
+  const verifiedChecks=operatingChecks.filter(c=>requiredChecks.includes(c.id)&&c.state==='VERIFIED_PASS').map(c=>c.id).sort();
+  const proven=normalTerminalProven===true&&policy?.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
+    &&Array.isArray(policy.mandatory_runtime_domains)&&policy.mandatory_runtime_domains.length===1
+    &&policy.mandatory_runtime_domains[0]==='SECURITY_SUPPLY_CHAIN'
+    &&policy.unregistered_domains_block_autonomy===false&&policy.unregistered_domains_are_pass===false
+    &&policy.unregistered_domains_are_future_expansion===true&&policy.future_expansion_scope==='WHOLE_PLATFORM_ONLY'
+    &&exactFutureExpansion
+    &&runtimeReadiness?.state==='VERIFIED_PASS'&&runtimeReadiness.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
+    &&runtimeReadiness.required_domain_count===1&&runtimeReadiness.verified_domain_count===1
+    &&runtimeReadiness.domain_ids?.length===1&&runtimeReadiness.domain_ids[0]==='SECURITY_SUPPLY_CHAIN'
+    &&exactChecks&&requiredChecks.every(id=>operatingChecks.some(c=>c.id===id&&c.state==='VERIFIED_PASS'));
+  return {proven,completion:{state:proven?'VERIFIED_PASS':'VERIFIED_HOLD',
+    scope:policy?.scope||'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',
+    required_runtime_domain_count:runtimeReadiness?.required_domain_count??0,
+    verified_runtime_domain_count:runtimeReadiness?.verified_domain_count??0,
+    future_expansion_runtime_domain_ids:[...(runtimeReadiness?.future_expansion_domain_ids||[])].sort(),
+    required_operating_check_ids:requiredChecks,verified_operating_check_ids:verifiedChecks,
+    whole_platform_runtime_proven:false,production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD'}};
 }
 export function originalRecoveryHistoryQuery(originalRun,observedAt,page,windowStart,windowEnd){
   const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
@@ -42,13 +79,34 @@ export function originalRecoveryHistoryQuery(originalRun,observedAt,page,windowS
   const from=windowStart===undefined?queryStart:windowStart,to=windowEnd===undefined?queryEnd:windowEnd;
   requireEvidence(originalRun?.id===38132692877&&Number.isFinite(start)&&Number.isFinite(end)&&start<=end
     &&Number.isInteger(from)&&Number.isInteger(to)&&from>=queryStart&&to<=queryEnd&&from<=to
-    &&Number.isInteger(page)&&page>=1&&page<=10,'RECOVERY_HISTORY_INCIDENT_WINDOW');
+    &&Number.isInteger(page)&&page>=1&&page<=RUN_INDEX_MAX_PAGES,'RECOVERY_HISTORY_INCIDENT_WINDOW');
   // A terminal recovering this reservation cannot predate its original run.
   // Keep all source SHAs: reconciliation survives later protected-main merges.
   // Status is mutable even for runs created before the fixed cutoff. Filtering
   // success here changes page membership as in-flight runs finish.
   return new URLSearchParams({branch:'main',created:`${new Date(from).toISOString()}..${new Date(to).toISOString()}`,
-    per_page:'100',page:String(page)});
+    per_page:String(RECOVERY_HISTORY_PAGE_SIZE),page:String(page)});
+}
+export async function collectBoundedWorkflowRunWindow({get,workflow,sourceSha,after,before}){
+  requireEvidence(typeof get==='function'&&/^[a-f0-9]{40}$/.test(sourceSha||'')
+    &&typeof workflow==='string'&&workflow.length>0&&Number.isFinite(after)&&Number.isFinite(before)&&after<=before,'RUN_WINDOW_INPUT');
+  const values=[];let count;
+  for(let page=1;page<=RUN_INDEX_MAX_PAGES;page++){
+    const query=new URLSearchParams({branch:'main',head_sha:sourceSha,
+      created:`${new Date(after).toISOString()}..${new Date(before).toISOString()}`,
+      per_page:String(RUN_INDEX_PAGE_SIZE),page:String(page)});
+    const index=await get(`actions/workflows/${workflow}/runs?${query}`);
+    requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=RUN_INDEX_PAGE_SIZE
+      &&Number.isSafeInteger(index.total_count)&&index.total_count>=0&&index.total_count<=1000,'RUN_WINDOW_INDEX');
+    if(count===undefined)count=index.total_count;requireEvidence(count===index.total_count,'RUN_WINDOW_CHANGED');
+    const expected=Math.min(RUN_INDEX_PAGE_SIZE,count-(page-1)*RUN_INDEX_PAGE_SIZE);
+    requireEvidence(index.workflow_runs.length===expected,'RUN_WINDOW_PAGE_CARDINALITY');
+    values.push(...index.workflow_runs);requireEvidence(values.length<=count,'RUN_WINDOW_CARDINALITY');
+    if(values.length===count)break;
+    requireEvidence(index.workflow_runs.length===RUN_INDEX_PAGE_SIZE&&page<RUN_INDEX_MAX_PAGES,'RUN_WINDOW_TRUNCATED');
+  }
+  requireEvidence(values.length===count,'RUN_WINDOW_TRUNCATED');
+  return values;
 }
 export async function listOriginalRecoveryHistory({originalRun,observedAt,get,workflow}){
   const start=Date.parse(originalRun?.created_at),end=Date.parse(observedAt);
@@ -110,7 +168,8 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   listRuns=null,archiveReader=readArchive,archiveByteCacheFactory=createInvocationArchiveByteCache,observedAt=new Date().toISOString()}){
   const out=inventoryWholePlatform(contract,scorecard,sourceSha);
   out.observed_at=observedAt;out.repository=REPOSITORY;out.protected_evidence=[];
-  const get=p=>read(`${rootUrl}/${p}`,token);
+  const get=p=>read(`${rootUrl}/${p}`,token,
+    /^actions\/workflows\/[^/]+\/runs\?/.test(p)?{maxBytes:RUN_INDEX_MAX_RESPONSE_BYTES}:undefined);
   const readBytes=archiveByteCacheFactory({download});
   const main=await get('branches/main');requireEvidence(main.commit?.sha===sourceSha,'EXACT_MAIN');
   const commit=await get(`git/commits/${sourceSha}`);
@@ -118,7 +177,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   const check=id=>out.operating_checks.find(c=>c.id===id);
   const mark=(id,state,reason,refs=[])=>Object.assign(check(id),{state,reason,evidence_refs:refs});
   const attempt=async(ids,work)=>{try{await work();}catch(error){const disposition=operatingProofFailureDisposition(error);
-    for(const id of ids)mark(id,disposition.state,disposition.reason);}};
+    for(const id of ids){mark(id,disposition.state,disposition.reason);if(disposition.read_diagnostic)check(id).read_diagnostic=disposition.read_diagnostic;}}};
   const runs=async(s,sha=sourceSha)=>{
     let values;
     if(listRuns)values=await listRuns(REPOSITORY,s,sha,token);
@@ -126,16 +185,7 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
       const before=sha===sourceSha?Date.parse(observedAt):Date.parse(commit.committer?.date);
       requireEvidence(Number.isFinite(before),'RUN_WINDOW_TIME');
       const after=before-(sha===sourceSha?contract.maximum_evidence_age_seconds:7200)*1000;
-      values=[];let count;
-      for(let page=1;page<=10;page++){
-        const query=new URLSearchParams({branch:'main',head_sha:sha,created:`${new Date(after).toISOString()}..${new Date(before).toISOString()}`,per_page:'100',page:String(page)});
-        const index=await get(`actions/workflows/${s.workflow}/runs?${query}`);
-        requireEvidence(Array.isArray(index.workflow_runs)&&index.workflow_runs.length<=100&&Number.isSafeInteger(index.total_count)&&index.total_count>=0&&index.total_count<=1000,'RUN_WINDOW_INDEX');
-        if(count===undefined)count=index.total_count;requireEvidence(count===index.total_count,'RUN_WINDOW_CHANGED');
-        values.push(...index.workflow_runs);requireEvidence(values.length<=count,'RUN_WINDOW_CARDINALITY');
-        if(values.length===count)break;
-        requireEvidence(index.workflow_runs.length===100&&page<10,'RUN_WINDOW_TRUNCATED');
-      }
+      values=await collectBoundedWorkflowRunWindow({get,workflow:s.workflow,sourceSha:sha,after,before});
     }
     return selectProducerGeneration(values,s,sha,observedAt).candidates.reverse();
   };
@@ -427,7 +477,15 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
     const requiredDomainCount=Number(contract.runtime_domain_registry_required_count);
     requireEvidence(Number.isSafeInteger(requiredDomainCount)&&requiredDomainCount===14,'DOMAIN_REGISTRY_REQUIRED_COUNT');
     requireEvidence(Array.isArray(sources)&&sources.length<=requiredDomainCount,'DOMAIN_REGISTRY');
-    out.runtime_domain_registry={state:sources.length===requiredDomainCount?'VERIFIED_PASS':'HOLD',required_domain_count:requiredDomainCount,registered_domain_count:sources.length,reason:sources.length===requiredDomainCount?'EXACT_REGISTERED_RUNTIME_DOMAIN_SET':'AUTHENTICATED_EXACT_MAIN_RUNTIME_RECEIPT_REQUIRED'};
+    const registeredIds=sources.map(x=>x.domain_id),mandatoryIds=contract.autonomous_operating_readiness?.mandatory_runtime_domains||[];
+    const exactWholeRegistry=sources.length===requiredDomainCount&&new Set(registeredIds).size===requiredDomainCount
+      &&contract.value_chain_dimensions.every(id=>registeredIds.includes(id));
+    const scopedRegistry=mandatoryIds.length===1&&mandatoryIds.includes('SECURITY_SUPPLY_CHAIN')
+      &&mandatoryIds.every(id=>registeredIds.includes(id));
+    const registryState=exactWholeRegistry?'VERIFIED_PASS':scopedRegistry?'FUTURE_EXPANSION':'HOLD';
+    out.runtime_domain_registry={state:registryState,required_domain_count:requiredDomainCount,registered_domain_count:sources.length,
+      reason:registryState==='VERIFIED_PASS'?'EXACT_REGISTERED_RUNTIME_DOMAIN_SET':registryState==='FUTURE_EXPANSION'
+        ?'SCOPED_AUTONOMY_REGISTRY_COMPLETE_FUTURE_EXPANSION':'AUTHENTICATED_EXACT_MAIN_RUNTIME_RECEIPT_REQUIRED'};
     for(const source of sources){
       requireEvidence(contract.value_chain_dimensions.includes(source.domain_id)&&!ids.has(source.domain_id),'DOMAIN_REGISTRY_COVERAGE');ids.add(source.domain_id);
       requireEvidence(/^kidults-[a-z0-9-]+\.yml$/.test(source.workflow||'')&&/^kidults-[a-z0-9-]+$/.test(source.artifact_prefix||''),'DOMAIN_PRODUCER_REGISTRATION');
@@ -448,25 +506,30 @@ export async function collectWholePlatform({sourceSha,contract,scorecard,token,r
   out.assurance_runtime_readiness_proven=assuranceRuntimeReady;
   const autonomyPolicy=contract.autonomous_operating_readiness;
   const connected=(contract.runtime_domain_sources||[]).map(x=>x.domain_id);
+  const autonomyRequired=autonomyPolicy?.mandatory_runtime_domains||[];
+  const expectedFutureExpansion=contract.value_chain_dimensions.filter(id=>!autonomyRequired.includes(id)).sort();
   const autonomyReady=autonomyPolicy?.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
     &&autonomyPolicy.connected_registered_domains_required===true
     &&Array.isArray(autonomyPolicy.mandatory_runtime_domains)
     &&autonomyPolicy.mandatory_runtime_domains.includes('SECURITY_SUPPLY_CHAIN')
-    &&autonomyPolicy.mandatory_runtime_domains.every(id=>connected.includes(id))
+    &&autonomyRequired.length===1&&autonomyRequired.includes('SECURITY_SUPPLY_CHAIN')
+    &&autonomyRequired.every(id=>connected.includes(id))
+    &&Array.isArray(autonomyPolicy.future_expansion_domains)
+    &&JSON.stringify([...autonomyPolicy.future_expansion_domains].sort())===JSON.stringify(expectedFutureExpansion)
     &&connected.length>0&&new Set(connected).size===connected.length
-    &&connected.every(id=>verifiedDomains.some(d=>d.id===id));
+    &&autonomyRequired.every(id=>verifiedDomains.some(d=>d.id===id));
   out.autonomous_runtime_readiness={state:autonomyReady?'VERIFIED_PASS':'VERIFIED_HOLD',
-    scope:'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',required_domain_count:connected.length,
-    verified_domain_count:verifiedDomains.filter(d=>connected.includes(d.id)).length,
-    domain_ids:verifiedDomains.filter(d=>connected.includes(d.id)).map(d=>d.id).sort(),
-    deferred_domain_ids:contract.value_chain_dimensions.filter(id=>!connected.includes(id)).sort()};
+    scope:'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',required_domain_count:autonomyRequired.length,
+    verified_domain_count:verifiedDomains.filter(d=>autonomyRequired.includes(d.id)).length,
+    domain_ids:verifiedDomains.filter(d=>autonomyRequired.includes(d.id)).map(d=>d.id).sort(),
+    future_expansion_domain_ids:[...autonomyPolicy.future_expansion_domains].sort()};
+  if(!assuranceRuntimeReady&&autonomyReady)out.assurance_runtime_readiness.state='FUTURE_EXPANSION';
   out.autonomous_runtime_readiness_proven=autonomyReady;
   const normalTerminalProven=out.original_terminal_reconciliation?.normal_landing_terminal_proven!==false;
-  out.autonomous_operating_proven=normalTerminalProven&&autonomyReady&&Array.isArray(autonomyPolicy.required_operating_checks)
-    &&JSON.stringify([...autonomyPolicy.required_operating_checks].sort())===JSON.stringify([
-      'CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS','PROTECTED_LANDING',
-      'AWS_CONFIGURATION_AND_IMMUTABILITY','NATIVE_DISPATCH','NATIVE_RESUME_REUSE','FINALIZER_RESERVATION_AND_IMMUTABLE_TERMINAL'].sort())
-    &&autonomyPolicy.required_operating_checks.every(id=>out.operating_checks.some(c=>c.id===id&&c.state==='VERIFIED_PASS'));
+  const completion=buildAutonomousOperatingCompletion({policy:autonomyPolicy,runtimeReadiness:out.autonomous_runtime_readiness,
+    operatingChecks:out.operating_checks,normalTerminalProven});
+  out.autonomous_operating_proven=completion.proven;
+  out.autonomous_operating_completion=completion.completion;
   out.runtime_evidence_demand=buildRuntimeEvidenceDemand({definition:demandDefinition,contract,proof:out});
   out.whole_platform_runtime_proven=normalTerminalProven&&out.operating_checks.every(c=>c.state==='VERIFIED_PASS')&&out.value_chain.every(c=>c.runtime_state==='VERIFIED_PASS');
   out.state=out.operating_checks.some(c=>c.state==='VERIFIED_FAIL')?'VERIFIED_FAIL':out.whole_platform_runtime_proven?'VERIFIED_PASS':'VERIFIED_INCOMPLETE';
@@ -482,7 +545,8 @@ async function main(){
     const token=process.env.GH_TOKEN||process.env.GITHUB_TOKEN;requireEvidence(!!token,'TOKEN');
     const result=await collectWholePlatform({sourceSha,contract,scorecard,token});
     fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
-    console.log(JSON.stringify({state:result.state,whole_platform_runtime_proven:result.whole_platform_runtime_proven}));
+    console.log(JSON.stringify({state:result.state,autonomous_operating_completion:result.autonomous_operating_completion,
+      whole_platform_runtime_proven:result.whole_platform_runtime_proven}));
     if(result.state==='VERIFIED_FAIL')process.exitCode=1;
   }catch(error){
     const failure={id:contract.id,source_sha:sourceSha,state:'VERIFIED_FAIL',failure_class:String(error.message).split(':')[0],

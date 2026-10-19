@@ -46,8 +46,13 @@ test('pending observation is not a completion receipt and strict completion stil
   assert.throws(()=>verifyInternalOperatingRecovery(sealed,source));
   assert.throws(()=>verifyAssuranceRuntimeReadiness(r,source));
 });
-test('observation rejects real failures, malformed checks, tampering and authority elevation',()=>{
-  for(const state of ['VERIFIED_FAIL','PASS','UNKNOWN']){
+test('observation preserves real failure evidence while malformed checks still fail closed',()=>{
+  const failed=fixture();failed.operating_checks[0]={id:INTERNAL_RECOVERY_CHECKS[0],state:'VERIFIED_FAIL',reason:'GITHUB_READ_RESPONSE_BOUND'};
+  const observed=observeInternalOperatingRecovery(seal(failed),source);
+  assert.equal(observed.state,'VERIFIED_FAIL');assert.equal(observed.failed_checks.length,1);
+  assert.deepEqual(observed.failed_checks[0],{id:INTERNAL_RECOVERY_CHECKS[0],state:'VERIFIED_FAIL',reason:'GITHUB_READ_RESPONSE_BOUND',evidence_refs:[]});
+  assert.equal(observed.recovery_receipt,null);assert.equal(observed.operating_recovery_proven,false);
+  for(const state of ['PASS','UNKNOWN']){
     const p=fixture();p.operating_checks[0].state=state;assert.throws(()=>observeInternalOperatingRecovery(seal(p),source));
   }
   const duplicate=fixture();duplicate.operating_checks.push(duplicate.operating_checks[0]);

@@ -4,9 +4,42 @@ import {zip,text} from './recovery-native-archive-fixture-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {issueKirCoverageAssuranceContinuation,consumeKirCoverageAssuranceContinuation} from '../../../scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs';
-import {verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
+import {createBoundedRecoveryRunGet,verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
 import {assuranceSentinelObservationRoute} from '../../../scripts/kidults/kpmo/lib/assurance-sentinel-observation-route-v1.mjs';
 const repo='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40);
+test('recovery run read waits for a shared-budget resume and charges a fresh bounded GET',async()=>{
+ let now=1000,calls=0,waits=0;const persisted=[],env={GITHUB_RUN_ID:'700',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:sha};
+ const get=createBoundedRecoveryRunGet({env,token:'test-token',now:()=>now,wait:async ms=>{waits++;now+=ms;},maxRuntimeMs:10000,
+   persistCheckpoint:checkpoint=>persisted.push(checkpoint),readFactory:(_token,options)=>async url=>{assert.equal(options.resumeDeadline,11000);assert.equal(options.persistCheckpoints,false);assert.equal(url,'https://api.github.com/repos/'+repo+'/actions/runs/800');calls++;
+     if(calls===1){const error=Error('GITHUB_READ_DEFERRED');error.read_resume_checkpoint={id:'kidults-github-read-resume-checkpoint-v1',version:'1.0.0',
+       state:'READ_DEFERRED_NOT_AUTHORITY',binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',run_id:'700',run_attempt:1,source_sha:sha},
+       unfinished_operation:{method:'GET',route:`/repos/${repo}/actions/runs/800`},reason:'SHARED_GITHUB_READ_BUDGET',resume_at:new Date(3000).toISOString(),
+       original_reservation_preserved:true,reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
+       promotion_eligible:false,mutation_retry_authorized:false};throw error;}return {id:800};}});
+ assert.deepEqual(await get('actions/runs/800'),{id:800});assert.equal(calls,2);assert.equal(waits,1);assert.equal(now,3000);assert.deepEqual(persisted,[]);
+});
+test('recovery run read preserves the checkpoint when its shared-budget wait exceeds the runner deadline',async()=>{
+ let calls=0;const persisted=[],env={GITHUB_RUN_ID:'700',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:sha};
+ const get=createBoundedRecoveryRunGet({env,token:'test-token',now:()=>1000,maxRuntimeMs:2000,persistCheckpoint:checkpoint=>persisted.push(checkpoint),
+   readFactory:()=>async()=>{calls++;const error=Error('GITHUB_READ_DEFERRED');error.read_resume_checkpoint={id:'kidults-github-read-resume-checkpoint-v1',version:'1.0.0',
+     state:'READ_DEFERRED_NOT_AUTHORITY',binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',run_id:'700',run_attempt:1,source_sha:sha},
+     unfinished_operation:{method:'GET',route:`/repos/${repo}/actions/runs/800`},reason:'SHARED_GITHUB_READ_BUDGET',resume_at:new Date(3000).toISOString(),
+     original_reservation_preserved:true,reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
+     promotion_eligible:false,mutation_retry_authorized:false};throw error;}});
+ await assert.rejects(get('actions/runs/800'),error=>error?.read_resume_checkpoint?.reason==='SHARED_GITHUB_READ_BUDGET');assert.equal(calls,1);
+ assert.equal(persisted.length,1);assert.equal(persisted[0].reason,'SHARED_GITHUB_READ_BUDGET');
+});
+test('a non-retryable response after a resumed permit discards the stale checkpoint',async()=>{
+ let now=1000,calls=0;const persisted=[],env={GITHUB_RUN_ID:'700',GITHUB_RUN_ATTEMPT:'1',GITHUB_SHA:sha};
+ const get=createBoundedRecoveryRunGet({env,token:'test-token',now:()=>now,wait:async ms=>{now+=ms;},maxRuntimeMs:10000,
+   persistCheckpoint:checkpoint=>persisted.push(checkpoint),readFactory:()=>async()=>{calls++;if(calls===1){const error=Error('GITHUB_READ_DEFERRED');
+     error.read_resume_checkpoint={id:'kidults-github-read-resume-checkpoint-v1',version:'1.0.0',state:'READ_DEFERRED_NOT_AUTHORITY',
+       binding:{root_mission:'AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION',run_id:'700',run_attempt:1,source_sha:sha},
+       unfinished_operation:{method:'GET',route:`/repos/${repo}/actions/runs/800`},reason:'SHARED_GITHUB_READ_BUDGET',resume_at:new Date(2000).toISOString(),
+       original_reservation_preserved:true,reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
+       promotion_eligible:false,mutation_retry_authorized:false};throw error;}throw Error('GITHUB_HTTP_403');}});
+ await assert.rejects(get('actions/runs/800'),/GITHUB_HTTP_403/);assert.equal(calls,2);assert.deepEqual(persisted,[]);
+});
 test('failed Assurance admits only explicitly authenticated Coverage Sentinel continuation',()=>{
  const sentinelPath='.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml';
  const assuranceRun={id:990,event:'workflow_dispatch',path:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',head_sha:sha,head_branch:'main',repository:{full_name:repo}};
