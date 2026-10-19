@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "b55e9177c71b70d60aa196aa01552b20da783441",
+  "revision": "326d87e106a9fe4c48a00c3d1ae11232604fb385",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3868,8 +3868,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "591c12094469e69692f2ceacd7e5808b11b2c761",
-      "sha256": "sha256:74b39bde7a1c0befe0e1a68234ffb1a5b18d281de92f86423dfd776143690841",
+      "git_blob": "bfc45ac45643d7eb69e8bf0d0a3c560d60fd8933",
+      "sha256": "sha256:ba71970ca21c2b1444229c1b2a60d15802691afc7a34e203b231f637e4e2377a",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4300ab43b6b64a511d4d1e2523863c648f19e9eae8416dff3c8da74a7514e090"
+  "manifest_sha256": "sha256:54d4bfacdd4895e8f0bed627d31ec84cbf6dd1d4616a8e0eb17aa660005e85b4"
 }
