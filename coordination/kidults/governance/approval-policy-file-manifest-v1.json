@@ -665,8 +665,8 @@
     {
       "path": ".github/workflows/kpmo-authorization-read-resume-observer-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "62502fc79af8b0af5aab2c707cf8bf37b71a260d",
-      "sha256": "sha256:3d6bf2a5c398c0b6f886aa6eb0326cbdbb552878e60c77d24b30dd1726224354",
+      "git_blob": "e8838bf034dc917c55d9acdce509bd0fa2653f79",
+      "sha256": "sha256:df273156e985ce3e89cf37616136bb06cfca6ed77cfdd1ad31f8b78ad019e13b",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
