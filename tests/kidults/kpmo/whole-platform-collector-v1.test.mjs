@@ -66,7 +66,7 @@ test('default observer queries bounded exact-SHA time windows and never dispatch
   };
   const result=await collectWholePlatform({sourceSha:source,contract,scorecard,read,observedAt:'2026-10-04T12:30:00Z'});
   assert.equal(result.state,'VERIFIED_INCOMPLETE');assert.equal(queries.length,3+contract.runtime_domain_sources.length);
-  for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'25');assert.equal(q.get('page'),'1');
+  for(const q of queries){assert.equal(q.get('branch'),'main');assert.equal(q.get('per_page'),'100');assert.equal(q.get('page'),'1');
     const [after,before]=q.get('created').split('..');const duration=Date.parse(before)-Date.parse(after);
     assert.equal(duration,q.get('head_sha')===source?contract.maximum_evidence_age_seconds*1000:7200000);
     assert.ok([source,base].includes(q.get('head_sha')));
