@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "9c66ca27f62fc66f840842bfd3bc0e49edcb577f",
+  "revision": "327003317e111ea9ad3138f28f7d261a6c2de466",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 861
+    "file_count": 862
   },
   "files": [
     {
@@ -2420,6 +2420,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "e28144f42cebbfe20e3811b87cf04dae530cced7",
       "sha256": "sha256:b9ecf68f68d74a3b2265c26840b2b2307365b651f2e2df65494cc6cef11bcf5d",
+      "authorization_routing": {
+        "route": "NON_EXECUTING_REFERENCE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "NON_EXECUTING_POLICY_TEST_DOCUMENT_OR_RECORD"
+        }
+      }
+    },
+    {
+      "path": "coordination/kidults/kpmo/whole-platform-assurance-read-recovery-draft-payload-20261020-v2.json",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "98263594bb5fa83dc271c61c14e2bfc101a0652e",
+      "sha256": "sha256:25d79bfea70ec9fca69b2e3228720844b13be6ede7215323d33effa2277f6a4f",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7254,5 +7267,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c71dd7931de44bf9e77ddef27ffc91a5225908a115fd5f6e27a4aefa15763f09"
+  "manifest_sha256": "sha256:d3072d1552b224e5af46d7de3806cad4074ce9bdbd732333c83dc4522d7db037"
 }
