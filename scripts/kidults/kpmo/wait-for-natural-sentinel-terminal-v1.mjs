@@ -105,7 +105,7 @@ function eventIssuedAt() {
   }
   return Date.parse(value);
 }
-function candidatesFrom(runs, cutoffMs) {
+function candidatesFrom(runs, cutoffMs, observationStartMs = cutoffMs - cutoffWindowSeconds * 1000) {
   const sentinelEvent = EVENT_NAME === 'workflow_dispatch' && FORWARDED_COVERAGE_RUN_ID > 0 ? 'workflow_dispatch' : 'repository_dispatch';
   return (runs || []).filter(run =>
     sentinelRunNameMatches(run?.name, run?.id, sentinelEvent) &&
@@ -117,7 +117,7 @@ function candidatesFrom(runs, cutoffMs) {
     run?.event === sentinelEvent &&
     positive(run?.id) &&
     run?.run_attempt === 1 &&
-    withinSentinelObservationWindow(Date.parse(run?.created_at || ''), cutoffMs, cutoffWindowSeconds)
+    withinSentinelObservationWindow(Date.parse(run?.created_at || ''), cutoffMs, cutoffWindowSeconds, observationStartMs)
   ).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
 }
 async function observe(run) {
@@ -249,13 +249,17 @@ async function main() {
     return;
   }
   const issued = eventIssuedAt();
-  const cutoffMs = issued ?? Date.now();
+  const observationStartMs = (issued ?? Date.now()) - cutoffWindowSeconds * 1000;
   const deadline = Date.now() + timeoutSeconds * 1000;
   let lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
   while (Date.now() <= deadline) {
     try {
-      const listing = {workflow_runs: await workflowRuns(cutoffMs)};
-      const candidates = candidatesFrom(listing.workflow_runs, cutoffMs);
+      // Dispatch events have a causal issued_at cutoff. Scheduled Assurance has
+      // no issued_at, so advance the upper bound on every poll while keeping the
+      // lower observation bound fixed at the run's start window.
+      const cutoffMs = issued ?? Date.now();
+      const listing = {workflow_runs: await workflowRuns(cutoffMs, observationStartMs)};
+      const candidates = candidatesFrom(listing.workflow_runs, cutoffMs, observationStartMs);
       const latest = candidates.at(-1);
       if (!latest) {
         lastError = 'ASSURANCE_SENTINEL_BARRIER_NO_APPLICABLE_RUN';
