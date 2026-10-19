@@ -75,7 +75,10 @@ test('exactly 1000 results are partitioned instead of assumed complete',async()=
     const [from,to]=q.get('created').split('..').map(Date.parse);
     const page=Number(q.get('page'));
     const match=all.filter(run=>Date.parse(run.created_at)>=from&&Date.parse(run.created_at)<=to);
-    return {total_count:match.length,workflow_runs:match.slice((page-1)*25,page*25)};
+    // GitHub caps a created-window search at 1,000 rows. It reports the cap
+    // even when the actual window is larger, and only exposes that prefix.
+    const cappedCount=Math.min(match.length,1000);
+    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*25,Math.min(page*25,cappedCount))};
   }});
   assert.ok(requests>=40&&requests<240);assert.equal(result.workflow_runs.length,1000);assert.equal(result.complete,true);
 });
@@ -91,7 +94,8 @@ test('2,500-run history is completely reconciled through disjoint created window
     const [from,to]=q.get('created').split('..').map(Date.parse);
     const page=Number(q.get('page'));
     const match=all.filter(run=>Date.parse(run.created_at)>=from&&Date.parse(run.created_at)<=to);
-    return {total_count:match.length,workflow_runs:match.slice((page-1)*25,page*25)};
+    const cappedCount=Math.min(match.length,1000);
+    return {total_count:cappedCount,workflow_runs:match.slice((page-1)*25,Math.min(page*25,cappedCount))};
   }});
   assert.equal(result.workflow_runs.length,2500);assert.equal(result.total_count,2500);
   assert.equal(result.complete,true);assert.equal(result.read_count,requests);
