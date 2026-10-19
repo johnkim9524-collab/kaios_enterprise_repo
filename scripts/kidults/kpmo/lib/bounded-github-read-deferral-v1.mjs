@@ -49,14 +49,15 @@ export async function readWithBoundedGithubDeferrals({route,read,expectedBinding
     return Number.isFinite(start)&&Number.isFinite(end)&&new Date(start).toISOString()===range[1]&&new Date(end).toISOString()===range[2]
       &&Number.isSafeInteger(observed)&&start<=end&&end-start<=maxAgeMs&&end<=observed;
   };
-  const originalRunIdBound=(typeof expectedBinding?.original_run_id==='string'
-    &&/^[1-9][0-9]{0,15}$/.test(expectedBinding.original_run_id))
-    ||(Number.isSafeInteger(expectedBinding?.original_run_id)&&expectedBinding.original_run_id>0
-      &&expectedBinding.original_run_id<=9999999999999999);
-  const originalMissionBound=originalRunIdBound&&Number.isSafeInteger(expectedBinding.original_run_attempt)
-    &&expectedBinding.original_run_attempt>=1&&expectedBinding.original_run_attempt<=100
-    &&Number.isSafeInteger(expectedBinding.original_artifact_id)&&expectedBinding.original_artifact_id>0
-    &&/^sha256:[a-f0-9]{64}$/.test(expectedBinding.original_artifact_digest||'');
+  const originalBinding=checkpoint.binding;
+  const originalRunIdBound=(typeof originalBinding?.original_run_id==='string'
+    &&/^[1-9][0-9]{0,15}$/.test(originalBinding.original_run_id))
+    ||(Number.isSafeInteger(originalBinding?.original_run_id)&&originalBinding.original_run_id>0
+      &&originalBinding.original_run_id<=9999999999999999);
+  const originalMissionBound=originalRunIdBound&&Number.isSafeInteger(originalBinding.original_run_attempt)
+    &&originalBinding.original_run_attempt>=1&&originalBinding.original_run_attempt<=100
+    &&Number.isSafeInteger(originalBinding.original_artifact_id)&&originalBinding.original_artifact_id>0
+    &&/^sha256:[a-f0-9]{64}$/.test(originalBinding.original_artifact_digest||'');
   const trackHistoryAllowed=Boolean(trackHistory)&&originalMissionBound
     &&validHistoryRange(trackHistory[1],trackHistory[2],31*24*60*60*1000);
   const securityHistoryAllowed=Boolean(securityHistory)&&securityHistory[1]===expectedBinding?.source_sha
