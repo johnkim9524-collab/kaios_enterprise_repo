@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "5f73e0164f8fa6d6ed48fb9732a72842bcf9acbf",
+  "revision": "660c3b4b7c0b4d3569ddd41c8c0245d4314e6871",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -7004,8 +7004,8 @@
     {
       "path": "tests/kidults/kpmo/sentinel-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "ba50317cd80db0d1d9a204a6bd5b33da1aaec656",
-      "sha256": "sha256:77fd9d85822fb2fa181e85682e0a467205a638db7beb4d744d93a3fae0d26b7a"
+      "git_blob": "888bae87faa27dbb0fb204c568da25c3f95c5340",
+      "sha256": "sha256:c6193bd04a5514126a0f0507a2220cfd010ec3974e63c672ead0dea6df95dfab"
     },
     {
       "path": "tests/kidults/kpmo/shared-github-read-budget-dynamodb-v1.test.mjs",
@@ -7254,5 +7254,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9081315aa198c3480def6d65130c0855ffd48ce77d7c14b16709d543a1786171"
+  "manifest_sha256": "sha256:a6c5385265aa1f2dbe5e4b23b2d7e6c6e4c3a07e3665fb2a21fc35ec468da684"
 }
