@@ -390,6 +390,7 @@ jobs:
        (github.event.workflow_run.repository.full_name == github.repository &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.name == 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' &&
+        (github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'workflow_run') &&
         github.event.workflow_run.status == 'completed' &&
         github.event.workflow_run.conclusion == 'success')) &&
       (github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main')
@@ -1244,6 +1245,7 @@ jobs:
         if: >-
           github.event_name == 'workflow_run' &&
           github.event.workflow_run.path == '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml' &&
+          (github.event.workflow_run.event == 'repository_dispatch' || github.event.workflow_run.event == 'workflow_run') &&
           github.event.workflow_run.conclusion == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1280,6 +1282,15 @@ jobs:
           "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
           "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/internal-operating-recovery-observation-v1.json"
           --observe
+
+      - name: Preserve read-only rate wait checkpoint
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-github-read-resume-assurance-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/github-read-resume-v1/
+          if-no-files-found: ignore
+          retention-days: 90
 
       - name: Upload exact-run assurance packet
         if: always()

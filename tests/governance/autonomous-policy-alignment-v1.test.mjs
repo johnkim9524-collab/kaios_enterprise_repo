@@ -96,7 +96,7 @@ test('exact read-only recovery admission and staging-budget workflow transitions
     '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':'sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041',
     '.github/workflows/kidults-autonomous-track-authorization-v1.yml':'sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921',
     '.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml':'sha256:86c56b0494692474bee8a9b8f693ca2afe44529f6cdc01526d83e21d6c03e5cd',
-    '.github/workflows/kidults-platform-continuous-assurance-v1.yml':'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
+    '.github/workflows/kidults-platform-continuous-assurance-v1.yml':'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
   };
   const pinnedBaseContent=filename=>{
     const base_content=fs.readFileSync(`tests/fixtures/governance/autonomous-policy-alignment-v1/base/${filename.split('/').at(-1)}`,'utf8');
