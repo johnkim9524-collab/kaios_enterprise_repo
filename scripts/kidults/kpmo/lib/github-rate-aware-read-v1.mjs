@@ -26,7 +26,8 @@ const artifactStorageUrl=(location,base)=>{
   check(value.protocol==='https:'&&!value.username&&!value.password&&!value.hash&&host,'REDIRECT');
   return value;
 };
-export function createReadBudget({maxCalls=240,maxConcurrent=2,minIntervalMs=100,now=()=>Date.now(),wait=ms=>new Promise(r=>setTimeout(r,ms))}={}){
+// Match the protected cross-runner hourly ceiling; its shared CAS ledger still arbitrates concurrent runners.
+export function createReadBudget({maxCalls=480,maxConcurrent=2,minIntervalMs=100,now=()=>Date.now(),wait=ms=>new Promise(r=>setTimeout(r,ms))}={}){
   check(Number.isSafeInteger(minIntervalMs)&&minIntervalMs>=0&&minIntervalMs<=1000&&Number.isSafeInteger(maxCalls)&&maxCalls>0&&maxCalls<=1000&&Number.isSafeInteger(maxConcurrent)&&maxConcurrent>0&&maxConcurrent<=4,'BUDGET_CONFIG');
   let calls=0,active=0,nextAt=0,blockedUntil=0;const queue=[];
   async function acquire({deadline=Number.MAX_SAFE_INTEGER}={}){
