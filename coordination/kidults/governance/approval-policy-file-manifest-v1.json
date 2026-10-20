@@ -6562,8 +6562,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fce06e8439026f9d37d3dc694e5b2712ee135c79",
-      "sha256": "sha256:a60a06d4cd1aeffa69f010add0a3bbfc6afcf82f350beaacaded56245d2b603a",
+      "git_blob": "303dfaa55d0c738731294e10ab41fa4eab41b4f1",
+      "sha256": "sha256:872635482e96058f2ef06f1029f303dbb68721edb2ce5fd124eaf5ddcc1c7c1b",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7280,5 +7280,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:2c41470fe312aeff805a113050b4babb8665d2e17195c5e6763bb349a8ed29c0"
+  "manifest_sha256": "sha256:5e3fdb553eeff623ca8c774d5a721f958f17287bab8dfee7d693413b08df0ad4"
 }
