@@ -12,7 +12,14 @@ export function createGithubReadResumeScheduleRequest({binding,resumeAt,checkpoi
   check(binding&&/^[1-9][0-9]{0,19}$/.test(String(binding.run_id))&&Number.isSafeInteger(binding.run_attempt)
     &&binding.run_attempt>=1&&binding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(binding.source_sha||'')
     &&Number.isSafeInteger(binding.artifact_id)&&binding.artifact_id>0&&/^sha256:[a-f0-9]{64}$/.test(binding.artifact_digest||'')
-    &&['push','workflow_run','repository_dispatch'].includes(binding.producer_event)
+    &&['.github/workflows/kidults-autonomous-track-authorization-v1.yml',
+      '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+      '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
+      '.github/workflows/kidults-platform-continuous-assurance-v1.yml'].includes(binding.producer_workflow_path)
+    &&(['push','workflow_run','repository_dispatch'].includes(binding.producer_event)
+      ||(binding.producer_event==='schedule'
+        &&binding.producer_workflow_path==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
+        &&binding.producer_conclusion==='failure'))
     &&['failure','success'].includes(binding.producer_conclusion),'BINDING');
   check(Number.isSafeInteger(resumeAt)&&resumeAt>now&&Number.isSafeInteger(now),'TIME');
   check(Array.isArray(checkpointDigests)&&checkpointDigests.length>=1&&checkpointDigests.length<=8
@@ -20,7 +27,8 @@ export function createGithubReadResumeScheduleRequest({binding,resumeAt,checkpoi
   check(dispatcherArn===DISPATCHER_ARN&&schedulerRoleArn===SCHEDULER_ROLE_ARN,'TARGET');
   const scheduledAt=Math.ceil(resumeAt/1000)*1000;
   const exactBinding={run_id:String(binding.run_id),run_attempt:binding.run_attempt,source_sha:binding.source_sha,
-    artifact_id:binding.artifact_id,artifact_digest:binding.artifact_digest,producer_event:binding.producer_event,
+    artifact_id:binding.artifact_id,artifact_digest:binding.artifact_digest,producer_workflow_path:binding.producer_workflow_path,
+    producer_event:binding.producer_event,
     producer_conclusion:binding.producer_conclusion};
   const checkpoint_digests=[...new Set(checkpointDigests.map(value=>value.replace(/^sha256:/,'')))].sort();
   const identityHex=createHash('sha256').update(canonicalJson({repo:REPO,binding:exactBinding,

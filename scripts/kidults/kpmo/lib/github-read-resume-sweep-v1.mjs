@@ -7,6 +7,11 @@ export const READ_RESUME_SWEEP_PRODUCERS=Object.freeze([
 ]);
 const check=(ok,code)=>{if(!ok)throw Error(`GITHUB_READ_RESUME_SWEEP_${code}`);};
 
+export function shouldStopReadResumeSweep(result){
+  return result?.state==='READ_ONLY_CHECKPOINT_RESUMED'||result?.state==='READ_ONLY_CHECKPOINTS_RESUMED'
+    ||(result?.state==='RESUME_SCHEDULED'&&result.created_now===true);
+}
+
 export function readResumeSweepRoute(producer,{createdAfter}){
   check(READ_RESUME_SWEEP_PRODUCERS.some(item=>item.path===producer?.path&&item.name===producer?.name),'PRODUCER');
   const parsed=Date.parse(createdAfter);

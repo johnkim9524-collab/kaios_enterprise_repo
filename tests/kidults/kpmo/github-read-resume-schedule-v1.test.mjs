@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createGithubReadResumeScheduleRequest,verifyGithubReadResumeScheduleReadback} from '../../../scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs';
 
 const binding={run_id:'4321',run_attempt:2,source_sha:'a'.repeat(40),artifact_id:789,artifact_digest:`sha256:${'b'.repeat(64)}`,
+  producer_workflow_path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
   producer_event:'workflow_run',producer_conclusion:'failure'};
 const checkpointDigests=['c'.repeat(64),'d'.repeat(64)];
 const now=Date.parse('2026-10-12T10:01:00.000Z'),resumeAt=Date.parse('2026-10-12T10:20:00.100Z');
@@ -35,6 +36,17 @@ test('accepts an exact push producer for the same bounded one-time schedule oper
   assert.equal(request.input.resume_binding.producer_event,'push');
   assert.equal(request.input.slot,'READ_RESUME');
   assert.equal(request.input.source,'aws.scheduler');
+});
+
+test('accepts a failed scheduled Assurance producer only under its exact workflow path',()=>{
+  const assurancePath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
+  const request=createGithubReadResumeScheduleRequest({binding:{...binding,producer_workflow_path:assurancePath,
+    producer_event:'schedule',producer_conclusion:'failure'},resumeAt,checkpointDigests,now});
+  assert.equal(request.input.resume_binding.producer_workflow_path,assurancePath);
+  assert.equal(request.input.resume_binding.producer_event,'schedule');
+  assert.throws(()=>createGithubReadResumeScheduleRequest({binding:{...binding,producer_event:'schedule'},resumeAt,checkpointDigests,now}),/BINDING/);
+  assert.throws(()=>createGithubReadResumeScheduleRequest({binding:{...binding,producer_workflow_path:assurancePath,
+    producer_event:'schedule',producer_conclusion:'success'},resumeAt,checkpointDigests,now}),/BINDING/);
 });
 
 test('rejects malformed or already-due schedule requests',()=>{
