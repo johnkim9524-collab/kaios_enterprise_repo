@@ -283,8 +283,8 @@ jobs:
           GUARD="$RUNNER_TEMP/upstream-assurance-packet/ephemeral-guard-receipt.json"
           test -s "$GUARD"
           jq -e --arg repo "$GITHUB_REPOSITORY" --arg sha "$KPMO_SOURCE_SHA" '
-            .current.repository == $repo and
-            .current.source_sha == $sha and
+            .repository == $repo and
+            .source_sha == $sha and
             ((.audit_execution_disposition // "") | startswith("EXECUTE_FULL_AUDIT"))
           ' "$GUARD" >/dev/null
           trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
