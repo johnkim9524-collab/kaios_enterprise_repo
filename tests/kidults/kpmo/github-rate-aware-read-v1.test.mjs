@@ -151,6 +151,13 @@ for(const reset of ['99','999999999','not-a-time'])test('invalid reset '+reset+'
 test('repeated throttling has finite attempts and increasing delays',async()=>{const headers={'retry-after':'1'},f=fixture([response(429,headers),response(429,headers),response(429,headers)]);await assert.rejects(f.read(url),/DEFERRED/);assert.equal(f.calls(),3);assert.deepEqual(f.waits,[1000,2000]);assert.equal(f.checkpoints[0].attempts_used,3);});
 test('successful remaining zero blocks subsequent reads',async()=>{const f=fixture([response(200,{'x-ratelimit-remaining':'0','x-ratelimit-reset':'3700'})]);await f.read(url);await assert.rejects(f.read(url),/DEFERRED/);assert.equal(f.calls(),1);});
 test('shared invocation budget caps concurrent callers and calls',async()=>{let active=0,max=0,count=0;const budget=createReadBudget({maxCalls:3,maxConcurrent:1,minIntervalMs:0});const read=createGithubRateAwareRead({token:'fake',binding,budget,fetchImpl:async()=>{active++;max=Math.max(max,active);count++;await new Promise(r=>setTimeout(r,2));active--;return response(200);}});const results=await Promise.allSettled(Array.from({length:6},()=>read(url)));assert.equal(count,3);assert.equal(max,1);assert.equal(results.filter(r=>r.status==='rejected').length,3);});
+test('default invocation read budget matches the protected shared ceiling',async()=>{
+ const budget=createReadBudget({minIntervalMs:0});
+ assert.equal(budget.snapshot().max_calls,480);
+ for(let i=0;i<480;i++){const release=await budget.acquire();release();}
+ assert.equal(budget.snapshot().calls,480);
+ await assert.rejects(budget.acquire(),/GITHUB_READ_INVOCATION_BUDGET_EXHAUSTED/);
+});
 test('body cap cancels without waiting for uncooperative cleanup',async()=>{let cancelled=false;const f=fixture([{ok:true,status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(1048577)}),cancel:()=>{cancelled=true;return new Promise(()=>{});},releaseLock:()=>{}})}}]);await assert.rejects(f.read(url),/RESPONSE_BOUND/);assert.equal(cancelled,true);});
 test('response-bound failures retain only bounded route and byte diagnostics',async()=>{
  const f=fixture([{ok:true,status:200,headers:new Headers(),body:{getReader:()=>({read:async()=>({done:false,value:new Uint8Array(1025)}),cancel:async()=>{},releaseLock:()=>{}})}}],{maxBytes:1024});
