@@ -148,6 +148,8 @@ test('full audit reconciliation uses the existing KPMO trust and keeps whole-pla
   assert.match(protectedMainJob,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
   assert.match(protectedMainJob,/workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
   assert.match(protectedMainJob,/github\.event\.workflow_run\.head_sha/);
+  assert.match(protectedMainJob,/\.repository == \$repo and[\s\S]*\.source_sha == \$sha and/);
+  assert.doesNotMatch(protectedMainJob,/\.current\.(repository|source_sha)/);
   assert.match(protectedMainJob,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
   assert.match(protectedMainJob,/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
 });
