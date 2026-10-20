@@ -572,7 +572,7 @@ const independentlyPinnedStagingBudgetWorkflowDigests=Object.freeze([
 ]);
 const independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests=Object.freeze([
   'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
-  'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
+  'sha256:99b585c4ed884ce21368326cfde4c394c8be43af091183f17d4bbb524b3fe937',
 ]);
 const independentlyMatchesExactStagingBudgetWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'
   &&hash(file.base_content)===independentlyPinnedStagingBudgetWorkflowDigests[0]
