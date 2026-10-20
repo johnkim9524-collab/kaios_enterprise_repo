@@ -1,4 +1,4 @@
-# KIDULTS A-B-C-D-E Collaboration Bootstrap
+# KIDULTS A-B-C-D-E-Q Collaboration Bootstrap
 
 **Version:** 1.2.0
 **Effective:** 2026-08-12 KST  
@@ -7,7 +7,7 @@
 
 ## Purpose
 
-This directory is the startup package for five KIDULTS workstreams.
+This directory is the startup package for six KIDULTS workstreams.
 
 - **Track A — 120 Intelligence Factory:** produces versioned intelligence snapshot candidates and Evidence Packages.
 - **Track B — Rankability & Validation Gate:** independently validates one exact snapshot candidate.
@@ -46,6 +46,7 @@ The platform host may permit local sandbox edits and tests in an explicitly user
 - `TRACK_C_PORTAL_V502_BOOTSTRAP.md`
 - `TRACK_D_DATA_PLATFORM_BOOTSTRAP.md`
 - `coordination/kidults/bootstrap/TRACK_E_EXECUTIVE_OS_BOOTSTRAP.md`
+- `coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md`
 
 ## Mandatory common keys
 
