@@ -70,7 +70,7 @@ const expected = [
 ];
 
 requireTrue(bootstrap.id === 'kidults-ai-agent-bootstrap-remediation-sequence-v1', 'BOOTSTRAP_ID');
-requireTrue(bootstrap.version === '1.3.0', 'BOOTSTRAP_VERSION');
+requireTrue(bootstrap.version === '1.4.0', 'BOOTSTRAP_VERSION');
 requireTrue(bootstrap.status === 'MANDATORY_FAIL_CLOSED', 'BOOTSTRAP_STATUS');
 requireTrue(bootstrap.scope === 'ALL_AI_AGENTS_AND_AUTOMATIONS', 'BOOTSTRAP_SCOPE');
 requireTrue(bootstrap.trigger === 'REVERSIBLE_INTERNAL_DEFECT_WITHIN_GRANTED_AUTHORITY', 'BOOTSTRAP_TRIGGER');
