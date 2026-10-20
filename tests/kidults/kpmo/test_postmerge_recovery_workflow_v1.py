@@ -67,6 +67,29 @@ class RecoveryWorkflowTests(unittest.TestCase):
         track = self.workflow('track')
         self.assertNotIn('repository_dispatch', track['on'])
 
+    def test_kpmo_approval_is_automatically_bound_and_recorded(self):
+        workflow = self.workflow('kpmo')
+        job = workflow['jobs']['record-role-approval']
+        self.assertIn("github.event_name == 'repository_dispatch'", job['if'])
+        self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", job['if'])
+        self.assertIn("github.ref == 'refs/heads/main'", job['if'])
+        self.assertEqual(job['environment'], 'KIDULTS-AUTONOMOUS-KPMO')
+        self.assertEqual(job['permissions']['id-token'], 'write')
+        self.assertEqual(job['permissions']['pull-requests'], 'read')
+        steps = job['steps']
+        self.assertTrue(any(step.get('run') == 'node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs'
+                            for step in steps))
+        approval = next(step for step in steps if step.get('name') == 'Record role-scoped approval only')
+        self.assertEqual(approval['env']['KIDULTS_AUTONOMOUS_MODE'], 'APPROVAL')
+        self.assertEqual(approval['env']['KIDULTS_AUTONOMOUS_APPROVAL_ROLE'], 'KPMO')
+        self.assertIn('node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs', approval['run'])
+        receipt = next(step for step in steps if step.get('name') == 'Upload role approval receipt')
+        self.assertIn('approval-receipt.json', receipt['with']['path'])
+        finalizer = workflow['jobs']['finalize-if-quorum']
+        self.assertEqual(finalizer['needs'], 'record-role-approval')
+        self.assertIn("needs.record-role-approval.result == 'success'", finalizer['if'])
+        self.assertIn('KIDULTS-AUTONOMOUS-FINALIZER', finalizer['environment'])
+
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_workflow()
         gate = workflow['jobs']['success-authority-gate']
