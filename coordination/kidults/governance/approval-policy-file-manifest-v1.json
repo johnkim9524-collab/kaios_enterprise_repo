@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 863
+    "file_count": 864
   },
   "files": [
     {
@@ -6716,6 +6716,12 @@
       "sha256": "sha256:2e065bc1b632e0c1a192d0b24531090aa4cf5d0bf841e762f0626bcdc95adfa6"
     },
     {
+      "path": "tests/kidults/kpmo/assurance-full-proof-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "22129e7bc134b1b68e8d1c9487a310bd3c1e857f",
+      "sha256": "sha256:47958e17190e1b28e81ac75053039bd006a9df32f375c31f69e6632ef9010e71"
+    },
+    {
       "path": "tests/kidults/kpmo/atomic-dispatch-identity-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "60dbaa997f285030e0c5d383647fb9efedfb7c71",
@@ -7280,5 +7286,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:b7ab53947a962b179bff999b60bcbb2941e0ead4d18b654a232873a927f93de6"
+  "manifest_sha256": "sha256:b6dbabd6bb89df245dbeeea57bb268978e68c832354baa2f8e0b93dda75a70ee"
 }
