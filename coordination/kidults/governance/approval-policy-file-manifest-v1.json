@@ -7090,8 +7090,8 @@
     {
       "path": "tests/kidults/kpmo/test_postmerge_recovery_workflow_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "9921cee894a4c6c3c0277da199118ecc5738be0f",
-      "sha256": "sha256:fe4cdfbef49ee403ac501cbae5c70ab90db4be8a59cbbe3802e7a60908206cea"
+      "git_blob": "d0746cfebad84dc11f451a6899b233cd5e6227a5",
+      "sha256": "sha256:223be537dba84e65040e2c7a90c58927bfabb45c9803296635d506cf413578ed"
     },
     {
       "path": "tests/kidults/kpmo/test_shared_github_read_budget_ledger_v1.py",
@@ -7292,5 +7292,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:1b514ba5e79617ea89ea0958696b0b861f2c2f95564b42b9bdc28a1a47368c8c"
+  "manifest_sha256": "sha256:64c41c08298e126415f9725fbe8de28b6be28a70f44d9c2b3865d825db5aef5e"
 }
