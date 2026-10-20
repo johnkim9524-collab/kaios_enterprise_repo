@@ -549,6 +549,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          PROOF_DIR="$RUNNER_TEMP/kidults-main-operating-proof"
           test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
 
       - name: Set up pinned Node
@@ -1424,7 +1425,6 @@ jobs:
       id-token: write
     env:
       KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
-      PROOF_DIR: ${{ runner.temp }}/kidults-main-operating-proof
     steps:
       - name: Checkout exact protected main source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
