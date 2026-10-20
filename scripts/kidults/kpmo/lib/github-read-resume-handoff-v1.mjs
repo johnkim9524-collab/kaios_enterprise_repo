@@ -49,6 +49,7 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
   const producerWorkflowPath=canonicalProducerWorkflowPath(run?.path);
   check(run?.id===triggered.id&&run.run_attempt===triggered.run_attempt&&run.head_sha===triggered.head_sha
     &&producerWorkflowPath&&run.event===triggered.event&&run.head_branch==='main'
+    &&(!resumeSchedule||resumeSchedule.resume_binding.producer_workflow_path===producerWorkflowPath)
     &&(run.event!=='schedule'||(producerWorkflowPath==='.github/workflows/kidults-platform-continuous-assurance-v1.yml'
       &&run.conclusion==='failure'))
     &&run.status==='completed'&&run.conclusion===triggered.conclusion
@@ -115,7 +116,8 @@ export async function consumeGithubReadResumeHandoff({event,readJson,readArchive
       checkpoint_digests:checkpointDigests,read_only:true,actual_authority_granted:false};
     const scheduledResumeAt=Math.max(checkpointResumeAt,now()+60_000);
     const scheduled=await scheduleResume({binding:{run_id:String(run.id),run_attempt:run.run_attempt,source_sha:run.head_sha,
-      artifact_id:artifact.id,artifact_digest:artifact.digest,producer_event:run.event,producer_conclusion:run.conclusion},
+      artifact_id:artifact.id,artifact_digest:artifact.digest,producer_workflow_path:producerWorkflowPath,
+      producer_event:run.event,producer_conclusion:run.conclusion},
       resumeAt:scheduledResumeAt,originalResumeAt:checkpointResumeAt,checkpointDigests});
     check(scheduled?.state==='RESUME_SCHEDULED','SCHEDULE_READBACK');
     return {...scheduled,reason,run_id:run.id,run_attempt:run.run_attempt,source_sha:run.head_sha,

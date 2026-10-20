@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {runtimeGithubRead} from './lib/runtime-github-read-v1.mjs';
 import {readWithBoundedGithubDeferrals} from './lib/bounded-github-read-deferral-v1.mjs';
-import {READ_RESUME_SWEEP_PRODUCERS,readResumeSweepRoute,selectReadResumeSweepCandidates,deterministicReadResumeSweepWakeAt}
+import {READ_RESUME_SWEEP_PRODUCERS,readResumeSweepRoute,selectReadResumeSweepCandidates,deterministicReadResumeSweepWakeAt,shouldStopReadResumeSweep}
   from './lib/github-read-resume-sweep-v1.mjs';
 import {consumeGithubReadResumeHandoff} from './lib/github-read-resume-handoff-v1.mjs';
 import {createGithubReadResumeScheduleRequest,verifyGithubReadResumeScheduleReadback} from './lib/github-read-resume-schedule-v1.mjs';
@@ -84,8 +84,7 @@ try{
         bucket:env.KIDULTS_AUTONOMOUS_RECEIPT_BUCKET,keyArn:env.KIDULTS_AUTONOMOUS_RECEIPT_KEY_ARN});
       receipts.push({producer_role:producer.role,run_id:candidate.id,run_attempt:candidate.run_attempt,
         source_sha:candidate.head_sha,result,terminal_receipt:terminal,immutable_terminal:immutable?terminal:null,immutable_copy:immutable});
-      if(result.state==='RESUME_SCHEDULED'||result.state==='READ_ONLY_CHECKPOINT_RESUMED'
-        ||result.state==='READ_ONLY_CHECKPOINTS_RESUMED'){stopSweep=true;break;}
+      if(shouldStopReadResumeSweep(result)){stopSweep=true;break;}
     }
     if(stopSweep)break;
   }

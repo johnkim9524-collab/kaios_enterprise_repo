@@ -17,15 +17,18 @@ test('autonomous landing uses existing exact delta verifier on natural main upda
   assert.match(x,/validate-autonomous-landing-staging-deployment-v1\.mjs/);
   assert.match(x,/AUTO-STAGING-AUTONOMOUS-LANDING/);
 });
-test('natural clock auto deploy is code-only and template changes remain owner bounded', () => {
+test('natural clock STAGING deployment remains owner-dispatched on exact main',()=>{
   const x=wf('kidults-natural-clock-deploy-v1.yml');
-  const push=x.slice(x.indexOf('  push:'),x.indexOf('  workflow_dispatch:'));
-  assert.match(push,/natural-clock-dispatcher-v1\.cjs/);
-  assert.match(push,/kidults-natural-clock-deploy-v1\.yml/);
-  assert.doesNotMatch(push,/natural-clock-dispatcher-v1\.json/);
-  assert.match(x,/validate-staging-no-authority-expansion-v1\.mjs/);
-  assert.match(x,/AUTO-STAGING-NATURAL-CLOCK/);
+  const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/staging-normal-ops-autonomy-policy-v1.json','utf8'));
+  assert.ok(policy.owner_boundary_exact.includes('kidults-natural-clock-deploy-v1.yml'));
+  assert.ok(!policy.auto_normal_ops.includes('kidults-natural-clock-deploy-v1.yml'));
+  assert.match(x,/workflow_dispatch:/);
+  assert.match(x,/github.actor == github.repository_owner/);
+  assert.match(x,/github.sha == inputs.main_sha/);
+  assert.doesNotMatch(x,/^  push:/m);
+  assert.match(x,/validate-staging-no-authority-expansion-v1.mjs/);
 });
+
 test('fresh owner approval creation cannot revoke itself', () => {
   const x=wf('kidults-direct-owner-landing-handoff-v1.yml');
   const event=x.slice(x.indexOf('  issue_comment:'),x.indexOf('\n\nconcurrency:'));

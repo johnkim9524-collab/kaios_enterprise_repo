@@ -168,7 +168,7 @@ test('repository-wide manual-only workflows are an exact reviewed exception set'
     'kidults-autonomous-smithsonian-sample.yml','kidults-cloudflare-pages-boundary-readonly-v1.yml',
     'kidults-cloudflare-pages-emergency-control-v1.yml','kidults-cloudflare-pages-staging-deploy-v1.yml',
     'kidults-er-r7k-finalization-boundary.yml','kidults-er-r7k-graded-population.yml',
-    'kidults-graded-authority-probe-gate-v1.yml',
+    'kidults-graded-authority-probe-gate-v1.yml','kidults-natural-clock-deploy-v1.yml',
     'kidults-pcgs-banknote-alias-probe-r1.yml','kidults-pcgs-live-single-record-probe-r1.yml',
     'kidults-production-release-evidence-v1.yml','kidults-runtime-remote-readonly-inventory.yml',
     'kidults-staging-ssh-postgres-readonly-v1.yml',

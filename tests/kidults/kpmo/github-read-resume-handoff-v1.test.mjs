@@ -133,6 +133,7 @@ test('scheduled discovery only validates the checkpoint and enqueues one wake-up
     archiveReader:(bytes,digest)=>{assert.equal(digest,artifactDigest);return packetFor(checkpoint);},now:f.now,scheduleOnly:true,
     scheduleResume:async request=>{scheduled=request;return {state:'RESUME_SCHEDULED',schedule_name:'kidults-read-resume-'+ 'f'.repeat(40)};}});
   assert.equal(result.state,'RESUME_SCHEDULED');assert.equal(result.reason,'SWEEP_HANDOFF');
+  assert.equal(scheduled.binding.producer_workflow_path,workflowPath);
   assert.ok(scheduled.resumeAt>Date.parse('2026-10-12T10:01:00.000Z'));
   assert.equal(f.calls.some(value=>value===routeForCheckpoint(checkpoint)),false);
 });
@@ -143,7 +144,8 @@ test('scheduled duplicate delivery revalidates original run and schedule binding
   const scheduleId=`kidults-read-resume-${'e'.repeat(40)}`;
   const scheduledEvent={action:'completed',workflow_run:{...run},resume_schedule:{source:'AWS_EVENTBRIDGE_SCHEDULER',slot:'READ_RESUME',
     dispatch_id:scheduleId,schedule_id:scheduleId,resume_binding:{run_id:String(runId),run_attempt:attempt,source_sha:sourceSha,
-      artifact_id:artifact.id,artifact_digest:artifactDigest,producer_event:'workflow_run',producer_conclusion:'success'},
+      artifact_id:artifact.id,artifact_digest:artifactDigest,producer_workflow_path:workflowPath,
+      producer_event:'workflow_run',producer_conclusion:'success'},
     checkpoint_digests:[digest],resume_at:'2026-10-12T10:01:30.000Z'}};
   const result=await consumeGithubReadResumeHandoff({event:scheduledEvent,readJson:async value=>{
     if(value===routeForCheckpoint(checkpoint))assert.equal(current,Date.parse('2026-10-12T10:01:30.000Z'));

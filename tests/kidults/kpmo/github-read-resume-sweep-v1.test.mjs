@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {READ_RESUME_SWEEP_PRODUCERS,readResumeSweepRoute,selectReadResumeSweepCandidates,deterministicReadResumeSweepWakeAt}
+import {READ_RESUME_SWEEP_PRODUCERS,readResumeSweepRoute,selectReadResumeSweepCandidates,deterministicReadResumeSweepWakeAt,shouldStopReadResumeSweep}
   from '../../../scripts/kidults/kpmo/lib/github-read-resume-sweep-v1.mjs';
 
 const now=Date.parse('2026-10-19T05:00:00.000Z');
@@ -46,6 +46,13 @@ test('serialized sweep admits failed scheduled Assurance but rejects scheduled r
     listing:{total_count:1,workflow_runs:[assuranceRun]},now}),[assuranceRun]);
   const trackRun={...base,event:'schedule'};
   assert.deepEqual(selectReadResumeSweepCandidates({producer,listing:{total_count:1,workflow_runs:[trackRun]},now}),[]);
+});
+
+test('an existing scheduled checkpoint does not starve later candidates in the next serialized sweep',()=>{
+  assert.equal(shouldStopReadResumeSweep({state:'RESUME_SCHEDULED',created_now:false}),false);
+  assert.equal(shouldStopReadResumeSweep({state:'RESUME_SCHEDULED',created_now:true}),true);
+  assert.equal(shouldStopReadResumeSweep({state:'READ_ONLY_CHECKPOINT_RESUMED'}),true);
+  assert.equal(shouldStopReadResumeSweep({state:'NO_CHECKPOINT_ARTIFACT'}),false);
 });
 
 test('selection sorts newest-first and enforces a bounded limit',()=>{
