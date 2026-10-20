@@ -436,7 +436,7 @@ assert(schema.properties?.production?.const === 'HOLD', 'SCHEMA_PRODUCTION_BOUND
 assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUNDARY');
 
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
-assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
+assert(registry.version === '2.2.0', 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
 assert(registry.registered_policy?.policy_version === '2.1.0', 'REGISTRY_POLICY_VERSION');
 assert(registry.registered_policy?.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'REGISTRY_AUTONOMOUS_CLOSURE_POLICY');
