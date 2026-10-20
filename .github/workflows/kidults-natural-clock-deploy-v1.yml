@@ -2,11 +2,6 @@ name: KIDULTS Natural Clock STAGING Deploy V1
 run-name: KIDULTS Natural Clock STAGING Deploy ${{ github.sha }}
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs
-      - .github/workflows/kidults-natural-clock-deploy-v1.yml
   workflow_dispatch:
     inputs:
       main_sha:
@@ -26,7 +21,7 @@ permissions: {}
 
 jobs:
   deploy-and-verify:
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha))
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && github.event_name == 'workflow_dispatch' && github.actor == github.repository_owner && github.sha == inputs.main_sha
     runs-on: ubuntu-24.04
     environment: KIDULTS-NATURAL-CLOCK-DEPLOYER
     timeout-minutes: 20
@@ -44,13 +39,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$GITHUB_EVENT_NAME" = push ]; then
-            echo "DEPLOY_MAIN_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
-            echo "AUTHORIZATION_ID=AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
-          else
-            echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
-            echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
-          fi
+          echo "DEPLOY_MAIN_SHA=${{ inputs.main_sha }}" >> "$GITHUB_ENV"
+          echo "AUTHORIZATION_ID=${{ inputs.authorization_id }}" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
@@ -62,11 +52,8 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$GITHUB_SHA" = "$DEPLOY_MAIN_SHA"
-          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
-            test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}"
-          else
-            test "$AUTHORIZATION_ID" = "AUTO-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}-${GITHUB_RUN_ID}"
-          fi
+          test "$GITHUB_EVENT_NAME" = workflow_dispatch
+          test "$AUTHORIZATION_ID" = "DEPLOY-STAGING-NATURAL-CLOCK-${GITHUB_SHA:0:12}"
           node --test tests/kidults/staging-operations/natural-clock-dispatcher-v1.test.cjs tests/kidults/staging-operations/natural-clock-infrastructure-v1.test.mjs tests/kidults/staging-operations/natural-clock-deployer-v1.test.mjs
 
       - name: Configure exact workflow-scoped AWS OIDC credential process
@@ -93,10 +80,8 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$GITHUB_APP_ID" && test -n "$GITHUB_INSTALLATION_ID" && test -n "$GITHUB_PRIVATE_KEY_SECRET_ARN"
-          if [ "$GITHUB_EVENT_NAME" = push ]; then
-            aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-natural-clock-template.json"
-            node scripts/governance/validate-staging-no-authority-expansion-v1.mjs --current "$RUNNER_TEMP/current-natural-clock-template.json" --desired infrastructure/aws/staging/natural-clock-dispatcher-v1.json
-          fi
+          aws cloudformation get-template --stack-name "$STACK_NAME" --template-stage Original --query TemplateBody --output json > "$RUNNER_TEMP/current-natural-clock-template.json"
+          node scripts/governance/validate-staging-no-authority-expansion-v1.mjs --current "$RUNNER_TEMP/current-natural-clock-template.json" --desired infrastructure/aws/staging/natural-clock-dispatcher-v1.json
           package_dir=$(mktemp -d)
           cp infrastructure/aws/staging/natural-clock-dispatcher-v1.cjs "$package_dir/index.cjs"
           (cd "$package_dir" && zip -q natural-clock.zip index.cjs)

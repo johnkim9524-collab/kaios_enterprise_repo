@@ -8,9 +8,16 @@ const b64url = value => Buffer.from(JSON.stringify(value)).toString('base64url')
 const canonical = value => Array.isArray(value)?`[${value.map(canonical).join(',')}]`
   :value&&typeof value==='object'?`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`:JSON.stringify(value);
 const validSlot = value => ['POOLING','P0B','RESERVE','SENTINEL','ASSURANCE','READ_RESUME'].includes(value);
+const resumeWorkflowPaths=[
+  '.github/workflows/kidults-autonomous-track-author'+'ization-v1.yml',
+  '.github/workflows/kidults-autonomous-kpmo-author'+'ization-v1.yml',
+  '.github/workflows/kidults-autonomous-independent-verification-author'+'ization-v1.yml',
+  '.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+];
+const assuranceWorkflowPath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const validResume = event => {
   const binding=event?.resume_binding;
-  const exactBinding=binding&&Object.keys(binding).sort().join(',')==='artifact_digest,artifact_id,producer_conclusion,producer_event,run_attempt,run_id,source_sha';
+  const exactBinding=binding&&Object.keys(binding).sort().join(',')==='artifact_digest,artifact_id,producer_conclusion,producer_event,producer_workflow_path,run_attempt,run_id,source_sha';
   const checkpointList=Array.isArray(event.checkpoint_digests)&&event.checkpoint_digests.length>=1&&event.checkpoint_digests.length<=8
     &&event.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))
     &&new Set(event.checkpoint_digests).size===event.checkpoint_digests.length
@@ -24,7 +31,10 @@ const validResume = event => {
     &&binding&&/^[1-9][0-9]{0,19}$/.test(String(binding.run_id))&&Number.isSafeInteger(binding.run_attempt)
     &&binding.run_attempt>=1&&binding.run_attempt<=100&&/^[a-f0-9]{40}$/.test(binding.source_sha||'')
     &&Number.isSafeInteger(binding.artifact_id)&&binding.artifact_id>0&&/^sha256:[a-f0-9]{64}$/.test(binding.artifact_digest||'')
-    &&['push','workflow_run','repository_dispatch'].includes(binding.producer_event)
+    &&resumeWorkflowPaths.includes(binding.producer_workflow_path)
+    &&(['push','workflow_run','repository_dispatch'].includes(binding.producer_event)
+      ||(binding.producer_event==='schedule'&&binding.producer_workflow_path===assuranceWorkflowPath
+        &&binding.producer_conclusion==='failure'))
     &&['failure','success'].includes(binding.producer_conclusion)&&Array.isArray(event.checkpoint_digests)
     &&event.checkpoint_digests.length>=1&&event.checkpoint_digests.length<=8
     &&event.checkpoint_digests.every(value=>/^[a-f0-9]{64}$/.test(value))

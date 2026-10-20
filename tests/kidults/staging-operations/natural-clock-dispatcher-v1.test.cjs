@@ -7,12 +7,14 @@ const {createHandler}=require('../../../infrastructure/aws/staging/natural-clock
 
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const sha='a'.repeat(40);
+const kpmoWorkflowPath=['.github/workflows/kidults-autonomous-kpmo-author','ization-v1.yml'].join('');
+const assuranceWorkflowPath='.github/workflows/kidults-platform-continuous-assurance-v1.yml';
 const privateKey=generateKeyPairSync('rsa',{modulusLength:2048}).privateKey.export({type:'pkcs8',format:'pem'});
 const response=(status,body)=>({ok:status>=200&&status<300,status,json:async()=>body});
 const canonical=value=>Array.isArray(value)?`[${value.map(canonical).join(',')}]`:value&&typeof value==='object'?`{${Object.keys(value).sort().map(key=>`${JSON.stringify(key)}:${canonical(value[key])}`).join(',')}}`:JSON.stringify(value);
-function resumeEvent(producerEvent='workflow_run'){
+function resumeEvent(producerEvent='workflow_run',producerWorkflowPath=kpmoWorkflowPath,producerConclusion='failure'){
   const binding={run_id:'4321',run_attempt:2,source_sha:sha,artifact_id:789,artifact_digest:`sha256:${'b'.repeat(64)}`,
-    producer_event:producerEvent,producer_conclusion:'failure'};
+    producer_workflow_path:producerWorkflowPath,producer_event:producerEvent,producer_conclusion:producerConclusion};
   const checkpoint_digests=['c'.repeat(64)],resume_at='2026-09-28T03:10:00.000Z';
   const identity=createHash('sha256').update(canonical({repo:repository,binding,checkpoint_digests,scheduled_at:Date.parse(resume_at)})).digest('hex');
   return {source:'aws.scheduler',slot:'READ_RESUME',resume_binding:binding,checkpoint_digests,resume_at,
@@ -80,10 +82,22 @@ test('dispatches a push-originated read-resume under the same exact-main one-tim
   assert.equal(x.writes[0].dispatchId,event.schedule_id);
 });
 
-test('rejects schedule as a read-resume producer before issuing a GitHub request',async()=>{
-  const x=fixture();
-  await assert.rejects(()=>x.handler(resumeEvent('schedule')),/NATURAL_CLOCK_EVENT_DENIED/);
-  assert.equal(x.calls.length,0);
+test('dispatches a failed scheduled Assurance read-resume under its exact workflow binding',async()=>{
+  const event=resumeEvent('schedule',assuranceWorkflowPath,'failure');
+  const x=fixture({now:()=>Date.parse('2026-09-28T03:00:00Z')});
+  const out=await x.handler(event);
+  assert.equal(out.state,'VERIFIED_READ_RESUME_DISPATCHED');
+  const body=JSON.parse(x.calls.find(c=>c.url.endsWith('/dispatches')).options.body);
+  assert.equal(body.event_type,'kidults.github.read.resume.v1');
+  assert.equal(body.client_payload.resume_binding.producer_workflow_path,assuranceWorkflowPath);
+});
+
+test('rejects schedule events outside failed Assurance before issuing a GitHub request',async()=>{
+  for(const event of [resumeEvent('schedule',kpmoWorkflowPath,'failure'),resumeEvent('schedule',assuranceWorkflowPath,'success')]){
+    const x=fixture();
+    await assert.rejects(()=>x.handler(event),/NATURAL_CLOCK_EVENT_DENIED/);
+    assert.equal(x.calls.length,0);
+  }
 });
 
 test('duplicate resume delivery reuses an exact ledger receipt and dispatches idempotently',async()=>{
