@@ -103,7 +103,10 @@ test('exact read-only recovery admission and staging-budget workflow transitions
     assert.equal(sha256(base_content),baselineHashes[filename],`baseline fixture changed: ${filename}`);
     return base_content;
   };
-  const files=[...workflowPaths.map(filename=>({filename,status:'modified',base_content:pinnedBaseContent(filename),head_content:fs.readFileSync(filename,'utf8')})),
+  const historicalKpmoHead=fs.readFileSync('tests/fixtures/governance/autonomous-policy-alignment-v1/recovery-admission/kidults-autonomous-kpmo-authorization-v1.yml','utf8');
+  assert.equal(sha256(historicalKpmoHead),'sha256:c88f3fe99647ef724ad3daa1bc252e454b7b45e90ea2ceb1d589b25e19b242d2');
+  const files=[...workflowPaths.map(filename=>({filename,status:'modified',base_content:pinnedBaseContent(filename),
+    head_content:filename===workflowPaths[1]?historicalKpmoHead:fs.readFileSync(filename,'utf8')})),
   ...addedPaths.map(filename=>({filename,status:'added',base_content:'',head_content:fs.readFileSync(filename,'utf8')})),
   {filename:'.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml',status:'modified',
     base_content:pinnedBaseContent('.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'),

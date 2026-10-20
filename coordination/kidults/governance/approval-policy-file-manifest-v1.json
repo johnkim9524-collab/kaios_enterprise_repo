@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "eed45a418e897b1d2d8d975bb7b02e850c5a89a1",
+  "revision": "ec223cfea5e19dd937c32235b6ea44b982aa64bd",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 865
+    "file_count": 866
   },
   "files": [
     {
@@ -6534,6 +6534,12 @@
       "sha256": "sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24"
     },
     {
+      "path": "tests/fixtures/governance/autonomous-policy-alignment-v1/recovery-admission/kidults-autonomous-kpmo-authorization-v1.yml",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "17258511b3a5c628fc5b0b27b37942a339e3465c",
+      "sha256": "sha256:c88f3fe99647ef724ad3daa1bc252e454b7b45e90ea2ceb1d589b25e19b242d2"
+    },
+    {
       "path": "tests/governance/autonomous-approval-policy-envelope-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "85696ad40f43c38e7fb6239f354fc75d627597e9",
@@ -6562,8 +6568,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "303dfaa55d0c738731294e10ab41fa4eab41b4f1",
-      "sha256": "sha256:872635482e96058f2ef06f1029f303dbb68721edb2ce5fd124eaf5ddcc1c7c1b",
+      "git_blob": "23df0c99245b6e0f66825281a37cd77fa3e0f48d",
+      "sha256": "sha256:a2c4a34649158881a37cf52ef2ed39f5d80a7c9daea813363d7ecb721d99b928",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7292,5 +7298,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:27382098c3bb0577b8db56f3969e8eb1105e41d8c34d5f2ab3c71ce15fedbc29"
+  "manifest_sha256": "sha256:338e87f5358998d53171d6ab18487df7152668f0c4580d42c27fa5f9f101ce1d"
 }
