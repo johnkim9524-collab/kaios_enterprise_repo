@@ -99,6 +99,18 @@ export function validateCanonicalIdentityContract(contract) {
         try { new RegExp(pattern); } catch { fail('WORKFLOW_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
       }
     }
+    if (entry.observer_only_runtime_name_patterns !== undefined) {
+      if (entry.workflow_path !== '.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml' ||
+          entry.workflow_name !== 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1' ||
+          !Array.isArray(entry.observer_only_runtime_name_patterns) || entry.observer_only_runtime_name_patterns.length !== 1 ||
+          entry.observer_only_runtime_name_patterns[0] !== '^KIDULTS_AUTH_OBSERVER/GITHUB_READ_RESUME/[1-9][0-9]{0,15}$') {
+        fail('WORKFLOW_OBSERVER_ONLY_RUNTIME_NAME_PATTERNS', entry.workflow_name);
+      }
+      for (const pattern of entry.observer_only_runtime_name_patterns) {
+        if (!pattern.startsWith('^') || !pattern.endsWith('$')) fail('WORKFLOW_OBSERVER_ONLY_RUNTIME_NAME_PATTERN_UNANCHORED', entry.workflow_name);
+        try { new RegExp(pattern); } catch { fail('WORKFLOW_OBSERVER_ONLY_RUNTIME_NAME_PATTERN_INVALID', entry.workflow_name); }
+      }
+    }
     const pair = `${entry.workflow_name}\u0000${entry.workflow_path}`;
     if (pairs.has(pair)) fail('WORKFLOW_CLASS_PAIR_DUPLICATE', entry.workflow_name);
     names.add(entry.workflow_name);
@@ -164,10 +176,13 @@ export function validateCanonicalIdentityContract(contract) {
 function workflowClass(contract, workflowName, workflowPath) {
   const entry = contract.workflow_run_class_allowlist.find((candidate) => candidate.workflow_path === workflowPath);
   if (!entry) fail('UPSTREAM_WORKFLOW_PATH_NOT_ALLOWLISTED', workflowPath);
+  const observerOnlyRuntimeName = (entry.observer_only_runtime_name_patterns || [])
+    .some((pattern) => new RegExp(pattern).test(workflowName));
   const runtimeNameAllowed = workflowName === entry.workflow_name ||
-    (entry.runtime_name_patterns || []).some((pattern) => new RegExp(pattern).test(workflowName));
+    (entry.runtime_name_patterns || []).some((pattern) => new RegExp(pattern).test(workflowName)) ||
+    observerOnlyRuntimeName;
   if (!runtimeNameAllowed) fail('UPSTREAM_WORKFLOW_NAME_MISMATCH', `${workflowName}:${workflowPath}`);
-  return entry;
+  return { ...entry, observer_only_runtime_name: observerOnlyRuntimeName };
 }
 
 export function classifyCanonicalIdentity(input, contract, contractText = `${JSON.stringify(contract, null, 2)}\n`) {
@@ -204,13 +219,17 @@ export function classifyCanonicalIdentity(input, contract, contractText = `${JSO
     const conclusion = required(input.upstream_conclusion, 'UPSTREAM_CONCLUSION_REQUIRED');
     if (!contract.terminal_conclusions.includes(conclusion)) fail('UPSTREAM_CONCLUSION_INVALID', conclusion);
     upstreamClass = entry.upstream_class;
-    upstreamAuditHealth = classifyUpstreamAuditHealth({ workflowPath, workflowEvent: upstreamEvent, conclusion }, contract);
+    upstreamAuditHealth = entry.observer_only_runtime_name
+      ? { acceptable: false, disposition: 'READ_ONLY_OBSERVER_NOT_PRODUCER_HEALTH' }
+      : classifyUpstreamAuditHealth({ workflowPath, workflowEvent: upstreamEvent, conclusion }, contract);
     specialExactArtifactClass = contract.special_exact_artifact_classes.includes(upstreamClass);
-    terminalObservation = conclusion !== 'success';
+    terminalObservation = conclusion !== 'success' || entry.observer_only_runtime_name;
     dedupeEligible = !terminalObservation;
     if (terminalObservation) {
-      generationKind = 'NON_SUCCESS_TERMINAL_OBSERVATION';
-      generationDiscriminator = `upstream:${upstreamRunId}:attempt:${upstreamRunAttempt}:conclusion:${conclusion}`;
+      generationKind = entry.observer_only_runtime_name ? 'READ_ONLY_OBSERVER_OBSERVATION' : 'NON_SUCCESS_TERMINAL_OBSERVATION';
+      generationDiscriminator = entry.observer_only_runtime_name
+        ? `read-only-observer:${upstreamRunId}:attempt:${upstreamRunAttempt}`
+        : `upstream:${upstreamRunId}:attempt:${upstreamRunAttempt}:conclusion:${conclusion}`;
     } else if (upstreamRunAttempt > 1) {
       generationKind = 'UPSTREAM_MANUAL_RECOVERY_ATTEMPT';
       generationDiscriminator = `upstream-recovery-run:${upstreamRunId}:attempt:${upstreamRunAttempt}`;
