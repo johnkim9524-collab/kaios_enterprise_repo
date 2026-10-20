@@ -588,7 +588,7 @@ const matchesExactPoolingReadTransport=(file,files)=>{
 };
 const recoveryAdmissionWorkflowDigests=Object.freeze({
   '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:f1672f7f119aedd3ae8c35825e73415597e016a0ab7afc71d401b1d37d9555ee'],
-  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:c88f3fe99647ef724ad3daa1bc252e454b7b45e90ea2ceb1d589b25e19b242d2'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:47255468e5becc7aa96b5fcb456f6ee9a48b46c62666033bfc7f70aefdcce583'],
   '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc'],
 });
 const recoveryAdmissionSourceDigests=Object.freeze({

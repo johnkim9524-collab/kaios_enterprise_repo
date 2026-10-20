@@ -255,7 +255,36 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Require the exact upstream audit job to have completed
+        id: upstream-audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/jobs?filter=latest&per_page=100" \
+            > "$RUNNER_TEMP/upstream-assurance-jobs.json"
+          jq -e '
+            (.jobs | type == "array") and
+            (.total_count == (.jobs | length)) and
+            ([.jobs[] | select(.name == "audit")] | length == 1)
+          ' "$RUNNER_TEMP/upstream-assurance-jobs.json" >/dev/null
+          AUDIT_CONCLUSION=$(jq -r '[.jobs[] | select(.name == "audit")][0].conclusion // ""' \
+            "$RUNNER_TEMP/upstream-assurance-jobs.json")
+          if [ "$AUDIT_CONCLUSION" = success ]; then
+            echo 'audit_succeeded=true' >> "$GITHUB_OUTPUT"
+          elif [ "$AUDIT_CONCLUSION" = skipped ]; then
+            echo 'audit_succeeded=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::ASSURANCE_AUDIT_SKIPPED; exact-main operating reconciliation is not applicable'
+          else
+            echo "ASSURANCE_AUDIT_NOT_SUCCESSFUL:$AUDIT_CONCLUSION" >&2
+            exit 1
+          fi
       - name: Download the exact Assurance packet and require the full-audit leader
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: kidults-continuous-assurance-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
@@ -264,6 +293,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           path: ${{ runner.temp }}/upstream-assurance-packet
       - name: Reconcile the exact main proof through the preauthorized shared budget
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -306,7 +336,7 @@ jobs:
             "$PROOF_DIR/whole-platform-operating-proof-v1.json" \
             "$PROOF_DIR/internal-operating-recovery-observation-v1.json" --observe
       - name: Preserve exact-main operating proof
-        if: always()
+        if: always() && steps.upstream-audit.outputs.audit_succeeded == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-whole-platform-operating-proof-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
