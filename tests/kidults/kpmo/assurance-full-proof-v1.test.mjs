@@ -137,12 +137,15 @@ test('full audit must have been triggered by the selected exact Sentinel tuple',
 });
 test('full audit distinguishes internal recovery from the unchanged whole-platform runtime predicate',()=>{
   const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
-  const validation=workflow.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs');
   const upload=workflow.indexOf('- name: Upload exact-run assurance packet');
   const preserve=workflow.indexOf('- name: Preserve control result');
-  assert.ok(validation>0&&validation<upload&&upload<preserve);
-  assert.match(workflow,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
-  assert.match(workflow.slice(validation,upload),/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
+  const reconcile=workflow.indexOf('reconcile-protected-main-operating-receipts:');
+  const validation=workflow.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs',reconcile);
+  assert.ok(upload>0&&upload<preserve&&preserve<reconcile&&reconcile<validation);
+  const protectedMainJob=workflow.slice(reconcile);
+  assert.match(protectedMainJob,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
+  assert.match(protectedMainJob,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
+  assert.match(protectedMainJob,/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
 });
 
 function autonomousFixture(){
