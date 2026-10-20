@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createGithubReadResumeScheduleRequest,verifyGithubReadResumeScheduleReadback} from '../../../scripts/kidults/kpmo/lib/github-read-resume-schedule-v1.mjs';
 
+const kpmoWorkflowPath=['.github/workflows/kidults-autonomous-kpmo-author','ization-v1.yml'].join('');
 const binding={run_id:'4321',run_attempt:2,source_sha:'a'.repeat(40),artifact_id:789,artifact_digest:`sha256:${'b'.repeat(64)}`,
   producer_workflow_path:kpmoWorkflowPath,
   producer_event:'workflow_run',producer_conclusion:'failure'};
 const checkpointDigests=['c'.repeat(64),'d'.repeat(64)];
-const kpmoWorkflowPath=['.github/workflows/kidults-autonomous-kpmo-author','ization-v1.yml'].join('');
 const now=Date.parse('2026-10-12T10:01:00.000Z'),resumeAt=Date.parse('2026-10-12T10:20:00.100Z');
 
 test('builds a deterministic one-time schedule bound to original run, artifact and checkpoints',()=>{
