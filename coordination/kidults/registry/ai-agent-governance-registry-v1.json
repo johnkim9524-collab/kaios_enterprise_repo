@@ -1,9 +1,9 @@
 {
   "id": "kidults-ai-agent-governance-registry-v1",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "status": "ACTIVE_AFTER_MAIN_MERGE",
   "owner": "KPMO",
-  "change_rationale": "Register autonomous closure ownership so one accountable task session retains each authorized reversible root incident through exact-main whole-chain and Sentinel closure without routine progress prompts or repeated Owner approval.",
+  "change_rationale": "Register Track Q's role and require its bootstrap inheritance while preserving protected-dispatch and readiness gates.",
   "registered_policy": {
     "policy_id": "KPMO-AI-GOV-001",
     "policy_version": "2.1.0",
@@ -107,6 +107,7 @@
       "TRACK_C",
       "TRACK_D",
       "TRACK_E",
+      "TRACK_Q",
       "RED_TEAM",
       "ASI",
       "CODING_AGENTS",
