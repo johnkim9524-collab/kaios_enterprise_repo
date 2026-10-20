@@ -158,8 +158,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "914e36c5cbd145e97d0bc249955415c442ee5d2f",
-      "sha256": "sha256:6be3c2b4a792997114e944509b1830b8f66c72ad4c263b8d3eede14c2f01bdb0",
+      "git_blob": "4262eef5eae5832ad182f2c4ce0a7a1d7eedf000",
+      "sha256": "sha256:c08ea1ab095f18f8d70472512517adf8ecaff8aee70a5d1e9fd400855e01fd05",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -574,8 +574,8 @@
     {
       "path": ".github/workflows/kidults-platform-continuous-assurance-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c1bae296bf59ec1127d68a47de5147aab85fcc43",
-      "sha256": "sha256:99b585c4ed884ce21368326cfde4c394c8be43af091183f17d4bbb524b3fe937",
+      "git_blob": "2b9597232806bf51c4e5d03de40beba4a5578fbb",
+      "sha256": "sha256:79886801b7a38b3e8e2a74e97262b9da8f29a3132e38010f7a74613cfbb2a660",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3409,8 +3409,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f83e87503819bd0f353187e067b3a75403384e43",
-      "sha256": "sha256:bde35e58321c2d78cbae46fc797018f0b8772397d2d99ac9315b50c732d4c17f"
+      "git_blob": "31d61a5ffdbd324c69d204d3fd9ce657c0c49b6c",
+      "sha256": "sha256:0160b9dbe6afbb5c04474a97031b4af8985b229b1d48a7f73e6e945f77d7176c"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -4362,8 +4362,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "dfb90c244be05b10f419eda7d2c5da20a08b84d8",
-      "sha256": "sha256:5b5c4305b24823154b1f78eae20a865f064dd965ea450fe226bfcdb68a5dae0a",
+      "git_blob": "aa0a2d4e295986e0301d18d1f21cb6d760e619db",
+      "sha256": "sha256:33f42cd0c5412713f50f02264cef6b93d0b15d60764b76f100fe1877203de8b4",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4609,8 +4609,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e232021fad9c859918b57599f10a724781773128",
-      "sha256": "sha256:e3a32c8b47d772589f0cd20b32e4e530f0815792d19f572a6176d8dc20fe6c4a",
+      "git_blob": "f840ce7042f1e153f917adb7fe7ce3c3d6d4cc15",
+      "sha256": "sha256:213934c998f258d72b0a4376623cc0280c383be2e0446b074afcf4f0b4e3ff86",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7280,5 +7280,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c97d4a461af8aac45d908b94f5b178806c6195768b1e1403308b62f7afe6d0a4"
+  "manifest_sha256": "sha256:b7ab53947a962b179bff999b60bcbb2941e0ead4d18b654a232873a927f93de6"
 }
