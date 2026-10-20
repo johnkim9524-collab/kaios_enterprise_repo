@@ -39,6 +39,15 @@ test('candidate selection accepts GitHub workflow_run display-name suffixes when
   assert.deepEqual(selectReadResumeSweepCandidates({producer:kpmo,listing:{total_count:1,workflow_runs:[run]},now}),[run]);
 });
 
+test('serialized sweep admits failed scheduled Assurance but rejects scheduled runs from other producers',()=>{
+  const assurance=READ_RESUME_SWEEP_PRODUCERS.find(item=>item.role==='assurance');
+  const assuranceRun={...base,name:assurance.name,path:assurance.path,event:'schedule'};
+  assert.deepEqual(selectReadResumeSweepCandidates({producer:assurance,
+    listing:{total_count:1,workflow_runs:[assuranceRun]},now}),[assuranceRun]);
+  const trackRun={...base,event:'schedule'};
+  assert.deepEqual(selectReadResumeSweepCandidates({producer,listing:{total_count:1,workflow_runs:[trackRun]},now}),[]);
+});
+
 test('selection sorts newest-first and enforces a bounded limit',()=>{
   const older={...base,id:320,created_at:'2026-10-19T04:40:00.000Z'};
   const newest={...base,id:322,created_at:'2026-10-19T04:55:00.000Z'};

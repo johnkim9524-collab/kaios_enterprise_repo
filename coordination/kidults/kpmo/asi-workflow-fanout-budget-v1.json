@@ -106,14 +106,13 @@
       "durable_runtime_state": "REMOTE_LEDGER_ACTIVATION_HOLD",
       "canonical_execution_claimed": false
     },
-    "reason": "Continuous Assurance is a read-only control observer with an exact downstream allowlist. Role-failure read-resume observation is isolated in a terminal workflow. Sentinel observes authoritative Coverage success and native clock/read-resume dispatches, but does not subscribe to Continuous Assurance; Continuous Assurance may consume Sentinel evidence without forming an automatic feedback cycle. Its upstream producer set detects failed, cancelled, waiting, missing, ambiguous, or stale evidence before estate-wide ASI-green interpretation.",
+    "reason": "Continuous Assurance is a read-only control observer with an exact downstream allowlist. Role-failure read-resume recovery is consolidated into one serialized 15-minute sweep rather than a workflow_run fan-out. Sentinel observes authoritative Coverage success and native clock/read-resume dispatches, but does not subscribe to Continuous Assurance; Continuous Assurance may consume Sentinel evidence without forming an automatic feedback cycle. Its upstream producer set detects failed, cancelled, waiting, missing, ambiguous, or stale evidence before estate-wide ASI-green interpretation.",
     "allowed_downstream_consumers": [
       "KIDULTS Autonomous Independent Verification V1",
       "KIDULTS Autonomous KPMO Authorization V1",
       "KIDULTS Autonomous Track Authorization V1",
       "KPMO Continuous Assurance Scheduled Authority Gate V1",
-      "KPMO Continuous Assurance Success Authority Gate V1",
-      "KPMO Authorization Read-Resume Observer V1"
+      "KPMO Continuous Assurance Success Authority Gate V1"
     ]
   },
   "critical_static_producers_watched_by_continuous_assurance": [
@@ -187,15 +186,14 @@
       ]
     },
     "KIDULTS Platform Continuous Assurance V1": {
-      "max": 6,
+      "max": 5,
       "required_consumer": "KPMO Continuous Assurance Success Authority Gate V1",
       "allowed_consumers": [
         "KIDULTS Autonomous Independent Verification V1",
         "KIDULTS Autonomous KPMO Authorization V1",
         "KIDULTS Autonomous Track Authorization V1",
         "KPMO Continuous Assurance Scheduled Authority Gate V1",
-        "KPMO Continuous Assurance Success Authority Gate V1",
-        "KPMO Authorization Read-Resume Observer V1"
+        "KPMO Continuous Assurance Success Authority Gate V1"
       ]
     }
   }

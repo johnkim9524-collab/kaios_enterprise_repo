@@ -1,4 +1,5 @@
-// Periodically discovers recent failed producers whose workflow_run observer was chain-suppressed.
+// One scheduled sweep serializes discovery and recovery, avoiding workflow_run fan-out
+// across all four producers that competes for the shared cross-runner read budget.
 // It only reads exact producer runs/artifacts and hands validated checkpoints to the existing consumer.
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
