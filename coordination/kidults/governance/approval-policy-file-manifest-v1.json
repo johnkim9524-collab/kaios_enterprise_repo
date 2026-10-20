@@ -561,8 +561,8 @@
     {
       "path": ".github/workflows/kidults-natural-clock-deploy-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "594a696fa83ddedd660c7ad9ec9ce91ab32b839f",
-      "sha256": "sha256:de3129a288f91860aef9f965ae63e715f3f90e55a8a8996ef5dc547f8adce91d",
+      "git_blob": "c22eabb77d12f1c632a48494ef66bd9cccf1a913",
+      "sha256": "sha256:2cf923d30935e76959100e6fe8d38d26e69c7217e2eae13970cbacb284d2ec4e",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7280,5 +7280,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:326ad8f81e36fecf25d4c5ecb19de1a3e1b46785b52c10975a15209467ba6af7"
+  "manifest_sha256": "sha256:2c41470fe312aeff805a113050b4babb8665d2e17195c5e6763bb349a8ed29c0"
 }

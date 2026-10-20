@@ -26,7 +26,7 @@ test('deployer is bounded to exact STAGING resources and cannot reach production
   for(const denied of ['organizations:','account:','iam:CreateUser','iam:CreateAccessKey']) assert.doesNotMatch(source,new RegExp(denied));
 });
 
-test('STAGING deployment requires an explicit owner-dispatched exact-main authorization',()=>{
+test('STAGING deployment requires explicit owner-dispatched exact-main inputs',()=>{
   for(const marker of ["github.actor == github.repository_owner","github.sha == inputs.main_sha","github.event_name == 'workflow_dispatch'",
     'id-token: write','ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','validate-staging-no-authority-expansion-v1.mjs','negative_canary:\\\"PASS\\\"'])
     assert.ok(workflow.includes(marker),marker);
