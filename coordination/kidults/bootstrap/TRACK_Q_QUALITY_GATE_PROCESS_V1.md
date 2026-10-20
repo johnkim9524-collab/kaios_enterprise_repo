@@ -53,9 +53,22 @@ Severity handling:
 - **Major:** material ambiguity, missing limitation, coverage bias, inaccessible key information or reproducibility gap. Gate = HOLD until fixed or bounded by approved scope.
 - **Minor:** non-material editorial or visual defect with no effect on interpretation. Record for correction; release eligibility depends on the applicable product standard.
 
-## Customer feedback loop
+## Customer validation and feedback loop
 
-After release, capture recurring customer questions, correction requests, misunderstanding reports and task-completion friction against the artifact version. Track task success, time to locate evidence, comprehension of limitations, correction/withdrawal rate and unresolved customer-impact defects. Do not optimize for clicks or engagement when they conflict with decision quality. Feed validated findings into the next methodology and product revision; preserve prior versions and review lineage.
+Before a public or paid release, test the actual decision task with people representative of the intended customer roles, regions and languages. Do not treat internal review or a single English-language walkthrough as global customer validation. The test plan must be written before testing and name the participant profile and selection limits, task, success definition, minimum threshold, sample size rationale and severity rules. Record the results and observed failures against the exact artifact version.
+
+Each test must check whether participants can:
+- identify the decision the artifact supports and the scope it covers;
+- find the source behind each decision-critical claim;
+- distinguish observed facts, estimates and interpretation;
+- explain the main evidence limits and uncertainty;
+- recognize illustrative material and avoid inferring unsupported current prices, liquidity or returns.
+
+If representative customer testing has not occurred, mark customer validation NOT_TESTED; do not describe the product as customer-validated. A public or paid release remains HOLD until the predeclared critical comprehension and task-success thresholds pass. Internal or preview use must be labeled as unvalidated and must not imply customer outcomes.
+
+After release, capture recurring customer questions, correction requests, misunderstanding reports and task-completion friction against the artifact version. For each release, report: decision-task completion rate (successful sessions divided by eligible sessions); median time to locate decision-critical evidence; limitation-comprehension rate against the predeclared questions; critical misunderstanding count and rate; customer-impacting corrections or withdrawals per released artifact; and open customer-impact defects. State numerator, denominator, observation window, participant/customer coverage and exclusions. Preserve anonymized test notes and release lineage under the applicable data policy.
+
+Do not optimize for clicks or engagement when they conflict with decision quality. The producer and REA Team collect the evidence; Track Q independently checks the test design, result and version binding; KPMO owns the service thresholds and records gate disposition. Set thresholds before each study and report results without hiding failures. Feed validated findings into the next methodology and product revision while preserving prior versions.
 
 ## Operating status
 
