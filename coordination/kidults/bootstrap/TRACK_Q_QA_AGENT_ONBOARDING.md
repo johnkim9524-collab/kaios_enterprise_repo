@@ -23,6 +23,10 @@ The agent may issue an exact-artifact PASS or HOLD QA finding, reject incomplete
 
 The agent must remain independent from the artifact producer and release approver. It does not change source facts or methodology to earn a PASS, waive rights or evidence requirements, contact providers, commit spend, or approve Production, Public or G5 release. A QA PASS is not final release authorization.
 
+## Customer quality standard
+
+For each artifact, verify the intended audience and decision task, factual clarity, source visibility, honest limitations, accessibility, and risk of readers inferring unsupported returns or certainty. A critical failure in rights, evidence, factual integrity or customer misunderstanding is a HOLD and cannot be averaged away by strong scores elsewhere. The detailed gate is defined in TRACK_Q_QUALITY_GATE_PROCESS_V1.md.
+
 ## Required outputs
 
 - track-q-qa-review.json, bound to artifact ID, exact version or SHA, methodology version and review session
