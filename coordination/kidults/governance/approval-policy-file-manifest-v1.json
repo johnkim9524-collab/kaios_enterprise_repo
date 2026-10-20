@@ -1817,8 +1817,8 @@
     {
       "path": "coordination/kidults/governance/staging-normal-ops-autonomy-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "38d599954d652be33ee68e6b5b2b344fe9177613",
-      "sha256": "sha256:d430e12c715573c90fcf06ee29695c6340a593f39691e33c05d02906a326a66c",
+      "git_blob": "a2e6b0c56d67cdd0b77c9982ac6a46defa313a7c",
+      "sha256": "sha256:74b984de94fdcba573cfa4a2fadfd7acdf1eb601961c7b3432a677b3ec6aafa5",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -6693,8 +6693,8 @@
     {
       "path": "tests/governance/staging-normal-ops-autonomy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4fd7ed7681c3f9321b4ee894d64a11bd6993c08e",
-      "sha256": "sha256:0d2e35aace3e59b977e2096ff12045744fe22c63784d76aefb30248a2d2db182",
+      "git_blob": "7715515f0d9a37c8cd8624ddfaa86fe20f10e51d",
+      "sha256": "sha256:aee87dfd96ddf3e3b546581011b48be4f56ba7046a456140fb7afa3d6d3d281e",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7280,5 +7280,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:5e3fdb553eeff623ca8c774d5a721f958f17287bab8dfee7d693413b08df0ad4"
+  "manifest_sha256": "sha256:0ecffae28b008aecb215a6bb984e0aeff9ac485ee183f2f4dff115302bb11339"
 }
