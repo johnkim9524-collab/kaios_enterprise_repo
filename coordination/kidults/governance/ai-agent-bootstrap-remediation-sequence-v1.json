@@ -1,6 +1,6 @@
 {
   "id": "kidults-ai-agent-bootstrap-remediation-sequence-v1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "owner": "KPMO",
   "scope": "ALL_AI_AGENTS_AND_AUTOMATIONS",
@@ -45,7 +45,8 @@
     "SCHEDULED_AGENT_AUTOMATIONS": true,
     "EXTERNAL_MODEL_AGENTS": true,
     "child_rule_can_weaken": false,
-    "agent_self_exemption_allowed": false
+    "agent_self_exemption_allowed": false,
+    "TRACK_Q": true
   },
   "stop_conditions": [
     "PRODUCTION_G5",
@@ -123,5 +124,6 @@
     "bootstrap_verified_claim_without_consumed_receipt_allowed": false,
     "full_root_of_trust_claimed": false,
     "external_dispatchers_still_require_protected_launcher_and_verified_bootstrap": true
-  }
+  },
+  "change_rationale": " Register Track Q as governed by the same exact-head bootstrap and independent receipt-consumption requirements."
 }
