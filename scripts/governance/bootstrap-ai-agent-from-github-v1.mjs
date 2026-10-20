@@ -35,6 +35,7 @@ const TRUST = Object.freeze({
     'TRACK_C',
     'TRACK_D',
     'TRACK_E',
+    'TRACK_Q',
     'RED_TEAM',
     'ASI',
     'CODING_AGENTS',
@@ -57,6 +58,7 @@ const TRUST = Object.freeze({
     TRACK_C: 'track-c-portal-v502',
     TRACK_D: 'snapshot-publisher',
     TRACK_E: 'qa-release-manager',
+    TRACK_Q: 'track-q-quality-evidence-release-assurance',
     RED_TEAM: 'red-team-lead',
     REVIEW_AGENTS: 'editorial-rights-reviewer',
     TEST_AGENTS: 'qa-release-manager',
@@ -115,7 +117,7 @@ const TRUST = Object.freeze({
     'working_sha', 'worktree_state', 'expected_checkout_binding', 'source_attestation',
     'trusted_git', 'committed_documents', 'bootstrap_artifacts', 'constitutional_readiness', 'dispatch_gate', 'authority_boundary', 'receipt_digest'
   ],
-  receiptVersion: '1.7.0',
+  receiptVersion: '1.8.0',
   defaultTtlSeconds: 900,
   maxTtlSeconds: 1800
 });
@@ -669,7 +671,7 @@ const verifyContract = (contract) => {
   }));
   const assertions = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.8.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
