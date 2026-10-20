@@ -14,6 +14,7 @@ This directory is the startup package for five KIDULTS workstreams.
 - **Track C — Portal V502 & Experience Layer:** renders only released, versioned intelligence artifacts.
 - **Track D — Data Platform & Production Reliability:** publishes and operates approved intelligence after all gates and G5 approval.
 - **Track E — Executive OS & Cross-Vertical Portfolio:** governs executive operating decisions, cross-vertical reuse, capital/ROI gates, and portfolio-level evidence.
+- **Track Q — Quality, Evidence & Release Assurance:** independently verifies customer-facing claims, evidence, rights, reproducibility and decision usefulness; reports PASS/HOLD to the QA Gate Committee.
 
 ## Required reading order
 
@@ -94,6 +95,7 @@ Track D: published-snapshot.json + production-release-record.json
 - Track C: every contract/release change plus rendering/asset failures
 - Track D: every deployment/runtime/incident event plus health reports
 - Track E: every material portfolio, ROI, reuse, authority, or cross-vertical decision
+- Track Q: every customer-facing release candidate and every material evidence, rights, methodology or claims change
 - Integrated digest: 06:00 KST daily
 - Three-Book synchronization: Sunday and after material changes
 
@@ -116,7 +118,7 @@ known blockers
 next reporting time
 ```
 
-Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution
+Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution · Track Q reserved ID track-q-qa-agent; dispatch pending protected runtime
 
 ## Mandatory RESUME CONTRACT — every Work execution
 
