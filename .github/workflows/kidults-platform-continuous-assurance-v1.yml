@@ -399,6 +399,8 @@ jobs:
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    outputs:
+      full_operating_proof: ${{ steps.resolve_ephemeral_guard.outputs.full_operating_proof }}
     env:
       KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
       KPMO_SOURCE_KIND: ${{ inputs.coverage_run_id != '' && 'PROTECTED_MAIN_COVERAGE_CONTINUATION' || github.event_name == 'pull_request' && 'PULL_REQUEST_MERGE_RESULT' || github.event_name == 'workflow_run' && 'PROTECTED_MAIN_WORKFLOW_RUN' || github.event_name == 'schedule' && 'PROTECTED_MAIN_SCHEDULE' || github.event_name == 'repository_dispatch' && 'PROTECTED_MAIN_EXTERNAL_NATURAL_CLOCK' || github.event_name == 'workflow_dispatch' && 'PROTECTED_MAIN_MANUAL' || 'PROTECTED_MAIN_PUSH' }}
@@ -596,6 +598,7 @@ jobs:
             "$CONSUMPTION" >/dev/null
 
       - name: Resolve bounded ephemeral canonical leader or alias
+        id: resolve_ephemeral_guard
         # This is read-only and must still seal a guard receipt when an earlier
         # Sentinel/continuation precondition fails. The failure remains fail-closed;
         # receipt completeness must not be lost as a secondary error.
@@ -752,6 +755,8 @@ jobs:
             --output "$PACKET_DIR/ephemeral-guard-receipt.json" \
             --audit-output "$PACKET_DIR/audit-receipt.json" \
             --remediation-output "$PACKET_DIR/remediation-plan.json"
+          FULL_AUDIT=$(jq -r 'if (.audit_execution_disposition // "") | startswith("EXECUTE_FULL_AUDIT") then "true" else "false" end' "$PACKET_DIR/ephemeral-guard-receipt.json")
+          printf 'full_operating_proof=%s\n' "$FULL_AUDIT" >> "$GITHUB_OUTPUT"
 
       - name: Validate exact ASI SHADOW upstream evidence binding
         if: env.KPMO_EXECUTE_FULL_AUDIT == 'true' && github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS ASI SHADOW Operating Evidence v1'
@@ -1262,14 +1267,6 @@ jobs:
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
 
-      - name: Reconcile whole platform operating receipts without side effects
-        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs
-          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
-
       - name: Emit safe remediation packet
         # Internal control success is not whole-platform empirical readiness.
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
@@ -1278,14 +1275,6 @@ jobs:
           --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
           --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json"
-
-      - name: Observe internal recovery evidence without claiming operating completion
-        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
-        run: >-
-          node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs
-          "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
-          "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/internal-operating-recovery-observation-v1.json"
-          --observe
 
       - name: Preserve read-only rate wait checkpoint
         if: always()
@@ -1416,6 +1405,77 @@ jobs:
             ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/audit-receipt.json
             ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/remediation-plan.json
             ${{ runner.temp }}/${{ env.KPMO_PACKET_SUFFIX }}/ephemeral-guard-receipt.json
+          if-no-files-found: error
+          retention-days: 90
+
+  reconcile-protected-main-operating-receipts:
+    needs: [classify-canonical-identity, audit]
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      needs.classify-canonical-identity.result == 'success' &&
+      needs.audit.result == 'success' &&
+      needs.audit.outputs.full_operating_proof == 'true'
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-KPMO
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+    env:
+      KPMO_SOURCE_SHA: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+      PROOF_DIR: ${{ runner.temp }}/kidults-main-operating-proof
+    steps:
+      - name: Checkout exact protected main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.coverage_source_sha || github.event.workflow_run.head_sha || github.event.client_payload.exact_main_sha || github.sha }}
+          persist-credentials: false
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.19.0'
+          package-manager-cache: false
+      - name: Reconcile exact-main operating receipts through the shared read budget
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY_ID: ${{ github.repository_id }}
+          KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
+          KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$KPMO_SOURCE_SHA"
+          test -n "$AWS_ROLE_ARN"
+          test -n "$KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN"
+          test -n "$KIDULTS_AUTONOMOUS_WORKLOAD_ID"
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-operating-proof-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          mkdir -p "$PROOF_DIR"
+          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs \
+            --output "$PROOF_DIR/whole-platform-operating-proof-v1.json"
+          node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs \
+            "$PROOF_DIR/whole-platform-operating-proof-v1.json" \
+            "$PROOF_DIR/internal-operating-recovery-observation-v1.json" --observe
+      - name: Preserve exact-main operating proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: kidults-whole-platform-operating-proof-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/kidults-main-operating-proof/
           if-no-files-found: error
           retention-days: 90
 
