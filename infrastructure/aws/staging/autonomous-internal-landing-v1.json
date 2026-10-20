@@ -61,11 +61,6 @@
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
     },
-    "AssuranceWorkflowRef": {
-      "Type": "String",
-      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-platform-continuous-assurance-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
-    },
     "VerifierWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main",
@@ -643,14 +638,9 @@
               "Condition": {
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                  "token.actions.githubusercontent.com:sub": [
-                    {
-                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
-                    },
-                    {
-                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${AssuranceWorkflowRef}"
-                    }
-                  ]
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                  }
                 }
               }
             }
