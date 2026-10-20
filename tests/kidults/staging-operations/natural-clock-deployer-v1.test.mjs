@@ -28,7 +28,7 @@ test('deployer is bounded to exact STAGING resources and cannot reach production
 
 test('STAGING deployment requires explicit owner-dispatched exact-main inputs',()=>{
   for(const marker of ["github.actor == github.repository_owner","github.sha == inputs.main_sha","github.event_name == 'workflow_dispatch'",
-    'id-token: write','ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','validate-staging-no-authority-expansion-v1.mjs','negative_canary:\\\"PASS\\\"'])
+    'id-token: write','ScheduleState,ParameterValue=ENABLED','DEPLOY-STAGING-NATURAL-CLOCK-','validate-staging-no-authority-expansion-v1.mjs','negative_canary:"PASS"'])
     assert.ok(workflow.includes(marker),marker);
   assert.ok(!workflow.includes('push:'));
   assert.ok(!workflow.includes('AUTO-STAGING-NATURAL-CLOCK-'));
