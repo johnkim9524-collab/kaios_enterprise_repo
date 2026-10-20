@@ -2,7 +2,7 @@
   "registry_version": "1.5.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
   "updated_at": "2026-10-20T23:03:27+09:00",
-  "change_rationale": "Propose Track Q Quality, Evidence & Release Assurance and reserve canonical ID track-q-qa-agent. Runtime holder remains unassigned until protected provisioning and exact-head readiness receipt consumption.",
+  "change_rationale": "Propose Track Q's independent QA role, reserve its canonical ID and add customer-outcome quality measures; runtime remains unassigned pending protected provisioning and verified readiness.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -666,14 +666,16 @@
         "Issue an evidence-bound PASS or HOLD finding with severity, exact evidence references and measurable exit criteria",
         "Preserve dissent, unknowns, conflicts of interest and failed checks in the QA record",
         "Escalate material rights, evidence, reproducibility or integrity failures immediately to KPMO and the QA Gate Committee",
-        "Verify remediation against the new immutable artifact/version; never overwrite or silently reuse a prior review"
+        "Verify remediation against the new immutable artifact/version; never overwrite or silently reuse a prior review",
+        "Assess customer decision usefulness, comprehension, accessibility and misinterpretation risk for each intended audience"
       ],
       "required_deliverables": [
         "track-q-qa-review.json bound to artifact_id, version_or_sha, methodology_version and review_session_id",
         "Evidence and source traceability matrix",
         "Reproduction and validation record",
         "PASS or HOLD rationale with severity and unresolved uncertainty",
-        "Remediation exit criteria and, when applicable, post-fix verification record"
+        "Remediation exit criteria and, when applicable, post-fix verification record",
+        "Customer-quality checklist covering decision task, audience, clarity, limitations, accessibility and misleading-claim risk"
       ],
       "decision_authority": [
         "Issue an independent QA PASS or HOLD for the exact reviewed artifact/version",
@@ -695,7 +697,8 @@
         "Zero unsupported PASS findings or undisclosed material conflicts",
         "Material evidence and rights defects are detected before release",
         "Every HOLD has precise, testable exit criteria",
-        "Remediation is verified on a new immutable version with complete audit lineage"
+        "Remediation is verified on a new immutable version with complete audit lineage",
+        "Intended customers can identify the evidence, limitations and appropriate use of the artifact without unsupported inference"
       ],
       "reporting_cadence": "For every release candidate and material artifact change; immediate escalation for material evidence, rights, integrity or reproducibility failures; daily status only while an assigned review remains active.",
       "decision_boundary": "QA PASS/HOLD is an independent quality finding, not final business, legal, Production, Public or G5 approval."
