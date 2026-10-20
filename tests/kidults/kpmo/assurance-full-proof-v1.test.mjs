@@ -135,15 +135,19 @@ test('full audit must have been triggered by the selected exact Sentinel tuple',
     assert.throws(()=>verifyAssuranceReadiness(f),/ASSURANCE_FULL_PROOF_AUDIT_SENTINEL_CAUSAL_BINDING/);
   }
 });
-test('full audit distinguishes internal recovery from the unchanged whole-platform runtime predicate',()=>{
-  const workflow=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
-  const upload=workflow.indexOf('- name: Upload exact-run assurance packet');
-  const preserve=workflow.indexOf('- name: Preserve control result');
-  const reconcile=workflow.indexOf('reconcile-protected-main-operating-receipts:');
-  const validation=workflow.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs',reconcile);
-  assert.ok(upload>0&&upload<preserve&&preserve<reconcile&&reconcile<validation);
-  const protectedMainJob=workflow.slice(reconcile);
+test('full audit reconciliation uses the existing KPMO trust and keeps whole-platform health fail-closed',()=>{
+  const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
+  const kpmo=fs.readFileSync('.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml','utf8');
+  const upload=assurance.indexOf('- name: Upload exact-run assurance packet');
+  const preserve=assurance.indexOf('- name: Preserve control result');
+  const reconcile=kpmo.indexOf('reconcile-protected-main-operating-receipts:');
+  const validation=kpmo.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs',reconcile);
+  assert.ok(upload>0&&upload<preserve&&reconcile>0&&reconcile<validation);
+  const protectedMainJob=kpmo.slice(reconcile);
+  assert.match(protectedMainJob,/environment: KIDULTS-AUTONOMOUS-KPMO/);
   assert.match(protectedMainJob,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
+  assert.match(protectedMainJob,/workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
+  assert.match(protectedMainJob,/github\.event\.workflow_run\.head_sha/);
   assert.match(protectedMainJob,/node scripts\/kidults\/kpmo\/validate-internal-operating-recovery-v1\.mjs/);
   assert.match(protectedMainJob,/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
 });
