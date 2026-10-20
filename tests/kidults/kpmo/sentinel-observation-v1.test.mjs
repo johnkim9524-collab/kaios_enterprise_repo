@@ -56,7 +56,7 @@ test('repository-wide fanout stays inside declared limits with existing mutation
  assert.ok(report.workflow_run_consumers<=26);
  assert.ok(report.execution_workflow_run_edges<=37);assert.ok(report.control_observer_edges<=20);
  assert.equal(report.critical_source_cascade_depth,3);
- assert.equal(report.workflow_run_static_graph_depth,8);
+ assert.ok(report.workflow_run_static_graph_depth<=8);
  const budget=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/asi-workflow-fanout-budget-v1.json'));
  assert.equal(budget.budgets.workflow_run_consumers_max,26);
  assert.equal(budget.budgets.execution_workflow_run_edges_max,37);

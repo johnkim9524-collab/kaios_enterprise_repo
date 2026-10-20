@@ -29,8 +29,8 @@ function routeAllowed(route,binding,now=()=>Date.now()){
     /^compare\/[a-f0-9]{40}\.\.\.[a-f0-9]{40}(?:\?per_page=1&page=2)?$/,
     /^actions\/workflows\/kidults-autonomous-(?:track|kpmo|independent-verification)-authorization-v1\.yml\/runs\?branch=main&event=repository_dispatch&status=(?:failure|cancelled|timed_out)&per_page=100&page=[1-9][0-9]{0,2}$/,
   ];
-  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(path);
-  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=25&page=([1-9][0-9]{0,2})$/.exec(path);
+  const trackHistory=/^actions\/workflows\/kidults-autonomous-track-authorization-v1\.yml\/runs\?branch=main&created=([^&]+)&per_page=(?:25|100)&page=([1-9][0-9]{0,2})$/.exec(path);
+  const securityHistory=/^actions\/workflows\/kidults-security-assurance-empirical-r1\.yml\/runs\?branch=main&head_sha=([a-f0-9]{40})&created=([^&]+)&per_page=(?:25|100)&page=([1-9][0-9]{0,2})$/.exec(path);
   const validHistoryRange=(encoded,page,maxAgeMs)=>{
     if(!encoded||!page||Number(page)>100)return false;
     let decoded='';try{decoded=decodeURIComponent(encoded);}catch{return false;}

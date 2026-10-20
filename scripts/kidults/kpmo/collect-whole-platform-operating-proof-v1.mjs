@@ -25,9 +25,10 @@ const canary=spec('IMMUTABILITY','kidults-autonomous-object-lock-canary-v1.yml',
 const dispatcher=spec('DISPATCHER','kidults-autonomous-dispatcher-v1.yml',['workflow_run','schedule','workflow_dispatch']);
 const finalizers=['track','kpmo','independent-verification'].map(role=>spec(`FINALIZER_${role}`,`kidults-autonomous-${role}-authorization-v1.yml`,['repository_dispatch','workflow_run']));
 const rootUrl=`https://api.github.com/repos/${REPOSITORY}`;
-// Keep run-history JSON pages below the bounded reader's default 1 MiB even
-// when Actions returns unusually large workflow-run objects.
-const RUN_INDEX_PAGE_SIZE=25;
+// Read the maximum GitHub page size to keep complete historical reconciliation
+// inside the invocation call budget. A 100-run Actions index is still bounded
+// by the explicit 4 MiB response cap below.
+const RUN_INDEX_PAGE_SIZE=100;
 const RUN_INDEX_MAX_PAGES=40;
 const RUN_INDEX_MAX_RESPONSE_BYTES=4*1024*1024;
 const RECOVERY_HISTORY_PAGE_SIZE=RUN_INDEX_PAGE_SIZE;

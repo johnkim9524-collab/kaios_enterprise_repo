@@ -49,6 +49,7 @@ test('resumes the bounded historical authorization and exact-SHA security run in
  const historyCommon={...common,artifact:historyArtifact,now:()=>Date.parse('2026-10-19T10:00:00.000Z')};
  const routes=[
   '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created=2026-10-12T10%3A31%3A23.000Z..2026-10-13T10%3A23%3A51.000Z&per_page=25&page=35',
+  '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created=2026-10-12T10%3A31%3A23.000Z..2026-10-13T10%3A23%3A51.000Z&per_page=100&page=9',
   '/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created=2026-10-12T10%3A33%3A35.000Z..2026-10-13T10%3A28%3A15.000Z&per_page=25&page=26',
   `/repos/johnkim9524-collab/kaios_enterprise_repo/actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha=${sha}&created=2026-10-18T03%3A56%3A24.947Z..2026-10-19T09%3A56%3A24.947Z&per_page=25&page=1`,
  ];

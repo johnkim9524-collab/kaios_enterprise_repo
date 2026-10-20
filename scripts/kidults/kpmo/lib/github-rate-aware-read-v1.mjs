@@ -93,7 +93,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
       const operationBinding=budget.scope?{operation_id:operationId,run_id:String(binding.run_id),run_attempt:binding.run_attempt,
         source_sha:binding.source_sha,route,method:'GET',issued_at:now()}:undefined;
       try{release=await (budget.acquireLease??budget.acquire)({deadline,binding:operationBinding});}catch(error){
-        if(/^SHARED_GITHUB_READ_(?:OPERATION_REBIND|DUPLICATE_OPERATION_NO_REPLAY)/.test(error?.message||''))throw error;
+        if(/^SHARED_GITHUB_READ_(?:OPERATION_REBIND|DUPLICATE_OPERATION_NO_REPLAY|CAS_UNKNOWN_RECONCILE_REQUIRED)/.test(error?.message||''))throw error;
         return defer(route,null,Number.isSafeInteger(error?.resume_at)?error.resume_at:now(),attempt,
           error?.resume_at?'SHARED_GITHUB_READ_BUDGET':'INVOCATION_CALL_BUDGET');}
       if(budget.blockedUntil()>now()){release();continue;}
@@ -156,7 +156,11 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         try{if(finishPermit&&typeof release.finish==='function')await release.finish();}
         catch(error){finalizationFailure??=error;}
         finally{release();}
-        if(finalizationFailure)throw finalizationFailure;
+        if(finalizationFailure){
+          if(/SHARED_GITHUB_READ_CAS_CONTENTION_DEFERRED/.test(finalizationFailure?.message||'')&&typeof release.resumeAt==='function')
+            return defer(route,null,release.resumeAt(),attempt+1,'SHARED_GITHUB_READ_BUDGET');
+          throw finalizationFailure;
+        }
       }
       if(transportFailure){
         if(!transportCode){

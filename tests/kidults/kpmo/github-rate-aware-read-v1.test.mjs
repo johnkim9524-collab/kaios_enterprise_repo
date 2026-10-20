@@ -25,6 +25,31 @@ test('transient transport retry consumes a fresh cross-runner permit',async()=>{
  assert.deepEqual(await read(url),{ok:true});assert.equal(attempts,2);assert.equal(row.spent,2);
  assert.equal(Object.keys(row.operations).length,2);assert.ok(Object.values(row.operations).every(item=>item.state==='COMPLETED'));
 });
+test('finish CAS contention creates a bounded non-authorizing checkpoint after lease expiry',async()=>{
+ let time=100000,row=null,gets=0,finishConflicts=0;const waits=[],checkpoints=[];
+ const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'finish-contention-test'};
+ const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async(_key,version,next)=>{
+   if(Object.values(next.operations??{}).some(operation=>operation.state==='COMPLETED')){finishConflicts++;return 'CONFLICT';}
+   if((row?.version??0)!==version)return 'CONFLICT';row=structuredClone(next);return 'COMMITTED';}};
+ const now=()=>time,wait=async ms=>{waits.push(ms);time+=ms;};
+ const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,leaseMs:30000,casRetries:2,casBaseDelayMs:1,casMaxDelayMs:2,
+   now,wait,random:()=>0});
+ const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,onCheckpoint:c=>checkpoints.push(c),deadlineMs:100000,
+   fetchImpl:async()=>{gets++;return response(200);}});
+ await assert.rejects(read(url),/GITHUB_READ_DEFERRED/);
+ assert.equal(gets,1);assert.equal(finishConflicts,3);assert.deepEqual(waits,[1,1]);
+ assert.equal(checkpoints.length,1);assert.equal(checkpoints[0].reason,'SHARED_GITHUB_READ_BUDGET');
+ assert.equal(checkpoints[0].resume_at,new Date(131000).toISOString());assert.equal(checkpoints[0].actual_authority_granted,false);
+ assert.deepEqual(Object.values(row.operations).map(operation=>operation.state),['ACTIVE']);
+});
+test('unknown acquire CAS stays a reconciliation HOLD without retrying the GET',async()=>{
+ let row=null,casCalls=0,gets=0;const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'unknown-cas-test'};
+ const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async()=>{casCalls++;return 'UNKNOWN';}};
+ const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,now:()=>100000});const checkpoints=[];
+ const read=createGithubRateAwareRead({token:'fake',binding,now:()=>100000,budget,onCheckpoint:c=>checkpoints.push(c),fetchImpl:async()=>{gets++;return response(200);}});
+ await assert.rejects(read(url),/SHARED_GITHUB_READ_CAS_UNKNOWN_RECONCILE_REQUIRED/);
+ assert.equal(casCalls,1);assert.equal(gets,0);assert.equal(checkpoints.length,0);
+});
 test('exhausted transient retries defer a bounded read checkpoint',async()=>{
  const f=fixture([transientSocket(),transientSocket()],{maxRetries:0,maxTransportRetries:1});
  await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);assert.equal(f.calls(),2);assert.deepEqual(f.waits,[250]);

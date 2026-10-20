@@ -1,18 +1,10 @@
 name: KPMO Authorization Read-Resume Observer V1
 run-name: >-
-  ${{ github.event_name == 'workflow_run' && format('KIDULTS_AUTH_READ_RESUME/{0}/{1}', github.event.workflow_run.name, github.event.workflow_run.id) || (github.event_name == 'schedule' && format('KIDULTS_AUTH_READ_RESUME/sweep/{0}', github.run_id)) || format('KIDULTS_AUTH_READ_RESUME/manual/{0}', github.event.inputs.source_run_id) }}
+  ${{ github.event_name == 'schedule' && format('KIDULTS_AUTH_READ_RESUME/sweep/{0}', github.run_id) || format('KIDULTS_AUTH_READ_RESUME/manual/{0}', github.event.inputs.source_run_id) }}
 
 on:
   schedule:
     - cron: '*/15 * * * *'
-  workflow_run:
-    workflows:
-      - 'KIDULTS Autonomous Track Authorization V1'
-      - 'KIDULTS Autonomous KPMO Authorization V1'
-      - 'KIDULTS Autonomous Independent Verification V1'
-      - 'KIDULTS Platform Continuous Assurance V1'
-    branches: [main]
-    types: [completed]
   workflow_dispatch:
     inputs:
       source_run_id:
@@ -35,20 +27,13 @@ on:
 permissions: {}
 
 concurrency:
-  group: ${{ github.event_name == 'schedule' && 'kpmo-authorization-read-resume-sweep' || format('kpmo-authorization-read-resume-{0}-{1}', github.event.workflow_run.id || github.event.inputs.source_run_id || github.run_id, github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt || 'schedule') }}
+  group: kpmo-authorization-read-resume-sweep
   cancel-in-progress: false
 
 jobs:
   preserve-failed-role-read-resume:
     if: >-
       (
-        github.event_name == 'workflow_run' &&
-        github.event.workflow_run.repository.full_name == github.repository &&
-        github.event.workflow_run.head_repository.full_name == github.repository &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.status == 'completed' &&
-        github.event.workflow_run.conclusion != 'success'
-      ) || (
         github.event_name == 'workflow_dispatch' &&
         github.actor == 'johnkim9524-collab' &&
         github.repository == 'johnkim9524-collab/kaios_enterprise_repo' &&
@@ -149,7 +134,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: kidults-github-read-resume-handoff-v1-${{ github.event.workflow_run.id || github.event.inputs.source_run_id || 'sweep' }}-${{ github.event.workflow_run.run_attempt || github.event.inputs.source_run_attempt || 'scheduled' }}-${{ github.run_id }}
+          name: kidults-github-read-resume-handoff-v1-${{ github.event.inputs.source_run_id || 'sweep' }}-${{ github.event.inputs.source_run_attempt || 'scheduled' }}-${{ github.run_id }}
           path: out/github-read-resume-handoff-v1/receipt.json
           if-no-files-found: warn
           retention-days: 90

@@ -101,9 +101,11 @@ test('bounded resume admits exact time-bounded track and security recovery histo
   const range='2026-10-15T11:30:44.000Z..2026-10-15T23:37:12.000Z';
   const encoded=encodeURIComponent(range);
   const track='actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created='+encoded+'&per_page=25&page=17';
+  const trackLargePage='actions/workflows/kidults-autonomous-track-authorization-v1.yml/runs?branch=main&created='+encoded+'&per_page=100&page=9';
   const security='actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha='+binding.source_sha+'&created='+encoded+'&per_page=25&page=1';
+  const securityLargePage='actions/workflows/kidults-security-assurance-empirical-r1.yml/runs?branch=main&head_sha='+binding.source_sha+'&created='+encoded+'&per_page=100&page=1';
   const callerBinding={run_id:binding.run_id,run_attempt:binding.run_attempt,source_sha:binding.source_sha};
-  for(const route of [track,security]){
+  for(const route of [track,trackLargePage,security,securityLargePage]){
     const cp=checkpoint(nowValue+1000);cp.unfinished_operation.route='/repos/johnkim9524-collab/kaios_enterprise_repo/'+route;
     await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:callerBinding,deadline:nowValue+10000,now:()=>nowValue,
       read:async()=>{throw deferred(cp);}}),/GITHUB_READ_DEFERRED/);

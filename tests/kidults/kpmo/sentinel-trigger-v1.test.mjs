@@ -127,7 +127,7 @@ test('Sentinel resolves and retains terminal cohort evidence after waiter failur
  assert.match(sentinel,/- name: Resolve latest applicable exact-SHA producer health\n        if: always\(\)/);
 });
 
-test('Sentinel observes Coverage only; Assurance failure resume is handled by the terminal observer',()=>{
+test('Sentinel observes Coverage only; Assurance failure resume is handled by the scheduled sweep',()=>{
  const s=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-sentinel-health-v1.yml','utf8');
  const trigger=s.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
  assert.ok(trigger,'missing Sentinel workflow_run trigger');
@@ -147,7 +147,8 @@ test('Sentinel observes Coverage only; Assurance failure resume is handled by th
  assert.doesNotMatch(resume[0],/github\.event\.workflow_run/);
  assert.match(s,/kidults\.github\.read\.resume\.v1/);
  const terminal=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
- assert.match(terminal,/KIDULTS Platform Continuous Assurance V1/);
+ assert.match(terminal,/run-scheduled-github-read-resume-sweep-v1\.mjs/);
+ assert.doesNotMatch(terminal,/^  workflow_run:/m);
  assert.doesNotMatch(resume[0],/KIDULTS Autonomous (?:Track|KPMO|Independent Verification) Authorization V1/);
  assert.match(s,/github\.event\.workflow_run\.head_sha != ''/);
  assert.match(s,/Wait for exact-SHA producer cohort before Sentinel resolution/);
@@ -156,18 +157,14 @@ test('Sentinel observes Coverage only; Assurance failure resume is handled by th
  assert.ok(waiter.includes('SPECS, workflowRuns'));
 });
 
-test('failed authorization and Assurance workflows use a terminal read-resume observer outside the health-gate cycle',()=>{
+test('failed authorization and Assurance runs are recovered by the single scheduled read-resume sweep',()=>{
  const observer=fs.readFileSync('.github/workflows/kpmo-authorization-read-resume-observer-v1.yml','utf8');
- const trigger=observer.match(/^  workflow_run:\n    workflows:\n([\s\S]*?)^    branches:/m);
- assert.ok(trigger,'missing authorization read-resume observer trigger');
- assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
-  'KIDULTS Autonomous Track Authorization V1',
-  'KIDULTS Autonomous KPMO Authorization V1',
-  'KIDULTS Autonomous Independent Verification V1',
-  'KIDULTS Platform Continuous Assurance V1',
- ]);
- assert.match(observer,/github\.event\.workflow_run\.conclusion != 'success'/);
+ assert.match(observer,/schedule:\n    - cron: '\*\/15 \* \* \* \*'/);
+ assert.doesNotMatch(observer,/^  workflow_run:/m);
+ assert.match(observer,/group: kpmo-authorization-read-resume-sweep/);
+ assert.match(observer,/run-scheduled-github-read-resume-sweep-v1\.mjs/);
  assert.match(observer,/run-github-read-resume-handoff-v1\.mjs/);
+ assert.doesNotMatch(observer,/github\.event\.workflow_run/);
  const handoff=fs.readFileSync('scripts/kidults/kpmo/run-github-read-resume-handoff-v1.mjs','utf8');
  assert.match(handoff,/actual_authority_granted:false/);
  assert.match(observer,/actions: read\n      contents: read\n      id-token: write/);
@@ -253,9 +250,9 @@ test('terminal role read-resume and operational Sentinel use separate edges',()=
  assert.deepEqual([...trigger[1].matchAll(/^      - '([^']+)'$/gm)].map(x=>x[1]),[
   'KIDULTS ASI Requirement-to-Adapter Coverage v1',
  ]);
- assert.match(resume,/KIDULTS Autonomous Track Authorization V1/);
- assert.match(resume,/KIDULTS Autonomous KPMO Authorization V1/);
- assert.match(resume,/KIDULTS Autonomous Independent Verification V1/);
+ assert.match(resume,/schedule:\n    - cron: '\*\/15 \* \* \* \*'/);
+ assert.doesNotMatch(resume,/^  workflow_run:/m);
+ assert.match(resume,/run-scheduled-github-read-resume-sweep-v1\.mjs/);
  assert.doesNotMatch(resume,/KPMO Continuous Assurance Success Authority Gate V1/);
  assert.doesNotMatch(s,/^  push:/m);
  assert.doesNotMatch(s,/^  schedule:/m);

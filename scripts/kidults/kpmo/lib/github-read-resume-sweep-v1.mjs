@@ -37,9 +37,12 @@ export function selectReadResumeSweepCandidates({producer,listing,now=Date.now()
   const valid=listing.workflow_runs.filter(run=>{
     const created=Date.parse(run?.created_at||'');
     return Number.isSafeInteger(run?.id)&&run.id>0&&Number.isSafeInteger(run?.run_attempt)&&run.run_attempt>=1&&run.run_attempt<=100
-      &&run.name===producer.name&&(run.path===producer.path||run.path===`${producer.path}@refs/heads/main`)
+      // GitHub may suffix the display name with "completed" for workflow_run
+      // events. The workflow path is the stable identity and is already exact.
+      &&(run.path===producer.path||run.path===`${producer.path}@refs/heads/main`)
       &&run.status==='completed'&&run.conclusion!=='success'&&run.head_branch==='main'&&/^[a-f0-9]{40}$/.test(run.head_sha||'')
-      &&['push','repository_dispatch','workflow_run'].includes(run.event)
+      &&(['push','repository_dispatch','workflow_run'].includes(run.event)
+        ||(producer.role==='assurance'&&run.event==='schedule'&&run.conclusion==='failure'))
       &&run.repository?.full_name===REPO&&Number(run.repository?.id)===1281328888
       &&run.head_repository?.full_name===REPO&&Number.isFinite(created)&&created>=cutoff&&created<=now;
   });
