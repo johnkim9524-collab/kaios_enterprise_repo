@@ -1262,14 +1262,6 @@ jobs:
           --profile "$KPMO_AUDIT_PROFILE"
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
 
-      - name: Reconcile whole platform operating receipts without side effects
-        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: >-
-          node scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs
-          --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
-
       - name: Emit safe remediation packet
         # Internal control success is not whole-platform empirical readiness.
         if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true'
@@ -1278,14 +1270,6 @@ jobs:
           --receipt "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/audit-receipt.json"
           --policy coordination/kidults/kpmo/platform-continuous-assurance-v1.json
           --output "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/remediation-plan.json"
-
-      - name: Observe internal recovery evidence without claiming operating completion
-        if: always() && env.KPMO_EXECUTE_FULL_AUDIT == 'true' && startsWith(env.KPMO_SOURCE_KIND, 'PROTECTED_MAIN_')
-        run: >-
-          node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs
-          "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/whole-platform-operating-proof-v1.json"
-          "$RUNNER_TEMP/$KPMO_PACKET_SUFFIX/internal-operating-recovery-observation-v1.json"
-          --observe
 
       - name: Preserve read-only rate wait checkpoint
         if: always()

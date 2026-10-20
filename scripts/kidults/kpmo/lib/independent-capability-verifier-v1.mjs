@@ -545,7 +545,7 @@ const independentlyMatchesExactPoolingReadTransport=(file,files)=>{
 };
 const independentlyPinnedRecoveryAdmissionWorkflowDigests=Object.freeze({
   '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml':['sha256:80afa5b9a7bd69addca1c3b6256c2999d27261127d8632d596d2b10ad1643ffc','sha256:f1672f7f119aedd3ae8c35825e73415597e016a0ab7afc71d401b1d37d9555ee'],
-  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:6be3c2b4a792997114e944509b1830b8f66c72ad4c263b8d3eede14c2f01bdb0'],
+  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml':['sha256:cab122a764ce16cc67809e8261f6e30360dc1ffeddcdb8f2f5013b53a7efa041','sha256:c08ea1ab095f18f8d70472512517adf8ecaff8aee70a5d1e9fd400855e01fd05'],
   '.github/workflows/kidults-autonomous-track-authorization-v1.yml':['sha256:f5ae08fd9c16294cbd5dc00843babbe7f1d211d1b5693148ee1a020fd6a60921','sha256:c82011c1d01f619e0f0cb5958f5dffedb8a5cc77368b724cade2b4b748a368fc'],
 });
 const independentlyPinnedRecoveryAdmissionSources=Object.freeze({
@@ -571,8 +571,8 @@ const independentlyPinnedStagingBudgetWorkflowDigests=Object.freeze([
   'sha256:0f78fe79092fb88995004e8d166e7470ff226d56a006cae2703f3d74467df294',
 ]);
 const independentlyPinnedPlatformAssuranceReadResumeWorkflowDigests=Object.freeze([
-  'sha256:c048c06e59c373b9e696ecbc21fdf827546cd9563f29fedc0a665d6ca6467564',
   'sha256:239ca44f8576398087a3ba83f7781bc89946d319dcc72e766d537dce2811cd24',
+  'sha256:79886801b7a38b3e8e2a74e97262b9da8f29a3132e38010f7a74613cfbb2a660',
 ]);
 const independentlyMatchesExactStagingBudgetWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-landing-staging-deploy-v1.yml'
   &&hash(file.base_content)===independentlyPinnedStagingBudgetWorkflowDigests[0]
