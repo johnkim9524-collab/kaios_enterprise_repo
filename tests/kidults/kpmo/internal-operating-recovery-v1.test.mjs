@@ -33,14 +33,14 @@ test('audit emits a distinct internal artifact through the existing KPMO trust w
   const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
   const kpmo=fs.readFileSync('.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml','utf8');
   assert.match(assurance,/- name: Upload exact-run assurance packet/);
-  assert.doesNotMatch(assurance,/validate-internal-operating-recovery-v1\\.mjs/);
+  assert.doesNotMatch(assurance,/validate-internal-operating-recovery-v1\.mjs/);
   const reconcile=kpmo.indexOf('reconcile-protected-main-operating-receipts:');
   const validation=kpmo.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs',reconcile);
   assert.ok(reconcile>0&&validation>reconcile);
   const job=kpmo.slice(reconcile);
   assert.match(job,/environment: KIDULTS-AUTONOMOUS-KPMO/);
   assert.match(job,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
-  assert.match(job,/internal-operating-recovery-observation-v1\\.json[\\s\\S]*--observe/);
+  assert.match(job,/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
   const consumer=fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs','utf8');
   assert.match(consumer,/verified_domain_count!==14/);
   assert.doesNotMatch(consumer,/verifyInternalOperatingRecovery/);
