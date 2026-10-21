@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "eadb4f13c2cd7ad7b21e2baf5e87f8e15fbc015f",
+  "revision": "38ef808d046a7cd6c66c63a1ff7d013aa73ba624",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0146625ad9504098632bc98434514ce7ddac88fe",
-      "sha256": "sha256:7eed8720d6b54a10c09345c11c629033030e02fc6f5aecdf2d36d76f0f79acdb",
+      "git_blob": "df9de7d26cd8f010fff2f1a315e08fdff2553943",
+      "sha256": "sha256:3be5d779db24a7fef005bf88fe38cf6e76422371c847a550e23583fb022c599f",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4726,8 +4726,8 @@
     {
       "path": "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "b5542f3ef85805b6be8d2ce514792d9c4f51f504",
-      "sha256": "sha256:38536479b2390568d69bafadc043c8384a2fd4735b5005e5e25b2c4619dea385",
+      "git_blob": "6bafdc64ea4893b5593e84d317367e32e034975e",
+      "sha256": "sha256:9d964bb3a9e382593c265b0afa46013826d7297f297f2f7b65d326fedfb73e01",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -7126,8 +7126,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "46c64c82348889328ba6ca690b6775de24d65bbb",
-      "sha256": "sha256:cc57816a15e73d98c394c23a28252c539a78ee50cbe38b6e3fe934d3934116c5"
+      "git_blob": "5e2bc1a07ec29396105dbef0d27626d7f044c2c4",
+      "sha256": "sha256:f809f5bac5db5c9f33b3bb658bbe67fd93734235fc98c89de2cca2239d11a126"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -7298,5 +7298,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6dedb6bbc4036fb647284705b6feac7af818e6ec18a61b9fadf9d60643b74c2e"
+  "manifest_sha256": "sha256:338e87f5358998d53171d6ab18487df7152668f0c4580d42c27fa5f9f101ce1d"
 }
