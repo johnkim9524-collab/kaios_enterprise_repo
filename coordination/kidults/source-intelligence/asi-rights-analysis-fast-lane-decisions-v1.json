@@ -26,9 +26,9 @@
       "reason_code": "PUBLIC_TERMS_RESTRICT_LISTING_PRICE_COLLECTION_DERIVATIVE_AND_COMMERCIAL_USE",
       "official_evidence_urls": ["https://www.classic.com/about/terms-conditions/", "https://www.classic.com/data"],
       "rights": {"collect": "DENY_PUBLIC_WEB", "store": "DENY_PUBLIC_WEB", "derive": "DENY_PUBLIC_WEB", "commercial_use": "DENY_PUBLIC_WEB"},
-      "communication_state": "FOLLOWUP_SENT_AWAITING_PROVIDER_RESPONSE",
+      "communication_state": "SUBSTANTIVE_RESPONSE_RECEIVED_NO_FURTHER_SEND_AUTHORIZED",
       "communication_evidence_refs": ["coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#classic-com-staged-pilot-followup-20260830"],
-      "next_action": "AWAIT_SUBSTANTIVE_PROVIDER_RESPONSE_TO_2026_08_30_STAGED_PILOT_FOLLOWUP_NO_FURTHER_SEND_AUTHORIZED",
+      "next_action": "AWAIT_OWNER_DECISION_AND_WRITTEN_CLARIFICATION_NO_FURTHER_SEND_AUTHORIZED",
       "evidence_binding": {"reviewed_at": "2026-08-30T00:00:00Z", "recheck_due_at": "2026-09-29T00:00:00Z", "review_method": "OFFICIAL_PAGE_TERMS_TRIAGE", "snapshot_state": "MANIFEST_BOUND_SOURCE_CONTENT_SNAPSHOT_PENDING", "binding_digest": "sha256:80a3ca0130667df271c659c5854a118465ac4cbf9be68d44970af1e4a736a10a"}
     },
     {
