@@ -17,7 +17,7 @@ import './primary-script-lexing-v1.test.mjs';
 import './independent-script-lexing-v1.test.mjs';
 import './dispatcher-recovery-classification-v1.test.mjs';
 import './exact-scope-owner-decision-v1.test.mjs';
-import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,resolveDispatcherReadBudget,DISPATCHER_READ_BUDGET_DEFAULT,DISPATCHER_READ_BUDGET_MAX,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -441,6 +441,20 @@ for(const [label,response,code] of [
   const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
   assert.ok(results.every(result=>result.status==='rejected'&&result.reason.code===code));
   await assert.rejects(client.request(immutablePath),error=>error.code===code);assert.equal(calls,1);
+});
+test('dispatcher read budget scales above 256 and remains hard-capped',async()=>{
+  assert.equal(DISPATCHER_READ_BUDGET_DEFAULT,2048);
+  assert.equal(DISPATCHER_READ_BUDGET_MAX,4096);
+  assert.equal(resolveDispatcherReadBudget(''),2048);
+  assert.equal(resolveDispatcherReadBudget('4096'),4096);
+  assert.throws(()=>resolveDispatcherReadBudget('255'),/DISPATCH_CONFIGURATION_INVALID/);
+  assert.throws(()=>resolveDispatcherReadBudget('4097'),/DISPATCH_CONFIGURATION_INVALID/);
+  assert.throws(()=>resolveDispatcherReadBudget('unbounded'),/DISPATCH_CONFIGURATION_INVALID/);
+  let calls=0;
+  const client=createDispatcherReadClient({token:'offline',maxRequests:300,fetchImpl:async()=>{calls++;return fakeResponse();}});
+  for(let i=0;i<300;i++)await client.request('/read-'+i);
+  assert.equal(client.requestCount(),300);assert.equal(calls,300);
+  assert.deepEqual(client.readDiagnostics(),{request_count:300,max_requests:300,resource_counts:{branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:300}});
 });
 test('dispatcher request budget is invocation scoped and cannot be exceeded',async()=>{
   let calls=0;const fetchImpl=async()=>{calls++;return fakeResponse();};

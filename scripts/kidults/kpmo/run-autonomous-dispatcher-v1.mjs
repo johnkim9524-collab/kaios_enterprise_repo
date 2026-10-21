@@ -51,6 +51,16 @@ const UNKNOWN_CLASSIFICATION_CODES=new Set([
 ]);
 export const isUnknownClassification=error=>UNKNOWN_CLASSIFICATION_CODES.has(String(error?.code||''));
 const fail=(code,detail='')=>{throw new DispatcherError(code,detail)};
+export const DISPATCHER_READ_BUDGET_DEFAULT=2048;
+export const DISPATCHER_READ_BUDGET_MAX=4096;
+export function resolveDispatcherReadBudget(value=process.env.KIDULTS_DISPATCHER_READ_BUDGET){
+  if(value===undefined||value===null||value==='')return DISPATCHER_READ_BUDGET_DEFAULT;
+  const text=String(value);
+  if(!/^[0-9]+$/.test(text))fail('DISPATCH_CONFIGURATION_INVALID');
+  const budget=Number(text);
+  if(!Number.isSafeInteger(budget)||budget<256||budget>DISPATCHER_READ_BUDGET_MAX)fail('DISPATCH_CONFIGURATION_INVALID');
+  return budget;
+}
 const SHA=/^[0-9a-f]{40}$/;
 const sourceReceiptsByResults=new WeakMap();
 
@@ -249,8 +259,8 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 // are never cached. A global read failure aborts discovery before any fanout.
 export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED|READ_SERVICE_UNAVAILABLE|READ_TRANSPORT_FAILED|READ_RESPONSE_INVALID|READ_TIMEOUT)$/.test(String(error?.code||''))
   ||(error?.global===true&&/^SOURCE_BATCH_[A-Z_]+$/.test(String(error?.code||'')));
-export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100,requestTimeoutMs=30000}) {
-  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
+export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=resolveDispatcherReadBudget(),reserve=100,requestTimeoutMs=30000}) {
+  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>DISPATCHER_READ_BUDGET_MAX
     ||!Number.isSafeInteger(reserve)||reserve<0||!Number.isSafeInteger(requestTimeoutMs)||requestTimeoutMs<1||requestTimeoutMs>30000)fail('DISPATCH_CONFIGURATION_INVALID');
   let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
   const counts={branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:0};
@@ -384,7 +394,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 async function immutableCommit(repository,ref,client){
   return client.sourceReader&&client.sourceReader.hasSource(ref)?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
 }
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false,operationQuarantine=null}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=resolveDispatcherReadBudget(),sourceReader,sourceTransport=false,operationQuarantine=null}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
   if(operationQuarantine!==null)validateOperationQuarantine(operationQuarantine,repository);
   if(typeof sourceTransport!=='boolean'||(sourceTransport&&sourceReader!==undefined))fail('DISPATCH_CONFIGURATION_INVALID');
@@ -608,14 +618,14 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
 function validTransportDiagnostics(value){
   return value&&Object.keys(value).sort().join(',')==='attempt_count,cause_code,request_count,resource_family'
     &&['branches','rulesets','pulls','files','commits','status','checks','contents','other'].includes(value.resource_family)
-    &&[1,2].includes(value.attempt_count)&&Number.isSafeInteger(value.request_count)&&value.request_count>=value.attempt_count&&value.request_count<=256
+    &&[1,2].includes(value.attempt_count)&&Number.isSafeInteger(value.request_count)&&value.request_count>=value.attempt_count&&value.request_count<=DISPATCHER_READ_BUDGET_MAX
     &&['UND_ERR_SOCKET','ECONNRESET','EPIPE','TIMEOUT','INVALID_JSON','UNCLASSIFIED'].includes(value.cause_code);
 }
 
 function validReadDiagnostics(value){
   const families=['branches','rulesets','pulls','files','commits','status','checks','contents','other'];
   if(!value||Object.keys(value).sort().join(',')!=='max_requests,next_resource_family,request_count,resource_counts'
-    ||!Number.isSafeInteger(value.max_requests)||value.max_requests<1||value.max_requests>256
+    ||!Number.isSafeInteger(value.max_requests)||value.max_requests<1||value.max_requests>DISPATCHER_READ_BUDGET_MAX
     ||value.request_count!==value.max_requests||!families.includes(value.next_resource_family)
     ||!value.resource_counts||Object.keys(value.resource_counts).sort().join(',')!==families.slice().sort().join(','))return false;
   const counts=Object.values(value.resource_counts);
