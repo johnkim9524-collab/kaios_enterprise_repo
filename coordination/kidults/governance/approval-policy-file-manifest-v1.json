@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "b98359664a3dff04808ae44a1c22092dc75ff370",
+  "revision": "2758ffaa22fdcc27c47319d4547ebe676775591d",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 867
+    "file_count": 866
   },
   "files": [
     {
@@ -119,8 +119,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-dispatcher-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "90faced338e99879e34eaedfa8660f0001cea004",
-      "sha256": "sha256:43fcd6bcafdb30a74977542704654ef23bed7c2a7614b3674c3f31c9fee694e5",
+      "git_blob": "df9de7d26cd8f010fff2f1a315e08fdff2553943",
+      "sha256": "sha256:3be5d779db24a7fef005bf88fe38cf6e76422371c847a550e23583fb022c599f",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4751,20 +4751,6 @@
       }
     },
     {
-      "path": "scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs",
-      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4b4153a2b1d1ec4198b5022970dfdc0e4c1120f7",
-      "sha256": "sha256:9ad4446e1afd12dd4ef01f199992741089696edd981a4e92b3003a653cd2827f",
-      "authorization_routing": {
-        "route": "CANONICAL_ENVELOPE",
-        "coverage": {
-          "mode": "CONSUMER",
-          "consumer": "scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs",
-          "source_reference": "coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json"
-        }
-      }
-    },
-    {
       "path": "scripts/kidults/kpmo/run-direct-owner-landing-handoff-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "dc94eb0bf6f15fb80b70a178007dcc27ce8a7a16",
@@ -7140,8 +7126,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "cdd4ae50f1b6594ad23392b357290613fa3cb382",
-      "sha256": "sha256:e64503a794e5d46f0075b70261b295b0046355b49b81e0d4add1f17f66712875"
+      "git_blob": "5e2bc1a07ec29396105dbef0d27626d7f044c2c4",
+      "sha256": "sha256:f809f5bac5db5c9f33b3bb658bbe67fd93734235fc98c89de2cca2239d11a126"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
@@ -7312,5 +7298,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:24aec27acb766665db4be969e000373f48338bf72cc1f2a542af081cc073167c"
+  "manifest_sha256": "sha256:338e87f5358998d53171d6ab18487df7152668f0c4580d42c27fa5f9f101ce1d"
 }
