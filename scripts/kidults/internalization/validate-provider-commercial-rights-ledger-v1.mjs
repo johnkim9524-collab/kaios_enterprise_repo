@@ -72,13 +72,23 @@ for (const p of l.providers || []) {
       COMMUNICATION_EVIDENCE_PATH
     ]) if (!p.evidence_refs?.includes(ref)) errs.push(`PSA: latest evidence binding missing ${ref}`);
   } else if (p.provider_id === 'CLASSIC_COM') {
-    if (p.evidence_state !== 'WRITTEN_PROVIDER') errs.push('CLASSIC_COM: evidence state drift');
-    if (p.latest_outbound_state !== 'FOLLOWUP_SENT_2026_08_30_AWAITING_PROVIDER_RESPONSE') errs.push('CLASSIC_COM: latest communication truth drift');
-    if (p.activation_state !== 'HOLD_RIGHTS_AND_ECONOMICS_PENDING') errs.push('CLASSIC_COM: activation HOLD drift');
-    if (p.commercial?.pilot_price !== 'UNKNOWN' || p.commercial?.query_and_rate_limits !== 'UNKNOWN') errs.push('CLASSIC_COM: unknown economics must remain explicit');
+    if (p.evidence_state !== 'WRITTEN_PROVIDER_SUBSTANTIVE_RESPONSE_AND_UNEXECUTED_MASTER_AGREEMENT') errs.push('CLASSIC_COM: evidence state drift');
+    if (p.latest_outbound_state !== 'SUBSTANTIVE_RESPONSE_RECEIVED_2026_10_21_NO_FURTHER_SEND_AUTHORIZED') errs.push('CLASSIC_COM: latest communication truth drift');
+    if (p.activation_state !== 'HOLD_OWNER_CONTRACT_RIGHTS_SPEND_CREDENTIAL_AND_DOCUMENT_CLARIFICATION') errs.push('CLASSIC_COM: activation HOLD drift');
+    if (p.commercial?.pilot_price_usd !== 500 || p.commercial?.evaluation_term_days !== 30
+        || p.commercial?.query_cap !== 10000 || p.commercial?.automatic_renewal !== false
+        || p.commercial?.ongoing_license_price !== 'UNKNOWN_NEW_SCHEDULE_REQUIRED') errs.push('CLASSIC_COM: written economics drift');
+    if (p.rights_confirmed?.private_storage_during_term !== true
+        || p.rights_confirmed?.entity_resolution_during_term !== true
+        || p.rights_confirmed?.public_display_during_evaluation !== false
+        || p.rights_confirmed?.post_termination_derived_retention_stated_by_email !== false) errs.push('CLASSIC_COM: written rights projection drift');
+    if (p.access_path?.interface !== 'GRAPHQL_API' || p.access_path?.credential_type !== 'API_KEY'
+        || p.access_path?.provisioning_target_business_days !== 5) errs.push('CLASSIC_COM: access path drift');
     for (const ref of [
+      'gmail:message:1a1604837dcb0d54',
       'gmail:message:1a05355da1037496',
       COMMUNICATION_EVIDENCE_PATH,
+      'coordination/kidults/provider/classic-com-provider-response-20261021-v1.json',
       'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json'
     ]) if (!p.evidence_refs?.includes(ref)) errs.push(`CLASSIC_COM: latest evidence binding missing ${ref}`);
   } else if (p.provider_id === 'ALT_FNDATA') {
