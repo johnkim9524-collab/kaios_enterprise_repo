@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "fbd04e8880ab8162b8da3d2433f83b2a90b99a0c",
+  "revision": "fedb937d1940415bef3391ca39aa624ee7db750c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 865
+    "file_count": 866
   },
   "files": [
     {
@@ -2476,8 +2476,8 @@
     {
       "path": "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "db47836d90572f96fade77cf3fced76769b5e029",
-      "sha256": "sha256:1ab72e401381101d0b6352467556c5b8041a3e113b7cea0155948cf680eb0d20"
+      "git_blob": "7e0f88b31cf50296b28192899628ff6f01a190a1",
+      "sha256": "sha256:35018f20c4eea3172d1f294a09291195a473e80a09fa295cd6619d2e0cad38d3"
     },
     {
       "path": "coordination/kidults/market/current-sold-admission-contract-v1.json",
@@ -2590,8 +2590,8 @@
     {
       "path": "coordination/kidults/provider/provider-contact-readiness-gate-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "2f0e145b9ac234e32f2d4a3f6c153f2ce480fbfd",
-      "sha256": "sha256:10484788dc2bf1aa6e977e3d2331e31ea51783054b7e2133d9a3e29e2be9e185"
+      "git_blob": "3ef7c4102a70658505116e4d5eed2a8c43dab6c7",
+      "sha256": "sha256:aab72bd963a0d7091987f87a5d0efae9060cac30215ee07e79921e04700e3325"
     },
     {
       "path": "coordination/kidults/provider/provider-live-execution-raci-v1.json",
@@ -2662,8 +2662,8 @@
     {
       "path": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "5b027ec582263e5e79a9d39bc23609cea8b5ed7f",
-      "sha256": "sha256:6ca84f383d898e4862e48dd621550e61c1e427991498e2e32f3512c1a4cdd2b8"
+      "git_blob": "7b04b20582000c73e92f3af8a91194986591a8c1",
+      "sha256": "sha256:adfec05db33cbeb0774a1117f5181a997c9b1b0454146a757da43b9aa8b0245a"
     },
     {
       "path": "coordination/kidults/registry/release-registry.json",
@@ -5351,14 +5351,14 @@
     {
       "path": "scripts/kidults/market/validate-alternate-current-sold-provider-preflight-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "936538868dffa32cf247e72884810e061fa92fee",
-      "sha256": "sha256:899dca720445b76970dff8cd66c7497f24905551364b4113fc7a3e91c92a45bf"
+      "git_blob": "7c6deb3b4210e5fbed03dd920a09b3fbd9226a5e",
+      "sha256": "sha256:26c450c50905e30362dc2a01dc1d3d8c3dbe8bec7cdbccc3bd4674e2b31d9b68"
     },
     {
       "path": "scripts/kidults/market/validate-classic-bundle3-provider-response-intake-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "4dde471bfac4543ca33ce6b38a72876fa6a1fdc3",
-      "sha256": "sha256:4f05564a40bfe09768264dfc086d98a36b02299aa16db9c16b8bd785bd583ae8"
+      "git_blob": "fa077a9ba09f628f079cbfad811cc0b01ca0b453",
+      "sha256": "sha256:74ba8680ccc7145737af7c868811730156fe9422ad2cb3fd07b1c535e8660d9f"
     },
     {
       "path": "scripts/kidults/market/validate-current-sold-admission-contract-v1.mjs",
@@ -5393,8 +5393,8 @@
     {
       "path": "scripts/kidults/market/validate-provider-rights-decision-gate-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "76a83b387a77633fe8c16d42b61f5aebaea52e81",
-      "sha256": "sha256:915b05d1e4049d77cfca8ad707a7c8a2945a46fdbac19dcda678fefb8c94f6d5"
+      "git_blob": "cd65e3bba8e354939daf4f4cd53af3823c904243",
+      "sha256": "sha256:2fa9db831ec903d1a8600d2de816e351ff5cb4d03ecd08b8cb04da231a8d926d"
     },
     {
       "path": "scripts/kidults/poc/validate-candidate-evidence-handoff-r2.mjs",
@@ -5433,6 +5433,12 @@
       "sha256": "sha256:c054749514bdbaef80150f768d592c36a8280e721cc37b8822bbd4d107ec9127"
     },
     {
+      "path": "scripts/kidults/provider/validate-classic-com-provider-response-20261021-v1.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "eb23ff662fd37f02fb5f8e3c4a75f0655411e1e3",
+      "sha256": "sha256:bebbc89d964fba39c1160ec2b93544e0f57536739f66da06b012403af95e645a"
+    },
+    {
       "path": "scripts/kidults/provider/validate-gemrate-bounded-pilot-preflight-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "03591f8a82065cb86c6de47339e745d1856dc9ea",
@@ -5459,8 +5465,8 @@
     {
       "path": "scripts/kidults/provider/validate-provider-operating-state-v1.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "413d1f5dd7e6d3546774cd4beda8a676a8ab49a9",
-      "sha256": "sha256:4fec7ce18a36b1488287570027d02cea37bdb9a71c388feec1246e6d3b60c8f6"
+      "git_blob": "a106495f6da7dbcfcb8df15e7a7b8b21ecc502c2",
+      "sha256": "sha256:f91ef0ab0a5fee5f1222e6cccdaf6e6ac158bae10f9a3d71d06d111bf6c363e1"
     },
     {
       "path": "scripts/kidults/provider/validate-provider-outbound-email-approval-receipt-v1.mjs",
@@ -7292,5 +7298,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:d06ebf8ff0e9fcccec3ed924aa8c3209f4a17ec55e0e35aec49326ef5d9621ea"
+  "manifest_sha256": "sha256:7b68aaab833e564519512e55e1f233619cd215dc58b2a3d4821cc40e8d84b6e5"
 }
