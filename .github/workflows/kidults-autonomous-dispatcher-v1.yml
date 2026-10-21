@@ -6,10 +6,6 @@ on:
   workflow_run:
     workflows: [KIDULTS Scope-Aware Authoritative Status V1]
     types: [completed]
-  # Exact Program Owner decisions are a targeted normal trigger; the handler
-  # re-reads and validates the complete, immutable comment against live scope.
-  issue_comment:
-    types: [created]
   # Low-frequency recovery scan only; not part of normal landing latency.
   schedule:
     - cron: '17 * * * *'
@@ -33,7 +29,7 @@ jobs:
       stale_count: ${{ steps.discover.outputs.stale_count }}
       redundant_prs: ${{ steps.discover.outputs.redundant_prs }}
       redundant_count: ${{ steps.discover.outputs.redundant_count }}
-    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && github.event.workflow_run.pull_requests[0].number > 0 && !github.event.workflow_run.pull_requests[1].number && ((github.event.workflow_run.head_repository.id == github.repository_id && (!github.event.workflow_run.pull_requests[0].head.repo.id || github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)) || (!github.event.workflow_run.head_repository.id && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)))) && (github.event_name != 'issue_comment' || (github.event.action == 'created' && github.event.issue.pull_request != null && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, 'APPROVE_EXACT_SCOPE')))
+    if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && github.event.workflow_run.pull_requests[0].number > 0 && !github.event.workflow_run.pull_requests[1].number && ((github.event.workflow_run.head_repository.id == github.repository_id && (!github.event.workflow_run.pull_requests[0].head.repo.id || github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)) || (!github.event.workflow_run.head_repository.id && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))))
     runs-on: ubuntu-24.04
     environment: KIDULTS-AUTONOMOUS-DISPATCHER
     timeout-minutes: 10
@@ -51,7 +47,6 @@ jobs:
           persist-credentials: false
 
       - name: Verify native dispatcher event identity
-        if: github.event_name != 'issue_comment'
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
@@ -61,10 +56,6 @@ jobs:
           fs.mkdirSync('out/autonomous-dispatcher-v1',{recursive:true});
           fs.writeFileSync('out/autonomous-dispatcher-v1/trigger-identity.json',JSON.stringify(receipt,null,2));
           NODE
-
-      - name: Verify exact Owner decision wake-up
-        if: github.event_name == 'issue_comment'
-        run: node scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs --validate-trigger-only
 
       - name: Verify dispatcher and broker controls
         run: |
@@ -77,14 +68,10 @@ jobs:
         id: discover
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request || (github.event_name == 'issue_comment' && github.event.issue.pull_request && github.event.issue.number) }}
+          KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_EVENT_NAME" == issue_comment ]]; then
-            node scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs
-          else
-            node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
-          fi
+          node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
           eligible_count=$(jq '[.[] | select(.state=="ELIGIBLE")] | length' out/autonomous-dispatcher-v1/results.json)
           stale_count=$(jq '[.[] | select(.state=="STALE_RECOVERABLE")] | length' out/autonomous-dispatcher-v1/results.json)
           stale_recoverable=$(jq -c '[.[] | select(.state=="STALE_RECOVERABLE") | .binding] | .[0:4]' out/autonomous-dispatcher-v1/results.json)
@@ -134,11 +121,7 @@ jobs:
             export AWS_REGION=ap-northeast-2
             unset CREDS OIDC_JSON
             test -n "$AWS_ACCESS_KEY_ID"
-            if [[ "$GITHUB_EVENT_NAME" == issue_comment ]]; then
-              node scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs
-            else
-              KIDULTS_PR_NUMBER="$pr_number" node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
-            fi
+            KIDULTS_PR_NUMBER="$pr_number" node scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs
             live=$(jq -cer --argjson pr "$pr_number" '.[] | select(.state=="ELIGIBLE" and .envelope.pull_request==$pr) | .envelope' out/autonomous-dispatcher-v1/results.json)
             stable_filter='{repository,repository_id,pull_request,base_sha,head_sha,head_tree_sha,scope_digest,changed_paths,test_evidence:{required_contexts:.test_evidence.required_contexts,required_check_runs:.test_evidence.required_check_runs}}'
             test "$(jq -Sc "$stable_filter" <<<"$live")" = "$(jq -Sc "$stable_filter" <<<"$envelope")"

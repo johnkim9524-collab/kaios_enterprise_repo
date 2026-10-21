@@ -18,32 +18,11 @@ import './independent-script-lexing-v1.test.mjs';
 import './dispatcher-recovery-classification-v1.test.mjs';
 import './exact-scope-owner-decision-v1.test.mjs';
 import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
-import {validateOwnerDecisionTrigger} from '../../../scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
 const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
 const sha=c=>c.repeat(40);
-test('exact Owner scope comments target only their PR and never create authority',()=>{
-  const event={action:'created',issue:{number:2703,pull_request:{url:'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/pulls/2703'}},
-    comment:{id:17,author_association:'OWNER',body:'Decision: APPROVE_EXACT_SCOPE',created_at:'2026-10-21T00:00:00Z',updated_at:'2026-10-21T00:00:00Z',user:{login:'johnkim9524-collab'}}};
-  const accepted=validateOwnerDecisionTrigger({eventName:'issue_comment',event,repository:'johnkim9524-collab/kaios_enterprise_repo',
-    repositoryId:'1281328888',sourceSha:sha('a'),ref:'refs/heads/main',runAttempt:1});
-  assert.equal(accepted.pull_request,2703);
-  assert.equal(accepted.authority_created,false);
-  assert.equal(accepted.merge_authorized,false);
-  assert.equal(accepted.production,'HOLD');
-  for(const invalid of [
-    {...event,action:'edited'},
-    {...event,comment:{...event.comment,author_association:'CONTRIBUTOR'}},
-    {...event,comment:{...event.comment,user:{login:'not-owner'}}},
-    {...event,comment:{...event.comment,updated_at:'2026-10-21T00:00:01Z'}},
-    {...event,comment:{...event.comment,body:'APPROVE_EXACT_SCOPE quoted as an example'}},
-    {...event,issue:{number:2703}},
-    {...event,issue:{number:0,pull_request:{url:'x'}}}
-  ]) assert.throws(()=>validateOwnerDecisionTrigger({eventName:'issue_comment',event:invalid,repository:'johnkim9524-collab/kaios_enterprise_repo',
-    repositoryId:'1281328888',sourceSha:sha('a'),ref:'refs/heads/main',runAttempt:1}),/OWNER_DECISION_TRIGGER_INVALID/);
-});
 test('exhausted reads retain only bounded resource counts and reject injected diagnostics',async()=>{
   const client=createDispatcherReadClient({token:'secret-token',maxRequests:2,fetchImpl:async()=>({ok:true,status:200,headers:{get:()=>null},json:async()=>[]})});
   await client.request('/repos/owner/repo/pulls?state=open');
@@ -314,10 +293,6 @@ assert.match(deployWorkflow,/validate-staging-no-authority-expansion-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/^  pull_request_target:/m);
 assert.match(dispatcherWorkflow,/cron: '17 \* \* \* \*'/);
 assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[KIDULTS Scope-Aware Authoritative Status V1\][\s\S]*types: \[completed\]/);
-assert.match(dispatcherWorkflow,/issue_comment:\s*\n\s+types: \[created\]/);
-assert.match(dispatcherWorkflow,/github\.event\.comment\.author_association == 'OWNER'[\s\S]*APPROVE_EXACT_SCOPE/);
-assert.match(dispatcherWorkflow,/Verify exact Owner decision wake-up[\s\S]*run-autonomous-owner-decision-dispatcher-v1\.mjs --validate-trigger-only/);
-assert.match(dispatcherWorkflow,/if \[\[ "\$GITHUB_EVENT_NAME" == issue_comment \]\]; then[\s\S]*run-autonomous-owner-decision-dispatcher-v1\.mjs[\s\S]*else[\s\S]*run-autonomous-dispatcher-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
 assert.doesNotMatch(dispatcherWorkflow,/READINESS_BASE_SHA/);
 assert.doesNotMatch(dispatcherWorkflow,/DRAFT_READY_TRANSITION/);
@@ -332,11 +307,6 @@ assert.doesNotMatch(dispatcherWorkflow,/^\s+contents:\s*write\s*$/m);
 assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*STALE_BASE_CONVERGENCE/);
 assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*REDUNDANT_PR_HYGIENE/);
 const lifecycleSource=fs.readFileSync('scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs','utf8');
-const ownerDecisionDispatcher=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-owner-decision-dispatcher-v1.mjs','utf8');
-assert.match(ownerDecisionDispatcher,/discover\(\{repository,token,prNumber:trigger\.pull_request/);
-assert.match(ownerDecisionDispatcher,/updated_at!==comment\.created_at/);
-assert.match(ownerDecisionDispatcher,/authority_created:false,landing_authorization_created:false/);
-assert.doesNotMatch(ownerDecisionDispatcher,/workflow_dispatch|repository_dispatch|pull_request_target/);
 assert.match(lifecycleSource,/resumeOperation/);
 assert.match(lifecycleSource,/expected_head_sha:b.expected_head_sha/);
 assert.match(lifecycleSource,/fresh_ci_required:true,fresh_authorization_generation_required:true/);
@@ -358,7 +328,7 @@ assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'suc
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
 assert.doesNotMatch(dispatcherWorkflow,/workflow_run\.pull_requests\[0\]\.head\.repo\.full_name/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request \|\| \(github\.event_name == 'issue_comment'/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
 assert.match(dispatcherWorkflow,/cancel-in-progress: false/);
 assert.match(dispatcherWorkflow,/required: true/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
