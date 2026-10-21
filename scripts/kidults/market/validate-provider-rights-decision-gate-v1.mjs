@@ -21,7 +21,7 @@ try {
   errs.push(`alternate Current-SOLD provider preflight invalid: ${error.message}`);
 }
 if (gate.parent_issue !== 769) errs.push('parent issue must be #769');
-if (gate.version !== '1.3.0') errs.push('provider rights gate version must be 1.3.0');
+if (gate.version !== '1.4.0') errs.push('provider rights gate version must be 1.4.0');
 if (!Array.isArray(gate.required_dimensions) || gate.required_dimensions.length !== 11) errs.push('11 field-purpose dimensions required');
 if (!Array.isArray(gate.required_event_fields) || gate.required_event_fields.length !== 5) errs.push('5 event fields required');
 for (const d of classic.required_rights_dimensions || []) if (!gate.required_dimensions.includes(d)) errs.push(`missing classic rights dimension ${d}`);
@@ -37,7 +37,8 @@ for (const p of expectedProviders) {
   }
 }
 if (gate.current_provider_state?.['CLASSIC.COM']?.decision !== 'NEEDS_CLARIFICATION') errs.push('CLASSIC.COM must remain NEEDS_CLARIFICATION on current evidence');
-if (gate.current_provider_state?.['CLASSIC.COM']?.latest_detailed_request !== 'FOLLOWUP_SENT_2026_08_30_AWAITING_RESPONSE') errs.push('CLASSIC.COM latest request truth drift');
+if (gate.current_provider_state?.['CLASSIC.COM']?.latest_detailed_request !== 'SUBSTANTIVE_RESPONSE_RECEIVED_2026_10_21_NEEDS_CLARIFICATION_OWNER_HOLD') errs.push('CLASSIC.COM latest request truth drift');
+if (gate.current_provider_state?.['CLASSIC.COM']?.latest_provider_response_evidence_ref !== 'gmail:message:1a1604837dcb0d54') errs.push('CLASSIC.COM latest response evidence drift');
 const alt = gate.current_provider_state?.['ALT/FNDATA'];
 if (alt?.decision !== 'NO_GO') errs.push('ALT/FNDATA must remain NO_GO after provider competitor-conflict rejection');
 if (alt?.written_response !== 'DECLINED_COMPETITOR_CONFLICT') errs.push('ALT/FNDATA rejection evidence state drift');
