@@ -1,6 +1,6 @@
 {
   "id": "kidults-provider-rights-decision-gate-v1",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "parent_issue": 769,
   "purpose": "Convert source-specific written provider responses into deterministic PASS / NO_GO / NEEDS_CLARIFICATION decisions without weakening field-by-purpose rights semantics.",
   "providers": [
@@ -38,10 +38,12 @@
   },
   "current_provider_state": {
     "CLASSIC.COM": {
-      "written_response": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
-      "field_by_purpose_rights": "INCOMPLETE",
-      "provider_spec": "PENDING",
-      "latest_detailed_request": "FOLLOWUP_SENT_2026_08_30_AWAITING_RESPONSE",
+      "written_response": "SUBSTANTIVE_RESPONSE_WITH_MASTER_AGREEMENT_AND_MISSING_SCHEDULE",
+      "field_by_purpose_rights": "PARTIAL_WITH_DERIVED_RETENTION_AND_DOCUMENT_CONFLICTS",
+      "provider_spec": "PARTIAL_GRAPHQL_API_KEY_PATH_SCHEDULE_AND_SCHEMA_MISSING",
+      "latest_detailed_request": "SUBSTANTIVE_RESPONSE_RECEIVED_2026_10_21_NEEDS_CLARIFICATION_OWNER_HOLD",
+      "latest_provider_response_evidence_ref": "gmail:message:1a1604837dcb0d54",
+      "response_evidence_record": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json",
       "response_intake_ref": "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json",
       "decision": "NEEDS_CLARIFICATION",
       "activation": "DISABLED"

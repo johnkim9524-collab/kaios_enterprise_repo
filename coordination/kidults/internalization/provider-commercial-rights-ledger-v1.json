@@ -144,32 +144,56 @@
     },
     {
       "provider_id": "CLASSIC_COM",
-      "evidence_state": "WRITTEN_PROVIDER",
+      "evidence_state": "WRITTEN_PROVIDER_SUBSTANTIVE_RESPONSE_AND_UNEXECUTED_MASTER_AGREEMENT",
       "commercial": {
         "commercial_licensing_available": true,
-        "pricing": "USE_CASE_DEPENDENT",
-        "pilot_price": "UNKNOWN",
-        "query_and_rate_limits": "UNKNOWN"
+        "pricing": "30_DAY_EVALUATION_FIXED_ONE_TIME_PRICE",
+        "pilot_price_usd": 500,
+        "evaluation_term_days": 30,
+        "minimum_commitment": false,
+        "automatic_renewal": false,
+        "query_cap": 10000,
+        "query_and_rate_limits": "10000_TOTAL_QUERY_CAP_RATE_RESET_429_AND_OVERAGE_UNKNOWN",
+        "ongoing_license_price": "UNKNOWN_NEW_SCHEDULE_REQUIRED",
+        "free_sample_listing_count": 120
       },
       "rights_pending": [
-        "field_purpose_matrix",
-        "provider_schedule_and_spec",
+        "complete_field_purpose_matrix",
+        "proposed_schedule",
         "representative_schema_and_sample",
-        "sold_realized_price_and_fee_semantics",
-        "retention",
-        "derivation",
-        "public_derived_output",
-        "portability",
-        "termination",
+        "fee_and_currency_semantics",
+        "named_originating_venue_provenance",
+        "public_non_reconstructive_derived_output",
+        "termination_deletion_scope_and_conflict",
         "post_termination_non_reconstructive_derived_output",
-        "kidults_pre_existing_and_independent_ip_carve_out"
+        "kidults_pre_existing_and_independent_ip_carve_out",
+        "entity_and_territory_scope",
+        "free_sample_rights_retention_and_deletion"
       ],
-      "activation_state": "HOLD_RIGHTS_AND_ECONOMICS_PENDING",
-      "latest_outbound_state": "FOLLOWUP_SENT_2026_08_30_AWAITING_PROVIDER_RESPONSE",
+      "rights_confirmed": {
+        "private_storage_during_term": true,
+        "normalization_during_term": true,
+        "entity_resolution_during_term": true,
+        "quality_assurance_and_measurement_during_term": true,
+        "public_display_during_evaluation": false,
+        "production_use_during_evaluation": false,
+        "redistribution_during_evaluation": false,
+        "post_termination_derived_retention_stated_by_email": false
+      },
+      "access_path": {
+        "interface": "GRAPHQL_API",
+        "credential_type": "API_KEY",
+        "provisioning_target_business_days": 5,
+        "prerequisites": ["COUNTERSIGNATURE", "PAYMENT"]
+      },
+      "activation_state": "HOLD_OWNER_CONTRACT_RIGHTS_SPEND_CREDENTIAL_AND_DOCUMENT_CLARIFICATION",
+      "latest_outbound_state": "SUBSTANTIVE_RESPONSE_RECEIVED_2026_10_21_NO_FURTHER_SEND_AUTHORIZED",
       "evidence_refs": [
+        "gmail:message:1a1604837dcb0d54",
         "gmail:message:1a05355da1037496",
         "gmail:message:1a03ecb6a6b5f290",
         "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json",
+        "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json",
         "coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json"
       ]
     },

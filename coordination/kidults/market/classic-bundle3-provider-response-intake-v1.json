@@ -1,17 +1,17 @@
 {
   "id": "kidults-classic-bundle3-provider-response-intake-v1",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "parent_issue": 769,
-  "as_of": "2026-08-30",
+  "as_of": "2026-10-21",
   "provider": "CLASSIC.COM",
   "product_id": "CLASSIC_COM_LICENSED_BUNDLE_3",
   "scope": "CURRENT_SOLD_PRIVATE_EVALUATION",
-  "current_state": "AWAITING_PROVIDER_RESPONSE",
+  "current_state": "SUBSTANTIVE_RESPONSE_RECEIVED_OWNER_DECISION_HOLD",
   "current_decision": "NEEDS_CLARIFICATION",
   "risk_state": "AMBER",
   "vertical_fit": "CONFIRMED_FOR_COLLECTOR_CAR_SOLD_COMPS",
   "commercial_fit": "COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT",
-  "rights_and_economics": "UNRESOLVED",
+  "rights_and_economics": "PARTIALLY_RESOLVED_WITH_MATERIAL_CONFLICTS",
   "activation": "DISABLED",
   "previous_outbound": {
     "sent_at": "2026-08-26T15:58:33Z",
@@ -53,12 +53,56 @@
       "evidence_ref": "gmail:message:1a03b1b656abf1e0",
       "rfc_message_id": "<CANUsitoZL3gHUMb=gc3U9EDZ-T6oOvjhyudLfi=kM7nsBTC7Jw@mail.gmail.com>"
     },
-    "observed_through": "2026-08-30T23:26:15Z",
-    "provider_reply_after_latest_outbound": false,
-    "provider_origin_response_ref": null,
-    "provider_origin_response_received_at": null,
+    "observed_through": "2026-10-21T21:05:17Z",
+    "provider_reply_after_latest_outbound": true,
+    "provider_origin_response_ref": "gmail:message:1a1604837dcb0d54",
+    "provider_origin_response_received_at": "2026-10-21T21:05:03Z",
+    "provider_origin_thread_ref": "gmail:thread:1a0b5669d94b054b",
+    "provider_origin_evidence_record": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json",
     "raw_email_body_retained": false,
     "raw_agreement_or_attachment_retained": false
+  },
+  "latest_provider_response": {
+    "sender": "datasupport@classic.com",
+    "received_at": "2026-10-21T21:05:03Z",
+    "subject": "Re: KIDULTS Data Evaluation — Required Quality Evidence Before Commercial Consideration",
+    "message_id": "1a1604837dcb0d54",
+    "thread_id": "1a0b5669d94b054b",
+    "evidence_ref": "gmail:message:1a1604837dcb0d54",
+    "evidence_record": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json",
+    "authentication": "CLASSIC_COM_DKIM_SPF_DMARC_PASS",
+    "material_change": "PAID_30_DAY_EVALUATION_TERMS_ACCESS_PATH_PRIVATE_USE_BOUNDARIES_DATA_SEMANTICS_AND_ATTACHMENT_RECEIVED",
+    "deadline": null
+  },
+  "proposed_evaluation_terms": {
+    "term_days": 30,
+    "one_time_price_usd": 500,
+    "minimum_commitment": false,
+    "automatic_renewal": false,
+    "query_cap": 10000,
+    "access_interface": "GRAPHQL_API",
+    "credential_type": "API_KEY",
+    "provisioning_target_business_days": 5,
+    "provisioning_prerequisites": [
+      "COUNTERSIGNATURE",
+      "PAYMENT"
+    ],
+    "free_sample_alternative_listings": 120,
+    "provider_evidence_ref": "gmail:message:1a1604837dcb0d54",
+    "acceptance_authorized": false,
+    "spend_authorized": false,
+    "credential_authorized": false,
+    "sample_request_authorized": false
+  },
+  "document_review": {
+    "master_agreement_attachment_sha256": "sha256:28588da7506da7fd213e768354cb33c2e57c0734b58bb2afffe9534e810eede7",
+    "schedule_present": false,
+    "effective_date_licensee_and_signature_fields_completed": false,
+    "email_claimed_schedule_and_completed_party_date_fields": true,
+    "five_day_deletion_term_present_in_master_agreement": false,
+    "price_and_query_cap_present_in_master_agreement": false,
+    "review_state": "MATERIAL_DOCUMENT_CONFLICTS_OWNER_AND_LEGAL_REVIEW_REQUIRED",
+    "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"
   },
   "required_response": {
     "commercial_pilot": {
@@ -69,7 +113,14 @@
         "PRODUCTION_PRICING_OR_PRICING_METHOD",
         "QUERY_AND_RATE_LIMITS",
         "SLA_SUPPORT_AND_CORRECTION_TERMS"
-      ]
+      ],
+      "partially_answered_items": [
+        "30_DAY_PRICE_500_USD",
+        "NO_MINIMUM_COMMITMENT",
+        "NO_AUTOMATIC_RENEWAL",
+        "10000_QUERY_CAP"
+      ],
+      "partial_evidence_ref": "gmail:message:1a1604837dcb0d54"
     },
     "provider_spec": {
       "question_id": "Q2_OPERATING_LIMITS_AND_PROVIDER_SPEC",
@@ -79,7 +130,18 @@
         "BUNDLE_3_FIELD_SCHEMA",
         "REDACTED_SAMPLE_PAYLOAD",
         "ENDPOINT_AND_AUTH_SPEC_ONLY_AFTER_APPROVAL"
-      ]
+      ],
+      "partially_answered_items": [
+        "GRAPHQL_API_KEY_ACCESS_PATH",
+        "API_KEY_AFTER_COUNTERSIGNATURE_AND_PAYMENT_WITHIN_5_BUSINESS_DAYS",
+        "MASTER_AGREEMENT_ATTACHMENT_RECEIVED"
+      ],
+      "still_missing_items": [
+        "PROPOSED_SCHEDULE",
+        "BUNDLE_3_FIELD_SCHEMA",
+        "REDACTED_SAMPLE_PAYLOAD"
+      ],
+      "partial_evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"
     },
     "sold_event_semantics": {
       "question_id": "Q3_SCHEMA_AND_SOLD_SEMANTICS",
@@ -97,7 +159,15 @@
         "BUYER_OR_SELLER_FEE_INCLUSION_BY_SOURCE",
         "COVERAGE_HISTORY_DEPTH_AND_FRESHNESS",
         "CORRECTION_AND_UPDATE_BEHAVIOR"
-      ]
+      ],
+      "partially_answered_items": [
+        "SALE_DATE_AVAILABLE",
+        "AUCTION_SALE_PRICE_AVAILABLE",
+        "NOT_SOLD_AND_UNKNOWN_OUTCOME_SEMANTICS",
+        "AUCTION_CLOSE_AND_DEALER_LAST_UPDATED_DATES_AVAILABLE",
+        "NAMED_ORIGINATING_VENUE_UNAVAILABLE_IN_STANDARD_BUNDLES"
+      ],
+      "partial_evidence_ref": "gmail:message:1a1604837dcb0d54"
     },
     "rights_and_termination": {
       "question_id": "Q4_RIGHTS_TERMINATION_AND_IP",
@@ -120,7 +190,19 @@
         "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_RETENTION_DURING_TERM",
         "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_RETENTION_AFTER_TERMINATION",
         "RAW_DATA_RETENTION_DELETION_AND_TERMINATION"
-      ]
+      ],
+      "partially_answered_items": [
+        "PRIVATE_STORAGE_NORMALIZATION_ENTITY_RESOLUTION_QA_AND_MEASUREMENT_DURING_TERM_PERMITTED",
+        "PUBLIC_DISPLAY_PRODUCTION_AND_REDISTRIBUTION_DURING_EVALUATION_PROHIBITED",
+        "EMAIL_STATES_ALL_DERIVED_MATERIAL_DESTROYED_WITHIN_5_DAYS_AFTER_TERM"
+      ],
+      "still_missing_or_conflicted_items": [
+        "NON_RECONSTRUCTIVE_DERIVED_OUTPUT_SURVIVAL_AFTER_TERMINATION",
+        "EMAIL_FIVE_DAY_TERM_VERSUS_MASTER_AGREEMENT_PROMPT_DESTRUCTION_SCOPE",
+        "KIDULTS_PRE_EXISTING_AND_INDEPENDENT_IP_CARVE_OUT",
+        "ENTITY_AND_TERRITORY_SCOPE"
+      ],
+      "partial_evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"
     }
   },
   "required_event_fields": [
@@ -138,24 +220,24 @@
     "CONDITIONAL"
   ],
   "rights_assessments": {
-    "query_collect": {"state": "UNKNOWN", "evidence_ref": null},
-    "private_store": {"state": "UNKNOWN", "evidence_ref": null},
-    "internal_derive": {"state": "UNKNOWN", "evidence_ref": null},
-    "internal_review": {"state": "UNKNOWN", "evidence_ref": null},
-    "retention_1_to_30_days": {"state": "UNKNOWN", "evidence_ref": null},
-    "automation_rate_limits": {"state": "UNKNOWN", "evidence_ref": null},
-    "attribution": {"state": "UNKNOWN", "evidence_ref": null},
-    "public_derived_output_boundary": {"state": "UNKNOWN", "evidence_ref": null},
-    "onward_transfer": {"state": "UNKNOWN", "evidence_ref": null},
-    "deletion_termination": {"state": "UNKNOWN", "evidence_ref": null},
+    "query_collect": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "private_store": {"state": "COMPATIBLE", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "internal_derive": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "internal_review": {"state": "COMPATIBLE", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "retention_1_to_30_days": {"state": "CONDITIONAL", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
+    "automation_rate_limits": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "attribution": {"state": "CONDITIONAL", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
+    "public_derived_output_boundary": {"state": "AMBIGUOUS", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
+    "onward_transfer": {"state": "COMPATIBLE", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "deletion_termination": {"state": "AMBIGUOUS", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
     "entity_territory_scope": {"state": "UNKNOWN", "evidence_ref": null}
   },
   "event_field_assessments": {
-    "stable_object_or_lot_identity": {"state": "UNKNOWN", "evidence_ref": null},
-    "sold_date": {"state": "UNKNOWN", "evidence_ref": null},
-    "realized_consideration": {"state": "UNKNOWN", "evidence_ref": null},
-    "currency": {"state": "UNKNOWN", "evidence_ref": null},
-    "venue_or_source_reference": {"state": "UNKNOWN", "evidence_ref": null}
+    "stable_object_or_lot_identity": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "sold_date": {"state": "COMPATIBLE", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "realized_consideration": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "currency": {"state": "AMBIGUOUS", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
+    "venue_or_source_reference": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"}
   },
   "event_field_crosswalk": {
     "stable_object_or_lot_identity": {"candidate_contract_fields": ["vin", "lot"], "state": "PENDING_PROVIDER_SPEC"},
@@ -164,17 +246,17 @@
     "currency": {"candidate_contract_fields": ["price_currency"], "state": "PENDING_PROVIDER_SPEC"},
     "venue_or_source_reference": {"candidate_contract_fields": ["listing_type", "lot"], "state": "PENDING_PROVIDER_SPEC"}
   },
-  "provider_spec_assessment": {"state": "UNKNOWN", "evidence_ref": null},
+  "provider_spec_assessment": {"state": "AMBIGUOUS", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
   "commercial_assessments": {
-    "pilot_and_production_price": {"state": "UNKNOWN", "evidence_ref": null},
-    "query_rate_quota_limits": {"state": "UNKNOWN", "evidence_ref": null},
-    "sla_support_and_corrections": {"state": "UNKNOWN", "evidence_ref": null},
-    "coverage_history_and_freshness": {"state": "UNKNOWN", "evidence_ref": null}
+    "pilot_and_production_price": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "query_rate_quota_limits": {"state": "CONDITIONAL", "evidence_ref": "gmail:message:1a1604837dcb0d54"},
+    "sla_support_and_corrections": {"state": "CONDITIONAL", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"},
+    "coverage_history_and_freshness": {"state": "CONDITIONAL", "evidence_ref": "coordination/kidults/provider/classic-com-provider-response-20261021-v1.json"}
   },
   "recorded_rights_decision": "NEEDS_CLARIFICATION",
   "recorded_operating_admission": "HOLD_RIGHTS_SPEC_ECONOMICS_AND_APPROVAL_PENDING",
   "followup_policy": {
-    "status": "SENT_AWAITING_RESPONSE",
+    "status": "RESPONSE_RECEIVED_NO_FURTHER_SEND_AUTHORIZED",
     "sent_at": "2026-08-30T15:42:10Z",
     "evidence_ref": "gmail:message:1a05355da1037496",
     "previous_not_before": "2026-08-31T16:00:00Z",

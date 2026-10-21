@@ -4,6 +4,10 @@ import {
   PROVIDER_COMMUNICATION_EVIDENCE_PATH,
   validateProviderCommunicationEvidence
 } from './validate-provider-communication-evidence-v1.mjs';
+import {
+  CLASSIC_RESPONSE_EVIDENCE_PATH,
+  validateClassicProviderResponse
+} from './validate-classic-com-provider-response-20261021-v1.mjs';
 
 const PATHS = {
   index: 'coordination/kidults/registry/provider/index.json',
@@ -20,6 +24,7 @@ const PATHS = {
   psaReadiness: 'coordination/kidults/provider/psa-private-evaluation-readiness-receipt-v2.json',
   gemrate: 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json',
   classic: 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json',
+  classicResponse: CLASSIC_RESPONSE_EVIDENCE_PATH,
   communicationEvidence: PROVIDER_COMMUNICATION_EVIDENCE_PATH,
   psaRefresh: 'coordination/kidults/provider/psa-communication-refresh-20261010-v1.json'
 };
@@ -31,11 +36,13 @@ export function validateProviderOperatingState(documents) {
   const errors = [];
   const check = (condition, code) => { if (!condition) errors.push(code); };
   const { index, operating, contract, outreach, pack, dispatch, actionQueue, contactGate,
-    psaManifest, psaControls, psaConnection, psaReadiness, gemrate, classic, communicationEvidence, psaRefresh } = documents;
+    psaManifest, psaControls, psaConnection, psaReadiness, gemrate, classic, classicResponse, communicationEvidence, psaRefresh } = documents;
   const providers = operating.providers || [];
   const byId = new Map(providers.map(provider => [provider.provider_id, provider]));
   const communicationErrors = validateProviderCommunicationEvidence(communicationEvidence);
   for (const error of communicationErrors) errors.push(`COMMUNICATION_EVIDENCE:${error}`);
+  const classicResponseErrors = validateClassicProviderResponse(classicResponse);
+  for (const error of classicResponseErrors) errors.push(`CLASSIC_RESPONSE_EVIDENCE:${error}`);
   const evidenceEvents = communicationEvidence.events || [];
   const eventsByProvider = new Map();
   for (const event of evidenceEvents) {
@@ -162,7 +169,9 @@ export function validateProviderOperatingState(documents) {
       provider.cost_exposure && provider.blocker && provider.evidence_date, `REPORTING_DIMENSIONS:${providerId}`);
     const evidenceDateMs = Date.parse(provider.evidence_date);
     check(Number.isFinite(evidenceDateMs), `EVIDENCE_DATE_INVALID:${providerId}`);
-    const providerObservationMs=providerId==='PSA_PREMIUM'?Date.parse(psaRefresh?.as_of):operatingAsOfMs;
+    const providerObservationMs = providerId === 'PSA_PREMIUM' ? Date.parse(psaRefresh?.as_of)
+      : providerId === 'CLASSIC_COM' ? Date.parse(classicResponse?.observed_at)
+        : operatingAsOfMs;
     check(evidenceDateMs <= providerObservationMs, `EVIDENCE_DATE_FUTURE:${providerId}`);
     check(providerObservationMs - evidenceDateMs <= maxAgeDaysByState[state] * 24 * 60 * 60 * 1000,
       `EVIDENCE_DATE_STALE:${providerId}`);
@@ -280,13 +289,16 @@ export function validateProviderOperatingState(documents) {
     'GEMRATE_RESPONSE_RECONCILIATION');
 
   const classicRecord = byId.get('CLASSIC_COM');
-  check(classic.current_state === 'AWAITING_PROVIDER_RESPONSE' && classic.activation === 'DISABLED' &&
-    classic.followup_policy?.status === 'SENT_AWAITING_RESPONSE' && classic.followup_policy?.further_send_authorized === false &&
+  check(classic.current_state === 'SUBSTANTIVE_RESPONSE_RECEIVED_OWNER_DECISION_HOLD' && classic.activation === 'DISABLED' &&
+    classic.followup_policy?.status === 'RESPONSE_RECEIVED_NO_FURTHER_SEND_AUTHORIZED' && classic.followup_policy?.further_send_authorized === false &&
     classic.followup_policy?.automatic_send_authorized === false,
   'CLASSIC_EXECUTION_HOLD');
   check(classicRecord?.communication?.last_outbound_at === classic.latest_outbound?.sent_at &&
     classicRecord?.communication?.last_outbound_evidence_ref === classic.latest_outbound?.evidence_ref &&
-    classicRecord?.communication?.response_after_last_outbound_observed === classic.response_observation?.provider_reply_after_latest_outbound,
+    classicRecord?.communication?.response_after_last_outbound_observed === classic.response_observation?.provider_reply_after_latest_outbound &&
+    classicRecord?.communication?.latest_provider_response_evidence_ref === classicResponse?.message?.evidence_ref &&
+    classicRecord?.communication?.latest_provider_response_at === classicResponse?.message?.received_at &&
+    classicRecord?.communication?.communication_observation_ref === CLASSIC_RESPONSE_EVIDENCE_PATH,
   'CLASSIC_COMMUNICATION_RECONCILIATION');
 
   return [...new Set(errors)].sort();

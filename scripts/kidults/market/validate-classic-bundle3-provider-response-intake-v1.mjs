@@ -6,6 +6,10 @@ import {
   PROVIDER_COMMUNICATION_EVIDENCE_PATH,
   validateProviderCommunicationEvidence
 } from '../provider/validate-provider-communication-evidence-v1.mjs';
+import {
+  CLASSIC_RESPONSE_EVIDENCE_PATH,
+  validateClassicProviderResponse
+} from '../provider/validate-classic-com-provider-response-20261021-v1.mjs';
 
 const INTAKE_PATH = 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json';
 const GATE_PATH = 'coordination/kidults/market/provider-rights-decision-gate-v1.json';
@@ -181,25 +185,24 @@ export function deriveClassicRightsDecision(intake, allowedProviderResponseRefs 
 }
 
 export function validateClassicResponseIntakeBundle(bundle) {
-  const { intake, gate, activation, providerContract, ledger, communicationEvidence } = bundle;
+  const { intake, gate, activation, providerContract, ledger, communicationEvidence, classicResponseEvidence } = bundle;
   const errors = [];
   scanForProhibitedMaterial(intake, errors);
   for (const error of validateProviderCommunicationEvidence(communicationEvidence)) errors.push(`communication evidence invalid: ${error}`);
-  const allowedProviderResponseRefs = new Set((communicationEvidence?.events || [])
-    .filter(event => event.provider_id === 'CLASSIC_COM' && event.direction === 'INBOUND_SUBSTANTIVE_RESPONSE')
-    .map(event => event.evidence_ref));
+  for (const error of validateClassicProviderResponse(classicResponseEvidence)) errors.push(`classic response evidence invalid: ${error}`);
+  const allowedProviderResponseRefs = new Set([classicResponseEvidence?.message?.evidence_ref].filter(Boolean));
 
   if (intake.id !== 'kidults-classic-bundle3-provider-response-intake-v1') errors.push('invalid intake id');
-  if (intake.version !== '1.1.0') errors.push('invalid intake version');
+  if (intake.version !== '1.2.0') errors.push('invalid intake version');
   if (intake.parent_issue !== 769 || intake.provider !== 'CLASSIC.COM') errors.push('provider or parent binding drift');
   if (intake.product_id !== 'CLASSIC_COM_LICENSED_BUNDLE_3') errors.push('product binding drift');
   if (intake.scope !== 'CURRENT_SOLD_PRIVATE_EVALUATION') errors.push('scope drift');
-  if (intake.current_state !== 'AWAITING_PROVIDER_RESPONSE') errors.push('false current state');
+  if (intake.current_state !== 'SUBSTANTIVE_RESPONSE_RECEIVED_OWNER_DECISION_HOLD') errors.push('false current state');
   if (intake.current_decision !== 'NEEDS_CLARIFICATION') errors.push('false current decision');
   if (intake.risk_state !== 'AMBER') errors.push('risk label drift');
   if (intake.vertical_fit !== 'CONFIRMED_FOR_COLLECTOR_CAR_SOLD_COMPS') errors.push('vertical fit drift');
   if (intake.commercial_fit !== 'COMMERCIAL_LICENSING_AVAILABLE_USE_CASE_DEPENDENT') errors.push('commercial-fit evidence ceiling drift');
-  if (intake.rights_and_economics !== 'UNRESOLVED' || intake.activation !== 'DISABLED') errors.push('rights/economics or activation falsely advanced');
+  if (intake.rights_and_economics !== 'PARTIALLY_RESOLVED_WITH_MATERIAL_CONFLICTS' || intake.activation !== 'DISABLED') errors.push('rights/economics or activation falsely advanced');
 
   const outbound = intake.latest_outbound || {};
   const previousOutbound = intake.previous_outbound || {};
@@ -223,15 +226,29 @@ export function validateClassicResponseIntakeBundle(bundle) {
     if (outbound[key] !== false) errors.push(`${key} must remain false`);
   }
   if (observation.raw_email_body_retained !== false || observation.raw_agreement_or_attachment_retained !== false) errors.push('raw correspondence or agreement retention boundary weakened');
+  if (observation.provider_origin_evidence_record !== CLASSIC_RESPONSE_EVIDENCE_PATH
+      || observation.provider_origin_response_ref !== classicResponseEvidence?.message?.evidence_ref
+      || observation.provider_origin_thread_ref !== classicResponseEvidence?.message?.thread_ref) errors.push('provider response evidence record binding drift');
+  if (intake.latest_provider_response?.message_id !== classicResponseEvidence?.message?.message_id
+      || intake.latest_provider_response?.thread_id !== classicResponseEvidence?.message?.thread_id
+      || intake.latest_provider_response?.evidence_record !== CLASSIC_RESPONSE_EVIDENCE_PATH) errors.push('latest provider response projection drift');
+  if (intake.proposed_evaluation_terms?.one_time_price_usd !== 500
+      || intake.proposed_evaluation_terms?.term_days !== 30
+      || intake.proposed_evaluation_terms?.query_cap !== 10000
+      || intake.proposed_evaluation_terms?.spend_authorized !== false
+      || intake.proposed_evaluation_terms?.credential_authorized !== false) errors.push('evaluation commercial or authority projection drift');
+  if (intake.document_review?.schedule_present !== false
+      || intake.document_review?.effective_date_licensee_and_signature_fields_completed !== false
+      || intake.document_review?.review_state !== 'MATERIAL_DOCUMENT_CONFLICTS_OWNER_AND_LEGAL_REVIEW_REQUIRED') errors.push('document conflict projection drift');
 
   const times = [
     parsedTime(priorReply.received_at),
     parsedTime(previousOutbound.sent_at),
     parsedTime(outbound.sent_at),
-    parsedTime(observation.observed_through),
-    parsedTime(intake.followup_policy?.response_requested_by)
+    parsedTime(observation.observed_through)
   ];
   if (times.some(Number.isNaN) || times.some((value, index) => index > 0 && value <= times[index - 1])) errors.push('provider response/follow-up timestamp ordering invalid');
+  if (parsedTime(intake.followup_policy?.response_requested_by) <= parsedTime(outbound.sent_at)) errors.push('provider response requested-by timestamp invalid');
   if (String(observation.observed_through || '').slice(0, 10) !== intake.as_of) errors.push('as_of must match observation date');
 
   if (!Array.isArray(intake.assessment_states) || !sameSet(intake.assessment_states, ASSESSMENT_STATES)) errors.push('assessment state enum drift');
@@ -300,7 +317,7 @@ export function validateClassicResponseIntakeBundle(bundle) {
   if (intake.recorded_operating_admission !== 'HOLD_RIGHTS_SPEC_ECONOMICS_AND_APPROVAL_PENDING') errors.push('operating admission must remain HOLD on current evidence');
 
   const followup = intake.followup_policy || {};
-  if (followup.status !== 'SENT_AWAITING_RESPONSE' || followup.sent_at !== outbound.sent_at || followup.evidence_ref !== outbound.evidence_ref || followup.same_thread_required !== true) errors.push('follow-up sent-state reconciliation drift');
+  if (followup.status !== 'RESPONSE_RECEIVED_NO_FURTHER_SEND_AUTHORIZED' || followup.sent_at !== outbound.sent_at || followup.evidence_ref !== outbound.evidence_ref || followup.same_thread_required !== true) errors.push('follow-up sent-state reconciliation drift');
   if (followup.previous_not_before !== '2026-08-31T16:00:00Z' || followup.dispatch_authority_evidence_state !== 'NOT_REPRESENTED_IN_REPOSITORY_FAIL_CLOSED_FOR_ANY_FURTHER_SEND') errors.push('follow-up audit boundary drift');
   if (followup.further_send_requires_live_no_reply_check !== true || followup.further_send_requires_explicit_owner_authorization !== true || followup.further_send_authorized !== false || followup.automatic_send_authorized !== false) errors.push('further follow-up send authority weakened');
   if (followup.no_response_transition !== 'DEFERRED_HOLD_NO_SUBSTANTIVE_RESPONSE' || followup.no_response_terminal_disposition !== false || followup.no_response_prioritize_alternate_current_sold_path !== true) errors.push('no-response transition must be non-terminal DEFER/HOLD');
@@ -316,12 +333,15 @@ export function validateClassicResponseIntakeBundle(bundle) {
   for (const effect of ['autonomous_effect', 'global_effect', 'irreplaceable_value_effect', 'transparency_effect']) if (!isNonemptyString(intake[effect])) errors.push(`${effect} required`);
 
   const gateClassic = gate.current_provider_state?.['CLASSIC.COM'] || {};
-  if (gate.version !== '1.3.0') errors.push('provider gate version must be 1.3.0');
-  if (gateClassic.latest_detailed_request !== 'FOLLOWUP_SENT_2026_08_30_AWAITING_RESPONSE') errors.push('provider gate latest request state drift');
+  if (gate.version !== '1.4.0') errors.push('provider gate version must be 1.4.0');
+  if (gateClassic.latest_detailed_request !== 'SUBSTANTIVE_RESPONSE_RECEIVED_2026_10_21_NEEDS_CLARIFICATION_OWNER_HOLD') errors.push('provider gate latest request state drift');
   if (gateClassic.response_intake_ref !== INTAKE_PATH || gateClassic.activation !== 'DISABLED') errors.push('provider gate intake binding or activation drift');
   const ledgerClassic = (ledger.providers || []).find(provider => provider.provider_id === 'CLASSIC_COM');
-  if (!ledgerClassic || ledgerClassic.activation_state !== 'HOLD_RIGHTS_AND_ECONOMICS_PENDING') errors.push('commercial ledger CLASSIC hold missing');
-  if (!ledgerClassic?.evidence_refs?.includes(INTAKE_PATH) || !ledgerClassic?.evidence_refs?.includes(outbound.evidence_ref)) errors.push('commercial ledger intake evidence binding missing');
+  if (!ledgerClassic || ledgerClassic.activation_state !== 'HOLD_OWNER_CONTRACT_RIGHTS_SPEND_CREDENTIAL_AND_DOCUMENT_CLARIFICATION') errors.push('commercial ledger CLASSIC hold missing');
+  if (!ledgerClassic?.evidence_refs?.includes(INTAKE_PATH)
+      || !ledgerClassic?.evidence_refs?.includes(outbound.evidence_ref)
+      || !ledgerClassic?.evidence_refs?.includes(classicResponseEvidence?.message?.evidence_ref)
+      || !ledgerClassic?.evidence_refs?.includes(CLASSIC_RESPONSE_EVIDENCE_PATH)) errors.push('commercial ledger intake evidence binding missing');
   if (activation.activation_state !== 'AWAITING_WRITTEN_RIGHTS_AND_PROVIDER_SPEC' || activation.default_enabled !== false || activation.production !== 'HOLD' || activation.public_release !== 'HOLD') errors.push('activation contract boundary drift');
 
   return errors;
@@ -334,7 +354,8 @@ function loadCurrentBundle() {
     activation: JSON.parse(fs.readFileSync(ACTIVATION_PATH, 'utf8')),
     providerContract: JSON.parse(fs.readFileSync(PROVIDER_CONTRACT_PATH, 'utf8')),
     ledger: JSON.parse(fs.readFileSync(LEDGER_PATH, 'utf8')),
-    communicationEvidence: JSON.parse(fs.readFileSync(PROVIDER_COMMUNICATION_EVIDENCE_PATH, 'utf8'))
+    communicationEvidence: JSON.parse(fs.readFileSync(PROVIDER_COMMUNICATION_EVIDENCE_PATH, 'utf8')),
+    classicResponseEvidence: JSON.parse(fs.readFileSync(CLASSIC_RESPONSE_EVIDENCE_PATH, 'utf8'))
   };
 }
 
@@ -354,16 +375,16 @@ function mutationTests(bundle) {
     ['reject_duplicate_question_id', value => { value.intake.required_response.provider_spec.question_id = 'Q1_PILOT_PRICE_AND_SCHEDULE'; }],
     ['reject_resolved_question_without_reply', value => {
       value.intake.required_response.provider_spec.state = QUESTION_RESOLVED;
-      value.intake.required_response.provider_spec.evidence_ref = 'gmail:message:feedface';
+      value.intake.required_response.provider_spec.evidence_ref = null;
     }],
     ['reject_resolved_crosswalk_without_reply', value => {
       value.intake.event_field_crosswalk.sold_date.state = CROSSWALK_RESOLVED;
       value.intake.event_field_crosswalk.sold_date.evidence_ref = 'gmail:message:feedface';
-      value.intake.event_field_crosswalk.sold_date.resolved_contract_fields = ['lot_date'];
+      value.intake.event_field_crosswalk.sold_date.resolved_contract_fields = ['unbound_provider_field'];
     }],
     ['reject_false_pass_without_reply', value => { value.intake.recorded_rights_decision = 'PASS'; value.gate.current_provider_state['CLASSIC.COM'].decision = 'PASS'; }],
     ['reject_no_reply_no_go', value => { value.intake.recorded_rights_decision = 'NO_GO'; value.gate.current_provider_state['CLASSIC.COM'].decision = 'NO_GO'; }],
-    ['reject_reply_claim_without_provider_evidence', value => { value.intake.response_observation.provider_reply_after_latest_outbound = true; }],
+    ['reject_reply_claim_without_provider_evidence', value => { value.intake.response_observation.provider_origin_response_ref = 'gmail:message:deadbeef'; }],
     ['reject_automatic_followup_send', value => { value.intake.followup_policy.automatic_send_authorized = true; }],
     ['reject_further_followup_send', value => { value.intake.followup_policy.further_send_authorized = true; }],
     ['reject_terminal_no_response', value => { value.intake.followup_policy.no_response_terminal_disposition = true; }],

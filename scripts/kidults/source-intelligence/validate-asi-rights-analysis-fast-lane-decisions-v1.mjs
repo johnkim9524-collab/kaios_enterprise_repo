@@ -127,11 +127,18 @@ function validate(fastLane,document,snapshots,validationTime){
     assert(record.communication_state===canonicalProvider?.communication?.state,`COMMUNICATION_STATE_DRIFT:${record.source_id}`);
     assert(canonicalProvider?.communication?.resend_authorized===false&&canonicalProvider?.communication?.automatic_followup_authorized===false,`COMMUNICATION_AUTHORITY_DRIFT:${record.source_id}`);
     const expectedEventIds=communicationEventsBySource.get(record.source_id)||[];
-    const expectedCommunicationRefs=expectedEventIds.map(eventId=>`${PROVIDER_COMMUNICATION_EVIDENCE_PATH}#${eventId}`).sort();
+    const expectedCommunicationRefs=[
+      ...expectedEventIds.map(eventId=>`${PROVIDER_COMMUNICATION_EVIDENCE_PATH}#${eventId}`),
+      canonicalProvider?.communication?.communication_observation_ref,
+      canonicalProvider?.communication?.latest_provider_response_evidence_ref
+    ].filter(Boolean).sort();
     assert(Array.isArray(record.communication_evidence_refs)&&JSON.stringify([...record.communication_evidence_refs].sort())===JSON.stringify(expectedCommunicationRefs),`COMMUNICATION_EVIDENCE_REF_INVALID:${record.source_id}`);
     for(const eventId of expectedEventIds)assert(communicationEventById.get(eventId)?.provider_id===record.provider_id,`COMMUNICATION_EVENT_PROVIDER_DRIFT:${record.source_id}`);
-    if(expectedEventIds.length>0)assert(record.next_action.startsWith('AWAIT_')&&record.next_action.includes('NO_FURTHER_SEND_AUTHORIZED'),`CONTACTED_PROVIDER_NEXT_ACTION_DRIFT:${record.source_id}`);
-    else assert(!record.next_action.startsWith('AWAIT_'),`UNCONTACTED_PROVIDER_FALSE_AWAIT:${record.source_id}`);
+    if(expectedEventIds.length>0){
+      if(canonicalProvider?.communication?.response_after_last_outbound_observed===true)
+        assert(!record.next_action.startsWith('AWAIT_')&&record.next_action.includes('NO_FURTHER_SEND_AUTHORIZED'),`CONTACTED_PROVIDER_NEXT_ACTION_DRIFT:${record.source_id}`);
+      else assert(record.next_action.startsWith('AWAIT_')&&record.next_action.includes('NO_FURTHER_SEND_AUTHORIZED'),`CONTACTED_PROVIDER_NEXT_ACTION_DRIFT:${record.source_id}`);
+    } else assert(!record.next_action.startsWith('AWAIT_'),`UNCONTACTED_PROVIDER_FALSE_AWAIT:${record.source_id}`);
     assert(allowedDecisions.has(record.decision),`DECISION:${record.source_id}`);
     assert(['TRACK_Z_COMMERCIAL','COUNSEL_EXCEPTION','AUTOMATED_OFFICIAL_EVIDENCE'].includes(record.route),`ROUTE:${record.source_id}`);
     assert(['ACTIVE','QUEUED'].includes(record.work_state),`WORK_STATE:${record.source_id}`);
@@ -210,5 +217,6 @@ expectFailure('SNAPSHOT_RETRIEVED_AT:',(_candidate,snapshots)=>{const record=sna
 expectFailure('PENDING_OR_REFERENCE_PROMOTION:',(_candidate,snapshots)=>{snapshots.records[0].decision_promotion_eligible=true;snapshots.summary.promotion_eligible++});
 expectFailure('COMMUNICATION_STATE_DRIFT:',candidate=>{candidate.records.find(record=>record.source_id==='mecum-auction-results').communication_state='NO_VERIFIED_OUTBOUND_OR_RESPONSE_IN_CANONICAL_REGISTRY'});
 expectFailure('COMMUNICATION_EVIDENCE_REF_INVALID:',candidate=>{candidate.records.find(record=>record.source_id==='broad-arrow-results').communication_evidence_refs=['coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#fabricated']});
+expectFailure('COMMUNICATION_EVIDENCE_REF_INVALID:classic-com-market-data',candidate=>{candidate.records.find(record=>record.source_id==='classic-com-market-data').communication_evidence_refs=candidate.records.find(record=>record.source_id==='classic-com-market-data').communication_evidence_refs.filter(ref=>!ref.startsWith('gmail:message:'))});
 expectFailure('FALSE_PASS_SCOPE:',(candidate,snapshots)=>{const record=candidate.records.find(item=>item.decision==='HOLD');record.decision='PASS';record.rights={collect:'ALLOW',store:'ALLOW',derive:'ALLOW',commercial_use:'ALLOW'};record.evidence_binding.snapshot_state='SOURCE_CONTENT_SNAPSHOT_BOUND';candidate.summary.hold--;candidate.summary.pass++;candidate.summary.rights_clear_for_current_sold++;record.evidence_binding.binding_digest=evidenceDigest(record,candidate);const snapshot=snapshots.records.find(item=>item.source_id===record.source_id);snapshot.capture_state='SOURCE_CONTENT_SNAPSHOT_BOUND';snapshot.capture_authorized=true;snapshot.decision_promotion_eligible=true;snapshot.retrieved_at='2026-08-30T00:00:00Z';snapshot.final_url=snapshot.official_evidence_urls[0];snapshot.http_status=200;snapshot.document_version='test-version-v1';snapshot.precise_locator='section:test';snapshot.source_content_sha256=`sha256:${'a'.repeat(64)}`;snapshot.governed_object_ref='governed-object:test';snapshot.retention_and_deletion_class='TEST_BOUND';snapshots.summary.capture_permission_evidence_pending--;snapshots.summary.source_content_snapshot_bound++;snapshots.summary.promotion_eligible++});
 console.log(JSON.stringify({suite:'KIDULTS_ASI_RIGHTS_ANALYSIS_FAST_LANE_DECISIONS_V1',result:'PASS',sources:d.records.length,decisions:counts,snapshots:validated.snapshotCounts,dynamic_decision_counts_verified:true,evidence_bindings:d.records.length,stale_fail_closed_exclusions:validated.staleFailClosedExclusions,stale_negative_evidence_is_non_authorizing_exclusion:true,stale_promotable_evidence_fail_closed:true,digest_tamper_fail_closed:true,promotion_without_snapshot_fail_closed:true,snapshot_url_drift_fail_closed:true,false_snapshot_binding_fail_closed:true,reference_only_promotion_fail_closed:true,four_atom_only_pass_rejected:true,rights_clear_for_current_sold:d.summary.rights_clear_for_current_sold,production:d.truth_boundary.production}));

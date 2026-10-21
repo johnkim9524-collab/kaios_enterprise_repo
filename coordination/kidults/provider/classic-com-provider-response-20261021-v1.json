@@ -1,0 +1,129 @@
+{
+  "id": "KIDULTS_CLASSIC_COM_PROVIDER_RESPONSE_20261021_V1",
+  "version": "1.0.0",
+  "status": "VERIFIED_SECRET_SAFE_RESPONSE_EVIDENCE",
+  "provider_id": "CLASSIC_COM",
+  "provider_name": "CLASSIC.COM",
+  "observed_at": "2026-10-21T21:05:17Z",
+  "evidence_method": "AUTHENTICATED_GMAIL_FULL_MESSAGE_THREAD_AND_ATTACHMENT_READ",
+  "message": {
+    "sender": "datasupport@classic.com",
+    "sender_display_name": "CLASSIC.COM Data Support",
+    "received_at": "2026-10-21T21:05:03Z",
+    "subject": "Re: KIDULTS Data Evaluation — Required Quality Evidence Before Commercial Consideration",
+    "message_id": "1a1604837dcb0d54",
+    "thread_id": "1a0b5669d94b054b",
+    "rfc_message_id": "<CANUsitoTMW8WmSw3Mcuju1EZJFq=CBz7JuP6CZpmRp1iheQZ7Q@mail.gmail.com>",
+    "evidence_ref": "gmail:message:1a1604837dcb0d54",
+    "thread_ref": "gmail:thread:1a0b5669d94b054b",
+    "authentication": "CLASSIC_COM_DKIM_SPF_DMARC_PASS",
+    "classification": "INBOUND_SUBSTANTIVE_RESPONSE"
+  },
+  "attachment": {
+    "filename": "Classic_2026_Master API and Data License Agreement-Oct-21-2026-09-04-42-1552-PM.pdf",
+    "mime_type": "application/pdf",
+    "page_count": 11,
+    "sha256": "28588da7506da7fd213e768354cb33c2e57c0734b58bb2afffe9534e810eede7",
+    "evidence_ref": "gmail:message:1a1604837dcb0d54",
+    "document_type": "MASTER_API_AND_DATA_LICENSE_AGREEMENT",
+    "document_state": "UNEXECUTED_TEMPLATE_WITH_BLANK_EFFECTIVE_DATE_LICENSEE_AND_SIGNATURE_FIELDS",
+    "schedule_attached": false,
+    "raw_attachment_retained_in_repository": false
+  },
+  "material_facts": {
+    "commercial": {
+      "evaluation_term_days": 30,
+      "one_time_price_usd": 500,
+      "minimum_commitment": false,
+      "automatic_renewal": false,
+      "ongoing_license_requires_new_schedule": true,
+      "contracting_entity": "Classic.com, Inc.",
+      "invoice_direct_from_provider": true,
+      "free_sample_listing_count": 120
+    },
+    "access_and_provisioning": {
+      "interface": "GRAPHQL_API",
+      "authentication": "API_KEY",
+      "provisioning_target_business_days": 5,
+      "provisioning_prerequisites": [
+        "COUNTERSIGNATURE",
+        "PAYMENT"
+      ],
+      "evaluation_query_cap": 10000,
+      "rate_limit_reset_and_overage_terms": "UNKNOWN"
+    },
+    "permitted_use_during_term": [
+      "PRIVATE_STORAGE",
+      "NORMALIZATION",
+      "ENTITY_RESOLUTION",
+      "QUALITY_ASSURANCE",
+      "QUALITY_MEASUREMENT"
+    ],
+    "prohibited_use_during_term": [
+      "PUBLIC_DISPLAY",
+      "PRODUCTION_USE",
+      "REDISTRIBUTION"
+    ],
+    "retention_and_termination": {
+      "email_stated_deletion_deadline_days": 5,
+      "email_stated_scope": "ALL_LICENSED_DATA_INCLUDING_ANYTHING_DERIVED_FROM_IT",
+      "email_stated_post_termination_derived_retention": false,
+      "master_agreement_clause_6_1_deadline": "PROMPTLY_NOT_FIVE_DAYS",
+      "master_agreement_clause_6_1_scope": "OTHER_PARTY_CONFIDENTIAL_INFORMATION",
+      "conflict_state": "EMAIL_AND_ATTACHED_MASTER_AGREEMENT_NOT_FULLY_ALIGNED_MISSING_SCHEDULE"
+    },
+    "provenance_and_fields": {
+      "named_auction_house_dealer_or_venue_in_standard_bundle": false,
+      "stable_classic_vdp_url": true,
+      "listing_type": true,
+      "lot_number": true,
+      "auction_type_online_or_live": true,
+      "sale_date": true,
+      "auction_sale_price": true,
+      "dealer_asking_price_most_listings": true,
+      "unsold_auction_status": "NOT_SOLD",
+      "dealer_removed_without_outcome_status": "UNKNOWN",
+      "listing_start_date": false,
+      "auction_closing_date": true,
+      "dealer_last_updated_date": true,
+      "vehicle_data_object_status": true
+    },
+    "master_agreement_additional_terms": {
+      "schedule_controls_on_conflict": true,
+      "visible_classic_attribution_and_active_link_required": true,
+      "monthly_api_availability_target_percent": 99,
+      "provider_independent_verification_warranty": false,
+      "provider_accuracy_or_completeness_warranty": false,
+      "governing_law": "DELAWARE",
+      "provider_publicity_right_to_list_licensee_and_logo": true,
+      "provider_reuse_of_performance_know_how_clause": true
+    }
+  },
+  "documentary_conflicts_and_missing_items": [
+    "EMAIL_SAYS_PROPOSED_SCHEDULE_ATTACHED_BUT_NO_SCHEDULE_WAS_PRESENT",
+    "EMAIL_SAYS_PARTY_AND_DATE_FIELDS_FILLED_BUT_ATTACHED_MASTER_FIELDS_ARE_BLANK",
+    "FIVE_DAY_DELETION_TERM_NOT_FOUND_IN_ATTACHED_MASTER_AGREEMENT",
+    "EXACT_500_USD_AND_10000_QUERY_TERMS_NOT_FOUND_IN_ATTACHED_MASTER_AGREEMENT",
+    "FREE_SAMPLE_RIGHTS_RETENTION_AND_DELETION_TERMS_NOT_STATED",
+    "PRODUCTION_PRICING_AND_USE_RIGHTS_NOT_STATED",
+    "RATE_LIMIT_RESET_429_AND_OVERAGE_BEHAVIOR_NOT_STATED",
+    "NAMED_ORIGINATING_VENUE_NOT_AVAILABLE_IN_STANDARD_BUNDLES"
+  ],
+  "authority_boundary": {
+    "contract_or_schedule_acceptance": false,
+    "external_spend": false,
+    "credential_issuance_or_activation": false,
+    "provider_network_access": false,
+    "data_or_sample_acquisition": false,
+    "provider_activation": false,
+    "external_reply": false,
+    "public_release": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  },
+  "negotiation_channel": "WRITTEN_EMAIL_ONLY_NO_PHONE_VOICE_OR_VIDEO_CALL",
+  "raw_email_body_retained": false,
+  "raw_agreement_text_retained": false,
+  "secrets_or_credentials_retained": false,
+  "current_state": "SUBSTANTIVE_RESPONSE_RECEIVED_NEEDS_CLARIFICATION_OWNER_HOLD"
+}
