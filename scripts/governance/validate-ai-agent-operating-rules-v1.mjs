@@ -95,7 +95,6 @@ const roles = readJson(files.roles);
 const trackQProfile = readText(files.trackQProfile);
 const trackQRecord = readJson(files.trackQRecord);
 const peopleAiIndex = readJson(files.peopleAiIndex);
-const trackQProfile = readText(files.trackQProfile);
 const authorityChainPolicy = readJson(files.authorityChainPolicy);
 const autonomousClosurePolicy = readJson(files.autonomousClosurePolicy);
 const triggerCompatibilityContract = readJson(files.triggerCompatibilityContract);
@@ -518,7 +517,7 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.5.4', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.5.3', 'ROLE_REGISTRY_VERSION');
 const trackQRole = roles.roles.find((role) => role.agent_id === 'track-q-qa-agent');
 assert(trackQRole?.execution_scope?.mode === 'USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT_ACTIVE', 'TRACK_Q_PROFILE_ACTIVE');
 assert(trackQRole?.execution_scope?.platform === 'GITHUB_COPILOT_CLOUD_AGENT', 'TRACK_Q_PLATFORM');

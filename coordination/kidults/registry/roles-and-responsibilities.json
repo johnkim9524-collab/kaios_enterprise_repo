@@ -1,7 +1,7 @@
 {
-  "registry_version": "1.5.4",
+  "registry_version": "1.5.3",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-10-22T00:00:00.000Z",
+  "updated_at": "2026-10-22T08:30:00.000Z",
   "change_rationale": "Enable Track Q through the repository's standard user-selected GitHub Copilot cloud-agent profile. Keep only the protected launcher and consumed receipt requirement for automated or external dispatch.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",

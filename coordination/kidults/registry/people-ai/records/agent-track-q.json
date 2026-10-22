@@ -1,7 +1,7 @@
 {
   "id": "agent-track-q",
   "record_type": "ai_agent_profile",
-  "version": "1.1.0",
+  "version": "1.0.0",
   "status": "ACTIVE",
   "display_name": "Track Q QA Agent",
   "role_ids": [
