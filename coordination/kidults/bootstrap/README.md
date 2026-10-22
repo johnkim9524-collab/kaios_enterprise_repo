@@ -1,4 +1,4 @@
-# KIDULTS A-B-C-D-E Collaboration Bootstrap
+# KIDULTS A-B-C-D-E-Q Collaboration Bootstrap
 
 **Version:** 1.2.0
 **Effective:** 2026-08-12 KST  
@@ -7,13 +7,14 @@
 
 ## Purpose
 
-This directory is the startup package for five KIDULTS workstreams.
+This directory is the startup package for six KIDULTS workstreams.
 
 - **Track A — 120 Intelligence Factory:** produces versioned intelligence snapshot candidates and Evidence Packages.
 - **Track B — Rankability & Validation Gate:** independently validates one exact snapshot candidate.
 - **Track C — Portal V502 & Experience Layer:** renders only released, versioned intelligence artifacts.
 - **Track D — Data Platform & Production Reliability:** publishes and operates approved intelligence after all gates and G5 approval.
 - **Track E — Executive OS & Cross-Vertical Portfolio:** governs executive operating decisions, cross-vertical reuse, capital/ROI gates, and portfolio-level evidence.
+- **Track Q — Quality, Evidence & Release Assurance:** independently verifies customer-facing claims, evidence, rights, reproducibility and decision usefulness; reports PASS/HOLD to the QA Gate Committee.
 
 ## Required reading order
 
@@ -45,6 +46,7 @@ The platform host may permit local sandbox edits and tests in an explicitly user
 - `TRACK_C_PORTAL_V502_BOOTSTRAP.md`
 - `TRACK_D_DATA_PLATFORM_BOOTSTRAP.md`
 - `coordination/kidults/bootstrap/TRACK_E_EXECUTIVE_OS_BOOTSTRAP.md`
+- `coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md`
 
 ## Mandatory common keys
 
@@ -94,6 +96,7 @@ Track D: published-snapshot.json + production-release-record.json
 - Track C: every contract/release change plus rendering/asset failures
 - Track D: every deployment/runtime/incident event plus health reports
 - Track E: every material portfolio, ROI, reuse, authority, or cross-vertical decision
+- Track Q: every customer-facing release candidate and every material evidence, rights, methodology or claims change
 - Integrated digest: 06:00 KST daily
 - Three-Book synchronization: Sunday and after material changes
 
@@ -116,7 +119,7 @@ known blockers
 next reporting time
 ```
 
-Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution
+Issues: Track A #235 · Track B #236 · Track C #237 · Track D #240 · Track E registry/issue binding required before execution · Track Q reserved ID track-q-qa-agent; dispatch pending protected runtime
 
 ## Mandatory RESUME CONTRACT — every Work execution
 

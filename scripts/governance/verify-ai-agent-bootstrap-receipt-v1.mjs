@@ -26,7 +26,7 @@ const REPOSITORY_DEFENSE_IN_DEPTH_BOOTSTRAP_JOBS = [
   ['.github/workflows/kidults-asi-source-fabric-scale-pi1.yml', 'source-fabric-scale-pi1', 'ASI', 'Verify exact source, syntax and platform principles']
 ].map(([workflow, job, agent_class, first_task_step]) => ({ workflow, job, agent_class, first_task_step }));
 const GOVERNED_CLASSES = [
-  'KPMO', 'TRACK_A', 'TRACK_B', 'TRACK_C', 'TRACK_D', 'TRACK_E', 'RED_TEAM', 'ASI',
+  'KPMO', 'TRACK_A', 'TRACK_B', 'TRACK_C', 'TRACK_D', 'TRACK_E', 'TRACK_Q', 'RED_TEAM', 'ASI',
   'CODING_AGENTS', 'REVIEW_AGENTS', 'TEST_AGENTS', 'RELEASE_AGENTS',
   'DOCUMENTATION_AGENTS', 'DISCOVERY_AGENTS', 'EVIDENCE_AGENTS', 'GRAPH_AGENTS',
   'PROVIDER_AGENTS', 'RUNTIME_AGENTS', 'SCHEDULED_AGENT_AUTOMATIONS', 'EXTERNAL_MODEL_AGENTS'
@@ -38,6 +38,7 @@ const AGENT_CLASS_ROLE_MAP = Object.freeze({
   TRACK_C: 'track-c-portal-v502',
   TRACK_D: 'snapshot-publisher',
   TRACK_E: 'qa-release-manager',
+  TRACK_Q: 'track-q-quality-evidence-release-assurance',
   RED_TEAM: 'red-team-lead',
   REVIEW_AGENTS: 'editorial-rights-reviewer',
   TEST_AGENTS: 'qa-release-manager',
@@ -694,7 +695,7 @@ const verifyDocumentSet = (root, receipt) => {
 const verifyCommittedContract = (contract) => {
   const checks = [
     [contract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'CONTRACT_ID'],
-    [contract.version === '1.7.0', 'CONTRACT_VERSION'],
+    [contract.version === '1.8.0', 'CONTRACT_VERSION'],
     [contract.status === 'MANDATORY_FAIL_CLOSED', 'CONTRACT_STATUS'],
     [contract.effective_after === 'MERGE_TO_MAIN', 'CONTRACT_EFFECTIVE_AFTER'],
     [contract.scope === 'ALL_AI_AGENT_INSTANCES_AND_AGENT_DISPATCHING_AUTOMATIONS', 'CONTRACT_SCOPE'],
@@ -923,7 +924,7 @@ const currentOrigin = assertSafeRepositoryGitConfig(root);
 assertGitObjectIsolation(root);
 const { receiptPath, roots, receipt } = readControlledReceipt(root, options.receipt);
 
-if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.7.0') {
+if (receipt.id !== 'kidults-ai-agent-github-bootstrap-receipt-v1' || receipt.version !== '1.8.0') {
   fail('RECEIPT_ID_OR_VERSION_INVALID');
 }
 if (receipt.state !== 'BOOTSTRAP_PREREQUISITES_SATISFIED') fail('RECEIPT_STATE_INVALID');
@@ -1040,7 +1041,7 @@ if (receipt.worktree_state.require_clean_enforced) {
 const consumptionMarker = options.consume ? consumeReceipt(roots, receipt, expires) : null;
 console.log(JSON.stringify({
   id: 'kidults-ai-agent-bootstrap-verification-v1',
-  version: '1.7.0',
+  version: '1.8.0',
   state: options.consume ? 'BOOTSTRAP_VERIFIED' : 'BOOTSTRAP_AUDIT_VERIFIED',
   receipt_path: receiptPath,
   receipt_digest: receipt.receipt_digest,
