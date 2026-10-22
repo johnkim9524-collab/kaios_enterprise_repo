@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "08d3491a6cdb9adb51f4e54b6738bfb837349507",
+  "revision": "9ac5a59efa03eae25a9edf3ba84a269145dcf07c",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 870
+    "file_count": 871
   },
   "files": [
     {
@@ -2358,8 +2358,8 @@
     {
       "path": "coordination/kidults/kpmo/platform-continuous-assurance-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "93b9c3007f75685a1acb290ced8b10f0fe071270",
-      "sha256": "sha256:c7ae9b6794cc6382bbc0e783b8ff05c15e2db23bb2ca7eef266e2f3feccbf950",
+      "git_blob": "b27000f2f15fb84a734e24f91ae67322c0336d12",
+      "sha256": "sha256:368be55551663d4a8a2b2b50b224960fb6f1a40a70f97e3e545c8ce1c7001eb6",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -5218,6 +5218,19 @@
       }
     },
     {
+      "path": "scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "edd62e3521c0994a3e4069213b7cd0e7a3835b4b",
+      "sha256": "sha256:dbd17698d80eb7f456830495e025f458dbe261014228b76740297181e1e4e147",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
       "path": "scripts/kidults/kpmo/validate-pr-impact-routing-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "566d0a43681b4396c29deff5c5c773033f83c6d2",
@@ -7322,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ef78480ab13ceacc281ae4cf39de4d4c9ef889991fdb5541eaed244ccdbf1892"
+  "manifest_sha256": "sha256:ea214036cb93426914cee1231e7c62d4dab6b4df4b2bb66e08b37b3f1f1b41fb"
 }
