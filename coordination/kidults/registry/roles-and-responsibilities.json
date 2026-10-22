@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.5.3",
+  "registry_version": "1.5.4",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-10-22T06:20:33.051Z",
-  "change_rationale": "Register the user-invoked local Track Q replacement as active under the interactive-session exception; reserve protected-launcher bootstrap for external dispatch only.",
+  "updated_at": "2026-10-22T00:00:00.000Z",
+  "change_rationale": "Enable Track Q through the repository's standard user-selected GitHub Copilot cloud-agent profile. Keep only the protected launcher and consumed receipt requirement for automated or external dispatch.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -647,9 +647,9 @@
       "role_id": "track-q-quality-evidence-release-assurance",
       "canonical_role": "TRACK_Q_QA_AGENT",
       "agent_id": "track-q-qa-agent",
-      "identity_state": "QUARANTINED_BOOTSTRAP_NOT_VERIFIED",
+      "identity_state": "ACTIVE_USER_INVOKED_CLOUD_PROFILE",
       "title": "Track Q Lead — Quality, Evidence & Release Assurance",
-      "current_holder": "Canonical external identity track-q-qa-agent remains quarantined; local replacement track-q-qa-agent-replacement is active for user-invoked, permission-gated Copilot CLI QA.",
+      "current_holder": "Track Q QA Agent — user-selected GitHub Copilot cloud-agent profile.",
       "track_id": "track-q-quality-evidence-release-assurance",
       "reporting_line": "KPMO / QA Gate Committee",
       "independent_from": [
@@ -690,9 +690,8 @@
         "Contact providers, commit spend, accept legal terms or expand credentials",
         "Approve or execute Production, Public or G5 release",
         "Convert UNKNOWN, NOT_VERIFIED or missing evidence into PASS or zero",
-        "Claim a persistent runtime identity, valid bootstrap, or operational assignment before verified provisioning and consumed readiness receipt",
-        "Represent the GitHub-scoped profile as a persistent external runtime principal or claim external dispatcher activation",
-        "Run autonomously, on a schedule, or outside a user-invoked GitHub task"
+        "Claim a persistent external principal or automated dispatcher has been provisioned without evidence",
+        "Run on a schedule or outside a user-selected GitHub Copilot task"
       ],
       "success_measures": [
         "All verdicts bind to the exact artifact/version and are reproducible",
@@ -705,91 +704,92 @@
       "reporting_cadence": "For every release candidate and material artifact change; immediate escalation for material evidence, rights, integrity or reproducibility failures; daily status only while an assigned review remains active.",
       "decision_boundary": "QA PASS/HOLD is an independent quality finding, not final business, legal, Production, Public or G5 approval.",
       "execution_scope": {
-        "mode": "CANONICAL_EXTERNAL_IDENTITY_QUARANTINED",
+        "mode": "USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT_ACTIVE",
+        "platform": "GITHUB_COPILOT_CLOUD_AGENT",
         "user_invocation_required": true,
-        "profile_user_invocable": false,
+        "profile_user_invocable": true,
+        "model_invocation_disabled": true,
         "external_dispatch": "NOT_PROVISIONED",
-        "readiness_gate": "REQUIRED_FOR_EXTERNAL_DISPATCH_ONLY",
+        "readiness_gate": "REQUIRED_FOR_AUTOMATED_OR_EXTERNAL_DISPATCH_ONLY",
         "release_authority": false
       },
       "activation_evidence": {
-        "pull_request": 2707,
-        "merge_commit": "357ac034cee6be0a98d199ff26bf17a0db02634c",
-        "profile_blob_sha": "4079a89ba1f10a658900df4280e9f43c03310296",
-        "task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
-        "platform_session_id": "ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3",
-        "transcript_role_acceptance": "ACCEPT_DUTIES_AND_LIMITS_ONLY",
-        "readiness_disposition": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
-        "nonce_commitment_sha256": "56c69b111899314f2f7d0a34637d3eab1b5af8fb8b256d2c752e14a1c1b68c36",
-        "verification": "Repository branch/main and profile blob comparisons verify source content only; they do not attest session provenance, bootstrap readiness, authorization, or receipt consumption."
+        "profile_path": ".github/agents/track-q-qa-agent.agent.md",
+        "activation_mode": "USER_SELECTED_GITHUB_COPILOT_CUSTOM_AGENT",
+        "historical_first_task_readiness": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
+        "historical_first_task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
+        "historical_first_task_qa_verdict": "NONE",
+        "automated_external_dispatch": "NOT_PROVISIONED"
       },
-      "quarantine": {
-        "status": "QUARANTINED",
-        "reason": "The first recorded task for the canonical external identity lacked an independently verified and consumed exact-source readiness receipt.",
-        "required_action": "Keep the canonical external identity disabled. The separately registered local replacement is active under the user-initiated interactive-session exception; protected launcher and receipt consumption are required only for future external dispatch."
-      },
-      "local_replacement_provisioning": {
-        "replacement_agent_id": "track-q-qa-agent-replacement",
-        "canonical_profile_path": "coordination/kidults/registry/profiles/track-q-qa-agent-replacement.agent.md",
-        "runtime_scope": "SINGLE_OPERATOR_WORKSTATION_USER_INVOKED_COPILOT_CLI",
-        "profile_user_invocable": true,
-        "model_invocation_disabled": true,
-        "allowed_tools": [
-          "view",
-          "grep",
-          "glob",
-          "powershell"
-        ],
-        "machine_policy_guard": "COPILOT_CLI_PER_COMMAND_PERMISSION; NO_PERSISTENT_OS_SANDBOX_OR_EXTERNAL_DISPATCH",
-        "smoke_verification": {
-          "result": "PASS_LOCAL_READ_ONLY_POLICY_SMOKE",
-          "verified_on": "2026-10-22",
-          "source_sha": "e6be8c61cb835e23cea979a7690436cc6f97d960",
-          "task_id": "trackq-local-readonly-qa-ddff7345cd1345a486466bcbccbc45d9",
-          "session_id": "6f632a80-5f3e-45df-ad87-21df47ddcd41",
-          "tested_tool_outcomes": {
-            "view": "ALLOW",
-            "edit": "DENY",
-            "agentStop": "ALLOW"
+      "historical_records": {
+        "historical_quarantine": {
+          "status": "QUARANTINED",
+          "reason": "The first recorded task for the canonical external identity lacked an independently verified and consumed exact-source readiness receipt.",
+          "required_action": "Keep the canonical external identity disabled. The separately registered local replacement is active under the user-initiated interactive-session exception; protected launcher and receipt consumption are required only for future external dispatch."
+        },
+        "historical_local_replacement": {
+          "replacement_agent_id": "track-q-qa-agent-replacement",
+          "canonical_profile_path": "coordination/kidults/registry/profiles/track-q-qa-agent-replacement.agent.md",
+          "runtime_scope": "SINGLE_OPERATOR_WORKSTATION_USER_INVOKED_COPILOT_CLI",
+          "profile_user_invocable": true,
+          "model_invocation_disabled": true,
+          "allowed_tools": [
+            "view",
+            "grep",
+            "glob",
+            "powershell"
+          ],
+          "machine_policy_guard": "COPILOT_CLI_PER_COMMAND_PERMISSION; NO_PERSISTENT_OS_SANDBOX_OR_EXTERNAL_DISPATCH",
+          "smoke_verification": {
+            "result": "PASS_LOCAL_READ_ONLY_POLICY_SMOKE",
+            "verified_on": "2026-10-22",
+            "source_sha": "e6be8c61cb835e23cea979a7690436cc6f97d960",
+            "task_id": "trackq-local-readonly-qa-ddff7345cd1345a486466bcbccbc45d9",
+            "session_id": "6f632a80-5f3e-45df-ad87-21df47ddcd41",
+            "tested_tool_outcomes": {
+              "view": "ALLOW",
+              "edit": "DENY",
+              "agentStop": "ALLOW"
+            },
+            "readiness_receipt": "INDEPENDENTLY_VERIFIED_AND_CONSUMED_FOR_THIS_SMOKE_TASK_ONLY",
+            "receipt_reusable": false,
+            "future_task_requires_fresh_receipt": true,
+            "worktree_after_smoke": "CLEAN"
           },
-          "readiness_receipt": "INDEPENDENTLY_VERIFIED_AND_CONSUMED_FOR_THIS_SMOKE_TASK_ONLY",
-          "receipt_reusable": false,
-          "future_task_requires_fresh_receipt": true,
-          "worktree_after_smoke": "CLEAN"
-        },
-        "external_dispatch": "NOT_PROVISIONED",
-        "github_cloud_agent_activation": false,
-        "persistent_external_principal": false,
-        "release_authority": false,
-        "canonical_quarantined_identity_remains": "track-q-qa-agent",
-        "latest_local_cli_smoke": {
-          "result": "PASS_LOCAL_PROFILE_LOAD_AND_EXACT_READ_ONLY_COMMAND",
-          "observed_on": "2026-10-22",
-          "source_sha": "f4dd6592725c04170c21b678fd8aa48c1f915260",
-          "copilot_cli_version": "1.0.102",
-          "command": "Get-Location",
-          "command_permission": "EXACT_COMMAND_ALLOWLIST",
-          "workdir_scope": "SYSTEM_TEMP_DIRECTORY",
-          "exit_code": 0,
-          "project_file_changes": "NONE",
-          "git_changes": "NONE",
-          "artifact_qa": "NOT_PERFORMED",
-          "bootstrap_receipt": "NOT_CREATED_OR_CLAIMED",
-          "activation_eligibility": "NOT_ESTABLISHED",
-          "trusted_platform_session_provenance": "NOT_VERIFIED",
-          "platform_workspace_sandbox": "NOT_VERIFIED"
-        },
-        "activation_state": "CONDITIONAL_USER_INVOKED_LOCAL",
-        "activation_basis": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION_EXCEPTION_ONLY_WHEN_VERIFIED",
-        "external_dispatch_required_for_local_invocation": false,
-        "readiness_gate": "LOCAL_EXCEPTION_REQUIRES_TRUSTED_PLATFORM_CONTEXT",
-        "activation_conditions": {
-          "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
-          "session_provenance_source": "TRUSTED_PLATFORM_EXECUTION_CONTEXT",
-          "platform_workspace_sandbox_required": true,
-          "repository_self_assertion_is_session_provenance": false,
-          "missing_or_ambiguous_platform_session_context": "LOCAL_EXCEPTION_UNAVAILABLE",
-          "per_command_permission_is_sandbox_attestation": false
+          "external_dispatch": "NOT_PROVISIONED",
+          "github_cloud_agent_activation": false,
+          "persistent_external_principal": false,
+          "release_authority": false,
+          "canonical_quarantined_identity_remains": "track-q-qa-agent",
+          "latest_local_cli_smoke": {
+            "result": "PASS_LOCAL_PROFILE_LOAD_AND_EXACT_READ_ONLY_COMMAND",
+            "observed_on": "2026-10-22",
+            "source_sha": "f4dd6592725c04170c21b678fd8aa48c1f915260",
+            "copilot_cli_version": "1.0.102",
+            "command": "Get-Location",
+            "command_permission": "EXACT_COMMAND_ALLOWLIST",
+            "workdir_scope": "SYSTEM_TEMP_DIRECTORY",
+            "exit_code": 0,
+            "project_file_changes": "NONE",
+            "git_changes": "NONE",
+            "artifact_qa": "NOT_PERFORMED",
+            "bootstrap_receipt": "NOT_CREATED_OR_CLAIMED",
+            "activation_eligibility": "NOT_ESTABLISHED",
+            "trusted_platform_session_provenance": "NOT_VERIFIED",
+            "platform_workspace_sandbox": "NOT_VERIFIED"
+          },
+          "activation_state": "CONDITIONAL_USER_INVOKED_LOCAL",
+          "activation_basis": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION_EXCEPTION_ONLY_WHEN_VERIFIED",
+          "external_dispatch_required_for_local_invocation": false,
+          "readiness_gate": "LOCAL_EXCEPTION_REQUIRES_TRUSTED_PLATFORM_CONTEXT",
+          "activation_conditions": {
+            "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
+            "session_provenance_source": "TRUSTED_PLATFORM_EXECUTION_CONTEXT",
+            "platform_workspace_sandbox_required": true,
+            "repository_self_assertion_is_session_provenance": false,
+            "missing_or_ambiguous_platform_session_context": "LOCAL_EXCEPTION_UNAVAILABLE",
+            "per_command_permission_is_sandbox_attestation": false
+          }
         }
       }
     }
