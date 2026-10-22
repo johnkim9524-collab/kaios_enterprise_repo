@@ -647,9 +647,9 @@
       "role_id": "track-q-quality-evidence-release-assurance",
       "canonical_role": "TRACK_Q_QA_AGENT",
       "agent_id": "track-q-qa-agent",
-      "identity_state": "GITHUB_PROFILE_ACTIVE_SCOPED_EXTERNAL_DISPATCH_DISABLED",
+      "identity_state": "QUARANTINED_BOOTSTRAP_NOT_VERIFIED",
       "title": "Track Q Lead — Quality, Evidence & Release Assurance",
-      "current_holder": "GitHub Copilot custom agent profile at .github/agents/track-q-qa-agent.agent.md; user-invoked, read/search-only; no persistent external principal",
+      "current_holder": "Quarantined GitHub custom agent profile at .github/agents/track-q-qa-agent.agent.md; user invocation disabled; no active holder",
       "track_id": "track-q-quality-evidence-release-assurance",
       "reporting_line": "KPMO / QA Gate Committee",
       "independent_from": [
@@ -705,9 +705,11 @@
       "reporting_cadence": "For every release candidate and material artifact change; immediate escalation for material evidence, rights, integrity or reproducibility failures; daily status only while an assigned review remains active.",
       "decision_boundary": "QA PASS/HOLD is an independent quality finding, not final business, legal, Production, Public or G5 approval.",
       "execution_scope": {
-        "mode": "GITHUB_NATIVE_USER_INVOKED_READ_ONLY",
+        "mode": "QUARANTINED_NOT_INVOKABLE",
         "user_invocation_required": true,
+        "profile_user_invocable": false,
         "external_dispatch": "NOT_PROVISIONED",
+        "readiness_gate": "REJECTED_NOT_VERIFIED_AND_CONSUMED",
         "release_authority": false
       },
       "activation_evidence": {
@@ -716,9 +718,15 @@
         "profile_blob_sha": "4079a89ba1f10a658900df4280e9f43c03310296",
         "task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
         "platform_session_id": "ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3",
-        "role_acceptance": "ACCEPT",
+        "transcript_role_acceptance": "ACCEPT_DUTIES_AND_LIMITS_ONLY",
+        "readiness_disposition": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
         "nonce_commitment_sha256": "56c69b111899314f2f7d0a34637d3eab1b5af8fb8b256d2c752e14a1c1b68c36",
-        "verification": "task branch compares identical to main at merge commit; GitHub main file fetch confirms profile blob SHA"
+        "verification": "Repository branch/main and profile blob comparisons verify source content only; they do not attest session provenance, bootstrap readiness, authorization, or receipt consumption."
+      },
+      "quarantine": {
+        "status": "QUARANTINED",
+        "reason": "Task session began without an independently verified and consumed exact-source readiness receipt.",
+        "required_action": "Disable invocation and dispatch for this identity; preserve evidence; use a newly bootstrapped replacement only after protected launcher and receipt-consumption controls are independently verified."
       }
     }
   ]
