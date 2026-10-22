@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "a4f38c35b99bfbacfeafb9e29b9c9bf505b0491e",
+  "revision": "6c25399cdc289d5adc738464e94a0699def32531",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -2698,8 +2698,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "212858b7e47714257543521491c01bca1c61f5ae",
-      "sha256": "sha256:4aa7eb104b8f20a5e8597f2cf8392b3ba91f5f8f563c01aff4e0efe794e71a1a"
+      "git_blob": "41330b10997ca08c5315613a44ec5908bba4f59d",
+      "sha256": "sha256:1fe81073465dbc0b7656e54029df36f2b40352ebb6aaa336f7dfff0373dca361"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3557,8 +3557,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "60e76860d9c11ccbdd5bfcb3b242c0107ab85906",
-      "sha256": "sha256:d657c2dddf3e1795772b93f5d3f73d0c214f5486bad2c3816180b57973cac497",
+      "git_blob": "413c25b08244414f320c20fee0e17425e00ecedd",
+      "sha256": "sha256:328147d77a81cde1ed1bf127d3a4fbdcc6ea761db69413ea586be03f99b6c6ab",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7310,5 +7310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a1ec746582b684acde9c00ac3b70c6c8a322dda1e58dd8a85c0fa6d6b3699a99"
+  "manifest_sha256": "sha256:d2ad261ce722aa237d44432af079d9e30c15b740a566eb4724c34d2bd55195aa"
 }
