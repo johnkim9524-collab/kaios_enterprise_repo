@@ -249,15 +249,21 @@ export function classifyCandidate({pr,mainSha,treeSha,files,statuses=[],checks=[
 // are never cached. A global read failure aborts discovery before any fanout.
 export const isGlobalReadFailure=error=>/^DISPATCH_(READ_BUDGET_EXHAUSTED|RATE_LIMITED|READ_ACCESS_DENIED|READ_SERVICE_UNAVAILABLE|READ_TRANSPORT_FAILED|READ_RESPONSE_INVALID|READ_TIMEOUT)$/.test(String(error?.code||''))
   ||(error?.global===true&&/^SOURCE_BATCH_[A-Z_]+$/.test(String(error?.code||'')));
+export const DISPATCHER_READ_BUDGET_MAX=2048;
+export function dispatcherReadBudgetForCandidates(candidateCount,{minimum=256,perCandidate=6,maximum=DISPATCHER_READ_BUDGET_MAX}={}){
+  if(!Number.isSafeInteger(candidateCount)||candidateCount<0||!Number.isSafeInteger(minimum)||minimum<1
+    ||!Number.isSafeInteger(perCandidate)||perCandidate<1||!Number.isSafeInteger(maximum)||maximum<minimum||maximum>DISPATCHER_READ_BUDGET_MAX)fail('DISPATCH_CONFIGURATION_INVALID');
+  return Math.min(maximum,Math.max(minimum,64+candidateCount*perCandidate));
+}
 export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=256,reserve=100,requestTimeoutMs=30000}) {
-  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>256
+  if(!token||!Number.isSafeInteger(maxRequests)||maxRequests<1||maxRequests>DISPATCHER_READ_BUDGET_MAX
     ||!Number.isSafeInteger(reserve)||reserve<0||!Number.isSafeInteger(requestTimeoutMs)||requestTimeoutMs<1||requestTimeoutMs>30000)fail('DISPATCH_CONFIGURATION_INVALID');
-  let requests=0,terminal=null,tail=Promise.resolve();const cache=new Map();
+  let requests=0,budget=maxRequests,terminal=null,tail=Promise.resolve();const cache=new Map();
   const counts={branches:0,rulesets:0,pulls:0,files:0,commits:0,status:0,checks:0,contents:0,other:0};
   const family=path=>/\/contents\//.test(path)?'contents':/\/pulls\/\d+\/files(?:\?|$)/.test(path)?'files':/\/check-runs(?:\?|$)/.test(path)?'checks':/\/status(?:\?|$)/.test(path)?'status':/\/git\/commits\//.test(path)?'commits':/\/branches\//.test(path)?'branches':/\/rulesets(?:\/|\?|$)/.test(path)?'rulesets':/\/pulls(?:\/|\?|$)/.test(path)?'pulls':'other';
   const takeBudget=resource=>{
     if(terminal)throw terminal;
-    if(requests>=maxRequests){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');terminal.read_diagnostics={request_count:requests,max_requests:maxRequests,resource_counts:{...counts},next_resource_family:resource};throw terminal;}
+    if(requests>=budget){terminal=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');terminal.read_diagnostics={request_count:requests,max_requests:budget,resource_counts:{...counts},next_resource_family:resource};throw terminal;}
     requests++;counts[resource]++;
   };
   const request=path=>{
@@ -311,15 +317,24 @@ export function createDispatcherReadClient({token,fetchImpl=fetch,maxRequests=25
       if(response.status===401||response.status===403){terminal=new DispatcherError('DISPATCH_READ_ACCESS_DENIED');throw terminal;}
       return response;}).catch(error=>{if(isGlobalReadFailure(error))error.global=true;throw error;});tail=pending.catch(()=>{});return pending;
   };
-  return {request,publicSourceRequest,requestCount:()=>requests,readDiagnostics:()=>({request_count:requests,max_requests:maxRequests,resource_counts:{...counts}})};
+  const expandBudget=next=>{
+    if(!Number.isSafeInteger(next)||next<budget||next>DISPATCHER_READ_BUDGET_MAX)fail('DISPATCH_CONFIGURATION_INVALID');
+    budget=next;
+  };
+  return {request,publicSourceRequest,requestCount:()=>requests,expandBudget,readDiagnostics:()=>({request_count:requests,max_requests:budget,resource_counts:{...counts}})};
 }
 async function api(path,client){return client.request(path)}
 async function pages(path,token){const out=[];for(let page=1;page<=30;page++){const batch=await api(`${path}${path.includes('?')?'&':'?'}per_page=100&page=${page}`,token);if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
-async function immutableContent(repository,path,ref,token){
+const gitBlobSha=body=>crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
+const plannedSourceBlobKey=(ref,path)=>`${ref}\0${path}`;
+const shouldReadSealedSourceBlob=(token,ref,path)=>token.sourceReader?.hasSource(ref)===true
+  &&(token.allowUnpreparedSourceFallback!==true
+    ||token.plannedSourceBlobs instanceof Set&&token.plannedSourceBlobs.has(plannedSourceBlobKey(ref,path)));
+export async function immutableContent(repository,path,ref,token){
   if(/\.(zip|gz|png|jpg|jpeg|webp|pdf|woff2?|ttf|ico)$/i.test(path))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);
-  if(token.sourceReader&&token.sourceReader.hasSource(ref)){
+  if(shouldReadSealedSourceBlob(token,ref,path)){
     const value=await token.sourceReader.blobOrNull(ref,path);
     if(value===null)fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
     try{const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(value.body);if(text.includes('\0'))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);return text;}
@@ -327,11 +342,15 @@ async function immutableContent(repository,path,ref,token){
   }
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   if(payload?.type!=='file'||payload.encoding!=='base64'||typeof payload.content!=='string') fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
-  try{return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(Buffer.from(payload.content.replace(/\n/g,''),'base64'));}
+  const body=Buffer.from(payload.content.replace(/\n/g,''),'base64');
+  if(!/^[0-9a-f]{40}$/.test(String(payload.sha))||gitBlobSha(body)!==payload.sha)fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
+  try{
+    return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(body);
+  }
   catch{fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);}
 }
-async function contentBlobShaOrNull(repository,path,ref,token){
-  if(token.sourceReader&&token.sourceReader.hasSource(ref))return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
+export async function contentBlobShaOrNull(repository,path,ref,token){
+  if(shouldReadSealedSourceBlob(token,ref,path))return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
@@ -384,7 +403,7 @@ async function attachImmutableContents({repository,baseSha,headSha,files,token})
 async function immutableCommit(repository,ref,client){
   return client.sourceReader&&client.sourceReader.hasSource(ref)?client.sourceReader.commit(ref):api(`/repos/${repository}/git/commits/${ref}`,client);
 }
-export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=256,sourceReader,sourceTransport=false,operationQuarantine=null}){
+export async function discover({repository,token,prNumber,policy,generationSeed,approvalPolicy,fetchImpl=fetch,maxRequests=null,sourceReader,sourceTransport=false,operationQuarantine=null}){
   const [owner,repo]=repository.split('/'); if(!owner||!repo||!token)fail('DISPATCH_CONFIGURATION_INVALID');
   if(operationQuarantine!==null)validateOperationQuarantine(operationQuarantine,repository);
   if(typeof sourceTransport!=='boolean'||(sourceTransport&&sourceReader!==undefined))fail('DISPATCH_CONFIGURATION_INVALID');
@@ -392,7 +411,9 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     assertBoundedGitSourceReader(sourceReader);
     if(!sourceReader.receipt().sealed)fail('DISPATCH_SOURCE_SNAPSHOT_NOT_SEALED');
   }
-  token={...createDispatcherReadClient({token,fetchImpl,maxRequests}),sourceReader};
+  const explicitBudget=maxRequests!==null;
+  token={...createDispatcherReadClient({token,fetchImpl,maxRequests:maxRequests??256}),sourceReader,
+    plannedSourceBlobs:new Set(),allowUnpreparedSourceFallback:sourceTransport};
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
@@ -405,6 +426,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     .filter(x=>x.context!=='KIDULTS Governed Landing Authorization V1');
   if(!baseRequiredChecks.length) fail('DISPATCH_REQUIRED_CONTEXT_SET_EMPTY');
   const prs=prNumber?[await api(`/repos/${repository}/pulls/${prNumber}`,token)]:await pages(`/repos/${repository}/pulls?state=open`,token);
+  if(!explicitBudget)token.expandBudget(dispatcherReadBudgetForCandidates(prs.length));
   const filePlans=new Map(),ownerDecisions=new Map();let sourceEvidence=null;
   const prSourceBinding=pr=>({pull_request:pr.number,head_sha:pr.head?.sha,base_sha:pr.base?.sha,base_ref:pr.base?.ref,head_repository:pr.head?.repo?.full_name,base_repository:pr.base?.repo?.full_name,head_repository_id:pr.head?.repo?.id,base_repository_id:pr.base?.repo?.id,head_ref:pr.head?.ref,merged:pr.merged===true,state:pr.state,draft:pr.draft===true});
   if(sourceTransport){
@@ -420,7 +442,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
       let ownerDecision=null;
       try{assertDelegatedPathScope(files,policy);}catch(error){
         if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
-        if(prNumber!==Number(pr.number)||!isOwnerReviewRequired(error))continue;
+        if(!isOwnerReviewRequired(error))continue;
         const commit=await immutableCommit(repository,pr.head.sha,token);
         const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
         ownerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
@@ -443,7 +465,10 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     if(remaining<1)throw Object.assign(new Error('SOURCE_BATCH_TIME_EXHAUSTED'),{code:'SOURCE_BATCH_TIME_EXHAUSTED',global:true});
     sourceReader=createBoundedGitSourceReader({sourceShas:[...sources],readObject:producer.readObject,limits:{milliseconds:remaining}});
     for(const ref of sources)await sourceReader.commit(ref);
-    for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha]))await sourceReader.blobOrNull(ref,file.filename);
+    for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha])){
+      const key=plannedSourceBlobKey(ref,file.filename);token.plannedSourceBlobs.add(key);
+      await sourceReader.blobOrNull(ref,file.filename);
+    }
     sourceReader.seal();token.sourceReader=sourceReader;
     const freshMain=await api(`/repos/${repository}/branches/main`,token);
     if(freshMain.commit?.sha!==mainSha)throw Object.assign(new Error('SOURCE_BATCH_MAIN_BINDING_CHANGED'),{code:'SOURCE_BATCH_MAIN_BINDING_CHANGED',global:true});
@@ -508,13 +533,14 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     catch(error) {
       if(!isOwnerReviewRequired(error))throw error;
       commit=await immutableCommit(repository,pr.head.sha,token);
-      if(prNumber===Number(pr.number)){
-        const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
-        ownerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
-          repositoryOwner:pr.base.repo.owner?.login,repositoryOwnerId:pr.base.repo.owner?.id,
-          pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
-          changedPaths:fileRecords.map(file=>file.filename)});
-      }
+      // Scheduled scans must be able to discover a live exact-scope Owner
+      // decision too; requiring an explicit PR input made the normal protected
+      // schedule ignore the only authorization record that can admit this scope.
+      const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
+      ownerDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
+        repositoryOwner:pr.base.repo.owner?.login,repositoryOwnerId:pr.base.repo.owner?.id,
+        pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+        changedPaths:fileRecords.map(file=>file.filename)});
       if(ownerDecision){ownerDecisions.set(pr.number,ownerDecision);assertDelegatedPathScope(fileRecords,policy,ownerDecision);}
       else {candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files:fileRecords,
         protectedRulesetDigest:sha256(canonicalJson(soloDetail))};throw error;}
@@ -608,14 +634,14 @@ export async function recordDispatcherScan({scan,outputDirectory='out/autonomous
 function validTransportDiagnostics(value){
   return value&&Object.keys(value).sort().join(',')==='attempt_count,cause_code,request_count,resource_family'
     &&['branches','rulesets','pulls','files','commits','status','checks','contents','other'].includes(value.resource_family)
-    &&[1,2].includes(value.attempt_count)&&Number.isSafeInteger(value.request_count)&&value.request_count>=value.attempt_count&&value.request_count<=256
+    &&[1,2].includes(value.attempt_count)&&Number.isSafeInteger(value.request_count)&&value.request_count>=value.attempt_count&&value.request_count<=DISPATCHER_READ_BUDGET_MAX
     &&['UND_ERR_SOCKET','ECONNRESET','EPIPE','TIMEOUT','INVALID_JSON','UNCLASSIFIED'].includes(value.cause_code);
 }
 
 function validReadDiagnostics(value){
   const families=['branches','rulesets','pulls','files','commits','status','checks','contents','other'];
   if(!value||Object.keys(value).sort().join(',')!=='max_requests,next_resource_family,request_count,resource_counts'
-    ||!Number.isSafeInteger(value.max_requests)||value.max_requests<1||value.max_requests>256
+    ||!Number.isSafeInteger(value.max_requests)||value.max_requests<1||value.max_requests>DISPATCHER_READ_BUDGET_MAX
     ||value.request_count!==value.max_requests||!families.includes(value.next_resource_family)
     ||!value.resource_counts||Object.keys(value.resource_counts).sort().join(',')!==families.slice().sort().join(','))return false;
   const counts=Object.values(value.resource_counts);

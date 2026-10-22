@@ -14,7 +14,11 @@ const POLICY = 'coordination/kidults/kpmo/scope-aware-required-status-policy-v1.
 const SCOPE_AWARE_CONTEXT = 'KIDULTS Scope-Aware Authoritative Status V1';
 const DRAFT_DEVELOPMENT_CONTEXT = 'KIDULTS Draft Development Validation V1';
 const DRAFT_DEVELOPMENT_DESCRIPTION = '3 exact-head contexts verified; Draft non-promotable';
-const DRAFT_LANDING_PENDING_DESCRIPTION = 'Draft is non-promotable; automated Ready transition pending';
+const DRAFT_LANDING_PENDING_DESCRIPTION = 'Draft development validated; landing remains non-promotable';
+const DRAFT_LANDING_PENDING_DESCRIPTIONS = new Set([
+  'Draft is non-promotable; automated Ready transition pending',
+  DRAFT_LANDING_PENDING_DESCRIPTION,
+]);
 const GITHUB_ACTIONS_AVATAR = /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/;
 
 const assert = (condition, code) => {
@@ -56,13 +60,19 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
       ordered.sort((left, right) => left.time - right.time || left.id - right.id);
       status = ordered[ordered.length - 1].candidate;
     }
-    if (minimumStatusTime != null) {
-      const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
-      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
-        || (context === LANDING_READINESS_CONTEXT && statusTime === minimumStatusTime)) return false;
-    }
     const githubActionsIdentity = status.creator?.login === 'github-actions[bot]'
       || /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/.test(String(status.avatar_url || ''));
+    if (minimumStatusTime != null) {
+      const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
+      const exactDraftLandingPending = draft
+        && context === LANDING_READINESS_CONTEXT
+        && status.state === 'pending'
+        && DRAFT_LANDING_PENDING_DESCRIPTIONS.has(status.description)
+        && githubActionsIdentity;
+      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
+        || (context === LANDING_READINESS_CONTEXT && statusTime === minimumStatusTime
+          && !exactDraftLandingPending)) return false;
+    }
     const normalReadyControl = context === 'KIDULTS Governed Landing Authorization V1'
       && status.state === 'pending'
       && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
@@ -79,7 +89,7 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
     const draftLandingControl = draft
       && context === LANDING_READINESS_CONTEXT
       && status.state === 'pending'
-      && status.description === DRAFT_LANDING_PENDING_DESCRIPTION
+      && DRAFT_LANDING_PENDING_DESCRIPTIONS.has(status.description)
       && githubActionsIdentity;
     const nativeReadyControl = context === DRAFT_DEVELOPMENT_CONTEXT
       ? draftDevelopmentControl
@@ -213,6 +223,23 @@ async function runSelfTest() {
     eventTime,
     {draft: true},
   ), 'LIFECYCLE_CONVERGENCE_SELFTEST_LATEST_DRAFT_STATUS_NOT_SELECTED');
+  const sameSecondDraftLandingPending = {
+    ...draftLandingPending,
+    updated_at: new Date(eventTime).toISOString(),
+  };
+  assert(nativeGovernanceConverged(
+    [freshScope, currentDraftSuccess, sameSecondDraftLandingPending],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_SAME_SECOND_DRAFT_LANDING_PENDING_REJECTED');
+  assert(!nativeGovernanceConverged(
+    [freshScope, currentDraftSuccess, {...sameSecondDraftLandingPending,
+      updated_at: new Date(eventTime - 1).toISOString()}],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_DRAFT_LANDING_PENDING_ACCEPTED');
   assert(!nativeGovernanceConverged(
     [currentDraftSuccess, {...currentDraftSuccess, id: 13, state: 'pending',
       description: 'Draft development validation in progress; landing remains blocked',

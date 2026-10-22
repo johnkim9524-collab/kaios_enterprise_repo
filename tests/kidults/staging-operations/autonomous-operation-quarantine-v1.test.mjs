@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import {validateOperationQuarantine,quarantinedOperation} from '../../../scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs';
 import {discover} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 
@@ -57,7 +58,7 @@ test('UNKNOWN is excluded before candidate/source reads and a separate eligible 
       else if(p.includes('/git/commits/'))payload={tree:{sha:sha('f')}};
       else if(p.endsWith('/status'))payload={statuses:[]};
       else if(p.endsWith('/check-runs'))payload={check_runs:[{id:1,name:'unit',head_sha:other.head.sha,app:{id:7},status:'completed',conclusion:'success',external_id:'unit-1'}]};
-      else if(p.includes('/contents/'))payload={type:'file',encoding:'base64',content:Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;').toString('base64')};
+      else if(p.includes('/contents/')){const body=Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;');payload={type:'file',encoding:'base64',content:body.toString('base64'),sha:crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex')};}
       else throw Error('Unexpected candidate read '+p);
       return {ok:true,status:200,headers:{get:()=>null},json:async()=>payload};
     }});

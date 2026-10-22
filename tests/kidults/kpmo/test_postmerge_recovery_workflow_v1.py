@@ -67,6 +67,29 @@ class RecoveryWorkflowTests(unittest.TestCase):
         track = self.workflow('track')
         self.assertNotIn('repository_dispatch', track['on'])
 
+    def test_kpmo_approval_is_automatically_bound_and_recorded(self):
+        workflow = self.workflow('kpmo')
+        job = workflow['jobs']['record-role-approval']
+        self.assertIn("github.event_name == 'repository_dispatch'", job['if'])
+        self.assertIn("github.event.action == 'kidults.authorization.generation.v1'", job['if'])
+        self.assertIn("github.ref == 'refs/heads/main'", job['if'])
+        self.assertEqual(job['environment'], 'KIDULTS-AUTONOMOUS-KPMO')
+        self.assertEqual(job['permissions']['id-token'], 'write')
+        self.assertEqual(job['permissions']['pull-requests'], 'read')
+        steps = job['steps']
+        self.assertTrue(any(step.get('run') == 'node scripts/kidults/kpmo/validate-autonomous-internal-landing-v1.mjs'
+                            for step in steps))
+        approval = next(step for step in steps if step.get('name') == 'Record role-scoped approval only')
+        self.assertEqual(approval['env']['KIDULTS_AUTONOMOUS_MODE'], 'APPROVAL')
+        self.assertEqual(approval['env']['KIDULTS_AUTONOMOUS_APPROVAL_ROLE'], 'KPMO')
+        self.assertIn('node scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs', approval['run'])
+        receipt = next(step for step in steps if step.get('name') == 'Upload role approval receipt')
+        self.assertIn('approval-receipt.json', receipt['with']['path'])
+        finalizer = workflow['jobs']['finalize-if-quorum']
+        self.assertEqual(finalizer['needs'], 'record-role-approval')
+        self.assertIn("needs.record-role-approval.result == 'success'", finalizer['if'])
+        self.assertIn('KIDULTS-AUTONOMOUS-FINALIZER', finalizer['environment'])
+
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_workflow()
         gate = workflow['jobs']['success-authority-gate']
@@ -87,6 +110,20 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertIn("github.event.workflow_run.event == 'workflow_dispatch'", admission_if)
             self.assertIn("github.event.workflow_run.actor.login == 'github-actions[bot]'", admission_if)
             self.assertNotIn("github.event.workflow_run.event == 'schedule'", admission_if)
+
+    def test_non_authorizing_gate_completion_is_terminal_failure(self):
+        workflow = self.gate_workflow()
+        terminal = workflow['jobs']['enforce-authority-gate-terminal']
+        self.assertEqual(terminal['needs'], ['classify-assurance-completion', 'success-authority-gate'])
+        self.assertIn("always()", terminal['if'])
+        self.assertIn("needs.classify-assurance-completion.result == 'success'", terminal['if'])
+        self.assertEqual(terminal['env']['ELIGIBLE_FULL_AUDIT'],
+                         '${{ needs.classify-assurance-completion.outputs.eligible_full_audit }}')
+        self.assertEqual(terminal['env']['AUTHORITY_GATE_RESULT'],
+                         '${{ needs.success-authority-gate.result }}')
+        script = '\n'.join(step.get('run', '') for step in terminal['steps'])
+        self.assertIn('NON_AUTHORIZING_CLASSIFICATION_ONLY', script)
+        self.assertIn('exit 1', script)
 
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:

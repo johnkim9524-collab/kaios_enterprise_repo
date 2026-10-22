@@ -255,7 +255,36 @@ jobs:
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+      - name: Require the exact upstream audit job to have completed
+        id: upstream-audit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          gh api -H 'Accept: application/vnd.github+json' \
+            "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/jobs?filter=latest&per_page=100" \
+            > "$RUNNER_TEMP/upstream-assurance-jobs.json"
+          jq -e '
+            (.jobs | type == "array") and
+            (.total_count == (.jobs | length)) and
+            ([.jobs[] | select(.name == "audit")] | length == 1)
+          ' "$RUNNER_TEMP/upstream-assurance-jobs.json" >/dev/null
+          AUDIT_CONCLUSION=$(jq -r '[.jobs[] | select(.name == "audit")][0].conclusion // ""' \
+            "$RUNNER_TEMP/upstream-assurance-jobs.json")
+          if [ "$AUDIT_CONCLUSION" = success ]; then
+            echo 'audit_succeeded=true' >> "$GITHUB_OUTPUT"
+          elif [ "$AUDIT_CONCLUSION" = skipped ]; then
+            echo 'audit_succeeded=false' >> "$GITHUB_OUTPUT"
+            echo '::notice::ASSURANCE_AUDIT_SKIPPED; exact-main operating reconciliation is not applicable'
+          else
+            echo "ASSURANCE_AUDIT_NOT_SUCCESSFUL:$AUDIT_CONCLUSION" >&2
+            exit 1
+          fi
       - name: Download the exact Assurance packet and require the full-audit leader
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
           name: kidults-continuous-assurance-${{ github.event.workflow_run.head_sha }}-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
@@ -264,6 +293,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           path: ${{ runner.temp }}/upstream-assurance-packet
       - name: Reconcile the exact main proof through the preauthorized shared budget
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -305,6 +335,41 @@ jobs:
           node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs \
             "$PROOF_DIR/whole-platform-operating-proof-v1.json" \
             "$PROOF_DIR/internal-operating-recovery-observation-v1.json" --observe
+      - name: Record non-authorizing skipped-audit disposition
+        if: steps.upstream-audit.outputs.audit_succeeded == 'false'
+        env:
+          PROOF_DIR: ${{ runner.temp }}/kidults-main-operating-proof
+          SOURCE_SHA: ${{ env.KPMO_SOURCE_SHA }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p "$PROOF_DIR"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const disposition = {
+            id: 'kidults-assurance-audit-skip-disposition-v1',
+            version: '1.0.0',
+            state: 'NOT_APPLICABLE',
+            reason: 'ASSURANCE_AUDIT_SKIPPED',
+            repository: process.env.GITHUB_REPOSITORY,
+            source_sha: process.env.SOURCE_SHA,
+            upstream_run_id: Number(process.env.UPSTREAM_RUN_ID),
+            upstream_run_attempt: Number(process.env.UPSTREAM_RUN_ATTEMPT),
+            whole_platform_operating_proof: false,
+            authority_created: false,
+            role_approval_created: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync(
+            `${process.env.PROOF_DIR}/audit-skipped-disposition.json`,
+            `${JSON.stringify(disposition, null, 2)}\n`
+          );
+          NODE
       - name: Preserve exact-main operating proof
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

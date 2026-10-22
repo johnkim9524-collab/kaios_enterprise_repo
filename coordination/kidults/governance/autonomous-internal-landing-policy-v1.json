@@ -587,7 +587,7 @@
       "job_timeout_minutes": 10
     },
     "source_sha256": {
-      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:9d964bb3a9e382593c265b0afa46013826d7297f297f2f7b65d326fedfb73e01",
+      "scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs": "sha256:654ed40175f8da33295810206606f1ac60ed6076fcec95c249290206fb766aec",
       "scripts/kidults/kpmo/lib/autonomous-operation-quarantine-v1.mjs": "sha256:4e066ff50e5106c3f554be81db5e65a082ff0fa52d30abc92e5cccecff4d290f",
       "coordination/kidults/kpmo/autonomous-operation-quarantine-v1.json": "sha256:e28a2210b5651f92d46cc54259474b6892f512c26f16b3ec194a6436cc236701",
       "scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs": "sha256:9f4bf650135aa9a3f125fe5baa5469af249b5cb7f856e1ff0328d7fbba64fe74",

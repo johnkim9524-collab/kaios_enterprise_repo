@@ -17,7 +17,7 @@ import './primary-script-lexing-v1.test.mjs';
 import './independent-script-lexing-v1.test.mjs';
 import './dispatcher-recovery-classification-v1.test.mjs';
 import './exact-scope-owner-decision-v1.test.mjs';
-import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,dispatcherReadBudgetForCandidates,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate,immutableContent,contentBlobShaOrNull} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -67,6 +67,12 @@ test('failed scan retains its original error and invalidates old eligible result
 });
 const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
 const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
+test('protected dispatcher read allowance scales with open PR count and remains capped',()=>{
+  assert.equal(dispatcherReadBudgetForCandidates(0),256);
+  assert.equal(dispatcherReadBudgetForCandidates(110),724);
+  assert.equal(dispatcherReadBudgetForCandidates(10000),2048);
+  assert.throws(()=>dispatcherReadBudgetForCandidates(-1),/DISPATCH_CONFIGURATION_INVALID/);
+});
 for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
   'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED']) {
   const error=new CapabilityDeltaError(code,'src/a.js:private content must never appear');
@@ -557,7 +563,7 @@ test('a later status 503 invalidates an earlier eligible candidate and publishes
     if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
     if(p.endsWith('/status'))return failStatus&&p.includes(sha('e'))?fakeResponse(503):fakeResponse(200,{statuses:[]});
     if(p.endsWith('/check-runs'))return fakeResponse(200,{check_runs:[{...input.checks[0],head_sha:p.split('/').at(-2)}]});
-    if(p.includes('/contents/'))return fakeResponse(200,{type:'file',encoding:'base64',content:Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;').toString('base64')});
+    if(p.includes('/contents/')){const body=Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;');return fakeResponse(200,{type:'file',encoding:'base64',content:body.toString('base64'),sha:gitObjectId('blob',body)});}
     throw Error('unexpected fixture request');
   }});
   const control=await scan();assert.ok(control.every(x=>x.state==='ELIGIBLE'),JSON.stringify(control));
@@ -593,6 +599,26 @@ test('targeted protected-scope denial emits exact tree and path-bound Owner hand
   assert.equal(handoff.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
   assert.equal(handoff.autonomous_eligible,false);assert.equal(handoff.landing_authorization_created,false);assert.equal(handoff.merge_authorized,false);
   assert.equal(calls,7);
+});
+test('natural scheduled discovery checks the Owner decision ledger for protected-scope candidates',async()=>{
+  const candidate={...pr,number:2699,base:{...pr.base,repo:{...pr.base.repo,owner:{login:'johnkim9524-collab',id:297161720}}}};
+  let ownerCommentRead=false;
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',fetchImpl:async url=>{
+    const p=new URL(url).pathname;
+    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+    if(p.endsWith('/pulls'))return fakeResponse(200,[candidate]);
+    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',status:'modified',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]);
+    if(p.endsWith('/issues/2699/comments')){ownerCommentRead=true;return fakeResponse(200,[]);}
+    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
+    throw new Error(`unexpected scheduled Owner lookup: ${p}`);
+  }});
+  assert.equal(ownerCommentRead,true);
+  assert.equal(results.length,1);
+  assert.equal(results[0].state,'OWNER_REVIEW_REQUIRED');
+  assert.equal(results[0].binding.pull_request,2699);
+  assert.equal(results[0].binding.head_tree_sha,sha('c'));
 });
 test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
   let calls=0,blobReads=0;
@@ -662,7 +688,7 @@ test('an exact targeted closed or merged owner-reserved PR cannot emit a handoff
 test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
   let calls=0;
   const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:256,
+  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:1024,
     fetchImpl:async url=>{
       calls++;const u=new URL(url),p=u.pathname;
       if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
@@ -670,10 +696,11 @@ test('current reserved backlog stays bounded without reading commit status or ch
       if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
       if(p.endsWith('/pulls'))return fakeResponse(200,candidates.slice((Number(u.searchParams.get('page')||1)-1)*100,Number(u.searchParams.get('page')||1)*100));
       if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
+      if(/\/issues\/\d+\/comments$/.test(p))return fakeResponse(200,[]);
       if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
       throw new Error('reserved candidate must not read commit status checks or contents');
     }});
-  assert.equal(results.length,104);assert.equal(calls,213);
+  assert.equal(results.length,104);assert.equal(calls,317);
   assert.ok(results.every(r=>r.state==='OWNER_REVIEW_REQUIRED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'
     &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
     &&r.autonomous_eligible===false&&r.merge_authorized===false));
@@ -733,6 +760,21 @@ test('source preparation shares the same budget and preserves full bindings in a
  const receipt=JSON.parse(fs.readFileSync(path.join(directory,'source-read.json')));assert.equal(receipt.authorization_created,false);assert.equal(receipt.producer.requests,2);assert.equal(receipt.shared_read_diagnostics.request_count,11);assert.equal(receipt.shared_read_diagnostics.resource_counts.other,2);assert.deepEqual(receipt.source_shas,[f.mainSha,f.headSha,f.baseSha].sort());
  assert.ok(!f.trace.some(x=>x.url.includes('/contents/')||x.url.includes('/git/commits/')));
  }finally{fs.rmSync(directory,{recursive:true,force:true});}
+});
+test('sealed source preparation falls back to exact-commit API reads for paths outside its frozen blob set',async()=>{
+ const ref=sha('a'),path='scripts/kidults/kpmo/unprepared-policy.mjs',body=Buffer.from('export const value = 1;\n');let sourceReads=0;const apiPaths=[];
+ const token={sourceReader:{hasSource:value=>value===ref,blobOrNull:async()=>{sourceReads++;throw Object.assign(new Error('SOURCE_BATCH_SEALED_OBJECT_MISSING'),{code:'SOURCE_BATCH_SEALED_OBJECT_MISSING',global:true});}},
+   plannedSourceBlobs:new Set(),allowUnpreparedSourceFallback:true,
+   request:async url=>{apiPaths.push(url);return {type:'file',encoding:'base64',content:body.toString('base64'),sha:gitObjectId('blob',body)};}};
+ assert.equal(await immutableContent(pr.base.repo.full_name,path,ref,token),body.toString());
+ assert.equal(await contentBlobShaOrNull(pr.base.repo.full_name,path,ref,token),gitObjectId('blob',body));
+ assert.equal(sourceReads,0);
+ assert.ok(apiPaths.every(value=>value.endsWith(`?ref=${ref}`)));
+ assert.equal(apiPaths.length,2);
+ await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,{...token,request:async()=>({type:'file',encoding:'base64',content:body.toString('base64'),sha:sha('f')})}),/DISPATCH_IMMUTABLE_BLOB_INVALID/);
+ const planned={...token,plannedSourceBlobs:new Set([`${ref}\0${path}`])};
+ await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,planned),error=>error.code==='SOURCE_BATCH_SEALED_OBJECT_MISSING');
+ assert.equal(sourceReads,1);
 });
 test('shared request exhaustion cannot reset the API budget for POST or leave partial results',async()=>{
  const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-budget-'));
