@@ -10,13 +10,13 @@
 
 Open GitHub Copilot's Agents selector in this repository and select **Track Q QA Agent**. Assign the exact artifact, version or commit, methodology version, and QA question. The profile is available after its change is merged to `main`.
 
-The profile runs in GitHub Copilot's managed cloud-agent environment. No workstation setup, Windows Sandbox, local launcher, or separate agent dispatcher is needed. It is manually selected by the user; automatic model invocation is disabled.
+The profile runs in GitHub Copilot's managed cloud-agent environment. No workstation setup, Windows Sandbox, local launcher, or separate agent dispatcher is needed. It is manually selected by the user for each task; automatic model invocation is disabled.
 
 ## Role and permissions
 
-Track Q independently reviews evidence, source lineage, rights, reproducibility, methodology, uncertainty, customer clarity, accessibility, and decision usefulness. It can read and search repository content and returns a concise evidence-bound PASS or HOLD with findings and exit criteria.
+Track Q independently reviews evidence, source lineage, rights, reproducibility, methodology, uncertainty, customer clarity, accessibility, and decision usefulness. It can edit repository files and run sandboxed tests for bounded, user-requested remediation, then returns an evidence-bound PASS or HOLD with findings and exit criteria.
 
-Track Q does not edit or commit source files, change GitHub state, approve or merge PRs, contact providers, access secrets, deploy, publish, or authorize Production, Public, or G5 release. A QA PASS is an advisory quality finding; the designated release owner retains release authority.
+Track Q may edit repository files and run sandboxed tests, but cannot change GitHub state, approve or merge PRs, contact providers, access secrets, deploy, publish, or authorize Production, Public, or G5 release. It must not PASS an artifact version it materially edited; request independent review of the new version. A QA PASS is an advisory quality finding; the designated release owner retains release authority.
 
 ## Historical readiness record
 
