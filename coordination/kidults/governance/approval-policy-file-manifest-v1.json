@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "ea25cc67e74bcdce47b96d4ce401fc446e111285",
+  "revision": "e8de1ac0adcfdd25e9e197fd01182acc21598c75",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1293,8 +1293,8 @@
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "30a73caaff7b1482d3d2c6069697547a08695c4e",
-      "sha256": "sha256:3a4673f2e06dda6b91cf2967d47cecab56416358e15895f118d864a7b1a36c93"
+      "git_blob": "1178faacfba224ba26d7f4f4d550fb2313396cc2",
+      "sha256": "sha256:a8efd897a18e3b90f5c8388f7d0ad753e49319bc4f0c5333fff649768f2203bd"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -2698,8 +2698,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "41330b10997ca08c5315613a44ec5908bba4f59d",
-      "sha256": "sha256:1fe81073465dbc0b7656e54029df36f2b40352ebb6aaa336f7dfff0373dca361"
+      "git_blob": "f5177826075f44c6edcde75b2e4754b94756ac10",
+      "sha256": "sha256:8ed54956371439550f89831bb1b25d4b7e7932f24f45ca88f548fe6ccb7947b3"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3557,8 +3557,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "86afcf5684c7c734e76f70cc7c849db29f5135b4",
-      "sha256": "sha256:81b1e7cd014ec78b90f412d0aa3e2fd8b0f066ca857b95b4452b70a61d334da0",
+      "git_blob": "c23484d510ed532cf68889710a5616191d54b02c",
+      "sha256": "sha256:e83dd9bc6f73a186aedbdf3130353227d95b4af6ef1ef0b40a0ee452e75f0ec6",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6659,8 +6659,8 @@
     {
       "path": "tests/governance/interactive-local-work-policy-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d8d5a8c415fc303377c0c470b1063311afed88fd",
-      "sha256": "sha256:5a185c9f9b7129dd126d58eae3587ffdd2958118f432aa8922e002e1a1d96881",
+      "git_blob": "7b56e216329c189219c031739686273b253f96a8",
+      "sha256": "sha256:59800d9f18d5d07af942ff393aebd47ed8be41d3abd44088a2918c17b43353ec",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7310,5 +7310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:6cc3866ae291d71342ebe9828a89d4aff7ebc95d3a5eeb88715f81dd2ffc1565"
+  "manifest_sha256": "sha256:6d77879dc1133efb28914ab8799a8c916519e995bb489edd77eb620c6e3f7486"
 }
