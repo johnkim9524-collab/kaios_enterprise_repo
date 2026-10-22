@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "9ac5a59efa03eae25a9edf3ba84a269145dcf07c",
+  "revision": "0b1595109a4486a63de29795abaa7f3f76cdf158",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3905,8 +3905,8 @@
     {
       "path": "scripts/kidults/kpmo/canonical-generation-v3.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1fedf66d11e19cd7e52bbe605a90a0d695e6bad7",
-      "sha256": "sha256:d9be86f6e49b037fe596b67606ed80f45acc4cc7be6d1e504db243dd09a5c30a",
+      "git_blob": "b959d023aa3d0acef34283660f92850507c948ea",
+      "sha256": "sha256:2bc85e7bb56244aa0d63551fae2ec8230916729be1bd8ddcf7660ed1a32ec9a3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6827,8 +6827,8 @@
     {
       "path": "tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a5da8c770c039020fd7ccff51fc5dafb0999b190",
-      "sha256": "sha256:987b4aa8355c63201abdda13ffd5cafb1ea6ec0f2b8ea7a79f9d6fb08bc9b26a"
+      "git_blob": "fdf316a6ca5112d3d17ddb69aff8fcbd58e416aa",
+      "sha256": "sha256:97408a10ea7f84fbabc5cc8df225054f173620570aa0fa120eddd8bc44f16e11"
     },
     {
       "path": "tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs",
@@ -7335,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ea214036cb93426914cee1231e7c62d4dab6b4df4b2bb66e08b37b3f1f1b41fb"
+  "manifest_sha256": "sha256:df0f1da850129f6da3824586642582606c4ec99a79ff6c12f175653e67b6cd0a"
 }
