@@ -56,13 +56,19 @@ export function nativeGovernanceConverged(statuses, requiredContexts, minimumSta
       ordered.sort((left, right) => left.time - right.time || left.id - right.id);
       status = ordered[ordered.length - 1].candidate;
     }
-    if (minimumStatusTime != null) {
-      const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
-      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
-        || (context === LANDING_READINESS_CONTEXT && statusTime === minimumStatusTime)) return false;
-    }
     const githubActionsIdentity = status.creator?.login === 'github-actions[bot]'
       || /^https:\/\/avatars\.githubusercontent\.com\/in\/15368(?:\?|$)/.test(String(status.avatar_url || ''));
+    if (minimumStatusTime != null) {
+      const statusTime = Date.parse(String(status.updated_at || status.created_at || ''));
+      const exactDraftLandingPending = draft
+        && context === LANDING_READINESS_CONTEXT
+        && status.state === 'pending'
+        && status.description === DRAFT_LANDING_PENDING_DESCRIPTION
+        && githubActionsIdentity;
+      if (!Number.isFinite(statusTime) || statusTime < minimumStatusTime
+        || (context === LANDING_READINESS_CONTEXT && statusTime === minimumStatusTime
+          && !exactDraftLandingPending)) return false;
+    }
     const normalReadyControl = context === 'KIDULTS Governed Landing Authorization V1'
       && status.state === 'pending'
       && status.description === 'Ready lifecycle verified; operation-specific landing authority required'
@@ -213,6 +219,23 @@ async function runSelfTest() {
     eventTime,
     {draft: true},
   ), 'LIFECYCLE_CONVERGENCE_SELFTEST_LATEST_DRAFT_STATUS_NOT_SELECTED');
+  const sameSecondDraftLandingPending = {
+    ...draftLandingPending,
+    updated_at: new Date(eventTime).toISOString(),
+  };
+  assert(nativeGovernanceConverged(
+    [freshScope, currentDraftSuccess, sameSecondDraftLandingPending],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_SAME_SECOND_DRAFT_LANDING_PENDING_REJECTED');
+  assert(!nativeGovernanceConverged(
+    [freshScope, currentDraftSuccess, {...sameSecondDraftLandingPending,
+      updated_at: new Date(eventTime - 1).toISOString()}],
+    draftRequired,
+    eventTime,
+    {draft: true},
+  ), 'LIFECYCLE_CONVERGENCE_SELFTEST_STALE_DRAFT_LANDING_PENDING_ACCEPTED');
   assert(!nativeGovernanceConverged(
     [currentDraftSuccess, {...currentDraftSuccess, id: 13, state: 'pending',
       description: 'Draft development validation in progress; landing remains blocked',
