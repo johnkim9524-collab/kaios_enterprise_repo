@@ -61,7 +61,7 @@ test('Draft lifecycle converges on exact-head non-promotable Draft controls',()=
     description:'3 exact-head contexts verified; Draft non-promotable',
     avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:12:04Z'};
   const draftLanding={context:readinessContext,state:'pending',
-    description:'Draft is non-promotable; automated Ready transition pending',
+    description:'Draft development validated; landing remains non-promotable',
     avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:09:15Z'};
   assert.equal(nativeGovernanceConverged([draftDevelopment,draftLanding],contexts,minimum,{draft:true}),true);
   assert.equal(nativeGovernanceConverged([draftDevelopment,draftLanding],contexts,minimum,{draft:false}),false);
@@ -84,7 +84,7 @@ test('Draft polling carries Draft mode into native governance evaluation',async(
   const statuses=[
     {context:draftContext,state:'success',description:'3 exact-head contexts verified; Draft non-promotable',
       avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:12:04Z'},
-    {context:readinessContext,state:'pending',description:'Draft is non-promotable; automated Ready transition pending',
+    {context:readinessContext,state:'pending',description:'Draft development validated; landing remains non-promotable',
       avatar_url:'https://avatars.githubusercontent.com/in/15368?v=4',updated_at:'2026-10-16T00:09:15Z'},
   ];
   const result=await waitForNativeGovernance({
