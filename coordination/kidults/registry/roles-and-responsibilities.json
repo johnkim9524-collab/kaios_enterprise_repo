@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.5.1",
+  "registry_version": "1.5.0",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-10-22T05:09:09Z",
-  "change_rationale": "Record the bounded, device-local user-invoked Track Q CLI replacement and exact smoke-test evidence while preserving quarantine of the canonical GitHub profile and denying external dispatch.",
+  "updated_at": "2026-10-20T23:03:27+09:00",
+  "change_rationale": "Propose Track Q's independent QA role, reserve its canonical ID and add customer-outcome quality measures; runtime remains unassigned pending protected provisioning and verified readiness.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -727,40 +727,6 @@
         "status": "QUARANTINED",
         "reason": "Task session began without an independently verified and consumed exact-source readiness receipt.",
         "required_action": "Disable invocation and dispatch for this identity; preserve evidence; use a newly bootstrapped replacement only after protected launcher and receipt-consumption controls are independently verified."
-      },
-      "local_replacement_provisioning": {
-        "replacement_agent_id": "track-q-qa-agent-replacement",
-        "canonical_profile_path": "coordination/kidults/registry/profiles/track-q-qa-agent-replacement.agent.md",
-        "runtime_scope": "SINGLE_OPERATOR_WORKSTATION_USER_INVOKED_COPILOT_CLI",
-        "profile_user_invocable": true,
-        "model_invocation_disabled": true,
-        "allowed_tools": [
-          "view",
-          "grep",
-          "glob"
-        ],
-        "machine_policy_guard": "DEVICE_LOCAL_READ_ONLY_GUARD_INSTALLED_AND_SMOKE_TESTED",
-        "smoke_verification": {
-          "result": "PASS_LOCAL_READ_ONLY_POLICY_SMOKE",
-          "verified_on": "2026-10-22",
-          "source_sha": "e6be8c61cb835e23cea979a7690436cc6f97d960",
-          "task_id": "trackq-local-readonly-qa-ddff7345cd1345a486466bcbccbc45d9",
-          "session_id": "6f632a80-5f3e-45df-ad87-21df47ddcd41",
-          "tested_tool_outcomes": {
-            "view": "ALLOW",
-            "edit": "DENY",
-            "agentStop": "ALLOW"
-          },
-          "readiness_receipt": "INDEPENDENTLY_VERIFIED_AND_CONSUMED_FOR_THIS_SMOKE_TASK_ONLY",
-          "receipt_reusable": false,
-          "future_task_requires_fresh_receipt": true,
-          "worktree_after_smoke": "CLEAN"
-        },
-        "external_dispatch": "NOT_PROVISIONED",
-        "github_cloud_agent_activation": false,
-        "persistent_external_principal": false,
-        "release_authority": false,
-        "canonical_quarantined_identity_remains": "track-q-qa-agent"
       }
     }
   ]
