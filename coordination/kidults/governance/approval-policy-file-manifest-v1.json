@@ -1293,8 +1293,8 @@
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "68b9c963805095acf984866885fb5493a96c8707",
-      "sha256": "sha256:7abadc09121e0e9607b1743dfb27cd352fdc55068e41929f4846286458e598db"
+      "git_blob": "851b5c489c28719ccaf083b8056a789da3713c28",
+      "sha256": "sha256:54eaeb09f0282b724941db80e91de45a1681a16dd84874ee31218fe17c8fc56a"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -2692,8 +2692,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "35a9cb9e2d58dd78b275b571e23f4cb6218286c5",
-      "sha256": "sha256:ba99a9100ed7649f69f135a70180c5084d02a569e34acd0688a86418addd192c"
+      "git_blob": "a83bc6c4bd45853d7f17ad2bc00613b524c3e0d9",
+      "sha256": "sha256:154652c85f99b2ec4065e47d91b90cc0e50438d229295b37a4abc02371419a95"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -7304,5 +7304,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:c99995a3c997ae078ad6c30f04ad59a345715d0f1802482be7ed611ada7c883e"
+  "manifest_sha256": "sha256:a26fff4a9ef1534814023a7d2a37f7a25555aadda607335e0cfe625514c5e2ee"
 }
