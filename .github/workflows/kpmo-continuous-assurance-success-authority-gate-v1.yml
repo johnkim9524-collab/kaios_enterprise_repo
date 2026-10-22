@@ -663,3 +663,21 @@ jobs:
             (.upstream_observation.conclusion=="success" and .upstream_observation.workflow_name=="KIDULTS Platform Continuous Assurance V1") and
             .state=="VERIFIED_PASS"
           ' "$GATE_DIR/kpmo-continuous-assurance-success-authority-gate-v1.json" >/dev/null
+
+  enforce-authority-gate-terminal:
+    needs: [classify-assurance-completion, success-authority-gate]
+    if: always() && needs.classify-assurance-completion.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    env:
+      ELIGIBLE_FULL_AUDIT: ${{ needs.classify-assurance-completion.outputs.eligible_full_audit }}
+      AUTHORITY_GATE_RESULT: ${{ needs.success-authority-gate.result }}
+    steps:
+      - name: Fail the workflow unless the actual authority gate ran successfully
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$ELIGIBLE_FULL_AUDIT" != 'true' || "$AUTHORITY_GATE_RESULT" != 'success' ]]; then
+            echo '::error::NON_AUTHORIZING_CLASSIFICATION_ONLY: the completion classifier did not establish an eligible full audit and successful authority gate.'
+            exit 1
+          fi

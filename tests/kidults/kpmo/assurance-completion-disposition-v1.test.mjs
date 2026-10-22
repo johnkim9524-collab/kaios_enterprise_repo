@@ -49,3 +49,14 @@ test('success authority gate admits causal, authenticated clock, or exact bot Co
     assert.doesNotMatch(job,/github\.event\.workflow_run\.event == 'push'/);
   }
 });
+test('classification-only completion cannot make the authority-gate workflow successful',()=>{
+  const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','utf8');
+  const terminal=workflow.slice(workflow.indexOf('  enforce-authority-gate-terminal:'));
+  assert.match(terminal,/needs: \[classify-assurance-completion, success-authority-gate\]/);
+  assert.match(terminal,/if: always\(\) && needs\.classify-assurance-completion\.result == 'success'/);
+  assert.match(terminal,/ELIGIBLE_FULL_AUDIT: \$\{\{ needs\.classify-assurance-completion\.outputs\.eligible_full_audit \}\}/);
+  assert.match(terminal,/AUTHORITY_GATE_RESULT: \$\{\{ needs\.success-authority-gate\.result \}\}/);
+  assert.match(terminal,/ELIGIBLE_FULL_AUDIT.*!= 'true' \|\|.*AUTHORITY_GATE_RESULT.*!= 'success'/);
+  assert.match(terminal,/NON_AUTHORIZING_CLASSIFICATION_ONLY/);
+  assert.match(terminal,/exit 1/);
+});

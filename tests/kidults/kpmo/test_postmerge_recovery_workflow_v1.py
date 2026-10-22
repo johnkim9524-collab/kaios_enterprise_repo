@@ -111,6 +111,20 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertIn("github.event.workflow_run.actor.login == 'github-actions[bot]'", admission_if)
             self.assertNotIn("github.event.workflow_run.event == 'schedule'", admission_if)
 
+    def test_non_authorizing_gate_completion_is_terminal_failure(self):
+        workflow = self.gate_workflow()
+        terminal = workflow['jobs']['enforce-authority-gate-terminal']
+        self.assertEqual(terminal['needs'], ['classify-assurance-completion', 'success-authority-gate'])
+        self.assertIn("always()", terminal['if'])
+        self.assertIn("needs.classify-assurance-completion.result == 'success'", terminal['if'])
+        self.assertEqual(terminal['env']['ELIGIBLE_FULL_AUDIT'],
+                         '${{ needs.classify-assurance-completion.outputs.eligible_full_audit }}')
+        self.assertEqual(terminal['env']['AUTHORITY_GATE_RESULT'],
+                         '${{ needs.success-authority-gate.result }}')
+        script = '\n'.join(step.get('run', '') for step in terminal['steps'])
+        self.assertIn('NON_AUTHORIZING_CLASSIFICATION_ONLY', script)
+        self.assertIn('exit 1', script)
+
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
             for key, job in self.workflow(name)['jobs'].items():
