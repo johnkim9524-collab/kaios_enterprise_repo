@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "c91cef95121922a09d8c44ce9a013fe7c2330261",
+  "revision": "a4f38c35b99bfbacfeafb9e29b9c9bf505b0491e",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1293,8 +1293,8 @@
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "791821cd15a74542cb7154d01f1ab9552e2d64df",
-      "sha256": "sha256:d9780e0504384300fa66e55e86818d008600ee9476260a267e38d4f6a822c7f5"
+      "git_blob": "30a73caaff7b1482d3d2c6069697547a08695c4e",
+      "sha256": "sha256:3a4673f2e06dda6b91cf2967d47cecab56416358e15895f118d864a7b1a36c93"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -2698,8 +2698,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "45600ccddc2d928c9fc3785e8f22c2cce8e0219c",
-      "sha256": "sha256:3cfab5d1be1f6fa0468a2808cc4054023008be297d8bbd8f82845337b29d8117"
+      "git_blob": "212858b7e47714257543521491c01bca1c61f5ae",
+      "sha256": "sha256:4aa7eb104b8f20a5e8597f2cf8392b3ba91f5f8f563c01aff4e0efe794e71a1a"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3557,8 +3557,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c56b60abdf09e0f173396a67954aea69fd659ecd",
-      "sha256": "sha256:3783b3fe512d6972ecf85f6a30969bf33aa683248fde06ae31faf4c3c22c62a3",
+      "git_blob": "60e76860d9c11ccbdd5bfcb3b242c0107ab85906",
+      "sha256": "sha256:d657c2dddf3e1795772b93f5d3f73d0c214f5486bad2c3816180b57973cac497",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7310,5 +7310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:693428d8157bd6e0650c7e2c6f4158d7399239ca37a14af7d03284228155e8f1"
+  "manifest_sha256": "sha256:a1ec746582b684acde9c00ac3b70c6c8a322dda1e58dd8a85c0fa6d6b3699a99"
 }
