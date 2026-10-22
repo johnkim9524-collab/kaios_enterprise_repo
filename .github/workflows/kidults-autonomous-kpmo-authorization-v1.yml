@@ -335,8 +335,43 @@ jobs:
           node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs \
             "$PROOF_DIR/whole-platform-operating-proof-v1.json" \
             "$PROOF_DIR/internal-operating-recovery-observation-v1.json" --observe
+      - name: Record non-authorizing skipped-audit disposition
+        if: steps.upstream-audit.outputs.audit_succeeded == 'false'
+        env:
+          PROOF_DIR: ${{ runner.temp }}/kidults-main-operating-proof
+          SOURCE_SHA: ${{ env.KPMO_SOURCE_SHA }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          mkdir -p "$PROOF_DIR"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const disposition = {
+            id: 'kidults-assurance-audit-skip-disposition-v1',
+            version: '1.0.0',
+            state: 'NOT_APPLICABLE',
+            reason: 'ASSURANCE_AUDIT_SKIPPED',
+            repository: process.env.GITHUB_REPOSITORY,
+            source_sha: process.env.SOURCE_SHA,
+            upstream_run_id: Number(process.env.UPSTREAM_RUN_ID),
+            upstream_run_attempt: Number(process.env.UPSTREAM_RUN_ATTEMPT),
+            whole_platform_operating_proof: false,
+            authority_created: false,
+            role_approval_created: false,
+            production: 'HOLD',
+            public: 'HOLD',
+            g5: 'HOLD'
+          };
+          fs.writeFileSync(
+            `${process.env.PROOF_DIR}/audit-skipped-disposition.json`,
+            `${JSON.stringify(disposition, null, 2)}\n`
+          );
+          NODE
       - name: Preserve exact-main operating proof
-        if: always() && steps.upstream-audit.outputs.audit_succeeded == 'true'
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: kidults-whole-platform-operating-proof-${{ env.KPMO_SOURCE_SHA }}-${{ github.run_id }}-${{ github.run_attempt }}

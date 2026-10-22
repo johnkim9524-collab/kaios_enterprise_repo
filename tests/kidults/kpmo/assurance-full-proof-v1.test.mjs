@@ -154,7 +154,10 @@ test('full audit reconciliation uses the existing KPMO trust and keeps whole-pla
   assert.match(exactAuditGate,/AUDIT_CONCLUSION" = skipped/);
   assert.match(protectedMainJob,/Download the exact Assurance packet and require the full-audit leader\n\s+if: steps\.upstream-audit\.outputs\.audit_succeeded == 'true'/);
   assert.match(protectedMainJob,/Reconcile the exact main proof through the preauthorized shared budget\n\s+if: steps\.upstream-audit\.outputs\.audit_succeeded == 'true'/);
-  assert.match(protectedMainJob,/Preserve exact-main operating proof\n\s+if: always\(\) && steps\.upstream-audit\.outputs\.audit_succeeded == 'true'/);
+  assert.match(protectedMainJob,/Record non-authorizing skipped-audit disposition\n\s+if: steps\.upstream-audit\.outputs\.audit_succeeded == 'false'/);
+  assert.match(protectedMainJob,/id: 'kidults-assurance-audit-skip-disposition-v1'[\s\S]*state: 'NOT_APPLICABLE'[\s\S]*reason: 'ASSURANCE_AUDIT_SKIPPED'[\s\S]*whole_platform_operating_proof: false[\s\S]*authority_created: false[\s\S]*role_approval_created: false/);
+  assert.match(protectedMainJob,/source_sha: process\.env\.SOURCE_SHA[\s\S]*upstream_run_id: Number\(process\.env\.UPSTREAM_RUN_ID\)[\s\S]*upstream_run_attempt: Number\(process\.env\.UPSTREAM_RUN_ATTEMPT\)/);
+  assert.match(protectedMainJob,/Preserve exact-main operating proof\n\s+if: always\(\)/);
   assert.match(protectedMainJob,/environment: KIDULTS-AUTONOMOUS-KPMO/);
   assert.match(protectedMainJob,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
   assert.match(protectedMainJob,/workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
