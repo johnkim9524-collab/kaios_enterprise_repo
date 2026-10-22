@@ -862,7 +862,7 @@ for (const agentClass of governedClasses) assert(remediation.bootstrap_inheritan
 assert(reportAfterGate.id === 'kidults-ai-agent-report-after-remediation-gate-v1', 'REPORT_AFTER_REMEDIATION_GATE_ID');
 assert(statusSchema.$id === 'https://kidults.internal/schemas/ai-agent-status-receipt-v1.json', 'STATUS_RECEIPT_SCHEMA_ID');
 assert(registry.version === '2.2.0', 'REGISTRY_VERSION');
-assert(roles.registry_version === '1.5.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.5.1', 'ROLE_REGISTRY_VERSION');
 assert(roles.constitutional_readiness?.manifest === paths.readiness, 'BOOTSTRAP_ROLE_READINESS_MANIFEST');
 assert(roles.constitutional_readiness?.required_before_task_analysis_or_execution === true && roles.constitutional_readiness?.required_before_agent_dispatch === true, 'BOOTSTRAP_ROLE_READINESS_DISPATCH_SCOPE');
 assert(roles.constitutional_readiness?.material_or_repeated_violation_behavior === 'REMOVE_QUARANTINE_DISABLE_DISPATCH_AND_REPLACE', 'BOOTSTRAP_ROLE_READINESS_REPLACEMENT');
