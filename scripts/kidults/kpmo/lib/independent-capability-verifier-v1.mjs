@@ -140,6 +140,36 @@ const handoffDisplayDelta=file=>{
   // No secrets, token, vars, new expression references or executable YAML are admitted.
   return a.scalar===old&&b.scalar===next;
 };
+const exactBoundedUpstreamAuditWorkflowDigests=Object.freeze([
+  'sha256:c88f3fe99647ef724ad3daa1bc252e454b7b45e90ea2ceb1d589b25e19b242d2',
+  'sha256:7fab9f8070328ea99cecc4a2e5ea5cb62dd3fb27987466f0ec829a390efdb8f2',
+]);
+const independentlyMatchesExactBoundedUpstreamAuditWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'
+  &&hash(file.base_content)===exactBoundedUpstreamAuditWorkflowDigests[0]
+  &&hash(file.head_content)===exactBoundedUpstreamAuditWorkflowDigests[1];
+const boundedUpstreamAuditWorkflow='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml';
+const stepBlock=(source,name)=>{
+  const lines=String(source||'').split('\n');
+  const start=lines.findIndex(line=>line.trim()==='- name: '+name);
+  if(start<0)return null;
+  const indent=lines[start].match(/^ */)[0].length;
+  let end=start+1;
+  while(end<lines.length){
+    const line=lines[end];
+    if(line.trim()&&line.match(/^ */)[0].length===indent&&/^\s*-\s+/.test(line))break;
+    end+=1;
+  }
+  return lines.slice(start,end).join('\n');
+};
+const independentlyMatchesBoundedAuditSecurityLine=(file,line)=>{
+  if(file?.filename!==boundedUpstreamAuditWorkflow)return false;
+  const read=stepBlock(file.head_content,'Require the exact upstream audit job to have completed');
+  const disposition=stepBlock(file.head_content,'Record non-authorizing skipped-audit disposition');
+  if(!read||!disposition
+    ||hash(read)!=='sha256:9e52f81d8d993e0e37d3126197409a167c952f2199b1bc769747dc2debb2720c'
+    ||hash(disposition)!=='sha256:43109a6f78570edb931f61b292337b4fb6848aca4cd42177e978135cba06555a')return false;
+  return [read,disposition].some(block=>block.split('\n').some(candidate=>candidate.trim()===line.trim()));
+};
 const securityLine=/\b(on|workflow_dispatch|repository_dispatch|schedule|push|pull_request_target|permissions|environment|if|secrets|vars|id-token|contents|pull-requests|actions|checks|statuses|deployments|packages|issues|repository-projects|security-events|curl|wget|gh api|aws |gcloud |terraform|kubectl|https?:\/\/|force:|fail|throw|assert|deny|forbid|hold|required|quarantine|owner[_-]?reserved|authorization|credential|production|public|g5)\b/i;
 const markdownAuthorityExpansion=/(?:\bauthori[sz]\w*\s+(?:is\s+)?required\b|\b(?:allow|authorize|grant|enable)\w*\s+(?!no\b|not\b)(?:(?:the|an?)\s+)?(?:agent|workflow|operator|track|kpmo|owner|user|session|pr|pull request)?\s*(?:to\s+)?(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:may|can)\s+(?:mark\b.{0,24}\bready|merge|deploy|promot\w*|write|access\s+(?:secrets?|credentials?)|create\s+(?:secrets?|credentials?)|perform\s+external effects)\b|\b(?:without|no|not required|not needed|not necessary)\b.{0,100}\b(?:owner|approval|review|quorum)\b.{0,60}\b(?:ready|merge|deploy|promot\w*|production|public|g5|write|secrets?|credentials?|external effects)\b)/i;
 const normalize=source=>source.split('\n').map(line=>line.replace(/\s+#.*$/,'').trim()).filter(Boolean);
@@ -613,6 +643,7 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
     const exactRecoveryAdmissionSource=independentlyMatchesExactRecoveryAdmissionSource(file);
     const exactStagingBudgetWorkflow=independentlyMatchesExactStagingBudgetWorkflow(file);
     const exactPlatformAssuranceWorkflow=independentlyMatchesExactPlatformAssuranceReadResumeWorkflow(file);
+    const exactBoundedUpstreamAuditWorkflow=independentlyMatchesExactBoundedUpstreamAuditWorkflow(file);
     if(independentlyMatchesOwnerReviewRoutingRepair(file,files,policy)){
       receipts.push({filename:file.filename,transition:'NON_AUTHORIZING_OWNER_REVIEW_ROUTING_REPAIR',authority_created:false});continue;
     }
@@ -629,12 +660,12 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
       verifyGuardDependencies(file.base_content,file.head_content,file.filename);
     const before=normalize(file.base_content); const after=normalize(file.head_content); const afterSet=new Set(after);
     if(!boundedAi020Delta){
-      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
-      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)for(const line of after) if(!before.includes(line)){
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow&&!exactBoundedUpstreamAuditWorkflow)for(const line of before) if(securityLine.test(line)&&!afterSet.has(line)) deny('INDEPENDENT_SECURITY_CAPABILITY_CHANGED',file.filename);
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactRecoveryAdmissionSource&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow&&!exactBoundedUpstreamAuditWorkflow)for(const line of after) if(!before.includes(line)){
         const candidates=file.filename.endsWith('.md')?line.split(/(?<=[.!?])\s+(?=[A-Z`])/):[line];
         if(candidates.some(candidate=>file.filename.endsWith('.md')
           ?!(/\b(?:grant\w*\s+no|does not grant|do not grant|doesn't grant)\b/i.test(candidate))&&markdownAuthorityExpansion.test(candidate)
-          :securityLine.test(candidate)))
+          :securityLine.test(candidate)&&!independentlyMatchesBoundedAuditSecurityLine(file,candidate)))
           deny('INDEPENDENT_SECURITY_CAPABILITY_ADDED',file.filename);
       }
     }
@@ -649,6 +680,7 @@ export const independentlyVerifyCapabilityDelta=({files,policy,ownerDecision=nul
       ...(exactRecoveryAdmissionSource?{transition:'EXACT_READ_ONLY_RECOVERY_ADMISSION_SOURCE',authority_created:false,merge_authorized:false}:{}),
       ...(exactStagingBudgetWorkflow?{transition:'EXACT_STAGING_BUDGET_AUTHORITY_READBACK',authority_created:false,merge_authorized:false}:{}),
       ...(exactPlatformAssuranceWorkflow?{transition:'EXACT_ASSURANCE_READ_RESUME_EVENT_FILTER',authority_created:false,merge_authorized:false}:{}),
+      ...(exactBoundedUpstreamAuditWorkflow?{transition:'EXACT_UPSTREAM_AUDIT_SKIP_DISPOSITION',authority_created:false,merge_authorized:false}:{}),
       ...(ownerDecisionDigest?{owner_decision_digest:ownerDecisionDigest,authority_created:false,merge_authorized:false}:{})});
   }
   return {state:'INDEPENDENT_CAPABILITY_VERIFIED',receipts,digest:hash(JSON.stringify(receipts)),
