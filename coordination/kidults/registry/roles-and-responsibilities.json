@@ -774,12 +774,23 @@
           "project_file_changes": "NONE",
           "git_changes": "NONE",
           "artifact_qa": "NOT_PERFORMED",
-          "bootstrap_receipt": "NOT_CREATED_OR_CLAIMED"
+          "bootstrap_receipt": "NOT_CREATED_OR_CLAIMED",
+          "activation_eligibility": "NOT_ESTABLISHED",
+          "trusted_platform_session_provenance": "NOT_VERIFIED",
+          "platform_workspace_sandbox": "NOT_VERIFIED"
         },
-        "activation_state": "ACTIVE_USER_INVOKED_LOCAL",
-        "activation_basis": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION_EXCEPTION",
+        "activation_state": "CONDITIONAL_USER_INVOKED_LOCAL",
+        "activation_basis": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION_EXCEPTION_ONLY_WHEN_VERIFIED",
         "external_dispatch_required_for_local_invocation": false,
-        "readiness_gate": "LOCAL_INTERACTIVE_SESSION_EXCEPTION"
+        "readiness_gate": "LOCAL_EXCEPTION_REQUIRES_TRUSTED_PLATFORM_CONTEXT",
+        "activation_conditions": {
+          "eligible_session": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION",
+          "session_provenance_source": "TRUSTED_PLATFORM_EXECUTION_CONTEXT",
+          "platform_workspace_sandbox_required": true,
+          "repository_self_assertion_is_session_provenance": false,
+          "missing_or_ambiguous_platform_session_context": "LOCAL_EXCEPTION_UNAVAILABLE",
+          "per_command_permission_is_sandbox_attestation": false
+        }
       }
     }
   ]
