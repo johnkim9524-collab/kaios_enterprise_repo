@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "434a337a4d41c7a3979034a506ed697ace3d08e6",
+  "revision": "0b1595109a4486a63de29795abaa7f3f76cdf158",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 870
+    "file_count": 871
   },
   "files": [
     {
@@ -1137,8 +1137,8 @@
     {
       "path": "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a46cb43348ac65913f9a3f6320a156d71c434ac5",
-      "sha256": "sha256:cba46fdb10868d11191bd4956844ad2b9e7212fe2829e9dfa3e180a40e07f7a3"
+      "git_blob": "ea6c9cf89bac0f107d1258e764be647b18671115",
+      "sha256": "sha256:d10857729c6873a5cafc64b37516485a8fd9d2f1dc6007a582b4e83fb05a0a4c"
     },
     {
       "path": "artifacts/audit/evidence-pack.txt",
@@ -2358,8 +2358,8 @@
     {
       "path": "coordination/kidults/kpmo/platform-continuous-assurance-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "93b9c3007f75685a1acb290ced8b10f0fe071270",
-      "sha256": "sha256:c7ae9b6794cc6382bbc0e783b8ff05c15e2db23bb2ca7eef266e2f3feccbf950",
+      "git_blob": "b27000f2f15fb84a734e24f91ae67322c0336d12",
+      "sha256": "sha256:368be55551663d4a8a2b2b50b224960fb6f1a40a70f97e3e545c8ce1c7001eb6",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -2848,8 +2848,8 @@
     {
       "path": "coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "cd5cfa57ee9614de182012c52a9249f961ed1440",
-      "sha256": "sha256:f806d50995ff2ab0cae0fad12b7fe6357405a2c4a1b22bb93ae51035393d4368"
+      "git_blob": "fd242a497b8aa8eb9a93ee1eb01f7941b64ae980",
+      "sha256": "sha256:1081382ebfa5a6f48d54a20231adafa32dc157c7dcd02610eee1d4fc8599d0ea"
     },
     {
       "path": "coordination/kidults/source-intelligence/global-proactive-source-discovery-expansion-v1.json",
@@ -3905,8 +3905,8 @@
     {
       "path": "scripts/kidults/kpmo/canonical-generation-v3.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1fedf66d11e19cd7e52bbe605a90a0d695e6bad7",
-      "sha256": "sha256:d9be86f6e49b037fe596b67606ed80f45acc4cc7be6d1e504db243dd09a5c30a",
+      "git_blob": "b959d023aa3d0acef34283660f92850507c948ea",
+      "sha256": "sha256:2bc85e7bb56244aa0d63551fae2ec8230916729be1bd8ddcf7660ed1a32ec9a3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5209,6 +5209,19 @@
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
       "git_blob": "a6bbf5f0a971ccabb339257110ba6cc68058ee83",
       "sha256": "sha256:a0428bd0654e78bcf56ec54db20ab49647b41fa420d74df52982ca5ea1e2a5d4",
+      "authorization_routing": {
+        "route": "INTERNAL_REVERSIBLE",
+        "coverage": {
+          "mode": "EXEMPTION",
+          "reason_code": "LEGACY_INTERNAL_CONTROL_FAILS_CLOSED_PENDING_CANONICAL_CONSUMER"
+        }
+      }
+    },
+    {
+      "path": "scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs",
+      "classification": "EXECUTION_AUTHORIZATION_CONTROL",
+      "git_blob": "edd62e3521c0994a3e4069213b7cd0e7a3835b4b",
+      "sha256": "sha256:dbd17698d80eb7f456830495e025f458dbe261014228b76740297181e1e4e147",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6814,8 +6827,8 @@
     {
       "path": "tests/kidults/kpmo/canonical-same-main-refresh-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a5da8c770c039020fd7ccff51fc5dafb0999b190",
-      "sha256": "sha256:987b4aa8355c63201abdda13ffd5cafb1ea6ec0f2b8ea7a79f9d6fb08bc9b26a"
+      "git_blob": "fdf316a6ca5112d3d17ddb69aff8fcbd58e416aa",
+      "sha256": "sha256:97408a10ea7f84fbabc5cc8df225054f173620570aa0fa120eddd8bc44f16e11"
     },
     {
       "path": "tests/kidults/kpmo/canonical-write-recovery-v1.test.mjs",
@@ -7322,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:db77dead919758373e1978e29df472864ba735333c9e465ea29bd54253cb0eb3"
+  "manifest_sha256": "sha256:df0f1da850129f6da3824586642582606c4ec99a79ff6c12f175653e67b6cd0a"
 }

@@ -122,13 +122,13 @@
       "path": "coordination/kidults/source-intelligence/asi-source-rights-access-review-r1.json",
       "id": "kidults-asi-source-rights-access-review-r1",
       "version": "1.0.0",
-      "fingerprint": "sha256:8e6215970ce1b925fd8de43239ebd9e902666a164da88133af60db677a29fc20"
+      "fingerprint": "sha256:e6c001a49782afc2b8e8dd6308e1c5bde872bd4a918c071ec6496f9a97335153"
     },
     "purpose_eligibility": {
       "path": "coordination/kidults/source-intelligence/asi-source-pool-purpose-eligibility-r1.json",
       "id": "kidults-asi-source-pool-purpose-eligibility-r1",
       "version": "1.0.0",
-      "fingerprint": "sha256:65e12d3738b888314e680e1a2ae746bd457d2224386644d1011b0d599fee5c62"
+      "fingerprint": "sha256:166de89a2bc20005baf5003221339e4e835cc68e094813c4185567ed140f1d27"
     }
   },
   "canonical_code_input_semantics": "HASHED_IMPLEMENTATION_PROVENANCE_NOT_EXECUTION_ATTESTATION",
@@ -490,8 +490,8 @@
     },
     "rights_access_review_validator": {
       "path": "scripts/kidults/source-intelligence/validate-asi-source-rights-access-review-r1.mjs",
-      "sha256": "sha256:056490e25fddcbc3ffb51528cf417a7a6cea2dbb869758bea94d2ef43d23f5e2",
-      "byte_count": 30503
+      "sha256": "sha256:4feb07484dc520d9aed8e547355309db46cea0ef4cce82944ed76e4eaba3db73",
+      "byte_count": 30543
     },
     "global_pool_bootstrap_compiler": {
       "path": "scripts/kidults/source-intelligence/compile-global-pool-r1-bootstrap-capture-v1.mjs",
@@ -584,15 +584,15 @@
         "event_schema": "sha256:51b27133f126cbcf4cff1457ee998b0998342c73e8de73cf52774da88a8c3f1d",
         "evidence_assertion_bindings": "sha256:d60e77694735a9ec51e7e500fc29b030f36c1188aec09ffc0550d14abeaa14e5",
         "frontier_contract": "sha256:eaab31179a05588a28517e92fd4a4000e50d1082a5d306d68f5b1449187fdaa8",
-        "normalized_primary_claim_records": "sha256:a5841cbcfe715f58f98c14bec4f8d8c5a54617ce3c5babb1bb582ac078b82a91",
+        "normalized_primary_claim_records": "sha256:23ec1c2cd6978cfe3164d126c46a88e36ae59457f26128eeabbdeb567c4d8600",
         "purpose_policy": "sha256:0054f0db62af4999b03ea3c38697735327fe59ec28b8d31b146f73e1e19285d3",
         "review_contract": "sha256:ac92866d840b7f9b7a97422434ce2547d8e62685f77f311cc0f78888392b4828",
-        "review_data": "sha256:8e6215970ce1b925fd8de43239ebd9e902666a164da88133af60db677a29fc20",
+        "review_data": "sha256:e6c001a49782afc2b8e8dd6308e1c5bde872bd4a918c071ec6496f9a97335153",
         "scope_pool_readiness": "sha256:1740ea25ba013b7da38d76f6201c36e855ec575104b7efc735ffb214970dca5f",
         "scope_registry": "sha256:a7892fe246752d65fe71daaf942ae54327d0ac1a96172a246ac7fc958d238c26",
         "source_admission_methodology": "sha256:f913638d32b3a4cf3b81f35bea7c3720d9c5d0599f134f305acc474f70f6ee55"
       },
-      "eligibility_fingerprint": "sha256:c9cba4905e9ece2a468e1e5a040d98d0465ae1d9b5dd8da5ea6868f0063a6113"
+      "eligibility_fingerprint": "sha256:e4f5516eae1e92e315549cb20ae2e71336ef073de7aaddb9d0def06f24ec5cdf"
     },
     "global_pool_bootstrap_capture": {
       "id": "kidults-global-pool-r1-bootstrap-capture-v1",
@@ -2271,5 +2271,5 @@
     "RUNTIME_CORE_OR_BASELINE_DECLARATION_EQUALS_SEALED_REMOTE_EXECUTION_OR_DURABILITY",
     "SHADOW_OUTPUT_EQUALS_PUBLIC_OR_COMMERCIAL_PRODUCT"
   ],
-  "evidence_fingerprint": "sha256:3f7c4ebada3c92090df62f737a322f3d77764784284cf47a115b2e7a6b7e241a"
+  "evidence_fingerprint": "sha256:5a6e36fdda25b2d6eeb4ba34f32f12db29a92d8e51313ae56bbd5144d82590cf"
 }
