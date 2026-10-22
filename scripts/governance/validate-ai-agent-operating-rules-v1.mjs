@@ -513,7 +513,13 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.5.2', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.5.3', 'ROLE_REGISTRY_VERSION');
+const trackQRole = roles.roles.find((role) => role.agent_id === 'track-q-qa-agent');
+assert(trackQRole?.execution_scope?.mode === 'CANONICAL_EXTERNAL_IDENTITY_QUARANTINED', 'TRACK_Q_CANONICAL_EXTERNAL_QUARANTINE');
+assert(trackQRole?.local_replacement_provisioning?.activation_state === 'ACTIVE_USER_INVOKED_LOCAL', 'TRACK_Q_LOCAL_REPLACEMENT_ACTIVE');
+assert(trackQRole?.local_replacement_provisioning?.profile_user_invocable === true, 'TRACK_Q_LOCAL_PROFILE_INVOKABLE');
+assert(trackQRole?.local_replacement_provisioning?.external_dispatch_required_for_local_invocation === false, 'TRACK_Q_LOCAL_DISPATCH_NOT_REQUIRED');
+assert(trackQRole?.local_replacement_provisioning?.readiness_gate === 'LOCAL_INTERACTIVE_SESSION_EXCEPTION', 'TRACK_Q_LOCAL_SESSION_EXCEPTION');
 assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1' && readiness.version === '1.3.0', 'READINESS_ID');
 assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
 assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');

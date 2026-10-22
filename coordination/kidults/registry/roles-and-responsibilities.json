@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.5.2",
+  "registry_version": "1.5.3",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-10-22T06:02:17.382Z",
-  "change_rationale": "Expand the user-invoked local Track Q replacement profile to include permission-gated documented QA command execution, while preserving quarantine of the canonical identity and denying external dispatch.",
+  "updated_at": "2026-10-22T06:20:33.051Z",
+  "change_rationale": "Register the user-invoked local Track Q replacement as active under the interactive-session exception; reserve protected-launcher bootstrap for external dispatch only.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -649,7 +649,7 @@
       "agent_id": "track-q-qa-agent",
       "identity_state": "QUARANTINED_BOOTSTRAP_NOT_VERIFIED",
       "title": "Track Q Lead — Quality, Evidence & Release Assurance",
-      "current_holder": "Canonical track-q-qa-agent remains quarantined; user-invoked local replacement track-q-qa-agent-replacement is provisioned for permission-gated local QA checks only; no external principal.",
+      "current_holder": "Canonical external identity track-q-qa-agent remains quarantined; local replacement track-q-qa-agent-replacement is active for user-invoked, permission-gated Copilot CLI QA.",
       "track_id": "track-q-quality-evidence-release-assurance",
       "reporting_line": "KPMO / QA Gate Committee",
       "independent_from": [
@@ -705,11 +705,11 @@
       "reporting_cadence": "For every release candidate and material artifact change; immediate escalation for material evidence, rights, integrity or reproducibility failures; daily status only while an assigned review remains active.",
       "decision_boundary": "QA PASS/HOLD is an independent quality finding, not final business, legal, Production, Public or G5 approval.",
       "execution_scope": {
-        "mode": "QUARANTINED_NOT_INVOKABLE",
+        "mode": "CANONICAL_EXTERNAL_IDENTITY_QUARANTINED",
         "user_invocation_required": true,
         "profile_user_invocable": false,
         "external_dispatch": "NOT_PROVISIONED",
-        "readiness_gate": "REJECTED_NOT_VERIFIED_AND_CONSUMED",
+        "readiness_gate": "REQUIRED_FOR_EXTERNAL_DISPATCH_ONLY",
         "release_authority": false
       },
       "activation_evidence": {
@@ -725,8 +725,8 @@
       },
       "quarantine": {
         "status": "QUARANTINED",
-        "reason": "Task session began without an independently verified and consumed exact-source readiness receipt.",
-        "required_action": "Disable invocation and dispatch for this identity; preserve evidence; use a newly bootstrapped replacement only after protected launcher and receipt-consumption controls are independently verified."
+        "reason": "The first recorded task for the canonical external identity lacked an independently verified and consumed exact-source readiness receipt.",
+        "required_action": "Keep the canonical external identity disabled. The separately registered local replacement is active under the user-initiated interactive-session exception; protected launcher and receipt consumption are required only for future external dispatch."
       },
       "local_replacement_provisioning": {
         "replacement_agent_id": "track-q-qa-agent-replacement",
@@ -775,7 +775,11 @@
           "git_changes": "NONE",
           "artifact_qa": "NOT_PERFORMED",
           "bootstrap_receipt": "NOT_CREATED_OR_CLAIMED"
-        }
+        },
+        "activation_state": "ACTIVE_USER_INVOKED_LOCAL",
+        "activation_basis": "USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION_EXCEPTION",
+        "external_dispatch_required_for_local_invocation": false,
+        "readiness_gate": "LOCAL_INTERACTIVE_SESSION_EXCEPTION"
       }
     }
   ]
