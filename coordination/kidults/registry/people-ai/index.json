@@ -44,7 +44,8 @@
     {
       "id": "agent-track-q",
       "path": "records/agent-track-q.json",
-      "status": "QUARANTINED"
+      "status": "ACTIVE"
     }
-  ]
+  ],
+  "updated_at": "2026-10-22T08:30:00.000Z"
 }

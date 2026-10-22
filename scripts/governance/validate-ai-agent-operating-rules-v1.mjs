@@ -23,6 +23,9 @@ const files = {
   schema: 'coordination/kidults/governance/ai-agent-status-receipt-schema-v1.json',
   registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
   roles: 'coordination/kidults/registry/roles-and-responsibilities.json',
+  trackQProfile: '.github/agents/track-q-qa-agent.agent.md',
+  trackQRecord: 'coordination/kidults/registry/people-ai/records/agent-track-q.json',
+  peopleAiIndex: 'coordination/kidults/registry/people-ai/index.json',
   authorityChainPolicy: 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json',
   autonomousClosurePolicy: 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json',
   triggerCompatibilityContract: 'coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json',
@@ -68,6 +71,43 @@ const INTERACTIVE_PLATFORM_SESSION_POLICY = {
   external_dispatchers_still_require_protected_launcher_and_verified_bootstrap: true
 };
 
+const TRACK_Q_INTERACTIVE_PROFILE_POLICY = {
+  "profile_path": ".github/agents/track-q-qa-agent.agent.md",
+  "agent_id": "track-q-qa-agent",
+  "role_id": "track-q-quality-evidence-release-assurance",
+  "runtime": "GITHUB_COPILOT_CLOUD_AGENT",
+  "invocation": "EXPLICIT_USER_SELECTION_FOR_EACH_TASK",
+  "user_initiated": true,
+  "model_invocation_enabled": false,
+  "allowed_tools_exact": [
+    "read",
+    "search",
+    "edit",
+    "execute"
+  ],
+  "allowed_capabilities_exact": [
+    "REPOSITORY_READ",
+    "REPOSITORY_SEARCH",
+    "REPOSITORY_EDIT",
+    "SANDBOXED_TEST_EXECUTION"
+  ],
+  "platform_managed_repository_workspace_required": true,
+  "bootstrap_receipt_required": false,
+  "classified_as_external_dispatch": false,
+  "allows_scheduled_or_automated_dispatch": false,
+  "allows_external_agent_dispatch": false,
+  "allows_provider_calls_or_external_side_effects": false,
+  "allows_secrets": false,
+  "allows_github_mutation": false,
+  "allows_approval_merge_deploy_or_release": false,
+  "may_issue_pass_after_materially_editing_reviewed_artifact": false,
+  "edit_policy": "Make bounded repository changes only when the user requests remediation; bind each change to the finding and preserve prior versions.",
+  "qa_independence": "After materially editing an artifact, Track Q must not PASS that artifact version; require a new version and independent review.",
+  "missing_platform_workspace_context": "HOLD",
+  "constitutional_read_and_role_acceptance_required": true,
+  "independent_readiness_receipt_required": false
+};
+
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const hasTopLevelTrigger = (text, trigger) => new RegExp(`^  ${escapeRegex(trigger)}:\\s*$`, 'm').test(text);
 
@@ -91,6 +131,9 @@ const platform = readJson(files.platform);
 const schema = readJson(files.schema);
 const registry = readJson(files.registry);
 const roles = readJson(files.roles);
+const trackQProfile = readText(files.trackQProfile);
+const trackQRecord = readJson(files.trackQRecord);
+const peopleAiIndex = readJson(files.peopleAiIndex);
 const authorityChainPolicy = readJson(files.authorityChainPolicy);
 const autonomousClosurePolicy = readJson(files.autonomousClosurePolicy);
 const triggerCompatibilityContract = readJson(files.triggerCompatibilityContract);
@@ -226,6 +269,12 @@ assert(exactJson(registry.mandatory_inheritance?.interactive_platform_session_po
 assert(exactJson(registry.registered_policy?.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'REGISTRY_POLICY_INTERACTIVE_SESSION_SCOPE');
 assert(registry.mandatory_inheritance?.bootstrap_load_before_task_execution_required === true && registry.mandatory_inheritance?.bootstrap_load_before_agent_dispatch_required === true, 'REGISTRY_BOOTSTRAP_DISPATCH_SCOPE');
 assert(exactJson(readiness.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'READINESS_INTERACTIVE_SESSION_SCOPE');
+assert(exactJson(githubBootstrapContract.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'GITHUB_BOOTSTRAP_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
+assert(exactJson(contract.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'OPERATING_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
+assert(exactJson(readiness.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'READINESS_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
+assert(exactJson(registry.mandatory_inheritance?.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'REGISTRY_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
+assert(exactJson(registry.registered_policy?.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'REGISTRY_POLICY_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
+assert(exactJson(roles.constitutional_readiness?.interactive_agent_profile_exceptions?.[0], TRACK_Q_INTERACTIVE_PROFILE_POLICY), 'ROLE_TRACK_Q_INTERACTIVE_PROFILE_POLICY');
 
 assert(typeof githubBootstrapContract.change_rationale === 'string' && githubBootstrapContract.change_rationale.length > 20, 'GITHUB_BOOTSTRAP_CHANGE_RATIONALE');
 assert(githubBootstrapContract.status === 'MANDATORY_FAIL_CLOSED', 'GITHUB_BOOTSTRAP_CONTRACT_STATUS');
@@ -515,20 +564,27 @@ assert(registry.agent_accountability_enforcement?.intentional_concealment_refusa
 
 assert(roles.registry_version === '1.5.3', 'ROLE_REGISTRY_VERSION');
 const trackQRole = roles.roles.find((role) => role.agent_id === 'track-q-qa-agent');
-assert(trackQRole?.execution_scope?.mode === 'CANONICAL_EXTERNAL_IDENTITY_QUARANTINED', 'TRACK_Q_CANONICAL_EXTERNAL_QUARANTINE');
-assert(trackQRole?.local_replacement_provisioning?.activation_state === 'CONDITIONAL_USER_INVOKED_LOCAL', 'TRACK_Q_LOCAL_REPLACEMENT_CONDITIONAL');
-assert(trackQRole?.local_replacement_provisioning?.profile_user_invocable === true, 'TRACK_Q_LOCAL_PROFILE_INVOKABLE');
-assert(trackQRole?.local_replacement_provisioning?.external_dispatch_required_for_local_invocation === false, 'TRACK_Q_LOCAL_DISPATCH_NOT_REQUIRED');
-assert(trackQRole?.local_replacement_provisioning?.readiness_gate === 'LOCAL_EXCEPTION_REQUIRES_TRUSTED_PLATFORM_CONTEXT', 'TRACK_Q_LOCAL_SESSION_EXCEPTION');
-const localReplacement = trackQRole?.local_replacement_provisioning;
-const localConditions = localReplacement?.activation_conditions;
-assert(localConditions?.eligible_session === INTERACTIVE_PLATFORM_SESSION_POLICY.eligible_session, 'TRACK_Q_LOCAL_ELIGIBLE_SESSION');
-assert(localConditions?.session_provenance_source === INTERACTIVE_PLATFORM_SESSION_POLICY.session_provenance_source, 'TRACK_Q_LOCAL_TRUSTED_PROVENANCE');
-assert(localConditions?.platform_workspace_sandbox_required === true, 'TRACK_Q_LOCAL_SANDBOX_REQUIRED');
-assert(localConditions?.repository_self_assertion_is_session_provenance === false, 'TRACK_Q_LOCAL_NO_SELF_ASSERTED_PROVENANCE');
-assert(localConditions?.missing_or_ambiguous_platform_session_context === 'LOCAL_EXCEPTION_UNAVAILABLE', 'TRACK_Q_LOCAL_FAIL_CLOSED_CONTEXT');
-assert(localConditions?.per_command_permission_is_sandbox_attestation === false, 'TRACK_Q_LOCAL_PROMPT_NOT_SANDBOX');
-assert(localReplacement?.latest_local_cli_smoke?.activation_eligibility === 'NOT_ESTABLISHED', 'TRACK_Q_LOCAL_SMOKE_NOT_AUTHORITY');
+assert(trackQRole?.execution_scope?.mode === 'USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT_ACTIVE', 'TRACK_Q_PROFILE_ACTIVE');
+assert(trackQRole?.execution_scope?.platform === 'GITHUB_COPILOT_CLOUD_AGENT', 'TRACK_Q_PLATFORM');
+assert(trackQRole?.execution_scope?.profile_user_invocable === true, 'TRACK_Q_PROFILE_USER_INVOKABLE');
+assert(trackQRole?.execution_scope?.model_invocation_disabled === true, 'TRACK_Q_MODEL_INVOCATION_DISABLED');
+assert(trackQRole?.execution_scope?.external_dispatch === 'NOT_PROVISIONED', 'TRACK_Q_EXTERNAL_DISPATCH_NOT_PROVISIONED');
+assert(exactJson(trackQRole?.execution_scope?.allowed_tools_exact, TRACK_Q_INTERACTIVE_PROFILE_POLICY.allowed_tools_exact), 'TRACK_Q_ROLE_TOOLSET');
+assert(trackQRole?.execution_scope?.allows_repository_edit_and_sandboxed_tests === true, 'TRACK_Q_ROLE_EDIT_AND_TESTS');
+assert(trackQRole?.execution_scope?.may_issue_pass_after_materially_editing_reviewed_artifact === false, 'TRACK_Q_ROLE_SELF_REVIEW_BLOCKED');
+assert(exactJson(trackQRecord.current_activation?.allowed_tools, TRACK_Q_INTERACTIVE_PROFILE_POLICY.allowed_tools_exact), 'TRACK_Q_RECORD_TOOLSET');
+assert(trackQRecord.current_activation?.self_review_after_material_edits === false, 'TRACK_Q_RECORD_SELF_REVIEW_BLOCKED');
+assert(trackQRole?.execution_scope?.release_authority === false, 'TRACK_Q_NO_RELEASE_AUTHORITY');
+assert(trackQProfile.includes('target: github-copilot'), 'TRACK_Q_COPILOT_TARGET');
+assert(trackQProfile.includes('tools: ["read", "search", "edit", "execute"]'), 'TRACK_Q_READ_SEARCH_EDIT_EXECUTE');
+assert(trackQProfile.includes('Do not issue PASS for an artifact version you materially edited'), 'TRACK_Q_SELF_REVIEW_BLOCKED');
+assert(TRACK_Q_INTERACTIVE_PROFILE_POLICY.allows_github_mutation === false && TRACK_Q_INTERACTIVE_PROFILE_POLICY.allows_approval_merge_deploy_or_release === false, 'TRACK_Q_NO_GITHUB_OR_RELEASE_AUTHORITY');
+assert(TRACK_Q_INTERACTIVE_PROFILE_POLICY.allows_scheduled_or_automated_dispatch === false && TRACK_Q_INTERACTIVE_PROFILE_POLICY.allows_external_agent_dispatch === false, 'TRACK_Q_MANUAL_ONLY');
+assert(trackQProfile.includes('disable-model-invocation: true'), 'TRACK_Q_MANUAL_SELECTION_ONLY');
+assert(trackQProfile.includes('user-invocable: true'), 'TRACK_Q_PROFILE_SELECTABLE');
+assert(trackQProfile.includes('A PASS is a QA opinion only.'), 'TRACK_Q_QA_AUTHORITY_LIMIT');
+assert(trackQRecord.status === 'ACTIVE' && trackQRecord.profile_user_invocable === true, 'TRACK_Q_REGISTRY_ACTIVE');
+assert(peopleAiIndex.records.find((record) => record.id === 'agent-track-q')?.status === 'ACTIVE', 'TRACK_Q_INDEX_ACTIVE');
 assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1' && readiness.version === '1.3.0', 'READINESS_ID');
 assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
 assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');
