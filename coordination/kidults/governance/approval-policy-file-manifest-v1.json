@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "1a73db4f753a04c6438e11c5655c1c98abc0ebb0",
+  "revision": "11750877cc883707ccbf23deb442e2fa2db6c0af",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 868
+    "file_count": 867
   },
   "files": [
     {
@@ -1289,12 +1289,6 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "2b636fb4c53e6cff8c160477735bc504737c1521",
       "sha256": "sha256:d445e27fe5056637d0dc4c0e541c77eda23d325e338a038c6aaba0ad30a8fbcd"
-    },
-    {
-      "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
-      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "851b5c489c28719ccaf083b8056a789da3713c28",
-      "sha256": "sha256:54eaeb09f0282b724941db80e91de45a1681a16dd84874ee31218fe17c8fc56a"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -2698,8 +2692,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "8266467b466c292b567d217c16698fca5aa51828",
-      "sha256": "sha256:0072cb788e36cc17384ace31213de4f5fb32febe69559bde0ba681065784ba1b"
+      "git_blob": "c91b19dcdb575b03c603a996fdbf4ec26c765486",
+      "sha256": "sha256:b314ab02bf26ab02d57169fec5cc7942bcd5a667a3e38f64b594b535a13fc872"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3557,8 +3551,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "88fbfb70df76579fc5260fcef7ca659f9155fe35",
-      "sha256": "sha256:1e2c524c49cd18a710f2835325e0c4dbe44a8224cf47aadb66da7491bb2ea5f0",
+      "git_blob": "99f64966311e381dcede4a305d84cbc03aa1fc5f",
+      "sha256": "sha256:1f281259e21fbbd0a6e1861453e47ac8cd2e69fef6ce781c611b3af6a186c398",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7310,5 +7304,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ae3ef8edee6a6dfb61a30f6838ee02df2b08923d1d57bda30cdb78009bcce6ac"
+  "manifest_sha256": "sha256:34f42ad2863518fdf2b7193e78b42309c8374fa3bd6208857f6ec0a8d390e4ba"
 }
