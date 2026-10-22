@@ -2,14 +2,14 @@
   "id": "agent-track-q",
   "record_type": "ai_agent_profile",
   "version": "1.0.0",
-  "status": "QUARANTINED",
-  "display_name": "Track Q QA Agent — quarantined profile",
+  "status": "ACTIVE",
+  "display_name": "Track Q QA Agent",
   "role_ids": [
     "track-q-quality-evidence-release-assurance"
   ],
   "platform": "GitHub Copilot custom agent",
   "profile_path": ".github/agents/track-q-qa-agent.agent.md",
-  "activation_scope": "QUARANTINED_PROFILE_RETAINED_NOT_INVOKABLE",
+  "activation_scope": "USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT_WITH_REPOSITORY_EDIT_AND_SANDBOXED_TESTS",
   "user_invocation_required": true,
   "persistent_external_principal": false,
   "external_dispatch_status": "NOT_PROVISIONED",
@@ -27,12 +27,28 @@
   },
   "created_by": "Atlas",
   "approved_by": "KPMO",
-  "profile_user_invocable": false,
-  "operational_readiness": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
-  "quarantine": {
-    "status": "QUARANTINED",
-    "reason": "The first task session started without independently verified and consumed readiness.",
-    "evidence_policy": "Role transcript ACCEPT and GitHub source comparisons are preserved but do not satisfy readiness.",
-    "required_action": "Disable this identity; require a newly bootstrapped replacement after protected launcher and receipt-consumption controls are independently verified."
+  "profile_user_invocable": true,
+  "operational_readiness": "ACTIVE_USER_INVOKED_CLOUD_PROFILE",
+  "current_activation": {
+    "platform": "GitHub Copilot cloud agent",
+    "invocation": "USER_SELECTED",
+    "model_invocation": "DISABLED",
+    "profile_path": ".github/agents/track-q-qa-agent.agent.md",
+    "external_dispatch": "NOT_PROVISIONED",
+    "release_authority": false,
+    "allowed_tools": [
+      "read",
+      "search",
+      "edit",
+      "execute"
+    ],
+    "repository_edit_and_sandboxed_test_execution": true,
+    "self_review_after_material_edits": false
+  },
+  "historical_readiness": {
+    "first_task_disposition": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
+    "first_task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
+    "historical_qa_verdict": "NONE",
+    "note": "This historical disposition applies to the first task only and does not disable the standard user-selected Copilot profile."
   }
 }
