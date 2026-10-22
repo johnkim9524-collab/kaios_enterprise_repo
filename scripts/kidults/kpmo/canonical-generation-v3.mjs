@@ -15,7 +15,7 @@ const OWNER='johnkim9524-collab';
 const APPROVAL_ISSUE=1713;
 const WRITE_ACTION='APPLY_APPEND_ONLY_25_PLUS_COMMIT';
 const AUTHORIZATION_MAX_AGE_MS=30*60*1000;
-const OPEN_ISSUE_SNAPSHOT_ATTEMPTS=3;
+const OPEN_ISSUE_SNAPSHOT_ATTEMPTS=5;
 const die=(message)=>{throw new Error(message);};
 
 let receiptWrittenThisInvocation=false;
@@ -98,6 +98,7 @@ async function openIssues(){
     catch(error){
       lastError=error;
       if(!['OPEN_ISSUE_CARDINALITY_MOVED','OPEN_ISSUE_SET_INVALID'].includes(error?.message)||attempt===OPEN_ISSUE_SNAPSHOT_ATTEMPTS)throw error;
+      await new Promise(resolve=>setTimeout(resolve,Math.min(attempt*250,1000)));
     }
   }
   throw lastError;
