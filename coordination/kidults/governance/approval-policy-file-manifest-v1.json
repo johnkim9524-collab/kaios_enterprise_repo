@@ -2692,8 +2692,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "70dc990f89f704c44f2a855b7d938e67ad4d7410",
-      "sha256": "sha256:f724a84b5c14eeb9142370a123d6cee2447284845eb26ecf256198f14bc8e1c1"
+      "git_blob": "35a9cb9e2d58dd78b275b571e23f4cb6218286c5",
+      "sha256": "sha256:ba99a9100ed7649f69f135a70180c5084d02a569e34acd0688a86418addd192c"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -7304,5 +7304,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4d99cb7546a806bfd34644558db472794cf94a98e44b84b8917c935f8cb5040b"
+  "manifest_sha256": "sha256:c99995a3c997ae078ad6c30f04ad59a345715d0f1802482be7ed611ada7c883e"
 }
