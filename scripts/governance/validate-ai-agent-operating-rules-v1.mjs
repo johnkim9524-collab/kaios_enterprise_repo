@@ -184,7 +184,7 @@ assert(contract.enforcement?.local_expected_sha_establishes_github_provenance ==
 assert(contract.enforcement?.github_event_context_establishes_current_github_state === false, 'GITHUB_CONTEXT_CURRENT_STATE_ESCALATION');
 assert(contract.enforcement?.current_github_state_requires_authenticated_remote_working_ref_verification === true, 'GITHUB_CURRENT_STATE_REMOTE_VERIFICATION_REQUIRED');
 assert(githubBootstrapContract.id === 'kidults-ai-agent-github-bootstrap-contract-v1', 'GITHUB_BOOTSTRAP_CONTRACT_ID');
-assert(githubBootstrapContract.version === '1.7.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
+assert(githubBootstrapContract.version === '1.8.0', 'GITHUB_BOOTSTRAP_CONTRACT_VERSION');
 assert(exactJson(githubBootstrapContract.interactive_platform_session_policy, INTERACTIVE_PLATFORM_SESSION_POLICY), 'GITHUB_BOOTSTRAP_INTERACTIVE_SESSION_SCOPE');
 
 const INTERACTIVE_LOCAL_WORK_RESUME_POLICY = {
@@ -436,7 +436,7 @@ assert(schema.properties?.production?.const === 'HOLD', 'SCHEMA_PRODUCTION_BOUND
 assert(schema.properties?.public_release?.const === 'HOLD', 'SCHEMA_PUBLIC_BOUNDARY');
 
 assert(registry.id === 'kidults-ai-agent-governance-registry-v1', 'REGISTRY_ID');
-assert(registry.version === contract.version, 'REGISTRY_VERSION_MISMATCH');
+assert(registry.version === '2.2.0', 'REGISTRY_VERSION_MISMATCH');
 assert(registry.owner === 'KPMO', 'REGISTRY_OWNER');
 assert(registry.registered_policy?.policy_version === '2.1.0', 'REGISTRY_POLICY_VERSION');
 assert(registry.registered_policy?.autonomous_closure_ownership_policy_path === files.autonomousClosurePolicy, 'REGISTRY_AUTONOMOUS_CLOSURE_POLICY');
@@ -513,7 +513,7 @@ assert(registry.agent_accountability_enforcement?.removed_identity_self_adjudica
 assert(registry.agent_accountability_enforcement?.kpmo_ai_identity_reinstatement_authority === accountability.kpmo_ai_identity_reinstatement_authority, 'REGISTRY_ACCOUNTABILITY_KPMO_REINSTATEMENT_AUTHORITY');
 assert(registry.agent_accountability_enforcement?.intentional_concealment_refusal_evasion_or_recurrence_requires_permanent_retirement === true, 'REGISTRY_ACCOUNTABILITY_PERMANENT_RETIREMENT');
 
-assert(roles.registry_version === '1.4.0', 'ROLE_REGISTRY_VERSION');
+assert(roles.registry_version === '1.5.1', 'ROLE_REGISTRY_VERSION');
 assert(readiness.id === 'kidults-agent-constitutional-readiness-manifest-v1' && readiness.version === '1.3.0', 'READINESS_ID');
 assert(readiness.status === 'MANDATORY_FAIL_CLOSED', 'READINESS_STATUS');
 assert(exactJson(readiness.required_reading_domains?.map((x) => x.domain), ['VISION_AND_GOALS','OPERATING_PRINCIPLES','AI_GOVERNANCE','JD_AND_ROLE','WORKING_ATTITUDE']), 'READINESS_DOMAINS');

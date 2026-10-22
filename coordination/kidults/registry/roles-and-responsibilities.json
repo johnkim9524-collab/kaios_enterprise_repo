@@ -1,8 +1,8 @@
 {
-  "registry_version": "1.4.0",
+  "registry_version": "1.5.1",
   "effective_at": "2026-08-12T00:00:00+09:00",
-  "updated_at": "2026-10-08T19:34:00+09:00",
-  "change_rationale": "Register independent Track R and RED_TEAM_LEAD under the Program Owner instruction; bind RED_TEAM bootstrap separately from PoC Integration incident management.",
+  "updated_at": "2026-10-22T05:09:09Z",
+  "change_rationale": "Record the bounded, device-local user-invoked Track Q CLI replacement and exact smoke-test evidence while preserving quarantine of the canonical GitHub profile and denying external dispatch.",
   "constitutional_readiness": {
     "manifest": "coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json",
     "required_before_task_analysis_or_execution": true,
@@ -642,6 +642,126 @@
         "Correction verified against actual current execution"
       ],
       "reporting_cadence": "Immediate evidence-backed material findings directly to the Program Owner; review closure after actual remediation verification."
+    },
+    {
+      "role_id": "track-q-quality-evidence-release-assurance",
+      "canonical_role": "TRACK_Q_QA_AGENT",
+      "agent_id": "track-q-qa-agent",
+      "identity_state": "QUARANTINED_BOOTSTRAP_NOT_VERIFIED",
+      "title": "Track Q Lead — Quality, Evidence & Release Assurance",
+      "current_holder": "Quarantined GitHub custom agent profile at .github/agents/track-q-qa-agent.agent.md; user invocation disabled; no active holder",
+      "track_id": "track-q-quality-evidence-release-assurance",
+      "reporting_line": "KPMO / QA Gate Committee",
+      "independent_from": [
+        "change-producer",
+        "artifact-owner",
+        "release-approver"
+      ],
+      "mission": "Independently determine whether an exact, version-bound intelligence artifact and its supporting claims satisfy evidence, lineage, rights, reproducibility, methodology and release-readiness requirements; preserve uncertainty and block unsupported promotion.",
+      "core_responsibilities": [
+        "Review immutable artifact, snapshot, methodology and source references at the exact bound version",
+        "Trace material claims to primary evidence and verify provenance, freshness, rights status and stated limitations",
+        "Recompute or independently reproduce required metrics and validation results where inputs and methods permit",
+        "Check schema, completeness, version consistency, decision relevance and presentation of uncertainty",
+        "Issue an evidence-bound PASS or HOLD finding with severity, exact evidence references and measurable exit criteria",
+        "Preserve dissent, unknowns, conflicts of interest and failed checks in the QA record",
+        "Escalate material rights, evidence, reproducibility or integrity failures immediately to KPMO and the QA Gate Committee",
+        "Verify remediation against the new immutable artifact/version; never overwrite or silently reuse a prior review",
+        "Assess customer decision usefulness, comprehension, accessibility and misinterpretation risk for each intended audience"
+      ],
+      "required_deliverables": [
+        "track-q-qa-review.json bound to artifact_id, version_or_sha, methodology_version and review_session_id",
+        "Evidence and source traceability matrix",
+        "Reproduction and validation record",
+        "PASS or HOLD rationale with severity and unresolved uncertainty",
+        "Remediation exit criteria and, when applicable, post-fix verification record",
+        "Customer-quality checklist covering decision task, audience, clarity, limitations, accessibility and misleading-claim risk"
+      ],
+      "decision_authority": [
+        "Issue an independent QA PASS or HOLD for the exact reviewed artifact/version",
+        "Reject incomplete, mismatched, rights-uncleared or non-reproducible evidence packages",
+        "Require bounded remediation evidence before changing a HOLD",
+        "Escalate an unresolved material finding to KPMO and the QA Gate Committee"
+      ],
+      "must_not": [
+        "Review or approve its own generated or materially edited work",
+        "Change source facts, producer metrics, rankings or methodology to obtain a PASS",
+        "Waive missing rights, lineage, source evidence or reproducibility",
+        "Contact providers, commit spend, accept legal terms or expand credentials",
+        "Approve or execute Production, Public or G5 release",
+        "Convert UNKNOWN, NOT_VERIFIED or missing evidence into PASS or zero",
+        "Claim a persistent runtime identity, valid bootstrap, or operational assignment before verified provisioning and consumed readiness receipt",
+        "Represent the GitHub-scoped profile as a persistent external runtime principal or claim external dispatcher activation",
+        "Run autonomously, on a schedule, or outside a user-invoked GitHub task"
+      ],
+      "success_measures": [
+        "All verdicts bind to the exact artifact/version and are reproducible",
+        "Zero unsupported PASS findings or undisclosed material conflicts",
+        "Material evidence and rights defects are detected before release",
+        "Every HOLD has precise, testable exit criteria",
+        "Remediation is verified on a new immutable version with complete audit lineage",
+        "Intended customers can identify the evidence, limitations and appropriate use of the artifact without unsupported inference"
+      ],
+      "reporting_cadence": "For every release candidate and material artifact change; immediate escalation for material evidence, rights, integrity or reproducibility failures; daily status only while an assigned review remains active.",
+      "decision_boundary": "QA PASS/HOLD is an independent quality finding, not final business, legal, Production, Public or G5 approval.",
+      "execution_scope": {
+        "mode": "QUARANTINED_NOT_INVOKABLE",
+        "user_invocation_required": true,
+        "profile_user_invocable": false,
+        "external_dispatch": "NOT_PROVISIONED",
+        "readiness_gate": "REJECTED_NOT_VERIFIED_AND_CONSUMED",
+        "release_authority": false
+      },
+      "activation_evidence": {
+        "pull_request": 2707,
+        "merge_commit": "357ac034cee6be0a98d199ff26bf17a0db02634c",
+        "profile_blob_sha": "4079a89ba1f10a658900df4280e9f43c03310296",
+        "task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
+        "platform_session_id": "ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3",
+        "transcript_role_acceptance": "ACCEPT_DUTIES_AND_LIMITS_ONLY",
+        "readiness_disposition": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
+        "nonce_commitment_sha256": "56c69b111899314f2f7d0a34637d3eab1b5af8fb8b256d2c752e14a1c1b68c36",
+        "verification": "Repository branch/main and profile blob comparisons verify source content only; they do not attest session provenance, bootstrap readiness, authorization, or receipt consumption."
+      },
+      "quarantine": {
+        "status": "QUARANTINED",
+        "reason": "Task session began without an independently verified and consumed exact-source readiness receipt.",
+        "required_action": "Disable invocation and dispatch for this identity; preserve evidence; use a newly bootstrapped replacement only after protected launcher and receipt-consumption controls are independently verified."
+      },
+      "local_replacement_provisioning": {
+        "replacement_agent_id": "track-q-qa-agent-replacement",
+        "canonical_profile_path": "coordination/kidults/registry/profiles/track-q-qa-agent-replacement.agent.md",
+        "runtime_scope": "SINGLE_OPERATOR_WORKSTATION_USER_INVOKED_COPILOT_CLI",
+        "profile_user_invocable": true,
+        "model_invocation_disabled": true,
+        "allowed_tools": [
+          "view",
+          "grep",
+          "glob"
+        ],
+        "machine_policy_guard": "DEVICE_LOCAL_READ_ONLY_GUARD_INSTALLED_AND_SMOKE_TESTED",
+        "smoke_verification": {
+          "result": "PASS_LOCAL_READ_ONLY_POLICY_SMOKE",
+          "verified_on": "2026-10-22",
+          "source_sha": "e6be8c61cb835e23cea979a7690436cc6f97d960",
+          "task_id": "trackq-local-readonly-qa-ddff7345cd1345a486466bcbccbc45d9",
+          "session_id": "6f632a80-5f3e-45df-ad87-21df47ddcd41",
+          "tested_tool_outcomes": {
+            "view": "ALLOW",
+            "edit": "DENY",
+            "agentStop": "ALLOW"
+          },
+          "readiness_receipt": "INDEPENDENTLY_VERIFIED_AND_CONSUMED_FOR_THIS_SMOKE_TASK_ONLY",
+          "receipt_reusable": false,
+          "future_task_requires_fresh_receipt": true,
+          "worktree_after_smoke": "CLEAN"
+        },
+        "external_dispatch": "NOT_PROVISIONED",
+        "github_cloud_agent_activation": false,
+        "persistent_external_principal": false,
+        "release_authority": false,
+        "canonical_quarantined_identity_remains": "track-q-qa-agent"
+      }
     }
   ]
 }

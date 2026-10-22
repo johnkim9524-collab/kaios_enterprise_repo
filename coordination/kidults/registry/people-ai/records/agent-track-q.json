@@ -1,0 +1,38 @@
+{
+  "id": "agent-track-q",
+  "record_type": "ai_agent_profile",
+  "version": "1.0.0",
+  "status": "QUARANTINED",
+  "display_name": "Track Q QA Agent — quarantined profile",
+  "role_ids": [
+    "track-q-quality-evidence-release-assurance"
+  ],
+  "platform": "GitHub Copilot custom agent",
+  "profile_path": ".github/agents/track-q-qa-agent.agent.md",
+  "activation_scope": "QUARANTINED_PROFILE_RETAINED_NOT_INVOKABLE",
+  "user_invocation_required": true,
+  "persistent_external_principal": false,
+  "external_dispatch_status": "NOT_PROVISIONED",
+  "role_acceptance": {
+    "status": "ACCEPT_DUTIES_AND_LIMITS_ONLY",
+    "transcript_status": "ACCEPT",
+    "readiness_status": "REJECTED_NOT_VERIFIED",
+    "task_id": "66d7dcc5-5e73-4a8a-a71e-d44df2dde50b",
+    "platform_session_id": "ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3",
+    "role_id": "track-q-quality-evidence-release-assurance",
+    "agent_id": "track-q-qa-agent",
+    "main_commit": "357ac034cee6be0a98d199ff26bf17a0db02634c",
+    "profile_blob_sha": "4079a89ba1f10a658900df4280e9f43c03310296",
+    "nonce_commitment_sha256": "56c69b111899314f2f7d0a34637d3eab1b5af8fb8b256d2c752e14a1c1b68c36"
+  },
+  "created_by": "Atlas",
+  "approved_by": "KPMO",
+  "profile_user_invocable": false,
+  "operational_readiness": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
+  "quarantine": {
+    "status": "QUARANTINED",
+    "reason": "The first task session started without independently verified and consumed readiness.",
+    "evidence_policy": "Role transcript ACCEPT and GitHub source comparisons are preserved but do not satisfy readiness.",
+    "required_action": "Disable this identity; require a newly bootstrapped replacement after protected launcher and receipt-consumption controls are independently verified."
+  }
+}

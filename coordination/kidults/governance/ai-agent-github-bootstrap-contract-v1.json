@@ -1,7 +1,7 @@
 {
   "id": "kidults-ai-agent-github-bootstrap-contract-v1",
-  "version": "1.7.0",
-  "change_rationale": "Bind AI-022 autonomous closure ownership into the exact committed pre-dispatch trust closure so an accountable task session cannot fragment authorized reversible remediation or terminate at PR, CI, merge, or partial workflow success.",
+  "version": "1.8.0",
+  "change_rationale": "Register the Track Q QA Agent class and bind its exact role to the constitutional bootstrap contract while preserving protected external-dispatch requirements.",
   "status": "MANDATORY_FAIL_CLOSED",
   "effective_after": "MERGE_TO_MAIN",
   "owner": "KPMO",
@@ -304,6 +304,7 @@
       "TRACK_C",
       "TRACK_D",
       "TRACK_E",
+      "TRACK_Q",
       "RED_TEAM",
       "ASI",
       "CODING_AGENTS",
