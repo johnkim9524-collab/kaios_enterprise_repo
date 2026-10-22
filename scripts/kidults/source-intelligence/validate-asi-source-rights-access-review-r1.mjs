@@ -284,7 +284,7 @@ const futureEvidencePackage = futureEvidenceOutput.review_observations
   .flatMap(source => source.purpose_packages)
   .find(pkg => pkg.decision === "PASS");
 futureEvidencePackage.evidence_observed_at_max = "2098-01-01T00:00:00Z";
-assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, "2026-09-22T12:00:00Z"),
+assert.throws(() => assertRuntimeFreshness(futureEvidenceOutput, new Date(Date.parse(first.generated_at) + 1_000).toISOString()),
   /PASS evidence observation is after the runtime validation clock/,
   "Runtime clock must reject a future PASS evidence observation");
 negativeControls.push("runtime-clock-rejects-future-evidence-observation");
