@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 867
+    "file_count": 868
   },
   "files": [
     {
@@ -1289,6 +1289,12 @@
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "2b636fb4c53e6cff8c160477735bc504737c1521",
       "sha256": "sha256:d445e27fe5056637d0dc4c0e541c77eda23d325e338a038c6aaba0ad30a8fbcd"
+    },
+    {
+      "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "791821cd15a74542cb7154d01f1ab9552e2d64df",
+      "sha256": "sha256:d9780e0504384300fa66e55e86818d008600ee9476260a267e38d4f6a822c7f5"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -7304,5 +7310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9da6ee97cdba40e1da45d3c9fc06c3a117870ce42e24ae7bfac22457d1e4895a"
+  "manifest_sha256": "sha256:693428d8157bd6e0650c7e2c6f4158d7399239ca37a14af7d03284228155e8f1"
 }
