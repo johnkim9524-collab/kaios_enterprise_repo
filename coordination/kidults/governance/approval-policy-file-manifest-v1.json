@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "434a337a4d41c7a3979034a506ed697ace3d08e6",
+  "revision": "2d4a2286517a112453a8fe025662182e3b14c6c5",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1137,8 +1137,8 @@
     {
       "path": "artifacts/agci-os/asi-shadow-operating-evidence-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "a46cb43348ac65913f9a3f6320a156d71c434ac5",
-      "sha256": "sha256:cba46fdb10868d11191bd4956844ad2b9e7212fe2829e9dfa3e180a40e07f7a3"
+      "git_blob": "ea6c9cf89bac0f107d1258e764be647b18671115",
+      "sha256": "sha256:d10857729c6873a5cafc64b37516485a8fd9d2f1dc6007a582b4e83fb05a0a4c"
     },
     {
       "path": "artifacts/audit/evidence-pack.txt",
@@ -2848,8 +2848,8 @@
     {
       "path": "coordination/kidults/source-intelligence/evidence/asi-source-rights-access-normalized-primary-claim-records-r1.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "cd5cfa57ee9614de182012c52a9249f961ed1440",
-      "sha256": "sha256:f806d50995ff2ab0cae0fad12b7fe6357405a2c4a1b22bb93ae51035393d4368"
+      "git_blob": "fd242a497b8aa8eb9a93ee1eb01f7941b64ae980",
+      "sha256": "sha256:1081382ebfa5a6f48d54a20231adafa32dc157c7dcd02610eee1d4fc8599d0ea"
     },
     {
       "path": "coordination/kidults/source-intelligence/global-proactive-source-discovery-expansion-v1.json",
@@ -7322,5 +7322,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:db77dead919758373e1978e29df472864ba735333c9e465ea29bd54253cb0eb3"
+  "manifest_sha256": "sha256:ef78480ab13ceacc281ae4cf39de4d4c9ef889991fdb5541eaed244ccdbf1892"
 }
