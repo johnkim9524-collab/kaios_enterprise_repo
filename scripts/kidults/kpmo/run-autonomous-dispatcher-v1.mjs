@@ -328,13 +328,13 @@ async function pages(path,token){const out=[];for(let page=1;page<=30;page++){co
 async function checkPages(repository,sha,token){const out=[];for(let page=1;page<=30;page++){const payload=await api(`/repos/${repository}/commits/${sha}/check-runs?filter=all&per_page=100&page=${page}`,token);const batch=payload?.check_runs;if(!Array.isArray(batch))fail('DISPATCH_PAGINATION_INVALID');out.push(...batch);if(batch.length<100)return out}fail('DISPATCH_PAGINATION_LIMIT')}
 const encodePath=path=>path.split('/').map(encodeURIComponent).join('/');
 const gitBlobSha=body=>crypto.createHash('sha1').update(`blob ${body.length}\0`).update(body).digest('hex');
-const preparedSourceBlobKey=(ref,path)=>`${ref}\0${path}`;
-const hasPreparedSourceBlob=(token,ref,path)=>token.sourceReader?.hasSource(ref)===true
+const plannedSourceBlobKey=(ref,path)=>`${ref}\0${path}`;
+const shouldReadSealedSourceBlob=(token,ref,path)=>token.sourceReader?.hasSource(ref)===true
   &&(token.allowUnpreparedSourceFallback!==true
-    ||token.preparedSourceBlobs instanceof Set&&token.preparedSourceBlobs.has(preparedSourceBlobKey(ref,path)));
+    ||token.plannedSourceBlobs instanceof Set&&token.plannedSourceBlobs.has(plannedSourceBlobKey(ref,path)));
 export async function immutableContent(repository,path,ref,token){
   if(/\.(zip|gz|png|jpg|jpeg|webp|pdf|woff2?|ttf|ico)$/i.test(path))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);
-  if(hasPreparedSourceBlob(token,ref,path)){
+  if(shouldReadSealedSourceBlob(token,ref,path)){
     const value=await token.sourceReader.blobOrNull(ref,path);
     if(value===null)fail('DISPATCH_IMMUTABLE_BLOB_INVALID',path);
     try{const text=new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(value.body);if(text.includes('\0'))fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);return text;}
@@ -350,7 +350,7 @@ export async function immutableContent(repository,path,ref,token){
   catch{fail('DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',path);}
 }
 export async function contentBlobShaOrNull(repository,path,ref,token){
-  if(hasPreparedSourceBlob(token,ref,path))return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
+  if(shouldReadSealedSourceBlob(token,ref,path))return (await token.sourceReader.blobOrNull(ref,path))?.sha??null;
   const payload=await api(`/repos/${repository}/contents/${encodePath(path)}?ref=${ref}`,token);
   return payload?.type==='file'&&/^[0-9a-f]{40}$/.test(String(payload.sha))?payload.sha:null;
 }
@@ -413,7 +413,7 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
   }
   const explicitBudget=maxRequests!==null;
   token={...createDispatcherReadClient({token,fetchImpl,maxRequests:maxRequests??256}),sourceReader,
-    preparedSourceBlobs:new Set(),allowUnpreparedSourceFallback:sourceTransport};
+    plannedSourceBlobs:new Set(),allowUnpreparedSourceFallback:sourceTransport};
   const [branch,rulesets]=await Promise.all([api(`/repos/${repository}/branches/main`,token),api(`/repos/${repository}/rulesets`,token)]); const mainSha=branch.commit?.sha;
   const solo=(rulesets||[]).find(x=>x.name==='KAIOS Solo Owner Preflight'&&x.enforcement==='active');
   if(!solo) fail('DISPATCH_REQUIRED_RULESET_MISSING');
@@ -466,8 +466,8 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     sourceReader=createBoundedGitSourceReader({sourceShas:[...sources],readObject:producer.readObject,limits:{milliseconds:remaining}});
     for(const ref of sources)await sourceReader.commit(ref);
     for(const {pr,files} of plan)for(const file of files)for(const ref of new Set([mainSha,pr.base.sha,pr.head.sha])){
-      const prepared=await sourceReader.blobOrNull(ref,file.filename);
-      if(prepared!==null)token.preparedSourceBlobs.add(preparedSourceBlobKey(ref,file.filename));
+      const key=plannedSourceBlobKey(ref,file.filename);token.plannedSourceBlobs.add(key);
+      await sourceReader.blobOrNull(ref,file.filename);
     }
     sourceReader.seal();token.sourceReader=sourceReader;
     const freshMain=await api(`/repos/${repository}/branches/main`,token);

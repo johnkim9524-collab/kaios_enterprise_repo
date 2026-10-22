@@ -764,7 +764,7 @@ test('source preparation shares the same budget and preserves full bindings in a
 test('sealed source preparation falls back to exact-commit API reads for paths outside its frozen blob set',async()=>{
  const ref=sha('a'),path='scripts/kidults/kpmo/unprepared-policy.mjs',body=Buffer.from('export const value = 1;\n');let sourceReads=0;const apiPaths=[];
  const token={sourceReader:{hasSource:value=>value===ref,blobOrNull:async()=>{sourceReads++;throw Object.assign(new Error('SOURCE_BATCH_SEALED_OBJECT_MISSING'),{code:'SOURCE_BATCH_SEALED_OBJECT_MISSING',global:true});}},
-   preparedSourceBlobs:new Set(),allowUnpreparedSourceFallback:true,
+   plannedSourceBlobs:new Set(),allowUnpreparedSourceFallback:true,
    request:async url=>{apiPaths.push(url);return {type:'file',encoding:'base64',content:body.toString('base64'),sha:gitObjectId('blob',body)};}};
  assert.equal(await immutableContent(pr.base.repo.full_name,path,ref,token),body.toString());
  assert.equal(await contentBlobShaOrNull(pr.base.repo.full_name,path,ref,token),gitObjectId('blob',body));
@@ -772,6 +772,9 @@ test('sealed source preparation falls back to exact-commit API reads for paths o
  assert.ok(apiPaths.every(value=>value.endsWith(`?ref=${ref}`)));
  assert.equal(apiPaths.length,2);
  await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,{...token,request:async()=>({type:'file',encoding:'base64',content:body.toString('base64'),sha:sha('f')})}),/DISPATCH_IMMUTABLE_BLOB_INVALID/);
+ const planned={...token,plannedSourceBlobs:new Set([`${ref}\0${path}`])};
+ await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,planned),error=>error.code==='SOURCE_BATCH_SEALED_OBJECT_MISSING');
+ assert.equal(sourceReads,1);
 });
 test('shared request exhaustion cannot reset the API budget for POST or leave partial results',async()=>{
  const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-budget-'));
