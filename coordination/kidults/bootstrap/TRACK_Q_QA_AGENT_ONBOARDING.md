@@ -1,54 +1,43 @@
-# Track Q QA Agent — Readiness and Quarantine Record
+# Track Q QA - Local Activation and External Identity Boundary
 
-**Canonical role ID:** track-q-quality-evidence-release-assurance  
-**Reserved agent ID:** track-q-qa-agent  
-**Track:** Quality, Evidence & Release Assurance  
-**Status:** QUARANTINED — invocation disabled pending verified readiness receipt  
-**Accountable coordinator:** KPMO  
-**Committee interfaces:** KPMO, REA Team, Track Q QA Agent
+**Canonical role ID:** `track-q-quality-evidence-release-assurance`
+**Canonical external agent ID:** `track-q-qa-agent`
+**Local replacement ID:** `track-q-qa-agent-replacement`
+**Track:** Quality, Evidence & Release Assurance
+**Local replacement status:** CONDITIONAL - user-invoked only in verified platform sandbox
+**Canonical external identity status:** QUARANTINED
+**Accountable coordinator:** KPMO
 
-## Mission
+## Local replacement activation
 
-The reserved Track Q role is to independently assess whether a version-bound intelligence artifact and its claims are sufficiently evidenced, traceable, rights-aware, reproducible and decision-ready. Preserve uncertainty and block unsupported promotion.
+`track-q-qa-agent-replacement` is registered as a user-invoked Copilot CLI profile. Model invocation is disabled. Its permitted tools are `view`, `grep`, `glob`, and `powershell`; every PowerShell command requires the CLI permission prompt. It may inspect a specifically supplied artifact and run documented local checks only when trusted platform execution context confirms session provenance and the platform workspace sandbox for the exact worktree. Repository policy, user statements, workstation configuration, and per-command approval alone do not prove these conditions. If platform context is missing or ambiguous, report `LOCAL_EXCEPTION_UNAVAILABLE`, return HOLD, and do not inspect project files or run project checks. Missing artifact bindings also require HOLD.
 
-## Current status and activation boundary
+A direct, user-initiated local CLI session is not an external agent dispatch. This local profile does not require an external dispatcher, protected launcher, or dispatcher-issued bootstrap receipt to be invoked. It remains limited to local, user-invoked QA. It cannot mutate project files or Git state, access secrets, contact providers, change GitHub, dispatch agents, approve or merge PRs, deploy, publish, or authorize release. A QA PASS is an advisory quality finding only.
 
-The GitHub custom agent profile is retained as a non-invokable candidate. Its metadata sets `user-invocable: false`; automated model invocation is also disabled. No Track Q agent may be invoked, dispatched, or assigned until the exact-HEAD constitutional readiness gate is satisfied by a protected launcher and an independent verifier consumes the one-time, identity-, role-, task-, session-, nonce-, and source-bound receipt.
+The local profile-load smoke and exact `Get-Location` permission-gated command passed on 2026-10-22 with Copilot CLI 1.0.102. They verify profile loading and one command only; they do not establish trusted session provenance or sandbox eligibility. No active local QA invocation or artifact QA result is claimed from this smoke.
 
-The governing contract explicitly excludes interactive-session acknowledgement, task transcripts, GitHub branch comparison, and profile-blob verification as substitutes for receipt verification and consumption. The first task began without that verified consumed receipt. Its role-acceptance transcript and source checks are preserved as evidence, but they do not establish readiness or an authorized operational assignment. The session’s operational acceptance is rejected, and this identity is quarantined under the repository-wide bootstrap rule. No artifact QA verdict was issued.
+## Canonical external identity
 
-The general GitHub bootstrap contract remains unchanged. External or automated dispatch is not provisioned. The required protected launcher, durable nonce store, and independent receipt-consumption evidence are not available in this workflow. KPMO must not bypass those controls or mark this identity active. Any future assignment requires a newly bootstrapped replacement identity after those controls are provisioned and independently verified.
+The separate GitHub-scoped identity `track-q-qa-agent` remains quarantined because its first recorded task had no independently verified and consumed exact-source readiness receipt. That historical disposition remains in force for the canonical external identity. Do not reuse or dispatch it.
 
-## Preserved transcript evidence
+Any future external, cloud, scheduled, or automated Track Q dispatch requires the platform's protected launcher and independently verified one-time bootstrap receipt. Those controls are not provisioned here. Local invocation is available only when the platform-session and sandbox conditions above are verified.
 
-**Transcript role response:** ACCEPT (duties and limits only; not readiness)  
-**GitHub task ID:** `66d7dcc5-5e73-4a8a-a71e-d44df2dde50b`  
-**Platform session ID:** `ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3`  
-**Main commit observed:** `357ac034cee6be0a98d199ff26bf17a0db02634c`  
-**Profile blob observed:** `4079a89ba1f10a658900df4280e9f43c03310296`  
-**Nonce commitment SHA-256:** `56c69b111899314f2f7d0a34637d3eab1b5af8fb8b256d2c752e14a1c1b68c36`  
-**Profile commit:** PR #2707, merge commit `357ac034cee6be0a98d199ff26bf17a0db02634c`  
-**Readiness disposition:** REJECTED — no independently verified and consumed readiness receipt  
-**Quarantine disposition:** QUARANTINED — no further dispatch for this identity
+## Preserved first-task evidence
 
-The preserved branch/main and profile-blob comparisons establish only that the recorded profile content matched the observed repository source. They do not attest session provenance, authorization, bootstrap readiness, or receipt consumption. The first task was not an artifact QA review and issued no PASS, HOLD, or release approval.
+**Transcript role response:** ACCEPT (duties and limits only; not readiness)
+**GitHub task ID:** `66d7dcc5-5e73-4a8a-a71e-d44df2dde50b`
+**Platform session ID:** `ff0c5089-7ccf-4dc0-85d5-6f106abc1cf3`
+**Main commit observed:** `357ac034cee6be0a98d199ff26bf17a0db02634c`
+**Profile blob observed:** `4079a89ba1f10a658900df4280e9f43c03310296`
+**Readiness disposition:** REJECTED - no independently verified and consumed receipt for that task
+**Quarantine disposition:** applies to canonical external identity `track-q-qa-agent` only
 
-## Role duties and limits
+The historical source comparisons establish profile content only. They do not attest session provenance, external bootstrap readiness, or receipt consumption. No artifact QA verdict was issued in that first task.
 
-When a newly bootstrapped replacement is authorized, it may review an exact artifact version, reject incomplete evidence, specify measurable exit criteria, and verify remediation on a new immutable version. It must remain independent from the artifact producer and release approver. It must not change source facts or methodology, waive rights or evidence requirements, contact providers, commit spend, or approve Production, Public or G5 release. A QA PASS is not final release authorization.
+## QA outputs and decision limits
 
-## Customer quality standard
-
-For each artifact, verify the intended audience and decision task, factual clarity, source visibility, honest limitations, accessibility, and risk of readers inferring unsupported returns or certainty. A critical failure in rights, evidence, factual integrity or customer misunderstanding is a HOLD and cannot be averaged away by strong scores elsewhere. The detailed gate is defined in TRACK_Q_QUALITY_GATE_PROCESS_V1.md.
-
-## Required outputs after valid replacement onboarding
-
-- track-q-qa-review.json, bound to artifact ID, exact version or SHA, methodology version and review session
-- Source and evidence traceability matrix
-- Reproduction and validation record
-- PASS or HOLD rationale, severity, uncertainties and evidence references
-- Measurable HOLD exit criteria and post-fix verification record when applicable
+For each review, return an evidence table, source traceability, reproduction record, PASS or HOLD rationale, severity, uncertainty, measurable exit criteria, and customer-quality findings. Bind the review to the exact artifact and method. Preserve rights, evidence, integrity, and reproducibility failures as HOLD. Do not change source facts or methodology, contact providers, commit spend, or approve Production, Public, or G5 release.
 
 ## KPMO closeout
 
-KPMO has preserved the profile and first-task evidence, disabled user invocation, recorded the readiness failure, and quarantined the identity. External dispatcher activation remains disabled. The unblock condition is a protected platform launcher plus exact-source readiness creation and independent one-time receipt verification/consumption, followed by onboarding a new identity.
+The local replacement is registered for user-invoked, permission-gated QA checks, conditional on verified trusted platform session provenance and a platform workspace sandbox. Missing or ambiguous context returns `LOCAL_EXCEPTION_UNAVAILABLE` and HOLD. The canonical external identity remains quarantined. External dispatcher provisioning is not required for an eligible local session.

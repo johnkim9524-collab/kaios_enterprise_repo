@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "75fbaead0ab0296060c01c5aca2ed77ae44bc808",
+  "revision": "c91cef95121922a09d8c44ce9a013fe7c2330261",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 867
+    "file_count": 868
   },
   "files": [
     {
@@ -1293,8 +1293,8 @@
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QA_AGENT_ONBOARDING.md",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "851b5c489c28719ccaf083b8056a789da3713c28",
-      "sha256": "sha256:54eaeb09f0282b724941db80e91de45a1681a16dd84874ee31218fe17c8fc56a"
+      "git_blob": "791821cd15a74542cb7154d01f1ab9552e2d64df",
+      "sha256": "sha256:d9780e0504384300fa66e55e86818d008600ee9476260a267e38d4f6a822c7f5"
     },
     {
       "path": "coordination/kidults/bootstrap/TRACK_Q_QUALITY_GATE_PROCESS_V1.md",
@@ -2660,6 +2660,12 @@
       "sha256": "sha256:9972b171880811bffc2eaa7601ebb9e4b7d0925538a23c988085f29996bba4f7"
     },
     {
+      "path": "coordination/kidults/registry/profiles/track-q-qa-agent-replacement.agent.md",
+      "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
+      "git_blob": "da3ac5509a50855490be16e6b4e9a344ce6bd1d8",
+      "sha256": "sha256:ccc5c1fc7ff26bf09ddce9fe6e2bdcdc7e466c73dde7011e4c0ab40e71b809ef"
+    },
+    {
       "path": "coordination/kidults/registry/program-registry.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
       "git_blob": "d6e647ab4388391f3170cfd8c5067ff160646471",
@@ -2692,8 +2698,8 @@
     {
       "path": "coordination/kidults/registry/roles-and-responsibilities.json",
       "classification": "DOMAIN_ADJUDICATION_OR_DOCUMENTATION",
-      "git_blob": "cc87b2abcd91e7769065e338b52fe8e6fc190295",
-      "sha256": "sha256:65e0ea06a9d14d37107b379154e5b0f4ec1309f7594b1da96baa2e06e6a32f2a"
+      "git_blob": "45600ccddc2d928c9fc3785e8f22c2cce8e0219c",
+      "sha256": "sha256:3cfab5d1be1f6fa0468a2808cc4054023008be297d8bbd8f82845337b29d8117"
     },
     {
       "path": "coordination/kidults/registry/track/records/track-r-independent-red-team.json",
@@ -3551,8 +3557,8 @@
     {
       "path": "scripts/governance/validate-ai-agent-operating-rules-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "a06ab150a41c06de502502793e1624179dbc7a21",
-      "sha256": "sha256:df64c6f70369768c39497bddfa19860f3b295f6783619747d2cf8e70f08ead66",
+      "git_blob": "c56b60abdf09e0f173396a67954aea69fd659ecd",
+      "sha256": "sha256:3783b3fe512d6972ecf85f6a30969bf33aa683248fde06ae31faf4c3c22c62a3",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7304,5 +7310,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:ade653bd5b90041548579e3c42b28b83b6cc25bc0213fdc9ada4ee8b5b592848"
+  "manifest_sha256": "sha256:693428d8157bd6e0650c7e2c6f4158d7399239ca37a14af7d03284228155e8f1"
 }
