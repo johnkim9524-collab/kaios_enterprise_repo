@@ -1,6 +1,6 @@
 {
   "id": "kidults-autonomous-internal-landing-policy-v1",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "status": "MANDATORY_FAIL_CLOSED",
   "authority": "AI-020_DELEGATED_AUTONOMOUS_INTERNAL_AUTHORITY",
   "normal_path": "AUTONOMOUS_DRAFT_OR_READY_TO_ATOMIC_FINALIZER",
@@ -594,8 +594,8 @@
       "scripts/kidults/kpmo/lib/bounded-git-pack-decoder-v1.mjs": "sha256:1ee644c9d96944c6f9e2ed8d3a8eb7d52085dda93bf5d02323c700850f99eada",
       "scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs": "sha256:513a65fdfaf4d6a199464ca178a15e632c7dc9fb15c29cb6a1e542358322d32e",
       "scripts/kidults/kpmo/lib/bounded-git-source-profile-v1.mjs": "sha256:2c89c22203c4a914e8751e576d757584b592417c64e8c7df8f0a7369e19f6484",
-      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:420a513274057f2bd85af8d57dfe7bd1eb7d36b5e05dfe7b2d6a029335c68ae0",
-      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:c78e81932db6eee7ea1e4a3de554d86de6d48004bf236bc324ffe3aa8c22cc30"
+      "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs": "sha256:972d447ad08bdd0029fb3e1253cab2714ae77106d85ed6cc96341766d80cd61c",
+      "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs": "sha256:bb1f90647689b61458e69ad63a94677f8f18f567c53ab43a54a228c60dd2b83a"
     }
   }
 }
