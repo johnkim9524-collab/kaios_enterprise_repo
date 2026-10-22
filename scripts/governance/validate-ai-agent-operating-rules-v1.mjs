@@ -24,6 +24,8 @@ const files = {
   registry: 'coordination/kidults/registry/ai-agent-governance-registry-v1.json',
   roles: 'coordination/kidults/registry/roles-and-responsibilities.json',
   trackQProfile: '.github/agents/track-q-qa-agent.agent.md',
+  trackQRecord: 'coordination/kidults/registry/people-ai/records/agent-track-q.json',
+  peopleAiIndex: 'coordination/kidults/registry/people-ai/index.json',
   authorityChainPolicy: 'coordination/kidults/governance/authority-chain-change-unit-policy-v1.json',
   autonomousClosurePolicy: 'coordination/kidults/governance/autonomous-closure-ownership-policy-v1.json',
   triggerCompatibilityContract: 'coordination/kidults/governance/authority-chain-trigger-compatibility-v1.json',
