@@ -297,7 +297,7 @@ const flattenJson=(value,path='',out=new Map())=>{
 const yamlModel=source=>{
   if(typeof source!=='string') fail('CAPABILITY_SOURCE_MISSING');
   if(/\t/.test(source)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
-  const stack=[]; const values=new Map(); const sequenceIndexes=new Map();
+  const stack=[]; const values=new Map(); const sequenceIndexes=new Map(); const stepIdentityIndexes=new Map();
   const joined=parts=>parts.reduce((path,part)=>part.startsWith('[')?`${path}${part}`:path?`${path}.${part}`:part,'');
   const lines=source.split('\n');
   const blockScalar=(header,start,parentIndent)=>{
@@ -311,6 +311,21 @@ const yamlModel=source=>{
       body.push(next.slice(Math.min(bodyIndent,parentIndent+2)));end+=1;
     }
     return {value:`${header}\n${body.join('\n')}`,end};
+  };
+  const stepIdentity=(start,indent)=>{
+    const properties=new Map();
+    for(let cursor=start;cursor<lines.length;cursor+=1){
+      const raw=lines[cursor];
+      if(cursor>start&&raw.trim()&&raw.match(/^ */)[0].length===indent&&/^\s*-\s+/.test(raw))break;
+      if(!raw.trim())continue;
+      const match=raw.match(/^( *)-?\s*([A-Za-z_][\w-]*):(?:\s*(.*))?$/);
+      if(!match||match[1].length!==indent+2)continue;
+      let value=(match[3]??'').trim();
+      if(match[2]==='run')value=blockScalar(value,cursor,indent+2).value;
+      if(['id','name','uses','run'].includes(match[2])&&!properties.has(match[2]))properties.set(match[2],value);
+    }
+    for(const key of ['id','name','uses','run'])if(properties.has(key)&&properties.get(key))return key+':'+properties.get(key);
+    fail('CAPABILITY_STEP_IDENTITY_MISSING',String(start+1));
   };
   for(let index=0;index<lines.length;index+=1) {
     const raw=lines[index];
@@ -330,10 +345,21 @@ const yamlModel=source=>{
     while(stack.length&&stack.at(-1).indent>=indent) stack.pop();
     if(sequenceItem) {
       const parent=joined(stack.map(x=>x.key));
-      const counterKey=`${indent}:${parent}`;
-      const itemIndex=sequenceIndexes.get(counterKey)||0;
-      sequenceIndexes.set(counterKey,itemIndex+1);
-      const itemKey=`[${itemIndex}]`;
+      const counterKey=String(indent)+':'+parent;
+      let itemKey;
+      if(/^jobs\.[^.]+\.steps$/.test(parent)){
+        const identity=stepIdentity(index,indent);
+        const seenKey=parent+':'+identity;
+        const occurrence=(stepIdentityIndexes.get(seenKey)||0)+1;
+        stepIdentityIndexes.set(seenKey,occurrence);
+        const stableIdentity=identity+'#'+occurrence;
+        const kind=identity.slice(0,identity.indexOf(':'));
+        itemKey='[step:'+kind+':'+digest(stableIdentity)+']';
+      } else {
+        const itemIndex=sequenceIndexes.get(counterKey)||0;
+        sequenceIndexes.set(counterKey,itemIndex+1);
+        itemKey='['+itemIndex+']';
+      }
       const path=joined([...stack.map(x=>x.key),itemKey,key]);
       ({value,end:index}=blockScalar(value,index,indent));
       values.set(path,value||'{}');
@@ -559,6 +585,47 @@ const assertJsonMonotonic=(before,after,filename,files)=>{
   for(const [path,value] of right) if(!left.has(path)&&riskyValue.test(`${path}:${value}`)) fail('CAPABILITY_EXPANSION',`${filename}:${path}`);
 };
 
+const exactBoundedUpstreamAuditWorkflowDigests=Object.freeze([
+  'sha256:c88f3fe99647ef724ad3daa1bc252e454b7b45e90ea2ceb1d589b25e19b242d2',
+  'sha256:7fab9f8070328ea99cecc4a2e5ea5cb62dd3fb27987466f0ec829a390efdb8f2',
+]);
+const matchesExactBoundedUpstreamAuditWorkflow=file=>file?.filename==='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'
+  &&digest(file.base_content)===exactBoundedUpstreamAuditWorkflowDigests[0]
+  &&digest(file.head_content)===exactBoundedUpstreamAuditWorkflowDigests[1];
+const matchesExactUpstreamAuditJobsRead=(filename,path,value,left,right)=>{
+  const workflow='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml';
+  const exactPathSuffix='steps[step:id:'+digest('id:upstream-audit#1')+'].run';
+  if(filename!==workflow||!path.endsWith(exactPathSuffix))return false;
+  const match=path.match(/^jobs\.([^.]+)\.steps\[step:id:[^\]]+\]\.run$/);
+  if(!match)return false;
+  const permission='jobs.'+match[1]+'.permissions.actions';
+  if(left.get(permission)!=='read'||right.get(permission)!=='read')return false;
+  const exact=[
+    '|',
+    'set -euo pipefail',
+    '[[ "$UPSTREAM_RUN_ID" =~ ^[1-9][0-9]*$ ]]',
+    "gh api -H 'Accept: application/vnd.github+json' \\",
+    '  "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/jobs?filter=latest&per_page=100" \\',
+    '  > "$RUNNER_TEMP/upstream-assurance-jobs.json"',
+    'jq -e \'',
+    '  (.jobs | type == "array") and',
+    '  (.total_count == (.jobs | length)) and',
+    '  ([.jobs[] | select(.name == "audit")] | length == 1)',
+    '\' "$RUNNER_TEMP/upstream-assurance-jobs.json" >/dev/null',
+    'AUDIT_CONCLUSION=$(jq -r \'[.jobs[] | select(.name == "audit")][0].conclusion // ""\' \\',
+    '  "$RUNNER_TEMP/upstream-assurance-jobs.json")',
+    'if [ "$AUDIT_CONCLUSION" = success ]; then',
+    '  echo \'audit_succeeded=true\' >> "$GITHUB_OUTPUT"',
+    'elif [ "$AUDIT_CONCLUSION" = skipped ]; then',
+    '  echo \'audit_succeeded=false\' >> "$GITHUB_OUTPUT"',
+    '  echo \'::notice::ASSURANCE_AUDIT_SKIPPED; exact-main operating reconciliation is not applicable\'',
+    'else',
+    '  echo "ASSURANCE_AUDIT_NOT_SUCCESSFUL:$AUDIT_CONCLUSION" >&2',
+    '  exit 1',
+    'fi',
+  ].join('\n');
+  return value===exact;
+};
 const assertWorkflowDelta=(before,after,filename)=>{
   const left=yamlModel(before||''); const right=yamlModel(after||'');
   for(const [path,value] of left) {
@@ -567,7 +634,7 @@ const assertWorkflowDelta=(before,after,filename)=>{
   }
   for(const [path,value] of right) {
     if(left.has(path)&&left.get(path)===value) continue;
-    if(/^on(?:\.|$)/.test(path)||/\.environment$/.test(path)||/\.secrets(?:\.|$)/.test(path)||riskyValue.test(`${path}:${value}`)) fail('CAPABILITY_EXPANSION',`${filename}:${path}`);
+    if(/^on(?:\.|$)/.test(path)||/\.environment$/.test(path)||/\.secrets(?:\.|$)/.test(path)||(riskyValue.test(`${path}:${value}`)&&!matchesExactUpstreamAuditJobsRead(filename,path,value,left,right))) fail('CAPABILITY_EXPANSION',`${filename}:${path}`);
     const permission=path.match(/(?:^|\.)permissions\.([^.]+)$/);
     if(permission&&writeKey.test(permission[1])&&/^write$/i.test(value)) fail('CAPABILITY_PERMISSION_EXPANSION',`${filename}:${path}`);
   }
@@ -679,7 +746,8 @@ export const evaluateSemanticCapabilityDelta=({files,policy,ownerDecision=null})
     const exactStagingBudgetWorkflow=matchesExactStagingBudgetWorkflow(file);
     const exactPlatformAssuranceWorkflow=matchesExactPlatformAssuranceReadResumeWorkflow(file);
     if(filename.endsWith('.yml')||filename.endsWith('.yaml')){
-      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow)assertWorkflowDelta(file.base_content,file.head_content,filename);
+      const exactBoundedUpstreamAuditWorkflow=matchesExactBoundedUpstreamAuditWorkflow(file);
+      if(!exactPoolingReadTransport&&!exactRecoveryAdmission&&!exactStagingBudgetWorkflow&&!exactPlatformAssuranceWorkflow&&!exactBoundedUpstreamAuditWorkflow)assertWorkflowDelta(file.base_content,file.head_content,filename);
     }
     else if(derivedApprovalMetadataPaths.has(filename)&&isDerivedApprovalMetadataShape(file.base_content,filename)&&isDerivedApprovalMetadataShape(file.head_content,filename)) assertDerivedApprovalMetadataDelta(file.base_content,file.head_content,filename,files);
     else if(filename.endsWith('.json')) { assertAutonomousPolicyAuthorityFields(file.base_content,file.head_content,filename,files); assertJsonMonotonic(file.base_content,file.head_content,filename,files); }
