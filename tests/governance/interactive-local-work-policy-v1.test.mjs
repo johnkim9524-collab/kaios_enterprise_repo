@@ -6,6 +6,9 @@ const local=p.interactive_local_work_policy;
 const bootstrap=JSON.parse(fs.readFileSync('coordination/kidults/governance/ai-agent-bootstrap-remediation-sequence-v1.json','utf8'));
 const registry=JSON.parse(fs.readFileSync('coordination/kidults/registry/ai-agent-governance-registry-v1.json','utf8'));
 const roles=JSON.parse(fs.readFileSync('coordination/kidults/registry/roles-and-responsibilities.json','utf8'));
+const readiness=JSON.parse(fs.readFileSync('coordination/kidults/governance/agent-constitutional-readiness-manifest-v1.json','utf8'));
+const trackQ=readiness.interactive_agent_profile_exceptions?.find((x)=>x.agent_id==='track-q-qa-agent');
+const profile=fs.readFileSync('.github/agents/track-q-qa-agent.agent.md','utf8');
 const ai020=JSON.parse(fs.readFileSync('coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json','utf8'));
 test('interactive local sandbox work retains resume reconciliation and needs no external launcher receipt',()=>{
   assert.equal(local.eligible_session,'USER_INITIATED_PLATFORM_MANAGED_INTERACTIVE_SESSION');
@@ -59,4 +62,25 @@ test('local exception does not weaken global bootstrap, readiness, or AI-020 Own
   assert.ok(ai020.owner_reserved_actions.includes('TRUST_ROOT_OR_RULESET_WEAKENING'));
   assert.equal(Object.hasOwn(local,'owner_reserved_actions'),false);
   assert.equal(Object.hasOwn(local,'grants_owner_authority'),false);
+});
+
+test('Track Q is user-selected and editable with bounded sandbox execution',()=>{
+  assert.ok(trackQ);
+  assert.deepEqual(trackQ.allowed_tools_exact,['read','search','edit','execute']);
+  assert.deepEqual(trackQ.allowed_capabilities_exact,['REPOSITORY_READ','REPOSITORY_SEARCH','REPOSITORY_EDIT','SANDBOXED_TEST_EXECUTION']);
+  assert.equal(trackQ.invocation,'EXPLICIT_USER_SELECTION_FOR_EACH_TASK');
+  assert.equal(trackQ.model_invocation_enabled,false);
+  assert.equal(trackQ.bootstrap_receipt_required,false);
+  assert.equal(trackQ.constitutional_read_and_role_acceptance_required,true);
+  assert.equal(trackQ.independent_readiness_receipt_required,false);
+  assert.equal(trackQ.classified_as_external_dispatch,false);
+  assert.equal(trackQ.allows_external_agent_dispatch,false);
+  assert.equal(trackQ.allows_scheduled_or_automated_dispatch,false);
+  assert.equal(trackQ.allows_provider_calls_or_external_side_effects,false);
+  assert.equal(trackQ.allows_secrets,false);
+  assert.equal(trackQ.allows_github_mutation,false);
+  assert.equal(trackQ.allows_approval_merge_deploy_or_release,false);
+  assert.equal(trackQ.may_issue_pass_after_materially_editing_reviewed_artifact,false);
+  assert.ok(profile.includes('tools: ["read", "search", "edit", "execute"]'));
+  assert.match(profile,/Do not issue PASS for an artifact version you materially edited/);
 });

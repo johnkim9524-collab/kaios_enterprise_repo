@@ -58,7 +58,45 @@
       "bootstrap_verified_claim_without_consumed_receipt_allowed": false,
       "full_root_of_trust_claimed": false,
       "external_dispatchers_still_require_protected_launcher_and_verified_bootstrap": true
-    }
+    },
+    "interactive_agent_profile_exceptions": [
+      {
+        "profile_path": ".github/agents/track-q-qa-agent.agent.md",
+        "agent_id": "track-q-qa-agent",
+        "role_id": "track-q-quality-evidence-release-assurance",
+        "runtime": "GITHUB_COPILOT_CLOUD_AGENT",
+        "invocation": "EXPLICIT_USER_SELECTION_FOR_EACH_TASK",
+        "user_initiated": true,
+        "model_invocation_enabled": false,
+        "allowed_tools_exact": [
+          "read",
+          "search",
+          "edit",
+          "execute"
+        ],
+        "allowed_capabilities_exact": [
+          "REPOSITORY_READ",
+          "REPOSITORY_SEARCH",
+          "REPOSITORY_EDIT",
+          "SANDBOXED_TEST_EXECUTION"
+        ],
+        "platform_managed_repository_workspace_required": true,
+        "bootstrap_receipt_required": false,
+        "classified_as_external_dispatch": false,
+        "allows_scheduled_or_automated_dispatch": false,
+        "allows_external_agent_dispatch": false,
+        "allows_provider_calls_or_external_side_effects": false,
+        "allows_secrets": false,
+        "allows_github_mutation": false,
+        "allows_approval_merge_deploy_or_release": false,
+        "may_issue_pass_after_materially_editing_reviewed_artifact": false,
+        "edit_policy": "Make bounded repository changes only when the user requests remediation; bind each change to the finding and preserve prior versions.",
+        "qa_independence": "After materially editing an artifact, Track Q must not PASS that artifact version; require a new version and independent review.",
+        "missing_platform_workspace_context": "HOLD",
+        "constitutional_read_and_role_acceptance_required": true,
+        "independent_readiness_receipt_required": false
+      }
+    ]
   },
   "role_assignment_rule": "A named person, AI agent or service may perform a role only after exact-HEAD constitutional readiness and explicit acceptance of its mission, authority limits, required outputs, prohibitions, success measures and reporting cadence. One actor may temporarily hold multiple roles, but generation, independent validation and Production approval must remain separated.",
   "ai_agent_accountability_enforcement": {
@@ -710,8 +748,16 @@
         "profile_user_invocable": true,
         "model_invocation_disabled": true,
         "external_dispatch": "NOT_PROVISIONED",
-        "readiness_gate": "REQUIRED_FOR_AUTOMATED_OR_EXTERNAL_DISPATCH_ONLY",
-        "release_authority": false
+        "readiness_gate": "EXACT_HEAD_CONSTITUTIONAL_READ_AND_ROLE_ACCEPTANCE_REQUIRED; INDEPENDENT_RECEIPT_NOT_REQUIRED_FOR_DIRECT_USER_SELECTED_PROFILE",
+        "release_authority": false,
+        "allowed_tools_exact": [
+          "read",
+          "search",
+          "edit",
+          "execute"
+        ],
+        "allows_repository_edit_and_sandboxed_tests": true,
+        "may_issue_pass_after_materially_editing_reviewed_artifact": false
       },
       "activation_evidence": {
         "profile_path": ".github/agents/track-q-qa-agent.agent.md",

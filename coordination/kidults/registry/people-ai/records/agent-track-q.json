@@ -9,7 +9,7 @@
   ],
   "platform": "GitHub Copilot custom agent",
   "profile_path": ".github/agents/track-q-qa-agent.agent.md",
-  "activation_scope": "USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT",
+  "activation_scope": "USER_INVOKED_GITHUB_COPILOT_CUSTOM_AGENT_WITH_REPOSITORY_EDIT_AND_SANDBOXED_TESTS",
   "user_invocation_required": true,
   "persistent_external_principal": false,
   "external_dispatch_status": "NOT_PROVISIONED",
@@ -35,7 +35,15 @@
     "model_invocation": "DISABLED",
     "profile_path": ".github/agents/track-q-qa-agent.agent.md",
     "external_dispatch": "NOT_PROVISIONED",
-    "release_authority": false
+    "release_authority": false,
+    "allowed_tools": [
+      "read",
+      "search",
+      "edit",
+      "execute"
+    ],
+    "repository_edit_and_sandboxed_test_execution": true,
+    "self_review_after_material_edits": false
   },
   "historical_readiness": {
     "first_task_disposition": "REJECTED_NO_INDEPENDENTLY_VERIFIED_AND_CONSUMED_RECEIPT",
