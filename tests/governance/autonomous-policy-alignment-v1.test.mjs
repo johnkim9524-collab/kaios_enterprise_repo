@@ -424,6 +424,11 @@ test('unknown YAML indirection and unavailable blobs fail closed',()=>{
   }
 });
 
+test('GitHub Actions expression negation is treated as scalar syntax, not YAML indirection',()=>{
+  const source=workflow("\n    if: github.ref == 'refs/heads/main' && !github.event.workflow_run.head_repository.id\n");
+  assert.doesNotThrow(()=>evaluateSemanticCapabilityDelta({files:[semanticFile(source,{base_content:source})],policy:landing}));
+});
+
 test('workflow block scalars are parsed without weakening capability checks',()=>{
   const base=workflow('      - name: Script\n        run: |\n          set -euo pipefail\n          node scripts/validate.mjs\n');
   const safe=base.replace('    runs-on: ubuntu-24.04','    runs-on: ubuntu-24.04\n    timeout-minutes: 10');

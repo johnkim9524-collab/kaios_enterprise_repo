@@ -91,7 +91,8 @@ test('writer verifies KMS signatures and runner rejects caller-supplied workload
   assert.match(runner,/KIDULTS_AUTONOMOUS_WORKFLOW_REF/);
   assert.equal(runner.includes('AUTONOMOUS_EVENT_SENDER_ID_MISMATCH'),false);
   assert.match(runner,/AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED/);
-  assert.match(runner,/verification\?\.state!=='INDEPENDENT_CAPABILITY_VERIFIED'/);
+  assert.match(runner,/independentVerificationBasis\(\{verification,candidate\}\)/);
+  assert.match(fs.readFileSync('scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs','utf8'),/OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS/);
 });
 
 test('finalizer reservation is a single-winner lease and followers exit without merge authority', () => {

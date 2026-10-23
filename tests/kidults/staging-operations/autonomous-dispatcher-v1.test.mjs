@@ -17,7 +17,7 @@ import './primary-script-lexing-v1.test.mjs';
 import './independent-script-lexing-v1.test.mjs';
 import './dispatcher-recovery-classification-v1.test.mjs';
 import './exact-scope-owner-decision-v1.test.mjs';
-import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,dispatcherReadBudgetForCandidates,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate,immutableContent,contentBlobShaOrNull} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
+import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,dispatcherReadBudgetForCandidates,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate,immutableContent,contentBlobShaOrNull,validateDispatcherTrigger} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
 import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
@@ -334,7 +334,8 @@ assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'suc
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
 assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
 assert.doesNotMatch(dispatcherWorkflow,/workflow_run\.pull_requests\[0\]\.head\.repo\.full_name/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| github\.event\.issue\.number \|\| inputs\.pull_request/);
+assert.match(dispatcherWorkflow,/issue_comment:\s*\n\s+types: \[created\]/);
 assert.match(dispatcherWorkflow,/cancel-in-progress: false/);
 assert.match(dispatcherWorkflow,/required: true/);
 assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
@@ -734,6 +735,45 @@ for(const code of ['SOURCE_BATCH_SOURCE_NOT_REGISTERED','SOURCE_BATCH_OBJECT_MIS
 
 import {packFixture,packFixtureEntry} from './bounded-git-pack-decoder-v1.test.mjs';
 import {gitObjectId} from '../../../scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs';
+test('issue-comment wakeup binds one PR and rejects ordinary issue comments',()=>{
+  const event={issue:{number:2714,pull_request:{url:'https://api.github.com/repos/johnkim9524-collab/kaios_enterprise_repo/pulls/2714'}}};
+  const receipt=(value)=>validateDispatcherTrigger({eventName:'issue_comment',event:value,
+    repository:'johnkim9524-collab/kaios_enterprise_repo',repositoryId:'1281328888',sourceSha:sha('a'),ref:'refs/heads/main',runAttempt:'1'});
+  assert.equal(receipt(event).pull_request,2714);
+  assert.equal(receipt(event).authority_created,false);
+  assert.throws(()=>receipt({issue:{number:2714}}),/DISPATCH_TRIGGER_PR_BINDING_INVALID/);
+  assert.throws(()=>receipt({...event,issue:{...event.issue,pull_request:{url:'https://api.github.com/repos/other/repo/pulls/2714'}}}),/DISPATCH_TRIGGER_PR_BINDING_INVALID/);
+});
+test('current exact Owner comment routes semantic classification into the existing quorum only',async()=>{
+  const candidate={...pr,number:2714,base:{...pr.base,repo:{...pr.base.repo,owner:{login:'johnkim9524-collab',id:297161720}}}};
+  const filename='scripts/kidults/kpmo/internal-normalizer.mjs';
+  const baseContent='export const normalize=value=>value;\n',headContent="export const normalize=value=>'id-token';\n";
+  const scopeDigest='sha256:'+crypto.createHash('sha256').update(filename).digest('hex');
+  const body=`AI-020 Program Owner 결정 — PR #2714\n\nOwner: John\nGitHub 로그인: johnkim9524-collab\n저장소 ID: 1281328888\nPR: 2714\n\nBase SHA: ${sha('a')}\nHead SHA: ${sha('b')}\nHead tree SHA: ${sha('c')}\n변경 경로 수: 1\n변경 경로 SHA-256: ${scopeDigest}\n\n결정: APPROVE_EXACT_SCOPE\n\nDecision scope: KPMO approval and separate automated machine verifier quorum required for Ready and merge.\n\nProduction: HOLD\nPublic: HOLD\nG5: HOLD\nProvider 활성화: HOLD\n배포: HOLD`;
+  const comment={id:991,body,created_at:'2026-10-23T00:00:00Z',updated_at:'2026-10-23T00:00:00Z',author_association:'OWNER',user:{login:'johnkim9524-collab',id:297161720}};
+  const scan=async comments=>discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2714,policy,generationSeed:'1',fetchImpl:async url=>{
+    const u=new URL(url),p=u.pathname;
+    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
+    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
+    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
+    if(p.endsWith('/pulls/2714'))return fakeResponse(200,candidate);
+    if(p.endsWith('/files'))return fakeResponse(200,[{filename,status:'modified',patch:'@@ -1 +1 @@\\n-old\\n+new'}]);
+    if(p.endsWith('/git/commits/'+sha('b')))return fakeResponse(200,{tree:{sha:sha('c')}});
+    if(p.endsWith('/status'))return fakeResponse(200,{statuses:[]});
+    if(p.endsWith('/check-runs'))return fakeResponse(200,{check_runs:[{...input.checks[0],head_sha:sha('b')}]});
+    if(p.includes('/contents/')){const bytes=Buffer.from(u.searchParams.get('ref')===sha('a')?baseContent:headContent);return fakeResponse(200,{type:'file',encoding:'base64',content:bytes.toString('base64'),sha:gitObjectId('blob',bytes)});}
+    if(p.endsWith('/issues/2714/comments'))return fakeResponse(200,comments);
+    throw Error(`unexpected exact-scope fixture request: ${p}`);
+  }});
+  const denied=await scan([]);assert.notEqual(denied[0].state,'ELIGIBLE');
+  const stale=await scan([{...comment,body:body.replace(sha('b'),sha('d'))}]);assert.notEqual(stale[0].state,'ELIGIBLE');
+  const accepted=await scan([comment]);
+  assert.equal(accepted[0].state,'ELIGIBLE',JSON.stringify(accepted));
+  assert.equal(accepted[0].envelope.owner_decision.state,'OWNER_APPROVED_QUORUM_ONLY');
+  assert.equal(accepted[0].envelope.owner_decision.authority_created,false);
+  assert.equal(accepted[0].envelope.owner_decision.landing_authorization_created,false);
+  assert.equal(accepted[0].envelope.owner_decision.merge_authorized,false);
+});
 import {gitPacketLine as packet} from '../../../scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs';
 function sourceTransportScanFixture({drift=false,repositoryDrift=false,mainDrift=false,corrupt=false}={}){
  const repo=pr.base.repo.full_name,blob=Buffer.from('same bytes\n'),tree=Buffer.concat([Buffer.from('100644 file.mjs\0'),Buffer.from(gitObjectId('blob',blob),'hex')]);

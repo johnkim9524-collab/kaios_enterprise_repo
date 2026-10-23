@@ -6,7 +6,7 @@ const workflowDir = path.resolve('.github/workflows');
 const supersessionWorkflow = 'kpmo-exact-head-ci-supersession-v1.yml';
 const lifecycleWorkflow = 'kpmo-pr-lifecycle-integrity-v1.yml';
 const autonomousDispatcherWorkflow = 'kidults-autonomous-dispatcher-v1.yml';
-const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || inputs.pull_request }}';
+const dispatcherExactPrBinding = 'KIDULTS_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number || github.event.issue.number || inputs.pull_request }}';
 const dispatcherWorkflowRunRepositoryGuard = 'github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id';
 const dispatcherNativeRepositoryGuard = '((github.event.workflow_run.head_repository.id == github.repository_id && (!github.event.workflow_run.pull_requests[0].head.repo.id || github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id)) || (!github.event.workflow_run.head_repository.id && github.event.workflow_run.pull_requests[0].head.repo.id == github.repository_id))';
 const dispatcherJobGuard = `if: github.ref == 'refs/heads/main' && github.run_attempt == 1 && (github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request_target' && github.event.workflow_run.pull_requests[0].number > 0 && !github.event.workflow_run.pull_requests[1].number && ${dispatcherNativeRepositoryGuard}))`;
@@ -41,6 +41,8 @@ function autonomousDispatcherViolations(source) {
       || !source.includes(dispatcherRuntimeIdentityCall)) problems.push('DISPATCHER_RUNTIME_IDENTITY_VALIDATION_MISSING');
   if (!source.includes('ref: ${{ github.sha }}') || !source.includes('persist-credentials: false')) problems.push('DISPATCHER_TRUSTED_BASE_CHECKOUT_MISSING');
   if (!source.includes(dispatcherExactPrBinding)) problems.push('DISPATCHER_EXACT_PR_BINDING_MISSING');
+  if (!/issue_comment:\s*\n\s+types: \[created\]/.test(source)
+      || !source.includes('github.event.issue.number')) problems.push('DISPATCHER_OWNER_COMMENT_WAKEUP_MISSING');
   return problems;
 }
 
@@ -236,6 +238,7 @@ if (files.includes(autonomousDispatcherWorkflow)) {
     source.replace("github.event.workflow_run.conclusion == 'success'", 'true'),
     source.replace('          persist-credentials: false', '          persist-credentials: true'),
     source.replace(dispatcherExactPrBinding, 'KIDULTS_PR_NUMBER: ${{ inputs.pull_request }}'),
+    source.replaceAll('github.event.issue.number || ', ''),
     source.replace(dispatcherRecoverySchedule, "cron: '*/10 * * * *'"),
     source.replace('github.event.workflow_run.head_repository.id == github.repository_id', 'true'),
     source.replace('!github.event.workflow_run.head_repository.id && ', ''),
@@ -279,7 +282,7 @@ const receipt = {
     recovery_schedule: 'HOURLY',
     source_checkout: 'TRUSTED_BASE_ONLY',
     exact_pr_binding: true,
-    mutation_cases: 13
+    mutation_cases: 14
   },
   violations
 };

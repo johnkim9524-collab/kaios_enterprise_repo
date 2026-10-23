@@ -378,6 +378,14 @@ jobs:
           path: ${{ runner.temp }}/kidults-main-operating-proof/
           if-no-files-found: error
           retention-days: 90
+      - name: Preserve read-only rate wait checkpoint
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-github-read-resume-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/github-read-resume-v1/
+          if-no-files-found: ignore
+          retention-days: 90
 
   terminal-recovery-admission:
     name: Read-only recovery execution admission

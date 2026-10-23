@@ -185,7 +185,7 @@
     "audit_or_ci_can_approve_projection": false
   },
   "closure": {
-    "pr_head_success_is_sufficient": true,
+    "pr_head_success_is_sufficient": false,
     "merge_result_success_required": true,
     "protected_main_consecutive_successes_required": 0,
     "independent_review_required": false,

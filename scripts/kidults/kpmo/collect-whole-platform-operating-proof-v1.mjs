@@ -47,6 +47,17 @@ export function operatingProofFailureDisposition(error){
     result.read_diagnostic=error.read_diagnostic;
   return result;
 }
+export function buildOperatingProofFailureReceipt({contract,sourceSha,error}){
+  const disposition=operatingProofFailureDisposition(error);
+  const deferred=disposition.state==='VERIFIED_HOLD';
+  const failureBody={id:contract.id,source_sha:sourceSha,repository:REPOSITORY,
+    state:deferred?'VERIFIED_INCOMPLETE':'VERIFIED_FAIL',failure_class:disposition.reason,
+    whole_platform_runtime_proven:false,retry_authorized:false,
+    production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
+    operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:deferred?'VERIFIED_HOLD':'UNVERIFIED',
+      reason:disposition.reason,evidence_refs:[]}))};
+  return {...failureBody,receipt_digest:sha256(canonicalJson(failureBody))};
+}
 export function buildAutonomousOperatingCompletion({policy,runtimeReadiness,operatingChecks,normalTerminalProven}){
   const requiredChecks=policy?.required_operating_checks||[];
   const expectedChecks=['CORE_FOUR_CONTENT','DISTINCT_NATURAL_GENERATIONS','NATURAL_CHAIN_TERMINALS','PROTECTED_LANDING',
@@ -554,13 +565,10 @@ async function main(){
       whole_platform_runtime_proven:result.whole_platform_runtime_proven}));
     if(result.state==='VERIFIED_FAIL')process.exitCode=1;
   }catch(error){
-    const failureBody={id:contract.id,source_sha:sourceSha,repository:REPOSITORY,state:'VERIFIED_FAIL',
-      failure_class:String(error.message).split(':')[0],whole_platform_runtime_proven:false,retry_authorized:false,
-      production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
-      operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:'UNVERIFIED',reason:String(error.message).split(':')[0],evidence_refs:[]}))};
-    const failure={...failureBody,receipt_digest:sha256(canonicalJson(failureBody))};
+    const failure=buildOperatingProofFailureReceipt({contract,sourceSha,error});
     fs.mkdirSync(path.dirname(output),{recursive:true});if(!fs.existsSync(output))fs.writeFileSync(output,JSON.stringify(failure)+'\n',{flag:'wx',mode:0o600});
-    console.error(failure.failure_class);process.exitCode=1;
+    console.error(failure.failure_class);
+    if(failure.state==='VERIFIED_FAIL')process.exitCode=1;
   }
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href)await main();

@@ -136,6 +136,22 @@ export function independentlyVerifyLiveCandidate({candidate,policy}={}){
   return independentlyVerifyCapabilityDelta({files:candidate.files,policy,ownerDecision:candidate.owner_decision||null});
 }
 
+export function independentVerificationBasis({verification,candidate}={}){
+  if(verification?.state==='INDEPENDENT_CAPABILITY_VERIFIED')return 'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION';
+  if(verification?.state==='INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM'&&candidate?.owner_decision?.state==='OWNER_APPROVED_QUORUM_ONLY')
+    return 'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS';
+  fail('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED',verification?.state||'MISSING_RESULT');
+}
+
+export function assertIndependentVerificationDecisionBasis({envelope,verifier}={}){
+  const expected=envelope?.owner_decision
+    ?'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS'
+    :'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION';
+  if(verifier?.decision?.verification_basis!==expected)
+    fail(envelope?.owner_decision?'AUTONOMOUS_OWNER_SCOPE_VERIFICATION_BASIS_REQUIRED':'AUTONOMOUS_INDEPENDENT_VERIFICATION_BASIS_INVALID');
+  return true;
+}
+
 export const assertAutonomousFileScope = ({files, policy, ownerDecision=null, errorCode='AUTONOMOUS_OWNER_RESERVED_ACTION'}) => {
   if (!Array.isArray(files) || !policy) fail('AUTONOMOUS_CHANGED_FILE_SET_INVALID');
   const filenames=files.map(file=>typeof file==='string'?file:file?.filename);
@@ -238,8 +254,15 @@ export function validateWorkload(workload, registry, expectedRole) {
   return {role: expectedRole, stable_id: workload.workload_id, signing_key_arn: workload.signing_key_arn};
 }
 
-export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = [], headSha = envelope?.head_sha}) {
+export function deriveApprovalDecision({envelope, role, statuses = [], checks = [], requiredContexts = [], headSha = envelope?.head_sha, verificationBasis = null}) {
   if (!new Set(['KPMO','INDEPENDENT_VERIFIER']).has(role)) fail('AUTONOMOUS_DECISION_ROLE_INVALID');
+  if(role==='INDEPENDENT_VERIFIER'){
+    const expected=envelope?.owner_decision
+      ?'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS'
+      :'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION';
+    if(verificationBasis!==null&&verificationBasis!==expected)fail('AUTONOMOUS_INDEPENDENT_VERIFICATION_BASIS_INVALID');
+    if(envelope?.owner_decision&&verificationBasis!==expected)fail('AUTONOMOUS_OWNER_SCOPE_VERIFICATION_BASIS_REQUIRED');
+  }
   if (!SHA.test(String(headSha || ''))) fail('AUTONOMOUS_DECISION_HEAD_SHA_INVALID');
   if (!Array.isArray(statuses) || !Array.isArray(checks) || (!statuses.length && !checks.length)) fail('AUTONOMOUS_DECISION_EVIDENCE_MISSING');
   if (!Array.isArray(requiredContexts) || !requiredContexts.length) fail('AUTONOMOUS_DECISION_REQUIRED_CONTEXT_SET_EMPTY');
@@ -283,6 +306,7 @@ export function deriveApprovalDecision({envelope, role, statuses = [], checks = 
     head_sha:envelope.head_sha,head_tree_sha:envelope.head_tree_sha,scope_digest:envelope.scope_digest,
     owner_decision_digest:envelope.owner_decision?.comment_body_digest||null,
     test_evidence_digest:sha256(canonicalJson(testEvidence)),rollback_digest:sha256(canonicalJson(rollbackPlan)),
+    ...(role==='INDEPENDENT_VERIFIER'?{verification_basis:verificationBasis||'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION'}:{}),
   };
   return {
     ...envelope,
@@ -375,6 +399,7 @@ export function validateQuorum({kpmo, verifier, registry, policy, now = Date.now
     if (!core || value.decision.role!==role || value.decision.decision_digest!==sha256(canonicalJson(core))) fail('AUTONOMOUS_DERIVED_DECISION_INVALID',role);
     if (value.test_evidence?.source!=='GITHUB_LIVE_REQUIRED_CHECKS' || value.rollback_plan?.source!=='GITHUB_LIVE_EXACT_BINDING') fail('AUTONOMOUS_CALLER_ASSERTION_NOT_REPLACED',role);
   }
+  assertIndependentVerificationDecisionBasis({envelope:envelopes[0],verifier});
   return {
     state: 'INDEPENDENT_VERIFIED',
     binding: Object.fromEntries(tuple.map(field => [field, envelopes[0][field]])),
