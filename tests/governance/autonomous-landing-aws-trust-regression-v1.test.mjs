@@ -6,7 +6,7 @@ const template = JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomo
 
 const expected = {
   TrackApprovalRole: {environment:'TrackEnvironment',workflowRefs:['TrackWorkflowRef']},
-  KpmoApprovalRole: {environment:'KpmoEnvironment',workflowRefs:['KpmoWorkflowRef','TerminalRecoveryWorkflowRef']},
+  KpmoApprovalRole: {environment:'KpmoEnvironment',workflowRefs:['KpmoWorkflowRef']},
   VerifierApprovalRole: {environment:'VerifierEnvironment',workflowRefs:['VerifierWorkflowRef']},
 };
 const expectedSub = (environment, workflowRef) => ({
@@ -19,15 +19,17 @@ test('autonomous approval roles retain exact environment and workflow-ref OIDC s
     assert.equal(statement.Action, 'sts:AssumeRoleWithWebIdentity');
     assert.equal(statement.Condition.StringEquals['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
     const subjects = binding.workflowRefs.map(ref => expectedSub(binding.environment, ref));
+    if (logicalId === 'KpmoApprovalRole') subjects.push({
+      'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main',
+    });
     assert.deepEqual(statement.Condition.StringEquals['token.actions.githubusercontent.com:sub'], subjects.length === 1 ? subjects[0] : subjects);
   }
 });
 
-test('terminal recovery trust is limited to its exact protected-main workflow', () => {
-  const parameter = template.Parameters.TerminalRecoveryWorkflowRef;
-  const exactRef = 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main';
-  assert.equal(parameter.Default, exactRef);
-  assert.ok(new RegExp(parameter.AllowedPattern).test(exactRef));
+test('terminal recovery uses the exact protected-main workflow ref in the KPMO environment', () => {
+  const subjects = template.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0]
+    .Condition.StringEquals['token.actions.githubusercontent.com:sub'];
+  assert.equal(subjects[1]['Fn::Sub'], 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main');
 });
 test('autonomous approval environments and role names remain separation-of-duties distinct', () => {
   const environmentDefaults = ['TrackEnvironment', 'KpmoEnvironment', 'VerifierEnvironment']
