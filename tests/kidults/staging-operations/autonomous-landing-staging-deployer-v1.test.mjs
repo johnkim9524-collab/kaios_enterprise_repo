@@ -224,15 +224,7 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   });
   const source = JSON.stringify(bootstrap);
   assert.doesNotMatch(source, /"Resource":"\*"/);
-  assert.doesNotMatch(source, /iam:(CreateRole|DeleteRole|CreateUser|CreateAccessKey|DeleteRolePolicy)/);
-  const trustPolicyUpdate = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.filter(
-    statement => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('iam:UpdateAssumeRolePolicy'),
-  );
-  assert.deepEqual(trustPolicyUpdate, [{
-    Effect: 'Allow',
-    Action: ['iam:UpdateAssumeRolePolicy'],
-    Resource: 'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
-  }]);
+  assert.doesNotMatch(source, /iam:(CreateRole|DeleteRole|CreateUser|CreateAccessKey|UpdateAssumeRolePolicy|DeleteRolePolicy)/);
   const kmsRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
     statement => Array.isArray(statement.Action) && statement.Action.includes('kms:DescribeKey'),
   );
@@ -280,7 +272,7 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   ]);
 });
 
-test('PassRole and exact KPMO trust update are the only approved bootstrap deltas', () => {
+test('PassRole is the sole bootstrap delta from exact landed configuration closure', () => {
   // Canonical bootstrap JSON at exact main 34ff0ffc48c773d41ad7587233d69ea48b2f3282.
   const beforeDigest = 'fc59c7104f1f60be71550906972add2e443da66bc12c6c1607dd7bcf86d078f4';
   const after = structuredClone(bootstrap);
@@ -294,14 +286,6 @@ test('PassRole and exact KPMO trust update are the only approved bootstrap delta
     Condition: {StringEquals: {'iam:PassedToService': 'lambda.amazonaws.com'}},
   });
   statements.splice(statements.indexOf(passRole[0]), 1);
-  const trustPolicyUpdate = statements.filter(statement =>
-    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('iam:UpdateAssumeRolePolicy'));
-  assert.deepEqual(trustPolicyUpdate, [{
-    Effect: 'Allow',
-    Action: ['iam:UpdateAssumeRolePolicy'],
-    Resource: 'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
-  }]);
-  statements.splice(statements.indexOf(trustPolicyUpdate[0]), 1);
   assert.equal(createHash('sha256').update(JSON.stringify(stable(after))).digest('hex'), beforeDigest,
     'all existing permissions, resources, trust, and properties remain exact');
 });

@@ -144,13 +144,6 @@
                       "iam:PassedToService": "lambda.amazonaws.com"
                     }
                   }
-                },
-                {
-                  "Effect": "Allow",
-                  "Action": [
-                    "iam:UpdateAssumeRolePolicy"
-                  ],
-                  "Resource": "arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role"
                 }
               ]
             }
