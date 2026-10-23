@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING ledger, receipt sink, and OIDC roles.",
+  "Description": "KIDULTS STAGING ledger.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -76,7 +76,7 @@
     "AutonomousLedgerKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KIDULTS STAGING autonomous landing ledger key",
+        "Description": "Ledger key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",
@@ -405,7 +405,7 @@
     "TrackApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key",
+        "Description": "Track key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -588,7 +588,7 @@
     "KpmoApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KIDULTS STAGING KPMO approval signing key",
+        "Description": "KPMO key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -650,9 +650,14 @@
               "Condition": {
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                  "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
-                  }
+                  "token.actions.githubusercontent.com:sub": [
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main"
+                    }
+                  ]
                 }
               }
             }
@@ -771,7 +776,7 @@
     "VerifierApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key",
+        "Description": "Verifier key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -954,7 +959,7 @@
     "FinalizerSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KIDULTS STAGING FINALIZER signing key",
+        "Description": "Finalizer key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -1275,7 +1280,7 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "Description": "KIDULTS STAGING immutable autonomous landing receipt key",
+        "Description": "Receipt key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",

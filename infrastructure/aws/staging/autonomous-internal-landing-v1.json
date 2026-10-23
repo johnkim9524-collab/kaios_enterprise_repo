@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING ledger, receipt sink, and OIDC roles.",
+  "Description": "KIDULTS STAGING ledger.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -115,7 +115,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING autonomous landing ledger key"
+        "Description": "Ledger key"
       }
     },
     "AutonomousLedgerKeyAlias": {
@@ -454,7 +454,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key"
+        "Description": "Track key"
       }
     },
     "TrackApprovalRole": {
@@ -616,7 +616,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING KPMO approval signing key"
+        "Description": "KPMO key"
       }
     },
     "KpmoApprovalRole": {
@@ -638,9 +638,14 @@
               "Condition": {
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                  "token.actions.githubusercontent.com:sub": {
-                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
-                  }
+                  "token.actions.githubusercontent.com:sub": [
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                    },
+                    {
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main"
+                    }
+                  ]
                 }
               }
             }
@@ -778,7 +783,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key"
+        "Description": "Verifier key"
       }
     },
     "VerifierApprovalRole": {
@@ -940,7 +945,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING FINALIZER signing key"
+        "Description": "Finalizer key"
       }
     },
     "FinalizerRole": {
@@ -1260,7 +1265,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING immutable autonomous landing receipt key"
+        "Description": "Receipt key"
       }
     },
     "AutonomousReceiptKeyAlias": {

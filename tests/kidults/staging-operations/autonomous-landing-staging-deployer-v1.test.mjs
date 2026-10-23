@@ -388,6 +388,58 @@ test('template validator accepts only the exact three-role Query delta and exact
 });
 
 
+
+test('template validator accepts only the exact terminal recovery OIDC subject and bounded KMS description reductions', () => {
+  const current = structuredClone(desired);
+  current.Description = 'KIDULTS STAGING ledger, receipt sink, and OIDC roles.';
+  const priorDescriptions = {
+    TrackApprovalSigningKey: 'KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key',
+    VerifierApprovalSigningKey: 'KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key',
+    AutonomousReceiptKey: 'KIDULTS STAGING immutable autonomous landing receipt key',
+    AutonomousLedgerKey: 'KIDULTS STAGING autonomous landing ledger key',
+    KpmoApprovalSigningKey: 'KIDULTS STAGING KPMO approval signing key',
+    FinalizerSigningKey: 'KIDULTS STAGING FINALIZER signing key',
+  };
+  for (const [logicalId, description] of Object.entries(priorDescriptions))
+    current.Resources[logicalId].Properties.Description = description;
+  current.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0]
+    .Condition.StringEquals['token.actions.githubusercontent.com:sub'] =
+      {'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}'};
+
+  const changes = [{
+    ResourceChange: {
+      Action: 'Modify', LogicalResourceId: 'KpmoApprovalRole', ResourceType: 'AWS::IAM::Role', Replacement: 'False',
+      Details: [{Target: {Attribute: 'Properties', Name: 'AssumeRolePolicyDocument'}, ChangeSource: 'DirectModification'}],
+    },
+  }, ...Object.keys(priorDescriptions).map(LogicalResourceId => ({ResourceChange: {
+    Action: 'Modify', LogicalResourceId, ResourceType: 'AWS::KMS::Key', Replacement: 'False',
+    Details: [{Target: {Attribute: 'Properties', Name: 'Description'}, ChangeSource: 'DirectModification'}],
+  }}))];
+  const changeSet = {Status: 'CREATE_COMPLETE', Changes: changes};
+
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+
+  const widened = structuredClone(desired);
+  widened.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0]
+    .Condition.StringEquals['token.actions.githubusercontent.com:sub'][1] =
+      {'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:*'};
+  withFixture({current, desired: widened}, directory => {
+    const result = spawnSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+    ], {encoding: 'utf8'});
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /KPMO_TERMINAL_RECOVERY_SUBJECT_INVALID/);
+  });
+});
+
 test('template validator accepts deployed Query state that still lacks bounded ledger decrypt', () => {
   const current = structuredClone(desired);
   for (const logicalId of roleIds) {
