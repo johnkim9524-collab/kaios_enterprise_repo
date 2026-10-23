@@ -213,15 +213,15 @@ class InterruptedReservationRecoveryLedger:
             # Authoritative role rows were signature-verified on creation by
             # the unchanged core; recompute their exact persisted quorum.
             approvals = []
-            for role in ROLES:
+            for role in ROLES[1:]:
                 approval = self.get({'pk': {'S': 'AUTH#' + b['authorization_generation']}, 'sk': {'S': 'ROLE#' + role}})
-                raw = base64.b64decode(approval.get('envelope', {}).get('S', ''), validate=True).decode()
-                a = json.loads(raw)
+                require(approval.get('envelope', {}).get('S'), 'ORIGINAL_PERSISTED_QUORUM')
+                a = json.loads(base64.b64decode(approval['envelope']['S'], validate=True).decode())
                 require(digest(a) == approval.get('envelope_digest', {}).get('S') and all(a.get(k) == v for k, v in b.items())
                         and all(a.get('workload', {}).get(k) == self.roles[role][k] for k in ('signing_key_arn', 'workload_id', 'environment')), 'ORIGINAL_PERSISTED_QUORUM')
                 approvals.append(a)
-            require(len({a['workload']['run_id'] for a in approvals}) == 3 and t['quorum_digest'] == 'sha256:' + hashlib.sha256('\n'.join(sorted(digest(a) for a in approvals)).encode()).hexdigest(), 'ORIGINAL_QUORUM_DIGEST')
-            expected_workloads = [{'role': role, 'stable_id': a['workload']['workload_id'], 'signing_key_arn': a['workload']['signing_key_arn']} for role, a in zip(ROLES, approvals)]
+            require(len({a['workload']['run_id'] for a in approvals}) == 2 and t['quorum_digest'] == 'sha256:' + hashlib.sha256('\n'.join(sorted(digest(a) for a in approvals)).encode()).hexdigest(), 'ORIGINAL_QUORUM_DIGEST')
+            expected_workloads = [{'role': role, 'stable_id': a['workload']['workload_id'], 'signing_key_arn': a['workload']['signing_key_arn']} for role, a in zip(ROLES[1:], approvals)]
             require(t['workloads'] == expected_workloads, 'ORIGINAL_WORKLOADS')
             require(row.get('state', {}).get('S') == 'RESERVED', 'ORIGINAL_ALREADY_CONSUMED_NO_RETRY')
             values = {':reserved': {'S': 'RESERVED'}, ':consumed': {'S': 'CONSUMED'}, ':run': {'S': event['run_id']}, ':head': {'S': event['head_sha']}, ':merge': {'S': event['merge_sha']}, ':terminal': {'S': canonical(t)}, ':digest': {'S': terminal_digest}}

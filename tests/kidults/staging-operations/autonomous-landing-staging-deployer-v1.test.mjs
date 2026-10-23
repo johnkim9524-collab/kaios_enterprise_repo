@@ -44,10 +44,10 @@ const failureAssuranceCapsuleTemplate = () => {
   current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=zip;
   return current;
 };
-test('exact failure-Assurance capsule upgrades to original terminal repair with Code-only non-replacing change set',()=>{
+test('exact failure-Assurance capsule upgrades to PR2718 terminal quorum fix with Code-only non-replacing change set',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
-    '6a70ded582e20e1ffc76d49ef45db92e3f3b9ddf6a8290ada936bf5a1d51f5d4');
+    '916cf9acf574769e47e7ead115d0295d1a865049e0c2bf5a169bfa1c8a1f7e02');
   const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
     ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
   withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{
