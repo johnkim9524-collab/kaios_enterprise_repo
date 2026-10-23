@@ -1,0 +1,16 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "AUTONOMOUS_NORMAL_OPERATIONS_CLOSURE_MISSION",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "80cbcf8b60bcd20148598f4378c318ee13744bc5",
+  "head_branch": "codex/kpmo-proof-session-lifetime-20261023",
+  "source_head_sha": "9678e01d36790204e5aa6013db741c46f7fadb8e",
+  "source_head_tree_sha": "accfad4edb22635e3adb845356dd064d2abec816",
+  "canonical_proposal_payload": "{\"base\":\"main\",\"body\":\"## 확인된 장애\\n정확한 main SHA 80cbcf8b60bcd20148598f4378c318ee13744bc5의 KPMO proof run #39912459646가 실패했습니다. 저장된 결과에는 일반 오류 `Command failed`만 있고 AWS 오류 코드는 남지 않았습니다. 따라서 과거 실패의 단일 원인을 확정하지 않습니다. 다만 KPMO collector의 AWS 세션 900초가 공유 읽기 제한 시간 900초와 같아, 제한 시간 종료 전에 체크포인트를 저장할 여유가 없었던 구성 결함을 수정했습니다.\\n\\n같은 SHA의 Sentinel run #39913118768은 2,100초 동안 15초 간격으로 4개 producer 인덱스를 조회하다 `GITHUB_READ_DEFERRED`를 기록했습니다. 이 빈도는 repository 공유 읽기 한도 480회/시간과 맞지 않았습니다.\\n\\n## 교정\\n- KPMO proof 수집의 AWS 세션을 900초에서 1,800초로 늘려 읽기 제한 종료 뒤에도 체크포인트를 보존할 시간을 둡니다.\\n- KMS/Lambda 오류는 허용된 작업명과 안전한 오류 코드만 receipt에 보존합니다. stderr, 요청 payload, 자격 증명은 보존하지 않으며 재시도나 권한은 부여하지 않습니다.\\n- Sentinel producer 확인 간격을 15초에서 90초로 조정합니다. 35분 대기 기준 observer당 최대 96회, 동시 observer 3개 기준 288회로 공유 예산 480회보다 낮습니다.\\n\\n## 검증\\n- 관련 proof/budget 회귀: 39/39 통과\\n- collector/recovery 회귀: 44/44 통과\\n- Sentinel/Assurance 회귀: 153/153 통과(일부 테스트 묶음 간 중복 포함)\\n- `git diff --check` 및 autonomous approval envelope 검증 통과\\n- delegated-authority validator는 이 격리 worktree에 `ajv`가 없어 실행 불가로 남겼습니다.\\n\\n기존 Sentinel #39914293368과 Assurance #39914740444는 성공했지만 이 교정 전 실행입니다. 이 후보 커밋에 대한 자연 실행 검증은 아직 없습니다.\\n\\n초안 제안만 요청합니다. Ready, 승인, 병합, 수동 workflow dispatch, 배포 또는 승격은 요청하지 않습니다. Production/Public/G5 및 provider activation은 HOLD로 유지합니다.\",\"draft\":true,\"head\":\"codex/kpmo-proof-session-lifetime-20261023\",\"repository\":\"johnkim9524-collab/kaios_enterprise_repo\",\"title\":\"fix(kpmo): prevent Assurance proof read failures\"}",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false,
+  "payload_digest": "sha256:fa9969e4da478421acfe5e685acce1093500fea85632840c671fb5aa8ce21daf"
+}

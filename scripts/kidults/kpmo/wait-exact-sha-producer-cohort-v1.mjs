@@ -3,7 +3,10 @@ import process from 'node:process';
 import {SPECS, workflowRuns} from './resolve-continuous-assurance-sentinel-health-v1.mjs';
 
 export const DEFAULT_MAX_WAIT_SECONDS = 2100;
-const POLL_SECONDS = 15;
+// Four exact-SHA producers share the repository-wide read allowance. A 90s
+// cadence bounds one full wait to at most 96 producer-index reads, leaving
+// headroom for concurrent Sentinel observers and other authorized readers.
+export const DEFAULT_POLL_SECONDS = 90;
 
 export function classifyProducerCohort(rows) {
   if (rows.some((row) => row.state === 'INDEX_ERROR')) return {state: 'INDEX_ERROR'};
@@ -99,7 +102,7 @@ export async function waitForCohort({
   sha,
   token,
   maxWaitSeconds = DEFAULT_MAX_WAIT_SECONDS,
-  pollSeconds = POLL_SECONDS,
+  pollSeconds = DEFAULT_POLL_SECONDS,
   read = readCohort,
   triggerRunId = '',
   triggerRunAttempt = '',

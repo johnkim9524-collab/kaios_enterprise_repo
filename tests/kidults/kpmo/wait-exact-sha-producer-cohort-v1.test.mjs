@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {classifyProducerCohort, DEFAULT_MAX_WAIT_SECONDS,waitForCohort,selectCausalExactRun} from '../../../scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs';
+import {classifyProducerCohort, DEFAULT_MAX_WAIT_SECONDS, DEFAULT_POLL_SECONDS, waitForCohort, selectCausalExactRun} from '../../../scripts/kidults/kpmo/wait-exact-sha-producer-cohort-v1.mjs';
 
 test('authenticated Coverage parent is selected even when a newer same-SHA run fails',()=>{
   const spec={path:'.github/workflows/coverage.yml',events:['workflow_run']},sha='a'.repeat(40);
@@ -30,6 +30,15 @@ test('cohort passes only when all four producers succeed', () => {
 
 test('cohort timeout spans the full natural reserve window', () => {
   assert.equal(DEFAULT_MAX_WAIT_SECONDS, 2100);
+});
+
+test('producer polling stays within the shared read budget across three concurrent Sentinels', () => {
+  assert.equal(DEFAULT_POLL_SECONDS, 90);
+  const pollsPerSentinel = Math.ceil(DEFAULT_MAX_WAIT_SECONDS / DEFAULT_POLL_SECONDS);
+  const worstCaseReads = pollsPerSentinel * 4 * 3;
+  assert.equal(pollsPerSentinel, 24);
+  assert.equal(worstCaseReads, 288);
+  assert.ok(worstCaseReads < 480, 'three full-window observers must leave shared-budget headroom');
 });
 
 test('waiter consumes the original deadline and cannot issue a fresh 2100-second budget',async()=>{

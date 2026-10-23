@@ -91,6 +91,12 @@ test('a deferred read stays HOLD and produces incomplete, non-authorizing proof'
   const failure=buildOperatingProofFailureReceipt({contract:{id:'kidults-whole-platform-operating-proof-v1'},sourceSha:source,error:Error('HTTP_403_PERMISSION')});
   assert.equal(failure.state,'VERIFIED_FAIL');assert.equal(failure.failure_class,'HTTP_403_PERMISSION');
   assert.ok(failure.operating_checks.every(check=>check.state==='UNVERIFIED'));
+  const expired=Error('SHARED_GITHUB_READ_LAMBDA_AWS_LAMBDA_INVOKE_EXPIREDTOKENEXCEPTION');
+  expired.failure_diagnostic={id:'kidults-aws-command-failure-diagnostic-v1',version:'1.0.0',operation:'lambda.invoke',
+    code:'EXPIREDTOKENEXCEPTION',retry_authorized:false,actual_authority_granted:false,promotion_eligible:false};
+  const expiredProof=buildOperatingProofFailureReceipt({contract:{id:'kidults-whole-platform-operating-proof-v1'},sourceSha:source,error:expired});
+  assert.equal(expiredProof.failure_class,'SHARED_GITHUB_READ_LAMBDA_AWS_LAMBDA_INVOKE_EXPIREDTOKENEXCEPTION');
+  assert.deepEqual(expiredProof.failure_diagnostic,expired.failure_diagnostic);
   assert.throws(()=>observeInternalOperatingRecovery(proof,'b'.repeat(40)),/SOURCE_BINDING/);
 });
 test('complete observation embeds only strictly verified internal recovery',()=>{
