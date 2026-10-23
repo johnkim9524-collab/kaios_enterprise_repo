@@ -3,7 +3,7 @@ run-name: "KIDULTS Autonomous KPMO Authorization V1 ${{ github.event.action }}"
 
 on:
   workflow_run:
-    workflows: ['KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1']
+    workflows: ['KIDULTS Platform Continuous Assurance V1']
     types: [completed]
     branches: [main]
   repository_dispatch:

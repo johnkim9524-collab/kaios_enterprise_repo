@@ -1,0 +1,113 @@
+name: KPMO Continuous Assurance Terminal Recovery V1
+run-name: "KPMO Continuous Assurance Terminal Recovery V1 ${{ github.event.workflow_run.id }}"
+
+on:
+  workflow_run:
+    workflows: ['KPMO Continuous Assurance Success Authority Gate V1']
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: kpmo-terminal-recovery-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  terminal-recovery-admission:
+    name: Read-only recovery execution admission
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 1
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Admit only an eligible actual recovery workload
+        run: |
+          set -euo pipefail
+          node scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs
+      - name: Preserve admission evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-recovery-execution-admission-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/recovery-execution-admission-v1
+          retention-days: 90
+  terminal-recovery-approval:
+    name: Bounded original reservation terminal recovery KPMO
+    needs: terminal-recovery-admission
+    if: >-
+      github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
+      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    environment: KIDULTS-AUTONOMOUS-KPMO
+    timeout-minutes: 15
+    outputs:
+      approval_run_id: ${{ steps.recovery.outputs.approval_run_id }}
+      recovery_needed: ${{ steps.recovery.outputs.recovery_needed }}
+    permissions:
+      actions: read
+      contents: read
+      id-token: write
+      pull-requests: read
+    steps:
+      - name: Checkout exact protected main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Run bounded signed terminal recovery workload
+        id: recovery
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ github.token }}
+          KIDULTS_RECOVERY_ROLE: KPMO
+          KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED
+          KIDULTS_GITHUB_READ_QUOTA_OWNER_ID: gha-repo-${{ github.repository_id }}
+          AWS_ROLE_ARN: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ROLE_ARN }}
+          KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN: ${{ vars.KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN }}
+          KIDULTS_AUTONOMOUS_WORKLOAD_ID: ${{ vars.KIDULTS_AUTONOMOUS_WORKLOAD_ID }}
+          KIDULTS_PRODUCTION_STATE: ${{ vars.KIDULTS_PRODUCTION_STATE || 'HOLD' }}
+          KIDULTS_PUBLIC_STATE: ${{ vars.KIDULTS_PUBLIC_STATE || 'HOLD' }}
+          KIDULTS_G5_STATE: ${{ vars.KIDULTS_G5_STATE || 'HOLD' }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_ROLE_ARN"
+          test -n "$KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT
+          OIDC_JSON=$(curl --fail --silent --show-error -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+          OIDC_TOKEN=$(jq -r '.value' <<<"$OIDC_JSON")
+          echo "::add-mask::$OIDC_TOKEN"
+          CREDS=$(aws sts assume-role-with-web-identity --role-arn "$AWS_ROLE_ARN" --role-session-name "kidults-terminal-recovery-${GITHUB_RUN_ID}" --web-identity-token "$OIDC_TOKEN" --duration-seconds 900 --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' --output text)
+          read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN <<<"$CREDS"
+          echo "::add-mask::$AWS_ACCESS_KEY_ID"
+          echo "::add-mask::$AWS_SECRET_ACCESS_KEY"
+          echo "::add-mask::$AWS_SESSION_TOKEN"
+          export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+          export AWS_REGION=ap-northeast-2
+          unset CREDS OIDC_JSON OIDC_TOKEN
+          node scripts/kidults/kpmo/run-postmerge-terminal-recovery-v1.mjs
+      - name: Preserve recovery workload evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-postmerge-terminal-recovery-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/postmerge-terminal-recovery-v1/*.json
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Preserve read-only rate wait checkpoint
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: kidults-github-read-resume-kpmo-${{ github.run_id }}-${{ github.run_attempt }}
+          path: out/github-read-resume-v1/
+          if-no-files-found: ignore
+          retention-days: 90

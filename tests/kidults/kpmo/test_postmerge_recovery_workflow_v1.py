@@ -16,13 +16,18 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def gate_workflow(self):
         return yaml.load((ROOT / '.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml').read_text(), Loader=yaml.BaseLoader)
 
+    def gate_recovery_workflow(self):
+        return yaml.load((ROOT / '.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml').read_text(), Loader=yaml.BaseLoader)
+
     def test_gate_success_and_assurance_failure_routes_are_single_delivery(self):
         for name in FILES:
             trigger = self.workflow(name)['on']['workflow_run']
-            expected = ['KPMO Continuous Assurance Success Authority Gate V1']
-            expected.append('KIDULTS Platform Continuous Assurance V1')
+            expected = ['KIDULTS Platform Continuous Assurance V1'] if name == 'kpmo' else [
+                'KPMO Continuous Assurance Success Authority Gate V1', 'KIDULTS Platform Continuous Assurance V1']
             self.assertEqual(trigger, {'workflows': expected,
                                       'types': ['completed'], 'branches': ['main']})
+        self.assertEqual(self.gate_recovery_workflow()['on']['workflow_run']['workflows'],
+                         ['KPMO Continuous Assurance Success Authority Gate V1'])
         self.assertNotIn('interrupted-recovery-finalizer', self.workflow('track')['jobs'])
         for name in FILES:
             workflow = self.workflow(name)
@@ -91,17 +96,22 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertIn('KIDULTS-AUTONOMOUS-FINALIZER', finalizer['environment'])
 
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
-        workflow = self.gate_workflow()
-        gate = workflow['jobs']['success-authority-gate']
-        self.assertNotIn('permissions', gate)
-        self.assertEqual(workflow['permissions'], {'actions': 'read', 'contents': 'read'})
+        workflow = self.gate_recovery_workflow()
+        self.assertEqual(workflow['permissions'], {})
+        self.assertIn('KPMO Continuous Assurance Success Authority Gate V1', workflow['on']['workflow_run']['workflows'])
+        gate = workflow['jobs']['terminal-recovery-approval']
+        self.assertEqual(gate['needs'], 'terminal-recovery-admission')
         script = '\n'.join(step.get('run', '') for step in gate['steps'])
         self.assertNotIn('/dispatches', script)
         self.assertNotIn('terminal-recovery-dispatch.json', script)
         for role in FILES:
             role_workflow = self.workflow(role)
-            self.assertIn('KPMO Continuous Assurance Success Authority Gate V1',
-                          role_workflow['on']['workflow_run']['workflows'])
+            if role == 'kpmo':
+                self.assertNotIn('KPMO Continuous Assurance Success Authority Gate V1',
+                                 role_workflow['on']['workflow_run']['workflows'])
+            else:
+                self.assertIn('KPMO Continuous Assurance Success Authority Gate V1',
+                              role_workflow['on']['workflow_run']['workflows'])
             self.assertIn('KIDULTS Platform Continuous Assurance V1',
                           role_workflow['on']['workflow_run']['workflows'])
             admission_if = role_workflow['jobs']['terminal-recovery-admission']['if']
@@ -113,17 +123,12 @@ class RecoveryWorkflowTests(unittest.TestCase):
 
     def test_non_authorizing_gate_completion_is_terminal_failure(self):
         workflow = self.gate_workflow()
-        terminal = workflow['jobs']['enforce-authority-gate-terminal']
-        self.assertEqual(terminal['needs'], ['classify-assurance-completion', 'success-authority-gate'])
-        self.assertIn("always()", terminal['if'])
-        self.assertIn("needs.classify-assurance-completion.result == 'success'", terminal['if'])
-        self.assertEqual(terminal['env']['ELIGIBLE_FULL_AUDIT'],
-                         '${{ needs.classify-assurance-completion.outputs.eligible_full_audit }}')
-        self.assertEqual(terminal['env']['AUTHORITY_GATE_RESULT'],
-                         '${{ needs.success-authority-gate.result }}')
-        script = '\n'.join(step.get('run', '') for step in terminal['steps'])
-        self.assertIn('NON_AUTHORIZING_CLASSIFICATION_ONLY', script)
-        self.assertIn('exit 1', script)
+        gate = workflow['jobs']['deferred-runtime-proof-handoff-gate']
+        self.assertIn("github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1'", gate['if'])
+        terminal = '\n'.join(step.get('name', '') + '\n' + step.get('run', '') for step in gate['steps'])
+        self.assertIn('Require exact autonomous Assurance proof closure', terminal)
+        self.assertIn('state=="VERIFIED_PASS" or .state=="NOT_APPLICABLE"', terminal)
+        self.assertIn('.production=="HOLD" and .public=="HOLD" and .g5=="HOLD"', terminal)
 
     def test_recovery_jobs_cannot_write_repository_or_merge(self):
         for name in FILES:
