@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "80cb96dc7e7e489c379514906b68bc2451f94ec5",
+  "revision": "aa1856787d3ed2dbfa66bc3ba940dbc0d3cc6f2f",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -9,7 +9,7 @@
       "coordination/kidults/governance/approval-policy-file-manifest-v1.json",
       "coordination/kidults/governance/approval-policy-inventory-v1.json"
     ],
-    "file_count": 870
+    "file_count": 871
   },
   "files": [
     {
@@ -7161,6 +7161,12 @@
       "sha256": "sha256:b3d5430380408488d5d174f6543e25958c222b3e8191a956fdfdd7ded8d544e4"
     },
     {
+      "path": "tests/kidults/staging-operations/autonomous-dispatcher-v1.test.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "02040908bf849023d3ea3481af8c3c36614acaaf",
+      "sha256": "sha256:46b184ebd8c6936eb7adf917ffb73e6ac5e431cf209d4e3379e69a08d21d32db"
+    },
+    {
       "path": "tests/kidults/staging-operations/autonomous-event-token-broker-v1.test.cjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "685ff204889cdd8fe0a6d2eb5e343e336b85a514",
@@ -7329,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9991c4c83b787e93a0b9fd26d7f252e6e110923848abca8864ea8fe53fcd4145"
+  "manifest_sha256": "sha256:cf170c741a6e9b6b17dcf832b36a7a14a80ff1760eefb27bd025def666fc685b"
 }
