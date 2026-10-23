@@ -7193,8 +7193,8 @@
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0ee98f87a2ddfbf8ee39a47e7f810a646da2f123",
-      "sha256": "sha256:be461505d3a22867ad50bf92b4f521a838af2dfc120847f3201f5f2ce01bb11f"
+      "git_blob": "72002eb6302346d24d10b1b6a33ea2a32bbfe301",
+      "sha256": "sha256:fefc44193b0b56e372e572d4d4d3f054105b3d29e700242dba0bcd237c93c0a2"
     },
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:47a60bbeef80bec32eb983f49915b6bef88c0209548074c5b2f39f0412bebf7a"
+  "manifest_sha256": "sha256:e80f0d09a9959b7e778b23e070de11176e7788ef8272a8b3b287f9a72e86bfd7"
 }
