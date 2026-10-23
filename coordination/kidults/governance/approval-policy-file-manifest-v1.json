@@ -736,8 +736,8 @@
     {
       "path": ".github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cb43b861a0d7dd29fcf64f6666284c4a78be2005",
-      "sha256": "sha256:1543bbda9634dd35c0438e3e964e110ecd7e99764ccbcf261171504f3c62519f",
+      "git_blob": "61dbb51971b4d1e5276898426361fe041c3eb058",
+      "sha256": "sha256:d586ef1636d0e0a2e9e0b1b9ae299f9d43afb66586a8765e439980652947c62f",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -5142,8 +5142,8 @@
     {
       "path": "scripts/kidults/kpmo/validate-continuous-assurance-success-authority-gate-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "d8fd21ca6facd4ea4e88d857b508e320becf94d7",
-      "sha256": "sha256:1afeb88ff84a1224f71fab72800f767d440250bc9ee3a031cb91aa3059f89a12",
+      "git_blob": "0582b7d67f9cf36a953dadff2cda2dea91a02930",
+      "sha256": "sha256:c686e42ebeb728cae22cdd94a65101c789ae5c937934eabe951315e968e221dd",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:4ee866c94d9a8673881da4a15a600cbca9f79b0617f0fc20eb590d6c40214f8d"
+  "manifest_sha256": "sha256:9503eaf610d4618ee7c92dda5752c9b056478ed40994735535b5f86f44cccc6d"
 }

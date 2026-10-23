@@ -28,7 +28,7 @@ export function classifyAssuranceCompletion({run,jobs,expected}){
   const audits=jobs.filter(j=>j.name==='audit');
   if(audits.length!==1) fail('AUDIT_CARDINALITY');
   const audit=audits[0];
-  if(!['workflow_run','repository_dispatch','workflow_dispatch'].includes(run.event))fail('EVENT_UNSUPPORTED');
+  if(!['push','workflow_run','repository_dispatch','workflow_dispatch'].includes(run.event))fail('EVENT_UNSUPPORTED');
   assertExactCoverageContinuation({run,jobs,audit});
   let disposition;
   if(audit.conclusion==='success') disposition='FULL_AUDIT_REQUIRES_AUTHORITY_GATE';

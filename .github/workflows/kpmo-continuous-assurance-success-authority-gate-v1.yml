@@ -147,7 +147,7 @@ jobs:
       github.event.workflow_run.head_repository.full_name == github.repository &&
       github.event.workflow_run.head_branch == 'main' &&
       github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&
-      (github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'repository_dispatch' ||
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_run' || github.event.workflow_run.event == 'repository_dispatch' ||
        (github.event.workflow_run.event == 'workflow_dispatch' && github.event.workflow_run.actor.login == 'github-actions[bot]')) &&
       github.event.workflow_run.status == 'completed' &&
       github.event.workflow_run.conclusion == 'success'
