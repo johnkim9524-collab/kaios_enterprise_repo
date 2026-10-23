@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "aa1856787d3ed2dbfa66bc3ba940dbc0d3cc6f2f",
+  "revision": "072f6005dd7f189dd5d35f2132b875d5f7c617ac",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1482,8 +1482,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1661ec430b8b276db4189317f892cb5d7238bdf9",
-      "sha256": "sha256:2341185b3fdb9ec2999c41a0958af6e03905f60a6a1476f2bc67dbd6b0162cde",
+      "git_blob": "f7330fc578a190b562e04f2191803652e48a627f",
+      "sha256": "sha256:cbf4a08d7daaa5d7719532f12b5ac9214b88b729849c28cbaa5a74e0b1492895",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -4633,8 +4633,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "12b2a028dfa635c3753835859cb45700b1c94611",
-      "sha256": "sha256:972d447ad08bdd0029fb3e1253cab2714ae77106d85ed6cc96341766d80cd61c",
+      "git_blob": "4f790edf212fa2766fbda60b54078e0abf60a908",
+      "sha256": "sha256:3cf38746f0eb66dff18d6597a770eeeece264c7dc409568d669b5f4677bc7653",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6605,8 +6605,8 @@
     {
       "path": "tests/governance/autonomous-policy-alignment-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "cb16caaa22ea365fd17d876115e606c50b8a8d99",
-      "sha256": "sha256:ef52cc92da2fb7fd293a22d1492d24e6587c9a3285737b0a05dc438290d61255",
+      "git_blob": "a8dc678cccf44c904cdeef70dd3d7c39842a55a1",
+      "sha256": "sha256:7711bf1db36a12e74218b1f95073a49eaf283d338f9823ab31283f80f4c3e584",
       "authorization_routing": {
         "route": "OWNER_RESERVED",
         "coverage": {
@@ -7335,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:cf170c741a6e9b6b17dcf832b36a7a14a80ff1760eefb27bd025def666fc685b"
+  "manifest_sha256": "sha256:2276aa115a41f4953cfb237185c35396219d88943d72bcdd932afdc1bdd984cc"
 }
