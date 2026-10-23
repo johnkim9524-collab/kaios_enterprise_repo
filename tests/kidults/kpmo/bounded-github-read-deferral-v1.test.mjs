@@ -19,6 +19,14 @@ test('a valid deferred GET resumes once within the same runner deadline',async()
   assert.deepEqual(result,{value:{id:4321},deferrals:1});assert.equal(calls,2);assert.equal(waits,1);
 });
 
+test('a bounded server-error checkpoint resumes the same authorized GET',async()=>{
+  let now=1000,calls=0;
+  const cp=checkpoint(3000);cp.reason='HTTP_SERVER_ERROR';
+  const result=await readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:10000,now:()=>now,
+    wait:async ms=>{now+=ms;},read:async()=>{calls++;if(calls===1)throw deferred(cp);return {id:4321};}});
+  assert.deepEqual(result,{value:{id:4321},deferrals:1});assert.equal(calls,2);
+});
+
 test('a second deferral is bounded and preserved for a HOLD receipt',async()=>{
   let now=1000,calls=0;
   await assert.rejects(readWithBoundedGithubDeferrals({route,expectedBinding:binding,deadline:9000,now:()=>now,

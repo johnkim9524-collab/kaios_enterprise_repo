@@ -25,7 +25,7 @@ function validateDeferral({checkpoint,route,expectedBinding,now,deadline}){
     &&checkpoint.promotion_eligible===false&&checkpoint.mutation_retry_authorized===false,'SCOPE');
   check(checkpoint.unfinished_operation?.method==='GET'
     &&checkpoint.unfinished_operation.route===`/repos/${REPO}/${route}`,'ROUTE');
-  check(['HTTP_RATE_LIMIT','SHARED_BUDGET_RATE_WAIT','SHARED_GITHUB_READ_BUDGET',
+  check(['HTTP_RATE_LIMIT','HTTP_SERVER_ERROR','SHARED_BUDGET_RATE_WAIT','SHARED_GITHUB_READ_BUDGET',
     'INVOCATION_CALL_BUDGET','INVOCATION_DEADLINE','TRANSIENT_NETWORK'].includes(checkpoint.reason),'REASON');
   const due=Date.parse(checkpoint.resume_at);
   check(Number.isFinite(due)&&new Date(due).toISOString()===checkpoint.resume_at&&due<=deadline,'DEADLINE');

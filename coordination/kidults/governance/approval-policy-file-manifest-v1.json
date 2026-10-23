@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "3e96881391e7a9e5257fac0e6a1d0d7cb69b54a1",
+  "revision": "518a860e14dcbddca50f573e75da2a36a5beb0a2",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1508,8 +1508,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f7330fc578a190b562e04f2191803652e48a627f",
-      "sha256": "sha256:cbf4a08d7daaa5d7719532f12b5ac9214b88b729849c28cbaa5a74e0b1492895",
+      "git_blob": "7d081d3454835cbfc3cee89fc2d1ecce62641a21",
+      "sha256": "sha256:230db5f767b7c7e0cce4a82547501c9b3b28c3a89141b89fd3d1e3cbae329927",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -4230,8 +4230,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/bounded-github-read-deferral-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "e44b34c1bd54338e20d418f81626760802a4e59a",
-      "sha256": "sha256:852aca48ccba8bb2e9fd73b3a98df36aeaa5808296390e06d255219a356a904d",
+      "git_blob": "d15dec283e4342cfc83ef4e5d4b2007cbb19ea9b",
+      "sha256": "sha256:799975c39553fb60b78d1138fa2eb93f2dd415debb48dadeeda13f9cc665ce2b",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -4321,8 +4321,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "3756a5105437c0bc70058320126f67687ddf4666",
-      "sha256": "sha256:7bf07b6c357d7a6c490ed081594990b20d4c8892c43f0438361b46b7d02ce7f9",
+      "git_blob": "fd9f5b8f9d04a83f31a8720311d54b85b8b560ff",
+      "sha256": "sha256:b9089b5bbbf6ddc8ba66e931e9e5317e0b23835e513c283f765429b72d2e71fa",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4425,8 +4425,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "0d93a7d1d0c89368eff583c08d3f9da59da6f5dc",
-      "sha256": "sha256:bb1f90647689b61458e69ad63a94677f8f18f567c53ab43a54a228c60dd2b83a",
+      "git_blob": "1825a132e415178e502827d06b0fc3a9d64b27b6",
+      "sha256": "sha256:353f83b4555396b4fd9ca9c5a159a26f8783ed2ad81408c422f9aed0f06ae28e",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -4672,8 +4672,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "4f790edf212fa2766fbda60b54078e0abf60a908",
-      "sha256": "sha256:3cf38746f0eb66dff18d6597a770eeeece264c7dc409568d669b5f4677bc7653",
+      "git_blob": "410cc6703b09b3a9d43d698a6423d0f94b217026",
+      "sha256": "sha256:1ea8a01419016053d2d3c6925b428436fb31b7e76dfa3000bc4c8e26e5455363",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6899,8 +6899,8 @@
     {
       "path": "tests/kidults/kpmo/bounded-github-read-deferral-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "099b1e6782db5f874d95ae058574a04c68c29e0c",
-      "sha256": "sha256:8cc17ddcacbea3c3c04c8ea1f96961469943a0053628127e002342c1fa4b924d"
+      "git_blob": "e9bf03abbd83748a080e21c9b4b69a5fffa672d8",
+      "sha256": "sha256:4b908023b8f57990f6abceae6dfe7fd4c2dc6c15514dd7b01ed67f3e5ef0a55e"
     },
     {
       "path": "tests/kidults/kpmo/canonical-generation-refresh-v1.test.mjs",
@@ -7019,8 +7019,8 @@
     {
       "path": "tests/kidults/kpmo/github-rate-aware-read-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "49811e4e98fc4606023277c061e88eda5bd8472a",
-      "sha256": "sha256:d6aa62f603431e103db5ee2dcb3a8a54f2f7bbbc33fc144b8dbd11fd9e483a45"
+      "git_blob": "42431784d3ecad4795ab424f5ce68d1ecb0683d1",
+      "sha256": "sha256:41f131122551a1df40241bc34e5be835df8728e8112e6beca1eb31a98db89793"
     },
     {
       "path": "tests/kidults/kpmo/github-read-resume-consumer-v1.test.mjs",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:9503eaf610d4618ee7c92dda5752c9b056478ed40994735535b5f86f44cccc6d"
+  "manifest_sha256": "sha256:c11f90a220e2f931875b5ee04a91610b84193afeaed0a3f52d0bc0fec265fe2b"
 }
