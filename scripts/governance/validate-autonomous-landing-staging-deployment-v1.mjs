@@ -304,7 +304,7 @@ function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
   if(isExactPostmergeRecoveryWriterUpgrade(copy,desired)){
     copy.Resources[WRITER_FUNCTION_ID]=structuredClone(desired.Resources[WRITER_FUNCTION_ID]);
-    if (copy.Description === 'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.'
+    if (['KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.','KIDULTS STAGING ledger, receipt sink, and OIDC roles.'].includes(copy.Description)
         && desired.Description === EXPECTED_TEMPLATE_DESCRIPTION) {
       copy.Description = desired.Description;
     }
@@ -345,8 +345,11 @@ function normalizeAllowedRecoveryState(template, desired) {
     KpmoApprovalSigningKey:'KIDULTS STAGING KPMO approval signing key',
     FinalizerSigningKey:'KIDULTS STAGING FINALIZER signing key',
   };
-  if(copy.Description==='KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.'
-      &&desired.Description===EXPECTED_TEMPLATE_DESCRIPTION)copy.Description=desired.Description;
+  const priorTemplateDescriptions=[
+    'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.',
+    'KIDULTS STAGING ledger, receipt sink, and OIDC roles.',
+  ];
+  if(priorTemplateDescriptions.includes(copy.Description)&&desired.Description===EXPECTED_TEMPLATE_DESCRIPTION)copy.Description=desired.Description;
   for(const logicalId of METADATA_DESCRIPTION_IDS)
     if(copy.Resources?.[logicalId]?.Properties?.Description===priorDescriptions[logicalId]
        &&desired.Resources?.[logicalId]?.Properties?.Description===EXPECTED_RESOURCE_DESCRIPTIONS[logicalId])
