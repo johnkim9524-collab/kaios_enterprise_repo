@@ -49,7 +49,7 @@ for (const sid of ['DenyInsecureTransport','DenyUnencryptedReceiptWrites','DenyW
   assert.ok(receiptBucketPolicy.Statement.some(value=>value.Sid===sid), sid);
 }
 assert.equal(template.Parameters.FinalizerEnvironment.Default, 'KIDULTS-AUTONOMOUS-FINALIZER');
-const workflowRefPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
+const workflowRefPattern = '^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$';
 for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef','CanaryWorkflowRef']) {
   assert.equal(template.Parameters[parameter].AllowedPattern, workflowRefPattern);
   assert.match(template.Parameters[parameter].Default, new RegExp(workflowRefPattern));
