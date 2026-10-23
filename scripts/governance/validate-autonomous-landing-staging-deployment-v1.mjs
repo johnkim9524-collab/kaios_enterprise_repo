@@ -13,7 +13,7 @@ const EXPECTED_TEMPLATE_DESCRIPTION = 'STG';
 const EXPECTED_RESOURCE_DESCRIPTIONS = {
   TrackApprovalSigningKey:'KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key',
   VerifierApprovalSigningKey:'KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key',
-  AutonomousReceiptKey:'KIDULTS STAGING immutable autonomous landing receipt key',
+  AutonomousReceiptKey:'KIDULTS STAGING immutable autonomous receipt key',
   AutonomousLedgerKey:'KIDULTS STAGING autonomous landing ledger key',
   KpmoApprovalSigningKey:'KIDULTS STAGING KPMO approval signing key',
   FinalizerSigningKey:'KIDULTS STAGING FINALIZER signing key',
