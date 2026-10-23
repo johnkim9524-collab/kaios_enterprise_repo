@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "PR2718_ORIGINAL_TERMINAL_RECEIPT_RECOVERY_20261023",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "8c7ef416768fb12ad001c638db9e4e6be2bb3554",
+  "head_branch": "codex/pr2718-terminal-quorum-repair-20261023",
+  "source_head_sha": "2fc841c34777fdc13830690ddce4b6931f3b0904",
+  "source_head_tree_sha": "3dc117b4044f948ce349e5053104ea2dbbed6211",
+  "payload_digest": "sha256:1698b5645d006e94c39cc1587d6a47b8bb80002850480eaa2d8ad69de47b96c0",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
