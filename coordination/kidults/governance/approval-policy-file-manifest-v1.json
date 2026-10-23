@@ -3459,8 +3459,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "6b04207d80c3e50bf843e7620ba5c4c6236ebcbd",
-      "sha256": "sha256:ec4c95d03860ce7eb92890ce087784e1be0f4b47b546c0eeabf00f0fc2d621e7"
+      "git_blob": "3ae99ebe2e58fe7854ac39e83739e037544c3db0",
+      "sha256": "sha256:2cfc9579a9ee6220b3e02d2e7ff48dcb94026cb7c762fb992bee2c3e3f59373c"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -3641,8 +3641,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "5f42dd00c169d17de40179198027f775bb90f8c2",
-      "sha256": "sha256:612d259347f2a2fa788d69637ecaf9b9a3e9f945340e9f4f68677a0aaf2f9fd6",
+      "git_blob": "1b64e54d6b17daedda4885b5c8afee7468639180",
+      "sha256": "sha256:7b2d6fa6b38e449e0b92656a94aef84236cee704cdc764edd008b35053aa0618",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6670,8 +6670,8 @@
     {
       "path": "tests/governance/autonomous-landing-aws-trust-regression-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "8a47d5edd6d6057a6e461786680ca51d5ff0d7c3",
-      "sha256": "sha256:d0e7c89bd7cc9110e1e3205e714efb30dfe20abbc29e75cb1b126b28b4102a80",
+      "git_blob": "2676c45a625b7c609d7718f44939656fa2a7c6fa",
+      "sha256": "sha256:90cdddb570a4a24f9475b60dad808eea448d677f9107d665b6df277c7dfc497b",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7193,8 +7193,8 @@
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "7c85c7e4b65e802fd20320c91dafd16255b27696",
-      "sha256": "sha256:ef0b189fe2c50f725edaaa1ecb2ec8cdeded3457a501fe8e3447af681a94ee6a"
+      "git_blob": "39ebc073c8f8c54b77a55bffb24527556c68375b",
+      "sha256": "sha256:6cafcf732a49dc7a3901679b7be54b3eb701d879a050e20e2115180b9da0ea47"
     },
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:caa1cd420e9eb46a347929b5b9771f4f2d57899a3498a9386a7730b0a157fc2c"
+  "manifest_sha256": "sha256:c5af1a4d0b70bb1fab5e622cb34b3594069e20e6b5b335602507398d31906f33"
 }
