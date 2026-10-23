@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "ASSURANCE_POSTMERGE_PROOF_CLOSURE_20261023",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "4a87faadc5eb15c0dbe2be7805a6fd243170f804",
+  "head_branch": "codex/assurance-proof-handoff-fix-20261023",
+  "source_head_sha": "947334da1606dc0840c8b5c9d4c862a2db3d3e78",
+  "source_head_tree_sha": "3c2938511ff8e8085bcc31895acc92c7850a762b",
+  "payload_digest": "sha256:a0aa9469ef548283841b15bbeab43d7ba19c85caada4ce48959a7bb4ed86fdea",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
