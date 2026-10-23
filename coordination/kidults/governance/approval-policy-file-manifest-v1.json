@@ -3459,8 +3459,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "cdd8c722cd8d24e2baa410362d1eb28f2f2474aa",
-      "sha256": "sha256:0d5d82a850c2baa7172f734a638582189bbc63a6dd0ecf18687d34702ea5beb6"
+      "git_blob": "6b04207d80c3e50bf843e7620ba5c4c6236ebcbd",
+      "sha256": "sha256:ec4c95d03860ce7eb92890ce087784e1be0f4b47b546c0eeabf00f0fc2d621e7"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -3641,8 +3641,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "93c3978cf24a9a51ac0ba1b60a119d3c98f6af83",
-      "sha256": "sha256:42f24e39ea14166c45cafc55c3915e1755580ffffcccb7ea36f7946d43bea05d",
+      "git_blob": "5f42dd00c169d17de40179198027f775bb90f8c2",
+      "sha256": "sha256:612d259347f2a2fa788d69637ecaf9b9a3e9f945340e9f4f68677a0aaf2f9fd6",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6670,8 +6670,8 @@
     {
       "path": "tests/governance/autonomous-landing-aws-trust-regression-v1.test.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "fddf14259ca36ae4bc6ff269389fc81790d31e53",
-      "sha256": "sha256:5b1f041cebd5f2d29c3e0888a5f6791d31886581b9b8c20421b98777e959cbdc",
+      "git_blob": "8a47d5edd6d6057a6e461786680ca51d5ff0d7c3",
+      "sha256": "sha256:d0e7c89bd7cc9110e1e3205e714efb30dfe20abbc29e75cb1b126b28b4102a80",
       "authorization_routing": {
         "route": "NON_EXECUTING_REFERENCE",
         "coverage": {
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:a77a4f584cffce71afdbb93a8354ce371bf92a256f0405834baf8b9a3bb07a48"
+  "manifest_sha256": "sha256:caa1cd420e9eb46a347929b5b9771f4f2d57899a3498a9386a7730b0a157fc2c"
 }
