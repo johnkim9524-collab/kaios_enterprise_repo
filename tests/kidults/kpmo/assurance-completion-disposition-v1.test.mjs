@@ -44,7 +44,7 @@ test('Assurance classification is non-authorizing and proof gate waits for the K
   const classify=workflow.slice(workflow.indexOf('  classify-assurance-completion:'),workflow.indexOf('  deferred-runtime-proof-handoff-gate:'));
   assert.match(classify,/github\.event\.workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
   assert.match(classify,/classify-assurance-completion-disposition-v1\.mjs/);
-  assert.match(classify,/github\\.event\\.workflow_run\\.event == 'push'/);
+  assert.match(classify,/github\.event\.workflow_run\.event == 'push'/);
   assert.doesNotMatch(workflow,/  success-authority-gate:\n/);
   const deferred=workflow.slice(workflow.indexOf('  deferred-runtime-proof-handoff-gate:'));
   assert.match(deferred,/github\.event\.workflow_run\.name == 'KIDULTS Autonomous KPMO Authorization V1'/);
