@@ -530,20 +530,20 @@ class RecoveryLedgerTests(unittest.TestCase):
         self.assertEqual(actual_kpmo_sub, [original_kpmo_sub, expected_recovery_sub])
         original['Resources']['KpmoApprovalRole']['Properties']['AssumeRolePolicyDocument']['Statement'][0]['Condition']['StringEquals']['token.actions.githubusercontent.com:sub'] = actual_kpmo_sub
         expected_patterns = {
-            'GitHubOidcProviderArn': r'^arn:aws:iam::\\d{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$',
-            'GitHubRepository': r'^[\\w.-]+/[\\w.-]+$',
-            'TrackEnvironment': r'^[\\w.-]{1,64}$',
-            'KpmoEnvironment': r'^[\\w.-]{1,64}$',
-            'VerifierEnvironment': r'^[\\w.-]{1,64}$',
-            'FinalizerEnvironment': r'^[\\w.-]{1,64}$',
-            'TrackWorkloadId': r'^[\\w.:-]{1,128}$',
-            'KpmoWorkloadId': r'^[\\w.:-]{1,128}$',
-            'VerifierWorkloadId': r'^[\\w.:-]{1,128}$',
-            'FinalizerWorkloadId': r'^[\\w.:-]{1,128}$',
-            'TrackWorkflowRef': r'^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$',
-            'KpmoWorkflowRef': r'^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$',
-            'VerifierWorkflowRef': r'^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$',
-            'CanaryWorkflowRef': r'^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$',
+            'GitHubOidcProviderArn': r'^arn:aws:iam::\d{12}:oidc-provider/token\.actions\.githubusercontent\.com$',
+            'GitHubRepository': r'^[\w.-]+/[\w.-]+$',
+            'TrackEnvironment': r'^[\w.-]{1,64}$',
+            'KpmoEnvironment': r'^[\w.-]{1,64}$',
+            'VerifierEnvironment': r'^[\w.-]{1,64}$',
+            'FinalizerEnvironment': r'^[\w.-]{1,64}$',
+            'TrackWorkloadId': r'^[\w.:-]{1,128}$',
+            'KpmoWorkloadId': r'^[\w.:-]{1,128}$',
+            'VerifierWorkloadId': r'^[\w.:-]{1,128}$',
+            'FinalizerWorkloadId': r'^[\w.:-]{1,128}$',
+            'TrackWorkflowRef': r'^[\w.-]+/[\w.-]+/\.github/workflows/[\w.-]+\.ya?ml@refs/heads/main$',
+            'KpmoWorkflowRef': r'^[\w.-]+/[\w.-]+/\.github/workflows/[\w.-]+\.ya?ml@refs/heads/main$',
+            'VerifierWorkflowRef': r'^[\w.-]+/[\w.-]+/\.github/workflows/[\w.-]+\.ya?ml@refs/heads/main$',
+            'CanaryWorkflowRef': r'^[\w.-]+/[\w.-]+/\.github/workflows/[\w.-]+\.ya?ml@refs/heads/main$',
         }
         for parameter, pattern in expected_patterns.items():
             self.assertEqual(actual['Parameters'][parameter]['AllowedPattern'], pattern)
