@@ -74,7 +74,7 @@
     "TerminalRecoveryWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main",
-      "AllowedPattern": "^johnkim9524-collab/kaios_enterprise_repo/\\\\.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1\\\\.yml@refs/heads/main$"
+      "AllowedPattern": "^johnkim9524-collab/kaios_enterprise_repo/\\.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1\\.yml@refs/heads/main$"
     }
   },
   "Resources": {
