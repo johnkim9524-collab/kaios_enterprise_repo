@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "84b1a400de092d983e63e511784c9f90a44f3763",
+  "revision": "518a860e14dcbddca50f573e75da2a36a5beb0a2",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -1508,8 +1508,8 @@
     {
       "path": "coordination/kidults/governance/autonomous-internal-landing-policy-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f7330fc578a190b562e04f2191803652e48a627f",
-      "sha256": "sha256:cbf4a08d7daaa5d7719532f12b5ac9214b88b729849c28cbaa5a74e0b1492895",
+      "git_blob": "7d081d3454835cbfc3cee89fc2d1ecce62641a21",
+      "sha256": "sha256:230db5f767b7c7e0cce4a82547501c9b3b28c3a89141b89fd3d1e3cbae329927",
       "authorization_routing": {
         "route": "CANONICAL_ENVELOPE",
         "coverage": {
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:f306627f8a9a90636456e1b3590a53110f978a8fc077b27c1b55d305095b5307"
+  "manifest_sha256": "sha256:c11f90a220e2f931875b5ee04a91610b84193afeaed0a3f52d0bc0fec265fe2b"
 }
