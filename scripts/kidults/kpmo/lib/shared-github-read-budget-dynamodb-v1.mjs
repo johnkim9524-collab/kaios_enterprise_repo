@@ -51,8 +51,24 @@ export function createProtectedDynamoDbGithubReadBudgetStore({scope,configuratio
   const workload={workload_id:workloadId,signing_key_arn:signingKeyArn,environment};
   const key=`GITHUB_READ_BUDGET#${digest(scope)}`;
 
-  const awsCall=(args,options={})=>aws('aws',['--region',region,'--output','json','--cli-connect-timeout','5','--cli-read-timeout','10',...args],
-    {encoding:'utf8',timeout:20000,stdio:['ignore','pipe','pipe'],env:{...env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard'},...options});
+  const awsCall=(args,options={})=>{
+    const command=['--region',region,'--output','json','--cli-connect-timeout','5','--cli-read-timeout','10',...args];
+    try{return aws('aws',command,
+      {encoding:'utf8',timeout:20000,stdio:['ignore','pipe','pipe'],env:{...env,AWS_MAX_ATTEMPTS:'1',AWS_RETRY_MODE:'standard'},...options});}
+    catch(cause){
+      const operation=[args[0],args[1]].filter(value=>typeof value==='string').join('.');
+      const stderr=Buffer.isBuffer(cause?.stderr)?cause.stderr.toString('utf8'):typeof cause?.stderr==='string'?cause.stderr:'';
+      const awsCode=stderr.match(/\b([A-Z][A-Za-z0-9]*(?:Exception|Error))\b/)?.[1]??null;
+      const processCode=typeof cause?.code==='string'&&/^[A-Z][A-Z0-9_]{0,63}$/.test(cause.code)?cause.code:null;
+      const exitCode=Number.isSafeInteger(cause?.status)&&cause.status>=0&&cause.status<=255?cause.status:null;
+      const code=awsCode??(processCode?`PROCESS_${processCode}`:exitCode!==null?`EXIT_${exitCode}`:'UNCLASSIFIED');
+      const safeCode=code.toUpperCase().replaceAll(/[^A-Z0-9]+/g,'_');
+      const error=Error(`SHARED_GITHUB_READ_LAMBDA_AWS_${operation.toUpperCase().replaceAll('.','_')}_${safeCode}`);
+      error.failure_diagnostic={id:'kidults-aws-command-failure-diagnostic-v1',version:'1.0.0',
+        operation,code,retry_authorized:false,actual_authority_granted:false,promotion_eligible:false};
+      throw error;
+    }
+  };
   const invoke=async(action,extra={})=>{
     const envelope={action,contract,repository:repo,repository_id:repoId,scope,configuration,key,role,workload,
       run_id:runId,run_attempt:runAttempt,source_sha:sourceSha,workflow_ref:workflowRef,...extra};

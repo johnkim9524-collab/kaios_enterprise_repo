@@ -45,6 +45,11 @@ export function operatingProofFailureDisposition(error){
   if(error?.read_diagnostic?.method==='GET'&&typeof error.read_diagnostic.route_path==='string'
     &&Number.isSafeInteger(error.read_diagnostic.observed_bytes)&&Number.isSafeInteger(error.read_diagnostic.max_bytes))
     result.read_diagnostic=error.read_diagnostic;
+  if(error?.failure_diagnostic?.id==='kidults-aws-command-failure-diagnostic-v1'
+    &&error.failure_diagnostic.version==='1.0.0'
+    &&typeof error.failure_diagnostic.operation==='string'&&/^(?:kms\.sign|lambda\.invoke)$/.test(error.failure_diagnostic.operation)
+    &&typeof error.failure_diagnostic.code==='string'&&/^[A-Z][A-Z0-9_]{0,80}$/.test(error.failure_diagnostic.code))
+    result.failure_diagnostic={...error.failure_diagnostic};
   return result;
 }
 export function buildOperatingProofFailureReceipt({contract,sourceSha,error}){
@@ -56,6 +61,7 @@ export function buildOperatingProofFailureReceipt({contract,sourceSha,error}){
     production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
     operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:deferred?'VERIFIED_HOLD':'UNVERIFIED',
       reason:disposition.reason,evidence_refs:[]}))};
+  if(disposition.failure_diagnostic)failureBody.failure_diagnostic=disposition.failure_diagnostic;
   return {...failureBody,receipt_digest:sha256(canonicalJson(failureBody))};
 }
 export function buildAutonomousOperatingCompletion({policy,runtimeReadiness,operatingChecks,normalTerminalProven}){

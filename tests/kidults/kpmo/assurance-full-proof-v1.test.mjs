@@ -144,8 +144,11 @@ test('full audit reconciliation uses the existing KPMO trust and keeps whole-pla
   const validation=kpmo.indexOf('node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs',reconcile);
   const auditGate=kpmo.indexOf('- name: Require the exact upstream audit job to have completed',reconcile);
   const artifactDownload=kpmo.indexOf('- name: Download the exact Assurance packet and require the full-audit leader',reconcile);
+  const reconcileStart=kpmo.indexOf('- name: Reconcile the exact main proof through the preauthorized shared budget',reconcile);
+  const sealStart=kpmo.indexOf('- name: Seal exact parent Assurance to downstream proof handoff',reconcileStart);
   assert.ok(upload>0&&upload<preserve&&reconcile>0&&reconcile<validation);
   const protectedMainJob=kpmo.slice(reconcile);
+  const reconcileStep=kpmo.slice(reconcileStart,sealStart);
   assert.ok(auditGate>reconcile&&auditGate<artifactDownload&&artifactDownload<validation);
   const exactAuditGate=protectedMainJob.slice(auditGate-reconcile,artifactDownload-reconcile);
   assert.match(exactAuditGate,/actions\/runs\/\$\{UPSTREAM_RUN_ID\}\/jobs\?filter=latest/);
@@ -160,6 +163,12 @@ test('full audit reconciliation uses the existing KPMO trust and keeps whole-pla
   assert.match(protectedMainJob,/Preserve exact-main operating proof\n\s+if: always\(\)/);
   assert.match(protectedMainJob,/environment: KIDULTS-AUTONOMOUS-KPMO/);
   assert.match(protectedMainJob,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
+  const sessionSeconds=Number(reconcileStep.match(/--duration-seconds\s+(\d+)/)?.[1]);
+  const readSource=fs.readFileSync('scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs','utf8');
+  const readDeadlineMs=Number(readSource.match(/deadlineMs=(\d+)/)?.[1]);
+  assert.ok(Number.isSafeInteger(sessionSeconds)&&Number.isSafeInteger(readDeadlineMs));
+  assert.ok(sessionSeconds>=readDeadlineMs/1000+300,'AWS credentials must outlive the shared-read window by at least five minutes');
+  assert.match(reconcileStep,/--duration-seconds 1800/);
   assert.match(protectedMainJob,/workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
   assert.match(protectedMainJob,/github\.event\.workflow_run\.head_sha/);
   assert.match(protectedMainJob,/\.repository == \$repo and[\s\S]*\.source_sha == \$sha and/);

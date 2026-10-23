@@ -117,6 +117,31 @@ test('terminal authorization observer is admitted only as a read-resume workflow
   assert.equal(store.authority,'PROTECTED_ATOMIC_CAS');
 });
 
+test('AWS CLI failures retain a bounded safe operation and error code without exposing stderr',async t=>{
+  const f=fixture();t.after(f.cleanup);
+  const aws=(bin,args)=>{
+    if(args.includes('get-caller-identity'))return JSON.stringify(identityFor());
+    const commandIndex=args.findIndex(value=>['kms','lambda'].includes(value));
+    const command=args.slice(commandIndex);
+    if(command[0]==='kms'&&command[1]==='sign')return JSON.stringify({
+      KeyId:envFor().KIDULTS_AUTONOMOUS_SIGNING_KEY_ARN,
+      SigningAlgorithm:'ECDSA_SHA_256',Signature:Buffer.from('signed').toString('base64'),
+    });
+    const error=Error('Command failed: aws --region ap-northeast-2 lambda invoke --payload SECRET_PAYLOAD');
+    error.stderr=Buffer.from('An error occurred (ExpiredTokenException) when calling the Invoke operation: TOKEN_MUST_NOT_LEAK');
+    error.status=1;
+    throw error;
+  };
+  const store=createProtectedDynamoDbGithubReadBudgetStore({scope,configuration,aws,identity:identityFor(),env:envFor(),tempRoot:f.tempRoot});
+  await assert.rejects(store.read(store.key),error=>{
+    assert.equal(error.message,'SHARED_GITHUB_READ_LAMBDA_AWS_LAMBDA_INVOKE_EXPIREDTOKENEXCEPTION');
+    assert.deepEqual(error.failure_diagnostic,{id:'kidults-aws-command-failure-diagnostic-v1',version:'1.0.0',
+      operation:'lambda.invoke',code:'ExpiredTokenException',retry_authorized:false,actual_authority_granted:false,promotion_eligible:false});
+    assert.doesNotMatch(JSON.stringify(error.failure_diagnostic),/TOKEN_MUST_NOT_LEAK|SECRET_PAYLOAD/);
+    return true;
+  });
+});
+
 test('Track, KPMO, verifier, and read-resume runners consume one bounded shared budget row',async t=>{
   const backend={item:null,calls:[]};
   const runners=['track','kpmo','verifier','read-resume'].map((role,index)=>{
