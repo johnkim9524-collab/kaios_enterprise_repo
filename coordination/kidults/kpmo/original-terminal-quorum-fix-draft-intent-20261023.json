@@ -7,8 +7,8 @@
   "base_branch": "main",
   "base_sha": "8c7ef416768fb12ad001c638db9e4e6be2bb3554",
   "head_branch": "codex/pr2718-terminal-quorum-repair-20261023",
-  "source_head_sha": "2fc841c34777fdc13830690ddce4b6931f3b0904",
-  "source_head_tree_sha": "3dc117b4044f948ce349e5053104ea2dbbed6211",
+  "source_head_sha": "33ede2bd1f936378f94ad6ca6d618f5d650af1ff",
+  "source_head_tree_sha": "e88a9bf77129477db5fdb6f9e2cf77bdf184b122",
   "payload_digest": "sha256:1698b5645d006e94c39cc1587d6a47b8bb80002850480eaa2d8ad69de47b96c0",
   "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
   "authority_granted": false
