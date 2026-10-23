@@ -62,6 +62,19 @@ const CURRENT_RECOVERY_CAPSULE_WRITER_SHA256 = '1cf740f0378f0ba9772173190ffef025
 const ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256 = 'bfedf411f22495145d4fab1d9889b9a1059993d59458b2173955795a4181b104';
 const DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256 = '5950fd39493d33a9a371cbe1263858aeabe9edfeec816f26504ccc29fb8ba690';
 const SHARED_BUDGET_WRITER_SHA256 = '6a70ded582e20e1ffc76d49ef45db92e3f3b9ddf6a8290ada936bf5a1d51f5d4';
+const PR2718_TERMINAL_QUORUM_FIX_WRITER_SHA256 = '916cf9acf574769e47e7ead115d0295d1a865049e0c2bf5a169bfa1c8a1f7e02';
+const PR2718_TERMINAL_QUORUM_FIX_SOURCE_SHA256 = [
+  SHARED_BUDGET_WRITER_SHA256,
+  CONSUMPTION_V1_WRITER_SHA256,
+  CONSUMPTION_V2_WRITER_SHA256,
+  FAILURE_ASSURANCE_CAPSULE_WRITER_SHA256,
+  CURRENT_RECOVERY_CAPSULE_WRITER_SHA256,
+  ORIGINAL_REPAIR_CAPSULE_WRITER_SHA256,
+  DEPLOYED_RECOVERY_CAPSULE_WRITER_SHA256,
+];
+const isExactPr2718TerminalQuorumFixCodeUpgrade = (before, after) =>
+  PR2718_TERMINAL_QUORUM_FIX_SOURCE_SHA256.includes(sha256Hex(before))
+  && sha256Hex(after) === PR2718_TERMINAL_QUORUM_FIX_WRITER_SHA256;
 const isExactConsumptionTupleCodeUpgrade=(before,after)=>
   sha256Hex(before)===CONSUMPTION_V1_WRITER_SHA256&&sha256Hex(after)===CONSUMPTION_V2_WRITER_SHA256;
 const isExactSharedBudgetWriterUpgrade=(before,after)=>
@@ -72,6 +85,15 @@ const isExactSharedBudgetWriterUpgrade=(before,after)=>
 const isExactPostmergeRecoveryWriterUpgrade = (current, desired) => {
   const from=current?.Resources?.[WRITER_FUNCTION_ID],to=desired?.Resources?.[WRITER_FUNCTION_ID];
   const source=from?.Properties?.Code?.ZipFile;
+  if (typeof source === 'string' && isExactPr2718TerminalQuorumFixCodeUpgrade(source, to?.Properties?.Code?.ZipFile || '')) {
+    const expected=structuredClone(from);
+    expected.Properties.Code.ZipFile=to.Properties.Code.ZipFile;
+    if ([CONSUMPTION_V1_WRITER_SHA256, CONSUMPTION_V2_WRITER_SHA256].includes(sha256Hex(source))) {
+      expected.Properties.Environment.Variables.RECEIPT_BUCKET={Ref:'AutonomousReceiptBucket'};
+      expected.Properties.Environment.Variables.READ_RESUME_SIGNING_KEY_ARN=READ_RESUME_SIGNER_KEY;
+    }
+    return equal(expected,to);
+  }
   if(typeof source==='string'&&sha256Hex(source)===CONSUMPTION_V1_WRITER_SHA256
       &&sha256Hex(to?.Properties?.Code?.ZipFile||'')===SHARED_BUDGET_WRITER_SHA256){
     const expected=structuredClone(from);
@@ -144,6 +166,7 @@ const isAllowedLegacyWriterCodeRecovery = (current, desired) => {
   delete desiredWithoutCode.Properties.Code.ZipFile;
   if (!equal(currentWithoutCode, desiredWithoutCode)) return false;
   return isExactConsumptionTupleCodeUpgrade(currentZip,desiredZip)
+    ||isExactPr2718TerminalQuorumFixCodeUpgrade(currentZip,desiredZip)
     ||isExactSharedBudgetWriterUpgrade(currentZip,desiredZip)
     ||currentZip === expectedLegacyWriterZipFromDesired(desiredZip)||isBoundedCanonicalWriterUpgrade(currentZip, desiredZip);
 };
@@ -248,6 +271,10 @@ function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
   if(isExactPostmergeRecoveryWriterUpgrade(copy,desired)){
     copy.Resources[WRITER_FUNCTION_ID]=structuredClone(desired.Resources[WRITER_FUNCTION_ID]);
+    if (copy.Description === 'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.'
+        && desired.Description === 'KIDULTS STAGING ledger, receipt sink, and OIDC roles.') {
+      copy.Description = desired.Description;
+    }
   }else if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
     copy.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile = desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile;
   }
