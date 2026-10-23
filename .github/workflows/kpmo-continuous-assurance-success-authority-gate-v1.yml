@@ -216,7 +216,7 @@ jobs:
       PRODUCER_RUN_ID: ${{ github.event.workflow_run.id }}
       PRODUCER_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
       SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
-      GATE_DIR: ${{ runner.temp }}/kpmo-deferred-assurance-proof-gate
+      GATE_DIR: /tmp/kpmo-deferred-assurance-proof-gate
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
