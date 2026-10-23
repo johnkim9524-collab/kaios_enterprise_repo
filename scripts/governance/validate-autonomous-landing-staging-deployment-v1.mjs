@@ -347,23 +347,6 @@ function normalizeAllowedRecoveryState(template, desired) {
   }
   if(isExactTerminalRecoveryTrustUpgrade(copy,desired))
     copy.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub']=[KPMO_AUTH_SUB,KPMO_TERMINAL_RECOVERY_SUB];
-  const priorDescriptions={
-    TrackApprovalSigningKey:'KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key',
-    VerifierApprovalSigningKey:'KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key',
-    AutonomousReceiptKey:'KIDULTS STAGING immutable autonomous landing receipt key',
-    AutonomousLedgerKey:'KIDULTS STAGING autonomous landing ledger key',
-    KpmoApprovalSigningKey:'KIDULTS STAGING KPMO approval signing key',
-    FinalizerSigningKey:'KIDULTS STAGING FINALIZER signing key',
-  };
-  const priorTemplateDescriptions=[
-    'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.',
-    'KIDULTS STAGING ledger, receipt sink, and OIDC roles.',
-  ];
-  if(priorTemplateDescriptions.includes(copy.Description)&&desired.Description===EXPECTED_TEMPLATE_DESCRIPTION)copy.Description=desired.Description;
-  for(const logicalId of METADATA_DESCRIPTION_IDS)
-    if(copy.Resources?.[logicalId]?.Properties?.Description===priorDescriptions[logicalId]
-       &&desired.Resources?.[logicalId]?.Properties?.Description===EXPECTED_RESOURCE_DESCRIPTIONS[logicalId])
-      copy.Resources[logicalId].Properties.Description=desired.Resources[logicalId].Properties.Description;
     const finalizerStatements = copy.Resources?.[FINALIZER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   assert.ok(Array.isArray(finalizerStatements), 'CURRENT_FINALIZER_ROLE_POLICY_STATEMENTS_INVALID');
   const finalizerDecryptCount = finalizerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
