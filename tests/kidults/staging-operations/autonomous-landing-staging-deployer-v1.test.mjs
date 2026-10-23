@@ -404,6 +404,60 @@ test('template validator accepts only the exact three-role Query delta and exact
 });
 
 
+
+test('template validator accepts only exact terminal recovery OIDC trust plus safe parameter-pattern compaction', () => {
+  const current = structuredClone(desired);
+  current.Description = 'KIDULTS STAGING ledger, receipt sink, and OIDC roles.';
+  for (const parameter of Object.keys(desired.Parameters)) {
+    const pattern = current.Parameters[parameter]?.AllowedPattern;
+    if (!pattern) continue;
+    current.Parameters[parameter].AllowedPattern = pattern
+      .replaceAll('[\\w.-]', '[A-Za-z0-9_.-]')
+      .replaceAll('[\\w.:-]', '[A-Za-z0-9_.:-]')
+      .replaceAll('\\\\d{12}', '[0-9]{12}');
+  }
+  current.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0]
+    .Condition.StringEquals['token.actions.githubusercontent.com:sub'] =
+      {'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}'};
+
+  const changeSet = {
+    Status: 'CREATE_COMPLETE',
+    Changes: [{ResourceChange: {
+      Action: 'Modify', LogicalResourceId: 'KpmoApprovalRole', ResourceType: 'AWS::IAM::Role', Replacement: 'False',
+      Details: [{Target: {Attribute: 'Properties', Name: 'AssumeRolePolicyDocument'}, ChangeSource: 'DirectModification'}],
+    }}],
+  };
+  withFixture({current, desired, changeset: changeSet}, directory => {
+    const output = execFileSync('node', [validator,
+      '--current', path.join(directory, 'current'),
+      '--desired', path.join(directory, 'desired'),
+      '--changeset', path.join(directory, 'changeset'),
+    ], {encoding: 'utf8'});
+    assert.equal(JSON.parse(output).mode, 'CHANGE_REQUIRED');
+  });
+
+  for (const [name, mutate, expectedError] of [
+    ['wildcard OIDC subject', d => {
+      d.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0]
+        .Condition.StringEquals['token.actions.githubusercontent.com:sub'][1] =
+          {'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:*'};
+    }, /KPMO_TERMINAL_RECOVERY_SUBJECT_INVALID/],
+    ['broadened parameter validation', d => { d.Parameters.GitHubRepository.AllowedPattern = '^.*$'; },
+      /PARAMETER_PATTERN_INVALID:GitHubRepository/],
+  ]) {
+    const widened = structuredClone(desired);
+    mutate(widened);
+    withFixture({current, desired: widened}, directory => {
+      const result = spawnSync('node', [validator,
+        '--current', path.join(directory, 'current'),
+        '--desired', path.join(directory, 'desired'),
+      ], {encoding: 'utf8'});
+      assert.notEqual(result.status, 0, name);
+      assert.match(result.stderr, expectedError, name);
+    });
+  }
+});
+
 test('template validator accepts deployed Query state that still lacks bounded ledger decrypt', () => {
   const current = structuredClone(desired);
   for (const logicalId of roleIds) {
