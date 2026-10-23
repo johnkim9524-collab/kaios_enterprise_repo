@@ -330,10 +330,13 @@ const yamlModel=source=>{
   for(let index=0;index<lines.length;index+=1) {
     const raw=lines[index];
     if(!raw.trim()||isComment(raw)||raw.trim()==='---') continue;
-    // YAML indirection remains unsupported and owner-reserved. Inspect only
-    // structural YAML lines: block-scalar bodies are opaque command text and
-    // may legitimately contain shell operators such as `!` and `*`.
-    if(/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:/.test(raw)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
+    // YAML indirection remains unsupported and owner-reserved. GitHub Actions
+    // expressions are scalar content, however, so operators such as `!cancelled()`
+    // inside `${{ ... }}` or after a boolean operator in an `if:` scalar must not
+    // be mistaken for YAML tags or anchors.
+    // Block-scalar bodies are opaque command text and may also contain shell operators.
+    const structuralYaml=raw.replace(/\$\{\{.*?\}\}/g,' ').replace(/(&&|\|\|)\s+!([A-Za-z_$!(])/g,'$1 $2');
+    if(/(^|\s)[&*!][A-Za-z0-9_-]+|<<\s*:/.test(structuralYaml)) fail('CAPABILITY_YAML_UNSUPPORTED_SYNTAX');
     const match=raw.match(/^( *)(?:(-)\s+)?([^:#][^:]*):(?:\s*(.*))?$/);
     if(!match) {
       if(/^\s*-\s+[^:]+$/.test(raw)) { values.set(`list:${index}`,raw.trim()); continue; }
