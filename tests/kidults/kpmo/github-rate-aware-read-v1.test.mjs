@@ -10,37 +10,6 @@ function fixture(responses,options={}){let time=100000,calls=0;const waits=[],ch
  return {read,now,wait,budget,waits,checkpoints,calls:()=>calls,setTime:t=>{time=t;}};}
 const response=(status,headers={},body={ok:true})=>new Response(JSON.stringify(body),{status,headers});
 test('successful read no approval claim',async()=>{const f=fixture([response(200)]);assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),1);});
-test('temporary GitHub 503 retries the same GET with a separately charged attempt',async()=>{
- const f=fixture([response(503),response(200)]);
- assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),2);
- assert.deepEqual(f.waits,[1000]);assert.equal(f.budget.snapshot().calls,2);
-});
-test('exhausted temporary server errors produce a bounded non-authorizing checkpoint',async()=>{
- const f=fixture([response(503),response(503)],{maxServerRetries:1});
- await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
- assert.equal(f.calls(),2);assert.deepEqual(f.waits,[1000]);
- assert.equal(f.checkpoints.length,1);assert.equal(f.checkpoints[0].reason,'HTTP_SERVER_ERROR');
- assert.equal(f.checkpoints[0].attempts_used,2);assert.equal(f.checkpoints[0].http_diagnostic.http_status,503);
- assert.equal(f.checkpoints[0].producer_failure_claimed,false);assert.equal(f.checkpoints[0].actual_authority_granted,false);
-});
-test('server Retry-After beyond the inline wait is checkpointed without sleeping',async()=>{
- const f=fixture([response(503,{'retry-after':'120'})],{maxInlineWaitMs:1000});
- await assert.rejects(f.read(url),/GITHUB_READ_DEFERRED/);
- assert.equal(f.calls(),1);assert.deepEqual(f.waits,[]);
- assert.equal(f.checkpoints[0].reason,'HTTP_SERVER_ERROR');
- assert.equal(f.checkpoints[0].resume_at,new Date(220000).toISOString());
-});
-test('interrupted 503 response body uses the bounded server retry path',async()=>{
- const body=new ReadableStream({start(controller){controller.error(transientSocket());}});
- const f=fixture([new Response(body,{status:503,headers:{'retry-after':'2'}}),response(200)]);
- assert.deepEqual(await f.read(url),{ok:true});assert.equal(f.calls(),2);
- assert.deepEqual(f.waits,[2000]);assert.equal(f.checkpoints.length,0);
-});
-test('non-transient 5xx does not retry',async()=>{
- const f=fixture([response(501)]);
- await assert.rejects(f.read(url),error=>error.message==='GITHUB_HTTP_501');
- assert.equal(f.calls(),1);assert.equal(f.checkpoints.length,0);
-});
 const transientSocket=()=>Object.assign(new TypeError('fetch failed'),{cause:Object.assign(new Error('other side closed'),{code:'UND_ERR_SOCKET'})});
 test('transient socket close retries a GET with a separately charged attempt',async()=>{
  const f=fixture([transientSocket(),response(200)],{maxRetries:0,maxTransportRetries:1});
@@ -53,16 +22,6 @@ test('transient transport retry consumes a fresh cross-runner permit',async()=>{
  const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,now});
  const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,operationDedupeKey:'resume:run:10',maxRetries:0,maxTransportRetries:1,
    fetchImpl:async()=>{attempts++;if(attempts===1)throw transientSocket();return response(200);}});
- assert.deepEqual(await read(url),{ok:true});assert.equal(attempts,2);assert.equal(row.spent,2);
- assert.equal(Object.keys(row.operations).length,2);assert.ok(Object.values(row.operations).every(item=>item.state==='COMPLETED'));
-});
-test('server retry consumes a fresh cross-runner shared budget permit',async()=>{
- let time=100000,row=null,attempts=0;const scope={repository:'johnkim9524-collab/kaios_enterprise_repo',resource:'core',quota_owner_id:'server-retry-test'};
- const store={authority:'PROTECTED_ATOMIC_CAS',read:async()=>structuredClone(row),compareAndSwap:async(_key,version,next)=>{if((row?.version??0)!==version)return 'CONFLICT';row=structuredClone(next);return 'COMMITTED';}};
- const now=()=>time,wait=async ms=>{time+=ms;};
- const budget=createSharedGithubReadBudget({store,scope,capacity:10,maxConcurrent:1,now});
- const read=createGithubRateAwareRead({token:'fake',binding,now,wait,budget,operationDedupeKey:'server:run:10',maxRetries:0,maxServerRetries:1,
-   fetchImpl:async()=>{attempts++;if(attempts===1)return response(503);return response(200);}});
  assert.deepEqual(await read(url),{ok:true});assert.equal(attempts,2);assert.equal(row.spent,2);
  assert.equal(Object.keys(row.operations).length,2);assert.ok(Object.values(row.operations).every(item=>item.state==='COMPLETED'));
 });

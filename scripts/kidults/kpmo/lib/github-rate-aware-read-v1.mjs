@@ -3,11 +3,6 @@ import {createHash,randomBytes} from 'node:crypto';
 import {githubHttpFailureDiagnostic} from './github-http-failure-diagnostic-v1.mjs';
 const check=(ok,code)=>{if(!ok)throw Error('GITHUB_READ_'+code);};
 const RETRYABLE_TRANSPORT_CODES=new Set(['ECONNRESET','ETIMEDOUT','EAI_AGAIN','UND_ERR_SOCKET','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT','UND_ERR_BODY_TIMEOUT']);
-const RETRYABLE_HTTP_SERVER_STATUSES=new Set([500,502,503,504]);
-const serverRetryDelayMs=(diagnostic,retries)=>{
-  const retryAfter=diagnostic.retry_after_seconds===null?0:diagnostic.retry_after_seconds*1000;
-  return Math.max(1000,retryAfter||Math.min(10000,1000*2**retries));
-};
 function retryableTransportCode(error,signal){
   // Classify the error that actually escaped fetch/body processing. The signal
   // may expire later while a shared permit is being durably finalized.
@@ -66,13 +61,11 @@ export function readResumeCheckpoint({binding,route,diagnostic,resumeAt,attempts
     reservation_write_performed:false,producer_failure_claimed:false,actual_authority_granted:false,
     promotion_eligible:false,mutation_retry_authorized:false};
 }
-export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,binding,maxBytes=1048576,responseMode='json',allowArtifactRedirect=false,operationDedupeKey=null,maxRetries=2,maxTransportRetries=2,maxServerRetries=2,maxInlineWaitMs=55000,resumeDeadline=Number.MAX_SAFE_INTEGER,
+export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,binding,maxBytes=1048576,responseMode='json',allowArtifactRedirect=false,operationDedupeKey=null,maxRetries=2,maxTransportRetries=2,maxInlineWaitMs=55000,resumeDeadline=Number.MAX_SAFE_INTEGER,
   deadlineMs=120000,now=()=>Date.now(),wait=ms=>new Promise(r=>setTimeout(r,ms)),budget,onCheckpoint=()=>{}}){
   check(typeof token==='string'&&token.length>0&&Number.isSafeInteger(maxRetries)&&maxRetries>=0&&maxRetries<=3&&Number.isSafeInteger(maxInlineWaitMs)&&maxInlineWaitMs>=0&&maxInlineWaitMs<=55000
     &&Number.isSafeInteger(deadlineMs)&&deadlineMs>0&&deadlineMs<=1800000&&Number.isSafeInteger(maxBytes)&&maxBytes>0&&maxBytes<=8*1024*1024
-    &&Number.isSafeInteger(maxTransportRetries)&&maxTransportRetries>=0&&maxTransportRetries<=3
-    &&Number.isSafeInteger(maxServerRetries)&&maxServerRetries>=0&&maxServerRetries<=3&&Number.isSafeInteger(resumeDeadline)&&resumeDeadline>=0
-    &&['json','bytes'].includes(responseMode)&&(operationDedupeKey===null||typeof operationDedupeKey==='string'&&operationDedupeKey.length>=1&&operationDedupeKey.length<=512),'CONFIG');
+    &&Number.isSafeInteger(maxTransportRetries)&&maxTransportRetries>=0&&maxTransportRetries<=3&&Number.isSafeInteger(resumeDeadline)&&resumeDeadline>=0&&['json','bytes'].includes(responseMode)&&(operationDedupeKey===null||typeof operationDedupeKey==='string'&&operationDedupeKey.length>=1&&operationDedupeKey.length<=512),'CONFIG');
   const rawNow=now;let lastTime=rawNow();
   check(Number.isSafeInteger(lastTime)&&lastTime>=0,'CLOCK');
   now=()=>{const value=rawNow();check(Number.isSafeInteger(value)&&value>=lastTime,'CLOCK_ROLLBACK');lastTime=value;return value;};
@@ -86,14 +79,7 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
     const target=new URL(url);check(target.origin==='https://api.github.com'&&!target.username&&!target.password&&!target.hash
       &&(target.pathname==='/repos/johnkim9524-collab/kaios_enterprise_repo'||target.pathname.startsWith('/repos/johnkim9524-collab/kaios_enterprise_repo/')),'ORIGIN');
     const route=target.pathname+target.search;
-    let transportRetries=0,httpRetries=0,serverRetries=0;
-    const retryOrDeferServerResponse=async(diagnostic,attempt)=>{
-      const delay=serverRetryDelayMs(diagnostic,serverRetries);
-      if(serverRetries>=maxServerRetries||delay>maxInlineWaitMs||now()+delay>=deadline){
-        return defer(route,diagnostic,Math.min(now()+delay,resumeDeadline),attempt+1,'HTTP_SERVER_ERROR');
-      }
-      serverRetries++;await wait(delay);
-    };
+    let transportRetries=0,httpRetries=0;
     for(let attempt=0;;attempt++){
       check(Number.isSafeInteger(now())&&now()>=started,'CLOCK_ROLLBACK');
       const blocked=budget.blockedUntil();
@@ -177,10 +163,6 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
         }
       }
       if(transportFailure){
-        if(response&&RETRYABLE_HTTP_SERVER_STATUSES.has(response.status)){
-          const diagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
-          await retryOrDeferServerResponse(diagnostic,attempt);continue;
-        }
         if(!transportCode){
           if(response&&!response.ok&&bodyReadFailure){
             const failedDiagnostic=githubHttpFailureDiagnostic({apiPath:route.replace(/^\/repos\/[^/]+\/[^/]+/,''),response,payload:null});
@@ -217,9 +199,6 @@ export function createGithubRateAwareRead({token,fetchImpl=globalThis.fetch,bind
       if(response.ok){
         if(diagnostic.rate_remaining===0&&diagnostic.rate_reset_epoch!==null){const until=diagnostic.rate_reset_epoch*1000+1000;budget.blockUntil(until);if(budget.pauseUntil)await budget.pauseUntil(until);}
         return payload;
-      }
-      if(RETRYABLE_HTTP_SERVER_STATUSES.has(response.status)){
-        await retryOrDeferServerResponse(diagnostic,attempt);continue;
       }
       const throttled=[403,429].includes(response.status)&&['PRIMARY_RATE_LIMIT_EXHAUSTED','SECONDARY_RATE_LIMIT_REPORTED','HTTP_THROTTLED'].includes(diagnostic.classification);
       if(!throttled){const error=Error(`GITHUB_HTTP_${response.status}`);error.http_diagnostic=diagnostic;throw error;}

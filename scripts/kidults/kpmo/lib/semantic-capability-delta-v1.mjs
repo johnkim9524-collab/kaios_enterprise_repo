@@ -649,7 +649,7 @@ const matchesExactPoolingReadTransport=(file,files)=>{
   const expected={
     'scripts/kidults/kpmo/read-github-json-v1.mjs':'sha256:db4f586f806248175f9ec8c1838fe1485875b924ac82e50f74976303532df9db',
     'scripts/kidults/kpmo/lib/runtime-github-read-v1.mjs':'sha256:5ac05f604153be6f12d7104406f90fe52df14b89eec2cfe44c0acb3d47305ec0',
-    'scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs':'sha256:b9089b5bbbf6ddc8ba66e931e9e5317e0b23835e513c283f765429b72d2e71fa',
+    'scripts/kidults/kpmo/lib/github-rate-aware-read-v1.mjs':'sha256:119077cabe17b0397ebb5d77105c9bbdb4cb2f55142b3aa7d7069f7e8439328c',
   };
   return Object.entries(expected).every(([path,expectedDigest])=>{
     const dependency=files.find(item=>item?.filename===path);
