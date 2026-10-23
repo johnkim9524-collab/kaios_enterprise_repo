@@ -9,15 +9,23 @@ const WRITER_ROLE_ID = 'AutonomousLedgerWriterRole';
 const WRITER_FUNCTION_ID = 'AutonomousLedgerWriterFunction';
 const FINALIZER_ROLE_ID = 'FinalizerRole';
 const ROLE_IDS = [...APPROVAL_ROLE_IDS, WRITER_ROLE_ID, FINALIZER_ROLE_ID];
-const METADATA_DESCRIPTION_IDS = ['TrackApprovalSigningKey','VerifierApprovalSigningKey','AutonomousReceiptKey','AutonomousLedgerKey','KpmoApprovalSigningKey','FinalizerSigningKey'];
-const EXPECTED_TEMPLATE_DESCRIPTION = 'KIDULTS STAGING ledger.';
+const EXPECTED_TEMPLATE_DESCRIPTION = 'STG';
 const EXPECTED_RESOURCE_DESCRIPTIONS = {
-  TrackApprovalSigningKey:'Track key',
-  VerifierApprovalSigningKey:'Verifier key',
-  AutonomousReceiptKey:'Receipt key',
-  AutonomousLedgerKey:'Ledger key',
-  KpmoApprovalSigningKey:'KPMO key',
-  FinalizerSigningKey:'Finalizer key',
+  TrackApprovalSigningKey:'KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key',
+  VerifierApprovalSigningKey:'KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key',
+  AutonomousReceiptKey:'KIDULTS STAGING immutable autonomous landing receipt key',
+  AutonomousLedgerKey:'KIDULTS STAGING autonomous landing ledger key',
+  KpmoApprovalSigningKey:'KIDULTS STAGING KPMO approval signing key',
+  FinalizerSigningKey:'KIDULTS STAGING FINALIZER signing key',
+};
+const LEGACY_WORKFLOW_REF_PATTERN='^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
+const COMPACT_WORKFLOW_REF_PATTERN='^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$';
+const PARAMETER_PATTERN_COMPRESSIONS={
+  GitHubOidcProviderArn:['^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$','^arn:aws:iam::\\d{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$'],
+  GitHubRepository:['^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$','^[\\w.-]+/[\\w.-]+$'],
+  ...Object.fromEntries(['TrackEnvironment','KpmoEnvironment','VerifierEnvironment','FinalizerEnvironment'].map(key=>[key,['^[A-Za-z0-9_.-]{1,64}$','^[\\w.-]{1,64}$']])),
+  ...Object.fromEntries(['TrackWorkloadId','KpmoWorkloadId','VerifierWorkloadId','FinalizerWorkloadId'].map(key=>[key,['^[A-Za-z0-9_.:-]{1,128}$','^[\\w.:-]{1,128}$']])),
+  ...Object.fromEntries(['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef','CanaryWorkflowRef'].map(key=>[key,[LEGACY_WORKFLOW_REF_PATTERN,COMPACT_WORKFLOW_REF_PATTERN]])),
 };
 const KPMO_AUTH_SUB = {'Fn::Sub':'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}'};
 const KPMO_TERMINAL_RECOVERY_SUB = {'Fn::Sub':'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'};
@@ -210,15 +218,16 @@ const isExactTerminalRecoveryTrustUpgrade = (current, desired) => {
   expected.Condition.StringEquals['token.actions.githubusercontent.com:sub']=[KPMO_AUTH_SUB,KPMO_TERMINAL_RECOVERY_SUB];
   return equal(expected,desiredStatement);
 };
-const isExactDescriptionReduction = (current,desired,logicalId) =>
-  current?.Resources?.[logicalId]?.Properties?.Description !== desired?.Resources?.[logicalId]?.Properties?.Description
-  && typeof current?.Resources?.[logicalId]?.Properties?.Description === 'string'
-  && desired?.Resources?.[logicalId]?.Properties?.Description === EXPECTED_RESOURCE_DESCRIPTIONS[logicalId];
+const isExactParameterPatternCompression = (current,desired,parameter) =>
+  current?.Parameters?.[parameter]?.AllowedPattern===PARAMETER_PATTERN_COMPRESSIONS[parameter]?.[0]
+  && desired?.Parameters?.[parameter]?.AllowedPattern===PARAMETER_PATTERN_COMPRESSIONS[parameter]?.[1];
 
 function assertDesiredBoundary(desired) {
   assert.equal(desired?.Description, EXPECTED_TEMPLATE_DESCRIPTION, 'TEMPLATE_DESCRIPTION_INVALID');
-  for(const logicalId of METADATA_DESCRIPTION_IDS)
-    assert.equal(desired?.Resources?.[logicalId]?.Properties?.Description,EXPECTED_RESOURCE_DESCRIPTIONS[logicalId],'RESOURCE_DESCRIPTION_INVALID:'+logicalId);
+  for(const [logicalId,description] of Object.entries(EXPECTED_RESOURCE_DESCRIPTIONS))
+    assert.equal(desired?.Resources?.[logicalId]?.Properties?.Description,description,'RESOURCE_DESCRIPTION_INVALID:'+logicalId);
+  for(const [parameter,patterns] of Object.entries(PARAMETER_PATTERN_COMPRESSIONS))
+    assert.equal(desired?.Parameters?.[parameter]?.AllowedPattern,patterns[1],'PARAMETER_PATTERN_INVALID:'+parameter);
   const expectedKpmoSubjects=[KPMO_AUTH_SUB,KPMO_TERMINAL_RECOVERY_SUB];
   assert.deepEqual(desired?.Resources?.KpmoApprovalRole?.Properties?.AssumeRolePolicyDocument?.Statement?.[0]?.Condition?.StringEquals?.['token.actions.githubusercontent.com:sub'],expectedKpmoSubjects,'KPMO_TERMINAL_RECOVERY_SUBJECT_INVALID');
   for (const logicalId of APPROVAL_ROLE_IDS) {
@@ -304,13 +313,14 @@ function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
   if(isExactPostmergeRecoveryWriterUpgrade(copy,desired)){
     copy.Resources[WRITER_FUNCTION_ID]=structuredClone(desired.Resources[WRITER_FUNCTION_ID]);
-    if (['KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.','KIDULTS STAGING ledger, receipt sink, and OIDC roles.'].includes(copy.Description)
-        && desired.Description === EXPECTED_TEMPLATE_DESCRIPTION) {
-      copy.Description = desired.Description;
-    }
   }else if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
     copy.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile = desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile;
   }
+  if (['KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.','KIDULTS STAGING ledger, receipt sink, and OIDC roles.','KIDULTS STAGING ledger.'].includes(copy.Description)
+      && desired.Description === EXPECTED_TEMPLATE_DESCRIPTION) copy.Description=desired.Description;
+  for(const [parameter] of Object.entries(PARAMETER_PATTERN_COMPRESSIONS))
+    if(isExactParameterPatternCompression(copy,desired,parameter))
+      copy.Parameters[parameter].AllowedPattern=desired.Parameters[parameter].AllowedPattern;
   for (const logicalId of APPROVAL_ROLE_IDS) {
     const statements = copy.Resources?.[logicalId]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
     assert.ok(Array.isArray(statements), 'CURRENT_ROLE_POLICY_STATEMENTS_INVALID:' + logicalId);
@@ -337,23 +347,6 @@ function normalizeAllowedRecoveryState(template, desired) {
   }
   if(isExactTerminalRecoveryTrustUpgrade(copy,desired))
     copy.Resources.KpmoApprovalRole.Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals['token.actions.githubusercontent.com:sub']=[KPMO_AUTH_SUB,KPMO_TERMINAL_RECOVERY_SUB];
-  const priorDescriptions={
-    TrackApprovalSigningKey:'KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key',
-    VerifierApprovalSigningKey:'KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key',
-    AutonomousReceiptKey:'KIDULTS STAGING immutable autonomous landing receipt key',
-    AutonomousLedgerKey:'KIDULTS STAGING autonomous landing ledger key',
-    KpmoApprovalSigningKey:'KIDULTS STAGING KPMO approval signing key',
-    FinalizerSigningKey:'KIDULTS STAGING FINALIZER signing key',
-  };
-  const priorTemplateDescriptions=[
-    'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.',
-    'KIDULTS STAGING ledger, receipt sink, and OIDC roles.',
-  ];
-  if(priorTemplateDescriptions.includes(copy.Description)&&desired.Description===EXPECTED_TEMPLATE_DESCRIPTION)copy.Description=desired.Description;
-  for(const logicalId of METADATA_DESCRIPTION_IDS)
-    if(copy.Resources?.[logicalId]?.Properties?.Description===priorDescriptions[logicalId]
-       &&desired.Resources?.[logicalId]?.Properties?.Description===EXPECTED_RESOURCE_DESCRIPTIONS[logicalId])
-      copy.Resources[logicalId].Properties.Description=desired.Resources[logicalId].Properties.Description;
     const finalizerStatements = copy.Resources?.[FINALIZER_ROLE_ID]?.Properties?.Policies?.[0]?.PolicyDocument?.Statement;
   assert.ok(Array.isArray(finalizerStatements), 'CURRENT_FINALIZER_ROLE_POLICY_STATEMENTS_INVALID');
   const finalizerDecryptCount = finalizerStatements.filter(statement => equal(statement, LEDGER_DECRYPT_STATEMENT)).length;
@@ -388,13 +381,10 @@ function validateChangeSet(changeSet, current, desired) {
   assert.equal(changeSet?.Status, 'CREATE_COMPLETE', 'CHANGE_SET_NOT_CREATE_COMPLETE');
   const changes = changeSet?.Changes;
   assert.ok(Array.isArray(changes), 'CHANGE_SET_CHANGES_INVALID');
-  const expectedChanged = [
-    ...ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId])),
-    ...METADATA_DESCRIPTION_IDS.filter(logicalId => isExactDescriptionReduction(current,desired,logicalId)),
-  ];
+  const expectedChanged = ROLE_IDS.filter(logicalId => !equal(current.Resources[logicalId], desired.Resources[logicalId]));
   const recoveryWriterUpgrade=isExactPostmergeRecoveryWriterUpgrade(current,desired);
   if (recoveryWriterUpgrade||isAllowedLegacyWriterCodeRecovery(current, desired)) expectedChanged.push(WRITER_FUNCTION_ID);
-  assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length + 1 + METADATA_DESCRIPTION_IDS.length, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
+  assert.ok(expectedChanged.length >= 1 && expectedChanged.length <= ROLE_IDS.length + 1, 'CHANGE_SET_EXPECTED_ROLE_COUNT_INVALID');
 
   const writerChanged = expectedChanged.includes(WRITER_ROLE_ID);
   const writerFunctionChanged = expectedChanged.includes(WRITER_FUNCTION_ID);
@@ -434,10 +424,6 @@ function validateChangeSet(changeSet, current, desired) {
         if (change?.LogicalResourceId === WRITER_FUNCTION_ID) {
           assert.equal(change?.ResourceType, 'AWS::Lambda::Function', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
           assert.ok((recoveryWriterUpgrade?['Code','Environment']:['Code']).includes(detail?.Target?.Name),'CHANGE_SET_DIRECT_PROPERTY_INVALID');
-        } else if (METADATA_DESCRIPTION_IDS.includes(change?.LogicalResourceId)) {
-          assert.equal(change?.ResourceType, 'AWS::KMS::Key', 'CHANGE_SET_DESCRIPTION_RESOURCE_TYPE_INVALID');
-          assert.equal(detail?.Target?.Name, 'Description', 'CHANGE_SET_DESCRIPTION_PROPERTY_INVALID');
-          assert.ok(isExactDescriptionReduction(current,desired,change.LogicalResourceId),'CHANGE_SET_DESCRIPTION_DELTA_INVALID');
         } else {
           assert.equal(change?.ResourceType, 'AWS::IAM::Role', 'CHANGE_SET_DIRECT_RESOURCE_TYPE_INVALID');
           if(change?.LogicalResourceId==='KpmoApprovalRole'&&isExactTerminalRecoveryTrustUpgrade(current,desired))
@@ -475,7 +461,7 @@ if (args.includes('--changeset')) {
 console.log(JSON.stringify({
   state: 'VERIFIED_PASS',
   mode,
-  allowed_logical_ids: [...ROLE_IDS,...METADATA_DESCRIPTION_IDS],
+  allowed_logical_ids: ROLE_IDS,
   allowed_actions: ['dynamodb:Query', 'kms:Decrypt'],
   allowed_kms_resource: 'AutonomousLedgerKey',
   writer_allowed_kms_action: 'kms:Decrypt',
