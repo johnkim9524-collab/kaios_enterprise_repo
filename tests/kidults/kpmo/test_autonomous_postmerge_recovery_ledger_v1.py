@@ -477,7 +477,7 @@ class RecoveryLedgerTests(unittest.TestCase):
             self.assertTrue(namespace['handler'](event, None)['ok'])
         self.assertIn(('AUTH#legacy-generation', 'ROLE#' + M.ROLES[0]), self.ddb.rows)
 
-    def test_cloudformation_change_does_not_expand_iam_or_oidc(self):
+    def test_cloudformation_adds_only_exact_terminal_recovery_oidc_subject(self):
         path = 'infrastructure/aws/staging/autonomous-internal-landing-v1.json'
         actual = json.loads((ROOT / path).read_text())
         # Hosted CI may use a filtered checkout where the historical fixture
@@ -523,6 +523,22 @@ class RecoveryLedgerTests(unittest.TestCase):
         if used_fallback:
             original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_KEY_ARN', None)
             original['Resources']['AutonomousLedgerWriterFunction']['Properties']['Environment']['Variables'].pop('RECEIPT_BUCKET', None)
+        expected_recovery_sub = {'Fn::Sub': 'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'}
+        original_kpmo_sub = original['Resources']['KpmoApprovalRole']['Properties']['AssumeRolePolicyDocument']['Statement'][0]['Condition']['StringEquals']['token.actions.githubusercontent.com:sub']
+        actual_kpmo_sub = actual['Resources']['KpmoApprovalRole']['Properties']['AssumeRolePolicyDocument']['Statement'][0]['Condition']['StringEquals']['token.actions.githubusercontent.com:sub']
+        self.assertEqual(actual_kpmo_sub, [original_kpmo_sub, expected_recovery_sub])
+        original['Resources']['KpmoApprovalRole']['Properties']['AssumeRolePolicyDocument']['Statement'][0]['Condition']['StringEquals']['token.actions.githubusercontent.com:sub'] = actual_kpmo_sub
+        expected_descriptions = {
+            'TrackApprovalSigningKey': 'Track key',
+            'VerifierApprovalSigningKey': 'Verifier key',
+            'AutonomousReceiptKey': 'Receipt key',
+            'AutonomousLedgerKey': 'Ledger key',
+            'KpmoApprovalSigningKey': 'KPMO key',
+            'FinalizerSigningKey': 'Finalizer key',
+        }
+        for logical_id, description in expected_descriptions.items():
+            self.assertEqual(actual['Resources'][logical_id]['Properties']['Description'], description)
+            original['Resources'][logical_id]['Properties']['Description'] = description
         self.assertEqual(actual, original)
 
     def test_bundle_is_synchronized_and_does_not_deploy(self):
