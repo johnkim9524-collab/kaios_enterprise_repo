@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING ledger, receipt sink, and OIDC roles.",
+  "Description": "KIDULTS STAGING ledger.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -70,11 +70,6 @@
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main",
       "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
-    },
-    "TerminalRecoveryWorkflowRef": {
-      "Type": "String",
-      "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main",
-      "AllowedPattern": "^johnkim9524-collab/kaios_enterprise_repo/\\.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1\\.yml@refs/heads/main$"
     }
   },
   "Resources": {
@@ -120,7 +115,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING autonomous landing ledger key"
+        "Description": "Ledger key"
       }
     },
     "AutonomousLedgerKeyAlias": {
@@ -459,7 +454,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key"
+        "Description": "Track key"
       }
     },
     "TrackApprovalRole": {
@@ -621,7 +616,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING KPMO approval signing key"
+        "Description": "KPMO key"
       }
     },
     "KpmoApprovalRole": {
@@ -648,7 +643,7 @@
                       "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
                     },
                     {
-                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${TerminalRecoveryWorkflowRef}"
+                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main"
                     }
                   ]
                 }
@@ -788,7 +783,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key"
+        "Description": "Verifier key"
       }
     },
     "VerifierApprovalRole": {
@@ -950,7 +945,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING FINALIZER signing key"
+        "Description": "Finalizer key"
       }
     },
     "FinalizerRole": {
@@ -1270,7 +1265,7 @@
             "Value": "HOLD"
           }
         ],
-        "Description": "KIDULTS STAGING immutable autonomous landing receipt key"
+        "Description": "Receipt key"
       }
     },
     "AutonomousReceiptKeyAlias": {
