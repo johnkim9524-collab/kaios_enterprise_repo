@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "518a860e14dcbddca50f573e75da2a36a5beb0a2",
+  "revision": "bded58dcf9aa5b22224914ca9e2a2cfb1ab6d49b",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -3465,8 +3465,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "f1f81492d77d50d80ac646348173cfd8d354165f",
-      "sha256": "sha256:3785c355ba735b270a25a949b2c3f9cc21bd7f87eac89d384c64d3c1469019ca",
+      "git_blob": "f62533bfccade93b07409b4ad75f9582c353142b",
+      "sha256": "sha256:5f1602fe9c1692e70f951e745f110e2d6fce8774c83af683406829948739697a",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -3654,8 +3654,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "7217751c0de55c417dddf1dd2562b97c1ebfe185",
-      "sha256": "sha256:5cf6076b70cb0cc9b2c115bf60e220877302ea02e05d35dd0be4e2d0fcd207b6",
+      "git_blob": "f53e963ca440e7fe5c8ad4a2f8960cc368b06910",
+      "sha256": "sha256:bcf6ad1e009ee8760343ab86f18483a75e4dfb16888afa08afa306440c9d7ac2",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7271,8 +7271,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "df452f8a8498e3dd743b7ea3fd3ec25725df647f",
-      "sha256": "sha256:68848e06c67e5d5639dde4dd67d0dcd6ff0995ee4eb30ec3ffc44738e844e664"
+      "git_blob": "465c733e83c64340bfb68f6fd3c2a2d704eb81d0",
+      "sha256": "sha256:b940906e89062617d998e73026862d56ac0a231cf45c2a33667ececc754a6e39"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:e80f0d09a9959b7e778b23e070de11176e7788ef8272a8b3b287f9a72e86bfd7"
+  "manifest_sha256": "sha256:444902d927c51c9715e479f1b646dda033fd99ec1b4937676850269f3469a3e5"
 }
