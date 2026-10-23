@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
 import {INTERNAL_RECOVERY_CHECKS,verifyInternalOperatingRecovery,observeInternalOperatingRecovery} from '../../../scripts/kidults/kpmo/lib/internal-operating-recovery-v1.mjs';
 import {verifyAssuranceRuntimeReadiness} from '../../../scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs';
+import {buildOperatingProofFailureReceipt} from '../../../scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs';
 const source='a'.repeat(40);
 const runtimeContract=(()=>{const contract=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/whole-platform-operating-proof-v1.json','utf8'));
   return {...contract,runtime_domain_sources:contract.value_chain_dimensions.map(domain_id=>({domain_id,workflow:`${domain_id.toLowerCase().replaceAll('_','-')}.yml`}))};})();
@@ -41,6 +42,7 @@ test('audit emits a distinct internal artifact through the existing KPMO trust w
   assert.match(job,/environment: KIDULTS-AUTONOMOUS-KPMO/);
   assert.match(job,/KIDULTS_GITHUB_READ_BUDGET_MODE: SHARED_REQUIRED/);
   assert.match(job,/internal-operating-recovery-observation-v1\.json[\s\S]*--observe/);
+  assert.match(job,/name: Preserve read-only rate wait checkpoint[\s\S]*?name: kidults-github-read-resume-kpmo-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}[\s\S]*?path: out\/github-read-resume-v1\//);
   const consumer=fs.readFileSync('scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs','utf8');
   assert.match(consumer,/verified_domain_count!==14/);
   assert.doesNotMatch(consumer,/verifyInternalOperatingRecovery/);
@@ -68,19 +70,23 @@ test('observation preserves real failure evidence while malformed checks still f
   const p=fixture();p.production='PASS';assert.throws(()=>observeInternalOperatingRecovery(seal(p),source));
   assert.throws(()=>observeInternalOperatingRecovery({...fixture(),receipt_digest:'bad'},source));
 });
-test('a deferred collector failure remains digest-bound incomplete recovery evidence',()=>{
-  const failureBody={id:'kidults-whole-platform-operating-proof-v1',source_sha:source,
-    repository:'johnkim9524-collab/kaios_enterprise_repo',state:'VERIFIED_FAIL',failure_class:'GITHUB_READ_DEFERRED',
-    whole_platform_runtime_proven:false,retry_authorized:false,production:'HOLD',public:'HOLD',g5:'HOLD',provider_activation:'HOLD',
-    operating_checks:INTERNAL_RECOVERY_CHECKS.map(id=>({id,state:'UNVERIFIED',reason:'GITHUB_READ_DEFERRED',evidence_refs:[]}))};
-  const proof=seal(failureBody),observed=observeInternalOperatingRecovery(proof,source);
+test('a deferred read stays HOLD and produces incomplete, non-authorizing proof',()=>{
+  const error=Error('GITHUB_READ_DEFERRED');
+  error.read_resume_checkpoint={state:'READ_DEFERRED_NOT_AUTHORITY',reason:'RATE_WAIT'};
+  const proof=buildOperatingProofFailureReceipt({contract:{id:'kidults-whole-platform-operating-proof-v1'},sourceSha:source,error});
+  const observed=observeInternalOperatingRecovery(proof,source);
+  assert.equal(proof.state,'VERIFIED_INCOMPLETE');
+  assert.ok(proof.operating_checks.every(check=>check.state==='VERIFIED_HOLD'));
   assert.equal(observed.state,'VERIFIED_INCOMPLETE');
   assert.equal(observed.pending_checks.length,INTERNAL_RECOVERY_CHECKS.length);
-  assert.ok(observed.pending_checks.every(check=>check.reason==='GITHUB_READ_DEFERRED'));
+  assert.ok(observed.pending_checks.every(check=>check.reason==='GITHUB_READ_DEFERRED_NOT_AUTHORITY'));
   assert.equal(observed.failed_checks.length,0);assert.equal(observed.recovery_receipt,null);
   assert.equal(observed.operating_recovery_proven,false);
   assert.equal(observed.whole_platform_runtime_proven,false);assert.equal(observed.promotion_authority,false);
   assert.throws(()=>verifyInternalOperatingRecovery(proof,source));
+  const failure=buildOperatingProofFailureReceipt({contract:{id:'kidults-whole-platform-operating-proof-v1'},sourceSha:source,error:Error('HTTP_403_PERMISSION')});
+  assert.equal(failure.state,'VERIFIED_FAIL');assert.equal(failure.failure_class,'HTTP_403_PERMISSION');
+  assert.ok(failure.operating_checks.every(check=>check.state==='UNVERIFIED'));
   assert.throws(()=>observeInternalOperatingRecovery(proof,'b'.repeat(40)),/SOURCE_BINDING/);
 });
 test('complete observation embeds only strictly verified internal recovery',()=>{

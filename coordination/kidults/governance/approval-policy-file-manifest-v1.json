@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "9f0fd29c0ddac13413216fa9c3513ee692ff559d",
+  "revision": "00d20ef064e835401d07391c7654be42df7237eb",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -164,8 +164,8 @@
     {
       "path": ".github/workflows/kidults-autonomous-kpmo-authorization-v1.yml",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "48fb0b766a15675c33f0a7fb7c7d6372a0e1aa43",
-      "sha256": "sha256:7fab9f8070328ea99cecc4a2e5ea5cb62dd3fb27987466f0ec829a390efdb8f2",
+      "git_blob": "9ed4ba9488e709f66f2b3512b1ad4074aaafea36",
+      "sha256": "sha256:415f41d60e3d266747a847947d717d24048b5c488d9c79cfe1f5192ea18f57ed",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3918,8 +3918,8 @@
     {
       "path": "scripts/kidults/kpmo/collect-whole-platform-operating-proof-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "c18aac3bdfa9603cb4aff610b22a6305cbb63c99",
-      "sha256": "sha256:1bb8292807221dea9028bb559af75139494306964f7c1f9e1ecc0ced2eb123e8",
+      "git_blob": "5c962367f40adcbad49a24dce51ddadc65bb9e03",
+      "sha256": "sha256:05592d213deb429870b64b9f3252bdec89697787412102a70807aaaa952fad62",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -6983,8 +6983,8 @@
     {
       "path": "tests/kidults/kpmo/internal-operating-recovery-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "e2259712b8c32beac6ad304ab74fff8b8729b20d",
-      "sha256": "sha256:cc9127e796ea9b43260091bfd36d272d4e968435fad41548ae927faf16a48c68"
+      "git_blob": "3834e9ecde4667c818e3f5c7bdb93ffa1a5212b2",
+      "sha256": "sha256:5276771ac40828431c202ce312b517e67330cd6fb31e112bb900a108fb10d880"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-broker-drain-v1.test.mjs",
@@ -7335,5 +7335,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:fc3884b8bdc6e1eeaa2e7823ea3a7e155e61bf57c3b2734050220d7094f71ab1"
+  "manifest_sha256": "sha256:2b9f98194b67049c8f376c914ae960c3e749777c73d23b084755d601f8996642"
 }
