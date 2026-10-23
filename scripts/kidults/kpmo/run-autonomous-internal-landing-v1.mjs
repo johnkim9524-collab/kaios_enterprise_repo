@@ -17,6 +17,7 @@ import {
   selectExactScopeOwnerDecision,
   bindLiveOwnerDecision,
   independentlyVerifyLiveCandidate,
+  independentVerificationBasis,
 } from './lib/autonomous-internal-landing-v1.mjs';
 import {selectLatestLifecycleReadyEvent} from './lib/direct-owner-ready-event-v1.mjs';
 import {LANDING_READINESS_CONTEXT,isLandingReadinessCurrent} from './lib/atomic-landing-lifecycle-authority-v1.mjs';
@@ -531,12 +532,13 @@ const rebindDraftReady = async (before, mutationToken) => {
 try {
   if (mode === 'APPROVAL') {
     const candidate=await validateLiveCandidate({allowDraft:true,includeLandingStatus:false});
+    let verificationBasis=null;
     if (approvalRole==='INDEPENDENT_VERIFIER') {
       const verification=independentlyVerifyLiveCandidate({candidate,policy});
-      if(verification?.state!=='INDEPENDENT_CAPABILITY_VERIFIED')
-        throw new AutonomousLandingError('AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED',verification?.state||'MISSING_RESULT');
+      try{verificationBasis=independentVerificationBasis({verification,candidate});}
+      catch(error){throw new AutonomousLandingError(error.code||'AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED',error.message);}
     }
-    envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks,requiredContexts:candidate.required_bindings,headSha:envelope.head_sha});
+    envelope=deriveApprovalDecision({envelope,role:approvalRole,statuses:candidate.statuses,checks:candidate.checks,requiredContexts:candidate.required_bindings,headSha:envelope.head_sha,verificationBasis});
     if (envelope.recovery) {
       const priorApprovals=readGenerationApprovals(envelope.recovery.prior_authorization_generation);
       const prior=priorApprovals.KPMO || priorApprovals.ACCOUNTABLE_TRACK_AGENT || priorApprovals.INDEPENDENT_VERIFIER;

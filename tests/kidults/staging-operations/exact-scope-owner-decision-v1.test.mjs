@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {assertAutonomousFileScope,assertExactScopeOwnerDecision,bindLiveOwnerDecision,independentlyVerifyLiveCandidate,selectExactScopeOwnerDecision,sha256,validateLiveChangedPaths} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
+import {assertAutonomousFileScope,assertExactScopeOwnerDecision,assertIndependentVerificationDecisionBasis,bindLiveOwnerDecision,deriveApprovalDecision,independentlyVerifyLiveCandidate,independentVerificationBasis,selectExactScopeOwnerDecision,sha256,validateLiveChangedPaths} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
 import {evaluateSemanticCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
 import {independentlyVerifyCapabilityDelta} from '../../../scripts/kidults/kpmo/lib/independent-capability-verifier-v1.mjs';
 import policy from '../../../coordination/kidults/governance/autonomous-internal-landing-policy-v1.json' with {type:'json'};
@@ -104,7 +104,20 @@ test('APPROVAL-mode Independent Verifier receives the live-bound Owner proof',()
   const candidate={files,owner_decision:bindLiveOwnerDecision({...input,expectedProof})};
   const receipt=independentlyVerifyLiveCandidate({candidate,policy});
   assert.equal(receipt.state,'INDEPENDENT_OWNER_SCOPE_PENDING_QUORUM');
+  assert.equal(independentVerificationBasis({verification:receipt,candidate}),'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS');
   assert.ok(receipt.receipts.every(value=>value.authority_created===false&&value.merge_authorized===false));
+  assert.throws(()=>independentVerificationBasis({verification:receipt,candidate:{files}}),/AUTONOMOUS_INDEPENDENT_VERIFICATION_NOT_PASSED/);
+  assert.equal(independentVerificationBasis({verification:{state:'INDEPENDENT_CAPABILITY_VERIFIED'},candidate:{files}}),'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION');
+  assert.equal(assertIndependentVerificationDecisionBasis({envelope:candidate,verifier:{decision:{verification_basis:'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS'}}}),true);
+  assert.throws(()=>assertIndependentVerificationDecisionBasis({envelope:candidate,verifier:{decision:{verification_basis:'FULL_INDEPENDENT_CAPABILITY_CLASSIFICATION'}}}),/AUTONOMOUS_OWNER_SCOPE_VERIFICATION_BASIS_REQUIRED/);
+  const approvalEnvelope={...candidate,repository:'johnkim9524-collab/kaios_enterprise_repo',pull_request:2669,
+    base_sha:sha('a'),head_sha:sha('b'),head_tree_sha:sha('c'),scope_digest:scopeDigest};
+  const checks=[{id:1,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'}];
+  assert.equal(deriveApprovalDecision({envelope:approvalEnvelope,role:'INDEPENDENT_VERIFIER',checks,
+    requiredContexts:[{context:'unit',integration_id:7}],verificationBasis:'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS'}).decision.verification_basis,
+    'OWNER_APPROVED_EXACT_SCOPE_AND_LIVE_REQUIRED_CHECKS');
+  assert.throws(()=>deriveApprovalDecision({envelope:approvalEnvelope,role:'INDEPENDENT_VERIFIER',checks,
+    requiredContexts:[{context:'unit',integration_id:7}]}),/AUTONOMOUS_OWNER_SCOPE_VERIFICATION_BASIS_REQUIRED/);
   assert.throws(()=>independentlyVerifyLiveCandidate({candidate:{files},policy}),/INDEPENDENT_SECURITY_CAPABILITY_ADDED/);
   for(const comments of [[],[{...comment,body:body.replace('Head SHA:','Old Head SHA:')}],
     [{...comment,updated_at:'2026-10-15T10:01:00Z'}]]) {

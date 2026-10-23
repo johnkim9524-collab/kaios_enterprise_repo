@@ -24,6 +24,13 @@ const OWNER_REVIEW_CODES=new Set([
   'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED',
   'DISPATCH_BINARY_SEMANTIC_CLASSIFICATION_REQUIRED',
 ]);
+const OWNER_QUORUM_CLASSIFICATION_CODES=new Set([
+  'CAPABILITY_EXISTING_VALUE_CHANGED','CAPABILITY_GUARD_REMOVED','CAPABILITY_GUARD_WEAKENED',
+  'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION',
+  'CAPABILITY_PERMISSION_EXPANSION','INDEPENDENT_POLICY_VALUE_CHANGED','INDEPENDENT_POLICY_KEY_REMOVED',
+  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_SECURITY_CAPABILITY_CHANGED',
+  'INDEPENDENT_AUTHORITY_POLICY_CHANGED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED',
+]);
 const isOwnerReviewRequired=error=>OWNER_REVIEW_CODES.has(String(error?.code||''));
 const POLICY_REPAIR_CODES=new Set([
   'CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
@@ -58,8 +65,16 @@ export function validateDispatcherTrigger({eventName,event={},repository,reposit
   if(ref!=='refs/heads/main'||Number(runAttempt)!==1||!SHA.test(String(sourceSha))
     ||repository!=='johnkim9524-collab/kaios_enterprise_repo'||String(repositoryId)!=='1281328888')
     fail('DISPATCH_TRIGGER_BINDING_INVALID');
-  if(!['schedule','workflow_dispatch','workflow_run'].includes(eventName))fail('DISPATCH_TRIGGER_EVENT_INVALID');
+  if(!['schedule','workflow_dispatch','workflow_run','issue_comment'].includes(eventName))fail('DISPATCH_TRIGGER_EVENT_INVALID');
   let prNumber=null;
+  if(eventName==='issue_comment'){
+    const issue=event.issue;
+    const expected=`https://api.github.com/repos/${repository}/pulls/`;
+    if(!issue||!Number.isSafeInteger(issue.number)||issue.number<1||!issue.pull_request
+      ||!String(issue.pull_request.url||'').startsWith(expected)
+      ||!String(issue.pull_request.url).endsWith(`/${issue.number}`))fail('DISPATCH_TRIGGER_PR_BINDING_INVALID');
+    prNumber=issue.number;
+  }
   if(eventName==='workflow_run'){
     const run=event.workflow_run;
     if(!run||run.conclusion!=='success'||run.event!=='pull_request_target'
@@ -551,7 +566,20 @@ export async function discover({repository,token,prNumber,policy,generationSeed,
     const files=await attachImmutableContents({repository,baseSha:mainSha,headSha:pr.head.sha,files:fileRecords,token});
     candidateContext={pr,mainSha,treeSha:commit.tree?.sha,files,protectedRulesetDigest:sha256(canonicalJson(soloDetail))};
     assertDelegatedPathScope(fileRecords,policy,ownerDecision);
-    const candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,ownerDecision});
+    let candidate;
+    try {
+      candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,ownerDecision});
+    } catch(classificationError) {
+      if(ownerDecision||!OWNER_QUORUM_CLASSIFICATION_CODES.has(String(classificationError?.code||'')))throw classificationError;
+      const comments=await pages(`/repos/${repository}/issues/${pr.number}/comments`,token);
+      const exactDecision=selectExactScopeOwnerDecision({comments,repository,repositoryId:pr.base.repo.id,
+        repositoryOwner:pr.base.repo.owner?.login,repositoryOwnerId:pr.base.repo.owner?.id,
+        pullRequest:pr.number,baseSha:pr.base.sha,headSha:pr.head.sha,treeSha:commit.tree?.sha,
+        changedPaths:fileRecords.map(file=>file.filename)});
+      if(!exactDecision)throw classificationError;
+      ownerDecision=exactDecision;
+      candidate=classifyCandidate({pr,mainSha,treeSha:commit.tree?.sha,files,statuses:status.statuses||[],checks,requiredChecks,policy,generationSeed,ownerDecision});
+    }
     results.push({state:'ELIGIBLE',envelope:candidate});
   }catch(error){if(isGlobalReadFailure(error)||!isCandidateRejection(error))throw error;
     // Keep bulk/scheduled scans path-only and bounded. For the exact PR

@@ -1,875 +1,1 @@
-import {test} from 'node:test';
-import {spawnSync} from 'node:child_process';
-import os from 'node:os';
-import path from 'node:path';
-import assert from 'node:assert/strict';
-import crypto from 'node:crypto';
-import fs from 'node:fs';
-// Keep repair diagnostics in the existing protected-main and PR CI entrypoint.
-import './capability-repair-analysis-v1.test.mjs';
-import './protected-diagnostic-repair-v1.test.mjs';
-import './bounded-git-source-reader-v1.test.mjs';
-import './bounded-git-pack-decoder-v1.test.mjs';
-import './bounded-git-public-transport-v1.test.mjs';
-import './bounded-git-source-profile-v1.test.mjs';
-import './autonomous-operation-quarantine-v1.test.mjs';
-import './primary-script-lexing-v1.test.mjs';
-import './independent-script-lexing-v1.test.mjs';
-import './dispatcher-recovery-classification-v1.test.mjs';
-import './exact-scope-owner-decision-v1.test.mjs';
-import {isGlobalReadFailure,classifyEmptyTreeRedundant,recordDispatcherScan,createDispatcherReadClient,discover,dispatcherReadBudgetForCandidates,buildPolicyRepairRequired,buildOwnerReviewRequired,classifyCandidate,classifyStaleBaseCandidate,DispatcherError,isCandidateRejection,isUnknownClassification,reclassifyUnknownCandidate,immutableContent,contentBlobShaOrNull} from '../../../scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs';
-import {CapabilityDeltaError} from '../../../scripts/kidults/kpmo/lib/semantic-capability-delta-v1.mjs';
-import {assertAutonomousFileScope} from '../../../scripts/kidults/kpmo/lib/autonomous-internal-landing-v1.mjs';
-import {buildDispatchRequest,transitionDispatchReceipt,validateDispatchEvent,DISPATCH_ROLES} from '../../../scripts/kidults/kpmo/lib/autonomous-dispatch-fanout-v1.mjs';
-const policy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-internal-landing-policy-v1.json'));
-const sha=c=>c.repeat(40);
-test('exhausted reads retain only bounded resource counts and reject injected diagnostics',async()=>{
-  const client=createDispatcherReadClient({token:'secret-token',maxRequests:2,fetchImpl:async()=>({ok:true,status:200,headers:{get:()=>null},json:async()=>[]})});
-  await client.request('/repos/owner/repo/pulls?state=open');
-  await client.request('/repos/owner/repo/pulls/42/files?per_page=100&page=1');
-  let failure;
-  await assert.rejects(client.request('/repos/owner/repo/contents/secret-path?ref='+sha('a')),error=>{failure=error;return error.code==='DISPATCH_READ_BUDGET_EXHAUSTED';});
-  assert.equal(client.requestCount(),2);
-  assert.equal(failure.read_diagnostics.resource_counts.pulls,1);
-  assert.equal(failure.read_diagnostics.resource_counts.files,1);
-  assert.equal(failure.read_diagnostics.next_resource_family,'contents');
-  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-counts-'));
-  try {
-    await assert.rejects(recordDispatcherScan({outputDirectory,scan:async()=>{throw failure;}}));
-    let receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
-    assert.deepEqual(receipt.read_diagnostics,failure.read_diagnostics);
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
-    assert.doesNotMatch(JSON.stringify(receipt),/secret-token|secret-path|\/repos\//);
-    for(const mutate of [d=>({...d,url:'secret-token'}),d=>({...d,resource_counts:{...d.resource_counts,files:99}}),d=>({...d,next_resource_family:'secret-path'})]){
-      const injected=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED');injected.read_diagnostics=mutate(failure.read_diagnostics);
-      await assert.rejects(recordDispatcherScan({outputDirectory,scan:async()=>{throw injected;}}));
-      receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
-      assert.equal('read_diagnostics' in receipt,false);
-    }
-  }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
-});
-test('failed scan retains its original error and invalidates old eligible results without leaking details',async()=>{
-  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-failure-'));
-  try {
-    fs.writeFileSync(path.join(outputDirectory,'results.json'),JSON.stringify([{state:'ELIGIBLE'}]));
-    const error=new DispatcherError('DISPATCH_READ_BUDGET_EXHAUSTED','secret-token');
-    await assert.rejects(recordDispatcherScan({outputDirectory,repository:'owner/repo',sourceSha:sha('a'),runId:'123',scan:async()=>{throw error;}}),e=>e===error);
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
-    const failure=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
-    assert.equal(failure.failure_class,error.code);
-    assert.equal(failure.fanout_authorized,false);
-    assert.equal(failure.partial_candidates_consumable,false);
-    assert.equal(failure.binding.source_sha,sha('a'));
-    assert.doesNotMatch(JSON.stringify(failure),/secret-token/);
-    await recordDispatcherScan({outputDirectory,scan:async()=>[]});
-    assert.equal(fs.existsSync(path.join(outputDirectory,'failure.json')),false);
-  } finally {fs.rmSync(outputDirectory,{recursive:true,force:true});}
-});
-const pr={number:42,state:'open',merged:false,draft:false,base:{ref:'main',sha:sha('a'),repo:{id:1281328888,full_name:'johnkim9524-collab/kaios_enterprise_repo'}},head:{sha:sha('b'),repo:{full_name:'johnkim9524-collab/kaios_enterprise_repo'}}};
-const input={pr,mainSha:sha('a'),treeSha:sha('c'),files:[{filename:'src/a.js'}],statuses:[{context:'required',state:'success'}],checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',external_id:'unit-101'}],requiredChecks:[{context:'unit',integration_id:7}],policy,generationSeed:'987654321',now:new Date('2026-09-24T12:00:00Z')};
-test('protected dispatcher read allowance scales with open PR count and remains capped',()=>{
-  assert.equal(dispatcherReadBudgetForCandidates(0),256);
-  assert.equal(dispatcherReadBudgetForCandidates(110),724);
-  assert.equal(dispatcherReadBudgetForCandidates(10000),2048);
-  assert.throws(()=>dispatcherReadBudgetForCandidates(-1),/DISPATCH_CONFIGURATION_INVALID/);
-});
-for(const code of ['CAPABILITY_DERIVED_METADATA_SCOPE_CHANGED','INDEPENDENT_DERIVED_METADATA_SCOPE_CHANGED',
-  'INDEPENDENT_SECURITY_CAPABILITY_ADDED','INDEPENDENT_GUARD_DEPENDENCY_CHANGED']) {
-  const error=new CapabilityDeltaError(code,'src/a.js:private content must never appear');
-  const repair=buildPolicyRepairRequired({...input,error});
-  assert.equal(repair.state,'POLICY_REPAIR_REQUIRED');
-  assert.equal(repair.classification_failure.changed_path,'src/a.js');
-  assert.equal(repair.binding.head_sha,pr.head.sha);
-  assert.equal(repair.binding.head_tree_sha,input.treeSha);
-  assert.equal(repair.binding.scope_digest,'sha256:'+crypto.createHash('sha256').update('src/a.js').digest('hex'));
-  for(const field of ['automatic_retry_performed','autonomous_eligible','landing_authorization_created','merge_authorized'])assert.equal(repair[field],false);
-  assert.equal(repair.classification_failure.authority_created,false);
-  assert.doesNotMatch(JSON.stringify(repair),/private content/);
-  for(const change of [{mainSha:'invalid'},{treeSha:'invalid'},{files:[]}])
-    assert.throws(()=>buildPolicyRepairRequired({...input,...change,error}),/DISPATCH_POLICY_REPAIR_BINDING_INVALID/);
-}
-assert.equal(buildPolicyRepairRequired({...input,error:new DispatcherError('DISPATCH_CHECKS_NOT_GREEN')}),null);
-assert.equal(buildPolicyRepairRequired({...input,error:new CapabilityDeltaError('CAPABILITY_PERMISSION_EXPANSION')}),null);
-console.log(JSON.stringify({state:'VERIFIED_PASS',suite:'non-authorizing-policy-repair-routing',positive:4,negative:14,authority_created:false}));
-const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
-const unknown=new CapabilityDeltaError('CAPABILITY_SOURCE_MISSING','private payload');
-let reads=0;
-const recovered=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
-  readCandidate:async()=>{reads++;return input;}});
-assert.equal(reads,1);
-assert.deepEqual(recovered.candidate,classifyCandidate(input));
-assert.equal(recovered.receipt.authority_created,false);
-assert.doesNotMatch(JSON.stringify(recovered.receipt),/private payload/);
-reads=0;
-const unknownContext={...input,files:[{filename:'.github/workflows/x.yml',base_content:'name: x\n',head_content:'name: x\n odd: unsupported\n',patch:'@@ -1 +1,2 @@\n name: x\n+ odd: unsupported'}]};
-const unresolved=await reclassifyUnknownCandidate({context:unknownContext,error:unknown,approvalPolicy,
-  readCandidate:async()=>{reads++;return unknownContext;}});
-assert.equal(reads,2);
-assert.equal(unresolved.unresolved,true);
-assert.equal(unresolved.candidate,undefined);
-assert.equal(unresolved.receipt.authority_created,false);
-assert.equal(unresolved.receipt.repository_mutation_performed,false);
-assert.deepEqual(unresolved.receipt.attempts.map(x=>x.attempt),[1,2]);
-for(const code of policy.capability_guard_owner_review_handoff.trigger_codes||[
-  'CAPABILITY_GUARD_DEPENDENCY_CHANGED','CAPABILITY_GUARD_WEAKENED','CAPABILITY_GUARD_REMOVED',
-  'CAPABILITY_AUTHORITY_POLICY_CHANGED','CAPABILITY_EXPANSION','CAPABILITY_PERMISSION_EXPANSION',
-  'INDEPENDENT_SECURITY_CAPABILITY_CHANGED','INDEPENDENT_AUTHORITY_POLICY_CHANGED']) {
-  assert.equal(isUnknownClassification({code}),false);
-  await assert.rejects(()=>reclassifyUnknownCandidate({context:input,error:{code},approvalPolicy,
-    readCandidate:async()=>{throw new Error('MUST_NOT_READ');}}),/DISPATCH_RECLASSIFICATION_NOT_UNKNOWN/);
-}
-for(const fresh of [{...input,mainSha:sha('d')},{...input,treeSha:sha('d')},
-  {...input,pr:{...pr,draft:true}},{...input,files:[{filename:'src/b.js'}]},
-  {...input,protectedRulesetDigest:'sha256:'+ 'a'.repeat(64)}]) {
-  const drift=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,readCandidate:async()=>fresh});
-  assert.equal(drift.error.code,'DISPATCH_RECLASSIFICATION_SOURCE_DRIFT');
-  assert.equal(drift.candidate,undefined);
-}
-const readFailed=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
-  readCandidate:async()=>{throw new Error('REMOTE_READ_FAILED_PRIVATE');}});
-assert.equal(readFailed.unresolved,true);
-assert.equal(readFailed.receipt.attempts.length,2);
-assert.doesNotMatch(JSON.stringify(readFailed.receipt),/PRIVATE/);
-const injectedClassify=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
-  readCandidate:async()=>input,classify:()=>({merge_authorized:true})});
-assert.deepEqual(injectedClassify.candidate,classifyCandidate(input));
-assert.equal(injectedClassify.candidate.merge_authorized,undefined);
-for(const code of ['INDEPENDENT_SCRIPT_PARSE_FAILED','INDEPENDENT_JSON_PARSE_FAILED','INDEPENDENT_IMMUTABLE_BLOBS_REQUIRED']) {
-  assert.equal(isUnknownClassification({code}),true);
-}
-const invalidMode=await reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,
-  readCandidate:async()=>({...input,classificationMode:'OWNER_BYPASS'})});
-assert.equal(invalidMode.error.code,'DISPATCH_RECLASSIFICATION_SOURCE_DRIFT');
-const changedRisk=await reclassifyUnknownCandidate({context:unknownContext,error:unknown,approvalPolicy,
-  readCandidate:async()=>({...unknownContext,files:[{filename:'.github/workflows/x.yml',base_content:'name: x\n',head_content:'name: x\npermissions: write-all\n',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]})});
-assert.equal(changedRisk.error.code,'DISPATCH_OWNER_RESERVED_ACTION');
-assert.equal(changedRisk.receipt.attempts.length,1);
-assert.equal(changedRisk.candidate,undefined);
-await assert.rejects(()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy:{classes:{UNKNOWN:{}}},
-  readCandidate:async()=>input}),/DISPATCH_RECLASSIFICATION_POLICY_INVALID/);
-const governedFile=(filename,base_content,head_content,patch)=>({filename,base_content,head_content,...(patch?{patch}:{})});
-assert.equal(policy.capability_guard_owner_review_handoff.disposition,'OWNER_REVIEW_REQUIRED');
-assert.equal(policy.capability_guard_owner_review_handoff.autonomous_quorum_before_owner_decision,false);
-assert.equal(policy.capability_guard_owner_review_handoff.merge_authorization_created_by_handoff,false);
-const ownerReview=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,
-  files:[{filename:'scripts/guard.mjs'},{filename:'.github/workflows/sentinel.yml'}],
-  error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED','scripts/guard.mjs')});
-assert.equal(ownerReview.state,'OWNER_REVIEW_REQUIRED');
-assert.equal(ownerReview.reason,'CAPABILITY_GUARD_DEPENDENCY_CHANGED');
-assert.deepEqual(ownerReview.classification_failure,{code:'CAPABILITY_GUARD_DEPENDENCY_CHANGED',changed_path:'scripts/guard.mjs',
-  stage:'IMMUTABLE_CAPABILITY_DELTA',authority_created:false});
-const privateDetail=buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,
-  files:[{filename:'scripts/guard.mjs'}],error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED','secret command payload')});
-assert.equal(privateDetail.classification_failure.changed_path,null);
-assert.doesNotMatch(JSON.stringify(privateDetail),/secret command payload/);
-assert.equal(ownerReview.autonomous_eligible,false);
-assert.equal(ownerReview.landing_authorization_created,false);
-assert.equal(ownerReview.merge_authorized,false);
-assert.deepEqual(ownerReview.binding.changed_paths,['.github/workflows/sentinel.yml','scripts/guard.mjs']);
-assert.equal(ownerReview.binding.base_sha,input.mainSha);
-assert.equal(ownerReview.binding.head_sha,pr.head.sha);
-assert.equal(ownerReview.binding.head_tree_sha,input.treeSha);
-assert.equal(ownerReview.binding.scope_digest,`sha256:${crypto.createHash('sha256').update(ownerReview.binding.changed_paths.join('\n')).digest('hex')}`);
-assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:'invalid',treeSha:input.treeSha,files:input.files,
-  error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
-assert.throws(()=>buildOwnerReviewRequired({pr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
-  error:new CapabilityDeltaError('CAPABILITY_IMMUTABLE_BLOBS_REQUIRED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
-for (const terminalPr of [{...pr,state:'closed'},{...pr,merged:true}]) {
-  assert.throws(()=>buildOwnerReviewRequired({pr:terminalPr,mainSha:input.mainSha,treeSha:input.treeSha,files:input.files,
-    error:new CapabilityDeltaError('CAPABILITY_GUARD_DEPENDENCY_CHANGED')}),/DISPATCH_OWNER_REVIEW_BINDING_INVALID/);
-}
-const e=classifyCandidate(input);assert.match(e.authorization_generation,/^pr-42-b{20}-[0-9a-f]{16}$/);assert.equal(e.production,'HOLD');assert.deepEqual(e.changed_paths,['src/a.js']);
-const sameRunEnvelope=classifyCandidate({...input,now:new Date('2026-09-24T12:00:01Z')});
-assert.equal(sameRunEnvelope.authorization_generation,e.authorization_generation);
-assert.equal(sameRunEnvelope.nonce_digest,e.nonce_digest);
-const nextRunEnvelope=classifyCandidate({...input,generationSeed:'987654322'});
-assert.notEqual(nextRunEnvelope.authorization_generation,e.authorization_generation);
-assert.notEqual(nextRunEnvelope.nonce_digest,e.nonce_digest);
-const fanout=buildDispatchRequest({envelope:e,runId:'987654321',runAttempt:2,now:'2026-09-30T09:00:00.000Z'});
-assert.equal(fanout.request.event_type,'kidults.authorization.generation.v1');
-assert.deepEqual(fanout.receipt.target_roles,DISPATCH_ROLES);
-assert.deepEqual(Object.values(fanout.receipt.role_delivery_bitmap),DISPATCH_ROLES.map(()=>'PENDING_COMMON_EVENT'));
-assert.equal(validateDispatchEvent({eventAction:fanout.request.event_type,envelope:e,dispatch:fanout.request.client_payload.dispatch,role:'KPMO'}).dispatch_id,fanout.receipt.dispatch_id);
-const acceptedFanout=transitionDispatchReceipt(fanout.receipt,{state:'DISPATCH_ACCEPTED',now:'2026-09-30T09:00:01.000Z'});
-assert.equal(acceptedFanout.terminal,true);
-assert.deepEqual(Object.values(acceptedFanout.role_delivery_bitmap),DISPATCH_ROLES.map(()=>'COMMON_EVENT_ACCEPTED'));
-const failedFanout=transitionDispatchReceipt(fanout.receipt,{state:'DISPATCH_FAILED',failureCode:'TEST_FAILURE',now:'2026-09-30T09:00:01.000Z'});
-assert.equal(failedFanout.failure_code,'TEST_FAILURE');
-assert.throws(()=>validateDispatchEvent({eventAction:fanout.request.event_type,envelope:e,dispatch:{...fanout.receipt,binding:{...fanout.receipt.binding,head_sha:sha('d')}},role:'KPMO'}));
-assert.throws(()=>transitionDispatchReceipt(acceptedFanout,{state:'DISPATCH_ACCEPTED'}));
-const deny=(patch,code)=>assert.throws(()=>classifyCandidate({...input,...patch}),x=>x instanceof DispatcherError&&x.code===code);
-const stalePr={...pr,base:{...pr.base,sha:sha('d')}};
-const staleBinding=classifyStaleBaseCandidate({pr:stalePr,mainSha:sha('a'),files:[governedFile('src/a.js','const a=1;\n','const a=2;\n','@@ -1 +1 @@\n-const a=1;\n+const a=2;')],policy});
-const staleContext={...input,pr:stalePr,classificationMode:'STALE_BASE',
-  files:[governedFile('src/a.js','const a=1;\n','const a=2;\n','@@ -1 +1 @@\n-const a=1;\n+const a=2;')]};
-const staleRecovered=await reclassifyUnknownCandidate({context:staleContext,error:unknown,approvalPolicy,
-  readCandidate:async()=>staleContext});
-assert.equal(staleRecovered.candidate.state,'STALE_RECOVERABLE');
-assert.equal(staleRecovered.candidate.authorization_generation,undefined);
-assert.equal(staleRecovered.receipt.binding.base_sha,sha('d'));
-assert.equal(staleRecovered.receipt.binding.current_main_sha,sha('a'));
-assert.equal(staleBinding.state,'STALE_RECOVERABLE');
-assert.equal(staleBinding.old_base_sha,sha('d'));
-assert.equal(staleBinding.current_main_sha,sha('a'));
-assert.equal(staleBinding.expected_head_sha,sha('b'));
-assert.throws(()=>classifyStaleBaseCandidate({pr:{...stalePr,head:{...stalePr.head,repo:{full_name:'fork/repo'}}},mainSha:sha('a'),files:[governedFile('src/a.js','a','b','@@ -1 +1 @@')],policy}),/DISPATCH_REPOSITORY_SCOPE_INVALID/);
-assert.throws(()=>classifyStaleBaseCandidate({pr:stalePr,mainSha:sha('a'),files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all',base_content:'name: x\n',head_content:'name: x\npermissions: write-all\n'}],policy}),/DISPATCH_OWNER_RESERVED_ACTION/);
-assert.equal(classifyCandidate({...input,pr:{...pr,draft:true}}).authorization_generation,e.authorization_generation);
-deny({mainSha:sha('d')},'DISPATCH_BASE_STALE');
-deny({generationSeed:''},'DISPATCH_GENERATION_SEED_INVALID');
-const safeWorkflowPatch='@@ -1 +1,2 @@\n name: x\n+concurrency: internal-safe';
-assert.deepEqual(classifyCandidate({...input,files:[governedFile('.github/workflows/x.yml','name: x\n','name: x\nconcurrency: internal-safe\n',safeWorkflowPatch)]}).changed_paths,['.github/workflows/x.yml']);
-deny({files:[{filename:'.github/workflows/x.yml'}]},'AUTONOMOUS_OWNER_RESERVED_CLASSIFICATION_UNKNOWN');
-deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+permissions: write-all'}]},'DISPATCH_OWNER_RESERVED_ACTION');
-deny({files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]},'DISPATCH_OWNER_RESERVED_ACTION');
-assert.deepEqual(assertAutonomousFileScope({policy,files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+    environment: KIDULTS-AUTONOMOUS-TRACK'}]}),['.github/workflows/x.yml']);
-assert.throws(()=>assertAutonomousFileScope({policy,files:[{filename:'.github/workflows/x.yml',patch:'@@ -1 +1,2 @@\n name: x\n+    environment: production'}]}),/AUTONOMOUS_OWNER_RESERVED_ACTION/);
-const canonicalFiles=[
-  governedFile('.github/workflows/kpmo-canonical-generation-v3.yml','name: canonical\n','name: canonical\n','@@ +1 @@\n+# immutable fixture'),
-  governedFile('.github/workflows/kpmo-canonical-generation-v3-apply.yml','name: apply\n','name: apply\n','@@ +1 @@\n+# immutable fixture'),
-  governedFile('scripts/kidults/kpmo/canonical-generation-v3.mjs','export const stable=true;\n','export const stable=true;\n','@@ +1 @@\n+// immutable fixture'),
-  governedFile('coordination/kidults/governance/approval-policy-file-manifest-v1.json','{}\n','{}\n','@@ +1 @@\n+# immutable fixture'),
-  governedFile('coordination/kidults/governance/approval-policy-inventory-v1.json','{}\n','{}\n','@@ +1 @@\n+# immutable fixture'),
-];
-assert.equal(classifyCandidate({...input,files:canonicalFiles}).changed_paths.length,5);
-assert.throws(()=>classifyCandidate({...input,files:[{filename:'coordination/kidults/governance/delegated-autonomous-internal-authority-policy-v1.json',patch:'@@ -1 +1 @@'}]}),
-  error=>error.code==='DISPATCH_OWNER_RESERVED_ACTION');
-deny({checks:[{id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'failure'}]},'DISPATCH_CHECKS_NOT_GREEN');
-const unrelatedPending=classifyCandidate({...input,checks:[...input.checks,{id:102,name:'KIDULTS Autonomous Dispatcher V1',head_sha:sha('b'),app:{id:7},status:'in_progress',conclusion:''}]});
-assert.equal(unrelatedPending.test_evidence.required_check_runs[0].id,101);
-deny({requiredChecks:[{context:'unit',integration_id:7},{context:'slow-required',integration_id:7}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-deny({requiredChecks:[{context:'unit',integration_id:8}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-{
-  const envelope=classifyCandidate({...input,checks:[
-    {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
-    {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
-  ]});
-  assert.equal(envelope.test_evidence.required_check_runs[0].id,102);
-}
-deny({requiredChecks:[{context:'unit',integration_id:0}],checks:[
-  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
-  {id:102,name:'unit',head_sha:sha('b'),app:{id:8},status:'completed',conclusion:'success'},
-]},'DISPATCH_REQUIRED_CONTEXT_AMBIGUOUS');
-deny({checks:[
-  {id:101,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success'},
-  {id:102,name:'unit',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'failure'},
-]},'DISPATCH_CHECKS_NOT_GREEN');
-deny({checks:[],statuses:[]},'DISPATCH_EVIDENCE_MISSING');
-deny({pr:{...pr,head:{...pr.head,repo:{full_name:'fork/repo'}}}},'DISPATCH_REPOSITORY_SCOPE_INVALID');
-deny({requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:201,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'IMPLEMENTED_NOT_VERIFIED'}}]},'DISPATCH_CANONICAL_SEMANTIC_STATE_NOT_VERIFIED');
-const canonicalVerified=classifyCandidate({...input,requiredChecks:[{context:'KPMO Live Canonical Issue Truth V1',integration_id:7}],checks:[{id:202,name:'KPMO Live Canonical Issue Truth V1',head_sha:sha('b'),app:{id:7},status:'completed',conclusion:'success',output:{summary:'VERIFIED_PASS'}}]});
-assert.equal(canonicalVerified.test_evidence.required_check_runs[0].id,202);
-const githubActionsAvatar='https://avatars.githubusercontent.com/in/7?v=4';
-const statusBound=classifyCandidate({...input,requiredChecks:[
-  {context:'unit',integration_id:7},
-  {context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7},
-  {context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],
-  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:githubActionsAvatar},
-    {id:302,context:'KIDULTS Governed Landing Authorization V1',state:'pending',sha:sha('b'),avatar_url:githubActionsAvatar}]});
-assert.deepEqual(statusBound.test_evidence.required_check_runs.map(x=>x.kind),['status','check']);
-assert.deepEqual(statusBound.test_evidence.required_check_runs.map(x=>x.id),[301,101]);
-assert.equal(classifyCandidate({...input,requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
-  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',avatar_url:githubActionsAvatar}]}).test_evidence.required_check_runs[0].id,301);
-assert.deepEqual(statusBound.test_evidence.required_contexts.map(x=>x.context),[
-  'KIDULTS Governed Landing Authorization V1','KIDULTS Scope-Aware Authoritative Status V1','unit']);
-const requiredSetSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
-assert.match(requiredSetSource,/const bindingRequired=requireEnvelopeBinding\?envelopeRequired:requiredChecks/);
-assert.match(requiredSetSource,/liveByContext\.size!==requiredChecks\.length/);
-assert.match(requiredSetSource,/live\.integration_id>0 && live\.integration_id!==dispatched\.integration_id/);
-assert.match(requiredSetSource,/bindRequiredGateEvidence\(\{required:bindingRequired/);
-assert.match(requiredSetSource,/required_contexts\\|\\|envelope\\.test_evidence\\?\\.required_evidence/);
-assert.match(requiredSetSource,/value\\.integration_id\\|\\|value\\.app_id\\|\\|0/);
-assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8'),/draftDevelopment:requireEnvelopeBinding\?envelopeRequiresDraftDevelopment:pr\.draft===true/);
-assert.doesNotMatch(requiredSetSource,/allow_draft_recovery:Boolean\\(envelope\\.recovery\\)/);
-assert.match(requiredSetSource,/required_check_runs\\|\\|envelope\\.test_evidence\\?\\.required_evidence/);
-assert.equal(classifyCandidate({...input,requiredChecks:[{context:'KIDULTS Governed Landing Authorization V1',integration_id:7}],statuses:[]}).test_evidence.required_check_runs.length,0);
-deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
-  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('c'),avatar_url:githubActionsAvatar}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-deny({requiredChecks:[{context:'KIDULTS Scope-Aware Authoritative Status V1',integration_id:7}],
-  statuses:[{id:301,context:'KIDULTS Scope-Aware Authoritative Status V1',state:'success',sha:sha('b'),avatar_url:'https://avatars.githubusercontent.com/in/8?v=4'}]},'DISPATCH_REQUIRED_CONTEXT_MISSING');
-console.log(JSON.stringify({state:'VERIFIED_PASS',positive:4,negative:13}));
-
-const dispatcherWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-dispatcher-v1.yml','utf8');
-const governedWorkflow=fs.readFileSync('.github/workflows/kidults-governed-landing-authorization-v1.yml','utf8');
-const deployWorkflow=fs.readFileSync('.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml','utf8');
-assert.doesNotMatch(dispatcherWorkflow,/\/tmp\/broker-response\.json/);
-assert.doesNotMatch(dispatcherWorkflow,/mint_lifecycle_token|curl[^\n]*-X (PATCH|PUT)/);
-assert.match(deployWorkflow,/\n  push:/);
-assert.match(deployWorkflow,/validate-staging-no-authority-expansion-v1\.mjs/);
-assert.doesNotMatch(dispatcherWorkflow,/^  pull_request_target:/m);
-assert.match(dispatcherWorkflow,/cron: '17 \* \* \* \*'/);
-assert.match(dispatcherWorkflow,/workflow_run:[\s\S]*workflows: \[KIDULTS Scope-Aware Authoritative Status V1\][\s\S]*types: \[completed\]/);
-assert.doesNotMatch(dispatcherWorkflow,/validate-governed-readiness-consumption-v1\.mjs/);
-assert.doesNotMatch(dispatcherWorkflow,/READINESS_BASE_SHA/);
-assert.doesNotMatch(dispatcherWorkflow,/DRAFT_READY_TRANSITION/);
-assert.doesNotMatch(dispatcherWorkflow,/waitForDraftDevelopmentAuthority/);
-assert.doesNotMatch(dispatcherWorkflow,/Draft non-promotable/);
-assert.doesNotMatch(dispatcherWorkflow,/DRAFT_DEVELOPMENT_AUTHORITY_FAILED/);
-assert.doesNotMatch(dispatcherWorkflow,/DRAFT_DEVELOPMENT_AUTHORITY_TIMEOUT/);
-assert.doesNotMatch(governedWorkflow,/await status\('success','Draft development controls verified; landing remains blocked',scopePolicy\.draft_development_status_context\)/);
-assert.match(dispatcherWorkflow,/environment: KIDULTS-AUTONOMOUS-DISPATCHER/);
-assert.match(dispatcherWorkflow,/KIDULTS Scope-Aware Authoritative Status V1/);
-assert.doesNotMatch(dispatcherWorkflow,/^\s+contents:\s*write\s*$/m);
-assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*STALE_BASE_CONVERGENCE/);
-assert.match(dispatcherWorkflow,/run-protected-lifecycle-operation-v1\.sh.*REDUNDANT_PR_HYGIENE/);
-const lifecycleSource=fs.readFileSync('scripts/kidults/staging-operations/lib/broker-resume-lifecycle-v1.mjs','utf8');
-assert.match(lifecycleSource,/resumeOperation/);
-assert.match(lifecycleSource,/expected_head_sha:b.expected_head_sha/);
-assert.match(lifecycleSource,/fresh_ci_required:true,fresh_authorization_generation_required:true/);
-assert.doesNotMatch(lifecycleSource,/force:true|force-with-lease/);
-assert.equal(policy.merge.manual_update_branch_forbidden,true);
-assert.equal(policy.merge.autonomous_stale_base_convergence.executor,'DISPATCHER_BROKERED_GITHUB_APP_ONLY');
-assert.equal(policy.merge.autonomous_stale_base_convergence.post_update_full_ci_and_fresh_authorization_generation_required,true);
-assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs','utf8'),/filter\(x=>x\.context!=='KIDULTS Governed Landing Authorization V1'\)/);
-assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs','utf8'),/requiredChecks=pr\.draft===true[\s\S]*baseRequiredChecks\.map\(x=>x\.context==='KIDULTS Scope-Aware Authoritative Status V1'/);
-assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8'),/draftDevelopment:requireEnvelopeBinding\?envelopeRequiresDraftDevelopment:pr\.draft===true/);
-assert.match(fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8'),/requireEnvelopeBinding:false/);
-assert.doesNotMatch(dispatcherWorkflow,/transition_draft/);
-assert.doesNotMatch(dispatcherWorkflow,/assertDraftReadyTransitionCandidate|assertDraftReadyPostMutation/);
-assert.doesNotMatch(governedWorkflow,/id-token: write|Mint exact draft-ready GitHub App token|DRAFT_READY_TOKEN_STEP_OUTCOME/);
-assert.match(governedWorkflow,/state:'DRAFT_DEVELOPMENT_VALIDATED_NON_PROMOTABLE'[\s\S]*exact_base_sha:base[\s\S]*promotion_eligible:false/);
-assert.match(governedWorkflow,/jobs:\s*\n\s+governed-landing-authorization:\s*\n\s+name: KIDULTS Governed Landing Authorization V1/);
-assert.match(governedWorkflow,/state:'READY_OPERATION_AUTHORITY_PENDING'[\s\S]*exact_base_sha:base/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.conclusion == 'success'/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.event == 'pull_request_target'/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.head\.repo\.id == github\.repository_id/);
-assert.doesNotMatch(dispatcherWorkflow,/workflow_run\.pull_requests\[0\]\.head\.repo\.full_name/);
-assert.match(dispatcherWorkflow,/github\.event\.workflow_run\.pull_requests\[0\]\.number \|\| inputs\.pull_request/);
-assert.match(dispatcherWorkflow,/cancel-in-progress: false/);
-assert.match(dispatcherWorkflow,/required: true/);
-assert.match(dispatcherWorkflow,/KIDULTS_PR_NUMBER="\$pr_number" node scripts\/kidults\/kpmo\/run-autonomous-dispatcher-v1\.mjs/);
-assert.doesNotMatch(dispatcherWorkflow,/for event in kidults\.track\.authorization\.v1/);
-assert.match(dispatcherWorkflow,/manage-autonomous-dispatch-fanout-v1\.mjs --phase initialize/);
-assert.match(dispatcherWorkflow,/action:"RESUME_AUTHORIZATION_DISPATCH"/);
-assert.doesNotMatch(dispatcherWorkflow,/curl[^\n]*\/dispatches/);
-assert.match(dispatcherWorkflow,/FunctionError/);
-assert.match(dispatcherWorkflow,/REUSED_SUCCESS/);
-assert.match(dispatcherWorkflow,/jq '\.receipt\.receipt' \"\$response_path\"/);
-assert.match(dispatcherWorkflow,/if: \$\{\{ always\(\) \}\}[\s\S]*Upload bounded scan and terminal fanout evidence|Upload bounded scan and terminal fanout evidence[\s\S]*if: \$\{\{ always\(\) \}\}/);
-const finalizerSource=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
-assert.match(finalizerSource,/const finalizerRunId=required\('GITHUB_RUN_ID'\);[\s\S]*assertFinalizerElection[\s\S]*let reservation;[\s\S]*writerAttempts[\s\S]*action:'CREATE_RESERVATION'[\s\S]*state:'FINALIZER_FOLLOWER'[\s\S]*const eventToken=await acquireEventToken\(\)/);
-assert.match(finalizerSource,/state:'FINALIZER_FOLLOWER'[\s\S]*merge_performed:false[\s\S]*process\.exit\(0\)/);
-for(const marker of ['main_sha:','stack_name:','change_set_name:','authorization_id:','create-change-set','execute-change-set']) assert.match(deployWorkflow,new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
-
-assert.match(deployWorkflow,/expected_authorization_id="DEPLOY-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{CHANGE_SET_NAME\}"/);
-assert.match(deployWorkflow,/AUTO-STAGING-BROKER-\$\{GITHUB_SHA:0:12\}-\$\{GITHUB_RUN_ID\}/);
-assert.match(deployWorkflow,/if \[ "\$GITHUB_EVENT_NAME" = workflow_dispatch \]/);
-
-assert.match(dispatcherWorkflow,/id: discover[\s\S]*eligible_count=\$\(jq/);
-assert.equal((dispatcherWorkflow.match(/if: steps\.discover\.outputs\.eligible_count != '0'/g)||[]).length,1);
-assert.match(dispatcherWorkflow,/Upload bounded scan and terminal fanout evidence/);
-
-const oidcWorkflowPaths=[
-  '.github/workflows/kidults-autonomous-event-broker-deploy-v1.yml',
-  '.github/workflows/kidults-autonomous-dispatcher-v1.yml',
-  '.github/workflows/kidults-autonomous-track-authorization-v1.yml',
-  '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
-  '.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml',
-];
-for(const workflowPath of oidcWorkflowPaths){
-  const workflow=fs.readFileSync(workflowPath,'utf8');
-  if(workflowPath.includes('authorization-v1.yml')&&!workflowPath.includes('broker-deploy')) {
-    assert.match(workflow,/kidults\.authorization\.generation\.v1/);
-    assert.doesNotMatch(workflow,/kidults\.(?:track|kpmo|independent)\.(?:authorization|verification)\.v1/);
-  }
-  const sessions=(workflow.match(/read -r AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length;
-  const oidcTokens=(workflow.match(/OIDC_TOKEN=\$\(jq -e?r/g)||[]).length;
-  assert.ok(sessions>0,`expected OIDC session blocks in ${workflowPath}`);
-  assert.equal((workflow.match(/echo "::add-mask::\$AWS_ACCESS_KEY_ID"/g)||[]).length,sessions);
-  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SECRET_ACCESS_KEY"/g)||[]).length,sessions);
-  assert.equal((workflow.match(/echo "::add-mask::\$AWS_SESSION_TOKEN"/g)||[]).length,sessions);
-  assert.ok((workflow.match(/unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length>=sessions);
-  assert.equal((workflow.match(/echo "::add-mask::\$OIDC_TOKEN"/g)||[]).length,oidcTokens);
-  assert.doesNotMatch(workflow,/AWS_ACCESS_KEY_ID=\$AWS_ACCESS_KEY_ID[\s\S]{0,200}\$GITHUB_ENV/);
-  assert.equal((workflow.match(/export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN/g)||[]).length,sessions);
-  assert.equal((workflow.match(/trap 'unset CREDS OIDC_JSON OIDC_TOKEN AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_REGION' EXIT/g)||[]).length,sessions);
-}
-const allWorkflowText=fs.readdirSync('.github/workflows')
-  .filter(name=>name.endsWith('.yml'))
-  .map(name=>fs.readFileSync(`.github/workflows/${name}`,'utf8'))
-  .join('\n');
-assert.doesNotMatch(allWorkflowText,/echo "AWS_(?:ACCESS_KEY_ID|SECRET_ACCESS_KEY|SESSION_TOKEN)=\$AWS_/);
-for(const workflowPath of [
-  '.github/workflows/kidults-autonomous-object-lock-canary-v1.yml',
-  '.github/workflows/kidults-aws-cloudtrail-continuous-assurance-v1.yml',
-]){
-  const workflow=fs.readFileSync(workflowPath,'utf8');
-  assert.match(workflow,/credential_process = bash .*aws-oidc-credential-process-v1\.sh/);
-  assert.doesNotMatch(workflow,/read -r AWS_ACCESS_KEY_ID/);
-}
-const credentialProcess=fs.readFileSync('scripts/kidults/kpmo/aws-oidc-credential-process-v1.sh','utf8');
-assert.match(credentialProcess,/env -u AWS_PROFILE -u AWS_CONFIG_FILE -u AWS_SHARED_CREDENTIALS_FILE/);
-assert.match(credentialProcess,/Version:1,AccessKeyId,SecretAccessKey,SessionToken,Expiration/);
-
-assert.match(deployWorkflow,/change_status.*describe-change-set/);
-assert.match(deployWorkflow,/didn't contain changes/);
-assert.match(deployWorkflow,/continuing with canary verification/);
-
-// Unsupported workflow syntax remains owner-reserved for this PR without stopping unrelated scans.
-assert.equal(isCandidateRejection(new CapabilityDeltaError('CAPABILITY_YAML_UNSUPPORTED_SYNTAX')),true);
-const independentError=new Error('INDEPENDENT_SECURITY_CAPABILITY_ADDED');independentError.code='INDEPENDENT_SECURITY_CAPABILITY_ADDED';
-assert.equal(isCandidateRejection(independentError),true);
-assert.equal(isCandidateRejection(new DispatcherError('DISPATCH_PR_NOT_OPEN')),true);
-assert.equal(isCandidateRejection(new Error('unexpected transport failure')),false);
-
-import './broker-resume-lifecycle-v1.test.mjs';
-import './broker-caller-identity-v1.test.mjs';
-import './protected-lifecycle-shell-v1.test.mjs';
-
-const fakeResponse=(status=200,body={value:1},remaining=null)=>({status,ok:status>=200&&status<300,
-  headers:{get:name=>name==='x-ratelimit-remaining'?remaining:null},json:async()=>body});
-const immutablePath=`/repos/owner/repo/contents/src/a.js?ref=${sha('a')}`;
-test('dispatcher coalesces only exact immutable file reads and serializes requests',async()=>{
-  let calls=0,active=0,peak=0;
-  const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{
-    calls++;active++;peak=Math.max(peak,active);await new Promise(resolve=>setImmediate(resolve));active--;return fakeResponse();}});
-  await Promise.all([client.request(immutablePath),client.request(immutablePath),client.request('/repos/owner/repo/branches/main')]);
-  await client.request('/repos/owner/repo/branches/main');
-  await client.request(immutablePath.replace(sha('a'),sha('b')));
-  assert.equal(calls,4);assert.equal(peak,1);
-});
-test('symbolic refs are never cached',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return fakeResponse();}});
-  await client.request(immutablePath.replace(sha('a'),'main'));await client.request(immutablePath.replace(sha('a'),'main'));
-  assert.equal(calls,2);
-});
-for(const [label,response,code] of [
-  ['exhausted successful response',fakeResponse(200,{},'0'),'DISPATCH_RATE_LIMITED'],
-  ['reserved remaining quota',fakeResponse(200,{},'100'),'DISPATCH_RATE_LIMITED'],
-  ['HTTP 429',fakeResponse(429),'DISPATCH_RATE_LIMITED'],
-  ['HTTP 403',fakeResponse(403),'DISPATCH_READ_ACCESS_DENIED'],
-  ['HTTP 401',fakeResponse(401),'DISPATCH_READ_ACCESS_DENIED'],
-  ['HTTP 500',fakeResponse(500),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
-  ['HTTP 503',fakeResponse(503),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
-  ['HTTP 599',fakeResponse(599),'DISPATCH_READ_SERVICE_UNAVAILABLE'],
-])test(`dispatcher stops all queued reads after ${label}`,async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return response;}});
-  const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
-  assert.ok(results.every(result=>result.status==='rejected'&&result.reason.code===code));
-  await assert.rejects(client.request(immutablePath),error=>error.code===code);assert.equal(calls,1);
-});
-test('dispatcher request budget is invocation scoped and cannot be exceeded',async()=>{
-  let calls=0;const fetchImpl=async()=>{calls++;return fakeResponse();};
-  const client=createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1});await client.request('/one');
-  await assert.rejects(client.request('/two'),error=>error.code==='DISPATCH_READ_BUDGET_EXHAUSTED');
-  await createDispatcherReadClient({token:'offline',fetchImpl,maxRequests:1}).request('/two');assert.equal(calls,2);
-});
-const socketFailure=code=>Object.assign(new TypeError('fetch failed'),{cause:{code,message:'must not be recorded'}});
-for(const code of ['UND_ERR_SOCKET','ECONNRESET','EPIPE'])test(`interrupted GET ${code} is repeated once inside the original budget`,async()=>{
-  const seen=[];const client=createDispatcherReadClient({token:'offline',fetchImpl:async(url,options)=>{
-    seen.push({url,options});if(seen.length===1)throw socketFailure(code);return fakeResponse(200,{verified:true});
-  }});
-  assert.deepEqual(await client.request(immutablePath),{verified:true});
-  assert.deepEqual(await client.request(immutablePath),{verified:true});
-  assert.equal(seen.length,2);assert.equal(client.requestCount(),2);assert.equal(seen[0].url,seen[1].url);
-  for(const {options} of seen){assert.equal(options.method,'GET');assert.equal(options.redirect,'error');assert.ok(options.signal instanceof AbortSignal);}
-});
-test('exhausted interrupted read fences queued and later requests',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;throw socketFailure('UND_ERR_SOCKET');}});
-  const results=await Promise.allSettled([client.request('/one'),client.request('/two'),client.request('/three')]);
-  assert.equal(calls,2);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TRANSPORT_FAILED'));
-  assert.deepEqual(results[0].reason.transport_diagnostics,{resource_family:'other',attempt_count:2,request_count:2,cause_code:'UND_ERR_SOCKET'});
-  assert.equal(isGlobalReadFailure(results[0].reason),true);
-  await assert.rejects(client.request('/later'),x=>x===results[0].reason);assert.equal(calls,2);
-});
-test('read recovery cannot exceed the original request budget',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',maxRequests:1,fetchImpl:async()=>{calls++;throw socketFailure('ECONNRESET');}});
-  await assert.rejects(client.request('/one'),x=>x.code==='DISPATCH_READ_BUDGET_EXHAUSTED');assert.equal(calls,1);
-});
-for(const status of [401,403,429])test(`HTTP ${status} after interrupted read stops without a third attempt`,async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{if(++calls===1)throw socketFailure('UND_ERR_SOCKET');return fakeResponse(status);}});
-  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
-  assert.equal(calls,2);assert.ok(results.every(x=>x.status==='rejected'));
-  assert.equal(results[0].reason.code,status===429?'DISPATCH_RATE_LIMITED':'DISPATCH_READ_ACCESS_DENIED');
-});
-for(const code of ['CERT_HAS_EXPIRED','UNREGISTERED'])test(`unregistered transport failure ${code} is not repeated`,async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;throw socketFailure(code);}});
-  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
-  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TRANSPORT_FAILED'));
-  assert.equal(results[0].reason.transport_diagnostics.cause_code,'UNCLASSIFIED');
-});
-test('interrupted JSON body is discarded before one complete GET recovery',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{
-    if(++calls===1)return {...fakeResponse(),json:async()=>{throw socketFailure('UND_ERR_SOCKET');}};
-    return fakeResponse(200,{complete:true});
-  }});
-  assert.deepEqual(await client.request(immutablePath),{complete:true});assert.equal(calls,2);
-});
-test('invalid JSON stops queued reads without retry or partial cache',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return {...fakeResponse(),json:async()=>{throw new SyntaxError('sensitive raw response');}};}});
-  const results=await Promise.allSettled([client.request(immutablePath),client.request('/later')]);
-  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_RESPONSE_INVALID'));
-});
-test('bounded request timeout aborts and fences queued reads',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',requestTimeoutMs:5,fetchImpl:async(_url,{signal})=>{
-    calls++;return new Promise((resolve,reject)=>{const timer=setTimeout(()=>resolve(fakeResponse()),100);signal.addEventListener('abort',()=>{clearTimeout(timer);reject(signal.reason);},{once:true});});
-  }});
-  const results=await Promise.allSettled([client.request('/one'),client.request('/two')]);
-  assert.equal(calls,1);assert.ok(results.every(x=>x.reason.code==='DISPATCH_READ_TIMEOUT'));
-  assert.equal(results[0].reason.transport_diagnostics.cause_code,'TIMEOUT');
-  assert.throws(()=>createDispatcherReadClient({token:'offline',requestTimeoutMs:30001}),/CONFIGURATION_INVALID/);
-});
-test('failed transport receipt retains bounded diagnostics and clears partial evidence',async()=>{
-  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-transport-failure-'));
-  try{
-    const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{throw socketFailure('UND_ERR_SOCKET');}});
-    await assert.rejects(recordDispatcherScan({outputDirectory:directory,repository:'owner/repo',sourceSha:sha('a'),runId:'1',scan:()=>client.request('/one')}),x=>x.code==='DISPATCH_READ_TRANSPORT_FAILED');
-    const receipt=JSON.parse(fs.readFileSync(path.join(directory,'failure.json')));
-    assert.equal(receipt.failure_class,'DISPATCH_READ_TRANSPORT_FAILED');
-    assert.equal(receipt.transport_diagnostics.cause_code,'UND_ERR_SOCKET');assert.equal(receipt.transport_diagnostics.attempt_count,2);
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);
-    assert.equal(receipt.fanout_authorized,false);assert.equal(JSON.stringify(receipt).includes('must not be recorded'),false);
-    const error=Object.assign(new Error('not public'),{code:'DISPATCH_READ_TRANSPORT_FAILED',transport_diagnostics:{...receipt.transport_diagnostics,url:'sensitive'}});
-    await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:async()=>{throw error;}}));
-    assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).transport_diagnostics,undefined);
-  }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-test('immutable 404 is reused without becoming a service failure',async()=>{
-  let calls=0;const client=createDispatcherReadClient({token:'offline',fetchImpl:async()=>{calls++;return fakeResponse(404);}});
-  assert.equal(await client.request(immutablePath),null);assert.equal(await client.request(immutablePath),null);assert.equal(calls,1);
-});
-test('discovery aborts globally instead of returning partial candidate results',async()=>{
-  let calls=0;
-  await assert.rejects(discover({repository:'owner/repo',token:'offline',policy,generationSeed:'1',
-    fetchImpl:async url=>{calls++;return url.endsWith('/branches/main')?fakeResponse(403):fakeResponse();}}),
-    error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
-  assert.equal(calls,1);
-});
-test('global API failure inside a candidate does not become SKIPPED or trigger later candidates',async()=>{
-  const paths=[];
-  await assert.rejects(discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',
-    fetchImpl:async url=>{
-      const path=new URL(url).pathname;paths.push(path);
-      if(path.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-      if(path.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-      if(path.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-      if(path.endsWith('/pulls'))return fakeResponse(200,[pr,{...pr,number:43}]);
-      if(path.endsWith('/files'))return fakeResponse(200,[{filename:'src/a.js',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
-      if(path.includes('/git/commits/'))return fakeResponse(403);
-      throw new Error('unexpected follow-on request');
-    }}),error=>error.code==='DISPATCH_READ_ACCESS_DENIED');
-  assert.equal(paths.length,6);assert.ok(!paths.some(path=>path.includes('/pulls/43')));
-});
-test('a later status 503 invalidates an earlier eligible candidate and publishes no fanout',async()=>{
-  const candidates=[pr,{...pr,number:43,head:{...pr.head,sha:sha('e')}},{...pr,number:44,head:{...pr.head,sha:sha('f')}}];
-  let failStatus=false;const paths=[];
-  const scan=()=>discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',fetchImpl:async url=>{
-    const u=new URL(url),p=u.pathname;paths.push(p);
-    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-    if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
-    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'src/a.js',status:'modified',patch:'@@ -1 +1 @@\n-const x=1;\n+const x=2;'}]);
-    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-    if(p.endsWith('/status'))return failStatus&&p.includes(sha('e'))?fakeResponse(503):fakeResponse(200,{statuses:[]});
-    if(p.endsWith('/check-runs'))return fakeResponse(200,{check_runs:[{...input.checks[0],head_sha:p.split('/').at(-2)}]});
-    if(p.includes('/contents/')){const body=Buffer.from(u.searchParams.get('ref')===sha('a')?'const x=1;':'const x=2;');return fakeResponse(200,{type:'file',encoding:'base64',content:body.toString('base64'),sha:gitObjectId('blob',body)});}
-    throw Error('unexpected fixture request');
-  }});
-  const control=await scan();assert.ok(control.every(x=>x.state==='ELIGIBLE'),JSON.stringify(control));
-  failStatus=true;paths.length=0;
-  const outputDirectory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-partial-503-'));
-  try{
-    await assert.rejects(recordDispatcherScan({scan,outputDirectory}),e=>e.code==='DISPATCH_READ_SERVICE_UNAVAILABLE');
-    assert.ok(paths.some(p=>p.includes('/contents/')),'first candidate must reach immutable classification');
-    assert.ok(!paths.some(p=>p.includes('/pulls/44')));
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(outputDirectory,'results.json'))),[]);
-    const receipt=JSON.parse(fs.readFileSync(path.join(outputDirectory,'failure.json')));
-    assert.equal(receipt.failure_class,'DISPATCH_READ_SERVICE_UNAVAILABLE');assert.equal(receipt.fanout_authorized,false);
-  }finally{fs.rmSync(outputDirectory,{recursive:true,force:true});}
-});
-test('targeted protected-scope denial emits exact tree and path-bound Owner handoff without checking authority',async()=>{
-  const candidate={...pr,number:2669};let calls=0;
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2669,policy,generationSeed:'1',fetchImpl:async url=>{
-    calls++;const p=new URL(url).pathname;
-    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-    if(p.endsWith('/pulls/2669'))return fakeResponse(200,candidate);
-    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',status:'modified',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]);
-    if(p.endsWith('/issues/2669/comments'))return fakeResponse(200,[]);
-    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-    throw new Error(`unexpected protected-scope follow-up: ${p}`);
-  }});
-  assert.equal(results.length,1);const handoff=results[0];
-  assert.equal(handoff.state,'OWNER_REVIEW_REQUIRED');assert.equal(handoff.reason,'DISPATCH_OWNER_RESERVED_ACTION');
-  assert.equal(handoff.binding.head_sha,candidate.head.sha);assert.equal(handoff.binding.head_tree_sha,sha('c'));
-  assert.deepEqual(handoff.binding.changed_paths,['.github/workflows/kidults-autonomous-track-authorization-v1.yml']);
-  assert.equal(handoff.binding.scope_digest,'sha256:'+crypto.createHash('sha256').update(handoff.binding.changed_paths.join('\n')).digest('hex'));
-  assert.equal(handoff.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
-  assert.equal(handoff.autonomous_eligible,false);assert.equal(handoff.landing_authorization_created,false);assert.equal(handoff.merge_authorized,false);
-  assert.equal(calls,7);
-});
-test('natural scheduled discovery checks the Owner decision ledger for protected-scope candidates',async()=>{
-  const candidate={...pr,number:2699,base:{...pr.base,repo:{...pr.base.repo,owner:{login:'johnkim9524-collab',id:297161720}}}};
-  let ownerCommentRead=false;
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',fetchImpl:async url=>{
-    const p=new URL(url).pathname;
-    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-    if(p.endsWith('/pulls'))return fakeResponse(200,[candidate]);
-    if(p.endsWith('/files'))return fakeResponse(200,[{filename:'.github/workflows/kidults-autonomous-track-authorization-v1.yml',status:'modified',patch:'@@ -1 +1,2 @@\n name: x\n+  id-token: write'}]);
-    if(p.endsWith('/issues/2699/comments')){ownerCommentRead=true;return fakeResponse(200,[]);}
-    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-    throw new Error(`unexpected scheduled Owner lookup: ${p}`);
-  }});
-  assert.equal(ownerCommentRead,true);
-  assert.equal(results.length,1);
-  assert.equal(results[0].state,'OWNER_REVIEW_REQUIRED');
-  assert.equal(results[0].binding.pull_request,2699);
-  assert.equal(results[0].binding.head_tree_sha,sha('c'));
-});
-test('many stale reserved candidates are denied before expensive immutable reads',async()=>{
-  let calls=0,blobReads=0;
-  const candidates=Array.from({length:20},(_,i)=>({...pr,number:100+i,base:{...pr.base,sha:sha('d')}}));
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:64,
-    fetchImpl:async url=>{
-      calls++;const p=new URL(url).pathname;
-      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-      if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
-      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
-      if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-      if(p.includes('/contents/'))blobReads++;
-      throw new Error('unexpected immutable read');
-    }});
-  assert.equal(results.length,20);assert.equal(blobReads,0);assert.equal(calls,44);
-  assert.ok(results.every(r=>r.state==='OWNER_REVIEW_REQUIRED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'
-    &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
-    &&r.autonomous_eligible===false&&r.merge_authorized===false));
-});
-test('an exact targeted owner-reserved PR produces a bound Owner-review record only',async()=>{
-  let calls=0;
-  const reservedPr={...pr,number:2670};
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2670,policy,generationSeed:'1',maxRequests:16,
-    fetchImpl:async url=>{
-      calls++;const p=new URL(url).pathname;
-      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-      if(p.endsWith('/pulls/2670'))return fakeResponse(200,reservedPr);
-      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
-      if(p.endsWith('/issues/2670/comments'))return fakeResponse(200,[]);
-      if(p.endsWith(`/git/commits/${reservedPr.head.sha}`))return fakeResponse(200,{sha:reservedPr.head.sha,tree:{sha:sha('c')}});
-      throw new Error('owner-reserved targeted review must not read checks, contents, or unrelated candidates');
-    }});
-  assert.equal(calls,7);
-  assert.equal(results.length,1);
-  const review=results[0];
-  assert.equal(review.state,'OWNER_REVIEW_REQUIRED');
-  assert.equal(review.reason,'DISPATCH_OWNER_RESERVED_ACTION');
-  assert.equal(review.binding.pull_request,2670);
-  assert.equal(review.binding.head_sha,reservedPr.head.sha);
-  assert.equal(review.binding.head_tree_sha,sha('c'));
-  assert.deepEqual(review.binding.changed_paths,['secrets/private.json']);
-  assert.equal(review.autonomous_eligible,false);
-  assert.equal(review.landing_authorization_created,false);
-  assert.equal(review.merge_authorized,false);
-  assert.equal(review.classification_failure.stage,'OWNER_RESERVED_SCOPE_GATE');
-  assert.equal(review.classification_failure.authority_created,false);
-});
-test('an exact targeted closed or merged owner-reserved PR cannot emit a handoff',async()=>{
-  for (const terminalPr of [{...pr,number:2670,state:'closed'},{...pr,number:2670,merged:true}]) {
-    const results=await discover({repository:pr.base.repo.full_name,token:'offline',prNumber:2670,policy,generationSeed:'1',maxRequests:16,
-      fetchImpl:async url=>{
-        const p=new URL(url).pathname;
-        if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-        if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-        if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-        if(p.endsWith('/pulls/2670'))return fakeResponse(200,terminalPr);
-        if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\\n-old\\n+new'}]);
-        throw new Error('terminal PR must not produce an Owner handoff');
-      }});
-    assert.deepEqual(results,[{state:'SKIPPED',pull_request:2670,reason:'DISPATCH_PR_NOT_OPEN'}]);
-  }
-});
-test('current reserved backlog stays bounded without reading commit status or checks',async()=>{
-  let calls=0;
-  const candidates=Array.from({length:104},(_,i)=>({...pr,number:200+i}));
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',maxRequests:1024,
-    fetchImpl:async url=>{
-      calls++;const u=new URL(url),p=u.pathname;
-      if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-      if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-      if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-      if(p.endsWith('/pulls'))return fakeResponse(200,candidates.slice((Number(u.searchParams.get('page')||1)-1)*100,Number(u.searchParams.get('page')||1)*100));
-      if(p.endsWith('/files'))return fakeResponse(200,[{filename:'secrets/private.json',status:'modified',patch:'@@ -1 +1 @@\n-old\n+new'}]);
-      if(/\/issues\/\d+\/comments$/.test(p))return fakeResponse(200,[]);
-      if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-      throw new Error('reserved candidate must not read commit status checks or contents');
-    }});
-  assert.equal(results.length,104);assert.equal(calls,317);
-  assert.ok(results.every(r=>r.state==='OWNER_REVIEW_REQUIRED'&&r.reason==='DISPATCH_OWNER_RESERVED_ACTION'
-    &&r.binding.head_sha===sha('b')&&r.binding.head_tree_sha===sha('c')
-    &&r.autonomous_eligible===false&&r.merge_authorized===false));
-});
-test('global read failure cannot be swallowed by uncertainty reclassification',async()=>{
-  const approvalPolicy=JSON.parse(fs.readFileSync('coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json'));
-  let reads=0;
-  await assert.rejects(reclassifyUnknownCandidate({context:{...input,classificationMode:'CURRENT_BASE'},
-    error:new DispatcherError('CAPABILITY_SOURCE_MISSING'),approvalPolicy,
-    readCandidate:async()=>{reads++;throw new DispatcherError('DISPATCH_RATE_LIMITED');}}),
-    error=>error.code==='DISPATCH_RATE_LIMITED');
-  assert.equal(reads,1);
-});
-
-
-test('unverified source adapter is rejected before any external reads',async()=>{
-  let reads=0;await assert.rejects(discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',sourceReader:{commit:async()=>({})},fetchImpl:async()=>{reads++;throw Error('must not read');}}),/SOURCE_BATCH_READER_UNVERIFIED/);assert.equal(reads,0);
-});
-
-
-for(const code of ['SOURCE_BATCH_SOURCE_NOT_REGISTERED','SOURCE_BATCH_OBJECT_MISSING','SOURCE_BATCH_SEALED_OBJECT_MISSING'])test(`uncertainty reclassification propagates global ${code} without retry or partial results`,async()=>{
-  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-reclassification-'));let reads=0;const failure=Object.assign(new Error(code),{code,global:true});
-  try {
-    fs.writeFileSync(path.join(directory,'results.json'),'[{"state":"ELIGIBLE"}]');
-    await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>reclassifyUnknownCandidate({context:input,error:unknown,approvalPolicy,readCandidate:async()=>{reads++;throw failure;}})}),error=>error===failure);
-    assert.equal(reads,1);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);
-    assert.equal(JSON.parse(fs.readFileSync(path.join(directory,'failure.json'))).fanout_authorized,false);
-  }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-
-
-import {packFixture,packFixtureEntry} from './bounded-git-pack-decoder-v1.test.mjs';
-import {gitObjectId} from '../../../scripts/kidults/kpmo/lib/bounded-git-source-reader-v1.mjs';
-import {gitPacketLine as packet} from '../../../scripts/kidults/kpmo/lib/bounded-git-public-transport-v1.mjs';
-function sourceTransportScanFixture({drift=false,repositoryDrift=false,mainDrift=false,corrupt=false}={}){
- const repo=pr.base.repo.full_name,blob=Buffer.from('same bytes\n'),tree=Buffer.concat([Buffer.from('100644 file.mjs\0'),Buffer.from(gitObjectId('blob',blob),'hex')]);
- const commit=name=>Buffer.from(`tree ${gitObjectId('tree',tree)}\nauthor ${name} <${name}@example.invalid> 0 +0000\ncommitter ${name} <${name}@example.invalid> 0 +0000\n\n${name}\n`);
- const main=commit('main'),head=commit('head'),base=commit('base'),mainSha=gitObjectId('commit',main),headSha=gitObjectId('commit',head),baseSha=gitObjectId('commit',base);
- const candidates=[42,43].map(number=>({...pr,number,base:{...pr.base,sha:baseSha},head:{...pr.head,sha:headSha}}));
- const packed=packFixture([packFixtureEntry(1,main),packFixtureEntry(1,head),packFixtureEntry(1,base),packFixtureEntry(2,tree),packFixtureEntry(3,blob)]);if(corrupt)packed[15]^=1;
- const wire=Buffer.concat([packet('packfile\n'),packet(Buffer.concat([Buffer.from([1]),packed])),Buffer.from('0000')]);const trace=[];
- const fetchImpl=async(url,options)=>{trace.push({url,options});const p=new URL(url).pathname;
-  if(url.includes('github.com/'+repo+'.git/'))return new Response(options.method==='GET'?Buffer.concat([packet('version 2\n'),packet('fetch=shallow\n'),Buffer.from('0000')]):wire,{headers:{'content-type':options.method==='GET'?'application/x-git-upload-pack-advertisement':'application/x-git-upload-pack-result'}});
-  if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:mainDrift&&trace.filter(x=>new URL(x.url).pathname.endsWith('/branches/main')).length>1?sha('f'):mainSha}});
-  if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-  if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-  if(p.endsWith('/pulls'))return fakeResponse(200,candidates);
-  if(p.endsWith('/files'))return fakeResponse(200,[{filename:'file.mjs',status:'modified',patch:'@@ -1 +1 @@\n-old\n+same bytes'}]);
-  if(/\/pulls\/\d+$/.test(p)){const found=candidates.find(x=>x.number===Number(p.split('/').at(-1)));return fakeResponse(200,drift?{...found,head:{...found.head,sha:sha('f')}}:repositoryDrift?{...found,base:{...found.base,repo:{...found.base.repo,id:9}}}:found);}
-  throw Error('unexpected follow-on request');
- };return{trace,args:{repository:repo,token:'offline',policy,generationSeed:'1',sourceTransport:true,fetchImpl},mainSha,headSha,baseSha};
-}
-test('source preparation shares the same budget and preserves full bindings in a non-authorizing receipt',async()=>{
- const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-proof-'));
- try{const results=await recordDispatcherScan({outputDirectory:directory,repository:f.args.repository,sourceSha:sha('d'),runId:'1',scan:()=>discover({...f.args,maxRequests:11})});
- assert.equal(results.length,2);assert.ok(results.every(x=>x.state==='STALE_REDUNDANT'));assert.equal(f.trace.length,11);
- const receipt=JSON.parse(fs.readFileSync(path.join(directory,'source-read.json')));assert.equal(receipt.authorization_created,false);assert.equal(receipt.producer.requests,2);assert.equal(receipt.shared_read_diagnostics.request_count,11);assert.equal(receipt.shared_read_diagnostics.resource_counts.other,2);assert.deepEqual(receipt.source_shas,[f.mainSha,f.headSha,f.baseSha].sort());
- assert.ok(!f.trace.some(x=>x.url.includes('/contents/')||x.url.includes('/git/commits/')));
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-test('sealed source preparation falls back to exact-commit API reads for paths outside its frozen blob set',async()=>{
- const ref=sha('a'),path='scripts/kidults/kpmo/unprepared-policy.mjs',body=Buffer.from('export const value = 1;\n');let sourceReads=0;const apiPaths=[];
- const token={sourceReader:{hasSource:value=>value===ref,blobOrNull:async()=>{sourceReads++;throw Object.assign(new Error('SOURCE_BATCH_SEALED_OBJECT_MISSING'),{code:'SOURCE_BATCH_SEALED_OBJECT_MISSING',global:true});}},
-   plannedSourceBlobs:new Set(),allowUnpreparedSourceFallback:true,
-   request:async url=>{apiPaths.push(url);return {type:'file',encoding:'base64',content:body.toString('base64'),sha:gitObjectId('blob',body)};}};
- assert.equal(await immutableContent(pr.base.repo.full_name,path,ref,token),body.toString());
- assert.equal(await contentBlobShaOrNull(pr.base.repo.full_name,path,ref,token),gitObjectId('blob',body));
- assert.equal(sourceReads,0);
- assert.ok(apiPaths.every(value=>value.endsWith(`?ref=${ref}`)));
- assert.equal(apiPaths.length,2);
- await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,{...token,request:async()=>({type:'file',encoding:'base64',content:body.toString('base64'),sha:sha('f')})}),/DISPATCH_IMMUTABLE_BLOB_INVALID/);
- const planned={...token,plannedSourceBlobs:new Set([`${ref}\0${path}`])};
- await assert.rejects(immutableContent(pr.base.repo.full_name,path,ref,planned),error=>error.code==='SOURCE_BATCH_SEALED_OBJECT_MISSING');
- assert.equal(sourceReads,1);
-});
-test('shared request exhaustion cannot reset the API budget for POST or leave partial results',async()=>{
- const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-budget-'));
- try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover({...f.args,maxRequests:9})}),error=>error.code==='DISPATCH_READ_BUDGET_EXHAUSTED'&&error.read_diagnostics.request_count===9);
- assert.equal(f.trace.length,9);assert.ok(!f.trace.some(x=>x.options.method==='POST'));assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-test('file metadata head drift aborts before source transport or new source registration',async()=>{
- const f=sourceTransportScanFixture({drift:true});await assert.rejects(discover(f.args),/CANDIDATE_BINDING_CHANGED/);assert.ok(!f.trace.some(x=>x.url.includes('.git/')));
-});
-test('a corrupt pack invalidates the whole scan and never creates a source receipt',async()=>{
- const f=sourceTransportScanFixture({corrupt:true}),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-pack-failure-'));
- try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/PACK_DIGEST_MISMATCH/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-
-test('protected main drift after source preparation aborts without publishing a snapshot receipt',async()=>{
- const f=sourceTransportScanFixture({mainDrift:true}),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-main-drift-'));
- try{await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/MAIN_BINDING_CHANGED/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-test('source receipt write failure leaves no eligible or reusable source evidence',async()=>{
- const f=sourceTransportScanFixture(),directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-evidence-write-')),original=fs.writeFileSync;
- try{fs.writeFileSync=(path,...args)=>{if(String(path).endsWith('/source-read.json'))throw Error('source receipt write failure');return original(path,...args);};
- await assert.rejects(recordDispatcherScan({outputDirectory:directory,scan:()=>discover(f.args)}),/source receipt write failure/);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(directory,'results.json'))),[]);assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
- }finally{fs.writeFileSync=original;fs.rmSync(directory,{recursive:true,force:true});}
-});
-test('caller cannot inject a source receipt onto a result array',async()=>{
- const directory=fs.mkdtempSync(path.join(os.tmpdir(),'source-evidence-spoof-'));
- try{await recordDispatcherScan({outputDirectory:directory,scan:async()=>Object.assign([],{source_read_receipt:{state:'fake'}})});assert.equal(fs.existsSync(path.join(directory,'source-read.json')),false);
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-
-test('same SHA with changed repository identity is rejected before source fetch',async()=>{
- const f=sourceTransportScanFixture({repositoryDrift:true});await assert.rejects(discover(f.args),/CANDIDATE_BINDING_CHANGED/);assert.ok(!f.trace.some(x=>x.url.includes('.git/')));
-});
-
-for(const scenario of ['alternate-profile-absent','missing-policy','invalid-policy','missing-approval','invalid-approval'])test(`actual CLI ${scenario} invalidates stale evidence before external reads`,()=>{
- const directory=fs.mkdtempSync(path.join(os.tmpdir(),'dispatcher-cli-policy-'));
- const canonical='coordination/kidults/governance/autonomous-internal-landing-policy-v1.json',approval='coordination/kidults/governance/autonomous-approval-policy-envelope-v1.json',out=path.join(directory,'out/autonomous-dispatcher-v1');
- try{
-  fs.mkdirSync(path.join(directory,path.dirname(canonical)),{recursive:true});fs.mkdirSync(out,{recursive:true});
-  fs.writeFileSync(path.join(out,'results.json'),'[{"state":"ELIGIBLE"}]');fs.writeFileSync(path.join(out,'source-read.json'),'{"state":"stale"}');
-  if(scenario!=='missing-policy')fs.writeFileSync(path.join(directory,canonical),scenario==='invalid-policy'?'{':JSON.stringify({}));
-  if(scenario!=='missing-approval')fs.writeFileSync(path.join(directory,approval),scenario==='invalid-approval'?'{':'{}');
-  fs.writeFileSync(path.join(directory,'alternate.json'),'{}');
-  const env={PATH:process.env.PATH,GITHUB_REPOSITORY:pr.base.repo.full_name,GITHUB_SHA:sha('a'),GITHUB_RUN_ID:'1'};
-  if(scenario==='alternate-profile-absent')env.KIDULTS_AUTONOMOUS_POLICY_PATH='alternate.json';
-  const result=spawnSync(process.execPath,[path.resolve('scripts/kidults/kpmo/run-autonomous-dispatcher-v1.mjs')],{cwd:directory,env,encoding:'utf8',timeout:10000});
-  assert.equal(result.error,undefined);assert.notEqual(result.status,0);assert.deepEqual(JSON.parse(fs.readFileSync(path.join(out,'results.json'))),[]);assert.equal(fs.existsSync(path.join(out,'source-read.json')),false);
-  const failure=JSON.parse(fs.readFileSync(path.join(out,'failure.json')));assert.equal(failure.fanout_authorized,false);
-  if(scenario==='alternate-profile-absent')assert.match(result.stderr,/DISPATCH_SOURCE_PROFILE_POLICY_PATH_INVALID/);
-  else assert.match(result.stderr,scenario.startsWith('missing')?/ENOENT/:/SyntaxError/);
- }finally{fs.rmSync(directory,{recursive:true,force:true});}
-});
-
-test('empty current-base PR requires complete source trees, not a zero-file API claim',()=>{
-  const pr={number:1884,state:'open',merged:false,base:{ref:'main',sha:sha('a'),repo:{full_name:'owner/repo'}},head:{sha:sha('b'),repo:{full_name:'owner/repo'}}};
-  const input={pr,mainSha:sha('a'),files:[],policy,headCommit:{sha:sha('b'),tree:{sha:sha('c')}},mainCommit:{sha:sha('a'),tree:{sha:sha('c')}}};
-  assert.equal(classifyEmptyTreeRedundant(input).binding.proof,'EXACT_COMPLETE_TREE_EQUALS_CURRENT_MAIN');
-  for (const delta of [
-    {headCommit:{sha:sha('b'),tree:{sha:sha('d')}}},
-    {mainCommit:{sha:sha('a'),tree:{sha:null}}},
-    {headCommit:{sha:sha('e'),tree:{sha:sha('c')}}},
-    {mainCommit:{sha:sha('e'),tree:{sha:sha('c')}}},
-    {files:[{filename:'pending.mjs'}]},
-    {pr:{...pr,state:'closed'}},
-    {pr:{...pr,merged:true}},
-    {pr:{...pr,head:{...pr.head,repo:{full_name:'attacker/fork'}}}},
-  ]) assert.throws(()=>classifyEmptyTreeRedundant({...input,...delta}),/DISPATCH_EMPTY_DIFF_TREE_MISMATCH/);
-  assert.throws(()=>classifyEmptyTreeRedundant({...input,policy:{}}),/DISPATCH_EMPTY_DIFF_HYGIENE_DISABLED/);
-});
-
-test('Finalizer observes protected cutover before creating a durable reservation',()=>{
-  const source=fs.readFileSync('scripts/kidults/kpmo/run-autonomous-internal-landing-v1.mjs','utf8');
-  assert.ok(source.indexOf('await acquireEventToken({observeCutover:true})')<source.indexOf("action:'CREATE_RESERVATION'"));
-});
-for(const sourceTransport of [false,true])test(`129-file stale candidate retains exact review binding without blob reads or eligibility sourceTransport=${sourceTransport}`,async()=>{
-  let blobReads=0, filePages=0;
-  const candidate={...pr,base:{...pr.base,sha:sha('d')}};
-  const files=Array.from({length:129},(_,i)=>({filename:`scripts/large-${i}.mjs`,status:'modified'}));
-  const results=await discover({repository:pr.base.repo.full_name,token:'offline',policy,generationSeed:'1',sourceTransport,fetchImpl:async url=>{
-    const u=new URL(url),p=u.pathname;
-    if(p.endsWith('/branches/main'))return fakeResponse(200,{commit:{sha:sha('a')}});
-    if(p.endsWith('/rulesets'))return fakeResponse(200,[{id:1,name:'KAIOS Solo Owner Preflight',enforcement:'active'}]);
-    if(p.endsWith('/rulesets/1'))return fakeResponse(200,{bypass_actors:[],rules:[{type:'required_status_checks',parameters:{strict_required_status_checks_policy:true,required_status_checks:[{context:'unit',integration_id:7}]}}]});
-    if(p.endsWith('/pulls'))return fakeResponse(200,[candidate]);
-    if(p.endsWith('/pulls/42'))return fakeResponse(200,candidate);
-    if(p.endsWith('/files')){filePages++;const page=Number(u.searchParams.get('page'));return fakeResponse(200,files.slice((page-1)*100,page*100));}
-    if(p.includes('/git/commits/'))return fakeResponse(200,{tree:{sha:sha('c')}});
-    if(p.includes('/contents/'))blobReads++;
-    throw Error('large candidate must not read blobs/status/checks');
-  }});
-  assert.equal(filePages,2);assert.equal(blobReads,0);assert.equal(results.length,1);
-  const r=results[0];assert.equal(r.state,'OWNER_REVIEW_REQUIRED');assert.equal(r.reason,'DISPATCH_STALE_COMPARISON_LIMIT_EXCEEDED');
-  assert.equal(r.binding.base_sha,sha('d'));assert.equal(r.binding.current_main_sha,sha('a'));assert.equal(r.binding.head_sha,sha('b'));assert.equal(r.binding.changed_paths.length,129);
-  assert.equal(r.bounded_comparison.comparison_performed,false);assert.equal(r.autonomous_eligible,false);assert.equal(r.merge_authorized,false);
-});
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíÛ½ýÙ:-jZ.¶›­–)Þ³V–×÷'B·FW7GÒg&öÒvæöFS§FW7Bs°¦–×÷'B·7vå7–æ7Òg&öÒvæöFS¦6†–ÆE÷&ö6W72s°¦–×÷'B÷2g&öÒvæöFS¦÷2s°¦–×÷'BF‚g&öÒvæöFS§F‚s°¦–×÷'B76W'Bg&öÒvæöFS¦76W'B÷7G&–7Bs°¦–×÷'B7'—Fòg&öÒvæöFS¦7'—Fòs°¦–×÷'Bg2g&öÒvæöFS¦g2s°¢òò¶VW&W—"F–væ÷7F–72–âF†RW†—7F–ær&÷FV7FVBÖÖ–âæB"4’VçG'—ö–çBà¦–×÷'Brâö6&–Æ—G’×&W—"ÖæÇ—6—2×cçFW7BæÖ§2s°¦–×÷'Brâ÷&÷FV7FVBÖF–væ÷7F–2×&W—"×cçFW7BæÖ§2s°¦–×÷'Brâö&÷VæFVBÖv—B×6÷W&6R×&VFW"×cçFW7BæÖ§2s°¦–×÷'Brâö&÷VæFVBÖv—B×6²ÖFV6öFW"×cçFW7BæÖ§2s°¦–×÷'Brâö&÷VæFVBÖv—B×V&Æ–2×G&ç7÷'B×cçFW7BæÖ§2s°¦–×÷'Brâö&÷VæFVBÖv—B×6÷W&6R×&öf–ÆR×cçFW7BæÖ§2s°¦–×÷'BrâöWFöæöÖ÷W2Ö÷W&F–öâ×V&çF–æR×cçFW7BæÖ§2s°¦–×÷'Brâ÷&–Ö'’×67&—BÖÆW†–ær×cçFW7BæÖ§2s°¦–×÷'Brâö–æFWVæFVçB×67&—BÖÆW†–ær×cçFW7BæÖ§2s°¦–×÷'BrâöF—7F6†W"×&V6÷fW'’Ö6Æ76–f–6F–öâ×cçFW7BæÖ§2s°¦–×÷'BrâöW†7B×66÷RÖ÷væW"ÖFV6—6–öâ×cçFW7BæÖ§2s°¦–×÷'B¶—4vÆö&Å&VDf–ÇW&RÆ6Æ76–g”V×G•G&VU&VGVæFçBÇ&V6÷&DF—7F6†W%66âÆ7&VFTF—7F6†W%&VD6Æ–VçBÆF—66÷fW"ÆF—7F6†W%&VD'VFvWDf÷$6æF–FFW2Æ'V–ÆEöÆ–7•&W—%&WV—&VBÆ'V–ÆD÷væW%&Wf–Wu&WV—&VBÆ6Æ76–g”6æF–FFRÆ6Æ76–g•7FÆT&6T6æF–FFRÄF—7F6†W$W'&÷"Æ—46æF–FFU&V¦V7F–öâÆ—5Væ¶æ÷vä6Æ76–f–6F–öâÇ&V6Æ76–g•Væ¶æ÷vä6æF–FFRÆ–Ö×WF&ÆT6öçFVçBÆ6öçFVçD&Æö%6†÷$çVÆÂÇfÆ–FFTF—7F6†W%G&–vvW'Òg&öÒrââòââòââ÷67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2ÖF—7F6†W"×cæÖ§2s°¦–×÷'B´6&–Æ—G”FVÇFW'&÷'Òg&öÒrââòââòââ÷67&—G2ö¶–GVÇG2ö·ÖòöÆ–"÷6VÖçF–2Ö6&–Æ—G’ÖFVÇF×cæÖ§2s°¦–×÷'B¶76W'DWFöæöÖ÷W4f–ÆU66÷WÒg&öÒrââòââòââ÷67&—G2ö¶–GVÇG2ö·ÖòöÆ–"öWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×cæÖ§2s°¦–×÷'B¶'V–ÆDF—7F6…&WVW7BÇG&ç6—F–öäF—7F6…&V6V—BÇfÆ–FFTF—7F6„WfVçBÄD•5D4…õ$ôÄU7Òg&öÒrââòââòââ÷67&—G2ö¶–GVÇG2ö·ÖòöÆ–"öWFöæöÖ÷W2ÖF—7F6‚Öfæ÷WB×cæÖ§2s°¦6öç7BöÆ–7“Ô¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‚v6ö÷&F–æF–öâö¶–GVÇG2öv÷fW&ææ6RöWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×öÆ–7’×cæ§6öâr’“°¦6öç7B6†Ö3Óæ2ç&WVBƒC“°§FW7B‚vW††W7FVB&VG2&WF–âöæÇ’&÷VæFVB&W6÷W&6R6÷VçG2æB&V¦V7B–æ¦V7FVBF–væ÷7F–72rÆ7–æ2‚“Óç°¢6öç7B6Æ–VçCÖ7&VFTF—7F6†W%&VD6Æ–VçB‡·Fö¶Vã¢w6V7&WB×Fö¶VârÆÖ…&WVW7G3£"ÆfWF6„–×Ã¦7–æ2‚“Óâ‡¶ö³§G'VRÇ7FGW3£#Æ†VFW'3§¶vWC¢‚“ÓæçVÆÇÒÆ§6öã¦7–æ2‚“Óåµ×Ò—Ò“°¢v—B6Æ–VçBç&WVW7B‚r÷&W÷2ö÷væW"÷&Wò÷VÆÇ3÷7FFSÖ÷Vâr“°¢v—B6Æ–VçBç&WVW7B‚r÷&W÷2ö÷væW"÷&Wò÷VÆÇ2óC"öf–ÆW3÷W%÷vSÓgvSÓr“°¢ÆWBf–ÇW&S°¢v—B76W'Bç&V¦V7G2†6Æ–VçBç&WVW7B‚r÷&W÷2ö÷væW"÷&Wòö6öçFVçG2÷6V7&WB×Fƒ÷&VcÒr·6†‚vr’’ÆW'&÷#Óç¶f–ÇW&SÖW'&÷#·&WGW&âW'&÷"æ6öFSÓÓÒtD•5D4…õ$TEô%TDtUEôU„„U5DTBs·Ò“°¢76W'BæWVÂ†6Æ–VçBç&WVW7D6÷VçB‚’Ã"“°¢76W'BæWVÂ†f–ÇW&Rç&VEöF–væ÷7F–72ç&W6÷W&6Uö6÷VçG2çVÆÇ2Ã“°¢76W'BæWVÂ†f–ÇW&Rç&VEöF–væ÷7F–72ç&W6÷W&6Uö6÷VçG2æf–ÆW2Ã“°¢76W'BæWVÂ†f–ÇW&Rç&VEöF–væ÷7F–72ææW‡E÷&W6÷W&6UöfÖ–Ç’Âv6öçFVçG2r“°¢6öç7B÷WGWDF—&V7F÷'“Ög2æÖ¶GFV×7–æ2‡F‚æ¦ö–â†÷2çF×F—"‚’ÂvF—7F6†W"Ö6÷VçG2Òr’“°¢G'’°¢v—B76W'Bç&V¦V7G2‡&V6÷&DF—7F6†W%66â‡¶÷WGWDF—&V7F÷'’Ç66ã¦7–æ2‚“Óç·F‡&÷rf–ÇW&S·×Ò’“°¢ÆWB&V6V—CÔ¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âvf–ÇW&Ræ§6öâr’’“°¢76W'BæFVWWVÂ‡&V6V—Bç&VEöF–væ÷7F–72Æf–ÇW&Rç&VEöF–væ÷7F–72“°¢76W'BæFVWWVÂ„¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âw&W7VÇG2æ§6öâr’’’ÅµÒ“°¢76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’‡&V6V—B’Â÷6V7&WB×Fö¶VçÇ6V7&WB×F‡ÅÂ÷&W÷5Âòò“°¢f÷"†6öç7B×WFFRöb¶CÓâ‡²ââæBÇW&Ã¢w6V7&WB×Fö¶VâwÒ’ÆCÓâ‡²ââæBÇ&W6÷W&6Uö6÷VçG3§²ââæBç&W6÷W&6Uö6÷VçG2Æf–ÆW3£“—×Ò’ÆCÓâ‡²ââæBÆæW‡E÷&W6÷W&6UöfÖ–Ç“¢w6V7&WB×F‚wÒ•Ò—°¢6öç7B–æ¦V7FVCÖæWrF—7F6†W$W'&÷"‚tD•5D4…õ$TEô%TDtUEôU„„U5DTBr“¶–æ¦V7FVBç&VEöF–væ÷7F–73Ö×WFFR†f–ÇW&Rç&VEöF–væ÷7F–72“°¢v—B76W'Bç&V¦V7G2‡&V6÷&DF—7F6†W%66â‡¶÷WGWDF—&V7F÷'’Ç66ã¦7–æ2‚“Óç·F‡&÷r–æ¦V7FVC·×Ò’“°¢&V6V—CÔ¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âvf–ÇW&Ræ§6öâr’’“°¢76W'BæWVÂ‚w&VEöF–væ÷7F–72r–â&V6V—BÆfÇ6R“°¢Ð¢Öf–æÆÇ—¶g2ç&Õ7–æ2†÷WGWDF—&V7F÷'’Ç·&V7W'6—fS§G'VRÆf÷&6S§G'VWÒ“·Ð§Ò“°§FW7B‚vf–ÆVB66â&WF–ç2—G2÷&–v–æÂW'&÷"æB–çfÆ–FFW2öÆBVÆ–v–&ÆR&W7VÇG2v—F†÷WBÆV¶–ærFWF–Ç2rÆ7–æ2‚“Óç°¢6öç7B÷WGWDF—&V7F÷'“Ög2æÖ¶GFV×7–æ2‡F‚æ¦ö–â†÷2çF×F—"‚’ÂvF—7F6†W"Öf–ÇW&RÒr’“°¢G'’°¢g2çw&—FTf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âw&W7VÇG2æ§6öâr’Ä¥4ôâç7G&–æv–g’…··7FFS¢tTÄ”t”$ÄRwÕÒ’“°¢6öç7BW'&÷#ÖæWrF—7F6†W$W'&÷"‚tD•5D4…õ$TEô%TDtUEôU„„U5DTBrÂw6V7&WB×Fö¶Vâr“°¢v—B76W'Bç&V¦V7G2‡&V6÷&DF—7F6†W%66â‡¶÷WGWDF—&V7F÷'’Ç&W÷6—F÷'“¢v÷væW"÷&WòrÇ6÷W&6U6†§6†‚vr’Ç'Vä–C¢s#2rÇ66ã¦7–æ2‚“Óç·F‡&÷rW'&÷#·×Ò’ÆSÓæSÓÓÖW'&÷"“°¢76W'BæFVWWVÂ„¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âw&W7VÇG2æ§6öâr’’’ÅµÒ“°¢6öç7Bf–ÇW&SÔ¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âvf–ÇW&Ræ§6öâr’’“°¢76W'BæWVÂ†f–ÇW&Ræf–ÇW&Uö6Æ72ÆW'&÷"æ6öFR“°¢76W'BæWVÂ†f–ÇW&Ræfæ÷WEöWF†÷&—¦VBÆfÇ6R“°¢76W'BæWVÂ†f–ÇW&Rç'F–Åö6æF–FFW5ö6öç7VÖ&ÆRÆfÇ6R“°¢76W'BæWVÂ†f–ÇW&Ræ&–æF–ærç6÷W&6U÷6†Ç6†‚vr’“°¢76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’†f–ÇW&R’Â÷6V7&WB×Fö¶Vâò“°¢v—B&V6÷&DF—7F6†W%66â‡¶÷WGWDF—&V7F÷'’Ç66ã¦7–æ2‚“Óåµ×Ò“°¢76W'BæWVÂ†g2æW†—7G57–æ2‡F‚æ¦ö–â†÷WGWDF—&V7F÷'’Âvf–ÇW&Ræ§6öâr’’ÆfÇ6R“°¢Òf–æÆÇ’¶g2ç&Õ7–æ2†÷WGWDF—&V7F÷'’Ç·&V7W'6—fS§G'VRÆf÷&6S§G'VWÒ“·Ð§Ò“°¦6öç7B#×¶çVÖ&W#£C"Ç7FFS¢v÷VârÆÖW&vVC¦fÇ6RÆG&gC¦fÇ6RÆ&6S§·&Vc¢vÖ–ârÇ6†§6†‚vr’Ç&Wó§¶–C£#ƒ3#ƒƒƒ‚ÆgVÆÅöæÖS¢v¦ö†æ¶–Ó“S#BÖ6öÆÆ"ö¶–÷5öVçFW'&—6U÷&Wòw×ÒÆ†VC§·6†§6†‚v"r’Ç&Wó§¶gVÆÅöæÖS¢v¦ö†æ¶–Ó“S#BÖ6öÆÆ"ö¶–÷5öVçFW'&—6U÷&Wòw××Ó°¦6öç7B–çWC×·"ÆÖ–å6†§6†‚vr’ÇG&VU6†§6†‚v2r’Æf–ÆW3¥·¶f–ÆVæÖS¢w7&2öæ§2wÕÒÇ7FGW6W3¥·¶6öçFW‡C¢w&WV—&VBrÇ7FFS¢w7V66W72wÕÒÆ6†V6·3¥·¶–C£ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72rÆW‡FW&æÅö–C¢wVæ—BÓwÕÒÇ&WV—&VD6†V6·3¥·¶6öçFW‡C¢wVæ—BrÆ–çFVw&F–öåö–C£wÕÒÇöÆ–7’ÆvVæW&F–öå6VVC¢s“ƒscSC3#rÆæ÷s¦æWrFFR‚s##bÓ’Ó#EC#££¢r—Ó°§FW7B‚w&÷FV7FVBF—7F6†W"&VBÆÆ÷væ6R66ÆW2v—F‚÷Vâ"6÷VçBæB&VÖ–ç26VBrÂ‚“Óç°¢76W'BæWVÂ†F—7F6†W%&VD'VFvWDf÷$6æF–FFW2ƒ’Ã#Sb“°¢76W'BæWVÂ†F—7F6†W%&VD'VFvWDf÷$6æF–FFW2ƒ’Ãs#B“°¢76W'BæWVÂ†F—7F6†W%&VD'VFvWDf÷$6æF–FFW2ƒ’Ã#C‚“°¢76W'BçF‡&÷w2‚‚“ÓæF—7F6†W%&VD'VFvWDf÷$6æF–FFW2‚Ó’ÂôD•5D4…ô4ôäd”uU$D”ôåô”ådÄ”Bò“°§Ò“°¦f÷"†6öç7B6öFRöb²t4$”Ä•E•ôDU$•dTEôÔUDDDõ44õUô4„ätTBrÂt”äDUTäDTåEôDU$•dTEôÔUDDDõ44õUô4„ätTBrÀ¢t”äDUTäDTåEõ4T5U$•E•ô4$”Ä•E•ôDDTBrÂt”äDUTäDTåEôuT$EôDUTäDTä5•ô4„ätTBuÒ’°¢6öç7BW'&÷#ÖæWr6&–Æ—G”FVÇFW'&÷"†6öFRÂw7&2öæ§3§&—fFR6öçFVçB×W7BæWfW"V"r“°¢6öç7B&W—#Ö'V–ÆEöÆ–7•&W—%&WV—&VB‡²ââæ–çWBÆW'&÷'Ò“°¢76W'BæWVÂ‡&W—"ç7FFRÂuôÄ”5•õ$U•%õ$UT•$TBr“°¢76W'BæWVÂ‡&W—"æ6Æ76–f–6F–öåöf–ÇW&Ræ6†ævVE÷F‚Âw7&2öæ§2r“°¢76W'BæWVÂ‡&W—"æ&–æF–æræ†VE÷6†Ç"æ†VBç6†“°¢76W'BæWVÂ‡&W—"æ&–æF–æræ†VE÷G&VU÷6†Æ–çWBçG&VU6†“°¢76W'BæWVÂ‡&W—"æ&–æF–ærç66÷UöF–vW7BÂw6†#Sc¢r¶7'—Fòæ7&VFT†6‚‚w6†#Sbr’çWFFR‚w7&2öæ§2r’æF–vW7B‚v†W‚r’“°¢f÷"†6öç7Bf–VÆBöb²vWFöÖF–5÷&WG'•÷W&f÷&ÖVBrÂvWFöæöÖ÷W5öVÆ–v–&ÆRrÂvÆæF–æuöWF†÷&—¦F–öåö7&VFVBrÂvÖW&vUöWF†÷&—¦VBuÒ–76W'BæWVÂ‡&W—%¶f–VÆEÒÆfÇ6R“°¢76W'BæWVÂ‡&W—"æ6Æ76–f–6F–öåöf–ÇW&RæWF†÷&—G•ö7&VFVBÆfÇ6R“°¢76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’‡&W—"’Â÷&—fFR6öçFVçBò“°¢f÷"†6öç7B6†ævRöb·¶Ö–å6†¢v–çfÆ–BwÒÇ·G&VU6†¢v–çfÆ–BwÒÇ¶f–ÆW3¥µ×ÕÒ¢76W'BçF‡&÷w2‚‚“Óæ'V–ÆEöÆ–7•&W—%&WV—&VB‡²ââæ–çWBÂââæ6†ævRÆW'&÷'Ò’ÂôD•5D4…õôÄ”5•õ$U•%ô$”äD”äuô”ådÄ”Bò“°§Ð¦76W'BæWVÂ†'V–ÆEöÆ–7•&W—%&WV—&VB‡²ââæ–çWBÆW'&÷#¦æWrF—7F6†W$W'&÷"‚tD•5D4…ô4„T4µ5ôäõEôu$TTâr—Ò’ÆçVÆÂ“°¦76W'BæWVÂ†'V–ÆEöÆ–7•&W—%&WV—&VB‡²ââæ–çWBÆW'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•õU$Ô•54”ôåôU…å4”ôâr—Ò’ÆçVÆÂ“°¦6öç6öÆRæÆör„¥4ôâç7G&–æv–g’‡·7FFS¢udU$”d”TEõ52rÇ7V—FS¢væöâÖWF†÷&—¦–ær×öÆ–7’×&W—"×&÷WF–ærrÇ÷6—F—fS£BÆæVvF—fS£BÆWF†÷&—G•ö7&VFVC¦fÇ6WÒ’“°¦6öç7B&÷fÅöÆ–7“Ô¥4ôâç'6R†g2ç&VDf–ÆU7–æ2‚v6ö÷&F–æF–öâö¶–GVÇG2öv÷fW&ææ6RöWFöæöÖ÷W2Ö&÷fÂ×öÆ–7’ÖVçfVÆ÷R×cæ§6öâr’“°¦6öç7BVæ¶æ÷vãÖæWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•õ4õU$4UôÔ•54”ärrÂw&—fFR–ÆöBr“°¦ÆWB&VG3Ó°¦6öç7B&V6÷fW&VCÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óç·&VG2²³·&WGW&â–çWC·×Ò“°¦76W'BæWVÂ‡&VG2Ã“°¦76W'BæFVWWVÂ‡&V6÷fW&VBæ6æF–FFRÆ6Æ76–g”6æF–FFR†–çWB’“°¦76W'BæWVÂ‡&V6÷fW&VBç&V6V—BæWF†÷&—G•ö7&VFVBÆfÇ6R“°¦76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’‡&V6÷fW&VBç&V6V—B’Â÷&—fFR–ÆöBò“°§&VG3Ó°¦6öç7BVæ¶æ÷vä6öçFW‡C×²ââæ–çWBÆf–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÆ&6Uö6öçFVçC¢væÖS¢…ÆârÆ†VEö6öçFVçC¢væÖS¢…ÆâöFC¢Vç7W÷'FVEÆârÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ²öFC¢Vç7W÷'FVBwÕ×Ó°¦6öç7BVç&W6öÇfVCÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C§Væ¶æ÷vä6öçFW‡BÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óç·&VG2²³·&WGW&âVæ¶æ÷vä6öçFW‡C·×Ò“°¦76W'BæWVÂ‡&VG2Ã"“°¦76W'BæWVÂ‡Vç&W6öÇfVBçVç&W6öÇfVBÇG'VR“°¦76W'BæWVÂ‡Vç&W6öÇfVBæ6æF–FFRÇVæFVf–æVB“°¦76W'BæWVÂ‡Vç&W6öÇfVBç&V6V—BæWF†÷&—G•ö7&VFVBÆfÇ6R“°¦76W'BæWVÂ‡Vç&W6öÇfVBç&V6V—Bç&W÷6—F÷'•ö×WFF–öå÷W&f÷&ÖVBÆfÇ6R“°¦76W'BæFVWWVÂ‡Vç&W6öÇfVBç&V6V—BæGFV×G2æÖ‡ƒÓç‚æGFV×B’Å³Ã%Ò“°¦f÷"†6öç7B6öFRöböÆ–7’æ6&–Æ—G•öwV&Eö÷væW%÷&Wf–Wuö†æFöfbçG&–vvW%ö6öFW7ÇÅ°¢t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBrÂt4$”Ä•E•ôuT$EõtT´TäTBrÂt4$”Ä•E•ôuT$Eõ$TÔõdTBrÀ¢t4$”Ä•E•ôUD„õ$•E•õôÄ”5•ô4„ätTBrÂt4$”Ä•E•ôU…å4”ôârÂt4$”Ä•E•õU$Ô•54”ôåôU…å4”ôârÀ¢t”äDUTäDTåEõ4T5U$•E•ô4$”Ä•E•ô4„ätTBrÂt”äDUTäDTåEôUD„õ$•E•õôÄ”5•ô4„ätTBuÒ’°¢76W'BæWVÂ†—5Væ¶æ÷vä6Æ76–f–6F–öâ‡¶6öFWÒ’ÆfÇ6R“°¢v—B76W'Bç&V¦V7G2‚‚“Óç&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§¶6öFWÒÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óç·F‡&÷ræWrW'&÷"‚tÕU5EôäõEõ$TBr“·×Ò’ÂôD•5D4…õ$T4Ä54”d”4D”ôåôäõEõTä´äõtâò“°§Ð¦f÷"†6öç7Bg&W6‚öb·²ââæ–çWBÆÖ–å6†§6†‚vBr—ÒÇ²ââæ–çWBÇG&VU6†§6†‚vBr—ÒÀ¢²ââæ–çWBÇ#§²ââç"ÆG&gC§G'VW×ÒÇ²ââæ–çWBÆf–ÆW3¥·¶f–ÆVæÖS¢w7&2ö"æ§2wÕ×ÒÀ¢²ââæ–çWBÇ&÷FV7FVE'VÆW6WDF–vW7C¢w6†#Sc¢r²vrç&WVBƒcB—ÕÒ’°¢6öç7BG&–gCÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’Ç&VD6æF–FFS¦7–æ2‚“Óæg&W6‡Ò“°¢76W'BæWVÂ†G&–gBæW'&÷"æ6öFRÂtD•5D4…õ$T4Ä54”d”4D”ôåõ4õU$4UôE$”eBr“°¢76W'BæWVÂ†G&–gBæ6æF–FFRÇVæFVf–æVB“°§Ð¦6öç7B&VDf–ÆVCÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óç·F‡&÷ræWrW'&÷"‚u$TÔõDUõ$TEôd”ÄTEõ$•dDRr“·×Ò“°¦76W'BæWVÂ‡&VDf–ÆVBçVç&W6öÇfVBÇG'VR“°¦76W'BæWVÂ‡&VDf–ÆVBç&V6V—BæGFV×G2æÆVæwF‚Ã"“°¦76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’‡&VDf–ÆVBç&V6V—B’Âõ$•dDRò“°¦6öç7B–æ¦V7FVD6Æ76–g“Öv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óæ–çWBÆ6Æ76–g“¢‚“Óâ‡¶ÖW&vUöWF†÷&—¦VC§G'VWÒ—Ò“°¦76W'BæFVWWVÂ†–æ¦V7FVD6Æ76–g’æ6æF–FFRÆ6Æ76–g”6æF–FFR†–çWB’“°¦76W'BæWVÂ†–æ¦V7FVD6Æ76–g’æ6æF–FFRæÖW&vUöWF†÷&—¦VBÇVæFVf–æVB“°¦f÷"†6öç7B6öFRöb²t”äDUTäDTåEõ45$•Eõ%4Uôd”ÄTBrÂt”äDUTäDTåEô¥4ôåõ%4Uôd”ÄTBrÂt”äDUTäDTåEô”ÔÕUD$ÄUô$Äô%5õ$UT•$TBuÒ’°¢76W'BæWVÂ†—5Væ¶æ÷vä6Æ76–f–6F–öâ‡¶6öFWÒ’ÇG'VR“°§Ð¦6öç7B–çfÆ–DÖöFSÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óâ‡²ââæ–çWBÆ6Æ76–f–6F–öäÖöFS¢tõtäU%ô%•52wÒ—Ò“°¦76W'BæWVÂ†–çfÆ–DÖöFRæW'&÷"æ6öFRÂtD•5D4…õ$T4Ä54”d”4D”ôåõ4õU$4UôE$”eBr“°¦6öç7B6†ævVE&—6³Öv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C§Væ¶æ÷vä6öçFW‡BÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óâ‡²ââçVæ¶æ÷vä6öçFW‡BÆf–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÆ&6Uö6öçFVçC¢væÖS¢…ÆârÆ†VEö6öçFVçC¢væÖS¢…ÆçW&Ö—76–öç3¢w&—FRÖÆÅÆârÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ·W&Ö—76–öç3¢w&—FRÖÆÂwÕ×Ò—Ò“°¦76W'BæWVÂ†6†ævVE&—6²æW'&÷"æ6öFRÂtD•5D4…ôõtäU%õ$U4U%dTEô5D”ôâr“°¦76W'BæWVÂ†6†ævVE&—6²ç&V6V—BæGFV×G2æÆVæwF‚Ã“°¦76W'BæWVÂ†6†ævVE&—6²æ6æF–FFRÇVæFVf–æVB“°¦v—B76W'Bç&V¦V7G2‚‚“Óç&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C¦–çWBÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7“§¶6Æ76W3§µTä´äõtã§·××ÒÀ¢&VD6æF–FFS¦7–æ2‚“Óæ–çWGÒ’ÂôD•5D4…õ$T4Ä54”d”4D”ôåõôÄ”5•ô”ådÄ”Bò“°¦6öç7Bv÷fW&æVDf–ÆSÒ†f–ÆVæÖRÆ&6Uö6öçFVçBÆ†VEö6öçFVçBÇF6‚“Óâ‡¶f–ÆVæÖRÆ&6Uö6öçFVçBÆ†VEö6öçFVçBÂâââ‡F6ƒ÷·F6‡Ó§·Ò—Ò“°¦76W'BæWVÂ‡öÆ–7’æ6&–Æ—G•öwV&Eö÷væW%÷&Wf–Wuö†æFöfbæF—7÷6—F–öâÂtõtäU%õ$Ud”Uuõ$UT•$TBr“°¦76W'BæWVÂ‡öÆ–7’æ6&–Æ—G•öwV&Eö÷væW%÷&Wf–Wuö†æFöfbæWFöæöÖ÷W5÷V÷'VÕö&Vf÷&Uö÷væW%öFV6—6–öâÆfÇ6R“°¦76W'BæWVÂ‡öÆ–7’æ6&–Æ—G•öwV&Eö÷væW%÷&Wf–Wuö†æFöfbæÖW&vUöWF†÷&—¦F–öåö7&VFVEö'•ö†æFöfbÆfÇ6R“°¦6öç7B÷væW%&Wf–WsÖ'V–ÆD÷væW%&Wf–Wu&WV—&VB‡·"ÆÖ–å6†¦–çWBæÖ–å6†ÇG&VU6†¦–çWBçG&VU6†À¢f–ÆW3¥·¶f–ÆVæÖS¢w67&—G2öwV&BæÖ§2wÒÇ¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷6VçF–æVÂç–ÖÂwÕÒÀ¢W'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBrÂw67&—G2öwV&BæÖ§2r—Ò“°¦76W'BæWVÂ†÷væW%&Wf–Wrç7FFRÂtõtäU%õ$Ud”Uuõ$UT•$TBr“°¦76W'BæWVÂ†÷væW%&Wf–Wrç&V6öâÂt4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBr“°¦76W'BæFVWWVÂ†÷væW%&Wf–Wræ6Æ76–f–6F–öåöf–ÇW&RÇ¶6öFS¢t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBrÆ6†ævVE÷Fƒ¢w67&—G2öwV&BæÖ§2rÀ¢7FvS¢t”ÔÕUD$ÄUô4$”Ä•E•ôDTÅDrÆWF†÷&—G•ö7&VFVC¦fÇ6WÒ“°¦6öç7B&—fFTFWF–ÃÖ'V–ÆD÷væW%&Wf–Wu&WV—&VB‡·"ÆÖ–å6†¦–çWBæÖ–å6†ÇG&VU6†¦–çWBçG&VU6†À¢f–ÆW3¥·¶f–ÆVæÖS¢w67&—G2öwV&BæÖ§2wÕÒÆW'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBrÂw6V7&WB6öÖÖæB–ÆöBr—Ò“°¦76W'BæWVÂ‡&—fFTFWF–Âæ6Æ76–f–6F–öåöf–ÇW&Ræ6†ævVE÷F‚ÆçVÆÂ“°¦76W'BæFöW4æ÷DÖF6‚„¥4ôâç7G&–æv–g’‡&—fFTFWF–Â’Â÷6V7&WB6öÖÖæB–ÆöBò“°¦76W'BæWVÂ†÷væW%&Wf–WræWFöæöÖ÷W5öVÆ–v–&ÆRÆfÇ6R“°¦76W'BæWVÂ†÷væW%&Wf–WræÆæF–æuöWF†÷&—¦F–öåö7&VFVBÆfÇ6R“°¦76W'BæWVÂ†÷væW%&Wf–WræÖW&vUöWF†÷&—¦VBÆfÇ6R“°¦76W'BæFVWWVÂ†÷væW%&Wf–Wræ&–æF–æræ6†ævVE÷F‡2Å²ræv—F‡V"÷v÷&¶fÆ÷w2÷6VçF–æVÂç–ÖÂrÂw67&—G2öwV&BæÖ§2uÒ“°¦76W'BæWVÂ†÷væW%&Wf–Wræ&–æF–æræ&6U÷6†Æ–çWBæÖ–å6†“°¦76W'BæWVÂ†÷væW%&Wf–Wræ&–æF–æræ†VE÷6†Ç"æ†VBç6†“°¦76W'BæWVÂ†÷væW%&Wf–Wræ&–æF–æræ†VE÷G&VU÷6†Æ–çWBçG&VU6†“°¦76W'BæWVÂ†÷væW%&Wf–Wræ&–æF–ærç66÷UöF–vW7BÆ6†#Sc¢G¶7'—Fòæ7&VFT†6‚‚w6†#Sbr’çWFFR†÷væW%&Wf–Wræ&–æF–æræ6†ævVE÷F‡2æ¦ö–â‚uÆâr’’æF–vW7B‚v†W‚r—Ö“°¦76W'BçF‡&÷w2‚‚“Óæ'V–ÆD÷væW%&Wf–Wu&WV—&VB‡·"ÆÖ–å6†¢v–çfÆ–BrÇG&VU6†¦–çWBçG&VU6†Æf–ÆW3¦–çWBæf–ÆW2À¢W'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBr—Ò’ÂôD•5D4…ôõtäU%õ$Ud”Uuô$”äD”äuô”ådÄ”Bò“°¦76W'BçF‡&÷w2‚‚“Óæ'V–ÆD÷væW%&Wf–Wu&WV—&VB‡·"ÆÖ–å6†¦–çWBæÖ–å6†ÇG&VU6†¦–çWBçG&VU6†Æf–ÆW3¦–çWBæf–ÆW2À¢W'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•ô”ÔÕUD$ÄUô$Äô%5õ$UT•$TBr—Ò’ÂôD•5D4…ôõtäU%õ$Ud”Uuô$”äD”äuô”ådÄ”Bò“°¦f÷"†6öç7BFW&Ö–æÅ"öb·²ââç"Ç7FFS¢v6Æ÷6VBwÒÇ²ââç"ÆÖW&vVC§G'VWÕÒ’°¢76W'BçF‡&÷w2‚‚“Óæ'V–ÆD÷væW%&Wf–Wu&WV—&VB‡·#§FW&Ö–æÅ"ÆÖ–å6†¦–çWBæÖ–å6†ÇG&VU6†¦–çWBçG&VU6†Æf–ÆW3¦–çWBæf–ÆW2À¢W'&÷#¦æWr6&–Æ—G”FVÇFW'&÷"‚t4$”Ä•E•ôuT$EôDUTäDTä5•ô4„ätTBr—Ò’ÂôD•5D4…ôõtäU%õ$Ud”Uuô$”äD”äuô”ådÄ”Bò“°§Ð¦6öç7BSÖ6Æ76–g”6æF–FFR†–çWB“¶76W'BæÖF6‚†RæWF†÷&—¦F–öåövVæW&F–öâÂõç"ÓC"Ö'³#ÒÕ³Ó–Öe×³gÒBò“¶76W'BæWVÂ†Rç&öGV7F–öâÂt„ôÄBr“¶76W'BæFVWWVÂ†Ræ6†ævVE÷F‡2Å²w7&2öæ§2uÒ“°¦6öç7B6ÖU'VäVçfVÆ÷SÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÆæ÷s¦æWrFFR‚s##bÓ’Ó#EC#££¢r—Ò“°¦76W'BæWVÂ‡6ÖU'VäVçfVÆ÷RæWF†÷&—¦F–öåövVæW&F–öâÆRæWF†÷&—¦F–öåövVæW&F–öâ“°¦76W'BæWVÂ‡6ÖU'VäVçfVÆ÷Rææöæ6UöF–vW7BÆRææöæ6UöF–vW7B“°¦6öç7BæW‡E'VäVçfVÆ÷SÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÆvVæW&F–öå6VVC¢s“ƒscSC3#"wÒ“°¦76W'Bææ÷DWVÂ†æW‡E'VäVçfVÆ÷RæWF†÷&—¦F–öåövVæW&F–öâÆRæWF†÷&—¦F–öåövVæW&F–öâ“°¦76W'Bææ÷DWVÂ†æW‡E'VäVçfVÆ÷Rææöæ6UöF–vW7BÆRææöæ6UöF–vW7B“°¦6öç7Bfæ÷WCÖ'V–ÆDF—7F6…&WVW7B‡¶VçfVÆ÷S¦RÇ'Vä–C¢s“ƒscSC3#rÇ'VäGFV×C£"Ææ÷s¢s##bÓ’Ó3C“££ã¢wÒ“°¦76W'BæWVÂ†fæ÷WBç&WVW7BæWfVçE÷G—RÂv¶–GVÇG2æWF†÷&—¦F–öâævVæW&F–öâçcr“°¦76W'BæFVWWVÂ†fæ÷WBç&V6V—BçF&vWE÷&öÆW2ÄD•5D4…õ$ôÄU2“°¦76W'BæFVWWVÂ„ö&¦V7BçfÇVW2†fæ÷WBç&V6V—Bç&öÆUöFVÆ—fW'•ö&—FÖ’ÄD•5D4…õ$ôÄU2æÖ‚‚“ÓâuTäD”äuô4ôÔÔôåôUdTåBr’“°¦76W'BæWVÂ‡fÆ–FFTF—7F6„WfVçB‡¶WfVçD7F–öã¦fæ÷WBç&WVW7BæWfVçE÷G—RÆVçfVÆ÷S¦RÆF—7F6ƒ¦fæ÷WBç&WVW7Bæ6Æ–VçE÷–ÆöBæF—7F6‚Ç&öÆS¢tµÔòwÒ’æF—7F6…ö–BÆfæ÷WBç&V6V—BæF—7F6…ö–B“°¦6öç7B66WFVDfæ÷WC×G&ç6—F–öäF—7F6…&V6V—B†fæ÷WBç&V6V—BÇ·7FFS¢tD•5D4…ô44UDTBrÆæ÷s¢s##bÓ’Ó3C“££ã¢wÒ“°¦76W'BæWVÂ†66WFVDfæ÷WBçFW&Ö–æÂÇG'VR“°¦76W'BæFVWWVÂ„ö&¦V7BçfÇVW2†66WFVDfæ÷WBç&öÆUöFVÆ—fW'•ö&—FÖ’ÄD•5D4…õ$ôÄU2æÖ‚‚“Óât4ôÔÔôåôUdTåEô44UDTBr’“°¦6öç7Bf–ÆVDfæ÷WC×G&ç6—F–öäF—7F6…&V6V—B†fæ÷WBç&V6V—BÇ·7FFS¢tD•5D4…ôd”ÄTBrÆf–ÇW&T6öFS¢uDU5Eôd”ÅU$RrÆæ÷s¢s##bÓ’Ó3C“££ã¢wÒ“°¦76W'BæWVÂ†f–ÆVDfæ÷WBæf–ÇW&Uö6öFRÂuDU5Eôd”ÅU$Rr“°¦76W'BçF‡&÷w2‚‚“ÓçfÆ–FFTF—7F6„WfVçB‡¶WfVçD7F–öã¦fæ÷WBç&WVW7BæWfVçE÷G—RÆVçfVÆ÷S¦RÆF—7F6ƒ§²ââæfæ÷WBç&V6V—BÆ&–æF–æs§²ââæfæ÷WBç&V6V—Bæ&–æF–ærÆ†VE÷6†§6†‚vBr—×ÒÇ&öÆS¢tµÔòwÒ’“°¦76W'BçF‡&÷w2‚‚“ÓçG&ç6—F–öäF—7F6…&V6V—B†66WFVDfæ÷WBÇ·7FFS¢tD•5D4…ô44UDTBwÒ’“°¦6öç7BFVç“Ò‡F6‚Æ6öFR“Óæ76W'BçF‡&÷w2‚‚“Óæ6Æ76–g”6æF–FFR‡²ââæ–çWBÂââçF6‡Ò’ÇƒÓç‚–ç7Fæ6VöbF—7F6†W$W'&÷"bg‚æ6öFSÓÓÖ6öFR“°¦6öç7B7FÆU#×²ââç"Æ&6S§²ââç"æ&6RÇ6†§6†‚vBr—×Ó°¦6öç7B7FÆT&–æF–æsÖ6Æ76–g•7FÆT&6T6æF–FFR‡·#§7FÆU"ÆÖ–å6†§6†‚vr’Æf–ÆW3¥¶v÷fW&æVDf–ÆR‚w7&2öæ§2rÂv6öç7BÓµÆârÂv6öç7BÓ#µÆârÂtÓ³ÆâÖ6öç7BÓµÆâ¶6öç7BÓ#²r•ÒÇöÆ–7—Ò“°¦6öç7B7FÆT6öçFW‡C×²ââæ–çWBÇ#§7FÆU"Æ6Æ76–f–6F–öäÖöFS¢u5DÄUô$4RrÀ¢f–ÆW3¥¶v÷fW&æVDf–ÆR‚w7&2öæ§2rÂv6öç7BÓµÆârÂv6öç7BÓ#µÆârÂtÓ³ÆâÖ6öç7BÓµÆâ¶6öç7BÓ#²r•×Ó°¦6öç7B7FÆU&V6÷fW&VCÖv—B&V6Æ76–g•Væ¶æ÷vä6æF–FFR‡¶6öçFW‡C§7FÆT6öçFW‡BÆW'&÷#§Væ¶æ÷vâÆ&÷fÅöÆ–7’À¢&VD6æF–FFS¦7–æ2‚“Óç7FÆT6öçFW‡GÒ“°¦76W'BæWVÂ‡7FÆU&V6÷fW&VBæ6æF–FFRç7FFRÂu5DÄUõ$T4õdU$$ÄRr“°¦76W'BæWVÂ‡7FÆU&V6÷fW&VBæ6æF–FFRæWF†÷&—¦F–öåövVæW&F–öâÇVæFVf–æVB“°¦76W'BæWVÂ‡7FÆU&V6÷fW&VBç&V6V—Bæ&–æF–æræ&6U÷6†Ç6†‚vBr’“°¦76W'BæWVÂ‡7FÆU&V6÷fW&VBç&V6V—Bæ&–æF–æræ7W'&VçEöÖ–å÷6†Ç6†‚vr’“°¦76W'BæWVÂ‡7FÆT&–æF–ærç7FFRÂu5DÄUõ$T4õdU$$ÄRr“°¦76W'BæWVÂ‡7FÆT&–æF–æræöÆEö&6U÷6†Ç6†‚vBr’“°¦76W'BæWVÂ‡7FÆT&–æF–æræ7W'&VçEöÖ–å÷6†Ç6†‚vr’“°¦76W'BæWVÂ‡7FÆT&–æF–æræW‡V7FVEö†VE÷6†Ç6†‚v"r’“°¦76W'BçF‡&÷w2‚‚“Óæ6Æ76–g•7FÆT&6T6æF–FFR‡·#§²ââç7FÆU"Æ†VC§²ââç7FÆU"æ†VBÇ&Wó§¶gVÆÅöæÖS¢vf÷&²÷&Wòw××ÒÆÖ–å6†§6†‚vr’Æf–ÆW3¥¶v÷fW&æVDf–ÆR‚w7&2öæ§2rÂvrÂv"rÂtÓ³r•ÒÇöÆ–7—Ò’ÂôD•5D4…õ$Uõ4•Dõ%•õ44õUô”ådÄ”Bò“°¦76W'BçF‡&÷w2‚‚“Óæ6Æ76–g•7FÆT&6T6æF–FFR‡·#§7FÆU"ÆÖ–å6†§6†‚vr’Æf–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ·W&Ö—76–öç3¢w&—FRÖÆÂrÆ&6Uö6öçFVçC¢væÖS¢…ÆârÆ†VEö6öçFVçC¢væÖS¢…ÆçW&Ö—76–öç3¢w&—FRÖÆÅÆâwÕÒÇöÆ–7—Ò’ÂôD•5D4…ôõtäU%õ$U4U%dTEô5D”ôâò“°¦76W'BæWVÂ†6Æ76–g”6æF–FFR‡²ââæ–çWBÇ#§²ââç"ÆG&gC§G'VW×Ò’æWF†÷&—¦F–öåövVæW&F–öâÆRæWF†÷&—¦F–öåövVæW&F–öâ“°¦FVç’‡¶Ö–å6†§6†‚vBr—ÒÂtD•5D4…ô$4Uõ5DÄRr“°¦FVç’‡¶vVæW&F–öå6VVC¢rwÒÂtD•5D4…ôtTäU$D”ôåõ4TTEô”ådÄ”Br“°¦6öç7B6fUv÷&¶fÆ÷uF6ƒÒtÓ³Ã"ÆâæÖS¢…Æâ¶6öæ7W'&Væ7“¢–çFW&æÂ×6fRs°¦76W'BæFVWWVÂ†6Æ76–g”6æF–FFR‡²ââæ–çWBÆf–ÆW3¥¶v÷fW&æVDf–ÆR‚ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÂvæÖS¢…ÆârÂvæÖS¢…Ææ6öæ7W'&Væ7“¢–çFW&æÂ×6fUÆârÇ6fUv÷&¶fÆ÷uF6‚•×Ò’æ6†ævVE÷F‡2Å²ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂuÒ“°¦FVç’‡¶f–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂwÕ×ÒÂtUDôäôÔõU5ôõtäU%õ$U4U%dTEô4Ä54”d”4D”ôåõTä´äõtâr“°¦FVç’‡¶f–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ·W&Ö—76–öç3¢w&—FRÖÆÂwÕ×ÒÂtD•5D4…ôõtäU%õ$U4U%dTEô5D”ôâr“°¦FVç’‡¶f–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ²–B×Fö¶Vã¢w&—FRwÕ×ÒÂtD•5D4…ôõtäU%õ$U4U%dTEô5D”ôâr“°¦76W'BæFVWWVÂ†76W'DWFöæöÖ÷W4f–ÆU66÷R‡·öÆ–7’Æf–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ²Vçf—&öæÖVçC¢´”ETÅE2ÔUDôäôÔõU2ÕE$4²wÕ×Ò’Å²ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂuÒ“°¦76W'BçF‡&÷w2‚‚“Óæ76W'DWFöæöÖ÷W4f–ÆU66÷R‡·öÆ–7’Æf–ÆW3¥·¶f–ÆVæÖS¢ræv—F‡V"÷v÷&¶fÆ÷w2÷‚ç–ÖÂrÇF6ƒ¢tÓ³Ã"ÆâæÖS¢…Æâ²Vçf—&öæÖVçC¢&öGV7F–öâwÕ×Ò’ÂôUDôäôÔõU5ôõtäU%õ$U4U%dTEô5D”ôâò“°¦6öç7B6æöæ–6Äf–ÆW3Õ°¢v÷fW&æVDf–ÆR‚ræv—F‡V"÷v÷&¶fÆ÷w2ö·ÖòÖ6æöæ–6ÂÖvVæW&F–öâ×c2ç–ÖÂrÂvæÖS¢6æöæ–6ÅÆârÂvæÖS¢6æöæ–6ÅÆârÂt³Æâ²2–Ö×WF&ÆRf—‡GW&Rr’À¢v÷fW&æVDf–ÆR‚ræv—F‡V"÷v÷&¶fÆ÷w2ö·ÖòÖ6æöæ–6ÂÖvVæW&F–öâ×c2ÖÇ’ç–ÖÂrÂvæÖS¢Ç•ÆârÂvæÖS¢Ç•ÆârÂt³Æâ²2–Ö×WF&ÆRf—‡GW&Rr’À¢v÷fW&æVDf–ÆR‚w67&—G2ö¶–GVÇG2ö·Öòö6æöæ–6ÂÖvVæW&F–öâ×c2æÖ§2rÂvW‡÷'B6öç7B7F&ÆS×G'VSµÆârÂvW‡÷'B6öç7B7F&ÆS×G'VSµÆârÂt³Æâ²òò–Ö×WF&ÆRf—‡GW&Rr’À¢v÷fW&æVDf–ÆR‚v6ö÷&F–æF–öâö¶–GVÇG2öv÷fW&ææ6Rö&÷fÂ×öÆ–7’Öf–ÆRÖÖæ–fW7B×cæ§6öârÂw·ÕÆârÂw·ÕÆârÂt³Æâ²2–Ö×WF&ÆRf—‡GW&Rr’À¢v÷fW&æVDf–ÆR‚v6ö÷&F–æF–öâö¶–GVÇG2öv÷fW&ææ6Rö&÷fÂ×öÆ–7’Ö–çfVçF÷'’×cæ§6öârÂw·ÕÆârÂw·ÕÆârÂt³Æâ²2–Ö×WF&ÆRf—‡GW&Rr’À¥Ó°¦76W'BæWVÂ†6Æ76–g”6æF–FFR‡²ââæ–çWBÆf–ÆW3¦6æöæ–6Äf–ÆW7Ò’æ6†ævVE÷F‡2æÆVæwF‚ÃR“°¦76W'BçF‡&÷w2‚‚“Óæ6Æ76–g”6æF–FFR‡²ââæ–çWBÆf–ÆW3¥·¶f–ÆVæÖS¢v6ö÷&F–æF–öâö¶–GVÇG2öv÷fW&ææ6RöFVÆVvFVBÖWFöæöÖ÷W2Ö–çFW&æÂÖWF†÷&—G’×öÆ–7’×cæ§6öârÇF6ƒ¢tÓ³wÕ×Ò’À¢W'&÷#ÓæW'&÷"æ6öFSÓÓÒtD•5D4…ôõtäU%õ$U4U%dTEô5D”ôâr“°¦FVç’‡¶6†V6·3¥·¶–C£ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢vf–ÇW&RwÕ×ÒÂtD•5D4…ô4„T4µ5ôäõEôu$TTâr“°¦6öç7BVç&VÆFVEVæF–æsÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÆ6†V6·3¥²ââæ–çWBæ6†V6·2Ç¶–C£"ÆæÖS¢t´”ETÅE2WFöæöÖ÷W2F—7F6†W"crÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v–å÷&öw&W72rÆ6öæ6ÇW6–öã¢rwÕ×Ò“°¦76W'BæWVÂ‡Vç&VÆFVEVæF–ærçFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç5³Òæ–BÃ“°¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢wVæ—BrÆ–çFVw&F–öåö–C£wÒÇ¶6öçFW‡C¢w6Æ÷r×&WV—&VBrÆ–çFVw&F–öåö–C£wÕ×ÒÂtD•5D4…õ$UT•$TEô4ôåDU…EôÔ•54”ärr“°¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢wVæ—BrÆ–çFVw&F–öåö–C£‡Õ×ÒÂtD•5D4…õ$UT•$TEô4ôåDU…EôÔ•54”ärr“°§°¢6öç7BVçfVÆ÷SÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÆ6†V6·3¥°¢¶–C£ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72wÒÀ¢¶–C£"ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72wÒÀ¢×Ò“°¢76W'BæWVÂ†VçfVÆ÷RçFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç5³Òæ–BÃ"“°§Ð¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢wVæ—BrÆ–çFVw&F–öåö–C£ÕÒÆ6†V6·3¥°¢¶–C£ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72wÒÀ¢¶–C£"ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£‡ÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72wÒÀ¥×ÒÂtD•5D4…õ$UT•$TEô4ôåDU…EôÔ$”uTõU2r“°¦FVç’‡¶6†V6·3¥°¢¶–C£ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72wÒÀ¢¶–C£"ÆæÖS¢wVæ—BrÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢vf–ÇW&RwÒÀ¥×ÒÂtD•5D4…ô4„T4µ5ôäõEôu$TTâr“°¦FVç’‡¶6†V6·3¥µÒÇ7FGW6W3¥µ×ÒÂtD•5D4…ôUd”DTä4UôÔ•54”ärr“°¦FVç’‡·#§²ââç"Æ†VC§²ââç"æ†VBÇ&Wó§¶gVÆÅöæÖS¢vf÷&²÷&Wòw×××ÒÂtD•5D4…õ$Uõ4•Dõ%•õ44õUô”ådÄ”Br“°¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢tµÔòÆ—fR6æöæ–6Â—77VRG'WF‚crÆ–çFVw&F–öåö–C£wÕÒÆ6†V6·3¥·¶–C£#ÆæÖS¢tµÔòÆ—fR6æöæ–6Â—77VRG'WF‚crÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72rÆ÷WGWC§·7VÖÖ'“¢t”ÕÄTÔTåDTEôäõEõdU$”d”TBw×Õ×ÒÂtD•5D4…ô4äôä”4Åõ4TÔåD”5õ5DDUôäõEõdU$”d”TBr“°¦6öç7B6æöæ–6ÅfW&–f–VCÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÇ&WV—&VD6†V6·3¥·¶6öçFW‡C¢tµÔòÆ—fR6æöæ–6Â—77VRG'WF‚crÆ–çFVw&F–öåö–C£wÕÒÆ6†V6·3¥·¶–C£#"ÆæÖS¢tµÔòÆ—fR6æöæ–6Â—77VRG'WF‚crÆ†VE÷6†§6†‚v"r’Æ§¶–C£wÒÇ7FGW3¢v6ö×ÆWFVBrÆ6öæ6ÇW6–öã¢w7V66W72rÆ÷WGWC§·7VÖÖ'“¢udU$”d”TEõ52w×Õ×Ò“°¦76W'BæWVÂ†6æöæ–6ÅfW&–f–VBçFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç5³Òæ–BÃ#"“°¦6öç7Bv—F‡V$7F–öç4fF#Òv‡GG3¢òöfF'2æv—F‡V'W6W&6öçFVçBæ6öÒö–âós÷cÓBs°¦6öç7B7FGW4&÷VæCÖ6Æ76–g”6æF–FFR‡²ââæ–çWBÇ&WV—&VD6†V6·3¥°¢¶6öçFW‡C¢wVæ—BrÆ–çFVw&F–öåö–C£wÒÀ¢¶6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÆ–çFVw&F–öåö–C£wÒÀ¢¶6öçFW‡C¢t´”ETÅE2v÷fW&æVBÆæF–ærWF†÷&—¦F–öâcrÆ–çFVw&F–öåö–C£wÕÒÀ¢7FGW6W3¥·¶–C£3Æ6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÇ7FFS¢w7V66W72rÇ6†§6†‚v"r’ÆfF%÷W&Ã¦v—F‡V$7F–öç4fF'ÒÀ¢¶–C£3"Æ6öçFW‡C¢t´”ETÅE2v÷fW&æVBÆæF–ærWF†÷&—¦F–öâcrÇ7FFS¢wVæF–ærrÇ6†§6†‚v"r’ÆfF%÷W&Ã¦v—F‡V$7F–öç4fF'Õ×Ò“°¦76W'BæFVWWVÂ‡7FGW4&÷VæBçFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç2æÖ‡ƒÓç‚æ¶–æB’Å²w7FGW2rÂv6†V6²uÒ“°¦76W'BæFVWWVÂ‡7FGW4&÷VæBçFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç2æÖ‡ƒÓç‚æ–B’Å³3ÃÒ“°¦76W'BæWVÂ†6Æ76–g”6æF–FFR‡²ââæ–çWBÇ&WV—&VD6†V6·3¥·¶6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÆ–çFVw&F–öåö–C£wÕÒÀ¢7FGW6W3¥·¶–C£3Æ6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÇ7FFS¢w7V66W72rÆfF%÷W&Ã¦v—F‡V$7F–öç4fF'Õ×Ò’çFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç5³Òæ–BÃ3“°¦76W'BæFVWWVÂ‡7FGW4&÷VæBçFW7EöWf–FVæ6Rç&WV—&VEö6öçFW‡G2æÖ‡ƒÓç‚æ6öçFW‡B’Å°¢t´”ETÅE2v÷fW&æVBÆæF–ærWF†÷&—¦F–öâcrÂt´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÂwVæ—BuÒ“°¦6öç7B&WV—&VE6WE6÷W&6SÖg2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×cæÖ§2rÂwWFc‚r“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂö6öç7B&–æF–æu&WV—&VC×&WV—&TVçfVÆ÷T&–æF–æuÃöVçfVÆ÷U&WV—&VC§&WV—&VD6†V6·2ò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂöÆ—fT'”6öçFW‡EÂç6—¦RÓ×&WV—&VD6†V6·5ÂæÆVæwF‚ò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂöÆ—fUÂæ–çFVw&F–öåö–CãbbÆ—fUÂæ–çFVw&F–öåö–BÓÖF—7F6†VEÂæ–çFVw&F–öåö–Bò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂö&–æE&WV—&VDvFTWf–FVæ6UÂ…Ç·&WV—&VC¦&–æF–æu&WV—&VBò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂ÷&WV—&VEö6öçFW‡G5ÅÇÅÅÇÆVçfVÆ÷UÅÂçFW7EöWf–FVæ6UÅÃõÅÂç&WV—&VEöWf–FVæ6Rò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂ÷fÇVUÅÂæ–çFVw&F–öåö–EÅÇÅÅÇÇfÇVUÅÂæö–EÅÇÅÅÇÃò“°¦76W'BæÖF6‚†g2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×cæÖ§2rÂwWFc‚r’ÂöG&gDFWfVÆ÷ÖVçC§&WV—&TVçfVÆ÷T&–æF–æuÃöVçfVÆ÷U&WV—&W4G&gDFWfVÆ÷ÖVçC§%ÂæG&gCÓÓ×G'VRò“°¦76W'BæFöW4æ÷DÖF6‚‡&WV—&VE6WE6÷W&6RÂöÆÆ÷uöG&gE÷&V6÷fW'“¤&ööÆVåÅÂ†VçfVÆ÷UÅÂç&V6÷fW'•ÅÂ’ò“°¦76W'BæÖF6‚‡&WV—&VE6WE6÷W&6RÂ÷&WV—&VEö6†V6µ÷'Vç5ÅÇÅÅÇÆVçfVÆ÷UÅÂçFW7EöWf–FVæ6UÅÃõÅÂç&WV—&VEöWf–FVæ6Rò“°¦76W'BæWVÂ†6Æ76–g”6æF–FFR‡²ââæ–çWBÇ&WV—&VD6†V6·3¥·¶6öçFW‡C¢t´”ETÅE2v÷fW&æVBÆæF–ærWF†÷&—¦F–öâcrÆ–çFVw&F–öåö–C£wÕÒÇ7FGW6W3¥µ×Ò’çFW7EöWf–FVæ6Rç&WV—&VEö6†V6µ÷'Vç2æÆVæwF‚Ã“°¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÆ–çFVw&F–öåö–C£wÕÒÀ¢7FGW6W3¥·¶–C£3Æ6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÇ7FFS¢w7V66W72rÇ6†§6†‚v2r’ÆfF%÷W&Ã¦v—F‡V$7F–öç4fF'Õ×ÒÂtD•5D4…õ$UT•$TEô4ôåDU…EôÔ•54”ärr“°¦FVç’‡·&WV—&VD6†V6·3¥·¶6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÆ–çFVw&F–öåö–C£wÕÒÀ¢7FGW6W3¥·¶–C£3Æ6öçFW‡C¢t´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crÇ7FFS¢w7V66W72rÇ6†§6†‚v"r’ÆfF%÷W&Ã¢v‡GG3¢òöfF'2æv—F‡V'W6W&6öçFVçBæ6öÒö–âóƒ÷cÓBwÕ×ÒÂtD•5D4…õ$UT•$TEô4ôåDU…EôÔ•54”ärr“°¦6öç6öÆRæÆör„¥4ôâç7G&–æv–g’‡·7FFS¢udU$”d”TEõ52rÇ÷6—F—fS£BÆæVvF—fS£7Ò’“° ¦6öç7BF—7F6†W%v÷&¶fÆ÷sÖg2ç&VDf–ÆU7–æ2‚ræv—F‡V"÷v÷&¶fÆ÷w2ö¶–GVÇG2ÖWFöæöÖ÷W2ÖF—7F6†W"×cç–ÖÂrÂwWFc‚r“°¦6öç7Bv÷fW&æVEv÷&¶fÆ÷sÖg2ç&VDf–ÆU7–æ2‚ræv—F‡V"÷v÷&¶fÆ÷w2ö¶–GVÇG2Öv÷fW&æVBÖÆæF–ærÖWF†÷&—¦F–öâ×cç–ÖÂrÂwWFc‚r“°¦6öç7BFWÆ÷•v÷&¶fÆ÷sÖg2ç&VDf–ÆU7–æ2‚ræv—F‡V"÷v÷&¶fÆ÷w2ö¶–GVÇG2ÖWFöæöÖ÷W2ÖWfVçBÖ'&ö¶W"ÖFWÆ÷’×cç–ÖÂrÂwWFc‚r“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂõÂ÷F×Âö'&ö¶W"×&W7öç6UÂæ§6öâò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂöÖ–çEöÆ–fV7–6ÆU÷Fö¶VçÆ7W&ÅµåÆåÒ¢Õ‚…D4‡ÅUB’ò“°¦76W'BæÖF6‚†FWÆ÷•v÷&¶fÆ÷rÂõÆâW6ƒ¢ò“°¦76W'BæÖF6‚†FWÆ÷•v÷&¶fÆ÷rÂ÷fÆ–FFR×7Fv–ærÖæòÖWF†÷&—G’ÖW‡ç6–öâ×cÂæÖ§2ò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂõâVÆÅ÷&WVW7E÷F&vWC¢öÒ“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂö7&öã¢srÂ¢Â¢Â¢Â¢rò“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷v÷&¶fÆ÷u÷'Vã¥µÇ5Å5Ò§v÷&¶fÆ÷w3¢Å´´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2cÅÕµÇ5Å5Ò§G—W3¢Å¶6ö×ÆWFVEÅÒò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷fÆ–FFRÖv÷fW&æVB×&VF–æW72Ö6öç7V×F–öâ×cÂæÖ§2ò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂõ$TD”äU55ô$4Uõ4„ò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂôE$eEõ$TE•õE$å4•D”ôâò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷v—Df÷$G&gDFWfVÆ÷ÖVçDWF†÷&—G’ò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂôG&gBæöâ×&öÖ÷F&ÆRò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂôE$eEôDUdTÄõÔTåEôUD„õ$•E•ôd”ÄTBò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂôE$eEôDUdTÄõÔTåEôUD„õ$•E•õD”ÔTõUBò“°¦76W'BæFöW4æ÷DÖF6‚†v÷fW&æVEv÷&¶fÆ÷rÂöv—B7FGW5Â‚w7V66W72rÂtG&gBFWfVÆ÷ÖVçB6öçG&öÇ2fW&–f–VC²ÆæF–ær&VÖ–ç2&Æö6¶VBrÇ66÷UöÆ–7•ÂæG&gEöFWfVÆ÷ÖVçE÷7FGW5ö6öçFW‡EÂ’ò“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂöVçf—&öæÖVçC¢´”ETÅE2ÔUDôäôÔõU2ÔD•5D4„U"ò“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂô´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2cò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂõåÇ2¶6öçFVçG3¥Ç2§w&—FUÇ2¢BöÒ“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷'Vâ×&÷FV7FVBÖÆ–fV7–6ÆRÖ÷W&F–öâ×cÂç6‚â¥5DÄUô$4Uô4ôådU$tTä4Rò“°¦76W'BæÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷'Vâ×&÷FV7FVBÖÆ–fV7–6ÆRÖ÷W&F–öâ×cÂç6‚â¥$TETäDåEõ%ô…”t”TäRò“°¦6öç7BÆ–fV7–6ÆU6÷W&6SÖg2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2÷7Fv–ærÖ÷W&F–öç2öÆ–"ö'&ö¶W"×&W7VÖRÖÆ–fV7–6ÆR×cæÖ§2rÂwWFc‚r“°¦76W'BæÖF6‚†Æ–fV7–6ÆU6÷W&6RÂ÷&W7VÖT÷W&F–öâò“°¦76W'BæÖF6‚†Æ–fV7–6ÆU6÷W&6RÂöW‡V7FVEö†VE÷6†¦"æW‡V7FVEö†VE÷6†ò“°¦76W'BæÖF6‚†Æ–fV7–6ÆU6÷W&6RÂög&W6…ö6•÷&WV—&VC§G'VRÆg&W6…öWF†÷&—¦F–öåövVæW&F–öå÷&WV—&VC§G'VRò“°¦76W'BæFöW4æ÷DÖF6‚†Æ–fV7–6ÆU6÷W&6RÂöf÷&6S§G'VWÆf÷&6R×v—F‚ÖÆV6Rò“°¦76W'BæWVÂ‡öÆ–7’æÖW&vRæÖçVÅ÷WFFUö'&æ6…öf÷&&–FFVâÇG'VR“°¦76W'BæWVÂ‡öÆ–7’æÖW&vRæWFöæöÖ÷W5÷7FÆUö&6Uö6öçfW&vVæ6RæW†V7WF÷"ÂtD•5D4„U%ô%$ô´U$TEôt•D…T%ôôôäÅ’r“°¦76W'BæWVÂ‡öÆ–7’æÖW&vRæWFöæöÖ÷W5÷7FÆUö&6Uö6öçfW&vVæ6Rç÷7E÷WFFUögVÆÅö6•öæEög&W6…öWF†÷&—¦F–öåövVæW&F–öå÷&WV—&VBÇG'VR“°¦76W'BæÖF6‚†g2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2ÖF—7F6†W"×cæÖ§2rÂwWFc‚r’Âöf–ÇFW%Â‡ƒÓç…Âæ6öçFW‡BÓÒt´”ETÅE2v÷fW&æVBÆæF–ærWF†÷&—¦F–öâcuÂ’ò“°¦76W'BæÖF6‚†g2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2ÖF—7F6†W"×cæÖ§2rÂwWFc‚r’Â÷&WV—&VD6†V6·3×%ÂæG&gCÓÓ×G'VUµÇ5Å5Ò¦&6U&WV—&VD6†V6·5ÂæÖÂ‡ƒÓç…Âæ6öçFW‡CÓÓÒt´”ETÅE266÷RÔv&RWF†÷&—FF—fR7FGW2crò“°¦76W'BæÖF6‚†g2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×cæÖ§2rÂwWFc‚r’ÂöG&gDFWfVÆ÷ÖVçC§&WV—&TVçfVÆ÷T&–æF–æuÃöVçfVÆ÷U&WV—&W4G&gDFWfVÆ÷ÖVçC§%ÂæG&gCÓÓ×G'VRò“°¦76W'BæÖF6‚†g2ç&VDf–ÆU7–æ2‚w67&—G2ö¶–GVÇG2ö·Öò÷'VâÖWFöæöÖ÷W2Ö–çFW&æÂÖÆæF–ær×cæÖ§2rÂwWFc‚r’Â÷&WV—&TVçfVÆ÷T&–æF–æs¦fÇ6Rò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂ÷G&ç6—F–öåöG&gBò“°¦76W'BæFöW4æ÷DÖF6‚†F—7F6†W%v÷&¶fÆ÷rÂö76W'DG&gE&VG•G&ç6—F–öä6æF–FFWÆ76W'DG&gE&VG•÷7D×WFF–öâò“°¦76W'BæFöW4æ÷DÖF6‚†v÷fW&æVEv÷&¶fÆ÷rÂö–B×Fö¶Vã¢w&—FWÄÖ–çBW†7BG&gB×&VG’v—D‡V"Fö¶VçÄE$eEõ$TE•õDô´Tåõ5DUôõUD4ôÔRò“°¦76W'BæÖF6‚†v÷fW&æVEv÷&¶fÆ÷rÂ÷7FFS¢tE$eEôN÷÷kh‘éì¶»§q«^u¹ÍÐ¡…¹‘½™˜õÉ•ÍÕ±ÑÍlÁtì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹ÍÑ…Ñ”°=]9I}IY%]}IEU%Iœ¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹É•…Í½¸°%MAQ!}=]9I}IMIY}Q%=8œ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹‰¥¹‘¥¹œ¹¡•…‘}Í¡„±…¹‘¥‘…Ñ”¹¡•…¹Í¡„¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹‰¥¹‘¥¹œ¹¡•…‘}ÑÉ••}Í¡„±Í¡„ Œœ¤¤ì(€…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡¡…¹‘½™˜¹‰¥¹‘¥¹œ¹¡…¹•‘}Á…Ñ¡Ì±lœ¹¥Ñ¡Õˆ½Ý½É­™±½ÝÌ½­¥‘Õ±ÑÌµ…ÕÑ½¹½µ½ÕÌµÑÉ…¬µ…ÕÑ¡½É¥é…Ñ¥½¸µØÄ¹åµ°t¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹‰¥¹‘¥¹œ¹Í½Á•}‘¥•ÍÐ°Í¡„ÈÔØèœ­ÉåÁÑ¼¹É•…Ñ•!…Í  Í¡„ÈÔØœ¤¹ÕÁ‘…Ñ”¡¡…¹‘½™˜¹‰¥¹‘¥¹œ¹¡…¹•‘}Á…Ñ¡Ì¹©½¥¸ q¸œ¤¤¹‘¥•ÍÐ ¡•àœ¤¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹±…ÍÍ¥™¥…Ñ¥½¹}™…¥±ÕÉ”¹ÍÑ…”°=]9I}IMIY}M=A}Qœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹…ÕÑ½¹½µ½ÕÍ}•±¥¥‰±”±™…±Í”¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹±…¹‘¥¹}…ÕÑ¡½É¥é…Ñ¥½¹}É•…Ñ•±™…±Í”¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡¡…¹‘½™˜¹µ•É•}…ÕÑ¡½É¥é•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…±±Ì°Ü¤ì)ô¤ì)Ñ•ÍÐ ¹…ÑÕÉ…°Í¡•‘Õ±•‘¥Í½Ù•Éä¡•­ÌÑ¡”=Ý¹•È‘•¥Í¥½¸±•‘•È™½ÈÁÉ½Ñ•Ñ•µÍ½Á”…¹‘¥‘…Ñ•Ìœ±…Íå¹Œ ¤ôùì(€½¹ÍÐ…¹‘¥‘…Ñ”õì¸¸¹ÁÈ±¹Õµ‰•ÈèÈØää±‰…Í”éì¸¸¹ÁÈ¹‰…Í”±É•Á¼éì¸¸¹ÁÈ¹‰…Í”¹É•Á¼±½Ý¹•Èéí±½¥¸è©½¡¹­¥´äÔÈÐµ½±±…ˆœ±¥èÈäÜÄØÄÜÈÁõõõôì(€±•Ð½Ý¹•É½µµ•¹ÑI•…õ™…±Í”ì(€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€½¹ÍÐÀõ¹•ÜUI0¡ÕÉ°¤¹Á…Ñ¡¹…µ”ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±m…¹‘¥‘…Ñ•t¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”èœ¹¥Ñ¡Õˆ½Ý½É­™±½ÝÌ½­¥‘Õ±ÑÌµ…ÕÑ½¹½µ½ÕÌµÑÉ…¬µ…ÕÑ¡½É¥é…Ñ¥½¸µØÄ¹åµ°œ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Ä°Èq¸¹…µ”èáq¸¬€¥µÑ½­•¸èÝÉ¥Ñ”õt¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½¥ÍÍÕ•Ì¼ÈØää½½µµ•¹ÑÌœ¤¥í½Ý¹•É½µµ•¹ÑI•…õÑÉÕ”íÉ•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mt¤íô(€€€¥˜¡À¹¥¹±Õ‘•Ì œ½¥Ð½½µµ¥ÑÌ¼œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€Ñ¡É½Ü¹•ÜÉÉ½È¡Õ¹•áÁ•Ñ•Í¡•‘Õ±•=Ý¹•È±½½­ÕÀè€‘íÁõ€¤ì(€õô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡½Ý¹•É½µµ•¹ÑI•…±ÑÉÕ”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °Ä¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÍlÁt¹ÍÑ…Ñ”°=]9I}IY%]}IEU%Iœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÍlÁt¹‰¥¹‘¥¹œ¹ÁÕ±±}É•ÅÕ•ÍÐ°ÈØää¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÍlÁt¹‰¥¹‘¥¹œ¹¡•…‘}ÑÉ••}Í¡„±Í¡„ Œœ¤¤ì)ô¤ì)Ñ•ÍÐ µ…¹äÍÑ…±”É•Í•ÉÙ•…¹‘¥‘…Ñ•Ì…É”‘•¹¥•‰•™½É”•áÁ•¹Í¥Ù”¥µµÕÑ…‰±”É•…‘Ìœ±…Íå¹Œ ¤ôùì(€±•Ð…±±ÌôÀ±‰±½‰I•…‘ÌôÀì(€½¹ÍÐ…¹‘¥‘…Ñ•ÌõÉÉ…ä¹™É½´¡í±•¹Ñ èÈÁô°¡|±¤¤ôø¡ì¸¸¹ÁÈ±¹Õµ‰•ÈèÄÀÀ­¤±‰…Í”éì¸¸¹ÁÈ¹‰…Í”±Í¡„éÍ¡„ œ¥õô¤¤ì(€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±µ…áI•ÅÕ•ÍÑÌèØÐ°(€€€™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€€€…±±Ì¬¬í½¹ÍÐÀõ¹•ÜUI0¡ÕÉ°¤¹Á…Ñ¡¹…µ”ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±…¹‘¥‘…Ñ•Ì¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”èÍ•É•ÑÌ½ÁÉ¥Ù…Ñ”¹©Í½¸œ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äq¸µ½±‘q¸­¹•Üõt¤ì(€€€€€¥˜¡À¹¥¹±Õ‘•Ì œ½¥Ð½½µµ¥ÑÌ¼œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€€€¥˜¡À¹¥¹±Õ‘•Ì œ½½¹Ñ•¹ÑÌ¼œ¤¥‰±½‰I•…‘Ì¬¬ì(€€€€€Ñ¡É½Ü¹•ÜÉÉ½È Õ¹•áÁ•Ñ•¥µµÕÑ…‰±”É•…œ¤ì(€€€õô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °ÈÀ¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡‰±½‰I•…‘Ì°À¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡…±±Ì°ÐÐ¤ì(€…ÍÍ•ÉÐ¹½¬¡É•ÍÕ±ÑÌ¹•Ù•Éä¡ÈôùÈ¹ÍÑ…Ñ”ôôô=]9I}IY%]}IEU%Iœ˜™È¹É•…Í½¸ôôô%MAQ!}=]9I}IMIY}Q%=8œ(€€€€˜™È¹‰¥¹‘¥¹œ¹¡•…‘}Í¡„ôôõÍ¡„ ˆœ¤˜™È¹‰¥¹‘¥¹œ¹¡•…‘}ÑÉ••}Í¡„ôôõÍ¡„ Œœ¤(€€€€˜™È¹…ÕÑ½¹½µ½ÕÍ}•±¥¥‰±”ôôõ™…±Í”˜™È¹µ•É•}…ÕÑ¡½É¥é•ôôõ™…±Í”¤¤ì)ô¤ì)Ñ•ÍÐ …¸•á…ÐÑ…É•Ñ•½Ý¹•ÈµÉ•Í•ÉÙ•AHÁÉ½‘Õ•Ì„‰½Õ¹=Ý¹•ÈµÉ•Ù¥•ÜÉ•½É½¹±äœ±…Íå¹Œ ¤ôùì(€±•Ð…±±ÌôÀì(€½¹ÍÐÉ•Í•ÉÙ•‘AÈõì¸¸¹ÁÈ±¹Õµ‰•ÈèÈØÜÁôì(€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±ÁÉ9Õµ‰•ÈèÈØÜÀ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±µ…áI•ÅÕ•ÍÑÌèÄØ°(€€€™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€€€…±±Ì¬¬í½¹ÍÐÀõ¹•ÜUI0¡ÕÉ°¤¹Á…Ñ¡¹…µ”ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ì¼ÈØÜÀœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±É•Í•ÉÙ•‘AÈ¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”èÍ•É•ÑÌ½ÁÉ¥Ù…Ñ”¹©Í½¸œ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äq¸µ½±‘q¸­¹•Üõt¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½¥ÍÍÕ•Ì¼ÈØÜÀ½½µµ•¹ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mt¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ ¡€½¥Ð½½µµ¥ÑÌ¼‘íÉ•Í•ÉÙ•‘AÈ¹¡•…¹Í¡…õ€¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÍ¡„éÉ•Í•ÉÙ•‘AÈ¹¡•…¹Í¡„±ÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€€€Ñ¡É½Ü¹•ÜÉÉ½È ½Ý¹•ÈµÉ•Í•ÉÙ•Ñ…É•Ñ•É•Ù¥•ÜµÕÍÐ¹½ÐÉ•…¡•­Ì°½¹Ñ•¹ÑÌ°½ÈÕ¹É•±…Ñ•…¹‘¥‘…Ñ•Ìœ¤ì(€€€õô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…±±Ì°Ü¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °Ä¤ì(€½¹ÍÐÉ•Ù¥•ÜõÉ•ÍÕ±ÑÍlÁtì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹ÍÑ…Ñ”°=]9I}IY%]}IEU%Iœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹É•…Í½¸°%MAQ!}=]9I}IMIY}Q%=8œ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹‰¥¹‘¥¹œ¹ÁÕ±±}É•ÅÕ•ÍÐ°ÈØÜÀ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹‰¥¹‘¥¹œ¹¡•…‘}Í¡„±É•Í•ÉÙ•‘AÈ¹¡•…¹Í¡„¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹‰¥¹‘¥¹œ¹¡•…‘}ÑÉ••}Í¡„±Í¡„ Œœ¤¤ì(€…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡É•Ù¥•Ü¹‰¥¹‘¥¹œ¹¡…¹•‘}Á…Ñ¡Ì±lÍ•É•ÑÌ½ÁÉ¥Ù…Ñ”¹©Í½¸t¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹…ÕÑ½¹½µ½ÕÍ}•±¥¥‰±”±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹±…¹‘¥¹}…ÕÑ¡½É¥é…Ñ¥½¹}É•…Ñ•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹µ•É•}…ÕÑ¡½É¥é•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹±…ÍÍ¥™¥…Ñ¥½¹}™…¥±ÕÉ”¹ÍÑ…”°=]9I}IMIY}M=A}Qœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•Ù¥•Ü¹±…ÍÍ¥™¥…Ñ¥½¹}™…¥±ÕÉ”¹…ÕÑ¡½É¥Ñå}É•…Ñ•±™…±Í”¤ì)ô¤ì)Ñ•ÍÐ …¸•á…ÐÑ…É•Ñ•±½Í•½Èµ•É•½Ý¹•ÈµÉ•Í•ÉÙ•AH…¹¹½Ð•µ¥Ð„¡…¹‘½™˜œ±…Íå¹Œ ¤ôùì(€™½È€¡½¹ÍÐÑ•Éµ¥¹…±AÈ½˜mì¸¸¹ÁÈ±¹Õµ‰•ÈèÈØÜÀ±ÍÑ…Ñ”è±½Í•ô±ì¸¸¹ÁÈ±¹Õµ‰•ÈèÈØÜÀ±µ•É•éÑÉÕ•õt¤ì(€€€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±ÁÉ9Õµ‰•ÈèÈØÜÀ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±µ…áI•ÅÕ•ÍÑÌèÄØ°(€€€€€™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€€€€€½¹ÍÐÀõ¹•ÜUI0¡ÕÉ°¤¹Á…Ñ¡¹…µ”ì(€€€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ì¼ÈØÜÀœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±Ñ•Éµ¥¹…±AÈ¤ì(€€€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”èÍ•É•ÑÌ½ÁÉ¥Ù…Ñ”¹©Í½¸œ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äqq¸µ½±‘qq¸­¹•Üõt¤ì(€€€€€€€Ñ¡É½Ü¹•ÜÉÉ½È Ñ•Éµ¥¹…°AHµÕÍÐ¹½ÐÁÉ½‘Õ”…¸=Ý¹•È¡…¹‘½™˜œ¤ì(€€€€€õô¤ì(€€€…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡É•ÍÕ±ÑÌ±míÍÑ…Ñ”èM-%AAœ±ÁÕ±±}É•ÅÕ•ÍÐèÈØÜÀ±É•…Í½¸è%MAQ!}AI}9=Q}=A8õt¤ì(€ô)ô¤ì)Ñ•ÍÐ ÕÉÉ•¹ÐÉ•Í•ÉÙ•‰…­±½œÍÑ…åÌ‰½Õ¹‘•Ý¥Ñ¡½ÕÐÉ•…‘¥¹œ½µµ¥ÐÍÑ…ÑÕÌ½È¡•­Ìœ±…Íå¹Œ ¤ôùì(€±•Ð…±±ÌôÀì(€½¹ÍÐ…¹‘¥‘…Ñ•ÌõÉÉ…ä¹™É½´¡í±•¹Ñ èÄÀÑô°¡|±¤¤ôø¡ì¸¸¹ÁÈ±¹Õµ‰•ÈèÈÀÀ­¥ô¤¤ì(€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±µ…áI•ÅÕ•ÍÑÌèÄÀÈÐ°(€€€™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€€€…±±Ì¬¬í½¹ÍÐÔõ¹•ÜUI0¡ÕÉ°¤±ÀõÔ¹Á…Ñ¡¹…µ”ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±…¹‘¥‘…Ñ•Ì¹Í±¥” ¡9Õµ‰•È¡Ô¹Í•…É¡A…É…µÌ¹•Ð Á…”œ¥ñðÄ¤´Ä¤¨ÄÀÀ±9Õµ‰•È¡Ô¹Í•…É¡A…É…µÌ¹•Ð Á…”œ¥ñðÄ¤¨ÄÀÀ¤¤ì(€€€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”èÍ•É•ÑÌ½ÁÉ¥Ù…Ñ”¹©Í½¸œ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äq¸µ½±‘q¸­¹•Üõt¤ì(€€€€€¥˜ ½p½¥ÍÍÕ•Íp½q­p½½µµ•¹ÑÌ¼¹Ñ•ÍÐ¡À¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mt¤ì(€€€€€¥˜¡À¹¥¹±Õ‘•Ì œ½¥Ð½½µµ¥ÑÌ¼œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€€€Ñ¡É½Ü¹•ÜÉÉ½È É•Í•ÉÙ•…¹‘¥‘…Ñ”µÕÍÐ¹½ÐÉ•…½µµ¥ÐÍÑ…ÑÕÌ¡•­Ì½È½¹Ñ•¹ÑÌœ¤ì(€€€õô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °ÄÀÐ¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡…±±Ì°ÌÄÜ¤ì(€…ÍÍ•ÉÐ¹½¬¡É•ÍÕ±ÑÌ¹•Ù•Éä¡ÈôùÈ¹ÍÑ…Ñ”ôôô=]9I}IY%]}IEU%Iœ˜™È¹É•…Í½¸ôôô%MAQ!}=]9I}IMIY}Q%=8œ(€€€€˜™È¹‰¥¹‘¥¹œ¹¡•…‘}Í¡„ôôõÍ¡„ ˆœ¤˜™È¹‰¥¹‘¥¹œ¹¡•…‘}ÑÉ••}Í¡„ôôõÍ¡„ Œœ¤(€€€€˜™È¹…ÕÑ½¹½µ½ÕÍ}•±¥¥‰±”ôôõ™…±Í”˜™È¹µ•É•}…ÕÑ¡½É¥é•ôôõ™…±Í”¤¤ì)ô¤ì)Ñ•ÍÐ ±½‰…°É•…™…¥±ÕÉ”…¹¹½Ð‰”ÍÝ…±±½Ý•‰äÕ¹•ÉÑ…¥¹ÑäÉ•±…ÍÍ¥™¥…Ñ¥½¸œ±…Íå¹Œ ¤ôùì(€½¹ÍÐ…ÁÁÉ½Ù…±A½±¥äõ)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ ½½É‘¥¹…Ñ¥½¸½­¥‘Õ±ÑÌ½½Ù•É¹…¹”½…ÕÑ½¹½µ½ÕÌµ…ÁÁÉ½Ù…°µÁ½±¥äµ•¹Ù•±½Á”µØÄ¹©Í½¸œ¤¤ì(€±•ÐÉ•…‘ÌôÀì(€…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•±…ÍÍ¥™åU¹­¹½Ý¹…¹‘¥‘…Ñ”¡í½¹Ñ•áÐéì¸¸¹¥¹ÁÕÐ±±…ÍÍ¥™¥…Ñ¥½¹5½‘”èUII9Q}	Mô°(€€€•ÉÉ½Èé¹•Ü¥ÍÁ…Ñ¡•ÉÉÉ½È A	%1%Qe}M=UI}5%MM%9œ¤±…ÁÁÉ½Ù…±A½±¥ä°(€€€É•…‘…¹‘¥‘…Ñ”é…Íå¹Œ ¤ôùíÉ•…‘Ì¬¬íÑ¡É½Ü¹•Ü¥ÍÁ…Ñ¡•ÉÉÉ½È %MAQ!}IQ}1%5%Qœ¤íõô¤°(€€€•ÉÉ½Èôù•ÉÉ½È¹½‘”ôôô%MAQ!}IQ}1%5%Qœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•…‘Ì°Ä¤ì)ô¤ì(()Ñ•ÍÐ Õ¹Ù•É¥™¥•Í½ÕÉ”…‘…ÁÑ•È¥ÌÉ•©•Ñ•‰•™½É”…¹ä•áÑ•É¹…°É•…‘Ìœ±…Íå¹Œ ¤ôùì(€±•ÐÉ•…‘ÌôÀí…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±Í½ÕÉ•I•…‘•Èéí½µµ¥Ðé…Íå¹Œ ¤ôø¡íô¥ô±™•Ñ¡%µÁ°é…Íå¹Œ ¤ôùíÉ•…‘Ì¬¬íÑ¡É½ÜÉÉ½È µÕÍÐ¹½ÐÉ•…œ¤íõô¤°½M=UI}	Q!}II}U9YI%%¼¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É•…‘Ì°À¤ì)ô¤ì(()™½È¡½¹ÍÐ½‘”½˜lM=UI}	Q!}M=UI}9=Q}I%MQIœ°M=UI}	Q!}=	)Q}5%MM%9œ°M=UI}	Q!}M1}=	)Q}5%MM%9t¥Ñ•ÍÐ¡Õ¹•ÉÑ…¥¹ÑäÉ•±…ÍÍ¥™¥…Ñ¥½¸ÁÉ½Á……Ñ•Ì±½‰…°€‘í½‘•ôÝ¥Ñ¡½ÕÐÉ•ÑÉä½ÈÁ…ÉÑ¥…°É•ÍÕ±ÑÍ€±…Íå¹Œ ¤ôùì(€½¹ÍÐ‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µÉ•±…ÍÍ¥™¥…Ñ¥½¸´œ¤¤í±•ÐÉ•…‘ÌôÀí½¹ÍÐ™…¥±ÕÉ”õ=‰©•Ð¹…ÍÍ¥¸¡¹•ÜÉÉ½È¡½‘”¤±í½‘”±±½‰…°éÑÉÕ•ô¤ì(€ÑÉäì(€€€™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤°mì‰ÍÑ…Ñ”ˆè‰1%%	1‰õtœ¤ì(€€€…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸è ¤ôùÉ•±…ÍÍ¥™åU¹­¹½Ý¹…¹‘¥‘…Ñ”¡í½¹Ñ•áÐé¥¹ÁÕÐ±•ÉÉ½ÈéÕ¹­¹½Ý¸±…ÁÁÉ½Ù…±A½±¥ä±É•…‘…¹‘¥‘…Ñ”é…Íå¹Œ ¤ôùíÉ•…‘Ì¬¬íÑ¡É½Ü™…¥±ÕÉ”íõô¥ô¤±•ÉÉ½Èôù•ÉÉ½Èôôõ™…¥±ÕÉ”¤ì(€€€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•…‘Ì°Ä¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤ì(€€€…ÍÍ•ÉÐ¹•ÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°™…¥±ÕÉ”¹©Í½¸œ¤¤¤¹™…¹½ÕÑ}…ÕÑ¡½É¥é•±™…±Í”¤ì(€õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì(()¥µÁ½ÉÐíÁ…­¥áÑÕÉ”±Á…­¥áÑÕÉ•¹ÑÉåô™É½´€œ¸½‰½Õ¹‘•µ¥ÐµÁ…¬µ‘•½‘•ÈµØÄ¹Ñ•ÍÐ¹µ©Ìœì)¥µÁ½ÉÐí¥Ñ=‰©•Ñ%‘ô™É½´€œ¸¸¼¸¸¼¸¸½ÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½±¥ˆ½‰½Õ¹‘•µ¥ÐµÍ½ÕÉ”µÉ•…‘•ÈµØÄ¹µ©Ìœì)Ñ•ÍÐ ¥ÍÍÕ”µ½µµ•¹ÐÝ…­•ÕÀ‰¥¹‘Ì½¹”AH…¹É•©•ÑÌ½É‘¥¹…Éä¥ÍÍÕ”½µµ•¹ÑÌœ° ¤ôùì(€½¹ÍÐ•Ù•¹Ðõí¥ÍÍÕ”éí¹Õµ‰•ÈèÈÜÄÐ±ÁÕ±±}É•ÅÕ•ÍÐéíÕÉ°è¡ÑÑÁÌè¼½…Á¤¹¥Ñ¡Õˆ¹½´½É•Á½Ì½©½¡¹­¥´äÔÈÐµ½±±…ˆ½­…¥½Í}•¹Ñ•ÉÁÉ¥Í•}É•Á¼½ÁÕ±±Ì¼ÈÜÄÐõõôì(€½¹ÍÐÉ••¥ÁÐô¡Ù…±Õ”¤ôùÙ…±¥‘…Ñ•¥ÍÁ…Ñ¡•ÉQÉ¥•È¡í•Ù•¹Ñ9…µ”è¥ÍÍÕ•}½µµ•¹Ðœ±•Ù•¹ÐéÙ…±Õ”°(€€€É•Á½Í¥Ñ½Éäè©½¡¹­¥´äÔÈÐµ½±±…ˆ½­…¥½Í}•¹Ñ•ÉÁÉ¥Í•}É•Á¼œ±É•Á½Í¥Ñ½Éå%èœÄÈàÄÌÈààààœ±Í½ÕÉ•M¡„éÍ¡„ „œ¤±É•˜èÉ•™Ì½¡•…‘Ì½µ…¥¸œ±ÉÕ¹ÑÑ•µÁÐèœÄô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¡•Ù•¹Ð¤¹ÁÕ±±}É•ÅÕ•ÍÐ°ÈÜÄÐ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¡•Ù•¹Ð¤¹…ÕÑ¡½É¥Ñå}É•…Ñ•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹Ñ¡É½ÝÌ  ¤ôùÉ••¥ÁÐ¡í¥ÍÍÕ”éí¹Õµ‰•ÈèÈÜÄÑõô¤°½%MAQ!}QI%I}AI}	%9%9}%9Y1%¼¤ì(€…ÍÍ•ÉÐ¹Ñ¡É½ÝÌ  ¤ôùÉ••¥ÁÐ¡ì¸¸¹•Ù•¹Ð±¥ÍÍÕ”éì¸¸¹•Ù•¹Ð¹¥ÍÍÕ”±ÁÕ±±}É•ÅÕ•ÍÐéíÕÉ°è¡ÑÑÁÌè¼½…Á¤¹¥Ñ¡Õˆ¹½´½É•Á½Ì½½Ñ¡•È½É•Á¼½ÁÕ±±Ì¼ÈÜÄÐõõô¤°½%MAQ!}QI%I}AI}	%9%9}%9Y1%¼¤ì)ô¤ì)Ñ•ÍÐ ÕÉÉ•¹Ð•á…Ð=Ý¹•È½µµ•¹ÐÉ½ÕÑ•ÌÍ•µ…¹Ñ¥Œ±…ÍÍ¥™¥…Ñ¥½¸¥¹Ñ¼Ñ¡”•á¥ÍÑ¥¹œÅÕ½ÉÕ´½¹±äœ±…Íå¹Œ ¤ôùì(€½¹ÍÐ…¹‘¥‘…Ñ”õì¸¸¹ÁÈ±¹Õµ‰•ÈèÈÜÄÐ±‰…Í”éì¸¸¹ÁÈ¹‰…Í”±É•Á¼éì¸¸¹ÁÈ¹‰…Í”¹É•Á¼±½Ý¹•Èéí±½¥¸è©½¡¹­¥´äÔÈÐµ½±±…ˆœ±¥èÈäÜÄØÄÜÈÁõõõôì(€½¹ÍÐ™¥±•¹…µ”ôÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½¥¹Ñ•É¹…°µ¹½Éµ…±¥é•È¹µ©Ìœì(€½¹ÍÐ‰…Í•½¹Ñ•¹Ðô•áÁ½ÉÐ½¹ÍÐ¹½Éµ…±¥é”õÙ…±Õ”ôùÙ…±Õ”íq¸œ±¡•…‘½¹Ñ•¹Ðô‰•áÁ½ÉÐ½¹ÍÐ¹½Éµ…±¥é”õÙ…±Õ”ôø¥µÑ½­•¸œíq¸ˆì(€½¹ÍÐÍ½Á•¥•ÍÐôÍ¡„ÈÔØèœ­ÉåÁÑ¼¹É•…Ñ•!…Í  Í¡„ÈÔØœ¤¹ÕÁ‘…Ñ”¡™¥±•¹…µ”¤¹‘¥•ÍÐ ¡•àœ¤ì(€½¹ÍÐ‰½‘äõ$´ÀÈÀAÉ½É…´=Ý¹•ÈƒªÊÃ²‚TƒŠPAH€ŒÈÜÄÑq¹q¹=Ý¹•Èè)½¡¹q¹¥Ñ!Õˆƒ®†sªÞã²vàè©½¡¹­¥´äÔÈÐµ½±±…‰q»²‚²z—²0%è€ÄÈàÄÌÈàààáq¹AHè€ÈÜÄÑq¹q¹	…Í”M!è€‘íÍ¡„ „œ¥õq¹!•…M!è€‘íÍ¡„ ˆœ¥õq¹!•…ÑÉ•”M!è€‘íÍ¡„ Œœ¥õq»®ÎªÊôƒªÊ÷®†pƒ²"`è€Åq»®ÎªÊôƒªÊ÷®†pM!´ÈÔØè€‘íÍ½Á•¥•ÍÑõq¹q»ªÊÃ²‚TèAAI=Y}aQ}M=Aq¹q¹•¥Í¥½¸Í½Á”è-A5<…ÁÁÉ½Ù…°…¹Í•Á…É…Ñ”…ÕÑ½µ…Ñ•µ…¡¥¹”Ù•É¥™¥•ÈÅÕ½ÉÕ´É•ÅÕ¥É•™½ÈI•…‘ä…¹µ•É”¹q¹q¹AÉ½‘ÕÑ¥½¸è!=1q¹AÕ‰±¥Œè!=1q¹Ôè!=1q¹AÉ½Ù¥‘•Èƒ¶fs²Ç¶fPè!=1q»®ÂÃ¶>°è!=1€ì(€½¹ÍÐ½µµ•¹Ðõí¥èääÄ±‰½‘ä±É•…Ñ•‘}…ÐèœÈÀÈØ´ÄÀ´ÈÍPÀÀèÀÀèÀÁhœ±ÕÁ‘…Ñ•‘}…ÐèœÈÀÈØ´ÄÀ´ÈÍPÀÀèÀÀèÀÁhœ±…ÕÑ¡½É}…ÍÍ½¥…Ñ¥½¸è=]9Hœ±ÕÍ•Èéí±½¥¸è©½¡¹­¥´äÔÈÐµ½±±…ˆœ±¥èÈäÜÄØÄÜÈÁõôì(€½¹ÍÐÍ…¸õ…Íå¹Œ½µµ•¹ÑÌôù‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±ÁÉ9Õµ‰•ÈèÈÜÄÐ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€½¹ÍÐÔõ¹•ÜUI0¡ÕÉ°¤±ÀõÔ¹Á…Ñ¡¹…µ”ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ì¼ÈÜÄÐœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±…¹‘¥‘…Ñ”¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äqq¸µ½±‘qq¸­¹•Üõt¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½¥Ð½½µµ¥ÑÌ¼œ­Í¡„ ˆœ¤¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÍÑ…ÑÕÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÍÑ…ÑÕÍ•Ìémuô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½¡•¬µÉÕ¹Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í¡•­}ÉÕ¹Ìémì¸¸¹¥¹ÁÕÐ¹¡•­ÍlÁt±¡•…‘}Í¡„éÍ¡„ ˆœ¥õuô¤ì(€€€¥˜¡À¹¥¹±Õ‘•Ì œ½½¹Ñ•¹ÑÌ¼œ¤¥í½¹ÍÐ‰åÑ•Ìõ	Õ™™•È¹™É½´¡Ô¹Í•…É¡A…É…µÌ¹•Ð É•˜œ¤ôôõÍ¡„ „œ¤ý‰…Í•½¹Ñ•¹Ðé¡•…‘½¹Ñ•¹Ð¤íÉ•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑåÁ”è™¥±”œ±•¹½‘¥¹œè‰…Í”ØÐœ±½¹Ñ•¹Ðé‰åÑ•Ì¹Ñ½MÑÉ¥¹œ ‰…Í”ØÐœ¤±Í¡„é¥Ñ=‰©•Ñ% ‰±½ˆœ±‰åÑ•Ì¥ô¤íô(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½¥ÍÍÕ•Ì¼ÈÜÄÐ½½µµ•¹ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±½µµ•¹ÑÌ¤ì(€€€Ñ¡É½ÜÉÉ½È¡Õ¹•áÁ•Ñ••á…ÐµÍ½Á”™¥áÑÕÉ”É•ÅÕ•ÍÐè€‘íÁõ€¤ì(€õô¤ì(€½¹ÍÐ‘•¹¥•õ…Ý…¥ÐÍ…¸¡mt¤í…ÍÍ•ÉÐ¹¹½ÑÅÕ…°¡‘•¹¥•‘lÁt¹ÍÑ…Ñ”°1%%	1œ¤ì(€½¹ÍÐÍÑ…±”õ…Ý…¥ÐÍ…¸¡mì¸¸¹½µµ•¹Ð±‰½‘äé‰½‘ä¹É•Á±…”¡Í¡„ ˆœ¤±Í¡„ œ¤¥õt¤í…ÍÍ•ÉÐ¹¹½ÑÅÕ…°¡ÍÑ…±•lÁt¹ÍÑ…Ñ”°1%%	1œ¤ì(€½¹ÍÐ…•ÁÑ•õ…Ý…¥ÐÍ…¸¡m½µµ•¹Ñt¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…•ÁÑ•‘lÁt¹ÍÑ…Ñ”°1%%	1œ±)M=8¹ÍÑÉ¥¹¥™ä¡…•ÁÑ•¤¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…•ÁÑ•‘lÁt¹•¹Ù•±½Á”¹½Ý¹•É}‘•¥Í¥½¸¹ÍÑ…Ñ”°=]9I}AAI=Y}EU=IU5}=91dœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…•ÁÑ•‘lÁt¹•¹Ù•±½Á”¹½Ý¹•É}‘•¥Í¥½¸¹…ÕÑ¡½É¥Ñå}É•…Ñ•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…•ÁÑ•‘lÁt¹•¹Ù•±½Á”¹½Ý¹•É}‘•¥Í¥½¸¹±…¹‘¥¹}…ÕÑ¡½É¥é…Ñ¥½¹}É•…Ñ•±™…±Í”¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡…•ÁÑ•‘lÁt¹•¹Ù•±½Á”¹½Ý¹•É}‘•¥Í¥½¸¹µ•É•}…ÕÑ¡½É¥é•±™…±Í”¤ì)ô¤ì)¥µÁ½ÉÐí¥ÑA…­•Ñ1¥¹”…ÌÁ…­•Ñô™É½´€œ¸¸¼¸¸¼¸¸½ÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½±¥ˆ½‰½Õ¹‘•µ¥ÐµÁÕ‰±¥ŒµÑÉ…¹ÍÁ½ÉÐµØÄ¹µ©Ìœì)™Õ¹Ñ¥½¸Í½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ”¡í‘É¥™Ðõ™…±Í”±É•Á½Í¥Ñ½ÉåÉ¥™Ðõ™…±Í”±µ…¥¹É¥™Ðõ™…±Í”±½ÉÉÕÁÐõ™…±Í•ôõíô¥ì(½¹ÍÐÉ•Á¼õÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±‰±½ˆõ	Õ™™•È¹™É½´ Í…µ”‰åÑ•Íq¸œ¤±ÑÉ•”õ	Õ™™•È¹½¹…Ð¡m	Õ™™•È¹™É½´ œÄÀÀØÐÐ™¥±”¹µ©ÍpÀœ¤±	Õ™™•È¹™É½´¡¥Ñ=‰©•Ñ% ‰±½ˆœ±‰±½ˆ¤°¡•àœ¥t¤ì(½¹ÍÐ½µµ¥Ðõ¹…µ”ôù	Õ™™•È¹™É½´¡ÑÉ•”€‘í¥Ñ=‰©•Ñ% ÑÉ•”œ±ÑÉ•”¥õq¹…ÕÑ¡½È€‘í¹…µ•ô€ð‘í¹…µ•õ•á…µÁ±”¹¥¹Ù…±¥ø€À€¬ÀÀÀÁq¹½µµ¥ÑÑ•È€‘í¹…µ•ô€ð‘í¹…µ•õ•á…µÁ±”¹¥¹Ù…±¥ø€À€¬ÀÀÀÁq¹q¸‘í¹…µ•õq¹€¤ì(½¹ÍÐµ…¥¸õ½µµ¥Ð µ…¥¸œ¤±¡•…õ½µµ¥Ð ¡•…œ¤±‰…Í”õ½µµ¥Ð ‰…Í”œ¤±µ…¥¹M¡„õ¥Ñ=‰©•Ñ% ½µµ¥Ðœ±µ…¥¸¤±¡•…‘M¡„õ¥Ñ=‰©•Ñ% ½µµ¥Ðœ±¡•…¤±‰…Í•M¡„õ¥Ñ=‰©•Ñ% ½µµ¥Ðœ±‰…Í”¤ì(½¹ÍÐ…¹‘¥‘…Ñ•ÌõlÐÈ°ÐÍt¹µ…À¡¹Õµ‰•Èôø¡ì¸¸¹ÁÈ±¹Õµ‰•È±‰…Í”éì¸¸¹ÁÈ¹‰…Í”±Í¡„é‰…Í•M¡…ô±¡•…éì¸¸¹ÁÈ¹¡•…±Í¡„é¡•…‘M¡…õô¤¤ì(½¹ÍÐÁ…­•õÁ…­¥áÑÕÉ”¡mÁ…­¥áÑÕÉ•¹ÑÉä Ä±µ…¥¸¤±Á…­¥áÑÕÉ•¹ÑÉä Ä±¡•…¤±Á…­¥áÑÕÉ•¹ÑÉä Ä±‰…Í”¤±Á…­¥áÑÕÉ•¹ÑÉä È±ÑÉ•”¤±Á…­¥áÑÕÉ•¹ÑÉä Ì±‰±½ˆ¥t¤í¥˜¡½ÉÉÕÁÐ¥Á…­•‘lÄÕuxôÄì(½¹ÍÐÝ¥É”õ	Õ™™•È¹½¹…Ð¡mÁ…­•Ð Á…­™¥±•q¸œ¤±Á…­•Ð¡	Õ™™•È¹½¹…Ð¡m	Õ™™•È¹™É½´¡lÅt¤±Á…­•‘t¤¤±	Õ™™•È¹™É½´ œÀÀÀÀœ¥t¤í½¹ÍÐÑÉ…”õmtì(½¹ÍÐ™•Ñ¡%µÁ°õ…Íå¹Œ¡ÕÉ°±½ÁÑ¥½¹Ì¤ôùíÑÉ…”¹ÁÕÍ ¡íÕÉ°±½ÁÑ¥½¹Íô¤í½¹ÍÐÀõ¹•ÜUI0¡ÕÉ°¤¹Á…Ñ¡¹…µ”ì(€¥˜¡ÕÉ°¹¥¹±Õ‘•Ì ¥Ñ¡Õˆ¹½´¼œ­É•Á¼¬œ¹¥Ð¼œ¤¥É•ÑÕÉ¸¹•ÜI•ÍÁ½¹Í”¡½ÁÑ¥½¹Ì¹µ•Ñ¡½ôôôPœý	Õ™™•È¹½¹…Ð¡mÁ…­•Ð Ù•ÉÍ¥½¸€Éq¸œ¤±Á…­•Ð ™•Ñ õÍ¡…±±½Ýq¸œ¤±	Õ™™•È¹™É½´ œÀÀÀÀœ¥t¤éÝ¥É”±í¡•…‘•ÉÌéì½¹Ñ•¹ÐµÑåÁ”œé½ÁÑ¥½¹Ì¹µ•Ñ¡½ôôôPœü…ÁÁ±¥…Ñ¥½¸½àµ¥ÐµÕÁ±½…µÁ…¬µ…‘Ù•ÉÑ¥Í•µ•¹Ðœè…ÁÁ±¥…Ñ¥½¸½àµ¥ÐµÕÁ±½…µÁ…¬µÉ•ÍÕ±Ðõô¤ì(€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éµ…¥¹É¥™Ð˜™ÑÉ…”¹™¥±Ñ•È¡àôù¹•ÜUI0¡à¹ÕÉ°¤¹Á…Ñ¡¹…µ”¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¤¹±•¹Ñ øÄýÍ¡„ ˜œ¤éµ…¥¹M¡…õô¤ì(€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±…¹‘¥‘…Ñ•Ì¤ì(€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí™¥±•¹…µ”è™¥±”¹µ©Ìœ±ÍÑ…ÑÕÌèµ½‘¥™¥•œ±Á…Ñ è €´Ä€¬Äq¸µ½±‘q¸­Í…µ”‰åÑ•Ìõt¤ì(€¥˜ ½p½ÁÕ±±Íp½q¬¼¹Ñ•ÍÐ¡À¤¥í½¹ÍÐ™½Õ¹õ…¹‘¥‘…Ñ•Ì¹™¥¹¡àôùà¹¹Õµ‰•Èôôõ9Õµ‰•È¡À¹ÍÁ±¥Ð œ¼œ¤¹…Ð ´Ä¤¤¤íÉ•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±‘É¥™Ðýì¸¸¹™½Õ¹±¡•…éì¸¸¹™½Õ¹¹¡•…±Í¡„éÍ¡„ ˜œ¥õôéÉ•Á½Í¥Ñ½ÉåÉ¥™Ðýì¸¸¹™½Õ¹±‰…Í”éì¸¸¹™½Õ¹¹‰…Í”±É•Á¼éì¸¸¹™½Õ¹¹‰…Í”¹É•Á¼±¥èåõõôé™½Õ¹¤íô(€Ñ¡É½ÜÉÉ½È Õ¹•áÁ•Ñ•™½±±½Üµ½¸É•ÅÕ•ÍÐœ¤ì(ôíÉ•ÑÕÉ¹íÑÉ…”±…ÉÌéíÉ•Á½Í¥Ñ½ÉäéÉ•Á¼±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±Í½ÕÉ•QÉ…¹ÍÁ½ÉÐéÑÉÕ”±™•Ñ¡%µÁ±ô±µ…¥¹M¡„±¡•…‘M¡„±‰…Í•M¡…ôì)ô)Ñ•ÍÐ Í½ÕÉ”ÁÉ•Á…É…Ñ¥½¸Í¡…É•ÌÑ¡”Í…µ”‰Õ‘•Ð…¹ÁÉ•Í•ÉÙ•Ì™Õ±°‰¥¹‘¥¹Ì¥¸„¹½¸µ…ÕÑ¡½É¥é¥¹œÉ••¥ÁÐœ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ” ¤±‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µÁÉ½½˜´œ¤¤ì(ÑÉåí½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥ÐÉ•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±É•Á½Í¥Ñ½Éäé˜¹…ÉÌ¹É•Á½Í¥Ñ½Éä±Í½ÕÉ•M¡„éÍ¡„ œ¤±ÉÕ¹%èœÄœ±Í…¸è ¤ôù‘¥Í½Ù•È¡ì¸¸¹˜¹…ÉÌ±µ…áI•ÅÕ•ÍÑÌèÄÅô¥ô¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °È¤í…ÍÍ•ÉÐ¹½¬¡É•ÍÕ±ÑÌ¹•Ù•Éä¡àôùà¹ÍÑ…Ñ”ôôôMQ1}IU99Pœ¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡˜¹ÑÉ…”¹±•¹Ñ °ÄÄ¤ì(½¹ÍÐÉ••¥ÁÐõ)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¹…ÕÑ¡½É¥é…Ñ¥½¹}É•…Ñ•±™…±Í”¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¹ÁÉ½‘Õ•È¹É•ÅÕ•ÍÑÌ°È¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¹Í¡…É•‘}É•…‘}‘¥…¹½ÍÑ¥Ì¹É•ÅÕ•ÍÑ}½Õ¹Ð°ÄÄ¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É••¥ÁÐ¹Í¡…É•‘}É•…‘}‘¥…¹½ÍÑ¥Ì¹É•Í½ÕÉ•}½Õ¹ÑÌ¹½Ñ¡•È°È¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡É••¥ÁÐ¹Í½ÕÉ•}Í¡…Ì±m˜¹µ…¥¹M¡„±˜¹¡•…‘M¡„±˜¹‰…Í•M¡…t¹Í½ÉÐ ¤¤ì(…ÍÍ•ÉÐ¹½¬ …˜¹ÑÉ…”¹Í½µ”¡àôùà¹ÕÉ°¹¥¹±Õ‘•Ì œ½½¹Ñ•¹ÑÌ¼œ¥ññà¹ÕÉ°¹¥¹±Õ‘•Ì œ½¥Ð½½µµ¥ÑÌ¼œ¤¤¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì)Ñ•ÍÐ Í•…±•Í½ÕÉ”ÁÉ•Á…É…Ñ¥½¸™…±±Ì‰…¬Ñ¼•á…Ðµ½µµ¥ÐA$É•…‘Ì™½ÈÁ…Ñ¡Ì½ÕÑÍ¥‘”¥ÑÌ™É½é•¸‰±½ˆÍ•Ðœ±…Íå¹Œ ¤ôùì(½¹ÍÐÉ•˜õÍ¡„ „œ¤±Á…Ñ ôÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½Õ¹ÁÉ•Á…É•µÁ½±¥ä¹µ©Ìœ±‰½‘äõ	Õ™™•È¹™É½´ •áÁ½ÉÐ½¹ÍÐÙ…±Õ”€ô€Äíq¸œ¤í±•ÐÍ½ÕÉ•I•…‘ÌôÀí½¹ÍÐ…Á¥A…Ñ¡Ìõmtì(½¹ÍÐÑ½­•¸õíÍ½ÕÉ•I•…‘•Èéí¡…ÍM½ÕÉ”éÙ…±Õ”ôùÙ…±Õ”ôôõÉ•˜±‰±½‰=É9Õ±°é…Íå¹Œ ¤ôùíÍ½ÕÉ•I•…‘Ì¬¬íÑ¡É½Ü=‰©•Ð¹…ÍÍ¥¸¡¹•ÜÉÉ½È M=UI}	Q!}M1}=	)Q}5%MM%9œ¤±í½‘”èM=UI}	Q!}M1}=	)Q}5%MM%9œ±±½‰…°éÑÉÕ•ô¤íõô°(€€Á±…¹¹•‘M½ÕÉ•	±½‰Ìé¹•ÜM•Ð ¤±…±±½ÝU¹ÁÉ•Á…É•‘M½ÕÉ•…±±‰…¬éÑÉÕ”°(€€É•ÅÕ•ÍÐé…Íå¹ŒÕÉ°ôùí…Á¥A…Ñ¡Ì¹ÁÕÍ ¡ÕÉ°¤íÉ•ÑÕÉ¸íÑåÁ”è™¥±”œ±•¹½‘¥¹œè‰…Í”ØÐœ±½¹Ñ•¹Ðé‰½‘ä¹Ñ½MÑÉ¥¹œ ‰…Í”ØÐœ¤±Í¡„é¥Ñ=‰©•Ñ% ‰±½ˆœ±‰½‘ä¥ôíõôì(…ÍÍ•ÉÐ¹•ÅÕ…°¡…Ý…¥Ð¥µµÕÑ…‰±•½¹Ñ•¹Ð¡ÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Á…Ñ ±É•˜±Ñ½­•¸¤±‰½‘ä¹Ñ½MÑÉ¥¹œ ¤¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡…Ý…¥Ð½¹Ñ•¹Ñ	±½‰M¡…=É9Õ±°¡ÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Á…Ñ ±É•˜±Ñ½­•¸¤±¥Ñ=‰©•Ñ% ‰±½ˆœ±‰½‘ä¤¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡Í½ÕÉ•I•…‘Ì°À¤ì(…ÍÍ•ÉÐ¹½¬¡…Á¥A…Ñ¡Ì¹•Ù•Éä¡Ù…±Õ”ôùÙ…±Õ”¹•¹‘Í]¥Ñ ¡€ýÉ•˜ô‘íÉ•™õ€¤¤¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡…Á¥A…Ñ¡Ì¹±•¹Ñ °È¤ì(…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡¥µµÕÑ…‰±•½¹Ñ•¹Ð¡ÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Á…Ñ ±É•˜±ì¸¸¹Ñ½­•¸±É•ÅÕ•ÍÐé…Íå¹Œ ¤ôø¡íÑåÁ”è™¥±”œ±•¹½‘¥¹œè‰…Í”ØÐœ±½¹Ñ•¹Ðé‰½‘ä¹Ñ½MÑÉ¥¹œ ‰…Í”ØÐœ¤±Í¡„éÍ¡„ ˜œ¥ô¥ô¤°½%MAQ!}%55UQ	1}	1=	}%9Y1%¼¤ì(½¹ÍÐÁ±…¹¹•õì¸¸¹Ñ½­•¸±Á±…¹¹•‘M½ÕÉ•	±½‰Ìé¹•ÜM•Ð¡m€‘íÉ•™õpÀ‘íÁ…Ñ¡õt¥ôì(…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡¥µµÕÑ…‰±•½¹Ñ•¹Ð¡ÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Á…Ñ ±É•˜±Á±…¹¹•¤±•ÉÉ½Èôù•ÉÉ½È¹½‘”ôôôM=UI}	Q!}M1}=	)Q}5%MM%9œ¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡Í½ÕÉ•I•…‘Ì°Ä¤ì)ô¤ì)Ñ•ÍÐ Í¡…É•É•ÅÕ•ÍÐ•á¡…ÕÍÑ¥½¸…¹¹½ÐÉ•Í•ÐÑ¡”A$‰Õ‘•Ð™½ÈA=MP½È±•…Ù”Á…ÉÑ¥…°É•ÍÕ±ÑÌœ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ” ¤±‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µ‰Õ‘•Ð´œ¤¤ì(ÑÉåí…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸è ¤ôù‘¥Í½Ù•È¡ì¸¸¹˜¹…ÉÌ±µ…áI•ÅÕ•ÍÑÌèåô¥ô¤±•ÉÉ½Èôù•ÉÉ½È¹½‘”ôôô%MAQ!}I}	UQ}a!UMQœ˜™•ÉÉ½È¹É•…‘}‘¥…¹½ÍÑ¥Ì¹É•ÅÕ•ÍÑ}½Õ¹Ðôôôä¤ì(…ÍÍ•ÉÐ¹•ÅÕ…°¡˜¹ÑÉ…”¹±•¹Ñ °ä¤í…ÍÍ•ÉÐ¹½¬ …˜¹ÑÉ…”¹Í½µ”¡àôùà¹½ÁÑ¥½¹Ì¹µ•Ñ¡½ôôôA=MPœ¤¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì)Ñ•ÍÐ ™¥±”µ•Ñ…‘…Ñ„¡•…‘É¥™Ð…‰½ÉÑÌ‰•™½É”Í½ÕÉ”ÑÉ…¹ÍÁ½ÉÐ½È¹•ÜÍ½ÕÉ”É•¥ÍÑÉ…Ñ¥½¸œ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ”¡í‘É¥™ÐéÑÉÕ•ô¤í…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡‘¥Í½Ù•È¡˜¹…ÉÌ¤°½9%Q}	%9%9}!9¼¤í…ÍÍ•ÉÐ¹½¬ …˜¹ÑÉ…”¹Í½µ”¡àôùà¹ÕÉ°¹¥¹±Õ‘•Ì œ¹¥Ð¼œ¤¤¤ì)ô¤ì)Ñ•ÍÐ „½ÉÉÕÁÐÁ…¬¥¹Ù…±¥‘…Ñ•ÌÑ¡”Ý¡½±”Í…¸…¹¹•Ù•ÈÉ•…Ñ•Ì„Í½ÕÉ”É••¥ÁÐœ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ”¡í½ÉÉÕÁÐéÑÉÕ•ô¤±‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µÁ…¬µ™…¥±ÕÉ”´œ¤¤ì(ÑÉåí…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸è ¤ôù‘¥Í½Ù•È¡˜¹…ÉÌ¥ô¤°½A-}%MQ}5%M5Q ¼¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì()Ñ•ÍÐ ÁÉ½Ñ•Ñ•µ…¥¸‘É¥™Ð…™Ñ•ÈÍ½ÕÉ”ÁÉ•Á…É…Ñ¥½¸…‰½ÉÑÌÝ¥Ñ¡½ÕÐÁÕ‰±¥Í¡¥¹œ„Í¹…ÁÍ¡½ÐÉ••¥ÁÐœ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ”¡íµ…¥¹É¥™ÐéÑÉÕ•ô¤±‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µµ…¥¸µ‘É¥™Ð´œ¤¤ì(ÑÉåí…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸è ¤ôù‘¥Í½Ù•È¡˜¹…ÉÌ¥ô¤°½5%9}	%9%9}!9¼¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì)Ñ•ÍÐ Í½ÕÉ”É••¥ÁÐÝÉ¥Ñ”™…¥±ÕÉ”±•…Ù•Ì¹¼•±¥¥‰±”½ÈÉ•ÕÍ…‰±”Í½ÕÉ”•Ù¥‘•¹”œ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ” ¤±‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µ•Ù¥‘•¹”µÝÉ¥Ñ”´œ¤¤±½É¥¥¹…°õ™Ì¹ÝÉ¥Ñ•¥±•Må¹Œì(ÑÉåí™Ì¹ÝÉ¥Ñ•¥±•Må¹Œô¡Á…Ñ °¸¸¹…ÉÌ¤ôùí¥˜¡MÑÉ¥¹œ¡Á…Ñ ¤¹•¹‘Í]¥Ñ  œ½Í½ÕÉ”µÉ•…¹©Í½¸œ¤¥Ñ¡É½ÜÉÉ½È Í½ÕÉ”É••¥ÁÐÝÉ¥Ñ”™…¥±ÕÉ”œ¤íÉ•ÑÕÉ¸½É¥¥¹…°¡Á…Ñ °¸¸¹…ÉÌ¤íôì(…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡É•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸è ¤ôù‘¥Í½Ù•È¡˜¹…ÉÌ¥ô¤°½Í½ÕÉ”É••¥ÁÐÝÉ¥Ñ”™…¥±ÕÉ”¼¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(õ™¥¹…±±åí™Ì¹ÝÉ¥Ñ•¥±•Må¹Œõ½É¥¥¹…°í™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì)Ñ•ÍÐ …±±•È…¹¹½Ð¥¹©•Ð„Í½ÕÉ”É••¥ÁÐ½¹Ñ¼„É•ÍÕ±Ð…ÉÉ…äœ±…Íå¹Œ ¤ôùì(½¹ÍÐ‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°Í½ÕÉ”µ•Ù¥‘•¹”µÍÁ½½˜´œ¤¤ì(ÑÉåí…Ý…¥ÐÉ•½É‘¥ÍÁ…Ñ¡•ÉM…¸¡í½ÕÑÁÕÑ¥É•Ñ½Éäé‘¥É•Ñ½Éä±Í…¸é…Íå¹Œ ¤ôù=‰©•Ð¹…ÍÍ¥¸¡mt±íÍ½ÕÉ•}É•…‘}É••¥ÁÐéíÍÑ…Ñ”è™…­”õô¥ô¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì()Ñ•ÍÐ Í…µ”M!Ý¥Ñ ¡…¹•É•Á½Í¥Ñ½Éä¥‘•¹Ñ¥Ñä¥ÌÉ•©•Ñ•‰•™½É”Í½ÕÉ”™•Ñ œ±…Íå¹Œ ¤ôùì(½¹ÍÐ˜õÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑM…¹¥áÑÕÉ”¡íÉ•Á½Í¥Ñ½ÉåÉ¥™ÐéÑÉÕ•ô¤í…Ý…¥Ð…ÍÍ•ÉÐ¹É•©•ÑÌ¡‘¥Í½Ù•È¡˜¹…ÉÌ¤°½9%Q}	%9%9}!9¼¤í…ÍÍ•ÉÐ¹½¬ …˜¹ÑÉ…”¹Í½µ”¡àôùà¹ÕÉ°¹¥¹±Õ‘•Ì œ¹¥Ð¼œ¤¤¤ì)ô¤ì()™½È¡½¹ÍÐÍ•¹…É¥¼½˜l…±Ñ•É¹…Ñ”µÁÉ½™¥±”µ…‰Í•¹Ðœ°µ¥ÍÍ¥¹œµÁ½±¥äœ°¥¹Ù…±¥µÁ½±¥äœ°µ¥ÍÍ¥¹œµ…ÁÁÉ½Ù…°œ°¥¹Ù…±¥µ…ÁÁÉ½Ù…°t¥Ñ•ÍÐ¡…ÑÕ…°1$€‘íÍ•¹…É¥½ô¥¹Ù…±¥‘…Ñ•ÌÍÑ…±”•Ù¥‘•¹”‰•™½É”•áÑ•É¹…°É•…‘Í€° ¤ôùì(½¹ÍÐ‘¥É•Ñ½Éäõ™Ì¹µ­‘Ñ•µÁMå¹Œ¡Á…Ñ ¹©½¥¸¡½Ì¹ÑµÁ‘¥È ¤°‘¥ÍÁ…Ñ¡•Èµ±¤µÁ½±¥ä´œ¤¤ì(½¹ÍÐ…¹½¹¥…°ô½½É‘¥¹…Ñ¥½¸½­¥‘Õ±ÑÌ½½Ù•É¹…¹”½…ÕÑ½¹½µ½ÕÌµ¥¹Ñ•É¹…°µ±…¹‘¥¹œµÁ½±¥äµØÄ¹©Í½¸œ±…ÁÁÉ½Ù…°ô½½É‘¥¹…Ñ¥½¸½­¥‘Õ±ÑÌ½½Ù•É¹…¹”½…ÕÑ½¹½µ½ÕÌµ…ÁÁÉ½Ù…°µÁ½±¥äµ•¹Ù•±½Á”µØÄ¹©Í½¸œ±½ÕÐõÁ…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°½ÕÐ½…ÕÑ½¹½µ½ÕÌµ‘¥ÍÁ…Ñ¡•ÈµØÄœ¤ì(ÑÉåì(€™Ì¹µ­‘¥ÉMå¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä±Á…Ñ ¹‘¥É¹…µ”¡…¹½¹¥…°¤¤±íÉ•ÕÉÍ¥Ù”éÑÉÕ•ô¤í™Ì¹µ­‘¥ÉMå¹Œ¡½ÕÐ±íÉ•ÕÉÍ¥Ù”éÑÉÕ•ô¤ì(€™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡½ÕÐ°É•ÍÕ±ÑÌ¹©Í½¸œ¤°mì‰ÍÑ…Ñ”ˆè‰1%%	1‰õtœ¤í™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡½ÕÐ°Í½ÕÉ”µÉ•…¹©Í½¸œ¤°ì‰ÍÑ…Ñ”ˆè‰ÍÑ…±”‰ôœ¤ì(€¥˜¡Í•¹…É¥¼„ôôµ¥ÍÍ¥¹œµÁ½±¥äœ¥™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä±…¹½¹¥…°¤±Í•¹…É¥¼ôôô¥¹Ù…±¥µÁ½±¥äœüìœé)M=8¹ÍÑÉ¥¹¥™ä¡íô¤¤ì(€¥˜¡Í•¹…É¥¼„ôôµ¥ÍÍ¥¹œµ…ÁÁÉ½Ù…°œ¥™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä±…ÁÁÉ½Ù…°¤±Í•¹…É¥¼ôôô¥¹Ù…±¥µ…ÁÁÉ½Ù…°œüìœèíôœ¤ì(€™Ì¹ÝÉ¥Ñ•¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡‘¥É•Ñ½Éä°…±Ñ•É¹…Ñ”¹©Í½¸œ¤°íôœ¤ì(€½¹ÍÐ•¹ØõíAQ éÁÉ½•ÍÌ¹•¹Ø¹AQ ±%Q!U	}IA=M%Q=IdéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±%Q!U	}M!éÍ¡„ „œ¤±%Q!U	}IU9}%èœÄôì(€¥˜¡Í•¹…É¥¼ôôô…±Ñ•É¹…Ñ”µÁÉ½™¥±”µ…‰Í•¹Ðœ¥•¹Ø¹-%U1QM}UQ=9=5=UM}A=1%e}AQ ô…±Ñ•É¹…Ñ”¹©Í½¸œì(€½¹ÍÐÉ•ÍÕ±ÐõÍÁ…Ý¹Må¹Œ¡ÁÉ½•ÍÌ¹•á•A…Ñ ±mÁ…Ñ ¹É•Í½±Ù” ÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½ÉÕ¸µ…ÕÑ½¹½µ½ÕÌµ‘¥ÍÁ…Ñ¡•ÈµØÄ¹µ©Ìœ¥t±íÝé‘¥É•Ñ½Éä±•¹Ø±•¹½‘¥¹œèÕÑ˜àœ±Ñ¥µ•½ÕÐèÄÀÀÀÁô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±Ð¹•ÉÉ½È±Õ¹‘•™¥¹•¤í…ÍÍ•ÉÐ¹¹½ÑÅÕ…°¡É•ÍÕ±Ð¹ÍÑ…ÑÕÌ°À¤í…ÍÍ•ÉÐ¹‘••ÁÅÕ…°¡)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡½ÕÐ°É•ÍÕ±ÑÌ¹©Í½¸œ¤¤¤±mt¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™Ì¹•á¥ÍÑÍMå¹Œ¡Á…Ñ ¹©½¥¸¡½ÕÐ°Í½ÕÉ”µÉ•…¹©Í½¸œ¤¤±™…±Í”¤ì(€½¹ÍÐ™…¥±ÕÉ”õ)M=8¹Á…ÉÍ”¡™Ì¹É•…‘¥±•Må¹Œ¡Á…Ñ ¹©½¥¸¡½ÕÐ°™…¥±ÕÉ”¹©Í½¸œ¤¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡™…¥±ÕÉ”¹™…¹½ÕÑ}…ÕÑ¡½É¥é•±™…±Í”¤ì(€¥˜¡Í•¹…É¥¼ôôô…±Ñ•É¹…Ñ”µÁÉ½™¥±”µ…‰Í•¹Ðœ¥…ÍÍ•ÉÐ¹µ…Ñ ¡É•ÍÕ±Ð¹ÍÑ‘•ÉÈ°½%MAQ!}M=UI}AI=%1}A=1%e}AQ!}%9Y1%¼¤ì(€•±Í”…ÍÍ•ÉÐ¹µ…Ñ ¡É•ÍÕ±Ð¹ÍÑ‘•ÉÈ±Í•¹…É¥¼¹ÍÑ…ÉÑÍ]¥Ñ  µ¥ÍÍ¥¹œœ¤ü½9=9P¼è½Må¹Ñ…áÉÉ½È¼¤ì(õ™¥¹…±±åí™Ì¹ÉµMå¹Œ¡‘¥É•Ñ½Éä±íÉ•ÕÉÍ¥Ù”éÑÉÕ”±™½É”éÑÉÕ•ô¤íô)ô¤ì()Ñ•ÍÐ •µÁÑäÕÉÉ•¹Ðµ‰…Í”AHÉ•ÅÕ¥É•Ì½µÁ±•Ñ”Í½ÕÉ”ÑÉ••Ì°¹½Ð„é•É¼µ™¥±”A$±…¥´œ° ¤ôùì(€½¹ÍÐÁÈõí¹Õµ‰•ÈèÄààÐ±ÍÑ…Ñ”è½Á•¸œ±µ•É•é™…±Í”±‰…Í”éíÉ•˜èµ…¥¸œ±Í¡„éÍ¡„ „œ¤±É•Á¼éí™Õ±±}¹…µ”è½Ý¹•È½É•Á¼õô±¡•…éíÍ¡„éÍ¡„ ˆœ¤±É•Á¼éí™Õ±±}¹…µ”è½Ý¹•È½É•Á¼õõôì(€½¹ÍÐ¥¹ÁÕÐõíÁÈ±µ…¥¹M¡„éÍ¡„ „œ¤±™¥±•Ìémt±Á½±¥ä±¡•…‘½µµ¥ÐéíÍ¡„éÍ¡„ ˆœ¤±ÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô±µ…¥¹½µµ¥ÐéíÍ¡„éÍ¡„ „œ¤±ÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õõôì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡±…ÍÍ¥™åµÁÑåQÉ••I•‘Õ¹‘…¹Ð¡¥¹ÁÕÐ¤¹‰¥¹‘¥¹œ¹ÁÉ½½˜°aQ}=5A1Q}QI}EU1M}UII9Q}5%8œ¤ì(€™½È€¡½¹ÍÐ‘•±Ñ„½˜l(€€€í¡•…‘½µµ¥ÐéíÍ¡„éÍ¡„ ˆœ¤±ÑÉ•”éíÍ¡„éÍ¡„ œ¥õõô°(€€€íµ…¥¹½µµ¥ÐéíÍ¡„éÍ¡„ „œ¤±ÑÉ•”éíÍ¡„é¹Õ±±õõô°(€€€í¡•…‘½µµ¥ÐéíÍ¡„éÍ¡„ ”œ¤±ÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õõô°(€€€íµ…¥¹½µµ¥ÐéíÍ¡„éÍ¡„ ”œ¤±ÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õõô°(€€€í™¥±•Ìémí™¥±•¹…µ”èÁ•¹‘¥¹œ¹µ©Ìõuô°(€€€íÁÈéì¸¸¹ÁÈ±ÍÑ…Ñ”è±½Í•õô°(€€€íÁÈéì¸¸¹ÁÈ±µ•É•éÑÉÕ•õô°(€€€íÁÈéì¸¸¹ÁÈ±¡•…éì¸¸¹ÁÈ¹¡•…±É•Á¼éí™Õ±±}¹…µ”è…ÑÑ…­•È½™½É¬õõõô°(€t¤…ÍÍ•ÉÐ¹Ñ¡É½ÝÌ  ¤ôù±…ÍÍ¥™åµÁÑåQÉ••I•‘Õ¹‘…¹Ð¡ì¸¸¹¥¹ÁÕÐ°¸¸¹‘•±Ñ…ô¤°½%MAQ!}5AQe}%}QI}5%M5Q ¼¤ì(€…ÍÍ•ÉÐ¹Ñ¡É½ÝÌ  ¤ôù±…ÍÍ¥™åµÁÑåQÉ••I•‘Õ¹‘…¹Ð¡ì¸¸¹¥¹ÁÕÐ±Á½±¥äéíõô¤°½%MAQ!}5AQe}%}!e%9}%M	1¼¤ì)ô¤ì()Ñ•ÍÐ ¥¹…±¥é•È½‰Í•ÉÙ•ÌÁÉ½Ñ•Ñ•ÕÑ½Ù•È‰•™½É”É•…Ñ¥¹œ„‘ÕÉ…‰±”É•Í•ÉÙ…Ñ¥½¸œ° ¤ôùì(€½¹ÍÐÍ½ÕÉ”õ™Ì¹É•…‘¥±•Må¹Œ ÍÉ¥ÁÑÌ½­¥‘Õ±ÑÌ½­Áµ¼½ÉÕ¸µ…ÕÑ½¹½µ½ÕÌµ¥¹Ñ•É¹…°µ±…¹‘¥¹œµØÄ¹µ©Ìœ°ÕÑ˜àœ¤ì(€…ÍÍ•ÉÐ¹½¬¡Í½ÕÉ”¹¥¹‘•á=˜ …Ý…¥Ð…ÅÕ¥É•Ù•¹ÑQ½­•¸¡í½‰Í•ÉÙ•ÕÑ½Ù•ÈéÑÉÕ•ô¤œ¤ñÍ½ÕÉ”¹¥¹‘•á=˜ ‰…Ñ¥½¸èIQ}IMIYQ%=8œˆ¤¤ì)ô¤ì)™½È¡½¹ÍÐÍ½ÕÉ•QÉ…¹ÍÁ½ÉÐ½˜m™…±Í”±ÑÉÕ•t¥Ñ•ÍÐ¡€ÄÈäµ™¥±”ÍÑ…±”…¹‘¥‘…Ñ”É•Ñ…¥¹Ì•á…ÐÉ•Ù¥•Ü‰¥¹‘¥¹œÝ¥Ñ¡½ÕÐ‰±½ˆÉ•…‘Ì½È•±¥¥‰¥±¥ÑäÍ½ÕÉ•QÉ…¹ÍÁ½ÉÐô‘íÍ½ÕÉ•QÉ…¹ÍÁ½ÉÑõ€±…Íå¹Œ ¤ôùì(€±•Ð‰±½‰I•…‘ÌôÀ°™¥±•A…•ÌôÀì(€½¹ÍÐ…¹‘¥‘…Ñ”õì¸¸¹ÁÈ±‰…Í”éì¸¸¹ÁÈ¹‰…Í”±Í¡„éÍ¡„ œ¥õôì(€½¹ÍÐ™¥±•ÌõÉÉ…ä¹™É½´¡í±•¹Ñ èÄÈåô°¡|±¤¤ôø¡í™¥±•¹…µ”éÍÉ¥ÁÑÌ½±…É”´‘í¥ô¹µ©Í€±ÍÑ…ÑÕÌèµ½‘¥™¥•ô¤¤ì(€½¹ÍÐÉ•ÍÕ±ÑÌõ…Ý…¥Ð‘¥Í½Ù•È¡íÉ•Á½Í¥Ñ½ÉäéÁÈ¹‰…Í”¹É•Á¼¹™Õ±±}¹…µ”±Ñ½­•¸è½™™±¥¹”œ±Á½±¥ä±•¹•É…Ñ¥½¹M••èœÄœ±Í½ÕÉ•QÉ…¹ÍÁ½ÉÐ±™•Ñ¡%µÁ°é…Íå¹ŒÕÉ°ôùì(€€€½¹ÍÐÔõ¹•ÜUI0¡ÕÉ°¤±ÀõÔ¹Á…Ñ¡¹…µ”ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½‰É…¹¡•Ì½µ…¥¸œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í½µµ¥ÐéíÍ¡„éÍ¡„ „œ¥õô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±mí¥èÄ±¹…µ”è-%=LM½±¼=Ý¹•ÈAÉ•™±¥¡Ðœ±•¹™½É•µ•¹Ðè…Ñ¥Ù”õt¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÉÕ±•Í•ÑÌ¼Äœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±í‰åÁ…ÍÍ}…Ñ½ÉÌémt±ÉÕ±•ÌémíÑåÁ”èÉ•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìœ±Á…É…µ•Ñ•ÉÌéíÍÑÉ¥Ñ}É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Í}Á½±¥äéÑÉÕ”±É•ÅÕ¥É•‘}ÍÑ…ÑÕÍ}¡•­Ìémí½¹Ñ•áÐèÕ¹¥Ðœ±¥¹Ñ•É…Ñ¥½¹}¥èÝõuõõuô¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ìœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±m…¹‘¥‘…Ñ•t¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½ÁÕ±±Ì¼ÐÈœ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±…¹‘¥‘…Ñ”¤ì(€€€¥˜¡À¹•¹‘Í]¥Ñ  œ½™¥±•Ìœ¤¥í™¥±•A…•Ì¬¬í½¹ÍÐÁ…”õ9Õµ‰•È¡Ô¹Í•…É¡A…É…µÌ¹•Ð Á…”œ¤¤íÉ•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±™¥±•Ì¹Í±¥” ¡Á…”´Ä¤¨ÄÀÀ±Á…”¨ÄÀÀ¤¤íô(€€€¥˜¡À¹¥¹±Õ‘•Ì œ½¥Ð½½µµ¥ÑÌ¼œ¤¥É•ÑÕÉ¸™…­•I•ÍÁ½¹Í” ÈÀÀ±íÑÉ•”éíÍ¡„éÍ¡„ Œœ¥õô¤ì(€€€¥˜¡À¹¥¹±Õ‘•Ì œ½½¹Ñ•¹ÑÌ¼œ¤¥‰±½‰I•…‘Ì¬¬ì(€€€Ñ¡É½ÜÉÉ½È ±…É”…¹‘¥‘…Ñ”µÕÍÐ¹½ÐÉ•…‰±½‰Ì½ÍÑ…ÑÕÌ½¡•­Ìœ¤ì(€õô¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡™¥±•A…•Ì°È¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡‰±½‰I•…‘Ì°À¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡É•ÍÕ±ÑÌ¹±•¹Ñ °Ä¤ì(€½¹ÍÐÈõÉ•ÍÕ±ÑÍlÁtí…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹ÍÑ…Ñ”°=]9I}IY%]}IEU%Iœ¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹É•…Í½¸°%MAQ!}MQ1}=5AI%M=9}1%5%Q}aœ¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹‰¥¹‘¥¹œ¹‰…Í•}Í¡„±Í¡„ œ¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹‰¥¹‘¥¹œ¹ÕÉÉ•¹Ñ}µ…¥¹}Í¡„±Í¡„ „œ¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹‰¥¹‘¥¹œ¹¡•…‘}Í¡„±Í¡„ ˆœ¤¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹‰¥¹‘¥¹œ¹¡…¹•‘}Á…Ñ¡Ì¹±•¹Ñ °ÄÈä¤ì(€…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹‰½Õ¹‘•‘}½µÁ…É¥Í½¸¹½µÁ…É¥Í½¹}Á•É™½Éµ•±™…±Í”¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹…ÕÑ½¹½µ½ÕÍ}•±¥¥‰±”±™…±Í”¤í…ÍÍ•ÉÐ¹•ÅÕ…°¡È¹µ•É•}…ÕÑ¡½É¥é•±™…±Í”¤ì)ô¤ì(
