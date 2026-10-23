@@ -10,6 +10,7 @@ const handoff=fs.readFileSync('scripts/kidults/kpmo/lib/assurance-runtime-proof-
 const fail=code=>{throw Error(`SUCCESS_AUTHORITY_GATE_${code}`);};
 
 const requiredGate=[
+  "github.event.workflow_run.event == 'push' ||",
   'name: KPMO Continuous Assurance Success Authority Gate V1',
   "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 'KIDULTS Autonomous KPMO Authorization V1']",
   'classify-assurance-completion:',
