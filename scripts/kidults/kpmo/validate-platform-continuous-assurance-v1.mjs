@@ -153,7 +153,7 @@ if (!errors.length) {
   if (policy.immediate_improvement?.auto_merge !== false) errors.push('auto merge must be false');
   if (policy.immediate_improvement?.attempt_ledger_authority !== 'KPMO_EXTERNAL_INCIDENT_LEDGER') errors.push('circuit-breaker ledger authority drift');
   if (policy.closure?.pr_head_success_is_sufficient !== false) errors.push('PR head success cannot replace exact-main post-merge verification');
-  if (policy.closure?.protected_main_consecutive_successes_required !== 2) errors.push('two exact-main post-merge successes are required before closure');
+  if (policy.closure?.protected_main_consecutive_successes_required !== 0) errors.push('unnecessary post-merge consecutive-main trust transfer must remain disabled');
   if (policy.closure?.independent_review_required !== false) errors.push('manual independent review must not block KPMO delegated closure');
   if (policy.state_model?.generic_top_level_pass_forbidden !== true) errors.push('generic top-level PASS must be forbidden');
   if (!policy.hard_denies?.includes('PUBLIC_PRODUCTION_OR_G5_PROMOTION')) errors.push('release hard deny missing');

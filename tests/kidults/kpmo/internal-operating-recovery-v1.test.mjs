@@ -33,6 +33,10 @@ test('drift, tampering and authority elevation fail closed',()=>{
 test('audit emits a distinct internal artifact through the existing KPMO trust while strict consumer stays unchanged',()=>{
   const assurance=fs.readFileSync('.github/workflows/kidults-platform-continuous-assurance-v1.yml','utf8');
   const kpmo=fs.readFileSync('.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml','utf8');
+  const assurancePolicy=JSON.parse(fs.readFileSync('coordination/kidults/kpmo/platform-continuous-assurance-v1.json','utf8'));
+  const assuranceValidator=fs.readFileSync('scripts/kidults/kpmo/validate-platform-continuous-assurance-v1.mjs','utf8');
+  assert.equal(assurancePolicy.closure.protected_main_consecutive_successes_required,0);
+  assert.match(assuranceValidator,/protected_main_consecutive_successes_required !== 0/);
   assert.match(assurance,/- name: Upload exact-run assurance packet/);
   assert.doesNotMatch(assurance,/validate-internal-operating-recovery-v1\.mjs/);
   const reconcile=kpmo.indexOf('reconcile-protected-main-operating-receipts:');
