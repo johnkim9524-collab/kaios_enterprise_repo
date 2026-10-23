@@ -30,7 +30,7 @@ class AtomicOriginalTests(unittest.TestCase):
         self.ddb.rows = {}
         key = self.ledger.key(self.request)
         self.ddb.rows[self.ddb.key(key)] = {**key, 'run_id': {'S': '100'}, 'head_sha': {'S': b['head_sha']}, 'state': {'S': 'RESERVED'}}
-        for role, a in zip(m.ROLES, self.fixture['approvals']):
+        for role, a in zip(m.ROLES[1:], self.fixture['approvals']):
             key = {'pk': {'S': 'AUTH#' + b['authorization_generation']}, 'sk': {'S': 'ROLE#' + role}}
             self.ddb.rows[self.ddb.key(key)] = {**key, 'envelope': {'S': base64.b64encode(m.canonical(a).encode()).decode()}, 'envelope_digest': {'S': m.digest(a)}}
         self.event = dict(action='CONSUME_RESERVATION', authorization_generation=b['authorization_generation'], nonce_digest=b['nonce_digest'], run_id='100', head_sha=b['head_sha'], merge_sha=self.fixture['merge']['merge_sha'], terminal=self.fixture['terminal'], finalizer_workload_id='wf', finalizer_environment='STAGING-FINALIZER', signing_key_arn='kf')
@@ -94,6 +94,20 @@ class AtomicOriginalTests(unittest.TestCase):
         key = {'pk': {'S': 'AUTH#' + self.request['original_generation']}, 'sk': {'S': 'ROLE#KPMO'}}
         self.ddb.rows[self.ddb.key(key)]['envelope_digest']['S'] = 'sha256:' + 'f' * 64
         with self.assertRaisesRegex(ValueError, 'PERSISTED_QUORUM'): self.atomic_consume()
+        self.assertEqual(self.ddb.writes, 0)
+    def test_original_finalizer_uses_exact_two_role_quorum_and_does_not_require_track_row(self):
+        self.atomic_setup()
+        self.assertEqual(m.ROLES[1:], ('KPMO', 'INDEPENDENT_VERIFIER'))
+        self.assertEqual(len(self.fixture['terminal']['workloads']), 2)
+        result = self.atomic_consume()
+        self.assertEqual(result['state'], 'CONSUMED')
+        self.assertEqual(self.ddb.writes, 1)
+    def test_original_finalizer_still_requires_both_current_quorum_roles(self):
+        self.atomic_setup()
+        key = {'pk': {'S': 'AUTH#' + self.request['original_generation']}, 'sk': {'S': 'ROLE#INDEPENDENT_VERIFIER'}}
+        del self.ddb.rows[self.ddb.key(key)]
+        with self.assertRaisesRegex(ValueError, 'ORIGINAL_PERSISTED_QUORUM'):
+            self.atomic_consume()
         self.assertEqual(self.ddb.writes, 0)
     def test_signed_terminal_cannot_forge_persisted_workload_identity(self):
         for field, value in (('stable_id', 'forged'), ('run_id', '999')):

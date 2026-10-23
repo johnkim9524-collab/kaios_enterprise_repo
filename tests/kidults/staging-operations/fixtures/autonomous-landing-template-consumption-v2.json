@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.",
+  "Description": "KIDULTS STAGING ledger, receipt sink, and OIDC roles.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",

@@ -44,10 +44,10 @@ const failureAssuranceCapsuleTemplate = () => {
   current.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile=zip;
   return current;
 };
-test('exact failure-Assurance capsule upgrades to original terminal repair with Code-only non-replacing change set',()=>{
+test('exact failure-Assurance capsule upgrades to PR2718 terminal quorum fix with Code-only non-replacing change set',()=>{
   const latest=JSON.parse(fs.readFileSync('infrastructure/aws/staging/autonomous-internal-landing-v1.json','utf8'));
   assert.equal(createHash('sha256').update(latest.Resources.AutonomousLedgerWriterFunction.Properties.Code.ZipFile).digest('hex'),
-    '6a70ded582e20e1ffc76d49ef45db92e3f3b9ddf6a8290ada936bf5a1d51f5d4');
+    '916cf9acf574769e47e7ead115d0295d1a865049e0c2bf5a169bfa1c8a1f7e02');
   const changeset={Status:'CREATE_COMPLETE',Changes:[{ResourceChange:{Action:'Modify',LogicalResourceId:'AutonomousLedgerWriterFunction',
     ResourceType:'AWS::Lambda::Function',Replacement:'False',Details:[{Target:{Attribute:'Properties',Name:'Code'},Evaluation:'Static',ChangeSource:'DirectModification'}]}}]};
   withFixture({current:failureAssuranceCapsuleTemplate(),desired:latest,changeset},directory=>{
@@ -224,7 +224,15 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   });
   const source = JSON.stringify(bootstrap);
   assert.doesNotMatch(source, /"Resource":"\*"/);
-  assert.doesNotMatch(source, /iam:(CreateRole|DeleteRole|CreateUser|CreateAccessKey|UpdateAssumeRolePolicy|DeleteRolePolicy)/);
+  assert.doesNotMatch(source, /iam:(CreateRole|DeleteRole|CreateUser|CreateAccessKey|DeleteRolePolicy)/);
+  const trustPolicyUpdate = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.filter(
+    statement => (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('iam:UpdateAssumeRolePolicy'),
+  );
+  assert.deepEqual(trustPolicyUpdate, [{
+    Effect: 'Allow',
+    Action: ['iam:UpdateAssumeRolePolicy'],
+    Resource: 'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
+  }]);
   const kmsRead = bootstrap.Resources.DeployerRole.Properties.Policies[0].PolicyDocument.Statement.find(
     statement => Array.isArray(statement.Action) && statement.Action.includes('kms:DescribeKey'),
   );
@@ -272,7 +280,7 @@ test('bootstrap trust is exact workflow/environment and permissions are bounded 
   ]);
 });
 
-test('PassRole is the sole bootstrap delta from exact landed configuration closure', () => {
+test('PassRole and exact KPMO trust update are the only approved bootstrap deltas', () => {
   // Canonical bootstrap JSON at exact main 34ff0ffc48c773d41ad7587233d69ea48b2f3282.
   const beforeDigest = 'fc59c7104f1f60be71550906972add2e443da66bc12c6c1607dd7bcf86d078f4';
   const after = structuredClone(bootstrap);
@@ -286,6 +294,14 @@ test('PassRole is the sole bootstrap delta from exact landed configuration closu
     Condition: {StringEquals: {'iam:PassedToService': 'lambda.amazonaws.com'}},
   });
   statements.splice(statements.indexOf(passRole[0]), 1);
+  const trustPolicyUpdate = statements.filter(statement =>
+    (Array.isArray(statement.Action) ? statement.Action : [statement.Action]).includes('iam:UpdateAssumeRolePolicy'));
+  assert.deepEqual(trustPolicyUpdate, [{
+    Effect: 'Allow',
+    Action: ['iam:UpdateAssumeRolePolicy'],
+    Resource: 'arn:aws:iam::528314240275:role/kidults-autonomous-kpmo-staging-role',
+  }]);
+  statements.splice(statements.indexOf(trustPolicyUpdate[0]), 1);
   assert.equal(createHash('sha256').update(JSON.stringify(stable(after))).digest('hex'), beforeDigest,
     'all existing permissions, resources, trust, and properties remain exact');
 });
