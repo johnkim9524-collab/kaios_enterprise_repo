@@ -50,7 +50,7 @@ for (const sid of ['DenyInsecureTransport','DenyUnencryptedReceiptWrites','DenyW
 }
 assert.equal(template.Parameters.FinalizerEnvironment.Default, 'KIDULTS-AUTONOMOUS-FINALIZER');
 const workflowRefPattern = '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$';
-for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','TerminalRecoveryWorkflowRef','VerifierWorkflowRef','CanaryWorkflowRef']) {
+for (const parameter of ['TrackWorkflowRef','KpmoWorkflowRef','VerifierWorkflowRef','CanaryWorkflowRef']) {
   assert.equal(template.Parameters[parameter].AllowedPattern, workflowRefPattern);
   assert.match(template.Parameters[parameter].Default, new RegExp(workflowRefPattern));
 }
@@ -83,7 +83,7 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
     assert.equal(condition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
     assert.deepEqual(condition['token.actions.githubusercontent.com:sub'], [
       expectedSub(environmentParameter, workflowParameter),
-      expectedSub(environmentParameter, 'TerminalRecoveryWorkflowRef'),
+      {'Fn::Sub':'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'},
     ]);
   } else {
     assertTrust(role, environmentParameter, workflowParameter);
@@ -120,7 +120,6 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
 }
 
 const terminalRecoveryWorkflow = fs.readFileSync('.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml','utf8');
-assert.equal(template.Parameters.TerminalRecoveryWorkflowRef.Default, 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main');
 assert.ok(terminalRecoveryWorkflow.includes('environment: KIDULTS-AUTONOMOUS-KPMO'));
 assert.ok(terminalRecoveryWorkflow.includes('      id-token: write'));
 assert.ok(terminalRecoveryWorkflow.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1'"));
