@@ -178,11 +178,11 @@
     },
     "KPMO Continuous Assurance Success Authority Gate V1": {
       "max": 3,
-      "required_consumer": "KIDULTS Autonomous KPMO Authorization V1",
+      "required_consumer": "KPMO Continuous Assurance Terminal Recovery V1",
       "allowed_consumers": [
         "KIDULTS Autonomous Independent Verification V1",
-        "KIDULTS Autonomous KPMO Authorization V1",
-        "KIDULTS Autonomous Track Authorization V1"
+        "KIDULTS Autonomous Track Authorization V1",
+        "KPMO Continuous Assurance Terminal Recovery V1"
       ]
     },
     "KIDULTS Platform Continuous Assurance V1": {

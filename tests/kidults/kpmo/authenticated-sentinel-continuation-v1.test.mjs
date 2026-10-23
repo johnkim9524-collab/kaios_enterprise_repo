@@ -79,16 +79,18 @@ test('full proof refuses continuation artifact substitution and manual Assurance
  for(const change of [f=>f.sentinelContinuationEvidence.artifact.id++,f=>f.assuranceRun.event='workflow_dispatch']){const f=fixture();f.sentinelContinuationEvidence=evidence();f.audit.execution.upstream.workflow_event='workflow_dispatch';delete f.audit.receipt_digest;f.audit=seal(f.audit);change(f);assert.throws(()=>verifyAssuranceReadiness(f));}
 });
 
-test('authority workflow passes authenticated selected evidence through full proof and final enforcement',()=>{
+test('deferred authority gate verifies natural Sentinel health after the KPMO handoff',()=>{
  const w=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','utf8');
- assert.ok(w.indexOf('collect-sentinel-continuation-evidence-v1.mjs')<w.indexOf('node scripts/kidults/kpmo/select-latest-natural-sentinel-run-v1.mjs'));
- assert.match(w,/sentinel-runs.json" "\$UPSTREAM_SHA" "\$UPSTREAM_CREATED_AT" "\$GITHUB_REPOSITORY" "\$GATE_DIR\/sentinel-continuation-evidence.json"/);
- assert.ok(w.indexOf('assurance-artifact-binding.json"',w.indexOf('node scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs'))<w.indexOf('selected-sentinel-continuation.json"',w.indexOf('node scripts/kidults/kpmo/lib/assurance-full-proof-v1.mjs')));
- assert.match(w,/producer_health_continuation.state=="VERIFIED_PASS"/);
- assert.match(w,/producer_health_continuation.artifact_digest==.producer_health_artifact_digest/);
- const collector=fs.readFileSync('scripts/kidults/kpmo/collect-sentinel-continuation-evidence-v1.mjs','utf8');
- assert.match(collector,/runs.length>50/);assert.match(collector,/deadline=Date.now\(\)\+210000/);
- assert.match(collector,/AUTHENTICATED_ARCHIVE_NOT_READY/);
+ assert.match(w,/workflows: \[.*KIDULTS Autonomous KPMO Authorization V1/);
+ assert.match(w,/deferred-runtime-proof-handoff-gate:/);
+ assert.match(w,/run-deferred-assurance-proof-gate-v1\.mjs/);
+ const verifier=fs.readFileSync('scripts/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.mjs','utf8');
+ assert.match(verifier,/verifyHealthReceipt/);
+ assert.match(verifier,/CORE_FOUR_CONTENT/);
+ assert.match(verifier,/producerRun\?\.path/);
+ assert.match(verifier,/assuranceArchive\?\.archive_digest!==assuranceArtifact\.digest/);
+ assert.match(verifier,/whole_platform_authority:false/);
+ assert.match(verifier,/promotion_eligible:false/);
 });
 import crypto from 'node:crypto';
 import os from 'node:os';
