@@ -36,13 +36,15 @@ test('verified classification-only success is explicitly non-authorizing',()=>{c
 test('failed/cancelled audit is rejected even if workflow is green',()=>{for(const c of ['failure','cancelled','timed_out',null]) assert.throws(()=>classifyAssuranceCompletion(fixture(c)),/AUDIT_NON_SUCCESS/);});
 test('skipped audit cannot disguise failed/missing classifier',()=>{for(const c of ['failure','skipped']){const f=fixture('skipped');f.jobs[1].conclusion=c;assert.throws(()=>classifyAssuranceCompletion(f),/CLASSIFICATION_NOT_VERIFIED/);}const f=fixture('skipped');f.jobs.pop();assert.throws(()=>classifyAssuranceCompletion(f),/CLASSIFICATION_NOT_VERIFIED/);});
 test('fork/wrong workflow/stale SHA/attempt cannot qualify',()=>{for(const mutation of [f=>f.run.repository.full_name='fork/repo',f=>f.run.head_repository.full_name='fork/repo',f=>f.run.path='untrusted.yml',f=>f.run.head_sha='b'.repeat(40),f=>f.run.run_attempt=1,f=>f.run.status='in_progress']){const f=fixture();mutation(f);assert.throws(()=>classifyAssuranceCompletion(f),/RUN_BINDING/);}});
-test('unsupported workflow_dispatch-like event cannot qualify',()=>{const f=fixture();f.run.event='push';assert.throws(()=>classifyAssuranceCompletion(f),/EVENT_UNSUPPORTED/);});
+test('protected-main push full audit is eligible but remains non-authorizing',()=>{const f=fixture();f.run.event='push';const r=classifyAssuranceCompletion(f);assert.equal(r.event,'push');assert.equal(r.eligible_full_audit,true);assert.equal(r.authority_granted,false);assert.equal(r.whole_platform_runtime_proven,false);assert.equal(r.production,'HOLD');assert.equal(r.public,'HOLD');assert.equal(r.g5,'HOLD');});
+test('unsupported event cannot qualify',()=>{const f=fixture();f.run.event='schedule';assert.throws(()=>classifyAssuranceCompletion(f),/EVENT_UNSUPPORTED/);});
 test('job replay, duplicates and missing/multiple audit fail closed',()=>{for(const mutate of [f=>f.jobs[0].run_attempt=1,f=>f.jobs[0].head_sha='b'.repeat(40),f=>f.jobs.push({...f.jobs[0]}),f=>f.jobs.shift(),f=>f.jobs.push({...f.jobs[0],id:3})]){const f=fixture();mutate(f);assert.throws(()=>classifyAssuranceCompletion(f));}});
 test('Assurance classification is non-authorizing and proof gate waits for the KPMO handoff',()=>{
   const workflow=fs.readFileSync('.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml','utf8');
   const classify=workflow.slice(workflow.indexOf('  classify-assurance-completion:'),workflow.indexOf('  deferred-runtime-proof-handoff-gate:'));
   assert.match(classify,/github\.event\.workflow_run\.name == 'KIDULTS Platform Continuous Assurance V1'/);
   assert.match(classify,/classify-assurance-completion-disposition-v1\.mjs/);
+  assert.match(classify,/github\\.event\\.workflow_run\\.event == 'push'/);
   assert.doesNotMatch(workflow,/  success-authority-gate:\n/);
   const deferred=workflow.slice(workflow.indexOf('  deferred-runtime-proof-handoff-gate:'));
   assert.match(deferred,/github\.event\.workflow_run\.name == 'KIDULTS Autonomous KPMO Authorization V1'/);
