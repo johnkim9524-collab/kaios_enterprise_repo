@@ -1,82 +1,82 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING ledger.",
+  "Description": "STG",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
-      "AllowedPattern": "^arn:aws:iam::[0-9]{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
+      "AllowedPattern": "^arn:aws:iam::\\d{12}:oidc-provider/token\\.actions\\.githubusercontent\\.com$"
     },
     "GitHubRepository": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+      "AllowedPattern": "^[\\w.-]+/[\\w.-]+$"
     },
     "TrackEnvironment": {
       "Type": "String",
       "Default": "KIDULTS-AUTONOMOUS-TRACK",
-      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+      "AllowedPattern": "^[\\w.-]{1,64}$"
     },
     "KpmoEnvironment": {
       "Type": "String",
       "Default": "KIDULTS-AUTONOMOUS-KPMO",
-      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+      "AllowedPattern": "^[\\w.-]{1,64}$"
     },
     "VerifierEnvironment": {
       "Type": "String",
       "Default": "KIDULTS-AUTONOMOUS-VERIFIER",
-      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+      "AllowedPattern": "^[\\w.-]{1,64}$"
     },
     "FinalizerEnvironment": {
       "Type": "String",
       "Default": "KIDULTS-AUTONOMOUS-FINALIZER",
-      "AllowedPattern": "^[A-Za-z0-9_.-]{1,64}$"
+      "AllowedPattern": "^[\\w.-]{1,64}$"
     },
     "TrackWorkloadId": {
       "Type": "String",
       "Default": "kidults-accountable-track-agent-v1",
-      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+      "AllowedPattern": "^[\\w.:-]{1,128}$"
     },
     "KpmoWorkloadId": {
       "Type": "String",
       "Default": "kidults-kpmo-v1",
-      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+      "AllowedPattern": "^[\\w.:-]{1,128}$"
     },
     "VerifierWorkloadId": {
       "Type": "String",
       "Default": "kidults-independent-verifier-v1",
-      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+      "AllowedPattern": "^[\\w.:-]{1,128}$"
     },
     "FinalizerWorkloadId": {
       "Type": "String",
       "Default": "kidults-finalizer-v1",
-      "AllowedPattern": "^[A-Za-z0-9_.:-]{1,128}$"
+      "AllowedPattern": "^[\\w.:-]{1,128}$"
     },
     "TrackWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$"
     },
     "KpmoWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$"
     },
     "VerifierWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-independent-verification-authorization-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$"
     },
     "CanaryWorkflowRef": {
       "Type": "String",
       "Default": "johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main",
-      "AllowedPattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml@refs/heads/main$"
+      "AllowedPattern": "^[\\w.-]+/[\\w.-]+/\\.github/workflows/[\\w.-]+\\.ya?ml@refs/heads/main$"
     }
   },
   "Resources": {
     "AutonomousLedgerKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Ledger key",
+        "Description": "KIDULTS STAGING autonomous landing ledger key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",
@@ -405,7 +405,7 @@
     "TrackApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Track key",
+        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -588,7 +588,7 @@
     "KpmoApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KPMO key",
+        "Description": "KIDULTS STAGING KPMO approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -776,7 +776,7 @@
     "VerifierApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Verifier key",
+        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -959,7 +959,7 @@
     "FinalizerSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Finalizer key",
+        "Description": "KIDULTS STAGING FINALIZER signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -1280,7 +1280,7 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "Description": "Receipt key",
+        "Description": "KIDULTS STAGING immutable autonomous landing receipt key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",
