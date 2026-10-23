@@ -292,6 +292,32 @@ jobs:
           repository: ${{ github.repository }}
           run-id: ${{ github.event.workflow_run.id }}
           path: ${{ runner.temp }}/upstream-assurance-packet
+      - name: Bind the exact parent Assurance run and archive
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          UPSTREAM_RUN_ID: ${{ github.event.workflow_run.id }}
+          UPSTREAM_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          UPSTREAM_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/kidults-main-operating-proof"
+          mkdir -p "$DIR"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}" > "$DIR/assurance-run.json"
+          gh api "/repos/${GITHUB_REPOSITORY}/actions/runs/${UPSTREAM_RUN_ID}/artifacts?per_page=100" > "$DIR/assurance-artifacts.json"
+          NAME="kidults-continuous-assurance-${UPSTREAM_SHA}-${UPSTREAM_RUN_ID}-${UPSTREAM_RUN_ATTEMPT}"
+          COUNT=$(jq --arg name "$NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)] | length' \
+            "$DIR/assurance-artifacts.json")
+          test "$COUNT" -eq 1
+          jq --arg name "$NAME" --argjson run "$UPSTREAM_RUN_ID" --arg sha "$UPSTREAM_SHA" \
+            '[.artifacts[] | select(.name==$name and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$sha)][0]' \
+            "$DIR/assurance-artifacts.json" > "$DIR/assurance-artifact.json"
+          rm "$DIR/assurance-artifacts.json"
+          jq -e --arg sha "$UPSTREAM_SHA" --argjson run "$UPSTREAM_RUN_ID" --argjson attempt "$UPSTREAM_RUN_ATTEMPT" '
+            .head_sha==$sha and .id==$run and .run_attempt==$attempt and .status=="completed" and .conclusion=="success"
+          ' "$DIR/assurance-run.json" >/dev/null
       - name: Reconcile the exact main proof through the preauthorized shared budget
         if: steps.upstream-audit.outputs.audit_succeeded == 'true'
         env:
@@ -335,6 +361,17 @@ jobs:
           node scripts/kidults/kpmo/validate-internal-operating-recovery-v1.mjs \
             "$PROOF_DIR/whole-platform-operating-proof-v1.json" \
             "$PROOF_DIR/internal-operating-recovery-observation-v1.json" --observe
+      - name: Seal exact parent Assurance to downstream proof handoff
+        if: steps.upstream-audit.outputs.audit_succeeded == 'true'
+        env:
+          KPMO_SOURCE_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: >-
+          node scripts/kidults/kpmo/lib/assurance-runtime-proof-handoff-v1.mjs
+          "$RUNNER_TEMP/kidults-main-operating-proof/whole-platform-operating-proof-v1.json"
+          "$RUNNER_TEMP/kidults-main-operating-proof/assurance-run.json"
+          "$RUNNER_TEMP/upstream-assurance-packet/audit-receipt.json"
+          "$RUNNER_TEMP/kidults-main-operating-proof/assurance-artifact.json"
+          "$RUNNER_TEMP/kidults-main-operating-proof/assurance-runtime-proof-handoff-v1.json"
       - name: Record non-authorizing skipped-audit disposition
         if: steps.upstream-audit.outputs.audit_succeeded == 'false'
         env:
