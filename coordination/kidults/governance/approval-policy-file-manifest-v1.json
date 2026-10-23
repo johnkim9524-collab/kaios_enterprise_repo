@@ -3459,8 +3459,8 @@
     {
       "path": "infrastructure/aws/staging/autonomous-internal-landing-v1.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "3ae99ebe2e58fe7854ac39e83739e037544c3db0",
-      "sha256": "sha256:2cfc9579a9ee6220b3e02d2e7ff48dcb94026cb7c762fb992bee2c3e3f59373c"
+      "git_blob": "dba14e77a6ae9ac41f51d14133dcdd1c123fb207",
+      "sha256": "sha256:6eb4782d0aebd0354522c4f7190ae96730e3953863868da62ff18b7b559a8193"
     },
     {
       "path": "infrastructure/aws/staging/autonomous-landing-deployer-bootstrap-v1.json",
@@ -3641,8 +3641,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-aws-template-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "1b64e54d6b17daedda4885b5c8afee7468639180",
-      "sha256": "sha256:7b2d6fa6b38e449e0b92656a94aef84236cee704cdc764edd008b35053aa0618",
+      "git_blob": "9e90aaae5309c7ec311e908950c45e996f88279b",
+      "sha256": "sha256:f43925b48fbf22d84e96effeea578aff5d0ce94ca80b841a4afc4b4d4285574d",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -3654,8 +3654,8 @@
     {
       "path": "scripts/governance/validate-autonomous-landing-staging-deployment-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "443305a6b3bd2d3fdf42de9a0cc6a7d707cf811b",
-      "sha256": "sha256:4b848bc3ffa590f97620a02b344ac86a2678d3a6bcf2376fd2d244849ecf02fb",
+      "git_blob": "7217751c0de55c417dddf1dd2562b97c1ebfe185",
+      "sha256": "sha256:5cf6076b70cb0cc9b2c115bf60e220877302ea02e05d35dd0be4e2d0fcd207b6",
       "authorization_routing": {
         "route": "STAGING_BOUNDED",
         "coverage": {
@@ -7193,8 +7193,8 @@
     {
       "path": "tests/kidults/kpmo/test_autonomous_postmerge_recovery_ledger_v1.py",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "39ebc073c8f8c54b77a55bffb24527556c68375b",
-      "sha256": "sha256:6cafcf732a49dc7a3901679b7be54b3eb701d879a050e20e2115180b9da0ea47"
+      "git_blob": "0ee98f87a2ddfbf8ee39a47e7f810a646da2f123",
+      "sha256": "sha256:be461505d3a22867ad50bf92b4f521a838af2dfc120847f3201f5f2ce01bb11f"
     },
     {
       "path": "tests/kidults/kpmo/test_exact_head_supersession_contract.py",
@@ -7271,8 +7271,8 @@
     {
       "path": "tests/kidults/staging-operations/autonomous-landing-staging-deployer-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "01f7b3d471428349155f8a458da4b5f25eb1591d",
-      "sha256": "sha256:a0acf3de3577d9a19e872a6d36194d7649bcbc3c76cf13790783791d72d383ff"
+      "git_blob": "df452f8a8498e3dd743b7ea3fd3ec25725df647f",
+      "sha256": "sha256:68848e06c67e5d5639dde4dd67d0dcd6ff0995ee4eb30ec3ffc44738e844e664"
     },
     {
       "path": "tests/kidults/staging-operations/autonomous-operation-quarantine-v1.test.mjs",
@@ -7367,8 +7367,8 @@
     {
       "path": "tests/kidults/staging-operations/fixtures/autonomous-landing-template-consumption-v2.json",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "0473c727f2e8af59641fea717137cfeeabbd8c84",
-      "sha256": "sha256:005710ed06eff28a047ee98f6e6acf26ef1e6aa9e5af585b5719fef36cc2147c"
+      "git_blob": "59dbf6e633d56316f1b2e48051453e2d685eb391",
+      "sha256": "sha256:f176c336b65c1fdab2c3d3e28c5ae7063fec875a781ee090fd72b5ccca9edefe"
     },
     {
       "path": "tests/kidults/staging-operations/github-read-resume-role-v1.test.mjs",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:66ebc74a1bfedbc21dc452c43e73c9fdc9eacb546ca321fab768cd25c1c1e073"
+  "manifest_sha256": "sha256:47a60bbeef80bec32eb983f49915b6bef88c0209548074c5b2f39f0412bebf7a"
 }
