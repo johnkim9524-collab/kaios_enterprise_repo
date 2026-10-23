@@ -41,7 +41,9 @@ test('AWS trust uses only aud and custom sub and role workflows are distinct', (
     const condition=template.Resources[`${prefix}ApprovalRole`].Properties.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals;
     assert.deepEqual(Object.keys(condition).sort(),['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
     assert.equal(condition['token.actions.githubusercontent.com:aud'],'sts.amazonaws.com');
-    assert.equal(condition['token.actions.githubusercontent.com:sub']['Fn::Sub'],`repo:${'${GitHubRepository}'}:environment:${'${' + envParam + '}'}:workflow_ref:${'${' + wfParam + '}'}`);
+    const approvalSubject={'Fn::Sub':`repo:${'${GitHubRepository}'}:environment:${'${' + envParam + '}'}:workflow_ref:${'${' + wfParam + '}'}`};
+    const recoverySubject={'Fn::Sub':'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'};
+    assert.deepEqual(condition['token.actions.githubusercontent.com:sub'],prefix==='Kpmo'?[approvalSubject,recoverySubject]:approvalSubject);
     const workflow=fs.readFileSync(`.github/workflows/${workflowFile}`,'utf8');
     if(prefix==='Track')assert.doesNotMatch(workflow,/^  repository_dispatch:/m);
     else assert.ok(workflow.includes(`      - ${eventName}`));
