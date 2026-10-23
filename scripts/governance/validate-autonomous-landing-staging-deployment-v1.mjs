@@ -313,6 +313,10 @@ function normalizeAllowedRecoveryState(template, desired) {
   const copy = structuredClone(template);
   if(isExactPostmergeRecoveryWriterUpgrade(copy,desired)){
     copy.Resources[WRITER_FUNCTION_ID]=structuredClone(desired.Resources[WRITER_FUNCTION_ID]);
+    if (copy.Description === 'KIDULTS STAGING durable single-use ledger, immutable receipt sink and GitHub OIDC roles for autonomous internal landing.'
+        && desired.Description === 'KIDULTS STAGING ledger, receipt sink, and OIDC roles.') {
+      copy.Description = desired.Description;
+    }
   }else if (isAllowedLegacyWriterCodeRecovery(copy, desired)) {
     copy.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile = desired.Resources[WRITER_FUNCTION_ID].Properties.Code.ZipFile;
   }
