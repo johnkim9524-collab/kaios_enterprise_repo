@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "KIDULTS STAGING ledger.",
+  "Description": "KIDULTS STAGING ledger, receipt sink, and OIDC roles.",
   "Parameters": {
     "GitHubOidcProviderArn": {
       "Type": "String",
@@ -76,7 +76,7 @@
     "AutonomousLedgerKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Ledger key",
+        "Description": "KIDULTS STAGING autonomous landing ledger key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",
@@ -405,7 +405,7 @@
     "TrackApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Track key",
+        "Description": "KIDULTS STAGING ACCOUNTABLE_TRACK_AGENT approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -588,7 +588,7 @@
     "KpmoApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "KPMO key",
+        "Description": "KIDULTS STAGING KPMO approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -650,14 +650,9 @@
               "Condition": {
                 "StringEquals": {
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                  "token.actions.githubusercontent.com:sub": [
-                    {
-                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
-                    },
-                    {
-                      "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main"
-                    }
-                  ]
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:${KpmoWorkflowRef}"
+                  }
                 }
               }
             }
@@ -776,7 +771,7 @@
     "VerifierApprovalSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Verifier key",
+        "Description": "KIDULTS STAGING INDEPENDENT_VERIFIER approval signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -959,7 +954,7 @@
     "FinalizerSigningKey": {
       "Type": "AWS::KMS::Key",
       "Properties": {
-        "Description": "Finalizer key",
+        "Description": "KIDULTS STAGING FINALIZER signing key",
         "KeySpec": "ECC_NIST_P256",
         "KeyUsage": "SIGN_VERIFY",
         "KeyPolicy": {
@@ -1280,7 +1275,7 @@
       "DeletionPolicy": "Retain",
       "UpdateReplacePolicy": "Retain",
       "Properties": {
-        "Description": "Receipt key",
+        "Description": "KIDULTS STAGING immutable autonomous landing receipt key",
         "EnableKeyRotation": true,
         "KeyPolicy": {
           "Version": "2012-10-17",

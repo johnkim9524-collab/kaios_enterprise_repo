@@ -75,19 +75,7 @@ const finalizerSubs = [];
 for (const [prefix, environmentParameter, workflowParameter, roleName, signingKeyResource, workflowFile, eventName] of approvals) {
   const role = resources[`${prefix}ApprovalRole`].Properties;
   assert.equal(role.RoleName, roleName);
-  if (prefix === 'Kpmo') {
-    const statement = role.AssumeRolePolicyDocument.Statement[0];
-    const condition = statement.Condition.StringEquals;
-    assert.equal(statement.Action, 'sts:AssumeRoleWithWebIdentity');
-    assert.deepEqual(Object.keys(condition).sort(), ['token.actions.githubusercontent.com:aud','token.actions.githubusercontent.com:sub']);
-    assert.equal(condition['token.actions.githubusercontent.com:aud'], 'sts.amazonaws.com');
-    assert.deepEqual(condition['token.actions.githubusercontent.com:sub'], [
-      expectedSub(environmentParameter, workflowParameter),
-      {'Fn::Sub':'repo:${GitHubRepository}:environment:${KpmoEnvironment}:workflow_ref:johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'},
-    ]);
-  } else {
-    assertTrust(role, environmentParameter, workflowParameter);
-  }
+  assertTrust(role, environmentParameter, workflowParameter);
   const workflowPath = `.github/workflows/${workflowFile}`;
   const workflow = fs.readFileSync(workflowPath,'utf8');
   assert.match(workflow, new RegExp(`^name:`, 'm'));
@@ -118,14 +106,6 @@ for (const [prefix, environmentParameter, workflowParameter, roleName, signingKe
   const sign = role.Policies[0].PolicyDocument.Statement.find(value => (value.Action || []).includes('kms:Sign'));
   assert.deepEqual(sign.Resource, {'Fn::GetAtt':[signingKeyResource,'Arn']});
 }
-
-const terminalRecoveryWorkflow = fs.readFileSync('.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml','utf8');
-assert.ok(terminalRecoveryWorkflow.includes('environment: KIDULTS-AUTONOMOUS-KPMO'));
-assert.ok(terminalRecoveryWorkflow.includes('      id-token: write'));
-assert.ok(terminalRecoveryWorkflow.includes("github.event.workflow_run.name == 'KPMO Continuous Assurance Success Authority Gate V1'"));
-assert.ok(terminalRecoveryWorkflow.includes("github.event.workflow_run.conclusion == 'success'"));
-assert.ok(terminalRecoveryWorkflow.includes("github.run_attempt == 1"));
-assert.ok(terminalRecoveryWorkflow.includes("github.ref == 'refs/heads/main'"));
 
 const canaryWorkflow = fs.readFileSync('.github/workflows/kidults-autonomous-object-lock-canary-v1.yml','utf8');
 assert.equal(template.Parameters.CanaryWorkflowRef.Default, 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kidults-autonomous-object-lock-canary-v1.yml@refs/heads/main');
