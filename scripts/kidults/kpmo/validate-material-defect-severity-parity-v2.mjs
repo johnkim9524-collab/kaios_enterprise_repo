@@ -19,10 +19,12 @@ export function declaredSeverityLabels(title) {
   const text = String(title || '');
   for (const match of text.matchAll(/\[([^\]]+)\]/g)) {
     const parts = String(match[1] || '').split('/').map(part => part.trim()).filter(Boolean);
-    if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1')) continue;
+    if (parts.length === 0 || !parts.every(part => part === 'P0' || part === 'P1' || part === 'P2')) continue;
     for (const part of parts) declared.add(part);
   }
-  return [...declared].sort();
+  const authoritativeP0P1 = [...declared].filter(part => part === 'P0' || part === 'P1').sort();
+  if (authoritativeP0P1.length > 0) return authoritativeP0P1;
+  return declared.has('P2') ? ['P2'] : [];
 }
 
 function normalizedLabels(issue) {
@@ -36,19 +38,24 @@ export function parityFailures(issue) {
   for (const severity of declared) {
     if (!labels.has(severity)) failures.push(`#${issue.number}:${severity}_TITLE_WITHOUT_${severity}_LABEL`);
   }
-  if (declared.size === 1 && declared.has('P0') && labels.has('P1')) failures.push(`#${issue.number}:P1_LABEL_WITH_P0_ONLY_TITLE`);
-  if (declared.size === 1 && declared.has('P1') && labels.has('P0')) failures.push(`#${issue.number}:P0_LABEL_WITH_P1_ONLY_TITLE`);
+  if (declared.size === 1) {
+    const [onlySeverity] = declared;
+    for (const severity of ['P0', 'P1', 'P2']) {
+      if (severity !== onlySeverity && labels.has(severity)) failures.push(`#${issue.number}:${severity}_LABEL_WITH_${onlySeverity}_ONLY_TITLE`);
+    }
+  }
   return failures;
 }
 
 export function materialRecord(issue) {
   const declared = declaredSeverityLabels(issue.title);
   const labels = normalizedLabels(issue);
-  const priorities = [...new Set([...declared, ...labels.filter(label => label === 'P0' || label === 'P1')])].sort();
+  const materialDeclared = declared.filter(severity => severity === 'P0' || severity === 'P1');
+  const priorities = [...new Set([...materialDeclared, ...labels.filter(label => label === 'P0' || label === 'P1')])].sort();
   if (!Number.isInteger(issue.number) || String(issue.state || '').toLowerCase() !== 'open' || priorities.length === 0) return null;
   return {
     issue_number: issue.number,
-    declared_severity: declared,
+    declared_severity: materialDeclared,
     labels,
     effective_priority: priorities.includes('P0') ? 'P0' : 'P1',
     title: String(issue.title || '').trim(),
@@ -72,13 +79,22 @@ function selfTest() {
   const missingCombined = { number: 3, state: 'open', title: '[P0/P1] missing P1', labels: [{ name: 'P0' }] };
   const support = { number: 4, state: 'open', title: '[P0-SUPPORT] support only', labels: [] };
   const labelOnly = { number: 5, state: 'open', title: 'material by authoritative label', labels: [{ name: 'P1' }] };
+  const exactP2 = { number: 6, state: 'open', title: '[P2][Governance] exact', labels: [{ name: 'P2' }] };
+  const missingP2 = { number: 7, state: 'open', title: '[P2][Governance] missing label', labels: [] };
+  const wrongP2 = { number: 8, state: 'open', title: '[P2][Governance] wrong label', labels: [{ name: 'P1' }] };
+  const p1WithP2Stage = { number: 9, state: 'open', title: '[P1][ASI][P2] pipeline stage', labels: [{ name: 'P1' }] };
   if (parityFailures(exactP0).length) throw new Error('SELF_TEST_EXACT_P0_REJECTED');
   if (parityFailures(combined).length) throw new Error('SELF_TEST_COMBINED_REJECTED');
   if (!parityFailures(missingCombined).some(x => x.includes('P1_TITLE_WITHOUT_P1_LABEL'))) throw new Error('SELF_TEST_COMBINED_MISMATCH_NOT_REJECTED');
   if (declaredSeverityLabels(support.title).length !== 0) throw new Error('SELF_TEST_SUPPORT_ALIASING');
   if (parityFailures(support).length) throw new Error('SELF_TEST_SUPPORT_FALSE_MISMATCH');
   if (!materialRecord(labelOnly)) throw new Error('SELF_TEST_LABEL_ONLY_MATERIAL_LOST');
-  if (materialRecord({ number: 6, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
+  if (parityFailures(exactP2).length) throw new Error('SELF_TEST_EXACT_P2_REJECTED');
+  if (!parityFailures(missingP2).some(x => x.includes('P2_TITLE_WITHOUT_P2_LABEL'))) throw new Error('SELF_TEST_P2_MISSING_LABEL_NOT_REJECTED');
+  if (!parityFailures(wrongP2).some(x => x.includes('P1_LABEL_WITH_P2_ONLY_TITLE'))) throw new Error('SELF_TEST_P2_WRONG_LABEL_NOT_REJECTED');
+  if (parityFailures(p1WithP2Stage).length || declaredSeverityLabels(p1WithP2Stage.title).join(',') !== 'P1') throw new Error('SELF_TEST_P2_STAGE_MISCLASSIFIED');
+  if (materialRecord(exactP2)) throw new Error('SELF_TEST_P2_CHANGED_CANONICAL_MATERIAL_SCOPE');
+  if (materialRecord({ number: 10, state: 'open', title: 'ordinary issue', labels: [] })) throw new Error('SELF_TEST_ORDINARY_FALSE_MATERIAL');
   console.log(JSON.stringify({
     test: 'MATERIAL_DEFECT_SEVERITY_PARITY_V2_SELF_TEST',
     state: 'VERIFIED_PASS',
@@ -86,6 +102,9 @@ function selfTest() {
     combined_marker_normalization: true,
     support_alias_excluded: true,
     label_only_authority_preserved: true,
+    p2_only_parity_enforced: true,
+    p2_pipeline_stage_disambiguated: true,
+    canonical_p0_p1_registry_scope_preserved: true,
     mismatch_fail_closed: true
   }));
 }
