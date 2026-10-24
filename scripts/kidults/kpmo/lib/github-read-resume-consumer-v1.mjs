@@ -123,7 +123,7 @@ export function validateGithubReadResumeCheckpoint({checkpoint,run,artifact,arch
   check(Number.isFinite(resumeAt)&&new Date(resumeAt).toISOString()===checkpoint.resume_at,'RESUME_TIME');
   check(checkpoint.unfinished_operation?.method==='GET','METHOD');
   const deferredTarget=checkpoint.unfinished_operation.route.match(
-    /^\/repos\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/runs\/([1-9][0-9]{0,15})$/);
+    /^\/repos\/johnkim9524-collab\/kaios_enterprise_repo\/actions\/runs\/([1-9][0-9]{0,15})(?:\/artifacts\\?per_page=100)?$/);
   const routeBinding={...b,...(deferredTarget?{deferred_target_run_id:deferredTarget[1]}:{})};
   const allowedRoute=routeAllowed(checkpoint.unfinished_operation.route,routeBinding,now);
   return {packet,resumeAt,route:checkpoint.unfinished_operation.route,allowedRoute};
