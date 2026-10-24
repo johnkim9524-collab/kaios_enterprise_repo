@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO_TERMINAL_RECOVERY_PROOF_HANDOFF_BINDING_20261024",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "dc6a8d8bcfa8bab97f435d794377774100480072",
+  "head_branch": "codex/restore-success-authority-gate-20261024",
+  "source_head_sha": "7a4e7fad9db36d2bbd49e72597b3a6aaacaefeab",
+  "source_head_tree_sha": "84416367c7b9c417f2952038b98210b915a78645",
+  "payload_digest": "sha256:a3bc16f2ff62f91f9aaa98c27539c6ec954055d3fd891aafd19ef3d2aface46a",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
