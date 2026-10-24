@@ -130,6 +130,10 @@ class RecoveryWorkflowTests(unittest.TestCase):
         proof = next(step for step in steps if step.get('name') == 'Verify exact proof handoff before credentialed recovery')
         self.assertEqual(proof['run'], 'node scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs')
         self.assertEqual(proof['env']['GH_TOKEN'], '${{ github.token }}')
+        verifier = (ROOT / 'scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs').read_text()
+        self.assertIn('/actions/artifacts/${artifact.id}/zip', verifier)
+        self.assertIn('read-sentinel-artifact-v1.py', verifier)
+        self.assertIn('PROOF_RECEIPT_SCHEMA_OR_BINDING', (ROOT / 'scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs').read_text())
         self.assertLess([step.get('name') for step in steps].index(proof['name']),
                         [step.get('name') for step in steps].index('Preserve admission evidence'))
         recovery = workflow['jobs']['terminal-recovery-approval']
