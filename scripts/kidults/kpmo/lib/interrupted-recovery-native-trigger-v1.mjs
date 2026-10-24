@@ -7,7 +7,7 @@ import {selectLatestNaturalSentinelRun} from '../select-latest-natural-sentinel-
 import {bindAssuranceUpstreamSentinelReceipt} from '../bind-assurance-upstream-sentinel-receipt-v1.mjs';
 import {verifyAuthenticatedSentinelContinuation} from './authenticated-sentinel-continuation-v1.mjs';
 import {consumeKirCoverageAssuranceContinuation} from '../validate-kir-coverage-assurance-continuation-v1.mjs';
-// Read-only authentication of the existing Gate workflow_run trigger.
+// Read-only authentication of the KPMO deferred proof-handoff workflow_run trigger.
 import fs from 'node:fs';
 import {readArchive,checkTransport} from '../validate-sentinel-producer-content-v1.mjs';
 import {execFileSync} from 'node:child_process';
@@ -353,9 +353,46 @@ export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,ev
   const jobs=await get(`actions/runs/${live.id}/attempts/1/jobs?per_page=100`);
   check(Array.isArray(jobs.jobs)&&jobs.total_count===jobs.jobs.length&&jobs.total_count<=100
     &&new Set(jobs.jobs.map(j=>j.id)).size===jobs.jobs.length,'JOBS');
-  const authority=jobs.jobs.filter(j=>j.name==='success-authority-gate');
-  check(authority.length===1&&authority[0].run_id===live.id&&(authority[0].run_attempt===undefined||authority[0].run_attempt===1)
-    &&authority[0].status==='completed'&&authority[0].conclusion==='success','ACTUAL_AUTHORITY');
+  const handoff=jobs.jobs.filter(j=>j.name==='deferred-runtime-proof-handoff-gate');
+  check(handoff.length===1&&handoff[0].run_id===live.id&&(handoff[0].run_attempt===undefined||handoff[0].run_attempt===1)
+    &&handoff[0].status==='completed'&&handoff[0].conclusion==='success'
+    &&handoff[0].steps?.filter(step=>step.name==='Require exact autonomous Assurance proof closure'
+      &&step.status==='completed'&&step.conclusion==='success').length===1,'DEFERRED_PROOF_JOB');
+  const artifacts=await get(`actions/runs/${live.id}/artifacts?per_page=100`);
+  check(Array.isArray(artifacts.artifacts)&&artifacts.total_count===artifacts.artifacts.length&&artifacts.total_count<=100,'DEFERRED_PROOF_ARTIFACT_LIST');
+  const proofArtifacts=artifacts.artifacts.filter(a=>a.name.startsWith(`kpmo-deferred-assurance-runtime-proof-gate-${env.GITHUB_SHA}-`)
+    &&a.expired===false&&a.workflow_run?.id===live.id&&a.workflow_run?.head_sha===env.GITHUB_SHA);
+  check(proofArtifacts.length===1,'DEFERRED_PROOF_ARTIFACT');
+  const proofArtifact=proofArtifacts[0];checkTransport(live,proofArtifact,env.GITHUB_SHA,new Date().toISOString());
+  const proofBytes=await readBytes(`actions/artifacts/${proofArtifact.id}/zip`);
+  check(Buffer.isBuffer(proofBytes)&&proofBytes.length===proofArtifact.size_in_bytes,'DEFERRED_PROOF_ARCHIVE_SIZE');
+  const proofPacket=archiveReader(proofBytes,proofArtifact.digest);
+  check(proofPacket.archive_digest===proofArtifact.digest&&proofPacket.extraction_performed===false,'DEFERRED_PROOF_ARCHIVE_BINDING');
+  const proofMembers=proofPacket.members.filter(member=>member.encoding==='utf-8'
+    &&member.name.split('/').at(-1)==='kpmo-deferred-assurance-runtime-proof-gate-v1.json');
+  check(proofMembers.length===1&&proofMembers[0].sha256===sha256(proofMembers[0].text),'DEFERRED_PROOF_RECEIPT_MEMBER');
+  const proofReceipt=JSON.parse(proofMembers[0].text),unsignedProof=structuredClone(proofReceipt);delete unsignedProof.receipt_digest;
+  check(proofReceipt.receipt_id==='kpmo-deferred-assurance-runtime-proof-gate-v1'&&proofReceipt.version==='1.0.0'
+    &&proofReceipt.state==='VERIFIED_PASS'&&proofReceipt.repository===repository&&proofReceipt.source_sha===env.GITHUB_SHA
+    &&proofReceipt.current_protected_main_sha===env.GITHUB_SHA&&proofReceipt.proof_producer_run_attempt===1
+    &&Number.isSafeInteger(proofReceipt.proof_producer_run_id)&&proofReceipt.proof_producer_run_id>0
+    &&proofReceipt.proof_artifact_id>0&&/^sha256:[a-f0-9]{64}$/.test(proofReceipt.proof_artifact_digest||'')
+    &&proofReceipt.assurance_run_attempt===1&&proofReceipt.assurance_audit_job_id>0
+    &&/^sha256:[a-f0-9]{64}$/.test(proofReceipt.assurance_audit_receipt_digest||'')
+    &&proofReceipt.assurance_archive_readback==='PASS'&&/^sha256:[a-f0-9]{64}$/.test(proofReceipt.assurance_archive_digest||'')
+    &&proofReceipt.producer_health_run_attempt===1&&/^sha256:[a-f0-9]{64}$/.test(proofReceipt.producer_health_receipt_digest||'')
+    &&proofReceipt.whole_platform_authority===false&&proofReceipt.promotion_eligible===false
+    &&proofReceipt.production==='HOLD'&&proofReceipt.public==='HOLD'&&proofReceipt.g5==='HOLD'
+    &&proofReceipt.receipt_digest===sha256(canonicalJson(unsignedProof)),'DEFERRED_PROOF_RECEIPT');
+  const expectedArtifactName=`kpmo-deferred-assurance-runtime-proof-gate-${env.GITHUB_SHA}-${proofReceipt.proof_producer_run_id}-${proofReceipt.proof_producer_run_attempt}`;
+  check(proofArtifact.name===expectedArtifactName,'DEFERRED_PROOF_ARTIFACT_NAME');
+  const producer=await get(`actions/runs/${proofReceipt.proof_producer_run_id}`);
+  check(producer.id===proofReceipt.proof_producer_run_id&&producer.run_attempt===proofReceipt.proof_producer_run_attempt
+    &&producer.name==='KIDULTS Autonomous KPMO Authorization V1'
+    &&producer.path==='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'
+    &&producer.event==='workflow_run'&&producer.status==='completed'&&producer.conclusion==='success'
+    &&producer.head_sha===env.GITHUB_SHA&&producer.head_branch==='main'
+    &&producer.repository?.full_name===repository&&producer.head_repository?.full_name===repository,'DEFERRED_PROOF_PRODUCER');
   const branch=await get('branches/main');check(branch.name==='main'&&branch.protected===true&&branch.commit?.sha===env.GITHUB_SHA,'MAIN');
   return live;
 }
