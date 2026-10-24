@@ -23,7 +23,7 @@ const mutations = [
   ['floating undici override', x => x.manifest.overrides.undici = '^7.29.1'],
   ['missing undici', x => delete x.lock.packages['node_modules/undici']],
   ['missing undici parent edge', x => delete x.lock.packages['node_modules/miniflare'].dependencies.undici],
-  ['unpatched undici root', x => x.lock.packages['node_modules/undici'] = node('undici', '7.29.0')],
+  ['previously vulnerable undici root', x => x.lock.packages['node_modules/undici'] = node('undici', '7.29.1')],
   ['unpatched undici nested', x => x.lock.packages['node_modules/other/node_modules/undici'] = node('undici', '7.29.0')],
   ['unpatched undici alias', x => x.lock.packages['node_modules/alias'] = {...node('undici', '7.29.0'), name:'undici'}],
   ['unapproved undici major', x => x.lock.packages['node_modules/undici'] = node('undici', '8.0.0')],
