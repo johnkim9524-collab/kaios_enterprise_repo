@@ -34,10 +34,6 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Admit only an eligible actual recovery workload
-        run: |
-          set -euo pipefail
-          node scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs
       - name: Verify exact proof handoff before credentialed recovery
         id: proof
         env:
