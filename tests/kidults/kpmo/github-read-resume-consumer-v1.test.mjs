@@ -101,7 +101,7 @@ test('allows a deferred artifact-list GET only after binding its exact run targe
  const targetCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:targetRoute}};
  const targetLine=JSON.stringify(targetCheckpoint);let calls=0;
  await consumeGithubReadResumeCheckpoint({...common,checkpoint:targetCheckpoint,
-  archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:targetLine+'\\n'}]}),
+  archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:targetLine+'\n'}]}),
   read:async value=>{calls++;assert.equal(value,targetRoute);return {total_count:0,artifacts:[]};}});
  assert.equal(calls,1);
 });
