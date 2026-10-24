@@ -1,0 +1,211 @@
+{
+  "id": "kidults-source-activation-action-packets-20260901-v1",
+  "version": "1.0.0",
+  "status": "READY_INTERNAL_ONLY_NO_EXTERNAL_EXECUTION",
+  "as_of": "2026-09-01T14:05:00Z",
+  "purpose": "Convert newly reviewed source candidates into immediately actionable internal packets while preserving external approval, rights, credential, acquisition, spend, Public, Production and G5 boundaries.",
+  "strict_current_sold_truth": {
+    "rights_clear_7d_collector_current_sold_sources": 0,
+    "lawful_current_sold_records_acquired": 0,
+    "current_sold_evidence_admitted": 0,
+    "independent_current_market_source_owners": 0
+  },
+  "packets": [
+    {
+      "packet_id": "ACT-MAZALGO-WATCH-Q2-20260901-01",
+      "source_id": "mazalgo-watch-auction-index-2026-q2",
+      "source_name": "Mazalgo Watch Auction Market Index 2026 Q2",
+      "lane": "RIGHTS_CLEAR_ADJACENT_MARKET_FACTOR_FAST_LANE",
+      "current_sold_lane": "DROP_OR_WRONG_PURPOSE_FOR_STRICT_7D_CURRENT_SOLD",
+      "purpose": "HISTORICAL_SOLD_AGGREGATE_CONTEXT_AND_LIQUIDITY_FACTOR",
+      "collector_domain": "WATCHES",
+      "rights_preflight": {
+        "license": "CC_BY_4_0",
+        "commercial_reuse_authorized": true,
+        "collect": "PASS_FOR_PUBLISHED_DATASET",
+        "store": "PASS_FOR_PUBLISHED_DATASET",
+        "derive": "PASS_FOR_PUBLISHED_DATASET",
+        "attribution_required": true
+      },
+      "data_shape": "PER_REFERENCE_CSV_AGGREGATE",
+      "coverage_start": "2025-10-06",
+      "coverage_end": "2026-06-01",
+      "strict_7d_current_sold_freshness": "FAIL",
+      "candidate_fields": [
+        "watch_reference",
+        "tracked_sales",
+        "median_hammer_price",
+        "trend",
+        "coverage_window"
+      ],
+      "evidence_refs": [
+        "https://mazalgo.com/reports/watch-auction-index",
+        "https://www.mazalgo.com/methodology"
+      ],
+      "internal_next_actions": [
+        "VERIFY_PUBLISHED_CSV_SCHEMA_READ_ONLY_BEFORE_ANY_DOWNLOAD",
+        "VERIFY_ATTRIBUTION_TEXT_AND_LICENSE_SCOPE_AT_TIME_OF_ACQUISITION",
+        "BIND_LICENSE_AND_SOURCE_DIGEST_TO_ACQUISITION_RECEIPT",
+        "ROUTE_ONLY_TO_HISTORICAL_OR_AGGREGATE_MARKET_FACTOR_EVIDENCE_CLASS",
+        "DO_NOT_ROUTE_TO_STRICT_CURRENT_SOLD_EVENT"
+      ],
+      "technical_probe_authorized": false,
+      "download_or_live_acquisition_authorized": false,
+      "evidence_admission_authorized": false,
+      "external_contact_authorized": false,
+      "credential_use_authorized": false,
+      "spend_authorized": false,
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    },
+    {
+      "packet_id": "ACT-WATCHINFO-RIGHTS-20260901-01",
+      "source_id": "the-watch-info-auction-results",
+      "source_name": "The Watch Info Auction Results",
+      "lane": "WRITTEN_CLARIFICATION_LANE",
+      "purpose": "PRIVATE_INTERNAL_CURRENT_SOLD_MARKET_ANALYSIS",
+      "collector_domain": "WATCHES",
+      "semantic_fit": "INDIVIDUAL_REALIZED_OR_HAMMER_PRICE_PLUS_UNSOLD_STATUS_VISIBLE",
+      "freshness_fit": "WEEKLY_CURRENT_RESULTS_OBSERVED",
+      "minimum_requested_fields": [
+        "object_identity_or_reference",
+        "sold_or_auction_date",
+        "realized_or_hammer_price",
+        "currency",
+        "venue_or_auction_house",
+        "lot_or_event_id",
+        "source_url"
+      ],
+      "rights_questions_ready_to_send": [
+        "May KIDULTS collect the listed factual sold-result fields for private internal market analysis?",
+        "May KIDULTS store those factual fields in a private governed database for a bounded evaluation period?",
+        "May KIDULTS derive non-raw analytics such as price trends, liquidity and market-activity indicators from those fields?",
+        "May internal reviewers inspect the collected factual fields and derived results for QA and model validation?",
+        "What retention period is permitted for the collected factual fields, and is bounded internal retention up to 90 days acceptable?",
+        "May KIDULTS publish only aggregated or derived market indicators without redistributing the raw source data?",
+        "Is attribution required for internal or derived use, and if so what attribution form is required?",
+        "Are automated retrieval, API access, rate limits, caching or other technical conditions applicable to this permitted use?"
+      ],
+      "evidence_refs": [
+        "https://thewatchinfo.com/auctions?res=sold",
+        "https://thewatchinfo.com/methodology.php"
+      ],
+      "external_send_authorized": false,
+      "written_permission_received": false,
+      "acquisition_authorized": false,
+      "credential_use_authorized": false,
+      "spend_authorized": false,
+      "evidence_admitted": false,
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    },
+    {
+      "packet_id": "ACT-BARNEBYS-RIGHTS-20260901-01",
+      "source_id": "barnebys-realized-prices",
+      "source_name": "Barnebys Realized Prices",
+      "lane": "WRITTEN_CLARIFICATION_LANE",
+      "purpose": "PRIVATE_INTERNAL_CURRENT_SOLD_MARKET_ANALYSIS",
+      "collector_domain": "ART_ANTIQUES_COLLECTIBLES",
+      "semantic_fit": "REALIZED_PRICE_HISTORY_VISIBLE",
+      "freshness_fit": "RECENT_REALIZED_RESULTS_VISIBLE",
+      "known_rights_constraint": "COMMERCIAL_OR_SYSTEMATIC_USE_REQUIRES_APPROVAL",
+      "minimum_requested_fields": [
+        "object_identity",
+        "sold_date",
+        "realized_price",
+        "currency",
+        "auction_house",
+        "lot_or_event_id",
+        "source_url"
+      ],
+      "rights_questions_ready_to_send": [
+        "Would Barnebys grant written permission for KIDULTS to collect the listed factual realized-price fields for private internal market analysis?",
+        "Would that permission include private storage for a bounded evaluation period and deterministic provenance retention?",
+        "Would that permission include deriving non-raw market indicators such as price trend, liquidity and exposure metrics?",
+        "May internal reviewers inspect the factual records and derived results for QA and validation?",
+        "What retention period and deletion obligations would apply, and is bounded internal retention up to 90 days acceptable?",
+        "May KIDULTS publish aggregated or derived indicators if raw Barnebys records are not redistributed?",
+        "What attribution, rate-limit, API, access-method or anti-automation conditions would apply?"
+      ],
+      "evidence_refs": [
+        "https://www.barnebys.com/realized-prices/art.html",
+        "https://www.barnebys.com/page/terms-of-use"
+      ],
+      "external_send_authorized": false,
+      "written_permission_received": false,
+      "acquisition_authorized": false,
+      "credential_use_authorized": false,
+      "spend_authorized": false,
+      "evidence_admitted": false,
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    },
+    {
+      "packet_id": "ACT-LIVEAUCTIONEERS-RIGHTS-20260901-01",
+      "source_id": "liveauctioneers-auction-price-results",
+      "source_name": "LiveAuctioneers Auction Price Results",
+      "lane": "WRITTEN_CLARIFICATION_LANE",
+      "purpose": "PRIVATE_INTERNAL_CURRENT_SOLD_MARKET_ANALYSIS",
+      "collector_domain": "ART_ANTIQUES_LUXURY_COLLECTIBLES",
+      "semantic_fit": "INDIVIDUAL_HAMMER_PRICE_RESULTS_VISIBLE",
+      "freshness_fit": "OFFICIAL_RESULTS_PAGE_STATES_DAILY_UPDATE",
+      "known_rights_constraint": "EXPRESS_WRITTEN_PERMISSION_REQUIRED_FOR_AUTOMATED_OR_COMMERCIAL_COLLECTION",
+      "minimum_requested_fields": [
+        "object_identity",
+        "sold_date",
+        "hammer_or_realized_price",
+        "currency",
+        "auction_house",
+        "lot_or_event_id",
+        "source_url"
+      ],
+      "rights_questions_ready_to_send": [
+        "Would LiveAuctioneers grant express written permission for KIDULTS to collect the listed factual auction-price fields for private internal market analysis?",
+        "Would the permission authorize an agreed automated or API-based retrieval method rather than scraping outside approved access conditions?",
+        "May KIDULTS privately store the factual fields for a bounded evaluation period and retain provenance receipts?",
+        "May KIDULTS derive non-raw analytics including price, liquidity, market activity and failed-sale exposure indicators where the underlying result semantics support them?",
+        "May internal reviewers inspect raw factual fields and derived results for QA and validation?",
+        "What retention and deletion period is required, and is bounded internal retention up to 90 days acceptable?",
+        "May KIDULTS publish aggregated or derived indicators without redistributing raw LiveAuctioneers records?",
+        "What attribution, API, request-rate, caching, technical-access and termination requirements would apply?"
+      ],
+      "evidence_refs": [
+        "https://www.liveauctioneers.com/auction-results",
+        "https://www.liveauctioneers.com/termsandconditions",
+        "https://www.liveauctioneers.com/intellectualproperty"
+      ],
+      "external_send_authorized": false,
+      "written_permission_received": false,
+      "acquisition_authorized": false,
+      "credential_use_authorized": false,
+      "spend_authorized": false,
+      "evidence_admitted": false,
+      "public": "HOLD",
+      "production": "HOLD",
+      "g5": "HOLD"
+    }
+  ],
+  "routing": {
+    "rights_clarification_packets": "TRACK_Z_ISSUE_1166",
+    "source_pool": "ISSUE_488",
+    "asi": "ISSUE_480",
+    "current_sold_wave": "ISSUE_558",
+    "integrated_kpmo": "ISSUE_344"
+  },
+  "authority_boundary": {
+    "packet_preparation": "AUTHORIZED_INTERNAL_REVERSIBLE",
+    "external_send": "HOLD",
+    "permission_acceptance_or_negotiation_commitment": "HOLD",
+    "account_creation": "HOLD",
+    "credential_use": "HOLD",
+    "download_or_live_record_acquisition": "HOLD",
+    "spend_or_subscription": "HOLD",
+    "postgresql_empirical_write": "SEPARATELY_GATED",
+    "public": "HOLD",
+    "production": "HOLD",
+    "g5": "HOLD"
+  }
+}
