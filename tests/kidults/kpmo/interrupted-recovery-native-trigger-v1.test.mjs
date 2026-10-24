@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {zip,text} from './recovery-native-archive-fixture-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {verifyDeferredAssuranceRuntimeProof} from '../../../scripts/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.mjs';
+import {fixture as producerProofFixture} from './fixtures/deferred-assurance-runtime-proof-fixture-v1.mjs';
 import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {issueKirCoverageAssuranceContinuation,consumeKirCoverageAssuranceContinuation} from '../../../scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs';
 import {createBoundedRecoveryRunGet,verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
@@ -55,12 +57,11 @@ function fixture(){
  const timestamp='2026-10-11T00:00:00Z';
  const upstream={id:100,name:'KPMO Continuous Assurance Success Authority Gate V1',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',created_at:timestamp,run_started_at:timestamp,updated_at:timestamp,repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
  const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/main',GITHUB_REPOSITORY:repo,GITHUB_REPOSITORY_ID:'1281328888',GITHUB_SHA:sha,GITHUB_WORKFLOW_SHA:sha};
- const producer={id:90,name:'KIDULTS Autonomous KPMO Authorization V1',path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
- const body={receipt_id:'kpmo-deferred-assurance-runtime-proof-gate-v1',version:'1.0.0',state:'VERIFIED_PASS',repository:repo,source_sha:sha,current_protected_main_sha:sha,
-  assurance_run_id:80,assurance_run_attempt:1,assurance_audit_job_id:81,assurance_audit_receipt_digest:'sha256:'+'a'.repeat(64),assurance_artifact_id:82,assurance_artifact_digest:'sha256:'+'b'.repeat(64),assurance_archive_digest:'sha256:'+'c'.repeat(64),assurance_archive_readback:'PASS',
-  proof_producer_run_id:producer.id,proof_producer_run_attempt:1,proof_artifact_id:83,proof_artifact_digest:'sha256:'+'d'.repeat(64),producer_health_run_id:70,producer_health_run_attempt:1,producer_health_artifact_id:71,producer_health_artifact_digest:'sha256:'+'e'.repeat(64),producer_health_receipt_digest:'sha256:'+'f'.repeat(64),
-  proof_receipt_digest:'sha256:'+'1'.repeat(64),handoff_receipt_digest:'sha256:'+'2'.repeat(64),scope:'AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM',verified_domain_count:1,required_domain_count:1,whole_platform_authority:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
- const receipt={...body,receipt_digest:sha256(canonicalJson(body))};
+ const producerProofInput=producerProofFixture({producerRunId:90});
+ const producer=producerProofInput.producerRun;
+ // Use the actual producer output so its post-seal handoff_verification field
+ // and receipt_digest projection are exercised by this consumer.
+ const receipt=verifyDeferredAssuranceRuntimeProof(producerProofInput);
  const bytes=zip([['kpmo-deferred-assurance-runtime-proof-gate-v1.json',text(receipt)]]);
  const artifact={id:85,name:'kpmo-deferred-assurance-runtime-proof-gate-'+sha+'-'+producer.id+'-1',expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-10-11T00:01:00Z',expires_at:'2027-01-01T00:00:00Z',workflow_run:{id:100,head_sha:sha}};
  const jobs={total_count:1,jobs:[{id:200,run_id:100,run_attempt:1,name:'deferred-runtime-proof-handoff-gate',status:'completed',conclusion:'success',steps:[{name:'Require exact autonomous Assurance proof closure',status:'completed',conclusion:'success'}]}]};

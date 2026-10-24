@@ -371,7 +371,9 @@ export async function verifyInterruptedRecoveryNativeTrigger({env=process.env,ev
   const proofMembers=proofPacket.members.filter(member=>member.encoding==='utf-8'
     &&member.name.split('/').at(-1)==='kpmo-deferred-assurance-runtime-proof-gate-v1.json');
   check(proofMembers.length===1&&proofMembers[0].sha256===sha256(proofMembers[0].text),'DEFERRED_PROOF_RECEIPT_MEMBER');
-  const proofReceipt=JSON.parse(proofMembers[0].text),unsignedProof=structuredClone(proofReceipt);delete unsignedProof.receipt_digest;
+  const proofReceipt=JSON.parse(proofMembers[0].text),unsignedProof=structuredClone(proofReceipt);
+  // The producer appends its verification result after sealing the canonical body.
+  delete unsignedProof.receipt_digest;delete unsignedProof.handoff_verification;
   check(proofReceipt.receipt_id==='kpmo-deferred-assurance-runtime-proof-gate-v1'&&proofReceipt.version==='1.0.0'
     &&proofReceipt.state==='VERIFIED_PASS'&&proofReceipt.repository===repository&&proofReceipt.source_sha===env.GITHUB_SHA
     &&proofReceipt.current_protected_main_sha===env.GITHUB_SHA&&proofReceipt.proof_producer_run_attempt===1
