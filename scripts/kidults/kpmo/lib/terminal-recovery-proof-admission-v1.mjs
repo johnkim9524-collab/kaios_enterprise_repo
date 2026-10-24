@@ -1,5 +1,6 @@
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const gatePath='.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml';
+const producerPath='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml';
 const proofPrefix='kpmo-deferred-assurance-runtime-proof-gate-';
 const check=(ok,code)=>{if(!ok)throw Error(`TERMINAL_PROOF_ADMISSION_${code}`);};
 const digest=value=>/^sha256:[a-f0-9]{64}$/.test(value||'');
@@ -70,4 +71,80 @@ export function verifyTerminalRecoveryProofAdmission({event,repositoryId='128132
     proof_artifact_digest:proofArtifacts[0].digest,proof_receipt_digest:proofReceipt.receipt_digest,
     verified_proof_receipt_state:proofReceipt.state,reservation_write_performed:false,actual_authority_granted:false,
     promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+}
+
+export function verifyTerminalRecoveryProducerProofAdmission({event,repositoryId='1281328888',proofReceipt}){
+  const run=event?.workflow_run;
+  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1'
+    &&run?.path===producerPath&&run?.status==='completed'&&run?.conclusion==='success'
+    &&run?.event==='workflow_run'&&run?.run_attempt===1&&run?.head_branch==='main'
+    &&/^[a-f0-9]{40}$/.test(run?.head_sha||'')&&run?.repository?.full_name===repository
+    &&String(run?.repository?.id)===repositoryId&&run?.head_repository?.full_name===repository,'PRODUCER_UPSTREAM_BINDING');
+  // The producer seals the receipt body before adding this derived verifier
+  // result, so it is deliberately outside the producer's digest boundary.
+  const unsigned=Object.fromEntries(Object.entries(proofReceipt||{}).filter(([key])=>!['receipt_digest','handoff_verification'].includes(key)));
+  const receiptDigestValid=digest(proofReceipt?.receipt_digest)
+    &&proofReceipt.receipt_digest===sha256(canonicalJson(unsigned));
+  if(proofReceipt?.state==='NOT_APPLICABLE'){
+    check(proofReceipt.receipt_id==='kpmo-deferred-assurance-runtime-proof-gate-v1'
+      &&proofReceipt.version==='1.0.0'&&proofReceipt.repository===repository
+      &&proofReceipt.source_sha===run.head_sha&&proofReceipt.producer_run_id===run.id
+      &&proofReceipt.producer_run_attempt===run.run_attempt
+      &&['PRODUCER_RECONCILIATION_NOT_APPLICABLE','ASSURANCE_AUDIT_SKIPPED'].includes(proofReceipt.disposition)
+      &&proofReceipt.whole_platform_authority===false&&proofReceipt.promotion_eligible===false
+      &&proofReceipt.production==='HOLD'&&proofReceipt.public==='HOLD'&&proofReceipt.g5==='HOLD'
+      &&receiptDigestValid,'PRODUCER_NOT_APPLICABLE_RECEIPT_BINDING');
+    const body={state:'PROOF_HANDOFF_NOT_APPLICABLE_NOT_AUTHORITY',producer_run_id:run.id,
+      producer_run_attempt:run.run_attempt,source_sha:run.head_sha,proof_receipt_digest:proofReceipt.receipt_digest,
+      verified_proof_receipt_state:proofReceipt.state,reservation_write_performed:false,
+      actual_authority_granted:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+    return {...body,admission_digest:sha256(canonicalJson(body))};
+  }
+  check(proofReceipt?.receipt_id==='kpmo-deferred-assurance-runtime-proof-gate-v1'
+    &&proofReceipt?.version==='1.0.0'&&proofReceipt?.state==='VERIFIED_PASS'
+    &&proofReceipt?.repository===repository&&proofReceipt?.source_sha===run.head_sha
+    &&proofReceipt?.current_protected_main_sha===run.head_sha
+    &&proofReceipt?.proof_producer_run_id===run.id&&proofReceipt?.proof_producer_run_attempt===run.run_attempt
+    &&positiveId(proofReceipt.assurance_run_id)&&positiveId(proofReceipt.assurance_run_attempt)
+    &&positiveId(proofReceipt.assurance_audit_job_id)&&positiveId(proofReceipt.assurance_artifact_id)
+    &&positiveId(proofReceipt.producer_health_run_id)&&positiveId(proofReceipt.producer_health_run_attempt)
+    &&positiveId(proofReceipt.producer_health_artifact_id)&&positiveId(proofReceipt.proof_artifact_id)
+    &&proofReceipt.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
+    &&proofReceipt.verified_domain_count===1&&proofReceipt.required_domain_count===1
+    &&digest(proofReceipt.assurance_audit_receipt_digest)&&digest(proofReceipt.assurance_artifact_digest)
+    &&digest(proofReceipt.assurance_archive_digest)&&proofReceipt.assurance_archive_readback==='PASS'
+    &&digest(proofReceipt.proof_artifact_digest)&&digest(proofReceipt.producer_health_artifact_digest)
+    &&digest(proofReceipt.producer_health_receipt_digest)&&digest(proofReceipt.proof_receipt_digest)
+    &&digest(proofReceipt.handoff_receipt_digest)&&proofReceipt.whole_platform_authority===false
+    &&proofReceipt.handoff_verification?.state==='VERIFIED_PASS'
+    &&proofReceipt.handoff_verification?.producer_run_id===run.id
+    &&proofReceipt.handoff_verification?.promotion_eligible===false
+    &&proofReceipt.promotion_eligible===false&&proofReceipt.production==='HOLD'
+    &&proofReceipt.public==='HOLD'&&proofReceipt.g5==='HOLD'&&receiptDigestValid,
+  'PRODUCER_PROOF_RECEIPT_SCHEMA_OR_BINDING');
+  check(proofReceipt.receipt_digest===sha256(canonicalJson(unsigned)),'PRODUCER_PROOF_RECEIPT_DIGEST');
+  const body={state:'PROOF_HANDOFF_ADMITTED_NOT_AUTHORITY',producer_run_id:run.id,producer_run_attempt:run.run_attempt,
+    source_sha:run.head_sha,proof_receipt_digest:proofReceipt.receipt_digest,
+    verified_proof_receipt_state:proofReceipt.state,reservation_write_performed:false,
+    actual_authority_granted:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'};
+  return {...body,admission_digest:sha256(canonicalJson(body))};
+}
+
+export function verifyTerminalRecoveryProducerAdmissionArtifact({event,sourceSha,admission}){
+  const run=event?.workflow_run;
+  const unsigned=Object.fromEntries(Object.entries(admission||{}).filter(([key])=>key!=='admission_digest'));
+  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1'
+    &&run?.path===producerPath&&run?.status==='completed'&&run?.conclusion==='success'
+    &&run?.event==='workflow_run'&&run?.run_attempt===1&&run?.head_branch==='main'
+    &&run?.head_sha===sourceSha&&run?.repository?.full_name===repository
+    &&run?.head_repository?.full_name===repository,'ADMISSION_UPSTREAM_BINDING');
+  check(admission?.state==='PROOF_HANDOFF_ADMITTED_NOT_AUTHORITY'
+    &&admission.producer_run_id===run.id&&admission.producer_run_attempt===run.run_attempt
+    &&admission.source_sha===sourceSha&&admission.verified_proof_receipt_state==='VERIFIED_PASS'
+    &&digest(admission.proof_receipt_digest)&&admission.reservation_write_performed===false
+    &&admission.actual_authority_granted===false&&admission.promotion_eligible===false
+    &&admission.production==='HOLD'&&admission.public==='HOLD'&&admission.g5==='HOLD'
+    &&admission.admission_digest===sha256(canonicalJson(unsigned)),'ADMISSION_RECEIPT_BINDING');
+  return {valid:true,producer_run_id:run.id,source_sha:sourceSha,
+    proof_receipt_digest:admission.proof_receipt_digest,actual_authority_granted:false};
 }
