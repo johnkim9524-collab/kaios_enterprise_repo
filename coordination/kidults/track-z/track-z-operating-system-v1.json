@@ -1,0 +1,224 @@
+{
+  "id": "KIDULTS_TRACK_Z_OPERATING_SYSTEM_V1",
+  "version": "1.0.0",
+  "status": "MANDATORY_FAIL_CLOSED",
+  "effective_at": "2026-09-07T00:00:00Z",
+  "owner": "Program Owner / Track Z",
+  "custodian": "KPMO",
+  "canonical_issues": [1166, 1066, 769, 344],
+  "mission": "Own every external-provider and data-rights decision from intake through written evidence, KPMO integration and Founder decision while keeping external parties replaceable and KIDULTS-owned intelligence durable.",
+  "canonical_inputs": {
+    "routing_gate": "coordination/kidults/internalization/external-provider-track-z-routing-gate-v1.json",
+    "provider_state": "coordination/kidults/registry/provider/records/provider-operating-state-v1.json",
+    "provider_registry": "coordination/kidults/registry/provider/index.json",
+    "provider_strategy": "docs/strategy/IH_GROUP_GLOBAL_PROVIDER_STRATEGY_V6.md",
+    "provider_strategy_contract": "coordination/kidults/governance/ih-group-provider-sourcing-contract-v1.json",
+    "written_only_policy": "coordination/kidults/governance/provider-written-email-only-negotiation-policy-v1.json",
+    "product_portfolio": "coordination/kidults/internalization/provider-product-portfolio-v1.json",
+    "commercial_rights_ledger": "coordination/kidults/internalization/provider-commercial-rights-ledger-v1.json"
+  },
+  "authority_chain": [
+    "TRACK_Z_REVIEW",
+    "KPMO_INTEGRATED_REPORT",
+    "FOUNDER_DECISION"
+  ],
+  "intake_triggers": [
+    "NEW_PROVIDER",
+    "NEW_PROVIDER_PRODUCT",
+    "NEW_HUMAN_INBOUND",
+    "RIGHTS_OR_CONTRACT_CHANGE",
+    "COMMERCIAL_TERMS_CHANGE",
+    "API_FEED_OR_DATA_OFFER",
+    "PILOT_OR_TRIAL_OFFER",
+    "CREDENTIAL_OR_ACCOUNT_REQUEST",
+    "EXTERNAL_DATA_ACQUISITION_REQUEST",
+    "PROVIDER_ACTIVATION_REQUEST",
+    "RENEWAL_OR_EXPANSION_REQUEST",
+    "TERMS_LICENSE_OR_DATA_MATERIAL_CHANGE"
+  ],
+  "case_identity": {
+    "required_dimensions": [
+      "provider_id",
+      "product_or_surface",
+      "purpose",
+      "environment",
+      "evidence_generation"
+    ],
+    "provider_aliases_must_resolve_to_one_operator": true,
+    "operator_and_ultimate_parent_must_be_distinctly_recorded": true,
+    "one_active_case_per_exact_identity": true,
+    "cross_snapshot_rebind_forbidden": true
+  },
+  "evidence_precedence": [
+    "IMMUTABLE_SIGNED_CONTRACT_OR_PROVIDER_WRITTEN_RESPONSE",
+    "CANONICAL_PROVIDER_OPERATING_STATE",
+    "OFFICIAL_TERMS_LICENSE_API_DOCUMENTATION_OR_RESULT",
+    "PROVIDER_SPECIFIC_RIGHTS_SCHEMA_AND_ECONOMICS_RECORD",
+    "PUBLIC_WEB_OBSERVATION",
+    "INFERENCE"
+  ],
+  "evidence_freshness_days": {
+    "CLOSED": 365,
+    "BOUNDED": 31,
+    "CONDITIONAL": 31,
+    "HOLD": 31
+  },
+  "required_review_packet": [
+    "provider_and_product_identity",
+    "operator_and_ultimate_parent",
+    "source_layer_brand_and_vertical",
+    "purpose_and_claim_ceiling",
+    "official_evidence_refs_and_dates",
+    "fact_provider_claim_inference_split",
+    "source_access_collect_store_derive_display_redistribute_model_use_rights",
+    "retention_deletion_post_termination_and_portability",
+    "schema_identifiers_status_price_currency_time_corrections_and_sla",
+    "economics_roi_minimums_overages_renewal_and_exit",
+    "core_capture_lock_in_replacement_and_provider_removal",
+    "duplicate_outreach_and_communication_state",
+    "track_z_verdict_and_exact_blockers",
+    "kpmo_whole_value_chain_impact",
+    "founder_decision_requirements"
+  ],
+  "rights_atoms": [
+    "ACCESS",
+    "COLLECT",
+    "STORE",
+    "NORMALIZE",
+    "ENTITY_RESOLUTION",
+    "DERIVE",
+    "MODEL_USE",
+    "PRIVATE_DISPLAY",
+    "PUBLIC_DISPLAY",
+    "REDISTRIBUTE",
+    "AFFILIATE_AND_CONTRACTOR_USE",
+    "RETENTION",
+    "DELETION",
+    "POST_TERMINATION_DERIVED_SURVIVAL",
+    "PORTABILITY",
+    "CORRECTION_AND_RESOLUTION_FEED"
+  ],
+  "decision_states": [
+    "WAIT",
+    "HOLD",
+    "NO_GO",
+    "INTERNALIZE_FIRST",
+    "PASS_FOR_BOUNDED_PILOT_REVIEW"
+  ],
+  "decision_order": [
+    "IDENTITY_AND_DUPLICATE_CHECK",
+    "WRITTEN_EVIDENCE_AND_FRESHNESS",
+    "PURPOSE_SPECIFIC_RIGHTS",
+    "OWNED_CORE_AND_PROVIDER_REMOVAL",
+    "SCHEMA_DATA_QUALITY_AND_SLA",
+    "ECONOMICS_ROI_AND_EXIT",
+    "KPMO_CROSS_TRACK_IMPACT",
+    "FOUNDER_DECISION"
+  ],
+  "decision_laws": {
+    "closed_provider_without_authorized_reopen": "WAIT",
+    "awaiting_written_provider_response": "WAIT",
+    "unknown_or_stale_material_evidence": "HOLD",
+    "unknown_material_right": "HOLD",
+    "public_web_or_product_terms_prohibit_required_use": "NO_GO",
+    "provider_captures_kidults_owned_core": "NO_GO",
+    "provider_removal_requires_product_rewrite": "INTERNALIZE_FIRST",
+    "incomplete_schema_sla_or_economics": "HOLD",
+    "all_review_gates_pass_but_protected_authority_is_absent": "HOLD",
+    "all_review_gates_and_separate_protected_authorities_pass": "PASS_FOR_BOUNDED_PILOT_REVIEW"
+  },
+  "work_queues": {
+    "WAITING_WRITTEN_RESPONSE": {
+      "wip_limit": 12,
+      "normal_action": "WAIT_WITHOUT_DUPLICATE_OUTREACH",
+      "aging_review_days": 7
+    },
+    "INTERNAL_DILIGENCE": {
+      "wip_limit": 6,
+      "normal_action": "COMPLETE_MISSING_RIGHTS_SCHEMA_ECONOMICS_AND_REMOVAL_FIELDS",
+      "aging_review_days": 7
+    },
+    "KPMO_INTEGRATION": {
+      "wip_limit": 3,
+      "normal_action": "REVIEW_WHOLE_VALUE_CHAIN_AND_APPROVAL_BOUNDARIES",
+      "aging_review_days": 3
+    },
+    "FOUNDER_DECISION": {
+      "wip_limit": 3,
+      "normal_action": "PRESENT_EXACT_BOUNDED_DECISION_PACKET",
+      "aging_review_days": 3
+    },
+    "TERMINAL_ARCHIVE": {
+      "wip_limit": 1000,
+      "normal_action": "REOPEN_ONLY_ON_MATERIAL_WRITTEN_CHANGE",
+      "aging_review_days": 365
+    }
+  },
+  "communication_controls": {
+    "channel": "WRITTEN_EMAIL_ONLY",
+    "duplicate_outreach_forbidden": true,
+    "resend_requires_separate_explicit_authority": true,
+    "automatic_followup_forbidden": true,
+    "phone_voice_video_forbidden": true,
+    "verbal_material_terms_admissible": false,
+    "outbound_draft_is_not_send_authority": true,
+    "provider_response_is_not_contract_spend_or_activation_authority": true
+  },
+  "scale_and_resilience": {
+    "one_provider_failure_must_not_block_other_provider_cases": true,
+    "deterministic_idempotent_replay_required": true,
+    "out_of_order_evidence_must_not_overwrite_newer_generation": true,
+    "backpressure_enforced_by_queue_wip_limits": true,
+    "partial_failure_must_emit_per_case_status": true,
+    "rollback_unit": "TRACK_Z_POLICY_OR_CASE_GENERATION",
+    "provider_off_test_required_before_pilot": true,
+    "single_provider_global_truth_forbidden": true
+  },
+  "receipt_contract": {
+    "id": "KIDULTS_TRACK_Z_CONTROL_CYCLE_RECEIPT_V1",
+    "terminal_states": [
+      "VERIFIED_PASS_INTERNAL_CONTROL_ONLY",
+      "VERIFIED_HOLD_CASE_ERRORS",
+      "VERIFIED_HOLD_BACKPRESSURE"
+    ],
+    "required_fields": [
+      "source_ref",
+      "observed_at",
+      "input_digests",
+      "provider_state_as_of",
+      "case_decisions",
+      "queue_summary",
+      "invariants",
+      "authority_boundary",
+      "four_principles_effect",
+      "receipt_digest"
+    ],
+    "artifact_retention_days": 90,
+    "receipt_is_approval_authority": false,
+    "receipt_is_production_evidence": false
+  },
+  "automatic_execution": {
+    "protected_main_push": true,
+    "relevant_pull_request": true,
+    "schedule": "17 */6 * * *",
+    "workflow_dispatch_recovery_only": true,
+    "external_action_execution": false
+  },
+  "non_bypass": {
+    "external_communication": "SEPARATE_EXPLICIT_FOUNDER_AUTHORITY_REQUIRED",
+    "contract_or_eula": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "spend": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "credential_or_account_activation": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "external_data_acquisition": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "provider_activation": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "SEPARATE_EXPLICIT_FOUNDER_APPROVAL_REQUIRED"
+  },
+  "four_principles_effect": {
+    "autonomous_effect": "Runs deterministic internal review automatically without performing protected external actions.",
+    "global_effect": "Uses one provider-neutral policy across every group brand, vertical, region, currency and evidence surface.",
+    "irreplaceable_value_effect": "Protects KIDULTS-owned identity, evidence, methodology, derived intelligence and provider-switching continuity.",
+    "transparency_effect": "Produces per-provider decisions, exact blockers, source digests, queues and a reproducible receipt."
+  }
+}
