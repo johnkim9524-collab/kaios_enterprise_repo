@@ -3,8 +3,8 @@ export const WRANGLER_VERSION = '4.131.2';
 export const SHARP_PARENT_VERSION = '0.35.4';
 // GHSA-wq5f-xc86-pv6w / CVE-2026-96889: patched same-major release.
 export const SHARP_VERSION = '0.35.5';
-// GHSA-4qv8-2p9j-2685 / GHSA-f72v-6w45-q472 / GHSA-xjj6-f33q-929c: patched same-major release.
-export const UNDICI_VERSION = '7.30.1';
+// GHSA-w293-vg96-wgc3 / GHSA-rfgv-xxqx-mfg5: patched same-major release.
+export const UNDICI_VERSION = '7.29.1';
 export const LOCK_DIRECTORIES = Object.freeze([
   'services/kidults-autonomous-intelligence',
   'tooling/kidults-cloudflare-workers-shadow',

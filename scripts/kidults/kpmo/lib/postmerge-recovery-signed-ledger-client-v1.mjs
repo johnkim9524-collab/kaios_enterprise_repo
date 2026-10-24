@@ -26,8 +26,7 @@ export async function createRecoverySignedLedgerClient({role,signingKeyArn,sourc
     &&env.GITHUB_REF==='refs/heads/main'&&env.GITHUB_SHA===sourceSha&&env.GITHUB_WORKFLOW_SHA===sourceSha
     &&env.GITHUB_RUN_ATTEMPT==='1'&&/^[1-9][0-9]{0,19}$/.test(env.GITHUB_RUN_ID||''),'RECOVERY_CLIENT_WORKFLOW_CONTEXT');
   assert(!env.AWS_PROFILE&&!env.AWS_DEFAULT_PROFILE,'RECOVERY_CLIENT_ADMIN_PROFILE_FORBIDDEN');
-  const approvedRefs=(role==='FINALIZER'?Object.values(definitions).filter(d=>d[3]).map(d=>d[3])
-    :role==='KPMO'?[definition[3],'kpmo-continuous-assurance-terminal-recovery-v1.yml']:[definition[3]])
+  const approvedRefs=(role==='FINALIZER'?Object.values(definitions).filter(d=>d[3]).map(d=>d[3]):[definition[3]])
     .map(file=>`${I.repository}/.github/workflows/${file}@refs/heads/main`);
   assert(approvedRefs.includes(env.GITHUB_WORKFLOW_REF),'RECOVERY_CLIENT_WORKFLOW_REF');
   const identity=await aws(['sts','get-caller-identity']);

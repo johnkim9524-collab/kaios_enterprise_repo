@@ -2,15 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
-import {verifyDeferredAssuranceRuntimeProof} from '../../../scripts/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.mjs';
-import {fixture as deferredProofFixture} from './fixtures/deferred-assurance-runtime-proof-fixture-v1.mjs';
-import {verifyTerminalRecoveryProofAdmission,verifyTerminalRecoveryProducerProofAdmission,
-  verifyTerminalRecoveryProducerAdmissionArtifact} from '../../../scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs';
+import {verifyTerminalRecoveryProofAdmission} from '../../../scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs';
 
 const repository='johnkim9524-collab/kaios_enterprise_repo',sha='a'.repeat(40),runId=90;
 const d='sha256:'+'c'.repeat(64);
 function seal(value){return {...value,receipt_digest:sha256(canonicalJson(value))};}
-function reseal(value){return seal(Object.fromEntries(Object.entries(value).filter(([key])=>key!=='receipt_digest')));}
 function fixture(){
   const proof=seal({receipt_id:'kpmo-deferred-assurance-runtime-proof-gate-v1',version:'1.0.0',state:'VERIFIED_PASS',repository,
     source_sha:sha,current_protected_main_sha:sha,assurance_run_id:201,assurance_run_attempt:1,assurance_audit_job_id:202,
@@ -48,41 +44,3 @@ for(const [name,mutate,pattern] of [
   ['wrong source workflow path',f=>{f.event.workflow_run.path='other.yml';},/UPSTREAM_BINDING/],
   ['non-success gate',f=>{f.event.workflow_run.conclusion='failure';},/UPSTREAM_BINDING/],
 ])test(name+' fails closed before credentials',()=>{const f=fixture();mutate(f);assert.throws(()=>verifyTerminalRecoveryProofAdmission(f),pattern);});
-
-function producerFixture(){
-  const event={action:'completed',workflow_run:{id:80,name:'KIDULTS Autonomous KPMO Authorization V1',
-    path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',status:'completed',conclusion:'success',
-    event:'workflow_run',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repository,id:1281328888},
-    head_repository:{full_name:repository}}};
-  const proofReceipt=verifyDeferredAssuranceRuntimeProof(deferredProofFixture({producerRunId:80}));
-  return {event,proofReceipt};
-}
-test('admits a VERIFIED_PASS exact producer proof without granting authority',()=>{
-  const f=producerFixture(),admission=verifyTerminalRecoveryProducerProofAdmission({event:f.event,proofReceipt:f.proofReceipt});
-  assert.equal(admission.state,'PROOF_HANDOFF_ADMITTED_NOT_AUTHORITY');assert.equal(admission.producer_run_id,80);
-  assert.equal(admission.verified_proof_receipt_state,'VERIFIED_PASS');assert.equal(admission.actual_authority_granted,false);
-  assert.equal(verifyTerminalRecoveryProducerAdmissionArtifact({event:f.event,sourceSha:sha,admission}).valid,true);
-});
-for(const [name,mutate,pattern] of [
-  ['producer proof from another run',f=>{f.proofReceipt=reseal({...f.proofReceipt,proof_producer_run_id:81});},/PRODUCER_PROOF_RECEIPT_SCHEMA_OR_BINDING/],
-  ['producer event from another workflow',f=>{f.event.workflow_run.path='wrong.yml';},/PRODUCER_UPSTREAM_BINDING/],
-  ['tampered admission artifact',f=>{f.admission.admission_digest='sha256:'+'d'.repeat(64);},/ADMISSION_RECEIPT_BINDING/],
-])test(name+' fails closed before credentials',()=>{
-  const f=producerFixture();
-  if(mutate.toString().includes('admission.'))f.admission=verifyTerminalRecoveryProducerProofAdmission({event:f.event,proofReceipt:f.proofReceipt});
-  mutate(f);
-  if(f.admission)assert.throws(()=>verifyTerminalRecoveryProducerAdmissionArtifact({event:f.event,sourceSha:sha,admission:f.admission}),pattern);
-  else assert.throws(()=>verifyTerminalRecoveryProducerProofAdmission({event:f.event,proofReceipt:f.proofReceipt}),pattern);
-});
-test('NOT_APPLICABLE proof remains a non-authorizing no-op',()=>{
-  const f=producerFixture();
-  f.proofReceipt=seal({receipt_id:'kpmo-deferred-assurance-runtime-proof-gate-v1',version:'1.0.0',state:'NOT_APPLICABLE',
-    failure_class:null,disposition:'PRODUCER_RECONCILIATION_NOT_APPLICABLE',repository,producer_run_id:80,
-    producer_run_attempt:1,source_sha:sha,whole_platform_authority:false,promotion_eligible:false,
-    production:'HOLD',public:'HOLD',g5:'HOLD'});
-  const admission=verifyTerminalRecoveryProducerProofAdmission({event:f.event,proofReceipt:f.proofReceipt});
-  assert.equal(admission.state,'PROOF_HANDOFF_NOT_APPLICABLE_NOT_AUTHORITY');
-  assert.equal(admission.verified_proof_receipt_state,'NOT_APPLICABLE');
-  assert.equal(admission.actual_authority_granted,false);
-  assert.throws(()=>verifyTerminalRecoveryProducerAdmissionArtifact({event:f.event,sourceSha:sha,admission}),/ADMISSION_RECEIPT_BINDING/);
-});

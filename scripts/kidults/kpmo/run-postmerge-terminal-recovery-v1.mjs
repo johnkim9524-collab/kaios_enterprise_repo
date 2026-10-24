@@ -11,7 +11,6 @@ import {createRecoveryGitHubObservation} from './lib/postmerge-recovery-github-o
 import {createRecoveryExactMainEvidence} from './lib/postmerge-recovery-exact-main-evidence-v1.mjs';
 import {createRecoveryImmutableStore} from './lib/postmerge-recovery-immutable-store-v1.mjs';
 import {createRecoveryWorkload} from './lib/postmerge-recovery-workload-v1.mjs';
-import {verifyTerminalRecoveryProducerAdmissionArtifact} from './lib/terminal-recovery-proof-admission-v1.mjs';
 
 const assert=(ok,code)=>{if(!ok)throw new Error(code);};
 const env=process.env;
@@ -19,24 +18,9 @@ assert(env.GITHUB_ACTIONS==='true'&&['workflow_run','workflow_dispatch'].include
 const event=JSON.parse(fs.readFileSync(env.GITHUB_EVENT_PATH,'utf8'));
 let upstream;
 let isFailureAssuranceParent=false;
-let isProducerProofParent=false;
 if(env.GITHUB_EVENT_NAME==='workflow_run'){
   assert(event.action==='completed','RECOVERY_RUNTIME_UPSTREAM');
   upstream=event.workflow_run;
-  if(upstream?.name==='KIDULTS Autonomous KPMO Authorization V1'){
-    assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main`
-      &&upstream.path==='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'
-      &&upstream.status==='completed'&&upstream.conclusion==='success'&&upstream.run_attempt===1
-      &&upstream.event==='workflow_run'&&upstream.head_branch==='main'&&upstream.head_sha===env.GITHUB_SHA
-      &&upstream.repository?.full_name===I.repository&&String(upstream.repository?.id)===I.repository_id
-      &&upstream.head_repository?.full_name===I.repository,'RECOVERY_RUNTIME_PRODUCER_UPSTREAM');
-    const admissionPath='out/recovery-execution-admission-v1/proof-handoff-admission.json';
-    assert(fs.existsSync(admissionPath),'RECOVERY_RUNTIME_PROOF_ADMISSION_REQUIRED');
-    const admission=JSON.parse(fs.readFileSync(admissionPath,'utf8'));
-    try{verifyTerminalRecoveryProducerAdmissionArtifact({event,sourceSha:env.GITHUB_SHA,admission});}
-    catch{assert(false,'RECOVERY_RUNTIME_PROOF_ADMISSION_BINDING');}
-    isProducerProofParent=true;
-  }
 }else{
   const inputs=event.inputs;
   assert(/^[1-9][0-9]{0,19}$/.test(inputs?.gate_run_id||'')
@@ -46,7 +30,7 @@ if(env.GITHUB_EVENT_NAME==='workflow_run'){
 if(env.GITHUB_EVENT_NAME==='workflow_run'&&upstream?.name==='KIDULTS Platform Continuous Assurance V1'
   &&upstream?.conclusion==='failure'){
   isFailureAssuranceParent=true;
-}else if(!isProducerProofParent)assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
+}else assert(upstream?.name==='KPMO Continuous Assurance Success Authority Gate V1'
   &&upstream.path==='.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml'
   &&upstream.status==='completed'&&upstream.conclusion==='success'&&upstream.run_attempt===1
   &&upstream.event==='workflow_run'
@@ -65,9 +49,7 @@ assert(execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim()===env.G
 const role=env.KIDULTS_RECOVERY_ROLE;
 assert(['ACCOUNTABLE_TRACK_AGENT','KPMO','INDEPENDENT_VERIFIER','FINALIZER'].includes(role),'RECOVERY_RUNTIME_ROLE');
 if(role==='FINALIZER')assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kidults-autonomous-track-authorization-v1.yml@refs/heads/main`,'RECOVERY_RUNTIME_FINALIZER_WORKFLOW');
-const generic=isProducerProofParent
-  ?{state:'NOT_APPLICABLE_DISTINCT_PRODUCER_PROOF_ROUTE',actual_candidates:0,write_performed:false,promotion_eligible:false}
-  :await runNativeInterruptedRecovery();
+const generic=await runNativeInterruptedRecovery();
 if(generic.actual_candidates>0){console.log(JSON.stringify(generic));process.exit(0);}
 if(isFailureAssuranceParent){
   assert(env.GITHUB_OUTPUT,'RECOVERY_RUNTIME_OUTPUT_REQUIRED');

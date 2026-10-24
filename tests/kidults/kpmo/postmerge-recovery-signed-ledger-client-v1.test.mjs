@@ -36,11 +36,6 @@ test('protected workload signs canonical envelope digest and invokes only existi
   assert.equal(f.lastEnvelope.action,'CREATE_RECOVERY_APPROVAL');assert.equal(f.lastEnvelope.workload.workload_id,'kidults-kpmo-v1');
   assert.deepEqual(f.calls.map(x=>x[0]),['sts','kms','lambda']);
 });
-test('KPMO recovery workflow is an exact additional workflow-ref allowlist entry',async()=>{
-  const f=fixture();f.env.GITHUB_WORKFLOW_REF=`${I.repository}/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main`;
-  const client=await f.client();await client.createApproval({request:f.request,snapshot:f.snapshot});
-  assert.equal(f.lastEnvelope.workload.workload_id,'kidults-kpmo-v1');
-});
 for(const [name,mutate,code] of [
   ['SSO profile',f=>f.env.AWS_PROFILE='kidults-provisioning','ADMIN_PROFILE_FORBIDDEN'],
   ['default SSO profile',f=>f.env.AWS_DEFAULT_PROFILE='kidults-provisioning','ADMIN_PROFILE_FORBIDDEN'],
