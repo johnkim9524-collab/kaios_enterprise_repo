@@ -133,6 +133,9 @@ class RecoveryWorkflowTests(unittest.TestCase):
         verifier = (ROOT / 'scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs').read_text()
         self.assertIn('runDeferredAssuranceProofGate', verifier)
         self.assertIn('verifyTerminalRecoveryProducerProofAdmission', verifier)
+        self.assertIn("github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1'", workflow['jobs']['terminal-recovery-admission']['if'])
+        self.assertNotIn('KIDULTS Autonomous KPMO Authorization V1 completed', workflow['jobs']['terminal-recovery-admission']['if'])
+        self.assertIn("env.GITHUB_WORKFLOW_REF!==`${repository}/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main`", verifier)
         self.assertIn('KIDULTS-AUTONOMOUS-KPMO', workflow['jobs']['terminal-recovery-approval']['environment'])
         self.assertIn('actions/download-artifact@', '\n'.join(str(step.get('uses','')) for step in workflow['jobs']['terminal-recovery-approval']['steps']))
         self.assertIn('validate-recovery-proof-admission-v1.mjs', '\n'.join(step.get('run','') for step in workflow['jobs']['terminal-recovery-approval']['steps']))
@@ -228,7 +231,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertIn('RECOVERY_RUNTIME_UPSTREAM', result.stderr)
 
     def test_producer_completion_requires_bound_verified_proof_before_ledger_reads(self):
-        run = {'id': 80, 'name': 'KIDULTS Autonomous KPMO Authorization V1 completed',
+        run = {'id': 80, 'name': 'KIDULTS Autonomous KPMO Authorization V1',
                'path': '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
                'status': 'completed', 'conclusion': 'success', 'event': 'workflow_run', 'run_attempt': 1,
                'head_sha': 'a' * 40, 'head_branch': 'main',

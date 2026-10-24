@@ -23,7 +23,7 @@ let isProducerProofParent=false;
 if(env.GITHUB_EVENT_NAME==='workflow_run'){
   assert(event.action==='completed','RECOVERY_RUNTIME_UPSTREAM');
   upstream=event.workflow_run;
-  if(upstream?.name==='KIDULTS Autonomous KPMO Authorization V1 completed'){
+  if(upstream?.name==='KIDULTS Autonomous KPMO Authorization V1'){
     assert(env.GITHUB_WORKFLOW_REF===`${I.repository}/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main`
       &&upstream.path==='.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'
       &&upstream.status==='completed'&&upstream.conclusion==='success'&&upstream.run_attempt===1

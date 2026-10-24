@@ -75,12 +75,14 @@ export function verifyTerminalRecoveryProofAdmission({event,repositoryId='128132
 
 export function verifyTerminalRecoveryProducerProofAdmission({event,repositoryId='1281328888',proofReceipt}){
   const run=event?.workflow_run;
-  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1 completed'
+  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1'
     &&run?.path===producerPath&&run?.status==='completed'&&run?.conclusion==='success'
     &&run?.event==='workflow_run'&&run?.run_attempt===1&&run?.head_branch==='main'
     &&/^[a-f0-9]{40}$/.test(run?.head_sha||'')&&run?.repository?.full_name===repository
     &&String(run?.repository?.id)===repositoryId&&run?.head_repository?.full_name===repository,'PRODUCER_UPSTREAM_BINDING');
-  const unsigned=Object.fromEntries(Object.entries(proofReceipt||{}).filter(([key])=>key!=='receipt_digest'));
+  // The producer seals the receipt body before adding this derived verifier
+  // result, so it is deliberately outside the producer's digest boundary.
+  const unsigned=Object.fromEntries(Object.entries(proofReceipt||{}).filter(([key])=>!['receipt_digest','handoff_verification'].includes(key)));
   const receiptDigestValid=digest(proofReceipt?.receipt_digest)
     &&proofReceipt.receipt_digest===sha256(canonicalJson(unsigned));
   if(proofReceipt?.state==='NOT_APPLICABLE'){
@@ -107,12 +109,16 @@ export function verifyTerminalRecoveryProducerProofAdmission({event,repositoryId
     &&positiveId(proofReceipt.assurance_audit_job_id)&&positiveId(proofReceipt.assurance_artifact_id)
     &&positiveId(proofReceipt.producer_health_run_id)&&positiveId(proofReceipt.producer_health_run_attempt)
     &&positiveId(proofReceipt.producer_health_artifact_id)&&positiveId(proofReceipt.proof_artifact_id)
-    &&proofReceipt.scope==='CORE_FOUR_CONTENT'&&proofReceipt.verified_domain_count===4&&proofReceipt.required_domain_count===4
+    &&proofReceipt.scope==='AUTONOMOUS_CONTROL_PLANE_NOT_WHOLE_PLATFORM'
+    &&proofReceipt.verified_domain_count===1&&proofReceipt.required_domain_count===1
     &&digest(proofReceipt.assurance_audit_receipt_digest)&&digest(proofReceipt.assurance_artifact_digest)
     &&digest(proofReceipt.assurance_archive_digest)&&proofReceipt.assurance_archive_readback==='PASS'
     &&digest(proofReceipt.proof_artifact_digest)&&digest(proofReceipt.producer_health_artifact_digest)
     &&digest(proofReceipt.producer_health_receipt_digest)&&digest(proofReceipt.proof_receipt_digest)
     &&digest(proofReceipt.handoff_receipt_digest)&&proofReceipt.whole_platform_authority===false
+    &&proofReceipt.handoff_verification?.state==='VERIFIED_PASS'
+    &&proofReceipt.handoff_verification?.producer_run_id===run.id
+    &&proofReceipt.handoff_verification?.promotion_eligible===false
     &&proofReceipt.promotion_eligible===false&&proofReceipt.production==='HOLD'
     &&proofReceipt.public==='HOLD'&&proofReceipt.g5==='HOLD'&&receiptDigestValid,
   'PRODUCER_PROOF_RECEIPT_SCHEMA_OR_BINDING');
@@ -127,7 +133,7 @@ export function verifyTerminalRecoveryProducerProofAdmission({event,repositoryId
 export function verifyTerminalRecoveryProducerAdmissionArtifact({event,sourceSha,admission}){
   const run=event?.workflow_run;
   const unsigned=Object.fromEntries(Object.entries(admission||{}).filter(([key])=>key!=='admission_digest'));
-  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1 completed'
+  check(event?.action==='completed'&&run?.id>0&&run?.name==='KIDULTS Autonomous KPMO Authorization V1'
     &&run?.path===producerPath&&run?.status==='completed'&&run?.conclusion==='success'
     &&run?.event==='workflow_run'&&run?.run_attempt===1&&run?.head_branch==='main'
     &&run?.head_sha===sourceSha&&run?.repository?.full_name===repository

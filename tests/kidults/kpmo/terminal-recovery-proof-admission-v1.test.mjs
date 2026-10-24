@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {verifyDeferredAssuranceRuntimeProof} from '../../../scripts/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.mjs';
+import {fixture as deferredProofFixture} from './fixtures/deferred-assurance-runtime-proof-fixture-v1.mjs';
 import {verifyTerminalRecoveryProofAdmission,verifyTerminalRecoveryProducerProofAdmission,
   verifyTerminalRecoveryProducerAdmissionArtifact} from '../../../scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs';
 
@@ -48,18 +50,11 @@ for(const [name,mutate,pattern] of [
 ])test(name+' fails closed before credentials',()=>{const f=fixture();mutate(f);assert.throws(()=>verifyTerminalRecoveryProofAdmission(f),pattern);});
 
 function producerFixture(){
-  const event={action:'completed',workflow_run:{id:80,name:'KIDULTS Autonomous KPMO Authorization V1 completed',
+  const event={action:'completed',workflow_run:{id:80,name:'KIDULTS Autonomous KPMO Authorization V1',
     path:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',status:'completed',conclusion:'success',
     event:'workflow_run',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repository,id:1281328888},
     head_repository:{full_name:repository}}};
-  const proofReceipt=seal({receipt_id:'kpmo-deferred-assurance-runtime-proof-gate-v1',version:'1.0.0',state:'VERIFIED_PASS',repository,
-    source_sha:sha,current_protected_main_sha:sha,assurance_run_id:201,assurance_run_attempt:1,assurance_audit_job_id:202,
-    assurance_audit_receipt_digest:d,assurance_artifact_id:203,assurance_artifact_digest:d,assurance_archive_digest:d,
-    assurance_archive_readback:'PASS',proof_producer_run_id:80,proof_producer_run_attempt:1,proof_artifact_id:204,
-    proof_artifact_digest:d,producer_health_run_id:205,producer_health_run_attempt:1,producer_health_artifact_id:206,
-    producer_health_artifact_digest:d,producer_health_receipt_digest:d,proof_receipt_digest:d,handoff_receipt_digest:d,
-    scope:'CORE_FOUR_CONTENT',verified_domain_count:4,required_domain_count:4,
-    whole_platform_authority:false,promotion_eligible:false,production:'HOLD',public:'HOLD',g5:'HOLD'});
+  const proofReceipt=verifyDeferredAssuranceRuntimeProof(deferredProofFixture({producerRunId:80}));
   return {event,proofReceipt};
 }
 test('admits a VERIFIED_PASS exact producer proof without granting authority',()=>{

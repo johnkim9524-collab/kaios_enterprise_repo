@@ -18,7 +18,7 @@ jobs:
     name: Read-only recovery execution admission
     if: >-
       github.ref == 'refs/heads/main' &&
-      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1 completed' &&
+      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1' &&
       github.event.workflow_run.path == '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml' &&
       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run'
     runs-on: ubuntu-24.04
@@ -34,10 +34,6 @@ jobs:
         with:
           ref: ${{ github.sha }}
           persist-credentials: false
-      - name: Admit only an eligible actual recovery workload
-        run: |
-          set -euo pipefail
-          node scripts/kidults/kpmo/run-recovery-execution-admission-v1.mjs
       - name: Verify exact proof handoff before credentialed recovery
         id: proof
         env:
@@ -56,7 +52,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && github.run_attempt == 1 &&
       needs.terminal-recovery-admission.outputs.proof_verified == 'true' &&
-      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1 completed' &&
+      github.event_name == 'workflow_run' && github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1' &&
       github.event.workflow_run.path == '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml' &&
       github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_run'
     runs-on: ubuntu-24.04
