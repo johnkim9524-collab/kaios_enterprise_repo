@@ -14,9 +14,9 @@ const requiredGate=[
   'name: KPMO Continuous Assurance Success Authority Gate V1',
   "workflows: ['KIDULTS Platform Continuous Assurance V1', 'KPMO Continuous Assurance Exact-SHA Producer Health Sentinel V1', 'KIDULTS Autonomous KPMO Authorization V1']",
   'classify-assurance-completion:',
-  "github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",
+  "github.event.workflow_run.path == '.github/workflows/kidults-platform-continuous-assurance-v1.yml' &&",
   'deferred-runtime-proof-handoff-gate:',
-  "github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1' &&",
+  "github.event.workflow_run.path == '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml' &&",
   "github.event.workflow_run.head_repository.full_name == github.repository &&",
   "github.event.workflow_run.head_branch == 'main' &&",
   "github.event.workflow_run.status == 'completed'",
@@ -59,8 +59,8 @@ for(const token of [
 const tests='node --test tests/kidults/kpmo/authenticated-sentinel-continuation-v1.test.mjs tests/kidults/kpmo/assurance-full-proof-v1.test.mjs tests/kidults/kpmo/assurance-completion-disposition-v1.test.mjs tests/kidults/kpmo/assurance-runtime-proof-handoff-v1.test.mjs tests/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.test.mjs';
 if(!gate.includes(tests))fail('PR_SELF_TESTS_MISSING_HANDOFF_REGRESSION');
 
-const assuranceBranch=gate.replace("github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&",'');
-if(assuranceBranch===gate||assuranceBranch.includes("github.event.workflow_run.name == 'KIDULTS Platform Continuous Assurance V1' &&"))fail('ASSURANCE_CLASSIFIER_MUTATION_SETUP');
+const assuranceBranch=gate.replace("github.event.workflow_run.path == '.github/workflows/kidults-platform-continuous-assurance-v1.yml' &&",'');
+if(assuranceBranch===gate||assuranceBranch.includes("github.event.workflow_run.path == '.github/workflows/kidults-platform-continuous-assurance-v1.yml' &&"))fail('ASSURANCE_CLASSIFIER_MUTATION_SETUP');
 const missingHandoff=producer.replace('Seal exact parent Assurance to downstream proof handoff','removed step');
 if(missingHandoff===producer||missingHandoff.includes('Seal exact parent Assurance to downstream proof handoff'))fail('PRODUCER_HANDOFF_MUTATION_SETUP');
 
