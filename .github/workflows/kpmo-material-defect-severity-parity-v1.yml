@@ -6,12 +6,14 @@ on:
     paths:
       - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
       - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
+      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-workflow-evidence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   push:
     branches: [main]
     paths:
       - '.github/workflows/kpmo-material-defect-severity-parity-v1.yml'
       - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs'
+      - 'scripts/kidults/kpmo/validate-material-defect-severity-parity-workflow-evidence-v1.mjs'
       - 'scripts/kidults/kpmo/validate-live-canonical-issue-truth-v1.mjs'
   issues:
     types: [opened, edited, reopened, labeled, unlabeled]
@@ -36,20 +38,111 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
+
       - name: Verify exact source SHA
         env:
           EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: '24.19.0'
           package-manager-cache: false
+
+      - name: Guard terminal evidence contract
+        run: node scripts/kidults/kpmo/validate-material-defect-severity-parity-workflow-evidence-v1.mjs
+
       - name: Validate open material-defect severity parity with complete pagination
+        id: parity_validation
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          out_dir='artifacts/kpmo-material-defect-severity-parity'
+          mkdir -p "$out_dir"
+          log="$out_dir/validator.log"
+          : > "$log"
+
+          set +e
+          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test 2>&1 | tee -a "$log"
+          self_test_rc=${PIPESTATUS[0]}
+          validator_rc="$self_test_rc"
+          if [ "$self_test_rc" -eq 0 ]; then
+            node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs 2>&1 | tee -a "$log"
+            validator_rc=${PIPESTATUS[0]}
+          fi
+          set -e
+
+          printf 'exit_code=%s\n' "$validator_rc" >> "$GITHUB_OUTPUT"
+          printf 'validator_exit_code=%s\n' "$validator_rc" | tee -a "$log"
+          exit "$validator_rc"
+
+      - name: Build run-bound parity diagnostic receipt
+        if: always()
+        env:
+          PARITY_EXIT: ${{ steps.parity_validation.outputs.exit_code }}
+          PARITY_OUTCOME: ${{ steps.parity_validation.outcome }}
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        shell: bash
         run: |
           set -euo pipefail
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs --self-test
-          node scripts/kidults/kpmo/validate-material-defect-severity-parity-v2.mjs
+          out_dir='artifacts/kpmo-material-defect-severity-parity'
+          mkdir -p "$out_dir"
+          log="$out_dir/validator.log"
+          touch "$log"
+
+          rc="${PARITY_EXIT:-125}"
+          if ! [[ "$rc" =~ ^[0-9]+$ ]] || [ "$rc" -gt 255 ]; then
+            rc=125
+          fi
+          log_sha="$(sha256sum "$log" | awk '{print $1}')"
+          result='RED'
+          if [ "$rc" -eq 0 ] && [ "${PARITY_OUTCOME:-}" = 'success' ]; then
+            result='GREEN'
+          fi
+
+          jq -n \
+            --arg repository "$GITHUB_REPOSITORY" \
+            --arg workflow "$GITHUB_WORKFLOW" \
+            --arg run_id "$GITHUB_RUN_ID" \
+            --arg run_attempt "$GITHUB_RUN_ATTEMPT" \
+            --arg source_sha "$EXPECTED_SHA" \
+            --arg event_name "$GITHUB_EVENT_NAME" \
+            --arg validator_outcome "${PARITY_OUTCOME:-unknown}" \
+            --arg result "$result" \
+            --arg validator_log_sha256 "$log_sha" \
+            --argjson validator_exit_code "$rc" \
+            '{schema_version:"kpmo.material-defect-severity-parity.diagnostic-receipt.v1",repository:$repository,workflow:$workflow,run_id:$run_id,run_attempt:$run_attempt,source_sha:$source_sha,event_name:$event_name,validator_outcome:$validator_outcome,validator_exit_code:$validator_exit_code,result:$result,promotion_eligible:false,validator_log_sha256:$validator_log_sha256}' \
+            > "$out_dir/diagnostic-receipt.json"
+
+      - name: Upload run-bound parity diagnostic packet
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kpmo-material-defect-severity-parity-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/kpmo-material-defect-severity-parity/diagnostic-receipt.json
+            artifacts/kpmo-material-defect-severity-parity/validator.log
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Enforce parity validator result after evidence retention
+        if: always()
+        env:
+          PARITY_EXIT: ${{ steps.parity_validation.outputs.exit_code }}
+          PARITY_OUTCOME: ${{ steps.parity_validation.outcome }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rc="${PARITY_EXIT:-125}"
+          if ! [[ "$rc" =~ ^[0-9]+$ ]] || [ "$rc" -gt 255 ]; then
+            rc=125
+          fi
+          if [ "${PARITY_OUTCOME:-}" != 'success' ] && [ "$rc" -eq 0 ]; then
+            rc=125
+          fi
+          exit "$rc"
