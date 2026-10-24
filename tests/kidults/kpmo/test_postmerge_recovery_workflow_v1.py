@@ -27,7 +27,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertEqual(trigger, {'workflows': expected,
                                       'types': ['completed'], 'branches': ['main']})
         self.assertEqual(self.gate_recovery_workflow()['on']['workflow_run']['workflows'],
-                         ['KPMO Continuous Assurance Success Authority Gate V1'])
+                         ['KIDULTS Autonomous KPMO Authorization V1'])
         self.assertNotIn('interrupted-recovery-finalizer', self.workflow('track')['jobs'])
         for name in FILES:
             workflow = self.workflow(name)
@@ -98,7 +98,7 @@ class RecoveryWorkflowTests(unittest.TestCase):
     def test_gate_recovery_uses_native_completion_without_write_or_fanout(self):
         workflow = self.gate_recovery_workflow()
         self.assertEqual(workflow['permissions'], {})
-        self.assertIn('KPMO Continuous Assurance Success Authority Gate V1', workflow['on']['workflow_run']['workflows'])
+        self.assertIn('KIDULTS Autonomous KPMO Authorization V1', workflow['on']['workflow_run']['workflows'])
         gate = workflow['jobs']['terminal-recovery-approval']
         self.assertEqual(gate['needs'], 'terminal-recovery-admission')
         script = '\n'.join(step.get('run', '') for step in gate['steps'])
@@ -131,9 +131,15 @@ class RecoveryWorkflowTests(unittest.TestCase):
         self.assertEqual(proof['run'], 'node scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs')
         self.assertEqual(proof['env']['GH_TOKEN'], '${{ github.token }}')
         verifier = (ROOT / 'scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs').read_text()
-        self.assertIn('/actions/artifacts/${artifact.id}/zip', verifier)
-        self.assertIn('read-sentinel-artifact-v1.py', verifier)
-        self.assertIn('PROOF_RECEIPT_SCHEMA_OR_BINDING', (ROOT / 'scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs').read_text())
+        self.assertIn('runDeferredAssuranceProofGate', verifier)
+        self.assertIn('verifyTerminalRecoveryProducerProofAdmission', verifier)
+        self.assertIn('KIDULTS-AUTONOMOUS-KPMO', workflow['jobs']['terminal-recovery-approval']['environment'])
+        self.assertIn('actions/download-artifact@', '\n'.join(str(step.get('uses','')) for step in workflow['jobs']['terminal-recovery-approval']['steps']))
+        self.assertIn('validate-recovery-proof-admission-v1.mjs', '\n'.join(step.get('run','') for step in workflow['jobs']['terminal-recovery-approval']['steps']))
+        self.assertIn("needs.terminal-recovery-admission.outputs.proof_verified == 'true'", workflow['jobs']['terminal-recovery-approval']['if'])
+        recovery_steps=workflow['jobs']['terminal-recovery-approval']['steps']
+        self.assertLess(next(i for i,s in enumerate(recovery_steps) if 'validate-recovery-proof-admission-v1.mjs' in s.get('run','')),
+                        next(i for i,s in enumerate(recovery_steps) if 'assume-role-with-web-identity' in s.get('run','')))
         self.assertLess([step.get('name') for step in steps].index(proof['name']),
                         [step.get('name') for step in steps].index('Preserve admission evidence'))
         recovery = workflow['jobs']['terminal-recovery-approval']
@@ -220,6 +226,19 @@ class RecoveryWorkflowTests(unittest.TestCase):
         result = self.run_entrypoint({'GITHUB_ACTIONS': 'true', 'GITHUB_EVENT_NAME': 'workflow_run', 'GITHUB_RUN_ATTEMPT': '1'},
                                     {'action': 'completed', 'workflow_run': {'name': 'untrusted', 'conclusion': 'success'}})
         self.assertIn('RECOVERY_RUNTIME_UPSTREAM', result.stderr)
+
+    def test_producer_completion_requires_bound_verified_proof_before_ledger_reads(self):
+        run = {'id': 80, 'name': 'KIDULTS Autonomous KPMO Authorization V1 completed',
+               'path': '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml',
+               'status': 'completed', 'conclusion': 'success', 'event': 'workflow_run', 'run_attempt': 1,
+               'head_sha': 'a' * 40, 'head_branch': 'main',
+               'repository': {'full_name': 'johnkim9524-collab/kaios_enterprise_repo', 'id': 1281328888},
+               'head_repository': {'full_name': 'johnkim9524-collab/kaios_enterprise_repo'}}
+        result = self.run_entrypoint({'GITHUB_ACTIONS': 'true', 'GITHUB_EVENT_NAME': 'workflow_run',
+            'GITHUB_RUN_ATTEMPT': '1', 'GITHUB_SHA': 'a' * 40,
+            'GITHUB_WORKFLOW_REF': 'johnkim9524-collab/kaios_enterprise_repo/.github/workflows/kpmo-continuous-assurance-terminal-recovery-v1.yml@refs/heads/main'},
+            {'action': 'completed', 'workflow_run': run})
+        self.assertIn('RECOVERY_RUNTIME_PROOF_ADMISSION_REQUIRED', result.stderr)
 
 if __name__ == '__main__':
     unittest.main()
