@@ -96,6 +96,16 @@ test('allows the checkpoint exact direct GET target while keeping it read-only',
  assert.equal(calls,1);
 });
 
+test('allows a deferred artifact-list GET only after binding its exact run target',async()=>{
+ const targetRoute='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/988/artifacts?per_page=100';
+ const targetCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:targetRoute}};
+ const targetLine=JSON.stringify(targetCheckpoint);let calls=0;
+ await consumeGithubReadResumeCheckpoint({...common,checkpoint:targetCheckpoint,
+  archiveReader:()=>({members:[{encoding:'utf-8',name:'checkpoints.jsonl',text:targetLine+'\n'}]}),
+  read:async value=>{calls++;assert.equal(value,targetRoute);return {total_count:0,artifacts:[]};}});
+ assert.equal(calls,1);
+});
+
 test('binds a distinct parent route to its recorded attempt',async()=>{
  const parentRoute='/repos/johnkim9524-collab/kaios_enterprise_repo/actions/runs/987/attempts/2/jobs?per_page=100';
  const parentCheckpoint={...checkpoint,unfinished_operation:{method:'GET',route:parentRoute}};
