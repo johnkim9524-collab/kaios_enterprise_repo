@@ -2,8 +2,10 @@
 const repository='johnkim9524-collab/kaios_enterprise_repo';
 const gate='KPMO Continuous Assurance Success Authority Gate V1';
 const assurance='KIDULTS Platform Continuous Assurance V1';
+const authorization='KIDULTS Autonomous KPMO Authorization V1';
 const paths={ [gate]:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',
-  [assurance]:'.github/workflows/kidults-platform-continuous-assurance-v1.yml' };
+  [assurance]:'.github/workflows/kidults-platform-continuous-assurance-v1.yml',
+  [authorization]:'.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml' };
 const check=(ok,code)=>{if(!ok)throw Error('RECOVERY_ADMISSION_'+code);};
 export function recoveryExecutionAdmission({env,event}){
   check(env.GITHUB_ACTIONS==='true'&&env.GITHUB_EVENT_NAME==='workflow_run'
@@ -12,7 +14,7 @@ export function recoveryExecutionAdmission({env,event}){
     &&env.GITHUB_REPOSITORY_ID==='1281328888'&&/^[a-f0-9]{40}$/.test(env.GITHUB_SHA||'')
     &&env.GITHUB_WORKFLOW_SHA===env.GITHUB_SHA&&event.action==='completed','CONTEXT');
   const run=event.workflow_run;
-  check(Number.isSafeInteger(run?.id)&&run.id>0&&[gate,assurance].includes(run.name)&&paths[run.name]===run.path
+  check(Number.isSafeInteger(run?.id)&&run.id>0&&[gate,assurance,authorization].includes(run.name)&&paths[run.name]===run.path
     &&run.status==='completed'&&run.run_attempt===1&&run.head_sha===env.GITHUB_SHA&&run.head_branch==='main'
     &&run.repository?.full_name===repository&&String(run.repository?.id)==='1281328888'
     &&run.head_repository?.full_name===repository,'UPSTREAM');
@@ -25,6 +27,10 @@ export function recoveryExecutionAdmission({env,event}){
       return result(true,'BOT_COVERAGE_CONTINUATION_REQUIRES_FULL_NATIVE_VERIFICATION');
     }
     return result(true,'FAILURE_PARENT_REQUIRES_FULL_NATIVE_VERIFICATION');
+  }
+  if(run.name===authorization){
+    check(run.event==='workflow_run'&&run.conclusion==='success','AUTHORIZATION');
+    return result(true,'EXACT_KPMO_AUTHORIZATION_REQUIRES_PROOF_HANDOFF_VERIFICATION');
   }
   check(run.event==='workflow_run'&&run.conclusion==='success','GATE');
   return result(true,'ACTUAL_AUTHORITY_REQUIRES_FULL_NATIVE_VERIFICATION');
