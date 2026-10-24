@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {zip,text} from './recovery-native-archive-fixture-v1.mjs';
 import {canonicalJson,sha256} from '../../../scripts/kidults/kpmo/lib/canonical-json-v1.mjs';
+import {verifyDeferredAssuranceRuntimeProof} from '../../../scripts/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.mjs';
+import {fixture as producerProofFixture} from './fixtures/deferred-assurance-runtime-proof-fixture-v1.mjs';
 import {digest} from '../../../scripts/kidults/kpmo/validate-sentinel-producer-content-v1.mjs';
 import {issueKirCoverageAssuranceContinuation,consumeKirCoverageAssuranceContinuation} from '../../../scripts/kidults/kpmo/validate-kir-coverage-assurance-continuation-v1.mjs';
 import {createBoundedRecoveryRunGet,verifyInterruptedRecoveryNativeTrigger,verifyInterruptedRecoveryNativeTriggerOnce,consumeInterruptedRecoveryNativeTriggerToken} from '../../../scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs';
@@ -52,18 +54,34 @@ test('failed Assurance admits only explicitly authenticated Coverage Sentinel co
  assert.equal(result.mode,'AUTHENTICATED_COVERAGE_CONTINUATION');assert.equal(result.sentinelRunId,991);
 });
 function fixture(){
- const upstream={id:100,name:'KPMO Continuous Assurance Success Authority Gate V1',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',repository:{full_name:repo,id:1281328888}};
+ const timestamp='2026-10-11T00:00:00Z';
+ const upstream={id:100,name:'KPMO Continuous Assurance Success Authority Gate V1',path:'.github/workflows/kpmo-continuous-assurance-success-authority-gate-v1.yml',event:'workflow_run',status:'completed',conclusion:'success',run_attempt:1,head_sha:sha,head_branch:'main',created_at:timestamp,run_started_at:timestamp,updated_at:timestamp,repository:{full_name:repo,id:1281328888},head_repository:{full_name:repo}};
  const env={GITHUB_EVENT_NAME:'workflow_run',GITHUB_RUN_ATTEMPT:'1',GITHUB_REF:'refs/heads/main',GITHUB_REPOSITORY:repo,GITHUB_REPOSITORY_ID:'1281328888',GITHUB_SHA:sha,GITHUB_WORKFLOW_SHA:sha};
- const f={env,event:{action:'completed',workflow_run:upstream},live:structuredClone(upstream),jobs:{total_count:1,jobs:[{id:200,run_id:100,run_attempt:1,name:'success-authority-gate',status:'completed',conclusion:'success'}]},main:{name:'main',protected:true,commit:{sha}},calls:[]};
- f.get=async route=>{f.calls.push(route);return route==='branches/main'?f.main:route.includes('/jobs')?f.jobs:f.live;};return f;
+ const producerProofInput=producerProofFixture({producerRunId:90});
+ const producer=producerProofInput.producerRun;
+ // Use the actual producer output so its post-seal handoff_verification field
+ // and receipt_digest projection are exercised by this consumer.
+ const receipt=verifyDeferredAssuranceRuntimeProof(producerProofInput);
+ const bytes=zip([['kpmo-deferred-assurance-runtime-proof-gate-v1.json',text(receipt)]]);
+ const artifact={id:85,name:'kpmo-deferred-assurance-runtime-proof-gate-'+sha+'-'+producer.id+'-1',expired:false,digest:digest(bytes),size_in_bytes:bytes.length,created_at:'2026-10-11T00:01:00Z',expires_at:'2027-01-01T00:00:00Z',workflow_run:{id:100,head_sha:sha}};
+ const jobs={total_count:1,jobs:[{id:200,run_id:100,run_attempt:1,name:'deferred-runtime-proof-handoff-gate',status:'completed',conclusion:'success',steps:[{name:'Require exact autonomous Assurance proof closure',status:'completed',conclusion:'success'}]}]};
+ const f={env,event:{action:'completed',workflow_run:upstream},live:structuredClone(upstream),jobs,artifacts:{total_count:1,artifacts:[artifact]},artifact,bytes,receipt,producer,main:{name:'main',protected:true,commit:{sha}},calls:[]};
+ f.get=async route=>{f.calls.push(route);if(route==='branches/main')return f.main;if(route.includes('/jobs'))return f.jobs;if(route.endsWith('/artifacts?per_page=100'))return f.artifacts;if(route==='actions/runs/'+producer.id)return f.producer;return f.live;};
+ f.readBytes=async route=>{assert.equal(route,'actions/artifacts/'+artifact.id+'/zip');return bytes;};
+ f.archiveReader=(input,expected)=>{assert.equal(digest(input),expected);const content=text(receipt);return {archive_digest:expected,extraction_performed:false,members:[{name:'kpmo-deferred-assurance-runtime-proof-gate-v1.json',encoding:'utf-8',text:content,sha256:digest(content)}]};};
+ return f;
 }
-test('existing natural Gate trigger requires actual authority success at exact attempt',async()=>{const f=fixture();assert.equal((await verifyInterruptedRecoveryNativeTrigger(f)).id,100);assert.deepEqual(f.calls,['actions/runs/100','actions/runs/100/attempts/1/jobs?per_page=100','branches/main']);});
+test('natural Gate trigger requires exact successful deferred proof receipt and producer lineage',async()=>{const f=fixture();assert.equal((await verifyInterruptedRecoveryNativeTrigger(f)).id,100);assert.deepEqual(f.calls,['actions/runs/100','actions/runs/100/attempts/1/jobs?per_page=100','actions/runs/100/artifacts?per_page=100','actions/runs/90','branches/main']);});
 for(const [name,mutate] of [
  ['manual',f=>f.env.GITHUB_EVENT_NAME='workflow_dispatch'],['rerun',f=>f.env.GITHUB_RUN_ATTEMPT='2'],
  ['upstream replay',f=>f.event.workflow_run.run_attempt=2],['borrowed source',f=>f.live.head_sha='b'.repeat(40)],
- ['skipped authority',f=>f.jobs.jobs[0].conclusion='skipped'],['missing authority',f=>{f.jobs.jobs=[];f.jobs.total_count=0;}],
- ['duplicate authority',f=>{f.jobs.jobs.push({...f.jobs.jobs[0],id:201});f.jobs.total_count=2;}],
- ['incomplete job pagination',f=>f.jobs.total_count=101],['unprotected main',f=>f.main.protected=false],['advanced main',f=>f.main.commit.sha='b'.repeat(40)]
+ ['skipped proof handoff',f=>f.jobs.jobs[0].conclusion='skipped'],['missing proof handoff',f=>{f.jobs.jobs=[];f.jobs.total_count=0;}],
+ ['duplicate proof handoff',f=>{f.jobs.jobs.push({...f.jobs.jobs[0],id:201});f.jobs.total_count=2;}],
+ ['incomplete job pagination',f=>f.jobs.total_count=101],['unprotected main',f=>f.main.protected=false],['advanced main',f=>f.main.commit.sha='b'.repeat(40)],
+ ['proof is not verified',f=>{f.receipt.state='NOT_APPLICABLE';const body={...f.receipt};delete body.receipt_digest;f.receipt.receipt_digest=sha256(canonicalJson(body));}],
+ ['proof digest mismatch',f=>f.receipt.receipt_digest='sha256:'+'0'.repeat(64)],
+ ['missing proof archive',f=>{f.artifacts.artifacts=[];f.artifacts.total_count=0;}],
+ ['wrong proof producer',f=>f.producer.path='.github/workflows/untrusted.yml']
 ])test('deny '+name,async()=>{const f=fixture();mutate(f);await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f));});
 test('Verifier completion starts a separate fourth run bound back to the same authenticated Gate',async()=>{
  const {createHash}=await import('node:crypto');
@@ -72,9 +90,10 @@ test('Verifier completion starts a separate fourth run bound back to the same au
  const receipt={source_sha:sha,gate_run_id:100,role_run_id:'300',actual_candidates:1};
  const bytes=zip([['interrupted-INDEPENDENT_VERIFIER.json',text(receipt)]]);
  const artifact={id:500,name:'kidults-postmerge-terminal-recovery-independent_verifier-300-1',expired:false,digest:'sha256:'+createHash('sha256').update(bytes).digest('hex'),size_in_bytes:bytes.length,workflow_run:{id:300,head_sha:sha},created_at:'2026-10-11T00:01:00Z',expires_at:'2027-01-01T00:00:00Z'};
- f.get=async route=>route==='actions/runs/300'?role:route==='actions/runs/300/attempts/1/jobs?per_page=100'?{total_count:1,jobs:[{id:301,run_id:300,run_attempt:1,name:'Bounded original reservation terminal recovery INDEPENDENT_VERIFIER',status:'completed',conclusion:'success',steps:[{name:'Run bounded signed terminal recovery workload',status:'completed',conclusion:'success'}]}]}:route==='actions/runs/300/artifacts?per_page=100'?{total_count:1,artifacts:[artifact]}:route==='actions/runs/100'?gate:route.includes('/jobs')?f.jobs:f.main;
- f.readBytes=async()=>bytes;
- f.archiveReader=(input,expected)=>{assert.equal(digest(input),expected);return {archive_digest:expected,extraction_performed:false,members:[{name:'interrupted-INDEPENDENT_VERIFIER.json',encoding:'utf-8',text:text(receipt),sha256:digest(text(receipt))}]};};
+ f.get=async route=>route==='actions/runs/300'?role:route==='actions/runs/300/attempts/1/jobs?per_page=100'?{total_count:1,jobs:[{id:301,run_id:300,run_attempt:1,name:'Bounded original reservation terminal recovery INDEPENDENT_VERIFIER',status:'completed',conclusion:'success',steps:[{name:'Run bounded signed terminal recovery workload',status:'completed',conclusion:'success'}]}]}:route==='actions/runs/300/artifacts?per_page=100'?{total_count:1,artifacts:[artifact]}:route==='actions/runs/100'?gate:route==='actions/runs/100/artifacts?per_page=100'?f.artifacts:route==='actions/runs/90'?f.producer:route.includes('/jobs')?f.jobs:route==='branches/main'?f.main:f.live;
+ f.readBytes=async route=>route==='actions/artifacts/85/zip'?f.bytes:bytes;
+ const verifierArchiveReader=(input,expected)=>{assert.equal(digest(input),expected);return {archive_digest:expected,extraction_performed:false,members:[{name:'interrupted-INDEPENDENT_VERIFIER.json',encoding:'utf-8',text:text(receipt),sha256:digest(text(receipt))}]};};
+ const proofArchiveReader=f.archiveReader;f.archiveReader=(input,expected)=>digest(input)===f.artifact.digest?proofArchiveReader(input,expected):verifierArchiveReader(input,expected);
  assert.equal((await verifyInterruptedRecoveryNativeTrigger(f)).id,100);
  artifact.workflow_run.id=301;await assert.rejects(verifyInterruptedRecoveryNativeTrigger(f));
 });

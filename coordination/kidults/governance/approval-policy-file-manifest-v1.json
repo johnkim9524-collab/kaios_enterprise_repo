@@ -1,7 +1,7 @@
 {
   "id": "kidults-approval-policy-file-manifest-v1",
   "version": "1.0.0",
-  "revision": "bded58dcf9aa5b22224914ca9e2a2cfb1ab6d49b",
+  "revision": "aa4d9a78f2c679b79e23e36de107d6621e87265d",
   "scan": {
     "method": "GIT_OBJECT_CONTENT_SCAN",
     "pattern": "(approval|authorization|owner[_ -]?reserved|manual[_ -]?(approval|gate)|program owner|independent review)",
@@ -4477,8 +4477,8 @@
     {
       "path": "scripts/kidults/kpmo/lib/interrupted-recovery-native-trigger-v1.mjs",
       "classification": "EXECUTION_AUTHORIZATION_CONTROL",
-      "git_blob": "611ee2b28aa388f7e7c1397824803b00840f94c9",
-      "sha256": "sha256:6ed2fcb4f528639c1f5f957acf783388fc9fae922e1916bc55dad79a71426e53",
+      "git_blob": "2200541d0f866eb330d9a93d54b55fb5897a24cd",
+      "sha256": "sha256:7d665aabc8355912afd810bd0052549729853011f50c00f283feb175db8fa09c",
       "authorization_routing": {
         "route": "INTERNAL_REVERSIBLE",
         "coverage": {
@@ -7011,6 +7011,12 @@
       "sha256": "sha256:cbcfd81988122a35de27c61c09ce6843dca06a1387ca7b0c5074e3eed99be218"
     },
     {
+      "path": "tests/kidults/kpmo/fixtures/deferred-assurance-runtime-proof-fixture-v1.mjs",
+      "classification": "REFERENCE_OR_IMPLEMENTATION",
+      "git_blob": "e3162e275ca9ec56413fbf4f5edc1ee8b764a9eb",
+      "sha256": "sha256:a1b373b1de50022a55bd0c04b1f5f98738cfb3a809a61eb1a2e3ac98fdb67552"
+    },
+    {
       "path": "tests/kidults/kpmo/github-comment-body-byte-exact-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "751b344f85f32a230495cd9d4a320e43a9b54882",
@@ -7097,8 +7103,8 @@
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-native-trigger-v1.test.mjs",
       "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "f19610f525e5717485559974a974e92c9bbbd5d7",
-      "sha256": "sha256:a8919ca3d86979ece8f8ec777c4ae177ffa57c4079a1c267edcde2e67798b317"
+      "git_blob": "8b051b83a09bb55c51f0ccb5d240f199fcd4ec0f",
+      "sha256": "sha256:8ce57c578fe994296129ce707569a39e43939f9eab0e49069473a27e59b20da6"
     },
     {
       "path": "tests/kidults/kpmo/interrupted-recovery-signed-ledger-client-v1.test.mjs",
@@ -7225,12 +7231,6 @@
       "classification": "REFERENCE_OR_IMPLEMENTATION",
       "git_blob": "5a3098e1eb04fab1441202d443ea594c3a1f9429",
       "sha256": "sha256:374a24bb45e1871a6bdf775ecd9e33cc103b6d59515930b6fab1f6a00c88d04c"
-    },
-    {
-      "path": "tests/kidults/kpmo/verify-assurance-runtime-proof-handoff-v1.test.mjs",
-      "classification": "REFERENCE_OR_IMPLEMENTATION",
-      "git_blob": "8c1db234ebe939ef314f571b1f6e217fbe703310",
-      "sha256": "sha256:b95f6c13964e8b23a4b2eabef5dd3f93b6b4546be4782b8cd9aa6340151f693b"
     },
     {
       "path": "tests/kidults/market/current-sold-atomic-landing-durable-intent-v1.test.mjs",
@@ -7425,5 +7425,5 @@
       "sha256": "sha256:007a051278c067f459c8ba1bbdf2c4854de0ec18587fc49be594f1e49c736354"
     }
   ],
-  "manifest_sha256": "sha256:444902d927c51c9715e479f1b646dda033fd99ec1b4937676850269f3469a3e5"
+  "manifest_sha256": "sha256:a329269594965ac5249063e7aed1092804981311588b296a43eea52aeae335eb"
 }
