@@ -121,10 +121,28 @@ class RecoveryWorkflowTests(unittest.TestCase):
             self.assertIn("github.event.workflow_run.actor.login == 'github-actions[bot]'", admission_if)
             self.assertNotIn("github.event.workflow_run.event == 'schedule'", admission_if)
 
+    def test_kpmo_terminal_recovery_requires_verified_handoff_before_credentials(self):
+        workflow = self.gate_recovery_workflow()
+        admission = workflow['jobs']['terminal-recovery-admission']
+        self.assertEqual(admission['permissions'], {'actions': 'read', 'contents': 'read'})
+        self.assertNotIn('environment', admission)
+        steps = admission['steps']
+        proof = next(step for step in steps if step.get('name') == 'Verify exact proof handoff before credentialed recovery')
+        self.assertEqual(proof['run'], 'node scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs')
+        self.assertEqual(proof['env']['GH_TOKEN'], '${{ github.token }}')
+        verifier = (ROOT / 'scripts/kidults/kpmo/verify-terminal-recovery-proof-admission-v1.mjs').read_text()
+        self.assertIn('/actions/artifacts/${artifact.id}/zip', verifier)
+        self.assertIn('read-sentinel-artifact-v1.py', verifier)
+        self.assertIn('PROOF_RECEIPT_SCHEMA_OR_BINDING', (ROOT / 'scripts/kidults/kpmo/lib/terminal-recovery-proof-admission-v1.mjs').read_text())
+        self.assertLess([step.get('name') for step in steps].index(proof['name']),
+                        [step.get('name') for step in steps].index('Preserve admission evidence'))
+        recovery = workflow['jobs']['terminal-recovery-approval']
+        self.assertEqual(recovery['needs'], 'terminal-recovery-admission')
+
     def test_non_authorizing_gate_completion_is_terminal_failure(self):
         workflow = self.gate_workflow()
         gate = workflow['jobs']['deferred-runtime-proof-handoff-gate']
-        self.assertIn("github.event.workflow_run.name == 'KIDULTS Autonomous KPMO Authorization V1'", gate['if'])
+        self.assertIn("github.event.workflow_run.path == '.github/workflows/kidults-autonomous-kpmo-authorization-v1.yml'", gate['if'])
         terminal = '\n'.join(step.get('name', '') + '\n' + step.get('run', '') for step in gate['steps'])
         self.assertIn('Require exact autonomous Assurance proof closure', terminal)
         self.assertIn('state=="VERIFIED_PASS" or .state=="NOT_APPLICABLE"', terminal)

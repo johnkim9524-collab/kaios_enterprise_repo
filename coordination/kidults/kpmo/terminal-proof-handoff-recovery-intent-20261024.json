@@ -1,0 +1,15 @@
+{
+  "id": "kidults-development-draft-proposal-intent-v1",
+  "version": "1.0.0",
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "root_mission_id": "KPMO_TERMINAL_NATURAL_RECEIPT_RECOVERY_20261024",
+  "operation": "CREATE_DRAFT_PR",
+  "base_branch": "main",
+  "base_sha": "8298aec18f2788db0e09723a330ff007c1b744aa",
+  "head_branch": "codex/fix-kpmo-proof-gate-path-20261024",
+  "source_head_sha": "a50c0fb62cba270171e01524bd81dc2385be2f5c",
+  "source_head_tree_sha": "f8bf24d4669c4406193fecc40899cb819aa31094",
+  "payload_digest": "sha256:9a06411fd3a5c543ee37b50c07739b381f8c8fdb64ea2d695a2ef9ad5a951ca0",
+  "scope": "AUTHORIZED_REVERSIBLE_DEVELOPMENT_PROPOSAL",
+  "authority_granted": false
+}
