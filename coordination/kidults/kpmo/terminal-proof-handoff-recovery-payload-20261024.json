@@ -1,0 +1,8 @@
+{
+  "repository": "johnkim9524-collab/kaios_enterprise_repo",
+  "base": "main",
+  "head": "codex/fix-kpmo-proof-gate-path-20261024",
+  "draft": true,
+  "title": "Require verified proof handoff before terminal recovery",
+  "body": "## Summary\n\n- Bind Assurance classification and KPMO proof handoff to exact workflow paths.\n- Require one successful proof-handoff job, its exact closure step, and one matching proof artifact before terminal recovery can reach credentialed AWS execution.\n- Keep the recovery receipt non-authorizing; preserve reservation state and Production/Public/G5 HOLD boundaries.\n\n## Validation\n\n- Terminal proof admission: 7 tests passed.\n- Assurance completion and recovery admission: 26 tests passed.\n- Post-merge recovery workflow: 13 tests passed.\n- Success-authority gate validator: passed.\n- Workflow mutation-boundary validator: passed with no findings.\n\nThe original reservation remains untouched until a naturally triggered, verified terminal receipt closes it."
+}
