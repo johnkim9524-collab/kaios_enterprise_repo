@@ -1,0 +1,157 @@
+{
+  "id": "KIDULTS_RECOVERY_ROLE_PARTITION_V1",
+  "version": "1.0.0",
+  "effective_at": "2026-09-16T15:30:35+09:00",
+  "source_main_sha": "eb09a9fc094814519a99d0a9719d5daf47117369",
+  "state": "ACTIVE_ROLE_PARTITION",
+  "authority": {
+    "issuer_role": "PROGRAM_OWNER",
+    "issuer_holder": "Yun Goo Kim (John)",
+    "directive": "PSA improvement and validation are led by TRACK Z; Sentinel, Canonical and KIR platform recovery are led by the Program Owner; the Red Team independently validates both lanes and their integration boundary.",
+    "duration": "UNTIL_PROGRAM_OWNER_REVOKES_OR_SUPERSEDES"
+  },
+  "base_role_registry": "coordination/kidults/registry/roles-and-responsibilities.json",
+  "scope_precedence": "THIS_CONTRACT_OVERRIDES_EXECUTION_OWNERSHIP_ONLY_FOR_THE_NAMED_RECOVERY_LANES_AND_DOES_NOT_REPLACE_THE_BASE_ROLE_REGISTRY",
+  "lanes": [
+    {
+      "lane_id": "TRACK_Z_PSA",
+      "lead_role": "TRACK_Z",
+      "accountable": true,
+      "primary_scope": [
+        "PSA_PROVIDER_STRATEGY",
+        "PSA_RIGHTS_AND_TERMS",
+        "PSA_COST_AND_ENTITLEMENT",
+        "PSA_CREDENTIAL_AND_ENVIRONMENT_READBACK",
+        "PSA_LAWFUL_INPUT_AND_PROVENANCE",
+        "PSA_ISOLATED_SCHEMA_AND_Z1_PROBE",
+        "PSA_PRIVATE_STORAGE_RETENTION_AND_DELETION",
+        "PSA_QUOTA_AND_PROVIDER_RECEIPTS"
+      ],
+      "active_handoff": {
+        "pull_request": 2230,
+        "state": "DRAFT_HANDOFF_TO_TRACK_Z",
+        "merge_authority": false,
+        "provider_call_authority": false,
+        "credential_authority": false,
+        "empirical_admission_authority": false
+      },
+      "must_not": [
+        "MODIFY_SENTINEL_CANONICAL_OR_KIR_BEHAVIOR",
+        "CLAIM_PLATFORM_RECOVERY",
+        "ADMIT_PSA_DATA_TO_KIR_CURRENT_SOLD_EVIDENCE_TRACK_B_PROJECTION_OR_PORTAL_WITHOUT_SEPARATE_GATES",
+        "MERGE_A_MIXED_SCOPE_CHANGE"
+      ],
+      "reports_to": [
+        "PROGRAM_OWNER",
+        "INDEPENDENT_RED_TEAM"
+      ]
+    },
+    {
+      "lane_id": "PROGRAM_OWNER_PLATFORM_RECOVERY",
+      "lead_role": "PROGRAM_OWNER",
+      "lead_holder": "Yun Goo Kim (John)",
+      "accountable": true,
+      "primary_scope": [
+        "SENTINEL",
+        "CANONICAL",
+        "KIR",
+        "COVERAGE_AND_ASSURANCE_CONTRACTS",
+        "PLATFORM_RECOVERY_SEQUENCE",
+        "NORMAL_OPERATION_RESTORATION",
+        "INTEGRATION_DECISIONS"
+      ],
+      "support_roles": [
+        "KPMO",
+        "SENTINEL_ENGINEERING",
+        "CANONICAL_ENGINEERING",
+        "KIR_ENGINEERING"
+      ],
+      "must_not": [
+        "CALL_PSA_OR_ANOTHER_PROVIDER",
+        "RESOLVE_OR_USE_PROVIDER_CREDENTIALS",
+        "CHANGE_PROVIDER_RIGHTS_TERMS_OR_SPEND",
+        "ABSORB_TRACK_Z_PSA_IMPLEMENTATION_INTO_A_PLATFORM_RECOVERY_PR",
+        "PROMOTE_CONTROL_PROOF_TO_EMPIRICAL_PRODUCTION_PUBLIC_OR_G5"
+      ],
+      "reports_to": [
+        "PROGRAM_OWNER",
+        "INDEPENDENT_RED_TEAM"
+      ]
+    },
+    {
+      "lane_id": "INDEPENDENT_RED_TEAM",
+      "lead_role": "RED_TEAM",
+      "independent": true,
+      "may_author_primary_lane_change": false,
+      "primary_scope": [
+        "PSA_LANE_REGRESSION",
+        "PLATFORM_RECOVERY_REGRESSION",
+        "CROSS_LANE_INTEGRATION_BOUNDARY",
+        "NEGATIVE_CANARIES",
+        "FAIL_CLOSED_STATE_AND_RECEIPT_TRUTH",
+        "NO_AUTHORITY_LEAKAGE"
+      ],
+      "must_not": [
+        "SELF_APPROVE_ITS_OWN_PRIMARY_FIX",
+        "MODIFY_PRIMARY_LANE_IMPLEMENTATION_DURING_THE_SAME_REVIEW_GENERATION",
+        "CONVERT_HOLD_TO_PASS",
+        "SUBSTITUTE_BRANCH_PROOF_FOR_NATURAL_PROTECTED_MAIN_PROOF",
+        "COMBINE_THE_TWO_PRIMARY_LANES_FOR_CONVENIENCE"
+      ],
+      "required_outputs": [
+        "PSA_REGRESSION_RECEIPT",
+        "PLATFORM_RECOVERY_REGRESSION_RECEIPT",
+        "CROSS_LANE_BOUNDARY_RECEIPT",
+        "EXACT_HEAD_FAILURE_AND_RESIDUAL_RISK_REPORT"
+      ],
+      "reports_to": [
+        "PROGRAM_OWNER"
+      ]
+    }
+  ],
+  "cross_lane_rules": {
+    "separate_branches_and_pull_requests": true,
+    "mixed_scope_pr_state": "BLOCKED_SCOPE_COLLISION",
+    "shared_file_edit_requires_program_owner_direction": true,
+    "primary_lane_may_not_self_validate": true,
+    "red_team_receipt_required_before_integration": true,
+    "integration_requires": [
+      "TRACK_Z_TERMINAL_RECEIPT",
+      "PROGRAM_OWNER_PLATFORM_RECOVERY_RECEIPT",
+      "INDEPENDENT_RED_TEAM_BOTH_LANES_PASS_OR_EXPLICIT_HOLD",
+      "INDEPENDENT_CROSS_LANE_BOUNDARY_RECEIPT",
+      "EXACT_MAIN_AND_EXACT_HEAD_BINDING",
+      "NO_PROTECTED_GATE_ELEVATION"
+    ],
+    "provider_artifacts_may_enter_platform_only_after": [
+      "TRACK_Z_RIGHTS_ACCESS_INPUT_AND_RETENTION_GATES_PASS",
+      "PROGRAM_OWNER_AUTHORIZES_THE_INTEGRATION_GENERATION",
+      "RED_TEAM_VALIDATES_THE_HANDOFF_CONTRACT",
+      "PLATFORM_RECOVERY_LANE_IS_STABLE_FOR_THE_TARGET_INTERFACE"
+    ],
+    "platform_recovery_artifacts_may_change_psa_lane_only_after": [
+      "PROGRAM_OWNER_EXPLICIT_CROSS_LANE_DIRECTION",
+      "TRACK_Z_IMPACT_REVIEW",
+      "RED_TEAM_REGRESSION_PLAN"
+    ]
+  },
+  "truth_and_reporting": {
+    "track_z_statement": "TRACK_Z_OWNS_PSA_IMPROVEMENT_AND_VALIDATION; PR_2230_IS_DRAFT_HANDOFF_WITH_NO_AUTHORITY_DELTA",
+    "platform_statement": "PROGRAM_OWNER_LEADS_SENTINEL_CANONICAL_KIR_NORMAL_RECOVERY",
+    "red_team_statement": "RED_TEAM_INDEPENDENTLY_VALIDATES_BOTH_LANES_AND_THE_INTEGRATION_BOUNDARY",
+    "kpmo_statement": "KPMO_COORDINATES_AND_REPORTS_BUT_DOES_NOT_TAKE_PRIMARY_PSA_OWNERSHIP_OR_REPLACE_PROGRAM_OWNER_PLATFORM_LEAD",
+    "reporting_cadence": "MATERIAL_EVENT_AND_GATE_CHANGE",
+    "single_integrated_report_owner": "KPMO",
+    "final_decision_owner": "PROGRAM_OWNER"
+  },
+  "gates": {
+    "provider_call": "SEPARATELY_GATED_BY_TRACK_Z_AND_PROGRAM_OWNER",
+    "credential_use": "SEPARATELY_GATED",
+    "contract_and_spend": "PROGRAM_OWNER_APPROVAL_REQUIRED",
+    "database_mutation": "HOLD_UNLESS_SEPARATELY_AUTHORIZED",
+    "production": "HOLD",
+    "public": "HOLD",
+    "g5": "HOLD"
+  },
+  "rollback": "PROGRAM_OWNER_MAY_SUPERSEDE_THIS_CONTRACT_WITH_A_NEW_EXACTLY_IDENTIFIED_ROLE_PARTITION; HISTORY_AND_RECEIPTS_MUST_BE_PRESERVED"
+}
