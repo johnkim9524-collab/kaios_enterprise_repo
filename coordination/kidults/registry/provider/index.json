@@ -1,12 +1,12 @@
 {
   "registry_id": "kidults-provider-registry",
   "registry_name": "Provider Registry",
-  "registry_version": "2.1.0",
+  "registry_version": "2.2.0",
   "schema_version": "1.0.0",
   "owner": "Program Owner / Provider Lead",
   "custodian": "Atlas",
   "status": "ACTIVE",
-  "effective_at": "2026-08-30T23:26:15Z",
+  "effective_at": "2026-10-27T19:10:00.000Z",
   "record_directory": "records",
   "record_count": 2,
   "current_record_id": "provider-requirements-v1",
@@ -30,11 +30,17 @@
     {
       "id": "provider-operating-state-v1",
       "path": "records/provider-operating-state-v1.json",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "status": "ACTIVE_FAIL_CLOSED"
     }
   ],
   "change_history": [
+    {
+      "version": "2.2.0",
+      "changed_at": "2026-10-27T19:10:00.000Z",
+      "changed_by": "KPMO / Provider Lead",
+      "change": "Recorded authenticated PSA clarification request message 1a17ec570f8c8620. No rights, contract, spend, credential, acquisition, activation, Public, Production or G5 authority was granted; any written rephrase remains KPMO review and Program Owner send-decision HOLD."
+    },
     {
       "version": "2.1.0",
       "changed_at": "2026-08-30T23:26:15Z",
