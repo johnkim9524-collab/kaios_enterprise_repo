@@ -1,7 +1,7 @@
 {
   "id": "provider-operating-state-v1",
   "record_type": "provider_operating_state",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "status": "ACTIVE_FAIL_CLOSED",
   "created_at": "2026-08-30T02:32:50Z",
   "created_by": "KPMO / Provider Lead",
@@ -89,11 +89,11 @@
       ],
       "owner": "Program Owner / Provider Lead",
       "state": "BOUNDED",
-      "evidence_date": "2026-09-21",
+      "evidence_date": "2026-10-27",
       "deadline": null,
-      "next_action": "ASSEMBLE_MACHINE_VALIDATED_PROVENANCE_BOUND_MANIFEST_AND_PROVISION_PRIVATE_RUNTIME_CONTROLS_BEFORE_ANY_LIVE_WAVE",
+      "next_action": "KPMO_PREPARE_ONE_CONCRETE_EXAMPLE_AND_EXPLICIT_CONTRACT_CONFLICT_MAPPING_FOR_PROGRAM_OWNER_REVIEW_NO_EXTERNAL_SEND_AUTHORIZED",
       "cost_exposure": "USD_199_ANNUAL_MEMBERSHIP_RECORDED_NO_NEW_SPEND_AUTHORIZED",
-      "blocker": "PROVENANCE_BOUND_ADMISSIBLE_MANIFEST_0_OF_120_AND_PRIVATE_RUNTIME_NOT_PROVISIONED",
+      "blocker": "PSA_REQUESTED_REPHRASE_WITH_CONCRETE_EXAMPLE_AND_CONTRACT_CONFLICT_MAPPING_NO_NEW_RIGHTS_OR_APPROVAL",
       "rights_state": "BOUNDED_PRIVATE_REFERENCE_AND_AUTHENTICATION_ONLY",
       "schema_state": "ONE_BOUNDED_17_FIELD_RESPONSE_SCHEMA_VERIFIED_NOT_LIVE_ADAPTER",
       "adapter_state": "NOT_ACTIVE",
@@ -106,21 +106,23 @@
         "lawful_progress": "0_OF_120"
       },
       "communication": {
-        "state": "BOUNDED_USE_RESPONSE_RECEIVED_PRIVATE_EXECUTION_CONTROLS_HOLD",
-        "last_outbound_at": "2026-09-23T02:17:55.000Z",
-        "last_outbound_evidence_ref": "gmail:message:1a0cc0e573998bb6",
-        "last_outbound_thread_ref": "gmail:thread:1a0cc0e573998bb6",
-        "latest_provider_response_at": "2026-09-23T13:10:40.000Z",
-        "latest_provider_response_evidence_ref": "gmail:message:1a0ce643d74de351",
+        "state": "PROVIDER_CLARIFICATION_REQUEST_RECEIVED_OWNER_REVIEW_HOLD",
+        "last_outbound_at": "2026-10-27T08:15:56.000Z",
+        "last_outbound_evidence_ref": "gmail:message:1a17c6e2618ff897",
+        "last_outbound_thread_ref": "gmail:thread:1a0196deda4c61f3",
+        "latest_provider_response_at": "2026-10-27T19:10:00.000Z",
+        "latest_provider_response_evidence_ref": "gmail:message:1a17ec570f8c8620",
         "latest_substantive_rights_response_at": "2026-09-21T17:23:55.000Z",
         "latest_substantive_rights_response_evidence_ref": "gmail:message:1a0c4ff590997e62",
         "response_after_last_outbound_observed": true,
-        "observed_through": "2026-10-10T04:11:58Z",
+        "observed_through": "2026-10-27T19:10:00.000Z",
         "duplicate_outreach_prohibited": true,
         "resend_authorized": false,
         "automatic_followup_authorized": false,
-        "reopen_condition": "NOT_APPLICABLE_BOUNDED_USE_ONLY",
-        "initial_outbound_evidence_ref": "gmail:message:1a0535522bb7b510"
+        "reopen_condition": "PROGRAM_OWNER_APPROVES_KPMO_REVIEWED_WRITTEN_REPHRASE",
+        "initial_outbound_evidence_ref": "gmail:message:1a0535522bb7b510",
+        "latest_response_kind": "CLARIFICATION_REQUEST_NO_NEW_RIGHTS",
+        "rights_changed_by_latest_response": false
       },
       "evidence_refs": [
         "coordination/kidults/provider/provider-communication-evidence-2026-08-30-v1.json#psa-provenance-source-clarification-20260830",
@@ -129,7 +131,8 @@
         "coordination/kidults/provider/psa-120-known-cert-manifest-v1.json",
         "coordination/kidults/provider/psa-120-admission-controls-receipt-v1.json",
         "coordination/kidults/provider/psa-communication-refresh-20261010-v1.json",
-        "coordination/kidults/provider/psa-private-operation-control-v1.json"
+        "coordination/kidults/provider/psa-private-operation-control-v1.json",
+        "coordination/kidults/provider/psa-communication-refresh-20261028-v1.json"
       ],
       "acquisition_authorized": false,
       "external_communication_authorized": false,
@@ -137,7 +140,7 @@
       "new_spend_authorized": false,
       "public_release": "HOLD",
       "production": "HOLD",
-      "communication_observation_ref": "coordination/kidults/provider/psa-communication-refresh-20261010-v1.json"
+      "communication_observation_ref": "coordination/kidults/provider/psa-communication-refresh-20261028-v1.json"
     },
     {
       "provider_id": "GEMRATE",
@@ -817,7 +820,7 @@
       "provider_name": "HobbyKorea PSA provenance-source path",
       "aliases": [
         "HobbyKorea",
-        "\ud558\ube44\ucf54\ub9ac\uc544"
+        "하비코리아"
       ],
       "source_layer": "FIRST_PARTY_OR_CONSENTED",
       "brands_or_verticals": [

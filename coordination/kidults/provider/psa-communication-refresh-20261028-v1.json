@@ -1,0 +1,139 @@
+{
+  "id": "KIDULTS_PSA_COMMUNICATION_REFRESH_20261028_V1",
+  "version": "1.0.0",
+  "as_of": "2026-10-27T19:10:00.000Z",
+  "scope": "PSA_ONLY_OTHER_PROVIDER_SNAPSHOTS_NOT_REFRESHED",
+  "evidence_method": "AUTHENTICATED_GMAIL_SEARCH_AND_FULL_MESSAGE_READ",
+  "events": [
+    {
+      "message_id": "1a0c45c3cfc4522a",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T14:26:14.000Z",
+      "direction": "OUTBOUND",
+      "evidence_ref": "gmail:message:1a0c45c3cfc4522a",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "partnerships@kidults.com",
+      "authentication": "AUTHENTICATED_GMAIL_SENT_MESSAGE",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0c4ed36638f031",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T17:04:04.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0c4ed36638f031",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "Alan Ni <ani@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0c4ff590997e62",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-09-21T17:23:55.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0c4ff590997e62",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "Collectors API <collectors-apis@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "BOUNDED_USE_RESPONSE"
+    },
+    {
+      "message_id": "1a0cc0e573998bb6",
+      "thread_id": "1a0cc0e573998bb6",
+      "occurred_at": "2026-09-23T02:17:55.000Z",
+      "direction": "OUTBOUND",
+      "evidence_ref": "gmail:message:1a0cc0e573998bb6",
+      "thread_ref": "gmail:thread:1a0cc0e573998bb6",
+      "from": "John Kim <john.kim9524@gmail.com>",
+      "authentication": "AUTHENTICATED_GMAIL_SENT_MESSAGE",
+      "kind": "CONTEXT"
+    },
+    {
+      "message_id": "1a0ce643d74de351",
+      "thread_id": "1a0cc0e573998bb6",
+      "occurred_at": "2026-09-23T13:10:40.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a0ce643d74de351",
+      "thread_ref": "gmail:thread:1a0cc0e573998bb6",
+      "from": "PSA API Team <collectors-apis@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "OFFICIAL_SINGLE_CERT_TEST_SOURCE_RESPONSE"
+    },
+    {
+      "message_id": "1a17c6e2618ff897",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-10-27T08:15:56.000Z",
+      "direction": "OUTBOUND",
+      "evidence_ref": "gmail:message:1a17c6e2618ff897",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "Kidults Partnerships <partnerships@kidults.com>",
+      "authentication": "AUTHENTICATED_GMAIL_SENT_MESSAGE",
+      "kind": "PRODUCT_IDENTITY_COMPARISON_CLARIFICATION_REQUEST"
+    },
+    {
+      "message_id": "1a17ec570f8c8620",
+      "thread_id": "1a0196deda4c61f3",
+      "occurred_at": "2026-10-27T19:10:00.000Z",
+      "direction": "INBOUND",
+      "evidence_ref": "gmail:message:1a17ec570f8c8620",
+      "thread_ref": "gmail:thread:1a0196deda4c61f3",
+      "from": "PSA API Team <collectors-apis@collectors.com>",
+      "authentication": "GMAIL_AUTH_RESULTS_COLLECTORS_DKIM_SPF_DMARC_PASS",
+      "kind": "CLARIFICATION_REQUEST_NO_NEW_RIGHTS"
+    }
+  ],
+  "findings": {
+    "bounded_use_accepted": true,
+    "signed_enterprise_agreement_not_required_for_correspondence_volume": true,
+    "no_sandbox": true,
+    "official_single_test_reference_provided": true,
+    "raw_test_reference_retained": false,
+    "rights_expanded": false,
+    "new_outbound_created": false,
+    "source_acquisition_count": 0,
+    "psa_api_calls": 0,
+    "lawful_manifest_admitted": 0,
+    "provider_requested_rephrase_with_concrete_example": true,
+    "provider_requested_contract_conflict_mapping": true,
+    "request_understood_by_provider": false,
+    "new_rights_or_approval_received": false,
+    "latest_response_classification": "CLARIFICATION_REQUEST_NO_RIGHTS_CHANGE"
+  },
+  "limits": {
+    "private_reference_authentication_only": true,
+    "no_current_sold_claim": true,
+    "maximum_raw_retention_days": 30,
+    "no_crawling_or_enumeration": true,
+    "no_public_or_redistribution": true,
+    "native_provider_execution_verified": false
+  },
+  "authority_granted": false,
+  "production": "HOLD",
+  "public": "HOLD",
+  "g5": "HOLD",
+  "supersedes": "coordination/kidults/provider/psa-communication-refresh-20261010-v1.json",
+  "intake": {
+    "provider": "PSA / Collectors API",
+    "sender": "PSA API Team <collectors-apis@collectors.com>",
+    "envelope_sender": "cmcgrath@collectors.com",
+    "received_at": "2026-10-27T19:10:00.000Z",
+    "received_at_kst": "2026-10-28T04:10:00+09:00",
+    "subject": "Re: Follow-up: provenance requirements for bounded Cert Verification evaluation",
+    "message_id": "1a17ec570f8c8620",
+    "thread_id": "1a0196deda4c61f3",
+    "evidence_ref": "gmail:message:1a17ec570f8c8620",
+    "thread_ref": "gmail:thread:1a0196deda4c61f3",
+    "authentication": "DKIM_SPF_DMARC_PASS",
+    "material_change": [
+      "PSA_DID_NOT_APPROVE_OR_REJECT_THE_COMPARISON_CONTEXT_REQUEST",
+      "PSA_REQUESTED_A_CONCRETE_EXAMPLE_AND_AN_EXPLICIT_CONTRACT_CONFLICT_MAPPING"
+    ],
+    "unresolved_points": [
+      "WHETHER_NON_CERTIFICATION_CHECKLIST_DESCRIPTIONS_MAY_BE_USED_AS_PRIVATE_COMPARISON_CONTEXT",
+      "WHICH_CONTRACT_TERM_PSA_BELIEVES_IS_RELEVANT",
+      "PSA_SUPPORTED_REFERENCE_OR_PROCEDURE_FOR_TWO_SIDED_ENTITY_RESOLUTION"
+    ],
+    "raw_body_retained": false
+  }
+}

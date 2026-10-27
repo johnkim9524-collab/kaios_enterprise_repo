@@ -1,14 +1,17 @@
 {
   "id": "provider-authorization-action-queue-v1",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "status": "CANONICAL_CANDIDATE",
   "product_id": "rp-cards-comics-memorabilia-wizards-of-the-coast-magic-the-gathering-alpha-black-lotus",
   "actions": [
     {
       "priority": 1,
       "provider": "PSA",
-      "goal": "Approve the exact Cert Verification field map, connect encrypted private storage and 30-day deletion receipts, assemble a lawful 120-known-cert manifest, then execute a quota-safe bounded internal evaluation",
+      "goal": "Clarify the private two-sided entity-resolution comparison method in writing, then preserve the existing field-map, encrypted-storage, deletion-receipt and lawful-manifest gates before any API execution",
       "required_external_input": [
+        "KPMO_REVIEWED_CONCRETE_COMPARISON_EXAMPLE",
+        "EXPLICIT_CONTRACT_CONFLICT_MAPPING_OR_CONFIRMATION_OF_NO_CONFLICT",
+        "PROGRAM_OWNER_WRITTEN_SEND_DECISION",
         "EXACT_FIELD_MAP_APPROVAL",
         "ENCRYPTED_PRIVATE_STORE_AND_ACCESS_AUDIT",
         "RETENTION_DELETION_SCHEDULER_AND_RECEIPT",
@@ -20,10 +23,18 @@
         "POPULATION_CONTEXT",
         "NON_RAW_NON_RECONSTRUCTIVE_INTERNAL_DERIVED_RESULTS"
       ],
-      "state": "API_CONNECTION_VERIFIED_120_EXECUTION_CONTROLS_PENDING",
-      "evidence_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+      "state": "PROVIDER_CLARIFICATION_REQUEST_RECEIVED_OWNER_DECISION_HOLD",
+      "evidence_ref": "coordination/kidults/provider/psa-communication-refresh-20261028-v1.json",
       "connection_run_id": 33123384792,
-      "acquisition_progress": "0_OF_120"
+      "acquisition_progress": "0_OF_120",
+      "connection_evidence_ref": "coordination/kidults/provider/psa-premium-api-connection-receipt-v1.json",
+      "latest_provider_response_at": "2026-10-27T19:10:00.000Z",
+      "latest_provider_response_evidence_ref": "gmail:message:1a17ec570f8c8620",
+      "external_communication_authorized": false,
+      "resend_authorized": false,
+      "automatic_followup_authorized": false,
+      "owner_decision_required": true,
+      "next_action": "KPMO_DRAFT_ONLY_NO_SEND"
     },
     {
       "priority": 2,
@@ -78,5 +89,6 @@
     "minimum_independent_transaction_families_for_index_pass": 3,
     "on_credential_binding": "RUN_DEV_BOUNDED_COLLECTION_THEN_TRACK_B",
     "production": "HOLD"
-  }
+  },
+  "updated_at": "2026-10-27T19:10:00.000Z"
 }

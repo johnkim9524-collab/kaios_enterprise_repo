@@ -21,7 +21,7 @@ const PATHS = {
   gemrate: 'coordination/kidults/provider/gemrate-bounded-pilot-preflight-v1.json',
   classic: 'coordination/kidults/market/classic-bundle3-provider-response-intake-v1.json',
   communicationEvidence: PROVIDER_COMMUNICATION_EVIDENCE_PATH,
-  psaRefresh: 'coordination/kidults/provider/psa-communication-refresh-20261010-v1.json'
+  psaRefresh: 'coordination/kidults/provider/psa-communication-refresh-20261028-v1.json'
 };
 
 const read = path => JSON.parse(fs.readFileSync(path, 'utf8'));
@@ -55,8 +55,10 @@ export function validateProviderOperatingState(documents) {
     ['1a0c4ff590997e62','1a0196deda4c61f3','2026-09-21T17:23:55.000Z','INBOUND'],
     ['1a0cc0e573998bb6','1a0cc0e573998bb6','2026-09-23T02:17:55.000Z','OUTBOUND'],
     ['1a0ce643d74de351','1a0cc0e573998bb6','2026-09-23T13:10:40.000Z','INBOUND'],
+    ['1a17c6e2618ff897','1a0196deda4c61f3','2026-10-27T08:15:56.000Z','OUTBOUND'],
+    ['1a17ec570f8c8620','1a0196deda4c61f3','2026-10-27T19:10:00.000Z','INBOUND'],
   ];
-  check(psaRefresh?.id==='KIDULTS_PSA_COMMUNICATION_REFRESH_20261010_V1'
+  check(psaRefresh?.id==='KIDULTS_PSA_COMMUNICATION_REFRESH_20261028_V1'
     && psaRefresh.evidence_method==='AUTHENTICATED_GMAIL_SEARCH_AND_FULL_MESSAGE_READ'
     && psaRefresh.scope==='PSA_ONLY_OTHER_PROVIDER_SNAPSHOTS_NOT_REFRESHED'
     && Number.isFinite(Date.parse(psaRefresh.as_of)), 'PSA_REFRESH_IDENTITY');
@@ -70,7 +72,10 @@ export function validateProviderOperatingState(documents) {
   check(psaRefresh?.authority_granted===false && psaRefresh.public==='HOLD' && psaRefresh.production==='HOLD'
     && psaRefresh.g5==='HOLD' && psaRefresh.findings?.rights_expanded===false
     && psaRefresh.findings?.new_outbound_created===false && psaRefresh.findings?.raw_test_reference_retained===false
-    && psaRefresh.findings?.lawful_manifest_admitted===0 && psaRefresh.findings?.psa_api_calls===0,
+    && psaRefresh.findings?.lawful_manifest_admitted===0 && psaRefresh.findings?.psa_api_calls===0
+    && psaRefresh.findings?.provider_requested_rephrase_with_concrete_example===true
+    && psaRefresh.findings?.provider_requested_contract_conflict_mapping===true
+    && psaRefresh.findings?.new_rights_or_approval_received===false,
   'PSA_REFRESH_AUTHORITY_BOUNDARY');
   const latestRefresh=direction=>refreshEvents.filter(event=>event.direction===direction)
     .sort((left,right)=>Date.parse(left.occurred_at)-Date.parse(right.occurred_at)).at(-1);
@@ -114,7 +119,7 @@ export function validateProviderOperatingState(documents) {
   check(index.records?.some(record => record.id === operating.id && record.path === 'records/provider-operating-state-v1.json'),
     'PROVIDER_REGISTRY_RECORD');
   check(operating.status === 'ACTIVE_FAIL_CLOSED', 'OPERATING_STATE_STATUS');
-  check(operating.version === '1.1.0', 'OPERATING_STATE_VERSION');
+  check(operating.version === '1.2.0', 'OPERATING_STATE_VERSION');
   check(operating.canonical_machine_contract === PATHS.contract, 'MACHINE_CONTRACT_BINDING');
   check(operating.communication_evidence_manifest === PROVIDER_COMMUNICATION_EVIDENCE_PATH, 'COMMUNICATION_EVIDENCE_BINDING');
   check(Date.parse(operating.as_of) >= Date.parse(communicationEvidence.as_of), 'OPERATING_AS_OF_PRECEDES_COMMUNICATION_EVIDENCE');
